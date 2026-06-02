@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentUser, requirePermission } from "@/lib/auth/session";
 import { updateUserCredentials } from "@/lib/auth/users";
+import { validatePasswordPolicy } from "@/lib/auth/password-policy";
 
 export type AccountActionState = {
   error?: string;
@@ -31,8 +32,9 @@ export async function updateAdminCredentialsAction(
     return { error: "Current password is required." };
   }
 
-  if (nextPassword && nextPassword.length < 8) {
-    return { error: "New password must be at least 8 characters long." };
+  if (nextPassword) {
+    const policy = validatePasswordPolicy(nextPassword);
+    if (!policy.ok) return { error: policy.error };
   }
 
   if (nextPassword && nextPassword !== confirmPassword) {

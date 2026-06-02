@@ -14,12 +14,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const collection = await getCollectionBySlug(slug);
 
   if (!collection) {
-    return { title: "Collection | Synarava" };
+    return { title: "Collection" };
   }
 
   return {
-    title: `${collection.name} | Synarava`,
+    title: collection.name,
     description: collection.summary,
+    alternates: { canonical: `/collections/${slug}` },
+    openGraph: {
+      url: `/collections/${slug}`,
+      images: [
+        {
+          url: collection.heroImage,
+          width: 1200,
+          height: 630,
+          alt: collection.name,
+        },
+      ],
+    },
   };
 }
 
@@ -31,8 +43,22 @@ export default async function CollectionPage({ params }: Props) {
 
   const collectionProducts = await getProductsByCollection(slug);
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
+      { "@type": "ListItem", position: 2, name: "Collections", item: "/collections" },
+      { "@type": "ListItem", position: 3, name: collection.name, item: `/collections/${slug}` },
+    ],
+  };
+
   return (
     <main className="artifact-shell overflow-x-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Hero — full viewport */}
       <header className="relative flex h-[70vh] min-h-[480px] w-full items-center overflow-hidden md:h-screen">
         <div className="absolute inset-0 z-0">

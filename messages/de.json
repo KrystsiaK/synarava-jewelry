@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "shop": "Shop",
+    "collections": "Kollektionen",
+    "about": "Über uns",
+    "cart": "Warenkorb",
+    "login": "Anmelden",
+    "loginRegister": "Anmelden / Registrieren",
+    "admin": "Admin",
+    "openMenu": "Navigationsmenü öffnen",
+    "closeMenu": "Navigationsmenü schließen"
+  },
+  "footer": {
+    "tagline": "Die Seele der weißrussischen Couture.",
+    "navigationHeading": "Navigation",
+    "serviceHeading": "Service",
+    "shop": "Shop",
+    "collections": "Kollektionen",
+    "about": "Über uns",
+    "manifesto": "Manifest",
+    "careGuide": "Pflegeanleitung",
+    "shipping": "Versand",
+    "contact": "Kontakt",
+    "privacyPolicy": "Datenschutzrichtlinie",
+    "publicOffer": "Öffentliches Angebot",
+    "offerGovernedBy": "Alle Käufe unterliegen unseren",
+    "offerTerms": "Angebotsbedingungen",
+    "copyright": "© 2025 Synarava Jewelry."
+  },
+  "auth": {
+    "email": "E-Mail",
+    "password": "Passwort",
+    "passwordHint": "Mindestens 8 Zeichen",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen",
+    "login": {
+      "eyebrow": "Identifizieren",
+      "title": "Anmelden",
+      "submit": "Einloggen",
+      "submitting": "Einloggen…",
+      "forgotPassword": "Passwort vergessen",
+      "noAccount": "Noch kein Konto?",
+      "createOne": "Erstellen"
+    },
+    "register": {
+      "eyebrow": "Beitreten",
+      "title": "Registrieren",
+      "name": "Name",
+      "confirmPassword": "Passwort bestätigen",
+      "submit": "Konto erstellen",
+      "submitting": "Konto wird erstellt…",
+      "alreadyRegistered": "Bereits registriert?",
+      "signIn": "Anmelden"
+    },
+    "resetRequest": {
+      "eyebrow": "Wiederherstellen",
+      "title": "Passwort zurücksetzen",
+      "accountEmail": "Konto-E-Mail",
+      "submit": "Reset-Link generieren",
+      "submitting": "Link wird vorbereitet…",
+      "previewLink": "Lokaler Vorschau-Link",
+      "returnTo": "Zurück zur",
+      "loginLink": "Anmeldung"
+    },
+    "resetConfirm": {
+      "eyebrow": "Wiederherstellen",
+      "title": "Neues Passwort festlegen",
+      "newPassword": "Neues Passwort",
+      "confirmNewPassword": "Neues Passwort bestätigen",
+      "submit": "Passwort aktualisieren",
+      "submitting": "Wird aktualisiert…",
+      "backTo": "Zurück zur",
+      "loginLink": "Anmeldung"
+    },
+    "adminCredentials": {
+      "eyebrow": "Anmeldedaten",
+      "title": "Login und Passwort",
+      "emailLogin": "E-Mail-Login",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmNewPassword": "Neues Passwort bestätigen",
+      "passwordNote": "Lassen Sie die neuen Passwortfelder leer, wenn Sie nur die E-Mail ändern möchten.",
+      "submit": "Anmeldedaten aktualisieren",
+      "submitting": "Wird aktualisiert…"
+    }
+  },
+  "password": {
+    "strength": {
+      "weak": "Schwach",
+      "fair": "Mittel",
+      "good": "Gut",
+      "strong": "Stark"
+    },
+    "req": {
+      "length": "Mindestens 8 Zeichen",
+      "uppercase": "Großbuchstabe (A–Z)",
+      "lowercase": "Kleinbuchstabe (a–z)",
+      "number": "Ziffer (0–9)",
+      "special": "Sonderzeichen (!@#…)"
+    }
+  },
+  "language": {
+    "select": "Sprache wählen"
+  }
+}

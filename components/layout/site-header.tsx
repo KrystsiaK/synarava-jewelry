@@ -6,24 +6,28 @@ import { Menu, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { BrandMark } from "@/components/ui/brand-mark";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { useTranslations } from "@/lib/i18n/context";
 
 type SiteHeaderProps = {
   initialCartCount: number;
 };
 
-const navItems = [
-  { href: "/", label: "Home", match: "/" },
-  { href: "/shop", label: "Shop", match: "/shop" },
-  { href: "/collections", label: "Collections", match: "/collections" },
-  { href: "/about", label: "About", match: "/about" },
-];
-
 export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
   const pathname = usePathname();
+  const { t } = useTranslations();
   const [cartCountOverride, setCartCountOverride] = useState<number | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const cartCount = cartCountOverride ?? initialCartCount;
   const hasCartItems = cartCount > 0;
+
+  const navItems = [
+    { href: "/", label: t("nav.home"), match: "/" },
+    { href: "/shop", label: t("nav.shop"), match: "/shop" },
+    { href: "/collections", label: t("nav.collections"), match: "/collections" },
+    { href: "/about", label: t("nav.about"), match: "/about" },
+  ];
 
   useEffect(() => {
     function handleCartUpdated(event: Event) {
@@ -68,21 +72,31 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
             className="inline-flex size-11 items-center justify-center border border-foreground/10 text-foreground transition-colors hover:border-foreground/25 hover:bg-foreground/5 md:hidden"
-            aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
           </button>
 
-          <Link href="/" className="font-serif text-[1.15rem] tracking-[0.22em] text-foreground md:text-[1.7rem] md:tracking-[0.28em]">
-            SYNARAVA
+          <Link href="/" className="flex items-center gap-3 md:gap-4" aria-label="SYNARAVA">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden md:h-20 md:w-20">
+              <BrandMark
+                alt=""
+                priority
+                size={128}
+                className="h-[5.5rem] w-[5.5rem] max-w-none object-contain object-center md:h-[6.5rem] md:w-[6.5rem]"
+              />
+            </span>
+            <span className="font-serif text-[1.15rem] tracking-[0.22em] text-foreground md:text-[1.7rem] md:tracking-[0.28em]">
+              SYNARAVA
+            </span>
           </Link>
         </div>
 
         <nav className="hidden items-center gap-8 lg:flex xl:gap-12">
           {navItems.map((item) => (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
               className={`label-caps transition-colors hover:text-accent ${
                 isActive(item.match)
@@ -100,9 +114,11 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
             <ThemeToggle compact />
           </div>
 
+          <LanguageSwitcher />
+
           <Link
             href="/cart"
-            aria-label={`Cart${cartCount > 0 ? `, ${cartCount} items` : ""}`}
+            aria-label={`${t("nav.cart")}${cartCount > 0 ? `, ${cartCount} items` : ""}`}
             className={`relative inline-flex items-center gap-2 border px-3 py-2 transition-all hover:border-foreground/30 hover:text-accent ${
               /* c8 ignore next 4 */
               isActive("/cart")
@@ -125,7 +141,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
                 isActive("/cart") || hasCartItems ? "text-foreground" : "text-muted"
               }`}
             >
-              Cart
+              {t("nav.cart")}
             </span>
           </Link>
 
@@ -133,13 +149,13 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
             href="/login"
             className="hidden label-caps px-2 text-muted transition-colors hover:text-accent md:inline"
           >
-            Login
+            {t("nav.login")}
           </Link>
           <Link
             href="/admin"
             className="hidden label-caps px-2 text-muted transition-colors hover:text-accent lg:inline"
           >
-            Admin
+            {t("nav.admin")}
           </Link>
         </div>
       </header>
@@ -158,14 +174,15 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
         }`}
         aria-hidden={!isMenuOpen}
       >
-        <div className="mb-8">
+        <div className="mb-8 flex items-center gap-3">
           <ThemeToggle />
+          <LanguageSwitcher />
         </div>
 
         <nav className="flex flex-col border-t border-foreground/10 pt-6">
           {navItems.map((item) => (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
               onClick={() => setIsMenuOpen(false)}
               className={`border-b border-foreground/8 py-4 font-serif text-[1.55rem] transition-colors ${
@@ -179,10 +196,10 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
 
         <div className="mt-8 flex flex-col gap-4">
           <Link href="/login" onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-accent">
-            Login / Register
+            {t("nav.loginRegister")}
           </Link>
           <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-accent">
-            Admin
+            {t("nav.admin")}
           </Link>
         </div>
       </aside>

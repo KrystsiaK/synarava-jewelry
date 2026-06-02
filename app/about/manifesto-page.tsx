@@ -10,8 +10,21 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getPageBySlug } from "@/lib/content/catalog";
 
 export const metadata: Metadata = {
-  title: "The Manifesto | Synarava",
-  description: "The editorial manifesto of Synarava and the soul of Belarusian couture.",
+  title: "The Manifesto",
+  description:
+    "The editorial manifesto of Synarava — an act of preservation between the ancient Slavic soul and contemporary high fashion.",
+  alternates: { canonical: "/about/manifesto" },
+  openGraph: {
+    url: "/about/manifesto",
+    images: [
+      {
+        url: "https://lh3.googleusercontent.com/aida-public/AB6AXuAsOpilx95kk9tsj12r0FFG2UFEpnvVCSCj8zjj1_un-K347C_bYyfjiBfHqVhN7zzUIZ6ozazQxs49HgYM0nwLxVV_V-oCjDAD6QJftXKg4uJF9VXZZMF7SnXTuGUbTcXPb8YpkhuyReJ5XbM6cmIPd1_ZewFgYq_eM3-SzvrzxvrGS91YDoHIO1EY-VONHmNa2LsvHgEWNqfyALYgIDXy_TuRnrTrcjodxqPvTs-9GvTow0A7s7QXartwC2wPcxedNcDYyDBOZOpL",
+        width: 1200,
+        height: 630,
+        alt: "Synarava manifesto editorial",
+      },
+    ],
+  },
 };
 
 const heritagePoints = [

@@ -1,7 +1,26 @@
 /* eslint-disable @next/next/no-img-element */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getPageBySlug, listCollections } from "@/lib/content/catalog";
+
+export const metadata: Metadata = {
+  title: { absolute: "Synarava — Handcrafted Belarusian Couture Jewelry" },
+  description:
+    "Handcrafted jewelry that bridges ancient Slavic mysticism and contemporary architectural avant-garde. Explore our couture collections.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    url: "/",
+    images: [
+      {
+        url: "https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr",
+        width: 1200,
+        height: 630,
+        alt: "Synarava — Belarusian Couture Jewelry",
+      },
+    ],
+  },
+};
 
 const materials = [
   {

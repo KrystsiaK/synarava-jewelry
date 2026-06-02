@@ -22,6 +22,7 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: optionalString,
   S3_SECRET_ACCESS_KEY: optionalString,
   S3_ENDPOINT: optionalUrl,
+  DEEPL_API_KEY: optionalString,
 });
 
 export const env = envSchema.parse({
@@ -36,4 +37,5 @@ export const env = envSchema.parse({
   S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
   S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
   S3_ENDPOINT: process.env.S3_ENDPOINT,
+  DEEPL_API_KEY: process.env.DEEPL_API_KEY,
 });

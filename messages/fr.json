@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "shop": "Boutique",
+    "collections": "Collections",
+    "about": "À propos",
+    "cart": "Panier",
+    "login": "Connexion",
+    "loginRegister": "Connexion / Inscription",
+    "admin": "Admin",
+    "openMenu": "Ouvrir le menu de navigation",
+    "closeMenu": "Fermer le menu de navigation"
+  },
+  "footer": {
+    "tagline": "L'âme de la couture biélorusse.",
+    "navigationHeading": "Navigation",
+    "serviceHeading": "Service",
+    "shop": "Boutique",
+    "collections": "Collections",
+    "about": "À propos",
+    "manifesto": "Manifeste",
+    "careGuide": "Guide d'entretien",
+    "shipping": "Livraison",
+    "contact": "Contact",
+    "privacyPolicy": "Politique de confidentialité",
+    "publicOffer": "Offre publique",
+    "offerGovernedBy": "Tous les achats sont régis par nos",
+    "offerTerms": "conditions d'offre",
+    "copyright": "© 2025 Synarava Jewelry."
+  },
+  "auth": {
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "passwordHint": "Au moins 8 caractères",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
+    "login": {
+      "eyebrow": "Identifier",
+      "title": "Connexion",
+      "submit": "Se connecter",
+      "submitting": "Connexion en cours…",
+      "forgotPassword": "Mot de passe oublié",
+      "noAccount": "Pas encore de compte ?",
+      "createOne": "En créer un"
+    },
+    "register": {
+      "eyebrow": "Rejoindre",
+      "title": "S'inscrire",
+      "name": "Nom",
+      "confirmPassword": "Confirmer le mot de passe",
+      "submit": "Créer un compte",
+      "submitting": "Création du compte…",
+      "alreadyRegistered": "Déjà inscrit ?",
+      "signIn": "Se connecter"
+    },
+    "resetRequest": {
+      "eyebrow": "Restaurer",
+      "title": "Réinitialiser le mot de passe",
+      "accountEmail": "E-mail du compte",
+      "submit": "Générer le lien de réinitialisation",
+      "submitting": "Préparation du lien…",
+      "previewLink": "Lien d'aperçu local",
+      "returnTo": "Retour à la",
+      "loginLink": "connexion"
+    },
+    "resetConfirm": {
+      "eyebrow": "Restaurer",
+      "title": "Définir un nouveau mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "confirmNewPassword": "Confirmer le nouveau mot de passe",
+      "submit": "Mettre à jour le mot de passe",
+      "submitting": "Mise à jour…",
+      "backTo": "Retour à la",
+      "loginLink": "connexion"
+    },
+    "adminCredentials": {
+      "eyebrow": "Identifiants",
+      "title": "Identifiant et mot de passe",
+      "emailLogin": "E-mail de connexion",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "confirmNewPassword": "Confirmer le nouveau mot de passe",
+      "passwordNote": "Laissez les champs du nouveau mot de passe vides si vous souhaitez uniquement modifier l'e-mail.",
+      "submit": "Mettre à jour les identifiants",
+      "submitting": "Mise à jour…"
+    }
+  },
+  "password": {
+    "strength": {
+      "weak": "Faible",
+      "fair": "Moyen",
+      "good": "Bon",
+      "strong": "Fort"
+    },
+    "req": {
+      "length": "Au moins 8 caractères",
+      "uppercase": "Lettre majuscule (A–Z)",
+      "lowercase": "Lettre minuscule (a–z)",
+      "number": "Chiffre (0–9)",
+      "special": "Caractère spécial (!@#…)"
+    }
+  },
+  "language": {
+    "select": "Choisir la langue"
+  }
+}

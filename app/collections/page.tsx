@@ -5,8 +5,11 @@ import Link from "next/link";
 import { listCollections } from "@/lib/content/catalog";
 
 export const metadata: Metadata = {
-  title: "Collections | Synarava",
-  description: "Browse Synarava collections and enter each story-world before choosing a product.",
+  title: "Collections",
+  description:
+    "Browse Synarava jewelry collections — Belarus Heritage, Earth Rituals, and Dark Symbols. Enter each story-world before choosing your piece.",
+  alternates: { canonical: "/collections" },
+  openGraph: { url: "/collections" },
 };
 
 export default async function CollectionsPage() {

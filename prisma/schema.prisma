@@ -150,6 +150,10 @@ model Collection {
   subtitle        String?
   description     String?
   manifesto       String?
+  symbolismLabel  String?
+  symbolismTitle  String?
+  symbolismBody   String?
+  symbolismBody2  String?
   searchSummary   String?
   seoTitle        String?
   seoDescription  String?
@@ -194,6 +198,10 @@ model Product {
   shortDescription String?
   description      String?
   materialLine     String?
+  symbolismLabel   String?
+  symbolismTitle   String?
+  symbolismBody    String?
+  symbolismBody2   String?
   details          Json?
   currency         String             @default("EUR")
   status           ProductStatus      @default(DRAFT)
@@ -613,4 +621,11 @@ enum CartStatus {
   ACTIVE
   CONVERTED
   ABANDONED
+}
+
+model TranslationCache {
+  locale    String   @id
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

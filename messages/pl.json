@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Strona główna",
+    "shop": "Sklep",
+    "collections": "Kolekcje",
+    "about": "O nas",
+    "cart": "Koszyk",
+    "login": "Zaloguj się",
+    "loginRegister": "Zaloguj / Zarejestruj",
+    "admin": "Admin",
+    "openMenu": "Otwórz menu nawigacji",
+    "closeMenu": "Zamknij menu nawigacji"
+  },
+  "footer": {
+    "tagline": "Dusza białoruskiej couture.",
+    "navigationHeading": "Nawigacja",
+    "serviceHeading": "Serwis",
+    "shop": "Sklep",
+    "collections": "Kolekcje",
+    "about": "O nas",
+    "manifesto": "Manifest",
+    "careGuide": "Przewodnik pielęgnacji",
+    "shipping": "Wysyłka",
+    "contact": "Kontakt",
+    "privacyPolicy": "Polityka prywatności",
+    "publicOffer": "Umowa oferty publicznej",
+    "offerGovernedBy": "Wszystkie zakupy podlegają naszym",
+    "offerTerms": "warunkom oferty",
+    "copyright": "© 2025 Synarava Jewelry."
+  },
+  "auth": {
+    "email": "E-mail",
+    "password": "Hasło",
+    "passwordHint": "Co najmniej 8 znaków",
+    "showPassword": "Pokaż hasło",
+    "hidePassword": "Ukryj hasło",
+    "login": {
+      "eyebrow": "Identyfikacja",
+      "title": "Logowanie",
+      "submit": "Zaloguj się",
+      "submitting": "Logowanie…",
+      "forgotPassword": "Nie pamiętam hasła",
+      "noAccount": "Nie masz konta?",
+      "createOne": "Utwórz je"
+    },
+    "register": {
+      "eyebrow": "Dołącz",
+      "title": "Rejestracja",
+      "name": "Imię",
+      "confirmPassword": "Potwierdź hasło",
+      "submit": "Utwórz konto",
+      "submitting": "Tworzenie konta…",
+      "alreadyRegistered": "Masz już konto?",
+      "signIn": "Zaloguj się"
+    },
+    "resetRequest": {
+      "eyebrow": "Przywracanie",
+      "title": "Resetowanie hasła",
+      "accountEmail": "E-mail konta",
+      "submit": "Generuj link resetowania",
+      "submitting": "Przygotowywanie linku…",
+      "previewLink": "Lokalny link podglądu",
+      "returnTo": "Wróć do",
+      "loginLink": "logowania"
+    },
+    "resetConfirm": {
+      "eyebrow": "Przywracanie",
+      "title": "Ustaw nowe hasło",
+      "newPassword": "Nowe hasło",
+      "confirmNewPassword": "Potwierdź nowe hasło",
+      "submit": "Zaktualizuj hasło",
+      "submitting": "Aktualizowanie…",
+      "backTo": "Wróć do",
+      "loginLink": "logowania"
+    },
+    "adminCredentials": {
+      "eyebrow": "Dane logowania",
+      "title": "Login i hasło",
+      "emailLogin": "E-mail logowania",
+      "currentPassword": "Aktualne hasło",
+      "newPassword": "Nowe hasło",
+      "confirmNewPassword": "Potwierdź nowe hasło",
+      "passwordNote": "Zostaw pola nowego hasła puste, jeśli chcesz zmienić tylko adres e-mail.",
+      "submit": "Zaktualizuj dane",
+      "submitting": "Aktualizowanie…"
+    }
+  },
+  "password": {
+    "strength": {
+      "weak": "Słabe",
+      "fair": "Średnie",
+      "good": "Dobre",
+      "strong": "Silne"
+    },
+    "req": {
+      "length": "Co najmniej 8 znaków",
+      "uppercase": "Wielka litera (A–Z)",
+      "lowercase": "Mała litera (a–z)",
+      "number": "Cyfra (0–9)",
+      "special": "Znak specjalny (!@#…)"
+    }
+  },
+  "language": {
+    "select": "Wybierz język"
+  }
+}

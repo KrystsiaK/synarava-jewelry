@@ -240,6 +240,21 @@ select {
   background: transparent;
 }
 
+.admin-field {
+  appearance: none;
+  border-radius: 0;
+}
+
+.admin-field[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.admin-field[type="number"]::-webkit-outer-spin-button,
+.admin-field[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
 .artifact-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));

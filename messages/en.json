@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Home",
+    "shop": "Shop",
+    "collections": "Collections",
+    "about": "About",
+    "cart": "Cart",
+    "login": "Login",
+    "loginRegister": "Login / Register",
+    "admin": "Admin",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu"
+  },
+  "footer": {
+    "tagline": "The soul of Belarusian couture.",
+    "navigationHeading": "Navigation",
+    "serviceHeading": "Service",
+    "shop": "Shop",
+    "collections": "Collections",
+    "about": "About",
+    "manifesto": "Manifesto",
+    "careGuide": "Care Guide",
+    "shipping": "Shipping",
+    "contact": "Contact",
+    "privacyPolicy": "Privacy Policy",
+    "publicOffer": "Public Offer Agreement",
+    "offerGovernedBy": "All purchases are governed by our",
+    "offerTerms": "offer terms",
+    "copyright": "© 2025 Synarava Jewelry."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least 8 characters",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "login": {
+      "eyebrow": "Identify",
+      "title": "Login",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "forgotPassword": "Forgot password",
+      "noAccount": "No account yet?",
+      "createOne": "Create one"
+    },
+    "register": {
+      "eyebrow": "Join",
+      "title": "Register",
+      "name": "Name",
+      "confirmPassword": "Confirm password",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "alreadyRegistered": "Already registered?",
+      "signIn": "Sign in"
+    },
+    "resetRequest": {
+      "eyebrow": "Restore",
+      "title": "Reset password",
+      "accountEmail": "Account email",
+      "submit": "Generate reset link",
+      "submitting": "Preparing link…",
+      "previewLink": "Local preview link",
+      "returnTo": "Return to",
+      "loginLink": "login"
+    },
+    "resetConfirm": {
+      "eyebrow": "Restore",
+      "title": "Set a new password",
+      "newPassword": "New password",
+      "confirmNewPassword": "Confirm new password",
+      "submit": "Update password",
+      "submitting": "Updating…",
+      "backTo": "Back to",
+      "loginLink": "login"
+    },
+    "adminCredentials": {
+      "eyebrow": "Credentials",
+      "title": "Login and password",
+      "emailLogin": "Email login",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmNewPassword": "Confirm new password",
+      "passwordNote": "Leave the new password fields empty if you only want to change the login email.",
+      "submit": "Update credentials",
+      "submitting": "Updating…"
+    }
+  },
+  "password": {
+    "strength": {
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    },
+    "req": {
+      "length": "At least 8 characters",
+      "uppercase": "Uppercase letter (A–Z)",
+      "lowercase": "Lowercase letter (a–z)",
+      "number": "Number (0–9)",
+      "special": "Special character (!@#…)"
+    }
+  },
+  "language": {
+    "select": "Select language"
+  }
+}

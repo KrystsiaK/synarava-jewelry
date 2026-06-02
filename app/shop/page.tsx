@@ -6,8 +6,11 @@ import { FilterBar } from "@/components/shop";
 import { getShopFilterData, listShopProducts } from "@/lib/content/catalog";
 
 export const metadata: Metadata = {
-  title: "Shop | Synarava",
-  description: "Browse all Synarava products.",
+  title: "Shop",
+  description:
+    "Browse all Synarava handcrafted jewelry. Bracelets, symbolic editions, and earth pieces made from lava stone, oak wood, and white ceramic.",
+  alternates: { canonical: "/shop" },
+  openGraph: { url: "/shop" },
 };
 
 type Props = {

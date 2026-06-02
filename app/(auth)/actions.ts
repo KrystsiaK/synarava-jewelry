@@ -10,6 +10,7 @@ import {
   registerUser,
   resetPasswordFromToken,
 } from "@/lib/auth/users";
+import { validatePasswordPolicy } from "@/lib/auth/password-policy";
 
 export type AuthActionState = {
   error?: string;
@@ -71,9 +72,8 @@ export async function registerAction(
     return { error: "Email and password are required." };
   }
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters long." };
-  }
+  const policy = validatePasswordPolicy(password);
+  if (!policy.ok) return { error: policy.error };
 
   if (password !== confirmPassword) {
     return { error: "Passwords do not match." };
@@ -131,9 +131,8 @@ export async function resetPasswordAction(
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!password || password.length < 8) {
-    return { error: "New password must be at least 8 characters long." };
-  }
+  const policy = validatePasswordPolicy(password);
+  if (!policy.ok) return { error: policy.error };
 
   if (password !== confirmPassword) {
     return { error: "Passwords do not match." };

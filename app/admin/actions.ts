@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-
-import { requirePermission } from "@/lib/auth/session";
+import { getCurrentUser, requirePermission } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { saveProductImageUpload } from "@/lib/media/local-upload";
 
 function slugify(value: string) {
   return value
@@ -126,8 +126,50 @@ export async function saveTagAction(formData: FormData) {
   revalidatePath("/admin/products");
 }
 
+export async function saveCollectionAction(formData: FormData) {
+  await requirePermission("products.manage", "/admin/products");
+
+  const collectionId = String(formData.get("collectionId") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const subtitle = String(formData.get("subtitle") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const symbolismLabel = String(formData.get("symbolismLabel") ?? "").trim();
+  const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
+  const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
+  const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
+
+  if (!slug || !name) {
+    return;
+  }
+
+  const baseData = {
+    slug,
+    name,
+    subtitle: subtitle || null,
+    description: description || null,
+    symbolismLabel: symbolismLabel || null,
+    symbolismTitle: symbolismTitle || null,
+    symbolismBody: symbolismBody || null,
+    symbolismBody2: symbolismBody2 || null,
+    status: "ACTIVE" as const,
+    visibility: "PUBLIC" as const,
+    publishedAt: new Date(),
+  };
+
+  await db.collection.upsert({
+    where: collectionId ? { id: collectionId } : { slug },
+    update: baseData,
+    create: baseData,
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/products");
+}
+
 export async function saveProductAction(formData: FormData) {
   await requirePermission("products.manage", "/admin/products");
+  const currentUser = await getCurrentUser();
 
   const productId = String(formData.get("productId") ?? "").trim();
   const slug = slugify(String(formData.get("slug") ?? ""));
@@ -137,11 +179,40 @@ export async function saveProductAction(formData: FormData) {
   const shortDescription = String(formData.get("shortDescription") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const materialLine = String(formData.get("materialLine") ?? "").trim();
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim();
+  const symbolismLabel = String(formData.get("symbolismLabel") ?? "").trim();
+  const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
+  const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
+  const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
+  const existingImageUrl = String(formData.get("existingImageUrl") ?? "").trim();
   const price = Number(String(formData.get("price") ?? "0").trim() || "0");
   const categorySlug = String(formData.get("categorySlug") ?? "").trim();
   const collectionSlug = String(formData.get("collectionSlug") ?? "").trim();
   const tagInput = String(formData.get("tags") ?? "").trim();
+  const imageFile = formData.get("imageFile");
+
+  let imageUrl = existingImageUrl || null;
+  let uploadedAssetId: string | null = null;
+
+  if (imageFile instanceof File && imageFile.size > 0) {
+    const uploaded = await saveProductImageUpload(imageFile);
+    if (uploaded) {
+      imageUrl = uploaded.publicPath;
+      const asset = await db.mediaAsset.create({
+        data: {
+          key: uploaded.storageKey,
+          filename: uploaded.filename,
+          mimeType: uploaded.mimeType,
+          extension: uploaded.extension.replace(/^\./, ""),
+          sizeBytes: uploaded.sizeBytes,
+          source: "UPLOAD",
+          status: "READY",
+          uploadedById: currentUser?.id ?? null,
+        },
+        select: { id: true },
+      });
+      uploadedAssetId = asset.id;
+    }
+  }
 
   if (!slug || !sku || !name || !price) {
     return;
@@ -164,7 +235,12 @@ export async function saveProductAction(formData: FormData) {
       shortDescription,
       description,
       materialLine,
+      symbolismLabel: symbolismLabel || null,
+      symbolismTitle: symbolismTitle || null,
+      symbolismBody: symbolismBody || null,
+      symbolismBody2: symbolismBody2 || null,
       imageUrl,
+      ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : {}),
       priceCents: Math.round(price * 100),
       categoryId: category?.id ?? null,
       status: "ACTIVE",
@@ -179,7 +255,12 @@ export async function saveProductAction(formData: FormData) {
       shortDescription,
       description,
       materialLine,
+      symbolismLabel: symbolismLabel || null,
+      symbolismTitle: symbolismTitle || null,
+      symbolismBody: symbolismBody || null,
+      symbolismBody2: symbolismBody2 || null,
       imageUrl,
+      ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : {}),
       priceCents: Math.round(price * 100),
       currency: "EUR",
       categoryId: category?.id ?? null,

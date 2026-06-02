@@ -23,6 +23,10 @@ export type ProductSummary = {
   categoryName: string | null;
   tagSlugs: string[];
   tagNames: string[];
+  symbolismLabel: string;
+  symbolismTitle: string;
+  symbolismBody: string;
+  symbolismBody2: string;
 };
 
 export type ShopFilters = {
@@ -52,6 +56,12 @@ const defaultCollections = [
       "Geometric folk codes, white ceramic, linen rhythm, and sculptural forms rooted in Belarusian symbolic language.",
     manifesto:
       "A collection where ceremonial Belarusian ornament enters a contemporary jewelry language without becoming costume.",
+    symbolismLabel: "Symbolic Language",
+    symbolismTitle: "Wood, Lava, Embroidery",
+    symbolismBody:
+      "Wood brings warmth and grounding, lava introduces protective contrast, and Belarusian embroidery carries inherited ornament once worn close to the body as a quiet sign of memory.",
+    symbolismBody2:
+      "Together they make the piece feel personal rather than decorative: earth, heat, and pattern held in a form meant for everyday wear.",
     searchSummary:
       "Belarusian symbolism, white ceramic, linen rhythm, and sculptural forms.",
     heroImageUrl:
@@ -66,6 +76,12 @@ const defaultCollections = [
       "Bog oak, volcanic basalt, and raw brass arranged as grounded everyday talismans with a quieter, earth-led palette.",
     manifesto:
       "Objects built from earthy restraint, tactile woods, and raw metals for daily wear with ceremonial depth.",
+    symbolismLabel: "Material Meaning",
+    symbolismTitle: "Oak, Brass, Basalt",
+    symbolismBody:
+      "In this collection, wood keeps the pieces tactile and grounded, brass adds warmth and human-made glow, and basalt holds the memory of cooled fire.",
+    symbolismBody2:
+      "The combination is restrained, but never empty: each material speaks through weight, texture, and wear over time.",
     searchSummary:
       "Bog oak, volcanic basalt, and raw brass everyday talismans.",
     heroImageUrl:
@@ -80,6 +96,12 @@ const defaultCollections = [
       "Onyx, lava, red agate, and metal symbol pieces with a sharper contrast and a more nocturnal, minimal attitude.",
     manifesto:
       "A darker symbolic line balancing mineral gravity with sharper graphic contrast.",
+    symbolismLabel: "Night Code",
+    symbolismTitle: "Onyx, Lava, Red Agate",
+    symbolismBody:
+      "Dark stone creates visual discipline, lava keeps the surface porous and alive, and red agate introduces a more concentrated note of energy and focus.",
+    symbolismBody2:
+      "These pieces are built to feel sharper and more graphic, while still carrying the same symbolic depth as the softer collections.",
     searchSummary:
       "Onyx, lava, red agate, and metal symbol pieces with nocturnal contrast.",
     heroImageUrl:
@@ -292,9 +314,22 @@ function toSummary(product: {
   currency: string;
   imageUrl: string | null;
   materialLine: string | null;
+  symbolismLabel: string | null;
+  symbolismTitle: string | null;
+  symbolismBody: string | null;
+  symbolismBody2: string | null;
   category: { slug: string; name: string } | null;
   tags: { tag: { slug: string; name: string } }[];
-  collections: { collection: { slug: string; name: string } }[];
+  collections: {
+    collection: {
+      slug: string;
+      name: string;
+      symbolismLabel: string | null;
+      symbolismTitle: string | null;
+      symbolismBody: string | null;
+      symbolismBody2: string | null;
+    };
+  }[];
 }): ProductSummary {
   const leadCollection = product.collections[0]?.collection;
 
@@ -312,6 +347,16 @@ function toSummary(product: {
     categoryName: product.category?.name ?? null,
     tagSlugs: product.tags.map((item) => item.tag.slug),
     tagNames: product.tags.map((item) => item.tag.name),
+    symbolismLabel: product.symbolismLabel ?? leadCollection?.symbolismLabel ?? "Symbolic Language",
+    symbolismTitle: product.symbolismTitle ?? leadCollection?.symbolismTitle ?? "Material Meaning",
+    symbolismBody:
+      product.symbolismBody ??
+      leadCollection?.symbolismBody ??
+      "Materials can carry more than texture alone. They can hold warmth, contrast, and inherited visual language close to the body.",
+    symbolismBody2:
+      product.symbolismBody2 ??
+      leadCollection?.symbolismBody2 ??
+      "When nothing custom is set, the product inherits the symbolic reading of its collection.",
   };
 }
 
@@ -356,6 +401,10 @@ export async function ensureStorefrontSeed() {
           subtitle: collection.subtitle,
           description: collection.description,
           manifesto: collection.manifesto,
+          symbolismLabel: collection.symbolismLabel,
+          symbolismTitle: collection.symbolismTitle,
+          symbolismBody: collection.symbolismBody,
+          symbolismBody2: collection.symbolismBody2,
           searchSummary: collection.searchSummary,
           heroImageUrl: collection.heroImageUrl,
           status: "ACTIVE",
@@ -414,6 +463,10 @@ export async function ensureStorefrontSeed() {
           shortDescription: product.shortDescription,
           description: product.description,
           materialLine: product.materialLine,
+          symbolismLabel: null,
+          symbolismTitle: null,
+          symbolismBody: null,
+          symbolismBody2: null,
           searchSummary: product.searchSummary,
           priceCents: product.priceCents,
           imageUrl: product.imageUrl,
@@ -430,6 +483,10 @@ export async function ensureStorefrontSeed() {
           shortDescription: product.shortDescription,
           description: product.description,
           materialLine: product.materialLine,
+          symbolismLabel: null,
+          symbolismTitle: null,
+          symbolismBody: null,
+          symbolismBody2: null,
           searchSummary: product.searchSummary,
           priceCents: product.priceCents,
           currency: "EUR",
@@ -553,6 +610,10 @@ export async function getCollectionBySlug(slug: string) {
     heroImage: collection.heroImageUrl ?? "",
     accent: collection.code ?? "Synarava",
     manifesto: collection.manifesto ?? "",
+    symbolismLabel: collection.symbolismLabel ?? "Symbolic Language",
+    symbolismTitle: collection.symbolismTitle ?? "Material Meaning",
+    symbolismBody: collection.symbolismBody ?? "",
+    symbolismBody2: collection.symbolismBody2 ?? "",
   };
 }
 
@@ -615,7 +676,16 @@ export async function listShopProducts(filters: ShopFilters = {}) {
       },
       collections: {
         include: {
-          collection: true,
+          collection: {
+            select: {
+              slug: true,
+              name: true,
+              symbolismLabel: true,
+              symbolismTitle: true,
+              symbolismBody: true,
+              symbolismBody2: true,
+            },
+          },
         },
         orderBy: {
           sortOrder: "asc",
@@ -642,7 +712,16 @@ export async function getProductBySlug(slug: string) {
       },
       collections: {
         include: {
-          collection: true,
+          collection: {
+            select: {
+              slug: true,
+              name: true,
+              symbolismLabel: true,
+              symbolismTitle: true,
+              symbolismBody: true,
+              symbolismBody2: true,
+            },
+          },
         },
         orderBy: {
           sortOrder: "asc",

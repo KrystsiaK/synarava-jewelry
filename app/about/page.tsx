@@ -12,8 +12,21 @@ import { MonoMeta } from "@/components/ui/mono-meta";
 import { getPageBySlug } from "@/lib/content/catalog";
 
 export const metadata: Metadata = {
-  title: "About | Synarava",
-  description: "About the Synarava studio, its materials, process, and point of view.",
+  title: "About the Studio",
+  description:
+    "Learn about Synarava studio — its materials, process, and editorial point of view. Collectible jewelry rooted in Belarusian heritage.",
+  alternates: { canonical: "/about" },
+  openGraph: {
+    url: "/about",
+    images: [
+      {
+        url: "https://lh3.googleusercontent.com/aida-public/AB6AXuAsOpilx95kk9tsj12r0FFG2UFEpnvVCSCj8zjj1_un-K347C_bYyfjiBfHqVhN7zzUIZ6ozazQxs49HgYM0nwLxVV_V-oCjDAD6QJftXKg4uJF9VXZZMF7SnXTuGUbTcXPb8YpkhuyReJ5XbM6cmIPd1_ZewFgYq_eM3-SzvrzxvrGS91YDoHIO1EY-VONHmNa2LsvHgEWNqfyALYgIDXy_TuRnrTrcjodxqPvTs-9GvTow0A7s7QXartwC2wPcxedNcDYyDBOZOpL",
+        width: 1200,
+        height: 630,
+        alt: "Synarava studio composition",
+      },
+    ],
+  },
 };
 
 const principles = [

@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Главная",
+    "shop": "Магазин",
+    "collections": "Коллекции",
+    "about": "О нас",
+    "cart": "Корзина",
+    "login": "Войти",
+    "loginRegister": "Войти / Регистрация",
+    "admin": "Админ",
+    "openMenu": "Открыть меню навигации",
+    "closeMenu": "Закрыть меню навигации"
+  },
+  "footer": {
+    "tagline": "Душа белорусской кутюр.",
+    "navigationHeading": "Навигация",
+    "serviceHeading": "Сервис",
+    "shop": "Магазин",
+    "collections": "Коллекции",
+    "about": "О нас",
+    "manifesto": "Манифест",
+    "careGuide": "Уход за украшением",
+    "shipping": "Доставка",
+    "contact": "Контакт",
+    "privacyPolicy": "Политика конфиденциальности",
+    "publicOffer": "Договор публичной оферты",
+    "offerGovernedBy": "Все покупки регулируются нашими",
+    "offerTerms": "условиями оферты",
+    "copyright": "© 2025 Synarava Jewelry."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Пароль",
+    "passwordHint": "Не менее 8 символов",
+    "showPassword": "Показать пароль",
+    "hidePassword": "Скрыть пароль",
+    "login": {
+      "eyebrow": "Идентификация",
+      "title": "Вход",
+      "submit": "Войти",
+      "submitting": "Входим…",
+      "forgotPassword": "Забыли пароль?",
+      "noAccount": "Нет аккаунта?",
+      "createOne": "Создать"
+    },
+    "register": {
+      "eyebrow": "Регистрация",
+      "title": "Создать аккаунт",
+      "name": "Имя",
+      "confirmPassword": "Подтвердите пароль",
+      "submit": "Создать аккаунт",
+      "submitting": "Создаём аккаунт…",
+      "alreadyRegistered": "Уже зарегистрированы?",
+      "signIn": "Войти"
+    },
+    "resetRequest": {
+      "eyebrow": "Восстановление",
+      "title": "Сброс пароля",
+      "accountEmail": "Email аккаунта",
+      "submit": "Получить ссылку для сброса",
+      "submitting": "Подготавливаем ссылку…",
+      "previewLink": "Ссылка для предпросмотра",
+      "returnTo": "Вернуться к",
+      "loginLink": "входу"
+    },
+    "resetConfirm": {
+      "eyebrow": "Восстановление",
+      "title": "Установите новый пароль",
+      "newPassword": "Новый пароль",
+      "confirmNewPassword": "Подтвердите новый пароль",
+      "submit": "Обновить пароль",
+      "submitting": "Обновляем…",
+      "backTo": "Вернуться к",
+      "loginLink": "входу"
+    },
+    "adminCredentials": {
+      "eyebrow": "Учётные данные",
+      "title": "Логин и пароль",
+      "emailLogin": "Email для входа",
+      "currentPassword": "Текущий пароль",
+      "newPassword": "Новый пароль",
+      "confirmNewPassword": "Подтвердите новый пароль",
+      "passwordNote": "Оставьте поля нового пароля пустыми, если хотите изменить только email.",
+      "submit": "Обновить данные",
+      "submitting": "Обновляем…"
+    }
+  },
+  "password": {
+    "strength": {
+      "weak": "Слабый",
+      "fair": "Средний",
+      "good": "Хороший",
+      "strong": "Надёжный"
+    },
+    "req": {
+      "length": "Не менее 8 символов",
+      "uppercase": "Заглавная буква (A–Z)",
+      "lowercase": "Строчная буква (a–z)",
+      "number": "Цифра (0–9)",
+      "special": "Спецсимвол (!@#…)"
+    }
+  },
+  "language": {
+    "select": "Выбрать язык"
+  }
+}

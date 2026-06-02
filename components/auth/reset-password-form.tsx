@@ -13,32 +13,35 @@ import {
   AuthForm,
   AuthInput,
   AuthMessage,
+  PasswordInput,
 } from "@/components/auth/auth-form-primitives";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
+import { useTranslations } from "@/lib/i18n/context";
 
 const initialState: AuthActionState = {};
 
 export function PasswordResetRequestForm() {
   const [state, formAction] = useActionState(requestPasswordResetAction, initialState);
+  const { t } = useTranslations();
 
   return (
     <AuthForm action={formAction}>
       <div className="space-y-2">
-        <p className="label-caps text-accent">Restore</p>
-        <h2 className="font-serif text-[2.4rem] leading-none">Reset password</h2>
+        <p className="label-caps text-accent">{t("auth.resetRequest.eyebrow")}</p>
+        <h2 className="font-serif text-[2.4rem] leading-none">{t("auth.resetRequest.title")}</h2>
       </div>
 
       <AuthMessage error={state.error} success={state.success} />
 
-      <AuthField label="Account email">
+      <AuthField label={t("auth.resetRequest.accountEmail")}>
         <AuthInput type="email" name="email" autoComplete="email" required />
       </AuthField>
 
-      <AuthSubmitButton label="Generate reset link" pendingLabel="Preparing link…" className="mt-2" />
+      <AuthSubmitButton label={t("auth.resetRequest.submit")} pendingLabel={t("auth.resetRequest.submitting")} className="mt-2" />
 
       {state.previewUrl ? (
         <p className="text-sm leading-6 text-foreground/68">
-          Local preview link:{" "}
+          {t("auth.resetRequest.previewLink")}:{" "}
           <a href={state.previewUrl} className="break-all text-accent underline underline-offset-4">
             {state.previewUrl}
           </a>
@@ -46,9 +49,9 @@ export function PasswordResetRequestForm() {
       ) : null}
 
       <p className="text-sm text-foreground/60">
-        Return to{" "}
+        {t("auth.resetRequest.returnTo")}{" "}
         <Link href="/login" className="transition-colors hover:text-accent">
-          login
+          {t("auth.resetRequest.loginLink")}
         </Link>
       </p>
     </AuthForm>
@@ -57,31 +60,32 @@ export function PasswordResetRequestForm() {
 
 export function PasswordResetConfirmForm({ token }: { token: string }) {
   const [state, formAction] = useActionState(resetPasswordAction, initialState);
+  const { t } = useTranslations();
 
   return (
     <AuthForm action={formAction}>
       <input type="hidden" name="token" value={token} />
       <div className="space-y-2">
-        <p className="label-caps text-accent">Restore</p>
-        <h2 className="font-serif text-[2.4rem] leading-none">Set a new password</h2>
+        <p className="label-caps text-accent">{t("auth.resetConfirm.eyebrow")}</p>
+        <h2 className="font-serif text-[2.4rem] leading-none">{t("auth.resetConfirm.title")}</h2>
       </div>
 
       <AuthMessage error={state.error} success={state.success} />
 
-      <AuthField label="New password">
-        <AuthInput type="password" name="password" autoComplete="new-password" required />
+      <AuthField label={t("auth.resetConfirm.newPassword")}>
+        <PasswordInput name="password" autoComplete="new-password" required showStrength />
       </AuthField>
 
-      <AuthField label="Confirm new password">
-        <AuthInput type="password" name="confirmPassword" autoComplete="new-password" required />
+      <AuthField label={t("auth.resetConfirm.confirmNewPassword")}>
+        <PasswordInput name="confirmPassword" autoComplete="new-password" required />
       </AuthField>
 
-      <AuthSubmitButton label="Update password" pendingLabel="Updating…" className="mt-2" />
+      <AuthSubmitButton label={t("auth.resetConfirm.submit")} pendingLabel={t("auth.resetConfirm.submitting")} className="mt-2" />
 
       <p className="text-sm text-foreground/60">
-        Back to{" "}
+        {t("auth.resetConfirm.backTo")}{" "}
         <Link href="/login" className="transition-colors hover:text-accent">
-          login
+          {t("auth.resetConfirm.loginLink")}
         </Link>
       </p>
     </AuthForm>

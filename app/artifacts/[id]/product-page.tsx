@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Play } from "lucide-react";
 
@@ -16,11 +15,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const key = resolved.slug ?? resolved.id ?? "";
   const product = await getProductBySlug(key);
 
-  if (!product) return { title: "Product | Synarava" };
+  if (!product) return { title: "Product" };
 
   return {
-    title: `${product.title} | Synarava`,
+    title: product.title,
     description: product.shortDescription,
+    alternates: { canonical: `/products/${key}` },
+    openGraph: {
+      url: `/products/${key}`,
+      images: [
+        {
+          url: product.image,
+          width: 1200,
+          height: 630,
+          alt: product.title,
+        },
+      ],
+    },
   };
 }
 
@@ -86,8 +97,45 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
+  const priceCents = parseFloat(product.price.replace(/[^0-9.]/g, ""));
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    description: product.shortDescription,
+    image: product.image,
+    sku: product.slug,
+    brand: { "@type": "Brand", name: "Synarava" },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "EUR",
+      price: isNaN(priceCents) ? undefined : priceCents,
+      availability: "https://schema.org/InStock",
+      seller: { "@type": "Organization", name: "Synarava" },
+    },
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
+      { "@type": "ListItem", position: 2, name: "Shop", item: "/shop" },
+      { "@type": "ListItem", position: 3, name: product.title, item: `/products/${key}` },
+    ],
+  };
+
   return (
     <main className="artifact-shell min-h-screen pt-24 md:pt-28">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Hero */}
       <section className="site-shell grid min-h-[80vh] grid-cols-1 items-center gap-8 py-12 lg:grid-cols-12 lg:py-0">
         <div className="z-10 space-y-6 lg:col-span-5 lg:space-y-8">
@@ -146,7 +194,7 @@ export default async function ProductDetailPage({ params }: Props) {
         </div>
       </section>
 
-      {/* Semantic code section */}
+      {/* Symbolism section */}
       <section className="site-shell overflow-hidden py-20 md:py-40">
         <div className="artifact-grid items-center">
           <div className="relative col-span-12 lg:col-span-8">
@@ -159,14 +207,18 @@ export default async function ProductDetailPage({ params }: Props) {
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVNicx6BX7QK8-0S_xcnEC5OIPGkKfvUDChUtiI-G1t9Bkh2W9A6x4-aZZg1ZxRobK8rJzH4lll1yxq453fDfiLJ07UoJQasMpFW7CFhaOsAFAQwfcCiyTByw4h0vNvuoEusZADXXAD6pj9o4d41vLsFXzL01dChZ--KMmqn9RcXbjuQNarNZegP3FHOt2daIMbHrp5o7Sbk_oAG91bD6kM67FPxqING6QU9fiX7KlAlllqjoabSmXLiwIOw4un884KvpI3JJUOW4S"
             />
             <div className="etched-glass mt-6 p-6 sm:p-8 lg:absolute lg:-right-24 lg:top-1/2 lg:mt-0 lg:w-3/5 lg:-translate-y-1/2 lg:p-12">
-              <span className="font-mono text-[0.82rem] uppercase tracking-[0.14em] text-couture-red">Semantic Code</span>
-              <h2 className="mt-3 font-serif text-[1.8rem] italic sm:text-[2.4rem] md:mt-4 md:text-[3.2rem]">The Shield of Ancestors</h2>
+              <span className="font-mono text-[0.82rem] uppercase tracking-[0.14em] text-couture-red">
+                {product.symbolismLabel}
+              </span>
+              <h2 className="mt-3 font-serif text-[1.8rem] italic sm:text-[2.4rem] md:mt-4 md:text-[3.2rem]">
+                {product.symbolismTitle}
+              </h2>
               <p className="mt-4 text-base leading-7 text-foreground/80 md:mt-6 md:text-lg md:leading-8">
-                This page explains one product. The deeper philosophy lives in the manifesto, so the customer can move from shopping to meaning without getting lost in navigation.
+                {product.symbolismBody}
               </p>
-              <Link href="/about/manifesto" className="mt-6 inline-block border-b border-foreground/30 pb-2 label-caps md:mt-8">
-                Read Manifesto
-              </Link>
+              <p className="mt-4 text-base leading-7 text-foreground/72 md:text-lg md:leading-8">
+                {product.symbolismBody2}
+              </p>
             </div>
           </div>
         </div>
