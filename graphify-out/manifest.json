@@ -1,0 +1,847 @@
+{
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/skills-lock.json": {
+    "mtime": 1780075843.467931,
+    "ast_hash": "3272a1e6397df43478df9e649d530a07",
+    "semantic_hash": "3272a1e6397df43478df9e649d530a07"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/postcss.config.mjs": {
+    "mtime": 1780075182.0996792,
+    "ast_hash": "239f3ebf717465dc636818a1a619398d",
+    "semantic_hash": "239f3ebf717465dc636818a1a619398d"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/package.json": {
+    "mtime": 1780075669.4816844,
+    "ast_hash": "1a242379898b6c959be929df294e6359",
+    "semantic_hash": "1a242379898b6c959be929df294e6359"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/tsconfig.json": {
+    "mtime": 1780075182.1014206,
+    "ast_hash": "02fc19ad21338c2ab820a70136310db4",
+    "semantic_hash": "02fc19ad21338c2ab820a70136310db4"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/eslint.config.mjs": {
+    "mtime": 1780075182.099275,
+    "ast_hash": "dfa1f5f6a7037bf39dc510f30b180002",
+    "semantic_hash": "dfa1f5f6a7037bf39dc510f30b180002"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/next.config.ts": {
+    "mtime": 1780075182.1005437,
+    "ast_hash": "9b77af189a21a7a64e4bd7a426f64176",
+    "semantic_hash": "9b77af189a21a7a64e4bd7a426f64176"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/layout.tsx": {
+    "mtime": 1780403663.8344595,
+    "ast_hash": "dd4f6a21527ac610e171db15169003a5",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/page.tsx": {
+    "mtime": 1780403954.3327081,
+    "ast_hash": "bcd271417fa8bbdbbb8e7bec30f43a79",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/layout/site-header.tsx": {
+    "mtime": 1780403865.277726,
+    "ast_hash": "b3bc46e5b0720e59d642c94bb2b91896",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/layout/site-footer.tsx": {
+    "mtime": 1780403769.7353625,
+    "ast_hash": "5b7978aef368b1ebbc3cbd464cd703c3",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/s3.ts": {
+    "mtime": 1780075457.396322,
+    "ast_hash": "299e399f0f36042456fb37ffe3f3bf04",
+    "semantic_hash": "299e399f0f36042456fb37ffe3f3bf04"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/stripe.ts": {
+    "mtime": 1780075742.0231612,
+    "ast_hash": "145725e79402b8276a10aa1ac10d3268",
+    "semantic_hash": "145725e79402b8276a10aa1ac10d3268"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/env.ts": {
+    "mtime": 1780399188.6588528,
+    "ast_hash": "4b4b1c401c6cce1fe816ac3b8643c26c",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/db.ts": {
+    "mtime": 1780075627.884267,
+    "ast_hash": "1eacd375a8821da5f71f1ebebd9d9022",
+    "semantic_hash": "1eacd375a8821da5f71f1ebebd9d9022"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/README.md": {
+    "mtime": 1780332619.2920933,
+    "ast_hash": "178a61a5c806cfb01993ee150dd6fa63",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/docker-compose.yml": {
+    "mtime": 1780075480.173328,
+    "ast_hash": "5f203bd420adc1372ef11c8073fa446a",
+    "semantic_hash": "5f203bd420adc1372ef11c8073fa446a"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/pnpm-workspace.yaml": {
+    "mtime": 1780075643.1980996,
+    "ast_hash": "ec0a670d8eb1d5d4c4660bd763ef778f",
+    "semantic_hash": "ec0a670d8eb1d5d4c4660bd763ef778f"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/12-error-state-shake.md": {
+    "mtime": 1780075843.449707,
+    "ast_hash": "e7fc642aafc91ab2424e8f019ed51054",
+    "semantic_hash": "e7fc642aafc91ab2424e8f019ed51054"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/01-card-resize.md": {
+    "mtime": 1780075843.4491396,
+    "ast_hash": "2776bedec54717efae2ed8fd60f70c76",
+    "semantic_hash": "2776bedec54717efae2ed8fd60f70c76"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/06-modal.md": {
+    "mtime": 1780075843.4494474,
+    "ast_hash": "337ac9369790124a81524206110d7bd5",
+    "semantic_hash": "337ac9369790124a81524206110d7bd5"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/08-page-side-by-side.md": {
+    "mtime": 1780075843.4493363,
+    "ast_hash": "6312527453701f73b2a7b569e98f691f",
+    "semantic_hash": "6312527453701f73b2a7b569e98f691f"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/02-number-pop-in.md": {
+    "mtime": 1780075843.4493349,
+    "ast_hash": "1778f3e26a5eab6b0892f3adf9fa417c",
+    "semantic_hash": "1778f3e26a5eab6b0892f3adf9fa417c"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/10-success-check.md": {
+    "mtime": 1780075843.4495702,
+    "ast_hash": "3dfb38dda3cc3cd7b4c6a4e7227274db",
+    "semantic_hash": "3dfb38dda3cc3cd7b4c6a4e7227274db"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/05-menu-dropdown.md": {
+    "mtime": 1780075843.449293,
+    "ast_hash": "7daf96bed52ef0ea1a5edc051b2d74d3",
+    "semantic_hash": "7daf96bed52ef0ea1a5edc051b2d74d3"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/07-panel-reveal.md": {
+    "mtime": 1780075843.449449,
+    "ast_hash": "e27572eaad0c93832f08dfaa0e7c068e",
+    "semantic_hash": "e27572eaad0c93832f08dfaa0e7c068e"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/SKILL.md": {
+    "mtime": 1780075843.4497597,
+    "ast_hash": "436591f6ac76dedc0b2b06ad241b24d8",
+    "semantic_hash": "436591f6ac76dedc0b2b06ad241b24d8"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/03-notification-badge.md": {
+    "mtime": 1780075843.4491398,
+    "ast_hash": "356e0c0657d24f4ece3c9627fda7577c",
+    "semantic_hash": "356e0c0657d24f4ece3c9627fda7577c"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/04-text-states-swap.md": {
+    "mtime": 1780075843.4491794,
+    "ast_hash": "6e4d59637f32265be7205f16c4c874bd",
+    "semantic_hash": "6e4d59637f32265be7205f16c4c874bd"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/11-avatar-group-hover.md": {
+    "mtime": 1780075843.4496865,
+    "ast_hash": "230c6fc52efe96140228782cc10762fc",
+    "semantic_hash": "230c6fc52efe96140228782cc10762fc"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.agents/skills/transitions-dev/09-icon-swap.md": {
+    "mtime": 1780075843.4495556,
+    "ast_hash": "7aa196534d83f37f2584de8896a8ecd6",
+    "semantic_hash": "7aa196534d83f37f2584de8896a8ecd6"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/public/file.svg": {
+    "mtime": 1780075182.1008284,
+    "ast_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71",
+    "semantic_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/public/vercel.svg": {
+    "mtime": 1780075182.100969,
+    "ast_hash": "c0af2f507b369b085b35ef4bbe3bcf1e",
+    "semantic_hash": "c0af2f507b369b085b35ef4bbe3bcf1e"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/public/next.svg": {
+    "mtime": 1780075182.1008358,
+    "ast_hash": "8e061864f388b47f33a1c3780831193e",
+    "semantic_hash": "8e061864f388b47f33a1c3780831193e"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/public/globe.svg": {
+    "mtime": 1780075182.1009626,
+    "ast_hash": "2aaafa6a49b6563925fe440891e32717",
+    "semantic_hash": "2aaafa6a49b6563925fe440891e32717"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/public/window.svg": {
+    "mtime": 1780075182.1009784,
+    "ast_hash": "a2760511c65806022ad20adf74370ff3",
+    "semantic_hash": "a2760511c65806022ad20adf74370ff3"
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/artifacts/[id]/page.tsx": {
+    "mtime": 1780396611.1093936,
+    "ast_hash": "6c8a0ca40564f22a5b1f15445366e944",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/about/page.tsx": {
+    "mtime": 1780397564.4258113,
+    "ast_hash": "abfd5d39ddd26514f1f76db4a6c4a3a8",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/collections/page.tsx": {
+    "mtime": 1780397422.520387,
+    "ast_hash": "d14bcd53b45bcd18d70e6e19967b6f94",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/collections/[slug]/page.tsx": {
+    "mtime": 1780397468.7549877,
+    "ast_hash": "853fe985b17c085689d1ec496b121b8f",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.claude/settings.json": {
+    "mtime": 1780331550.0854733,
+    "ast_hash": "87f0d903477984d0587a02f8fe185263",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/media-frame.tsx": {
+    "mtime": 1780333752.2473109,
+    "ast_hash": "30de4a9c5095a8b316a57d1fca4019fc",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/caps-label.tsx": {
+    "mtime": 1780332618.9393375,
+    "ast_hash": "835a036bd6d5f342ae108c0c31b3fa34",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/divider-ornament.tsx": {
+    "mtime": 1780332619.2885633,
+    "ast_hash": "d526e33fcf489d5883ea8b920f56264b",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/mono-meta.tsx": {
+    "mtime": 1780332619.0984223,
+    "ast_hash": "4ee7d0f939b835192145327d541881e3",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/body-lead.tsx": {
+    "mtime": 1780333752.2465427,
+    "ast_hash": "63cf13889830dda084ffc13bf5b7d936",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/artifact-button.tsx": {
+    "mtime": 1780333752.2457206,
+    "ast_hash": "e0114a7a70497498e1f59032f63dc896",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/editorial-heading.tsx": {
+    "mtime": 1780332619.1351237,
+    "ast_hash": "e089ff3e41e489be91a8b27876382eb2",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/artifact-panel.tsx": {
+    "mtime": 1780332619.2875469,
+    "ast_hash": "4e324be4c2757b1ae17efc40698e27e8",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/info-list.tsx": {
+    "mtime": 1780333752.2470298,
+    "ast_hash": "6e4adc26547e9c3c3c71fd1a5cf49d43",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/.codex/hooks.json": {
+    "mtime": 1780330968.6144998,
+    "ast_hash": "b8744cc0cfd5e170b91625e27595dc76",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/ui.ts": {
+    "mtime": 1780332619.2894485,
+    "ast_hash": "d9837f38cc05303254571985e3164050",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/stitch-manifesto.html": {
+    "mtime": 1780333967.806983,
+    "ast_hash": "7d8c3364bc62adc7e00c7dc8d2ed365a",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/AGENTS.md": {
+    "mtime": 1780330968.6142762,
+    "ast_hash": "62c05a2bf20bf036a0b2633478663e64",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/CLAUDE.md": {
+    "mtime": 1780331550.0852692,
+    "ast_hash": "82efb97a359f5c7290bf2513d14686be",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/docs/architecture.md": {
+    "mtime": 1780332618.7370334,
+    "ast_hash": "96f3b627d399fd4aaa2743d23e7b7db3",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/docs/ui-kit.md": {
+    "mtime": 1780332618.771362,
+    "ast_hash": "267ebf291311eb6e500eba277ac25291",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/artifacts/[id]/product-page.tsx": {
+    "mtime": 1780402987.912741,
+    "ast_hash": "31be471ad037603cf1e07506976a3dae",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/products/[slug]/page.tsx": {
+    "mtime": 1780396656.9685693,
+    "ast_hash": "b80fb923e12c86e65a17d6eeb49742de",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/shop/page.tsx": {
+    "mtime": 1780397402.5926614,
+    "ast_hash": "09f63fbac9285acdc6d673bfdd678191",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/admin/actions.ts": {
+    "mtime": 1780398961.855863,
+    "ast_hash": "303ec909dc4768957e15fb9a662e8027",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/admin/layout.tsx": {
+    "mtime": 1780399100.857749,
+    "ast_hash": "7890fa674bf297dd1f1e5d9daddaded3",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/admin/page.tsx": {
+    "mtime": 1780397666.0120008,
+    "ast_hash": "b027668f632686d6b07512757d37c9d7",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/admin/products/page.tsx": {
+    "mtime": 1780398046.109318,
+    "ast_hash": "67b62b8fd14c9460657869a498fff180",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/admin/pages/page.tsx": {
+    "mtime": 1780397773.6785507,
+    "ast_hash": "9bd1cebf74edf0b04a6e213473eaa995",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/about/manifesto-page.tsx": {
+    "mtime": 1780397577.815892,
+    "ast_hash": "5f463affe16e0d1733a4b96dfd6debc9",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/about/manifesto/page.tsx": {
+    "mtime": 1780396611.1047308,
+    "ast_hash": "5d78e3c6549ce1baa1eb991e998faaf5",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/ui/scroll-reveal.tsx": {
+    "mtime": 1780338315.2582433,
+    "ast_hash": "8bd234c1855c8cc5e1708beefec4fa15",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/content/catalog.ts": {
+    "mtime": 1780397273.8903522,
+    "ast_hash": "b808d0ad7b52452cf3e47274c53d07ea",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/admin/account/actions.ts": {
+    "mtime": 1780398975.2015736,
+    "ast_hash": "311359d6e4e0ef7a48cf66da3ae1135f",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/admin/account/page.tsx": {
+    "mtime": 1780399116.9153485,
+    "ast_hash": "78271161a2cd39d880d4b88ced6b955f",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/register/page.tsx": {
+    "mtime": 1780399076.5556643,
+    "ast_hash": "df0de6b34887b3883a7a3216036e6aa8",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/reset-password/page.tsx": {
+    "mtime": 1780399088.8264732,
+    "ast_hash": "f7ca4bf6cd2c6d6fa3c054af94c8ef54",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/(auth)/actions.ts": {
+    "mtime": 1780400925.6504352,
+    "ast_hash": "24c737d698e6f56ac9eae4b2d69f8090",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/login/page.tsx": {
+    "mtime": 1780399067.0404072,
+    "ast_hash": "55c551edd9bd0e430915c329550ea36d",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/auth/auth-form-primitives.tsx": {
+    "mtime": 1780399149.3162794,
+    "ast_hash": "eb9e740172308f8ff952a9fb45b20174",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/auth/auth-shell.tsx": {
+    "mtime": 1780398857.085348,
+    "ast_hash": "f562da86e7c5524f44136f3ba17e8368",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/auth/register-form.tsx": {
+    "mtime": 1780399005.9159744,
+    "ast_hash": "5e81f533eed5a6ca8ace9f7018fc2d18",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/auth/auth-submit-button.tsx": {
+    "mtime": 1780398891.8754332,
+    "ast_hash": "1898c97280b25eb67b7b4b1271d81353",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/auth/login-form.tsx": {
+    "mtime": 1780398991.570439,
+    "ast_hash": "fa441864c2c197444b1a0d7c3ad422a2",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/auth/logout-form.tsx": {
+    "mtime": 1780399053.891104,
+    "ast_hash": "45c0267c563b6673d53f955451643079",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/auth/session.ts": {
+    "mtime": 1780398777.615885,
+    "ast_hash": "0dd126ef8e9e43475958099777b973ca",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/auth/users.ts": {
+    "mtime": 1780398817.6011806,
+    "ast_hash": "980401623bcb18fb8c4ab7d73ba2deea",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/auth/bootstrap.ts": {
+    "mtime": 1780398748.930449,
+    "ast_hash": "acf8663cb7a58a28b3b7b20206a5b22b",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/checkout/actions.ts": {
+    "mtime": 1780401490.2828205,
+    "ast_hash": "ed678d45e6087c253affdb84dd01f9bb",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/checkout/confirmed/page.tsx": {
+    "mtime": 1780401267.2567825,
+    "ast_hash": "dcb8d11f32953c18aa72da4ad13f0469",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/checkout/payment/page.tsx": {
+    "mtime": 1780401245.5046053,
+    "ast_hash": "29e213960de8d6a6b66c6aa87e6636c0",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/checkout/shipping/page.tsx": {
+    "mtime": 1780401116.9273868,
+    "ast_hash": "c2d92bb91140ea4b5896d54ecdc916a7",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/checkout/error/page.tsx": {
+    "mtime": 1780401290.1073956,
+    "ast_hash": "bf9af18f1d8b31ff03414e97f262b08a",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/cart/actions.ts": {
+    "mtime": 1780400939.20215,
+    "ast_hash": "eb87e3d41ef4dda0844a76ec62a10837",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/cart/page.tsx": {
+    "mtime": 1780401089.4437904,
+    "ast_hash": "8327c6d0d5227e09d8711b9ac7db0ea5",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/commerce/payment-confirm-panel.tsx": {
+    "mtime": 1780401061.8521001,
+    "ast_hash": "91af09df7d8c52ef0fd8730ccc882875",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/commerce/cart-summary-panel.tsx": {
+    "mtime": 1780400993.3902066,
+    "ast_hash": "315e67d3283913788e4318f08866d656",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/commerce/shipping-form.tsx": {
+    "mtime": 1780401037.5229309,
+    "ast_hash": "eaf212a751680d60bd07f9d475eae91d",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/commerce/cart-item-row.tsx": {
+    "mtime": 1780400978.4847422,
+    "ast_hash": "454f877f08b65831e334eef9b8dea683",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/commerce/checkout-shell.tsx": {
+    "mtime": 1780401014.3713748,
+    "ast_hash": "e4d1c9b2596a320e112de3dfa028c651",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/package.json": {
+    "mtime": 1780400537.5057495,
+    "ast_hash": "17f71ec9819d0e4e6823412f9f2040e2",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/capacitor.config.ts": {
+    "mtime": 1780400558.0381682,
+    "ast_hash": "616ced02639a80375f6770a19dad9b19",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/capacitor.config.json": {
+    "mtime": 1780400872.6527429,
+    "ast_hash": "c55c2fd3302a70a871e6a6cdb5b04be1",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/AppDelegate.swift": {
+    "mtime": 1743440248.0,
+    "ast_hash": "b2865a48d0e54c1613fa58272418bf98",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/Assets.xcassets/Contents.json": {
+    "mtime": 1743440248.0,
+    "ast_hash": "31cc68f34934a99c0b0c1bebde56309c",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1743440248.0,
+    "ast_hash": "7453c3002126811a57c38b2740f990cf",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/Assets.xcassets/Splash.imageset/Contents.json": {
+    "mtime": 1743440248.0,
+    "ast_hash": "1162e1cddd7ea769bcacdd1aa7b4ac72",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/public/cordova.js": {
+    "mtime": 1780400872.6611702,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/public/cordova_plugins.js": {
+    "mtime": 1780400872.6612587,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/capacitor.settings.gradle": {
+    "mtime": 1780400872.6292884,
+    "ast_hash": "455ebb7f9fe84a6974da6bdae43097c2",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/variables.gradle": {
+    "mtime": 1743440248.0,
+    "ast_hash": "d1e86fb0649ce4226bfb023e806aa6d8",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/gradlew": {
+    "mtime": 1743440248.0,
+    "ast_hash": "0f777a49c656b3aba9ed0634916e8b4c",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/build.gradle": {
+    "mtime": 1743440248.0,
+    "ast_hash": "e5f1d2316416cc59540e87130ff0bf75",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/settings.gradle": {
+    "mtime": 1743440248.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/build.gradle": {
+    "mtime": 1780400866.2236624,
+    "ast_hash": "f7ab27b428ad0858891695719e85168a",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/capacitor.build.gradle": {
+    "mtime": 1780400872.629536,
+    "ast_hash": "5081a3b5bf8a1befe041807f0e2eb79c",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1743440248.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1743440248.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/java/com/synarava/jewelry/MainActivity.java": {
+    "mtime": 1780400866.2232463,
+    "ast_hash": "c0dae655200ea933d942a99cee436142",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/capacitor.plugins.json": {
+    "mtime": 1780400872.6138704,
+    "ast_hash": "58e0494c51d30eb3494f7c9198986bb9",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/capacitor.config.json": {
+    "mtime": 1780400872.6098075,
+    "ast_hash": "ca5f6b1de2c5c66a973a4c22d5c163ea",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/public/cordova.js": {
+    "mtime": 1780400872.6281765,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/public/cordova_plugins.js": {
+    "mtime": 1780400872.6282828,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/capacitor-cordova-android-plugins/build.gradle": {
+    "mtime": 1780400872.6301057,
+    "ast_hash": "13a885b925f99b619845018a13d508d3",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/capacitor-cordova-android-plugins/cordova.variables.gradle": {
+    "mtime": 1780400872.6302552,
+    "ast_hash": "299becb7733b8720b74d289e3cb837f1",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/commerce/checkout.ts": {
+    "mtime": 1780400917.2964745,
+    "ast_hash": "4e4d8f256efdf05cef73614d61ea6e2b",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/commerce/cart.ts": {
+    "mtime": 1780402947.0445685,
+    "ast_hash": "4bf4fb1ee072a457f0d7c500ce8211b2",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/README.md": {
+    "mtime": 1780400565.213155,
+    "ast_hash": "b50a00f177c2a3a29c9f44962cb081f9",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "0ac741c9e1701ee14dd05ea131f7cfd8",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "958532b95c3e7d4997327dc977b80600",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-1.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "958532b95c3e7d4997327dc977b80600",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-2.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "958532b95c3e7d4997327dc977b80600",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/public/file.svg": {
+    "mtime": 1780400872.6494465,
+    "ast_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/public/vercel.svg": {
+    "mtime": 1780400872.642821,
+    "ast_hash": "c0af2f507b369b085b35ef4bbe3bcf1e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/public/next.svg": {
+    "mtime": 1780400872.6484041,
+    "ast_hash": "8e061864f388b47f33a1c3780831193e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/public/globe.svg": {
+    "mtime": 1780400872.6489398,
+    "ast_hash": "2aaafa6a49b6563925fe440891e32717",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/ios/App/App/public/window.svg": {
+    "mtime": 1780400872.6419382,
+    "ast_hash": "a2760511c65806022ad20adf74370ff3",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1743440248.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/public/file.svg": {
+    "mtime": 1780400872.6091182,
+    "ast_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/public/vercel.svg": {
+    "mtime": 1780400872.607809,
+    "ast_hash": "c0af2f507b369b085b35ef4bbe3bcf1e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/public/next.svg": {
+    "mtime": 1780400872.6082697,
+    "ast_hash": "8e061864f388b47f33a1c3780831193e",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/public/globe.svg": {
+    "mtime": 1780400872.6087055,
+    "ast_hash": "2aaafa6a49b6563925fe440891e32717",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/mobile/android/app/src/main/assets/public/window.svg": {
+    "mtime": 1780400872.6070495,
+    "ast_hash": "a2760511c65806022ad20adf74370ff3",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/app/api/cart/items/route.ts": {
+    "mtime": 1780402958.1921885,
+    "ast_hash": "cb7104998c16e67a9ce8503ba49a2f97",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/commerce/add-to-cart-button.tsx": {
+    "mtime": 1780403529.7024612,
+    "ast_hash": "51371dfa7b32e49ce405b89376c72974",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/theme/theme-provider.tsx": {
+    "mtime": 1780403651.9681034,
+    "ast_hash": "86c278f2e59cc240fc062c1cacbc437d",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/theme/theme-script.tsx": {
+    "mtime": 1780403651.967864,
+    "ast_hash": "733be6f5e64da2ffe4c4aa6b5a6b2950",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/components/theme/theme-toggle.tsx": {
+    "mtime": 1780403651.9683375,
+    "ast_hash": "4541bb4829a27c2b8b32da60f4077423",
+    "semantic_hash": ""
+  },
+  "/Users/arturkrystsia/WebstormProjects/synarava-jewelry/lib/theme/shared.ts": {
+    "mtime": 1780403651.9673283,
+    "ast_hash": "cf10e5cfa8f46719617d9effb9729d9c",
+    "semantic_hash": ""
+  }
+}

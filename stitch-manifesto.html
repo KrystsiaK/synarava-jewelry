@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Manifesto | SYNARAVA</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&amp;family=Hanken+Grotesk:wght@300;400;600&amp;family=Courier+Prime&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@100..900&amp;family=Hanken+Grotesk:wght@100..900&amp;family=Playfair+Display:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#000000",
+                        "on-primary-container": "#858383",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#301400",
+                        "on-surface": "#1a1c1b",
+                        "surface-dim": "#dadad8",
+                        "secondary": "#b42537",
+                        "wood-oak": "#8B5E3C",
+                        "inverse-primary": "#c8c6c5",
+                        "on-tertiary-fixed-variant": "#653d1e",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#f1f1ef",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2f3130",
+                        "secondary-fixed-dim": "#ffb3b3",
+                        "tertiary": "#000000",
+                        "tertiary-fixed-dim": "#f4bb92",
+                        "background": "#faf9f7",
+                        "tertiary-fixed": "#ffdcc5",
+                        "on-primary-fixed": "#1c1b1b",
+                        "surface-container-highest": "#e3e2e0",
+                        "surface-container-low": "#f4f3f1",
+                        "on-secondary-container": "#600012",
+                        "surface-container": "#efeeec",
+                        "surface-tint": "#5f5e5e",
+                        "secondary-fixed": "#ffdad9",
+                        "surface-container-high": "#e9e8e6",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#400009",
+                        "charcoal": "#1A1A1A",
+                        "outline-variant": "#c4c7c7",
+                        "secondary-container": "#fd5b66",
+                        "linen": "#F9F8F6",
+                        "surface": "#faf9f7",
+                        "primary-container": "#1c1b1b",
+                        "on-tertiary-container": "#aa7955",
+                        "primary-fixed-dim": "#c8c6c5",
+                        "error-container": "#ffdad6",
+                        "outline": "#747878",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#920322",
+                        "couture-red": "#A6192E",
+                        "on-background": "#1a1c1b",
+                        "tertiary-container": "#301400",
+                        "primary-fixed": "#e5e2e1",
+                        "surface-variant": "#e3e2e0",
+                        "surface-bright": "#faf9f7",
+                        "on-surface-variant": "#444748",
+                        "stone-beige": "#D9D4CC",
+                        "on-primary-fixed-variant": "#474746"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "asymmetric-offset": "120px",
+                        "margin-mobile": "20px",
+                        "margin-desktop": "64px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "headline-display": ["Playfair Display"],
+                        "label-caps": ["Hanken Grotesk"],
+                        "headline-lg": ["Playfair Display"],
+                        "label-mono": ["Courier Prime"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "300"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["32px", {"lineHeight": "1.2", "fontWeight": "400"}],
+                        "headline-md": ["28px", {"lineHeight": "1.3", "fontWeight": "400"}],
+                        "headline-display": ["64px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.15em", "fontWeight": "600"}],
+                        "headline-lg": ["40px", {"lineHeight": "1.2", "fontWeight": "400"}],
+                        "label-mono": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        .asymmetric-offset-text {
+            transform: translateX(calc(-1 * theme('spacing.asymmetric-offset')));
+        }
+        .glass-panel {
+            background: rgba(249, 248, 246, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(26, 26, 26, 0.1);
+        }
+        .ornament-separator::after {
+            content: "◆";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: theme('colors.background');
+            padding: 0 1rem;
+            color: theme('colors.couture-red');
+            font-size: 0.75rem;
+        }
+        .parallax-motif {
+            pointer-events: none;
+            opacity: 0.03;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="bg-background text-primary font-body-lg selection:bg-couture-red selection:text-white">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop py-8 bg-transparent transition-all duration-700" id="main-nav">
+<div class="font-headline-md text-headline-md tracking-widest text-primary">SYNARAVA</div>
+<div class="hidden md:flex items-center gap-12">
+<a class="font-label-caps text-label-caps text-on-primary-container hover:text-primary transition-colors duration-300" href="#">Collections</a>
+<a class="font-label-caps text-label-caps text-on-primary-container hover:text-primary transition-colors duration-300" href="#">Archive</a>
+<a class="font-label-caps text-label-caps text-on-primary-container hover:text-primary transition-colors duration-300" href="#">Heritage</a>
+<a class="font-label-caps text-label-caps text-primary border-b border-primary pb-1" href="#">Process</a>
+</div>
+<div class="flex items-center gap-6">
+<button class="hover:opacity-70 transition-opacity duration-500">
+<span class="material-symbols-outlined">shopping_bag</span>
+</button>
+<button class="hover:opacity-70 transition-opacity duration-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<main class="relative overflow-hidden">
+<!-- Parallax Background Motif -->
+<div class="fixed inset-0 flex items-center justify-center parallax-motif" id="parallax-bg">
+<span class="text-[40vw] font-headline-display select-none">S</span>
+</div>
+<!-- Section 1: Introduction (Manifesto) -->
+<section class="min-h-screen flex flex-col justify-center px-margin-desktop pt-32 pb-24 relative z-10">
+<div class="grid grid-cols-12 gap-gutter">
+<div class="col-span-12 md:col-span-7">
+<p class="font-label-mono text-label-mono text-couture-red mb-8">01 / MANIFESTO</p>
+<h1 class="font-headline-display text-headline-display mb-12 max-w-2xl leading-none">The Soul of Belarusian Couture</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl mb-12">
+                        SYNARAVA is not jewelry. It is an act of preservation. Each piece is a material dialogue between the ancient Slavic soul and the rigor of contemporary high fashion. We curate memories, weaving the architectural stillness of the Belarusian landscape into wearable artifacts of intellectual luxury.
+                    </p>
+</div>
+<div class="col-span-12 md:col-span-5 relative">
+<div class="aspect-[3/4] bg-stone-beige overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-[3000ms] hover:scale-105" data-alt="An atmospheric, high-editorial shot of a luxury handcrafted bracelet with Belarusian folk motifs. The jewelry is presented on a minimalist stone pedestal under soft, museum-quality lighting. The palette is dominated by linen whites, stone beiges, and deep charcoal blacks with a single vibrant red detail. The aesthetic is serene, architectural, and deeply sophisticated." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsOpilx95kk9tsj12r0FFG2UFEpnvVCSCj8zjj1_un-K347C_bYyfjiBfHqVhN7zzUIZ6ozazQxs49HgYM0nwLxVV_V-oCjDAD6QJftXKg4uJF9VXZZMF7SnXTuGUbTcXPb8YpkhuyReJ5XbM6cmIPd1_ZewFgYq_eM3-SzvrzxvrGS91YDoHIO1EY-VONHmNa2LsvHgEWNqfyALYgIDXy_TuRnrTrcjodxqPvTs-9GvTow0A7s7QXartwC2wPcxedNcDYyDBOZOpL"/>
+</div>
+<div class="absolute -bottom-8 -left-12 glass-panel p-8 hidden md:block">
+<p class="font-label-mono text-label-mono mb-2">COORD: 53.9° N, 27.5° E</p>
+<p class="font-label-caps text-label-caps tracking-widest text-on-primary-container">MINSK ARCHIVE</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Craftsmanship (Hands) -->
+<section class="py-24 px-margin-desktop bg-linen relative z-10">
+<div class="max-w-screen-xl mx-auto">
+<div class="flex flex-col md:flex-row items-end gap-12 mb-24">
+<div class="w-full md:w-1/2">
+<h2 class="font-headline-lg text-headline-lg mb-8">Hands of the Artisan</h2>
+<div class="h-px w-full bg-charcoal/10 relative ornament-separator mb-8"></div>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-12">
+                            The rhythm of the loom meets the precision of the goldsmith. Every bead is selected for its material honesty—lava stone for grounding, ceramic for purity, and hand-woven threads that carry the warmth of human touch. We reject the industrial pulse in favor of the human breath.
+                        </p>
+<button class="bg-charcoal text-white px-12 py-4 font-label-caps text-label-caps hover:bg-couture-red transition-all duration-500">
+                            VIEW THE PROCESS
+                        </button>
+</div>
+<div class="w-full md:w-1/2 grid grid-cols-2 gap-gutter">
+<div class="aspect-square bg-stone-beige">
+<img class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" data-alt="Close-up detail of artisan hands working with fine linen threads and ceramic beads. The lighting is high-contrast and dramatic, highlighting the texture of the materials and the skin. The scene is set in a bright, minimalist studio that feels like an art gallery. Colors are muted linen, charcoal, and a touch of earth-toned wood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1Q9Y5mTOg4JUp7ltbWF7UCVszQDvMhK4HkZeiKBH0sIaPUR-UTsap-qKNQrRxs3rB5Sowo82wlYmwo20D0nqr3Q4-7pfoZRCeaIDPtyLX3ZNXQP2Xz_nQCkprKPJvwx5TIja3QNWzei9N-hLk51vB7X_GuDh0Dtn3IRJ5H0M3pC8kYZjTik5LWwFsa8rBwH1PRScpi6BvuAPPBFPF1GUuoCg209ofG6zTPdWg2QGoWwmmKGn39ArL0g7Yf8IdHxBlM8rPqTOo4DIV"/>
+</div>
+<div class="aspect-square bg-stone-beige mt-12">
+<img class="w-full h-full object-cover" data-alt="Top-down view of raw jewelry materials: polished lava stones, white ceramic squares with red folk embroidery, and dark oak wood beads. The composition is balanced and artistic, resembling a curated display in a modern museum. The background is a clean, textured linen surface. The atmosphere is calm and intellectual." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7W843EHQdZY1jBm55opNlIRmN9QiRAMGmzyqF5zdXt2cwigQhhPV4qkXKAVtEaBfzwdxIpmBR2KOfDI2ymoCQvaPh_dNvuOGRdGSXTg0Nk2edENnTUcURfnB3uKsA53ByrmrUpL-UceWrVoGdW_31a6BwydIalVlC2sofkQtrybUuGmpNKQufRtbC-d-3eEV70YQZVGpjPvf8FUjpEmI3DWVcC1LpNQJJTwyJnvnaxErGyVGWp-5VFVIMQJiReO8VcV4dJQsO_axC"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Heritage (Evolution) -->
+<section class="py-32 px-margin-desktop relative z-10 overflow-hidden">
+<div class="absolute top-0 right-0 asymmetric-offset-text opacity-5 select-none pointer-events-none">
+<span class="font-headline-display text-[200px]">HERITAGE</span>
+</div>
+<div class="grid grid-cols-12 gap-gutter items-center">
+<div class="col-span-12 md:col-span-5 md:order-2">
+<p class="font-label-mono text-label-mono text-couture-red mb-4">02 / HERITAGE</p>
+<h2 class="font-headline-lg text-headline-lg mb-8 leading-tight">From Ornament to Architecture</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-6">
+                        The "KOD RODA" (Ancestral Code) is our foundational motif. Once found only on ceremonial linens, we have distilled its geometric essence into structural luxury. It is not a pattern; it is a cipher of resilience and identity.
+                    </p>
+<div class="flex flex-col gap-6 mt-12">
+<div class="flex items-center gap-4">
+<span class="font-label-mono text-label-mono text-charcoal/30">01</span>
+<span class="font-label-caps text-label-caps">GEOMETRIC PURITY</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-mono text-label-mono text-charcoal/30">02</span>
+<span class="font-label-caps text-label-caps">MATERIAL SYMBOLISM</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-mono text-label-mono text-charcoal/30">03</span>
+<span class="font-label-caps text-label-caps">LUXURY AS MEMORY</span>
+</div>
+</div>
+</div>
+<div class="col-span-12 md:col-span-6 md:order-1 relative">
+<div class="grid grid-cols-2 gap-4">
+<img class="w-full aspect-square object-cover shadow-2xl" data-alt="A side-by-side comparison of a vintage Belarusian woven textile with red geometric ornaments and a modern white ceramic jewelry piece featuring the same motif. The image is styled as a high-end fashion editorial spread. Soft, directional light creates elegant shadows. The mood is respectful and deeply connected to history." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2bzj_Kwa15jaUTfnpQ74fpNyH8oR-ka1zPvi4y5EYwfqQGycU5PY7ov2VsofrBIraiU8YHmwXHaFFxfa54THQO5e7jbNdofGkc237LsCdRCuudHo3palaWRyr17uyHspNWYL2D3KZoWPIZVn1SO89RSDvBKhlFuOjdxcrmijL8FSYFy3_vkSTS0mReFPYKla38QSAfzGOi_BITgn_rwnCTbBz2vXrG3738a4AZEbxICC1QciJvVK3TQt5W6R4WpSQoo5HimIvoela"/>
+<div class="aspect-square bg-charcoal flex items-center justify-center p-12">
+<span class="material-symbols-outlined text-background text-6xl" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+</div>
+</div>
+<div class="absolute -bottom-12 -right-8 w-48 h-48 border border-charcoal/10 flex items-center justify-center bg-background p-4 text-center">
+<p class="font-label-caps text-label-caps text-[10px] uppercase tracking-[0.2em]">The Evolution of the Ancestral Cipher</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Identity (The Soul) -->
+<section class="py-48 px-margin-desktop bg-charcoal text-white relative z-10">
+<div class="max-w-screen-md mx-auto text-center">
+<span class="material-symbols-outlined text-stone-beige mb-12 text-5xl">auto_stories</span>
+<h2 class="font-headline-display text-headline-display mb-12">Identity &amp; Memory</h2>
+<div class="h-px w-24 bg-couture-red mx-auto mb-12"></div>
+<p class="font-body-lg text-body-lg text-on-primary-container italic mb-16">
+                    "We do not inherit the earth from our ancestors; we borrow it from our children. We do the same with our stories. SYNARAVA is the vessel for the stories that refuse to be forgotten."
+                </p>
+<div class="grid grid-cols-3 gap-12 border-t border-white/10 pt-16">
+<div>
+<p class="font-headline-md text-headline-md mb-2">24</p>
+<p class="font-label-caps text-label-caps text-on-primary-container">COLLECTIONS</p>
+</div>
+<div>
+<p class="font-headline-md text-headline-md mb-2">12</p>
+<p class="font-label-caps text-label-caps text-on-primary-container">MASTER ARTISANS</p>
+</div>
+<div>
+<p class="font-headline-md text-headline-md mb-2">∞</p>
+<p class="font-label-caps text-label-caps text-on-primary-container">HERITAGE</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 5: The Exhibition Call -->
+<section class="py-32 px-margin-desktop bg-background relative z-10">
+<div class="flex flex-col md:flex-row gap-gutter">
+<div class="flex-1 group overflow-hidden relative">
+<img class="w-full h-96 object-cover transition-transform duration-1000 group-hover:scale-110" data-alt="A wide perspective shot of a minimalist modern art gallery. Large white walls are punctuated by small, backlit pedestals holding intricate jewelry. The floor is polished concrete. The atmosphere is hushed and expensive. Soft natural light flows from a skylight. The scene is a perfect representation of a high-end luxury brand exhibition space." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHaoUd-Rm7sOtHmb7DqP0M9OBv7dVOeIrBaE0HeI7OBXaGfWpDZ-Rydjig7P70HXomp3svTh1hAwUXUsAVSBjU5XjcXsfg8B3AK0ZyL-1_ULgDFpb-5IemGJkyXlntN3f-ihPcc1u86fbTV48rKP9E6HYYe53wCujXW5Yy4jVQ7fvgqcipoQSMO0V7fwxVedwilASfgNwSlcTU4FHWCQyj2cT_-Uetg5LcpKBkJ0LbTtRcCKlG63G2PXW1UtqsGCgiQKVOZn1a-NUv"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+<button class="border border-white text-white px-8 py-3 font-label-caps text-label-caps hover:bg-white hover:text-black transition-colors">THE CALENDAR</button>
+</div>
+</div>
+<div class="flex-1 flex flex-col justify-center p-12 bg-stone-beige/30">
+<h3 class="font-headline-md text-headline-md mb-6">Experience the Archive</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-8">
+                        Our collections travel as exhibitions. Discover the physical presence of SYNARAVA in curated galleries from Minsk to Paris.
+                    </p>
+<a class="font-label-caps text-label-caps text-couture-red flex items-center gap-2 group" href="#">
+                        UPCOMING EXHIBITIONS
+                        <span class="material-symbols-outlined group-hover:translate-x-2 transition-transform">arrow_forward</span>
+</a>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-24 px-margin-desktop grid grid-cols-1 md:grid-cols-4 gap-gutter bg-linen border-t border-charcoal/10 relative z-20">
+<div class="md:col-span-2">
+<div class="font-headline-display text-headline-display text-primary opacity-10 mb-8 select-none">SYNARAVA</div>
+<p class="font-label-mono text-label-mono text-primary max-w-sm mb-12 uppercase">
+                © 2024 SYNARAVA JEWELRY. THE SOUL OF BELARUSIAN COUTURE.
+            </p>
+</div>
+<div class="flex flex-col gap-4">
+<p class="font-label-caps text-label-caps text-primary mb-4">MUSEUM</p>
+<a class="font-label-mono text-label-mono text-couture-red font-bold" href="#">The Manifesto</a>
+<a class="font-label-mono text-label-mono text-on-surface-variant hover:text-primary transition-colors" href="#">Material Archive</a>
+<a class="font-label-mono text-label-mono text-on-surface-variant hover:text-primary transition-colors" href="#">Exhibition Calendar</a>
+</div>
+<div class="flex flex-col gap-4">
+<p class="font-label-caps text-label-caps text-primary mb-4">SERVICE</p>
+<a class="font-label-mono text-label-mono text-on-surface-variant hover:text-primary transition-colors" href="#">Care Guide</a>
+<a class="font-label-mono text-label-mono text-on-surface-variant hover:text-primary transition-colors" href="#">Shipping</a>
+<a class="font-label-mono text-label-mono text-on-surface-variant hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+</footer>
+<script>
+        // Micro-interactions and Atmospheric Effects
+        document.addEventListener('scroll', () => {
+            const scroll = window.scrollY;
+            const nav = document.getElementById('main-nav');
+            const parallaxBg = document.getElementById('parallax-bg');
+            
+            // Navigation scroll effect
+            if (scroll > 100) {
+                nav.classList.add('bg-linen', 'py-4', 'shadow-sm');
+                nav.classList.remove('bg-transparent', 'py-8');
+            } else {
+                nav.classList.add('bg-transparent', 'py-8');
+                nav.classList.remove('bg-linen', 'py-4', 'shadow-sm');
+            }
+
+            // Subtle parallax for the background motif
+            parallaxBg.style.transform = `translateY(${scroll * 0.15}px)`;
+        });
+
+        // Entrance animations for sections
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-10');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            section.classList.add('transition-all', 'duration-1000', 'opacity-0', 'translate-y-10');
+            observer.observe(section);
+        });
+    </script>
+</body></html>

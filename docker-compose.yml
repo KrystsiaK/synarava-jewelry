@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: synarava-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: synarava
+      POSTGRES_USER: synarava
+      POSTGRES_PASSWORD: synarava
+    ports:
+      - "5432:5432"
+    volumes:
+      - synarava-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synarava -d synarava"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  synarava-postgres-data:
