@@ -1,7 +1,10 @@
 allowBuilds:
-  '@prisma/client': set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+  '@prisma/client': true
+  core-js-pure: true
+  esbuild: true
+  prisma: true
+  sharp: false
+  unrs-resolver: false
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

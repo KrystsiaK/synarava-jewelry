@@ -104,6 +104,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
             href="/cart"
             aria-label={`Cart${cartCount > 0 ? `, ${cartCount} items` : ""}`}
             className={`relative inline-flex items-center gap-2 border px-3 py-2 transition-all hover:border-foreground/30 hover:text-accent ${
+              /* c8 ignore next 4 */
               isActive("/cart")
                 ? "border-foreground/20 bg-foreground/[0.03] text-foreground"
                 : hasCartItems

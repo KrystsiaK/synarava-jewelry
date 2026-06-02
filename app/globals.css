@@ -81,30 +81,34 @@ html[data-theme="light"] {
 }
 
 html[data-theme="dark"] {
-  --color-linen: #eee5db;
-  --color-stone-beige: #3a312c;
-  --color-surface: #221c19;
-  --color-panel: #1f1b18;
-  --color-charcoal: #0f0c0b;
-  --color-couture-red: #d66d77;
-  --color-muted-ink: #a59a90;
-  --color-glass: rgba(31, 27, 24, 0.7);
-  --color-glass-strong: rgba(31, 27, 24, 0.56);
-  --color-border-subtle: rgba(244, 237, 229, 0.12);
-  --color-border-soft: rgba(244, 237, 229, 0.2);
-  --color-wordmark-fade: rgba(244, 237, 229, 0.05);
-  --color-header-chrome: rgba(21, 17, 15, 0.8);
-  --color-selection: rgba(214, 109, 119, 0.24);
-  --color-background: #15110f;
-  --color-foreground: #f4ede5;
-  --color-muted: #a59a90;
-  --color-accent: #d66d77;
-  --color-accent-soft: #c78f73;
-  --color-stroke: rgba(244, 237, 229, 0.14);
+  --color-linen: #1a1b1b;
+  --color-stone-beige: #2a2826;
+  --color-surface: #1e201f;
+  --color-panel: #252726;
+  --color-charcoal: #121212;
+  --color-couture-red: #d62f44;
+  --color-muted-ink: #b0afae;
+  --color-glass: rgba(26, 28, 27, 0.7);
+  --color-glass-strong: rgba(26, 28, 27, 0.56);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-soft: rgba(255, 255, 255, 0.12);
+  --color-wordmark-fade: rgba(255, 255, 255, 0.04);
+  --color-header-chrome: rgba(10, 10, 10, 0.92);
+  --color-selection: rgba(214, 47, 68, 0.28);
+  --color-background: #0d0d0d;
+  --color-foreground: #f1f1ef;
+  --color-muted: #b0afae;
+  --color-accent: #d62f44;
+  --color-accent-soft: #1e201f;
+  --color-stroke: rgba(255, 255, 255, 0.08);
 }
 
 html {
   scroll-behavior: smooth;
+  background: var(--color-background);
+}
+
+html[data-theme="dark"] body {
   background: var(--color-background);
 }
 
@@ -302,7 +306,7 @@ select {
 }
 
 .artifact-footer__input::placeholder {
-  color: color-mix(in srgb, var(--color-charcoal) 35%, transparent);
+  color: color-mix(in srgb, var(--color-foreground) 30%, transparent);
 }
 
 .artifact-footer__input:focus {
@@ -327,6 +331,11 @@ select {
   backdrop-filter: blur(var(--blur-glass));
   border: 1px solid rgba(255, 255, 255, 0.28);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="dark"] .etched-glass {
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
 }
 
 .embroidery-separator {
@@ -397,9 +406,16 @@ select {
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 768px) {
   .site-shell {
     padding-inline: var(--spacing-page-x-desktop);
+  }
+}
+
+@media (max-width: 767px) {
+  .section-space {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
   }
 }
 

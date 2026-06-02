@@ -14,9 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const collection = await getCollectionBySlug(slug);
 
   if (!collection) {
-    return {
-      title: "Collection | Synarava",
-    };
+    return { title: "Collection | Synarava" };
   }
 
   return {
@@ -29,15 +27,14 @@ export default async function CollectionPage({ params }: Props) {
   const { slug } = await params;
   const collection = await getCollectionBySlug(slug);
 
-  if (!collection) {
-    notFound();
-  }
+  if (!collection) notFound();
 
   const collectionProducts = await getProductsByCollection(slug);
 
   return (
     <main className="artifact-shell overflow-x-hidden">
-      <header className="relative flex h-screen w-full items-center overflow-hidden">
+      {/* Hero — full viewport */}
+      <header className="relative flex h-[70vh] min-h-[480px] w-full items-center overflow-hidden md:h-screen">
         <div className="absolute inset-0 z-0">
           <img
             alt={`${collection.name} hero`}
@@ -46,18 +43,22 @@ export default async function CollectionPage({ params }: Props) {
             src={collection.heroImage}
           />
         </div>
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-linen/50 to-transparent" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-linen/60 to-transparent" />
 
-        <div className="relative z-20 max-w-4xl px-5 md:px-16">
-          <span className="mb-6 block font-mono text-[0.82rem] uppercase tracking-[0.28em] text-couture-red">
+        <div className="relative z-20 max-w-2xl px-5 md:px-16">
+          <span className="mb-4 block font-mono text-[0.82rem] uppercase tracking-[0.28em] text-couture-red md:mb-6">
             {collection.eyebrow}
           </span>
-          <h1 className="mb-8 font-serif text-[4rem] leading-none md:text-[5.5rem]">{collection.name}</h1>
-          <p className="max-w-lg text-lg leading-8 text-foreground/70">{collection.summary}</p>
-          <div className="mt-12">
+          <h1 className="mb-6 font-serif text-[2.8rem] leading-none sm:text-[3.5rem] md:mb-8 md:text-[5.5rem]">
+            {collection.name}
+          </h1>
+          <p className="max-w-md text-base leading-7 text-foreground/70 md:text-lg md:leading-8">
+            {collection.summary}
+          </p>
+          <div className="mt-8 md:mt-12">
             <Link
               href="/shop"
-              className="inline-block bg-charcoal px-12 py-5 label-caps text-white transition-all duration-500 hover:bg-couture-red"
+              className="inline-block bg-charcoal px-8 py-4 label-caps text-white transition-all duration-500 hover:bg-couture-red md:px-12 md:py-5"
             >
               Shop products
             </Link>
@@ -65,8 +66,9 @@ export default async function CollectionPage({ params }: Props) {
         </div>
       </header>
 
-      <section className="px-5 py-32 md:px-16">
-        <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-12">
+      {/* Collection story */}
+      <section className="px-5 py-16 md:px-16 md:py-32">
+        <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-12 md:gap-6">
           <div className="md:col-span-5">
             <div className="relative">
               <img
@@ -74,8 +76,9 @@ export default async function CollectionPage({ params }: Props) {
                 className="aspect-[3/4] w-full object-cover grayscale"
                 src={collection.heroImage}
               />
-              <div className="absolute -bottom-8 -right-8 flex h-48 w-48 items-center justify-center border border-charcoal/10 bg-stone-beige/30 p-8 backdrop-blur-sm">
-                <span className="text-center font-mono text-[0.82rem] uppercase tracking-[0.14em]">
+              {/* Floating accent box — hidden on mobile to prevent overflow */}
+              <div className="absolute -bottom-6 -right-4 hidden h-36 w-36 items-center justify-center border border-charcoal/10 bg-stone-beige/30 p-6 backdrop-blur-sm sm:flex sm:h-40 sm:w-40 md:-bottom-8 md:-right-8 md:h-48 md:w-48 md:p-8">
+                <span className="text-center font-mono text-[0.75rem] uppercase tracking-[0.14em]">
                   {collection.accent}
                   <br />
                   as collection accent
@@ -85,17 +88,17 @@ export default async function CollectionPage({ params }: Props) {
           </div>
 
           <div className="md:col-span-6 md:col-start-7">
-            <span className="mb-4 block font-mono text-[0.82rem] italic uppercase tracking-[0.14em] text-foreground/50">
+            <span className="mb-3 block font-mono text-[0.82rem] italic uppercase tracking-[0.14em] text-foreground/50 md:mb-4">
               Collection story
             </span>
-            <h2 className="mb-8 font-serif text-[2.6rem]">A world with a clear visual logic</h2>
-            <div className="mb-8 h-px w-24 bg-couture-red" />
-            <p className="mb-12 text-lg leading-8 text-foreground/70">
+            <h2 className="mb-6 font-serif text-[2rem] md:mb-8 md:text-[2.6rem]">A world with a clear visual logic</h2>
+            <div className="mb-6 h-px w-16 bg-couture-red md:mb-8 md:w-24" />
+            <p className="mb-8 text-base leading-8 text-foreground/70 md:mb-12 md:text-lg">
               This collection page exists to help the customer understand what ties these products
               together before they make a choice. It is a narrative grouping, not a replacement for
               the main shop.
             </p>
-            <div className="grid grid-cols-2 gap-8 border-l border-charcoal/10 pl-8">
+            <div className="grid grid-cols-2 gap-6 border-l border-charcoal/10 pl-6 md:gap-8 md:pl-8">
               <div>
                 <span className="label-caps mb-2 block">Collection role</span>
                 <p className="text-base leading-8">Editorial grouping and aesthetic context.</p>
@@ -109,42 +112,43 @@ export default async function CollectionPage({ params }: Props) {
         </div>
       </section>
 
-      <section className="bg-linen px-5 py-32 md:px-16">
-        <div className="mb-24 flex items-end justify-between">
+      {/* Products grid */}
+      <section className="bg-linen px-5 py-16 md:px-16 md:py-32">
+        <div className="mb-10 flex flex-col gap-4 md:mb-24 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="font-serif text-[2.6rem]">Products in this Collection</h2>
+            <h2 className="font-serif text-[2rem] md:text-[2.6rem]">Products in this Collection</h2>
             <span className="font-mono text-[0.82rem] uppercase tracking-[0.14em] text-foreground/50">
               Catalogue / {collection.name}
             </span>
           </div>
           <Link
             href="/shop"
-            className="label-caps border-b border-charcoal pb-2 transition-all hover:border-couture-red hover:text-couture-red"
+            className="label-caps w-fit border-b border-charcoal pb-2 transition-all hover:border-couture-red hover:text-couture-red"
           >
             View all products
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
           {collectionProducts.map((product, index) => (
             <Link
               key={product.slug}
               href={`/products/${product.slug}`}
               className={`group cursor-pointer${index === 1 ? " md:mt-24" : ""}`}
             >
-              <div className={`relative mb-6 overflow-hidden bg-stone-beige/20 ${index === 1 ? "aspect-[4/5]" : "aspect-square"}`}>
+              <div className={`relative mb-4 overflow-hidden bg-stone-beige/20 ${index === 1 ? "aspect-[4/5]" : "aspect-square"}`}>
                 <img
                   alt={product.title}
                   className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
                   src={product.image}
                 />
               </div>
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h3 className="mb-1 font-serif text-[1.4rem]">{product.title}</h3>
-                  <span className="label-caps text-foreground/50">{product.materialLine}</span>
+                  <h3 className="mb-1 font-serif text-[1.1rem] md:text-[1.4rem]">{product.title}</h3>
+                  <span className="label-caps text-xs text-foreground/50 md:text-[0.76rem]">{product.materialLine}</span>
                 </div>
-                <span className="font-mono text-[0.82rem] uppercase tracking-[0.14em]">{product.price}</span>
+                <span className="font-mono text-[0.76rem] uppercase tracking-[0.14em] md:text-[0.82rem]">{product.price}</span>
               </div>
             </Link>
           ))}

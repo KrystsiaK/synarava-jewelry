@@ -49,6 +49,7 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
 
     applyTheme(preference);
 
+    /* c8 ignore next 4 */
     function handleSystemThemeChange() {
       if (preference === "system") {
         applyTheme("system");

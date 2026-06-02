@@ -48,7 +48,7 @@ export default async function HomePage() {
 
   return (
     <main className="artifact-shell min-h-screen overflow-x-hidden">
-      {/* Hero — no scroll reveal, initial viewport */}
+      {/* Hero */}
       <header className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-0 pt-24 md:pt-20">
         <div className="pointer-events-none absolute inset-0 opacity-10">
           <div
@@ -61,11 +61,11 @@ export default async function HomePage() {
         </div>
 
         <div className="site-shell relative z-10 grid grid-cols-12 items-center gap-y-12">
-          <div className="z-20 col-span-12 space-y-6 md:col-span-6 md:space-y-8">
+          <div className="z-20 col-span-12 space-y-5 md:col-span-6 md:space-y-8">
             <p className="font-mono text-[0.82rem] uppercase tracking-[0.28em] text-couture-red">
               {content.eyebrow ?? "Couture Collection №01"}
             </p>
-            <h1 className="font-serif text-[3rem] leading-[0.95] sm:text-[3.5rem] md:text-[5.5rem]">
+            <h1 className="font-serif text-[2.6rem] leading-[0.95] sm:text-[3.5rem] md:text-[5.5rem]">
               {page?.title?.split(" ").slice(0, 1).join(" ") ?? "Ethereal"} <br />{" "}
               {page?.title?.split(" ").slice(1).join(" ") ?? "Artifacts"}
             </h1>
@@ -89,7 +89,8 @@ export default async function HomePage() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr"
               />
             </div>
-            <div className="absolute -right-1 top-4 flex h-28 w-28 items-center justify-center border border-charcoal/10 sm:h-36 sm:w-36 md:-right-12 md:-top-12 md:h-48 md:w-48">
+            {/* Decorative diamond — hidden on very small screens to prevent overflow */}
+            <div className="absolute -right-1 top-4 hidden h-28 w-28 items-center justify-center border border-charcoal/10 sm:flex sm:h-36 sm:w-36 md:-right-12 md:-top-12 md:h-48 md:w-48">
               <div className="flex h-24 w-24 rotate-45 items-center justify-center border border-couture-red">
                 <div className="h-8 w-8 -rotate-45 border border-charcoal/10 sm:h-10 sm:w-10 md:h-12 md:w-12" />
               </div>
@@ -104,21 +105,21 @@ export default async function HomePage() {
       </header>
 
       {/* Manifesto Quote */}
-      <section className="relative overflow-hidden bg-background py-20 md:py-32">
+      <section className="relative overflow-hidden bg-background py-16 md:py-32">
         <div className="site-shell">
           <div className="grid grid-cols-12 gap-6">
             <ScrollReveal className="col-span-12 text-center md:col-span-8 md:col-start-3">
-              <span className="label-caps mb-8 block text-couture-red">The Manifesto</span>
-              <h2 className="mb-10 font-serif text-[2rem] italic leading-snug md:mb-12 md:text-[3rem]">
+              <span className="label-caps mb-6 block text-couture-red md:mb-8">The Manifesto</span>
+              <h2 className="mb-8 font-serif text-[1.7rem] italic leading-snug md:mb-12 md:text-[3rem]">
                 &ldquo;
                 {content.quote ??
-                  "We do not create accessories. We archive the soul of materials—wood that has witnessed centuries, stone that holds the earth’s heat, and the silent rhythm of folk geometry."}
+                  "We do not create accessories. We archive the soul of materials—wood that has witnessed centuries, stone that holds the earth's heat, and the silent rhythm of folk geometry."}
                 &rdquo;
               </h2>
               <div className="flex items-center justify-center gap-4">
-                <div className="h-px w-24 bg-stone-beige" />
+                <div className="h-px w-16 bg-stone-beige md:w-24" />
                 <div className="h-2 w-2 rotate-45 border border-couture-red" />
-                <div className="h-px w-24 bg-stone-beige" />
+                <div className="h-px w-16 bg-stone-beige md:w-24" />
               </div>
             </ScrollReveal>
           </div>
@@ -127,22 +128,22 @@ export default async function HomePage() {
           className="pointer-events-none absolute -right-20 top-1/2 -translate-y-1/2 select-none opacity-5"
           style={{ writingMode: "vertical-rl" }}
         >
-          <span className="font-serif text-[10rem] leading-none">BELARUSIAN FOLK COUTURE</span>
+          <span className="font-serif text-[6rem] leading-none md:text-[10rem]">BELARUSIAN FOLK COUTURE</span>
         </div>
       </section>
 
       {/* Collections Horizontal Scroll */}
-      <section className="overflow-hidden pb-20 md:pb-32">
-        <ScrollReveal className="site-shell mb-10 flex flex-col gap-6 md:mb-12 md:flex-row md:items-end md:justify-between" direction="none">
+      <section className="overflow-hidden pb-16 md:pb-32">
+        <ScrollReveal className="site-shell mb-8 flex flex-col gap-4 md:mb-12 md:flex-row md:items-end md:justify-between" direction="none">
           <div>
             <p className="mb-2 font-mono text-[0.82rem] uppercase tracking-[0.14em] opacity-50">
               Collections 2024
             </p>
-            <h3 className="font-serif text-[2rem]">{content.secondaryTitle ?? "Current Archive"}</h3>
+            <h3 className="font-serif text-[1.8rem] md:text-[2rem]">{content.secondaryTitle ?? "Current Archive"}</h3>
           </div>
           <Link
             href="/collections"
-            className="label-caps border-b border-charcoal pb-2 transition-all hover:border-couture-red hover:text-couture-red"
+            className="label-caps w-fit border-b border-charcoal pb-2 transition-all hover:border-couture-red hover:text-couture-red"
           >
             View All Series
           </Link>
@@ -152,14 +153,11 @@ export default async function HomePage() {
           {collections.map((item, i) => (
             <ScrollReveal
               key={item.series}
-              className={`w-[84vw] max-w-[22rem] flex-none md:w-[360px]${item.offset ? " md:mt-12" : ""}`}
+              className={`w-[80vw] max-w-[22rem] flex-none md:w-[360px]${item.offset ? " md:mt-12" : ""}`}
               delay={i * 120}
             >
-              <Link
-                href={item.href}
-                className="block cursor-pointer group w-full"
-              >
-                <div className="mb-6 aspect-[3/4] overflow-hidden bg-stone-beige">
+              <Link href={item.href} className="block w-full cursor-pointer group">
+                <div className="mb-5 aspect-[3/4] overflow-hidden bg-stone-beige">
                   <img
                     alt={item.title}
                     className="h-full w-full object-cover grayscale transition-transform duration-1000 group-hover:scale-105"
@@ -171,7 +169,7 @@ export default async function HomePage() {
                     <p className="mb-1 font-mono text-[0.82rem] uppercase tracking-[0.14em] opacity-50">
                       {item.series}
                     </p>
-                    <h4 className="font-serif text-[1.6rem]">{item.title}</h4>
+                    <h4 className="font-serif text-[1.4rem] md:text-[1.6rem]">{item.title}</h4>
                   </div>
                   <span className="font-mono text-[0.82rem] uppercase tracking-[0.14em]">
                     {item.price}
@@ -184,19 +182,19 @@ export default async function HomePage() {
       </section>
 
       {/* Material Philosophy — dark */}
-      <section className="bg-foreground py-20 text-background md:py-32">
+      <section className="bg-foreground py-16 text-background md:py-32">
         <div className="site-shell">
-          <div className="grid grid-cols-1 items-start gap-14 md:gap-24 md:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-12 md:gap-24 md:grid-cols-3">
             {materials.map((mat, i) => (
               <ScrollReveal
                 key={mat.label}
                 className={`group${(mat as { offset?: boolean }).offset ? " md:mt-24" : i === 1 ? " md:mt-24" : ""}`}
                 delay={i * 150}
               >
-                <div className="mb-8 aspect-square w-full overflow-hidden grayscale transition-all duration-700 group-hover:grayscale-0">
+                <div className="mb-6 aspect-square w-full overflow-hidden grayscale transition-all duration-700 group-hover:grayscale-0">
                   <img alt={mat.label} className="h-full w-full object-cover" src={mat.image} />
                 </div>
-                <h5 className="label-caps mb-4 text-couture-red">{mat.label}</h5>
+                <h5 className="label-caps mb-3 text-couture-red">{mat.label}</h5>
                 <p className="text-base leading-8 opacity-70">{mat.description}</p>
               </ScrollReveal>
             ))}
@@ -205,7 +203,7 @@ export default async function HomePage() {
       </section>
 
       {/* Mirror Installation */}
-      <section className="relative flex min-h-[34rem] items-center justify-center overflow-hidden bg-surface py-20 md:h-[700px] md:py-0">
+      <section className="relative flex min-h-[28rem] items-center justify-center overflow-hidden bg-surface py-16 md:h-[700px] md:py-0">
         <div className="absolute inset-0">
           <img
             alt="Gallery Space"
@@ -214,56 +212,56 @@ export default async function HomePage() {
           />
         </div>
         <ScrollReveal className="relative z-10 max-w-4xl px-5 text-center" direction="none">
-          <div className="mb-12 inline-block">
+          <div className="mb-8 inline-block md:mb-12">
             <div
-              className="relative z-10 flex h-32 w-32 items-center justify-center border border-charcoal/10 p-6 sm:h-40 sm:w-40 md:h-48 md:w-48 md:p-8"
+              className="relative z-10 flex h-24 w-24 items-center justify-center border border-charcoal/10 p-5 sm:h-32 sm:w-32 sm:p-6 md:h-48 md:w-48 md:p-8"
               style={{ backdropFilter: "blur(12px)", background: "rgba(249,248,246,0.7)" }}
             >
               <div className="flex h-full w-full rotate-45 items-center justify-center border border-couture-red">
-                <span className="text-2xl -rotate-45">✦</span>
+                <span className="text-xl -rotate-45 md:text-2xl">✦</span>
               </div>
             </div>
           </div>
-          <h2 className="mb-8 font-serif text-[2.1rem] md:text-[3.2rem]">Reflections of Heritage</h2>
-          <p className="mb-12 text-base leading-7 md:text-lg md:leading-8">
+          <h2 className="mb-6 font-serif text-[1.9rem] md:mb-8 md:text-[3.2rem]">Reflections of Heritage</h2>
+          <p className="mb-8 text-base leading-7 md:mb-12 md:text-lg md:leading-8">
             Visit our immersive installation at the National Art Center. A space where jewelry meets
             sculpture, and tradition meets the infinite.
           </p>
-          <button className="label-caps w-full border border-foreground px-10 py-5 transition-all duration-500 hover:bg-foreground hover:text-background sm:w-auto">
+          <button className="label-caps w-full border border-foreground px-8 py-4 transition-all duration-500 hover:bg-foreground hover:text-background sm:w-auto sm:px-10 sm:py-5">
             Book Private Tour
           </button>
         </ScrollReveal>
       </section>
 
       {/* Heritage & Symbolism */}
-      <section className="bg-background py-20 md:py-32">
+      <section className="bg-background py-16 md:py-32">
         <div className="site-shell">
           <div className="flex flex-col items-center gap-10 md:gap-24 md:flex-row">
             <ScrollReveal className="w-full md:w-1/2" direction="left">
               <img
                 alt="Traditional Craft"
                 className="aspect-square w-full object-cover grayscale"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvzmn_KZdPb6CdGEC3uL8HdtuKxg8WUf3LnoaVDDhPOT3gKrvfnVFQFxT8r0o_cdgcsE9aRgs9KAao94bSsLFBGwv591fMSL6P1nngA2_go2UMnAs0qWdxSv9bFVZd2q1Q9s46OGI_dNEYf-WCJ6XBMjJEvg-3LG3SL3xkyIEqiBcY4fASsetRU5jQHeUkZiSMoTqqINuUKXU7n7v2JvcGfdP89dHn_KKEYeazFy7mWTn9Jqmy3H4Jrd1-2-ZDTF9pZs81z7dip0gn"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvzmn_KZdPb6CdGEC3uL8HdtuKxg8WUf3LnoaVDDhPOT3gKrvfnVFQFxT8r0o_cdgcsE9aRgs9KAao94bSsLFBGwv591fMSL6P1nngA2_go2UMnAs0qWdxSv9bFVZd2q1Q9s46OGI_dNEYf-WCJ6XBMjJEvg-3LG3SL3xkyIEqiBcY4fASsetRU5jQHeUkZiSMoTqqINuUKXU7n7v2JvcGfdP89dHn_KKEazFy7mWTn9Jqmy3H4Jrd1-2-ZDTF9pZs81z7dip0gn"
               />
             </ScrollReveal>
             <ScrollReveal
-              className="etched-glass relative z-10 w-full border border-charcoal/5 p-7 sm:p-10 md:-ml-32 md:mt-48 md:w-1/2 md:p-24"
+              className="etched-glass relative z-10 w-full border border-charcoal/5 p-6 sm:p-8 md:-ml-32 md:mt-48 md:w-1/2 md:p-16"
               direction="right"
               delay={100}
             >
-              <span className="mb-6 block font-mono text-[0.82rem] uppercase tracking-[0.14em] text-couture-red">
+              <span className="mb-4 block font-mono text-[0.82rem] uppercase tracking-[0.14em] text-couture-red md:mb-6">
                 03 // Symbolism
               </span>
-              <h3 className="mb-8 font-serif text-[2rem] md:text-[2.4rem]">The Geometry of Protection</h3>
-              <p className="mb-8 text-base leading-7 text-foreground/80 md:text-lg md:leading-8">
+              <h3 className="mb-6 font-serif text-[1.8rem] md:mb-8 md:text-[2.4rem]">The Geometry of Protection</h3>
+              <p className="mb-6 text-base leading-7 text-foreground/80 md:mb-8 md:text-lg md:leading-8">
                 Every pattern is a word. Every knot is a prayer. We integrate ancestral embroidery
                 motifs into modern jewelry designs, transforming adornment into a talisman for the
                 modern world.
               </p>
-              <ul className="space-y-4 font-mono text-[0.82rem] uppercase tracking-[0.14em]">
+              <ul className="space-y-3 font-mono text-[0.82rem] uppercase tracking-[0.14em]">
                 {symbolism.map((pt) => (
                   <li key={pt.label} className="flex items-center gap-3">
-                    <span className={`h-2 w-2 rotate-45 ${pt.color}`} />
+                    <span className={`h-2 w-2 rotate-45 shrink-0 ${pt.color}`} />
                     <span>{pt.label}</span>
                   </li>
                 ))}
