@@ -11,8 +11,8 @@ describe("ArtifactButton", () => {
   it("applies primary variant by default", () => {
     render(<ArtifactButton>Explore</ArtifactButton>);
     const btn = screen.getByRole("button");
-    expect(btn).toHaveClass("bg-foreground");
-    expect(btn).toHaveClass("text-background");
+    expect(btn).toHaveClass("bg-couture-red");
+    expect(btn).toHaveClass("text-linen");
   });
 
   it("applies secondary variant classes", () => {
@@ -57,7 +57,7 @@ describe("ArtifactLink", () => {
 
   it("applies primary variant by default", () => {
     render(<ArtifactLink href="/shop">Shop</ArtifactLink>);
-    expect(screen.getByRole("link")).toHaveClass("bg-foreground");
+    expect(screen.getByRole("link")).toHaveClass("bg-couture-red");
   });
 
   it("applies secondary variant", () => {

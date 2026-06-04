@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: synarava
       POSTGRES_PASSWORD: synarava
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - synarava-postgres-data:/var/lib/postgresql/data
     healthcheck:

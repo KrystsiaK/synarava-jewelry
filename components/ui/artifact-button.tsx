@@ -6,7 +6,7 @@ import { cn } from "@/lib/ui";
 type Variant = "primary" | "secondary" | "ghost";
 
 const variantClasses: Record<Variant, string> = {
-  primary: "bg-foreground text-background border border-foreground hover:opacity-90",
+  primary: "border border-couture-red bg-couture-red text-linen hover:border-[#7f1424] hover:bg-[#7f1424]",
   secondary: "border border-foreground/30 text-foreground hover:border-foreground",
   ghost: "border-b border-foreground/30 px-0 py-0 text-foreground hover:border-foreground",
 };

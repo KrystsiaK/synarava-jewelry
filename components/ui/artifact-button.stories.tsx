@@ -15,6 +15,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Primary: Story = {
   args: { children: "Explore Archive" },
+  parameters: {
+    docs: {
+      description: {
+        story: "Primary CTAs are always couture red; hover only deepens the red shade.",
+      },
+    },
+  },
 };
 
 export const Secondary: Story = {
@@ -27,4 +34,11 @@ export const Ghost: Story = {
 
 export const LinkVariant: StoryObj = {
   render: () => <ArtifactLink href="#">Explore Archive</ArtifactLink>,
+  parameters: {
+    docs: {
+      description: {
+        story: "Matches the hero Explore Archive link styling.",
+      },
+    },
+  },
 };

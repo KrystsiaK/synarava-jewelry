@@ -67,7 +67,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
   return (
     <>
       <header className="artifact-nav relative">
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="z-10 flex items-center gap-2 md:gap-4">
           <button
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
@@ -91,7 +91,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
                 className="h-full w-full object-contain object-center p-0.5 md:p-0.75 xl:p-1.5"
               />
             </span>
-            <span className="hidden font-serif text-[1.15rem] tracking-[0.22em] text-foreground md:inline md:text-[1.7rem] md:tracking-[0.28em]">
+            <span className="hidden font-serif text-[0.98rem] tracking-[0.2em] text-foreground md:inline md:text-[1.7rem] md:tracking-[0.28em]">
               SYNARAVA
             </span>
           </Link>
@@ -113,7 +113,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="relative z-10 flex items-center gap-2 md:gap-3">
           <div className="hidden lg:block">
             <ThemeToggle compact />
           </div>
