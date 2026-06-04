@@ -1,0 +1,55 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1200" fill="#F2ECE4"/>
+  <rect x="80" y="84" width="1040" height="1032" rx="8" fill="url(#bg)"/>
+  <rect x="178" y="152" width="844" height="896" fill="#D8C7B2"/>
+  <rect x="178" y="152" width="844" height="896" fill="url(#shadow)" fill-opacity="0.55"/>
+  <path d="M627 480C700 394 771 336 873 286L893 319C806 369 733 427 667 507L627 480Z" fill="#A6192E"/>
+  <path d="M553 421C599 403 645 399 694 407L688 446C647 440 608 443 569 459L553 421Z" fill="#F6F1E8"/>
+  <g opacity="0.96">
+    <circle cx="636" cy="454" r="46" fill="url(#beadWhite)"/>
+    <circle cx="695" cy="487" r="28" fill="url(#beadWhite)"/>
+    <circle cx="742" cy="523" r="26" fill="url(#beadWhite)"/>
+    <circle cx="785" cy="556" r="24" fill="url(#beadWhite)"/>
+    <circle cx="825" cy="591" r="24" fill="url(#beadWhite)"/>
+  </g>
+  <g opacity="0.96">
+    <circle cx="823" cy="445" r="56" fill="url(#medallion)"/>
+    <circle cx="823" cy="445" r="34" fill="#F3EEE5"/>
+    <path d="M823 417L832 436L852 445L832 454L823 473L814 454L794 445L814 436L823 417Z" fill="#A6192E"/>
+  </g>
+  <g stroke="#A6192E" stroke-width="10" stroke-linecap="round">
+    <path d="M598 493L548 615"/>
+    <path d="M668 508L621 668"/>
+    <path d="M739 534L702 738"/>
+    <path d="M804 565L776 806"/>
+  </g>
+  <g opacity="0.78">
+    <path d="M500 661C526 635 559 621 607 622" stroke="#F3EEE5" stroke-width="22" stroke-linecap="round"/>
+    <path d="M574 708C603 681 635 668 677 671" stroke="#F3EEE5" stroke-width="18" stroke-linecap="round"/>
+    <path d="M657 770C682 744 707 733 744 734" stroke="#F3EEE5" stroke-width="16" stroke-linecap="round"/>
+  </g>
+  <g opacity="0.36" stroke="#8F8172">
+    <path d="M222 942C361 875 562 877 763 927"/>
+    <path d="M250 995C422 936 664 948 950 1022"/>
+  </g>
+  <defs>
+    <linearGradient id="bg" x1="210" y1="142" x2="1015" y2="1060" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFE7DB"/>
+      <stop offset="0.5" stop-color="#DDCFBF"/>
+      <stop offset="1" stop-color="#C9B69C"/>
+    </linearGradient>
+    <linearGradient id="shadow" x1="178" y1="152" x2="1022" y2="1048" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0E0C0B" stop-opacity="0.58"/>
+      <stop offset="0.36" stop-color="#0E0C0B" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#0E0C0B" stop-opacity="0.42"/>
+    </linearGradient>
+    <radialGradient id="beadWhite" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 0) rotate(90) scale(46)">
+      <stop stop-color="#FFFDFC"/>
+      <stop offset="1" stop-color="#E6DBCB"/>
+    </radialGradient>
+    <radialGradient id="medallion" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(823 445) rotate(90) scale(56)">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D9CBBB"/>
+    </radialGradient>
+  </defs>
+</svg>

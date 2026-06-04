@@ -66,34 +66,38 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
 
   return (
     <>
-      <header className="artifact-nav">
+      <header className="artifact-nav relative">
         <div className="flex items-center gap-2 md:gap-4">
           <button
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
-            className="inline-flex size-11 items-center justify-center border border-foreground/10 text-foreground transition-colors hover:border-foreground/25 hover:bg-foreground/5 md:hidden"
+            className="inline-flex size-11 items-center justify-center border border-foreground/10 text-foreground transition-colors hover:border-foreground/25 hover:bg-foreground/5 xl:hidden"
             aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
           </button>
 
-          <Link href="/" className="flex items-center gap-3 md:gap-4" aria-label="SYNARAVA">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden md:h-20 md:w-20">
+          <Link
+            href="/"
+            className="absolute left-1/2 flex -translate-x-1/2 items-center justify-center md:static md:translate-x-0 md:gap-4"
+            aria-label="SYNARAVA"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden md:h-14 md:w-14 xl:h-20 xl:w-20">
               <BrandMark
                 alt=""
                 priority
-                size={128}
-                className="h-[5.5rem] w-[5.5rem] max-w-none object-contain object-center md:h-[6.5rem] md:w-[6.5rem]"
+                size={160}
+                className="h-full w-full object-contain object-center p-0.5 md:p-0.75 xl:p-1.5"
               />
             </span>
-            <span className="font-serif text-[1.15rem] tracking-[0.22em] text-foreground md:text-[1.7rem] md:tracking-[0.28em]">
+            <span className="hidden font-serif text-[1.15rem] tracking-[0.22em] text-foreground md:inline md:text-[1.7rem] md:tracking-[0.28em]">
               SYNARAVA
             </span>
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-8 lg:flex xl:gap-12">
+        <nav className="hidden items-center gap-8 xl:flex xl:gap-12">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -131,7 +135,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
             <span className="relative inline-flex items-center justify-center">
               <ShoppingBag className="size-5" />
               <span className="t-badge" data-open={cartCount > 0 ? "true" : "false"}>
-                <span className="t-badge-dot inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[10px] font-semibold text-background">
+                <span className="t-badge-dot inline-flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full border border-background/10 bg-foreground/88 px-1 text-[9px] font-semibold text-background shadow-[0_4px_10px_rgba(0,0,0,0.22)] backdrop-blur-sm">
                   {cartCount}
                 </span>
               </span>
@@ -161,7 +165,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
       </header>
 
       <div
-        className={`fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm transition-opacity duration-300 xl:hidden ${
           isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setIsMenuOpen(false)}
@@ -169,7 +173,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(88vw,24rem)] flex-col border-r border-foreground/10 bg-background px-5 pb-8 pt-24 shadow-[0_20px_50px_rgba(25,21,18,0.12)] transition-transform duration-300 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(88vw,24rem)] flex-col border-r border-foreground/10 bg-background px-5 pb-8 pt-24 shadow-[0_20px_50px_rgba(25,21,18,0.12)] transition-transform duration-300 xl:hidden ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-hidden={!isMenuOpen}

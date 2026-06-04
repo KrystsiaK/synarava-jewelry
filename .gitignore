@@ -27,12 +27,16 @@ node_modules/
 # IDE
 .idea/
 
-# graphify
-graphify-out/cache/
-graphify-out/2026-*/
-graphify-out/.graphify_labels.json
-graphify-out/.graphify_python
-graphify-out/.graphify_root
+# graphify (generated — do not commit)
+graphify-out/
+
+# Claude Code & Codex local tooling
+.claude/skills/
+.codex/skills/
+
+# Python
+__pycache__/
+*.pyc
 
 # debug
 npm-debug.log*

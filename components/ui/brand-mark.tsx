@@ -20,8 +20,8 @@ export function BrandMark({
   const { resolvedTheme } = useTheme();
   const src =
     resolvedTheme === "dark"
-      ? "/brand/synarava-mark-dark.svg"
-      : "/brand/synarava-mark-light.svg";
+      ? "/brand/synarava-mark-light.svg"
+      : "/brand/synarava-mark-dark.svg";
 
   return (
     <Image

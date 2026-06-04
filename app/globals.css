@@ -49,8 +49,8 @@
   --badge-fade-dur: 400ms;
   --badge-fade-close-dur: 180ms;
   --badge-blur: 2px;
-  --badge-offset-x: -8.2px;
-  --badge-offset-y: 12.4px;
+  --badge-offset-x: -5.2px;
+  --badge-offset-y: 8.8px;
   --badge-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --badge-pop-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
   --badge-close-ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -201,8 +201,8 @@ select {
 
 .t-badge {
   position: absolute;
-  top: -6px;
-  right: -8px;
+  top: -5px;
+  right: -5px;
   pointer-events: none;
   will-change: transform;
 }
@@ -273,15 +273,19 @@ select {
 
 .artifact-footer__wordmark {
   position: absolute;
-  right: var(--spacing-page-x-mobile);
-  top: 0;
-  transform: translateY(-50%);
+  top: 2.75rem;
+  right: 0.5rem;
+  transform: none;
   user-select: none;
+  pointer-events: none;
   font-family: var(--font-serif);
-  font-size: clamp(4rem, 10vw, 8rem);
-  line-height: 1;
+  font-size: clamp(5.5rem, 15vw, 10rem);
+  line-height: 0.82;
   color: var(--color-wordmark-fade);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
 }
 
 .artifact-footer__brand {
@@ -400,8 +404,9 @@ html[data-theme="dark"] .etched-glass {
   }
 
   .artifact-footer__wordmark {
-    font-size: clamp(3rem, 20vw, 5rem);
-    right: 1rem;
+    top: 2.25rem;
+    font-size: clamp(4.4rem, 18vw, 6rem);
+    right: -0.35rem;
   }
 }
 
@@ -417,13 +422,21 @@ html[data-theme="dark"] .etched-glass {
   }
 
   .artifact-footer__wordmark {
-    right: var(--spacing-page-x-desktop);
+    top: 3rem;
+    right: 1rem;
+    font-size: clamp(8rem, 9vw, 12.5rem);
   }
 }
 
 @media (min-width: 768px) {
   .site-shell {
     padding-inline: var(--spacing-page-x-desktop);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .artifact-nav {
+    padding-inline: 5rem;
   }
 }
 
