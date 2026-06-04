@@ -1,0 +1,813 @@
+/* eslint-disable @next/next/no-img-element */
+"use client";
+
+import { useRef, useState } from "react";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useInView,
+  useReducedMotion,
+  AnimatePresence,
+} from "motion/react";
+import Link from "next/link";
+
+import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { ShinyText } from "@/components/ui/shiny-text";
+import type { ProductSummary } from "@/lib/content/catalog";
+
+const ease = [0.22, 1, 0.36, 1] as const;
+
+/* ─── Inline SVG folk patterns ───────────────────────────────────── */
+function SvgKodRodaMini({ className }: { className?: string }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-5%" });
+  const reduce = useReducedMotion();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d = (delay: number): any => ({
+    initial: { pathLength: 0, opacity: 0 },
+    animate: isInView ? { pathLength: 1, opacity: 1 } : {},
+    transition: { duration: reduce ? 0 : 1.4, ease: "easeInOut", delay },
+  });
+
+  return (
+    <motion.svg
+      ref={ref}
+      viewBox="0 0 200 200"
+      fill="none"
+      className={className}
+      animate={reduce ? undefined : isInView ? { rotate: [0, 1.5, -1, 0] } : {}}
+      transition={{ duration: 14, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+    >
+      <motion.path d="M100 8 L192 100 L100 192 L8 100 Z" stroke="currentColor" strokeWidth="1.2" {...d(0)} />
+      <motion.path d="M100 42 L158 100 L100 158 L42 100 Z" stroke="currentColor" strokeWidth="1" {...d(0.2)} />
+      <motion.path d="M100 68 L132 100 L100 132 L68 100 Z" stroke="currentColor" strokeWidth="0.85" {...d(0.4)} />
+      <motion.path d="M100 8 L100 192" stroke="currentColor" strokeWidth="0.6" opacity={0.4} {...d(0.55)} />
+      <motion.path d="M8 100 L192 100" stroke="currentColor" strokeWidth="0.6" opacity={0.4} {...d(0.55)} />
+      <motion.circle cx="100" cy="100" r="4" fill="currentColor"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={isInView ? { scale: 1, opacity: 1 } : {}}
+        transition={{ duration: 0.5, delay: 1.2, type: "spring", stiffness: 400 }}
+      />
+    </motion.svg>
+  );
+}
+
+function SvgKolaMini({ className }: { className?: string }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-5%" });
+  const reduce = useReducedMotion();
+
+  return (
+    <motion.svg
+      ref={ref}
+      viewBox="0 0 200 200"
+      fill="none"
+      className={className}
+      animate={reduce ? undefined : isInView ? { rotate: 360 } : {}}
+      transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
+    >
+      {[88, 60, 28].map((r, i) => (
+        <motion.circle key={r} cx="100" cy="100" r={r} stroke="currentColor"
+          strokeWidth={i === 0 ? "1" : "0.8"} opacity={i === 1 ? 0.6 : 1}
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={isInView ? { pathLength: 1, opacity: i === 1 ? 0.6 : 1 } : {}}
+          transition={{ duration: 1.6 - i * 0.2, ease: "easeInOut", delay: i * 0.25 }}
+        />
+      ))}
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
+        const rad = (angle * Math.PI) / 180;
+        return (
+          <motion.line key={angle}
+            x1={100 + 28 * Math.cos(rad)} y1={100 + 28 * Math.sin(rad)}
+            x2={100 + 88 * Math.cos(rad)} y2={100 + 88 * Math.sin(rad)}
+            stroke="currentColor" strokeWidth={i % 2 === 0 ? "1" : "0.55"} opacity={i % 2 === 0 ? 1 : 0.45}
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={isInView ? { pathLength: 1, opacity: i % 2 === 0 ? 1 : 0.45 } : {}}
+            transition={{ duration: 1, ease: "easeInOut", delay: 0.8 + i * 0.07 }}
+          />
+        );
+      })}
+    </motion.svg>
+  );
+}
+
+/* ─── Hero ───────────────────────────────────────────────────────── */
+function ProductHero({ product }: { product: ProductSummary }) {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
+  const textY = useTransform(scrollYProgress, [0, 0.6], ["0%", "-8%"]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+
+  const words = product.title.split(" ");
+
+  return (
+    <motion.header
+      ref={ref}
+      className="relative min-h-screen overflow-hidden bg-background pt-24 md:pt-28"
+    >
+      {/* Grain */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 mix-blend-multiply opacity-[0.03]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: "256px",
+        }}
+      />
+
+      {/* Ghost pattern */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden opacity-[0.035]">
+        <SvgKodRodaMini className="h-[85vw] w-[85vw] max-h-[720px] max-w-[720px] translate-x-1/4 text-foreground" />
+      </div>
+
+      {/* Red ambient glow */}
+      <div
+        className="pointer-events-none absolute -left-32 top-20 h-[50vw] w-[50vw] max-w-[600px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, #a6192e 0%, transparent 65%)",
+          opacity: 0.06,
+          animation: "pulse-glow 7s ease-in-out infinite",
+        }}
+      />
+
+      <div className="site-shell relative z-10 grid min-h-[calc(100vh-7rem)] grid-cols-1 items-center gap-12 pb-16 pt-8 lg:grid-cols-12">
+        {/* Left — text */}
+        <motion.div
+          className="space-y-8 lg:col-span-5"
+          style={{ y: textY, opacity: textOpacity }}
+        >
+          {/* Breadcrumb */}
+          <motion.nav
+            className="flex items-center gap-2 text-[0.72rem] font-mono uppercase tracking-[0.2em] text-foreground/40"
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, ease }}
+          >
+            <Link href="/shop" className="transition-colors hover:text-couture-red">Shop</Link>
+            <span className="text-foreground/20">/</span>
+            <span className="text-foreground/60">{product.series}</span>
+          </motion.nav>
+
+          <h1
+            className="font-serif leading-[0.88] tracking-tight"
+            style={{ fontSize: "clamp(2.6rem,5.5vw,5.2rem)" }}
+          >
+            {words.map((word, i) => (
+              <span key={i} className="mr-[0.18em] inline-block overflow-hidden last:mr-0">
+                <motion.span
+                  className="inline-block"
+                  initial={{ y: "110%", opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.95, ease, delay: 0.1 + i * 0.1 }}
+                >
+                  <ShinyText>{word}</ShinyText>
+                </motion.span>
+              </span>
+            ))}
+          </h1>
+
+          <motion.p
+            className="max-w-md text-base leading-[2] text-foreground/65 md:text-[1.0625rem]"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease, delay: 0.55 }}
+          >
+            {product.shortDescription}
+          </motion.p>
+
+          <motion.p
+            className="label-caps text-foreground/45"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, ease, delay: 0.7 }}
+          >
+            {product.materialLine}
+          </motion.p>
+
+          {/* Price + CTA */}
+          <motion.div
+            className="flex flex-wrap items-center gap-6 pt-2"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease, delay: 0.85 }}
+          >
+            <AddToCartButton productSlug={product.slug} />
+            <span className="font-mono text-[0.85rem] uppercase tracking-[0.18em] text-foreground/70">
+              {product.price}
+            </span>
+          </motion.div>
+
+          {/* Tags */}
+          {product.tagNames.length > 0 && (
+            <motion.div
+              className="flex flex-wrap gap-2 pt-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, ease, delay: 1 }}
+            >
+              {product.tagNames.map((tag) => (
+                <span
+                  key={tag}
+                  className="border border-foreground/10 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-[0.18em] text-foreground/40 transition-colors duration-300 hover:border-couture-red/40 hover:text-couture-red"
+                >
+                  {tag}
+                </span>
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Right — image */}
+        <div className="relative lg:col-span-7">
+          <motion.div
+            className="relative mx-auto max-w-xl overflow-hidden lg:max-w-none"
+            initial={{ opacity: 0, scale: 0.93 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.4, ease, delay: 0.2 }}
+          >
+            <motion.img
+              src={product.image}
+              alt={product.title}
+              className="aspect-[4/5] w-full object-cover brightness-[0.9] contrast-[1.08]"
+              style={{ y: imgY }}
+            />
+
+            {/* Mirror fragment */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-2/5 overflow-hidden">
+              <img
+                aria-hidden="true"
+                src={product.image}
+                alt=""
+                className="absolute inset-y-0 -right-full h-full w-[200%] scale-x-[-1] object-cover opacity-40"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/10 to-background/40" />
+            </div>
+
+            {/* Red vignette bottom */}
+            <div
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-2/5"
+              style={{ background: "linear-gradient(to top, rgba(166,25,46,0.14) 0%, transparent 100%)" }}
+            />
+
+            {/* Corner accents */}
+            <motion.div
+              className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 1.1, ease }}
+            />
+            <motion.div
+              className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 1.25, ease }}
+            />
+
+            {/* Scan line */}
+            <motion.div
+              className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
+              animate={{ top: ["0%", "100%", "0%"] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+            />
+
+            {/* Series badge */}
+            <motion.div
+              className="absolute -left-4 bottom-14 hidden lg:block"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, ease, delay: 1.4 }}
+            >
+              <div className="border border-foreground/10 bg-background/90 px-4 py-3 backdrop-blur-sm">
+                <p className="label-mono text-[0.6rem] text-muted-ink">{product.collectionName}</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 1.6 }}
+      >
+        <motion.div
+          className="flex h-10 w-6 items-start justify-center rounded-full border border-foreground/20 p-1.5"
+          animate={{ borderColor: ["rgba(255,255,255,0.12)", "rgba(166,25,46,0.5)", "rgba(255,255,255,0.12)"] }}
+          transition={{ duration: 2.5, repeat: Infinity }}
+        >
+          <motion.div
+            className="h-2 w-1 rounded-full bg-couture-red"
+            animate={{ y: [0, 12, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
+      </motion.div>
+    </motion.header>
+  );
+}
+
+/* ─── Materials strip ────────────────────────────────────────────── */
+const MATERIALS = [
+  {
+    title: "Lava Stone",
+    body: "Primal energy captured from the earth's core. Porous, lightweight, and grounding.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC1bJ7ykeUWZbNNpZ4zXpG4SvAJjAQPMpH2D0v2qVUL3Ba8rL9yK6yAJhAybvdZGFOqRYdueOQMOG8LACGPAsxdq9XZkmCcT6u_NVTMYbdZ2rxCVIDcUe11J4hIkFlcfp7CeVur2isa6KbgGOQ32iIYXAjaKKMQ-10-9VyS2htqJu7NHcWYjQuNV-fF9gQLC20YtjoNHhF-z3N6Y8_m_q_vFnHOCINxrvJxGkR0GP3uR-DYJmfkE09_yvCDD72DRF9qBSIH5HrZHMXN",
+  },
+  {
+    title: "White Oak",
+    body: "Hand-turned wood, oil-finished to preserve the warmth of Belarusian forests.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCIlvjp4lBihCVwo4LwQUe3FT7_W35SdGVr6Zfrm0tN4HxiR6fN_IgsxjzXNsvyz8LAcB5J2GiRSo9EAhE-3aKH_7RzSsvp1NGgb6ia5KwCc2Ns_nXbuyGK73j1LgBOLiEGC3I_v_wO66xJb2FkJZ3ZIQAgt4ZopW1udde2_rQhEizoHb0141AxZjnz5PUdOYiWuCwQ8TRzh5yxJuZJdPnOeLnYF66RSZPIabh-YO5Kv836T5DhLOeTFlHLMMcz1YDl7OMQSTjmj_0h",
+  },
+  {
+    title: "Traditional Weave",
+    body: "A geometric protection motif, woven by master artisans using centuries-old techniques.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDgNxbCUeq6PwnV9fMol7H3gSKKn9-3hk2HER8IYcN4ZgFaK_WI8ymgWt_Ee1poxFW4OcwxoPzM-eYwa53r92ExOElEqMnuWzdS9qO8cjUTQlJqyJOwMma-GC1MeVWBWWgsMl1zF-p1AVwqMwSUlxClRbcxD78jRy_4iGCQU_MnsS31GUG56dvs03N9kPRFhQUNtfuiJTr5mPGYnR4j3_IRn4hNHYN0hfiKa1LN-EBPbMLQtZXKEEksLxzagXPjV9SP1LVvlYyZUp45",
+  },
+];
+
+function MaterialsSection() {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-8%" });
+
+  return (
+    <section ref={ref} className="relative overflow-hidden bg-surface py-20 md:py-36">
+      {/* Ghost Kola */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03]">
+        <SvgKolaMini className="h-[80vw] w-[80vw] max-h-[700px] max-w-[700px] text-foreground" />
+      </div>
+
+      <div className="site-shell relative z-10">
+        <motion.div
+          className="mb-16 text-center md:mb-24"
+          initial={{ opacity: 0, y: 24 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, ease }}
+        >
+          <p className="label-mono mb-4 text-couture-red">Materials</p>
+          <h2 className="font-serif" style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)" }}>
+            The Honest Material
+          </h2>
+          {/* Animated separator */}
+          <motion.div
+            className="mx-auto mt-6 h-px bg-couture-red/40"
+            initial={{ width: 0 }}
+            animate={isInView ? { width: 80 } : {}}
+            transition={{ duration: 0.8, ease, delay: 0.3 }}
+          />
+        </motion.div>
+
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 md:gap-6">
+          {MATERIALS.map((item, i) => (
+            <motion.article
+              key={item.title}
+              className="group space-y-5"
+              initial={{ opacity: 0, y: 36 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.8, ease, delay: i * 0.14 }}
+            >
+              <div className="relative overflow-hidden bg-charcoal">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="aspect-square h-full w-full object-cover opacity-80 transition-all duration-700 group-hover:scale-110 group-hover:opacity-90 group-hover:grayscale-0"
+                  style={{ filter: "grayscale(30%) contrast(1.05)" }}
+                />
+                {/* Hover red overlay */}
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                  style={{ background: "linear-gradient(to top, rgba(166,25,46,0.18) 0%, transparent 60%)" }} />
+                {/* Bottom sweep line */}
+                <motion.div
+                  className="absolute bottom-0 left-0 h-0.5 bg-couture-red"
+                  initial={{ width: 0 }}
+                  whileHover={{ width: "100%" }}
+                  transition={{ duration: 0.45, ease }}
+                />
+              </div>
+              <div className="space-y-2">
+                <h3 className="label-caps">{item.title}</h3>
+                <p className="text-base leading-[1.85] text-foreground/65">{item.body}</p>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Symbolism ──────────────────────────────────────────────────── */
+function SymbolismSection({ product }: { product: ProductSummary }) {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const imgScale = useTransform(scrollYProgress, [0, 1], [1.06, 0.98]);
+
+  return (
+    <section ref={ref} className="site-shell overflow-hidden py-20 md:py-40">
+      <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center">
+        {/* Image */}
+        <motion.div
+          className="relative lg:col-span-7 lg:col-start-1"
+          initial={{ opacity: 0, x: -24 }}
+          animate={isInView ? { opacity: 1, x: 0 } : {}}
+          transition={{ duration: 1, ease }}
+        >
+          {/* Ghost "КОД РОДА" */}
+          <div
+            className="pointer-events-none absolute -left-2 -top-8 select-none font-serif leading-none text-couture-red/10"
+            style={{ fontSize: "clamp(2rem,6vw,6rem)", whiteSpace: "nowrap" }}
+          >
+            КОД РОДА
+          </div>
+
+          <div className="relative overflow-hidden">
+            <motion.img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVNicx6BX7QK8-0S_xcnEC5OIPGkKfvUDChUtiI-G1t9Bkh2W9A6x4-aZZg1ZxRobK8rJzH4lll1yxq453fDfiLJ07UoJQasMpFW7CFhaOsAFAQwfcCiyTByw4h0vNvuoEusZADXXAD6pj9o4d41vLsFXzL01dChZ--KMmqn9RcXbjuQNarNZegP3FHOt2daIMbHrp5o7Sbk_oAG91bD6kM67FPxqING6QU9fiX7KlAlllqjoabSmXLiwIOw4un884KvpI3JJUOW4S"
+              alt="Symbolic Detail"
+              className="aspect-video w-full object-cover"
+              style={{ scale: imgScale }}
+            />
+            <motion.div
+              className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
+              animate={{ top: ["0%", "100%", "0%"] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: "linear" }}
+            />
+          </div>
+        </motion.div>
+
+        {/* Text panel */}
+        <motion.div
+          className="etched-glass relative border border-foreground/[0.07] p-8 md:p-10 lg:col-span-5 lg:col-start-8"
+          initial={{ opacity: 0, x: 24 }}
+          animate={isInView ? { opacity: 1, x: 0 } : {}}
+          transition={{ duration: 1, ease, delay: 0.15 }}
+        >
+          {/* Animated left accent */}
+          <motion.div
+            className="absolute left-0 top-0 w-0.5 bg-couture-red"
+            initial={{ height: 0 }}
+            animate={isInView ? { height: "100%" } : {}}
+            transition={{ duration: 1.2, delay: 0.4, ease }}
+          />
+
+          <motion.p
+            className="label-mono mb-4 text-couture-red"
+            initial={{ opacity: 0, y: 12 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease, delay: 0.3 }}
+          >
+            {product.symbolismLabel}
+          </motion.p>
+
+          <motion.h2
+            className="mb-6 font-serif italic leading-[1.15]"
+            style={{ fontSize: "clamp(1.5rem,2.8vw,2.4rem)" }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8, ease, delay: 0.4 }}
+          >
+            {product.symbolismTitle}
+          </motion.h2>
+
+          <motion.p
+            className="mb-4 text-base leading-[1.9] text-foreground/72 md:text-[1.0625rem]"
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.8, ease, delay: 0.55 }}
+          >
+            {product.symbolismBody}
+          </motion.p>
+
+          <motion.p
+            className="text-base leading-[1.9] text-foreground/60"
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.8, ease, delay: 0.68 }}
+          >
+            {product.symbolismBody2}
+          </motion.p>
+
+          {/* Ornament */}
+          <motion.div
+            className="mt-8 flex items-center gap-4"
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.7, delay: 0.8 }}
+          >
+            <motion.div className="h-px bg-foreground/15"
+              initial={{ width: 0 }}
+              animate={isInView ? { width: 40 } : {}}
+              transition={{ duration: 0.7, delay: 0.9 }}
+            />
+            <div className="h-2 w-2 rotate-45 border border-couture-red/60" />
+            <motion.div className="h-px bg-foreground/15"
+              initial={{ width: 0 }}
+              animate={isInView ? { width: 40 } : {}}
+              transition={{ duration: 0.7, delay: 1.0 }}
+            />
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Craftsmanship / Stats dark section ─────────────────────────── */
+const STATS: [string, string][] = [
+  ["12", "Hours of Weaving"],
+  ["100%", "Natural Cotton"],
+  ["02", "Master Craftsmen"],
+  ["∞", "Heritage Soul"],
+];
+
+function CraftSection() {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1.08, 0.96]);
+
+  return (
+    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-36">
+      {/* Parallax ghost KodRoda */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        style={{ scale: bgScale }}
+      >
+        <SvgKodRodaMini className="h-[75vw] w-[75vw] max-h-[650px] max-w-[650px] text-background opacity-[0.025]" />
+      </motion.div>
+
+      <div className="site-shell relative z-10">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
+          {/* Video/image block */}
+          <motion.div
+            className="group relative overflow-hidden"
+            initial={{ opacity: 0, x: -24 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 1, ease }}
+          >
+            <div className="relative aspect-video cursor-pointer overflow-hidden">
+              <img
+                className="h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmofw-Jl3CJtnxftqTYfRCfvMEZbwTFj9jJp9qj6qNia6D9BZ39ELrH5OIpc_-asXTq_9197RDp0w9y2MaYsazzHK5c3KzOfl1uPmxgYsd1FaIi4HELFmwvI0I7oqTe7e5MLDgGc1W0MK-wfoJtFpxqsD4-gZEyABj3x5tlK9ZLFScCUDw60daJKsCYvmBJgE6mh7cFHHw8DjQO1RqeldU6YcNV8x5tpoF8HJSFswbArPbPD8WeRip_1Bw_ePpMMjB3Alq1IDjz7Tk"
+                alt="Craftsmanship"
+              />
+              {/* Play button */}
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/30 bg-white/10 backdrop-blur-sm transition-all duration-300 group-hover:border-couture-red/60 group-hover:bg-couture-red/20 md:h-20 md:w-20">
+                  <svg className="ml-1 h-6 w-6 md:h-7 md:w-7" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </motion.div>
+
+              {/* Corner accents */}
+              <motion.div
+                className="absolute left-3 top-3 h-8 w-8 border-l border-t border-couture-red/40"
+                initial={{ opacity: 0 }}
+                animate={isInView ? { opacity: 1 } : {}}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              />
+              <motion.div
+                className="absolute bottom-3 right-3 h-8 w-8 border-b border-r border-couture-red/40"
+                initial={{ opacity: 0 }}
+                animate={isInView ? { opacity: 1 } : {}}
+                transition={{ duration: 0.5, delay: 0.75 }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            className="flex flex-col justify-center space-y-10"
+            initial={{ opacity: 0, x: 24 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 1, ease, delay: 0.15 }}
+          >
+            <div>
+              <p className="label-mono mb-4 text-couture-red">Process</p>
+              <h2 className="font-serif leading-[1.05]" style={{ fontSize: "clamp(1.8rem,3.5vw,3rem)" }}>
+                Human Precision
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              {STATS.map(([value, label], i) => (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.7, ease, delay: 0.3 + i * 0.1 }}
+                >
+                  <p
+                    className="mb-1 font-serif text-background"
+                    style={{
+                      fontSize: "clamp(1.8rem,3vw,2.8rem)",
+                      textShadow: isInView ? "0 0 30px rgba(166,25,46,0.5)" : "none",
+                      transition: "text-shadow 0.8s ease",
+                    }}
+                  >
+                    {value}
+                  </p>
+                  <p className="label-mono text-background/40">{label}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Lookbook ───────────────────────────────────────────────────── */
+const LOOKBOOK = [
+  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuB_Ie20hGCRnyWbIUk3WikrL29NSkFV0FzPiuVnJ0sRYnq-5sGpITU4zzVVIa3X_WHW57G1M7j9yVGq0e3eYoEle4MC86F9rl1INlF3Nf8O8pU06NxCKy2DAK9S1_p2ML8y_BDonMAVl9bNQZa-iGN8qHFDb2HzLal7vARnYSYo0bl0jAAKGWFcL1E0dBOTWuVEuR5doUi7uSQF3rTYXDsXU4t2QiUbdhx66sTBKqGjQuyjRUDwdv7nMQdGBrIJPJPRIuDoTsdtldOn", label: "01 / The Ensemble", colSpan: "md:col-span-2 md:row-span-2" },
+  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuAcHdMprl7YZ1Eqp_m9PN5LjGgHgpO7z9LqYfG2pJWftR5gxPOQHiJQY-Ob8XHfylhpDatz5S5iUSsKzUDsbLrfQht1zuMv6hjYk9Rujb--qtrgJtmkpWXp3QYfHItdcaOOBA1I5328QzhQnwKXqhSLNgEitVvoQ4te8m_kE4nrGTZ-C4Xh8VUqgYfuuObDn7cxfMoH_hQs046d_G9QSi3B60SSb7KtMHblZXLX06SvPAI-yv-xQxNS2KiLhp_tjb9PqBhB4XNRxjHZ", label: "02 / Watch Pairing", colSpan: "md:col-span-2" },
+  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBqNAoIB2RLpXNNoPRuqNzhk40thxv5VGyxi8ElGGChgVoL4qw89Sry8ZUj0TSxy53krf4-BbUeueIEOjs1WqLmgWon5yMNif8WaLWVmF0v1JIs8if3JemLyVNXjFrPI5edx6a9eurYhKgbqt1tSZ9N3ZsAJssMrNM4D5QbkHarrKPhiXkGP5xO8incgB3khvTO0u8S9c96TewXNZuvuScb0aXsedPXL8EDeXHAqBefSvWKoEbXgbLFebsHM5qfN-rTAikJP1YvuQj7", label: "", colSpan: "" },
+  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBfnxtP0tnzHpA4FJlWk06e5_0KhM8yN7jd2qnTKFjfVNlw9uy9AF_wv54EAH0Yl1wxofDtCYXCU9DTHTFlcbdn4G0EKZSdZhvyKXw1R_TIplVHHQWbq-vGeVL36bAFJ6rRjrLW5nvh1Qsx6ja7Fe0bmT6LhAkK6Mf3zX-npVmHzpcs1kIL376EfLqHsPONa74c4DY4-li-zpAKScW6JSIBp-M76623SP_ozugt7F29isLug4mNGz1LyAL-EdhMusDGq6lU-GMWCUSCj", label: "", colSpan: "" },
+];
+
+function LookbookSection() {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-8%" });
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  return (
+    <section ref={ref} className="site-shell py-20 md:py-32">
+      <motion.div
+        className="mb-10 flex items-end justify-between md:mb-14"
+        initial={{ opacity: 0, y: 20 }}
+        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.7, ease }}
+      >
+        <div>
+          <p className="label-mono mb-2 text-couture-red">Pairing Guide</p>
+          <h2 className="font-serif" style={{ fontSize: "clamp(1.6rem,3vw,2.4rem)" }}>
+            The Lookbook
+          </h2>
+        </div>
+        <p className="hidden label-mono text-foreground/35 md:block">
+          {LOOKBOOK.length} images
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-2 gap-3 md:h-[52rem] md:grid-cols-4 md:grid-rows-2 md:gap-4">
+        {LOOKBOOK.map((item, i) => (
+          <motion.div
+            key={i}
+            className={`relative overflow-hidden bg-black/5 aspect-square md:aspect-auto ${item.colSpan}`}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+            transition={{ duration: 0.85, ease, delay: i * 0.1 }}
+            onHoverStart={() => setHoveredIdx(i)}
+            onHoverEnd={() => setHoveredIdx(null)}
+          >
+            <motion.img
+              className="h-full w-full object-cover"
+              src={item.src}
+              alt={item.label || `Lookbook ${i + 1}`}
+              animate={{ filter: hoveredIdx === i ? "grayscale(0%) contrast(1.08)" : "grayscale(40%) contrast(1.02)" }}
+              transition={{ duration: 0.5 }}
+            />
+            {/* Hover overlay */}
+            <AnimatePresence>
+              {hoveredIdx === i && (
+                <motion.div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35 }}
+                />
+              )}
+            </AnimatePresence>
+            {item.label && (
+              <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6">
+                <motion.span
+                  className="label-mono text-white/80 text-[0.7rem]"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.6, ease, delay: 0.5 + i * 0.1 }}
+                >
+                  {item.label}
+                </motion.span>
+              </div>
+            )}
+            {/* Red sweep on hover */}
+            <motion.div
+              className="absolute bottom-0 left-0 h-0.5 bg-couture-red"
+              animate={{ width: hoveredIdx === i ? "100%" : "0%" }}
+              transition={{ duration: 0.4, ease }}
+            />
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── CTA footer ─────────────────────────────────────────────────── */
+function ProductFooter({ product }: { product: ProductSummary }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-10%" });
+
+  return (
+    <div ref={ref} className="relative overflow-hidden border-t border-foreground/[0.06] bg-surface py-20 md:py-28">
+      {/* Ghost text */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+        <span
+          className="select-none font-serif leading-none text-foreground"
+          style={{ fontSize: "clamp(4rem,14vw,12rem)", opacity: 0.022, whiteSpace: "nowrap" }}
+        >
+          ARCHIVE
+        </span>
+      </div>
+
+      <div className="site-shell relative z-10 flex flex-col items-center gap-8 text-center">
+        <motion.div
+          className="flex items-center gap-5"
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ duration: 0.7, ease }}
+        >
+          <div className="h-px w-14 bg-foreground/15" />
+          <div className="h-2 w-2 rotate-45 border border-couture-red" />
+          <div className="h-px w-14 bg-foreground/15" />
+        </motion.div>
+
+        <motion.p
+          className="label-mono text-couture-red"
+          initial={{ opacity: 0, y: 12 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.7, ease, delay: 0.1 }}
+        >
+          Part of {product.collectionName}
+        </motion.p>
+
+        <motion.h2
+          className="max-w-xl font-serif leading-[1.05]"
+          style={{ fontSize: "clamp(1.8rem,4vw,3rem)" }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.85, ease, delay: 0.18 }}
+        >
+          Continue Exploring
+        </motion.h2>
+
+        <motion.div
+          className="flex flex-col items-center gap-4 sm:flex-row sm:gap-5"
+          initial={{ opacity: 0, y: 14 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, ease, delay: 0.28 }}
+        >
+          <MagneticButton
+            href={`/collections/${product.collectionSlug}`}
+            className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white"
+          >
+            <span className="relative z-10">View collection</span>
+            <svg className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
+              <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
+                backgroundSize: "200% 100%",
+                animation: "shiny-sweep 2.5s infinite linear",
+              }}
+            />
+          </MagneticButton>
+
+          <Link
+            href="/shop"
+            className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
+          >
+            Back to shop
+          </Link>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Root ───────────────────────────────────────────────────────── */
+export function ProductDetail({ product }: { product: ProductSummary }) {
+  return (
+    <main className="artifact-shell min-h-screen overflow-x-hidden">
+      <ProductHero product={product} />
+      <MaterialsSection />
+      <SymbolismSection product={product} />
+      <CraftSection />
+      <LookbookSection />
+      <ProductFooter product={product} />
+    </main>
+  );
+}

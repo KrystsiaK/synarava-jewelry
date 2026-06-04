@@ -472,3 +472,13 @@ html[data-theme="dark"] .etched-glass {
     transition: none;
   }
 }
+
+@keyframes shiny-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.08; transform: scale(1); }
+  50%       { opacity: 0.14; transform: scale(1.18); }
+}
