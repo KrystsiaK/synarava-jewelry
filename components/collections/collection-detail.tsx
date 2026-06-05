@@ -9,6 +9,7 @@ import {
   useInView,
 } from "motion/react";
 import Link from "next/link";
+import { EditorialSplitFeature } from "@/components/ui";
 import type { CollectionSummary, ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -244,136 +245,62 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
 
 /* ─── Collection Story ───────────────────────────────────────────── */
 function CollectionStory({ collection }: { collection: CollectionDetail }) {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-
   return (
-    <section ref={ref} className="bg-background py-20 md:py-40">
+    <section className="bg-background py-20 md:py-40">
       <div className="site-shell">
-        <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12 md:gap-6">
-          {/* Image with accents */}
-          <motion.div
-            className="md:col-span-5"
-            initial={{ opacity: 0, x: -32 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease }}
-          >
-            <div className="relative overflow-hidden">
-              <img
-                alt={`${collection.name} detail`}
-                className="aspect-[3/4] w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
-                src={collection.heroImage}
-                style={{ filter: "grayscale(0.15)" }}
-              />
-
-              {/* Animated corner accents */}
-              <motion.div
-                className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ duration: 0.6, delay: 0.5, ease }}
-              />
-              <motion.div
-                className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ duration: 0.6, delay: 0.65, ease }}
-              />
-
-              {/* Scan line */}
+        <EditorialSplitFeature
+          showDivider={false}
+          imageSrc={collection.heroImage}
+          imageAlt={`${collection.name} detail`}
+          imagePanelClassName="md:col-span-5"
+          contentPanelClassName="md:col-span-6 md:col-start-7"
+          imageFrameClassName="aspect-[3/4] md:min-h-[36rem]"
+          imageClassName="transition-transform duration-700 hover:scale-[1.03]"
+          topMeta={<span className="label-mono block text-couture-red">Collection Story</span>}
+          title={(
+            <h2 className="font-serif" style={{ fontSize: "clamp(1.8rem,3vw,2.6rem)" }}>
+              A world with a clear visual logic
+            </h2>
+          )}
+          description={collection.summary}
+          imageOverlay={(
+            <>
+              <div className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60" />
+              <div className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60" />
               <motion.div
                 className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
                 animate={{ top: ["0%", "100%", "0%"] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
               />
-
-              {/* Floating accent code tag */}
-              <motion.div
-                className="absolute -bottom-5 -right-4 hidden items-center justify-center border border-foreground/[0.07] bg-stone-beige/90 p-5 backdrop-blur-sm sm:flex md:-right-8 md:p-7"
-                initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.8, delay: 0.75, ease }}
-              >
+              <div className="absolute -bottom-5 -right-4 hidden items-center justify-center border border-foreground/[0.07] bg-stone-beige/90 p-5 backdrop-blur-sm sm:flex md:-right-8 md:p-7">
                 <span className="text-center font-mono text-[0.72rem] uppercase tracking-[0.14em]">
                   {collection.accent}
                   <br />
                   <span className="text-couture-red">accent code</span>
                 </span>
-              </motion.div>
+              </div>
+            </>
+          )}
+          action={<div className="h-px w-24 bg-couture-red" />}
+          footer={(
+            <div className="space-y-6">
+              <div className="border-l-2 border-couture-red/30 pl-6 md:pl-8">
+                <p className="label-caps mb-3 text-couture-red">{collection.symbolismLabel}</p>
+                <p className="mb-2 font-serif" style={{ fontSize: "clamp(1.1rem,1.8vw,1.4rem)" }}>
+                  {collection.symbolismTitle}
+                </p>
+                <p className="text-sm leading-[1.9] text-foreground/65 md:text-base">
+                  {collection.symbolismBody}
+                </p>
+              </div>
+              {collection.symbolismBody2 ? (
+                <p className="text-sm leading-[1.9] text-foreground/55 md:text-base">
+                  {collection.symbolismBody2}
+                </p>
+              ) : null}
             </div>
-          </motion.div>
-
-          {/* Text */}
-          <motion.div
-            className="md:col-span-6 md:col-start-7"
-            initial={{ opacity: 0, x: 32 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease, delay: 0.15 }}
-          >
-            <motion.span
-              className="label-mono mb-4 block text-couture-red"
-              initial={{ opacity: 0 }}
-              animate={isInView ? { opacity: 1 } : {}}
-              transition={{ duration: 0.6, delay: 0.25 }}
-            >
-              Collection Story
-            </motion.span>
-
-            <motion.h2
-              className="mb-6 font-serif"
-              style={{ fontSize: "clamp(1.8rem,3vw,2.6rem)" }}
-              initial={{ opacity: 0, y: 16 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: 0.3 }}
-            >
-              A world with a clear visual logic
-            </motion.h2>
-
-            {/* Animated red line */}
-            <motion.div
-              className="mb-8 h-px bg-couture-red"
-              initial={{ width: 0 }}
-              animate={isInView ? { width: 96 } : {}}
-              transition={{ duration: 0.8, delay: 0.45, ease }}
-            />
-
-            <motion.p
-              className="mb-10 text-base leading-[1.9] text-foreground/70 md:text-[1.0625rem]"
-              initial={{ opacity: 0, y: 12 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.8, ease, delay: 0.4 }}
-            >
-              {collection.summary}
-            </motion.p>
-
-            {/* Symbolism block */}
-            <motion.div
-              className="border-l-2 border-couture-red/30 pl-6 md:pl-8"
-              initial={{ opacity: 0, x: -10 }}
-              animate={isInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: 0.52 }}
-            >
-              <p className="label-caps mb-3 text-couture-red">{collection.symbolismLabel}</p>
-              <p className="mb-2 font-serif" style={{ fontSize: "clamp(1.1rem,1.8vw,1.4rem)" }}>
-                {collection.symbolismTitle}
-              </p>
-              <p className="text-sm leading-[1.9] text-foreground/65 md:text-base">
-                {collection.symbolismBody}
-              </p>
-            </motion.div>
-
-            {collection.symbolismBody2 && (
-              <motion.p
-                className="mt-6 text-sm leading-[1.9] text-foreground/55 md:text-base"
-                initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.7, delay: 0.65 }}
-              >
-                {collection.symbolismBody2}
-              </motion.p>
-            )}
-          </motion.div>
-        </div>
+          )}
+        />
       </div>
     </section>
   );

@@ -1,18 +1,29 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
+import Image from "next/image";
 import {
   motion,
-  useReducedMotion,
   useScroll,
   useTransform,
   useInView,
-  useMotionValue,
-  useSpring,
   AnimatePresence,
 } from "motion/react";
 import Link from "next/link";
+
+import { ease, GRAIN_STYLE } from "@/lib/animation";
+import { useCountUp } from "@/lib/hooks/use-count-up";
+import { ShinyText, MagneticButton, PrimaryCtaButton } from "@/components/ui";
+import {
+  KodRoda,
+  KodRodaStatic,
+  Kola,
+  KolaStatic,
+  Ziamla,
+  ZiamlaStatic,
+  FolkBorder,
+  FolkSpiderOrnament,
+} from "@/components/ui/folk-patterns";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 export interface CollectionItem {
@@ -30,18 +41,11 @@ export interface HomePageProps {
   collections: CollectionItem[];
 }
 
-/* ─── Constants ──────────────────────────────────────────────────── */
-const ease = [0.22, 1, 0.36, 1] as const;
-
+/* ─── Page-local data constants ──────────────────────────────────── */
 const MARQUEE_ROW_A = [
   "Handcrafted Jewelry", "◆", "Belarusian Folk Couture", "◆",
   "Lava Stone", "◆", "Oak Wood", "◆", "White Ceramic", "◆",
   "Artisan Made", "◆", "Since 2024", "◆",
-];
-const MARQUEE_ROW_B = [
-  "Slavic Mysticism", "◆", "Avant-Garde Architecture", "◆",
-  "Heritage Materials", "◆", "Limited Edition", "◆",
-  "Hand-Finished", "◆", "Folk Geometry", "◆", "Couture Artifacts", "◆",
 ];
 
 const ROTATING_WORDS = ["Timeless", "Sacred", "Eternal", "Ancestral", "Singular"];
@@ -103,89 +107,6 @@ const ATELIER_STEPS = [
   },
 ];
 
-/* ─── Helpers ────────────────────────────────────────────────────── */
-function useCountUp(target: number, inView: boolean) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (!inView) return;
-    const duration = 2200;
-    const startTime = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min((now - startTime) / duration, 1);
-      setValue(Math.round((1 - Math.pow(1 - p, 3)) * target));
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [inView, target]);
-  return value;
-}
-
-/* ─── ShinyText ──────────────────────────────────────────────────── */
-function ShinyText({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="relative inline-block">
-      {children}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{
-          backgroundImage:
-            "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-          backgroundSize: "200% 100%",
-          animation: "shiny-sweep 4s infinite linear",
-          mixBlendMode: "overlay",
-        }}
-      />
-    </span>
-  );
-}
-
-/* ─── MagneticButton ─────────────────────────────────────────────── */
-function MagneticButton({
-  children,
-  className,
-  href,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  href: string;
-}) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 350, damping: 28 });
-  const springY = useSpring(y, { stiffness: 350, damping: 28 });
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!ref.current) return;
-      const r = ref.current.getBoundingClientRect();
-      x.set((e.clientX - (r.left + r.width / 2)) * 0.28);
-      y.set((e.clientY - (r.top + r.height / 2)) * 0.28);
-    },
-    [x, y]
-  );
-
-  const reset = useCallback(() => {
-    x.set(0);
-    y.set(0);
-  }, [x, y]);
-
-  return (
-    <motion.a
-      ref={ref}
-      href={href}
-      className={className}
-      style={{ x: springX, y: springY }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={reset}
-      whileTap={{ scale: 0.96 }}
-    >
-      {children}
-    </motion.a>
-  );
-}
-
 /* ─── RotatingText ───────────────────────────────────────────────── */
 function RotatingText() {
   const [index, setIndex] = useState(0);
@@ -203,7 +124,7 @@ function RotatingText() {
           initial={{ y: "110%", opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: "-110%", opacity: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.45, ease }}
         >
           {ROTATING_WORDS[index]}
         </motion.span>
@@ -235,15 +156,12 @@ function HeroSection({
       {/* Grain */}
       <div
         className="pointer-events-none absolute inset-0 z-0 mix-blend-multiply opacity-[0.04]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-          backgroundSize: "256px",
-        }}
+        style={GRAIN_STYLE}
       />
 
-      {/* KodRoda ghost pattern — top-right behind image */}
+      {/* KodRoda ghost pattern */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden opacity-[0.04]">
-        <SvgKodRoda className="h-[80vw] w-[80vw] max-h-[720px] max-w-[720px] translate-x-[20%] text-foreground" />
+        <KodRodaStatic className="h-[80vw] w-[80vw] max-h-[720px] max-w-[720px] translate-x-[20%] text-foreground" />
       </div>
 
       {/* Ambient glows */}
@@ -252,7 +170,6 @@ function HeroSection({
         style={{
           background: "radial-gradient(circle, #a6192e 0%, transparent 65%)",
           opacity: 0.09,
-          animation: "pulse-glow 6s ease-in-out infinite",
         }}
       />
       <div
@@ -345,47 +262,14 @@ function HeroSection({
           </motion.p>
 
           <motion.div
-            className="flex flex-col gap-5 sm:flex-row sm:items-center"
+            className="flex flex-col gap-5"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.9, ease }}
           >
-            <MagneticButton
-              href={content?.ctaHref ?? "/shop"}
-              className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white"
-            >
-              <span className="relative z-10">{content?.ctaLabel ?? "Explore Archive"}</span>
-              <svg
-                className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
-                viewBox="0 0 12 12"
-                fill="none"
-              >
-                <path
-                  d="M1 6h10M7 2l4 4-4 4"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)",
-                  backgroundSize: "200% 100%",
-                  animation: "shiny-sweep 2.5s infinite linear",
-                }}
-              />
-            </MagneticButton>
-
-            <Link
-              href="/about"
-              className="inline-flex items-center gap-2 border-b border-foreground/20 pb-1 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/60 transition-colors duration-300 hover:border-couture-red hover:text-couture-red"
-            >
-              Our Manifesto
-            </Link>
+            <PrimaryCtaButton href={content?.ctaHref ?? "/shop"}>
+              {content?.ctaLabel ?? "Explore Archive"}
+            </PrimaryCtaButton>
           </motion.div>
         </div>
 
@@ -398,10 +282,13 @@ function HeroSection({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.4, delay: 0.3, ease }}
           >
-            <img
+            <Image
+              fill
+              priority
               alt="SYNARAVA artisan bracelet"
-              className="h-full w-full object-cover brightness-[0.86] contrast-[1.12]"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr"
+              className="object-cover brightness-[0.86] contrast-[1.12]"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
 
             {/* Red bottom vignette */}
@@ -427,23 +314,14 @@ function HeroSection({
               transition={{ duration: 0.7, delay: 1.45, ease }}
             />
 
-            {/* Scan line */}
-            <motion.div
-              className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
-              animate={{ top: ["0%", "100%", "0%"] }}
-              transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
-            />
           </motion.div>
 
           {/* Floating diamond */}
           <motion.div
             className="absolute -right-3 top-6 hidden h-28 w-28 items-center justify-center md:-right-14 md:-top-10 md:flex md:h-40 md:w-40"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, -12, 0] }}
-            transition={{
-              opacity: { duration: 1, delay: 0.5 },
-              y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-            }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.5 }}
           >
             <div className="flex h-full w-full items-center justify-center border border-foreground/[0.09]">
               <div className="flex h-[62%] w-[62%] rotate-45 items-center justify-center border border-couture-red/50">
@@ -488,11 +366,9 @@ function HeroSection({
 /* ─── Dual Marquee ───────────────────────────────────────────────── */
 function MarqueeStrip() {
   const dA = [...MARQUEE_ROW_A, ...MARQUEE_ROW_A];
-  const dB = [...MARQUEE_ROW_B, ...MARQUEE_ROW_B];
 
   return (
     <div className="overflow-hidden bg-foreground">
-      {/* Row A — forward */}
       <div className="overflow-hidden border-b border-background/[0.06] py-[0.85rem]">
         <motion.div
           className="flex whitespace-nowrap"
@@ -504,26 +380,6 @@ function MarqueeStrip() {
               key={i}
               className={`mx-7 font-mono text-[0.68rem] uppercase tracking-[0.28em] ${
                 item === "◆" ? "text-couture-red" : "text-background/55"
-              }`}
-            >
-              {item}
-            </span>
-          ))}
-        </motion.div>
-      </div>
-
-      {/* Row B — reverse */}
-      <div className="overflow-hidden py-[0.85rem]">
-        <motion.div
-          className="flex whitespace-nowrap"
-          animate={{ x: ["-50%", "0%"] }}
-          transition={{ duration: 44, repeat: Infinity, ease: "linear" }}
-        >
-          {dB.map((item, i) => (
-            <span
-              key={i}
-              className={`mx-7 font-mono text-[0.68rem] uppercase tracking-[0.28em] ${
-                item === "◆" ? "text-couture-red" : "text-background/38"
               }`}
             >
               {item}
@@ -545,7 +401,6 @@ function ManifestoSection({ content }: { content?: Record<string, string> }) {
   const quote =
     content?.quote ??
     "We do not create accessories. We archive the soul of materials — wood that has witnessed centuries, stone that holds the earth's heat, and the silent rhythm of folk geometry.";
-  const words = quote.split(" ");
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-background py-24 md:py-52">
@@ -562,9 +417,9 @@ function ManifestoSection({ content }: { content?: Record<string, string> }) {
         </span>
       </motion.div>
 
-      {/* Ghost Kola rotating slowly */}
+      {/* Ghost Kola */}
       <div className="pointer-events-none absolute left-0 top-1/2 -translate-x-1/3 -translate-y-1/2 opacity-[0.038]">
-        <SvgKola className="h-[55vw] w-[55vw] max-h-[560px] max-w-[560px] text-foreground" />
+        <KolaStatic className="h-[55vw] w-[55vw] max-h-[560px] max-w-[560px] text-foreground" />
       </div>
 
       <div className="site-shell relative z-10 text-center md:text-left">
@@ -577,29 +432,22 @@ function ManifestoSection({ content }: { content?: Record<string, string> }) {
           The Manifesto
         </motion.span>
 
-        <blockquote
+        {/* Single block quote animation instead of per-word */}
+        <motion.blockquote
           className="mx-auto max-w-5xl font-serif italic leading-[1.4] md:mx-0"
           style={{ fontSize: "clamp(1.6rem,3.2vw,3rem)" }}
+          initial={{ opacity: 0, y: 24 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.9, ease, delay: 0.15 }}
         >
-          {words.map((word, i) => (
-            <span key={i} className="mb-1 mr-[0.3em] inline-block overflow-hidden last:mr-0">
-              <motion.span
-                className="inline-block"
-                initial={{ y: "110%", opacity: 0 }}
-                animate={isInView ? { y: 0, opacity: 1 } : {}}
-                transition={{ duration: 0.7, ease, delay: i * 0.02 }}
-              >
-                {word}
-              </motion.span>
-            </span>
-          ))}
-        </blockquote>
+          {quote}
+        </motion.blockquote>
 
         <motion.footer
           className="mt-12 flex flex-col items-center justify-center gap-4 md:mt-16 md:items-start md:justify-start md:gap-5"
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 1.1 }}
+          transition={{ duration: 0.8, delay: 0.55 }}
         >
           <span className="label-mono text-muted-ink">Synarava Studio, 2024</span>
           <div className="flex items-center justify-center gap-5">
@@ -607,7 +455,7 @@ function ManifestoSection({ content }: { content?: Record<string, string> }) {
               className="h-px w-14 bg-stone-beige"
               initial={{ scaleX: 0 }}
               animate={isInView ? { scaleX: 1 } : {}}
-              transition={{ duration: 0.8, delay: 1.2 }}
+              transition={{ duration: 0.8, delay: 0.65 }}
               style={{ transformOrigin: "left" }}
             />
             <div className="h-2 w-2 rotate-45 border border-couture-red" />
@@ -615,14 +463,13 @@ function ManifestoSection({ content }: { content?: Record<string, string> }) {
               className="h-px w-14 bg-stone-beige"
               initial={{ scaleX: 0 }}
               animate={isInView ? { scaleX: 1 } : {}}
-              transition={{ duration: 0.8, delay: 1.3 }}
+              transition={{ duration: 0.8, delay: 0.75 }}
               style={{ transformOrigin: "right" }}
             />
           </div>
         </motion.footer>
       </div>
 
-      {/* Bottom folk border */}
       <div className="site-shell relative z-10 mt-16 md:mt-24">
         <FolkBorder className="w-full text-foreground/20" />
       </div>
@@ -669,6 +516,7 @@ function CollectionsSection({
                 className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
                 viewBox="0 0 12 12"
                 fill="none"
+                aria-hidden="true"
               >
                 <path
                   d="M1 6h10M7 2l4 4-4 4"
@@ -711,7 +559,7 @@ function CollectionCard({
       transition={{ duration: 0.9, ease, delay: 0.1 + index * 0.13 }}
     >
       <Link href={item.href} className="group block cursor-pointer">
-        {/* Card image with variants */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <motion.div
           className="relative mb-5 aspect-[3/4] overflow-hidden bg-stone-beige"
           initial="rest"
@@ -729,7 +577,6 @@ function CollectionCard({
             transition={{ type: "spring", stiffness: 260, damping: 32 }}
           />
 
-          {/* Overlay reveal */}
           <motion.div
             className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-foreground/75 via-foreground/30 to-transparent p-5"
             variants={{
@@ -750,7 +597,6 @@ function CollectionCard({
             </div>
           </motion.div>
 
-          {/* Bottom sweep line */}
           <motion.div
             className="absolute bottom-0 left-0 h-0.5 bg-couture-red"
             variants={{
@@ -780,7 +626,7 @@ function CollectionCard({
   );
 }
 
-/* ─── The Atelier (new section) ──────────────────────────────────── */
+/* ─── The Atelier ────────────────────────────────────────────────── */
 function AtelierSection() {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
@@ -799,9 +645,9 @@ function AtelierSection() {
         </span>
       </div>
 
-      {/* Ziamla ghost — earth grid breathing in background */}
+      {/* Ziamla ghost */}
       <div className="pointer-events-none absolute left-0 top-1/2 -translate-x-1/4 -translate-y-1/2 opacity-[0.04]">
-        <SvgZiamla className="h-[60vw] w-[60vw] max-h-[580px] max-w-[580px] text-foreground" />
+        <ZiamlaStatic className="h-[60vw] w-[60vw] max-h-[580px] max-w-[580px] text-foreground" />
       </div>
 
       <div className="site-shell">
@@ -834,7 +680,6 @@ function AtelierSection() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.85, ease, delay: 0.1 + i * 0.18 }}
             >
-              {/* Timeline dot */}
               <motion.div
                 className="absolute -top-[5px] left-0 hidden h-2.5 w-2.5 rounded-full bg-couture-red md:block"
                 initial={{ scale: 0 }}
@@ -853,6 +698,88 @@ function AtelierSection() {
               <p className="text-sm leading-[1.9] text-muted-ink md:text-base">{step.body}</p>
             </motion.div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Folk Pattern Interlude ─────────────────────────────────────── */
+function PatternInterlude() {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-8%" });
+
+  const patterns = [
+    {
+      Svg: KodRoda,
+      name: "Kod Roda",
+      sub: "Ancestral Cipher",
+      desc: "A diamond lattice encoding lineage and protection. Found on ceremonial linens for centuries.",
+    },
+    {
+      Svg: Kola,
+      name: "Kola",
+      sub: "Solar Wheel",
+      desc: "The ancient 8-spoked sun symbol — energy, life force, and the cyclical nature of time.",
+    },
+    {
+      Svg: Ziamla,
+      name: "Ziamla",
+      sub: "Earth Grid",
+      desc: "Nested squares anchoring the wearer — symbol of fertility, material origin, and permanence.",
+    },
+  ] as const;
+
+  return (
+    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-32">
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+        <span className="select-none font-serif leading-none text-background"
+          style={{ fontSize: "clamp(5rem,18vw,15rem)", opacity: 0.022, whiteSpace: "nowrap", letterSpacing: "0.06em" }}>
+          УЗОРЫ
+        </span>
+      </div>
+
+      <div className="site-shell relative z-10">
+        <motion.div
+          className="mb-14 text-center md:mb-20"
+          initial={{ opacity: 0, y: 24 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, ease }}
+        >
+          <p className="label-mono mb-3 text-couture-red">Folk Geometry</p>
+          <h3 className="font-serif" style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)" }}>
+            The Symbols We Carry
+          </h3>
+        </motion.div>
+
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
+          {patterns.map(({ Svg, name, sub, desc }, i) => (
+            <motion.div
+              key={name}
+              className="group text-center"
+              initial={{ opacity: 0, y: 40 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.85, ease, delay: i * 0.16 }}
+            >
+              <div className="relative mb-8 flex items-center justify-center">
+                <Svg className="h-44 w-44 text-background/65 transition-colors duration-700 group-hover:text-couture-red md:h-48 md:w-48" />
+              </div>
+              <motion.div
+                className="mx-auto mb-6 h-px bg-background/15"
+                initial={{ scaleX: 0 }}
+                animate={isInView ? { scaleX: 1 } : {}}
+                transition={{ duration: 1, ease, delay: 0.4 + i * 0.16 }}
+                style={{ transformOrigin: "center" }}
+              />
+              <p className="label-caps mb-1 text-couture-red">{name}</p>
+              <p className="label-mono mb-4 text-background/40">{sub}</p>
+              <p className="text-sm leading-[1.9] text-background/55 md:text-base">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-16 md:mt-24">
+          <FolkBorder className="w-full text-background/25" />
         </div>
       </div>
     </section>
@@ -888,6 +815,7 @@ function MaterialsSection() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.85, ease, delay: i * 0.14 }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <div className="relative mb-6 aspect-[4/5] w-full overflow-hidden">
                 <motion.img
                   alt={mat.label}
@@ -897,7 +825,6 @@ function MaterialsSection() {
                   whileHover={{ filter: "grayscale(0) brightness(0.88)", scale: 1.04 }}
                   transition={{ duration: 0.65 }}
                 />
-                {/* Color glow on hover */}
                 <div
                   className="pointer-events-none absolute bottom-0 left-0 right-0 h-1/2 opacity-0 transition-opacity duration-700 group-hover:opacity-100"
                   style={{
@@ -984,7 +911,6 @@ function HeritageSection() {
   return (
     <section ref={ref} className="bg-background py-20 md:py-40">
       <div className="site-shell">
-        {/* Top folk border divider */}
         <div className="mb-14 md:mb-20">
           <FolkBorder className="w-full text-foreground/22" />
         </div>
@@ -998,16 +924,13 @@ function HeritageSection() {
             transition={{ duration: 1, ease }}
           >
             <div className="relative overflow-hidden">
-              <img
-                alt="Traditional craft"
-                className="aspect-square w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
+              <Image
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeoC4s0GytU2DJHgrs3Y0VtvzJzV8XnZqdlM-zu7Pj5SOSNmgf2fH0UUWquiyWXIKpNLyYe7uIZO3_8XVObSjX88ucZFaSmB7RmcgsRhsPnG7tPGc0n0_G6K7x3a5mstC1CRokMdByQ5QzcXX2nFedtwx42wOm2YsJwOSo6OzbspMc5J8qdpMsI2dZi4z_wUwpmA0QdXlFyhLvOkujl25D4nxEsU7IcGhDLxyZA3K6CO9_k9Sx1YFGtL1eqQjnZEl_HFLyG9-8uxkN"
-              />
-              {/* Scan line */}
-              <motion.div
-                className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/25"
-                animate={{ top: ["0%", "100%", "0%"] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                alt="Traditional craft"
+                width={900}
+                height={900}
+                className="aspect-square w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           </motion.div>
@@ -1019,7 +942,6 @@ function HeritageSection() {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 1, ease, delay: 0.15 }}
           >
-            {/* Animated left border accent */}
             <motion.div
               className="absolute left-0 top-0 w-0.5 bg-couture-red"
               initial={{ height: 0 }}
@@ -1061,330 +983,6 @@ function HeritageSection() {
   );
 }
 
-/* ─── SVG Folk Patterns ──────────────────────────────────────────── */
-function SvgKodRoda({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const reduce = useReducedMotion();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d = (delay: number): any => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: isInView ? { pathLength: 1, opacity: 1 } : {},
-    transition: { duration: reduce ? 0 : 1.6, ease: "easeInOut", delay },
-  });
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={reduce ? undefined : isInView ? { rotate: [0, 2, -1.5, 0] } : {}}
-      transition={{ duration: 12, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-    >
-      <motion.path d="M100 8 L192 100 L100 192 L8 100 Z" stroke="currentColor" strokeWidth="1.2" {...d(0)} />
-      <motion.path d="M100 42 L158 100 L100 158 L42 100 Z" stroke="currentColor" strokeWidth="1" {...d(0.2)} />
-      <motion.path d="M100 68 L132 100 L100 132 L68 100 Z" stroke="currentColor" strokeWidth="0.85" {...d(0.4)} />
-      <motion.path d="M100 8 L100 192" stroke="currentColor" strokeWidth="0.7" opacity={0.5} {...d(0.55)} />
-      <motion.path d="M8 100 L192 100" stroke="currentColor" strokeWidth="0.7" opacity={0.5} {...d(0.55)} />
-      <motion.path d="M42 42 L158 158" stroke="currentColor" strokeWidth="0.6" opacity={0.35} {...d(0.7)} />
-      <motion.path d="M158 42 L42 158" stroke="currentColor" strokeWidth="0.6" opacity={0.35} {...d(0.7)} />
-      <motion.path d="M100 8 L112 20 M100 8 L88 20" stroke="currentColor" strokeWidth="1" {...d(1)} />
-      <motion.path d="M192 100 L180 112 M192 100 L180 88" stroke="currentColor" strokeWidth="1" {...d(1)} />
-      <motion.path d="M100 192 L112 180 M100 192 L88 180" stroke="currentColor" strokeWidth="1" {...d(1)} />
-      <motion.path d="M8 100 L20 112 M8 100 L20 88" stroke="currentColor" strokeWidth="1" {...d(1)} />
-      <motion.circle cx="100" cy="100" r="3.5" fill="currentColor"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={isInView ? { scale: 1, opacity: 1 } : {}}
-        transition={{ duration: 0.5, delay: 1.4, type: "spring", stiffness: 400 }}
-      />
-      {[[100, 42], [158, 100], [100, 158], [42, 100]].map(([cx, cy], i) => (
-        <motion.circle key={i} cx={cx} cy={cy} r="2.5" fill="currentColor"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={isInView ? { scale: 1, opacity: 0.7 } : {}}
-          transition={{ duration: 0.4, delay: 1.5 + i * 0.1, type: "spring", stiffness: 400 }}
-        />
-      ))}
-    </motion.svg>
-  );
-}
-
-function SvgKola({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const reduce = useReducedMotion();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d = (delay: number, opacity = 1): any => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: isInView ? { pathLength: 1, opacity } : {},
-    transition: { duration: reduce ? 0 : 1.8, ease: "easeInOut", delay },
-  });
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={reduce ? undefined : isInView ? { rotate: 360 } : {}}
-      transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
-    >
-      <motion.circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="1"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
-        transition={{ duration: 2, ease: "easeInOut", delay: 0 }}
-      />
-      <motion.circle cx="100" cy="100" r="60" stroke="currentColor" strokeWidth="0.85" opacity={0.6}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 0.6 } : {}}
-        transition={{ duration: 1.8, ease: "easeInOut", delay: 0.3 }}
-      />
-      <motion.circle cx="100" cy="100" r="28" stroke="currentColor" strokeWidth="1"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
-        transition={{ duration: 1.4, ease: "easeInOut", delay: 0.6 }}
-      />
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        return (
-          <motion.line key={angle}
-            x1={100 + 28 * Math.cos(rad)} y1={100 + 28 * Math.sin(rad)}
-            x2={100 + 88 * Math.cos(rad)} y2={100 + 88 * Math.sin(rad)}
-            stroke="currentColor" strokeWidth={i % 2 === 0 ? "1" : "0.6"} opacity={i % 2 === 0 ? 1 : 0.5}
-            {...d(0.9 + i * 0.08)}
-          />
-        );
-      })}
-      {[0, 90, 180, 270].map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        return (
-          <motion.circle key={angle} cx={100 + 88 * Math.cos(rad)} cy={100 + 88 * Math.sin(rad)} r="3" fill="currentColor"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={isInView ? { scale: 1, opacity: 1 } : {}}
-            transition={{ duration: 0.4, delay: 1.8 + i * 0.1, type: "spring", stiffness: 400 }}
-          />
-        );
-      })}
-      <motion.circle cx="100" cy="100" r="4" fill="currentColor"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={isInView ? { scale: 1, opacity: 1 } : {}}
-        transition={{ duration: 0.5, delay: 0.5, type: "spring", stiffness: 500 }}
-      />
-    </motion.svg>
-  );
-}
-
-function SvgZiamla({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const reduce = useReducedMotion();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d = (delay: number, opacity = 1): any => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: isInView ? { pathLength: 1, opacity } : {},
-    transition: { duration: reduce ? 0 : 1.6, ease: "easeInOut", delay },
-  });
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={reduce ? undefined : isInView ? { scale: [1, 1.015, 1] } : {}}
-      transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-    >
-      <motion.rect x="18" y="18" width="164" height="164" stroke="currentColor" strokeWidth="1.1" transform="rotate(45 100 100)" {...d(0)} />
-      <motion.rect x="44" y="44" width="112" height="112" stroke="currentColor" strokeWidth="1" transform="rotate(45 100 100)" opacity={0.7} {...d(0.25)} />
-      <motion.rect x="68" y="68" width="64" height="64" stroke="currentColor" strokeWidth="0.9" transform="rotate(45 100 100)" opacity={0.5} {...d(0.5)} />
-      <motion.path d="M100 18 L100 182" stroke="currentColor" strokeWidth="0.7" opacity={0.4} {...d(0.65)} />
-      <motion.path d="M18 100 L182 100" stroke="currentColor" strokeWidth="0.7" opacity={0.4} {...d(0.65)} />
-      <motion.path d="M100 18 L88 30 M100 18 L112 30" stroke="currentColor" strokeWidth="1" {...d(0.9)} />
-      <motion.path d="M182 100 L170 88 M182 100 L170 112" stroke="currentColor" strokeWidth="1" {...d(0.9)} />
-      <motion.path d="M100 182 L88 170 M100 182 L112 170" stroke="currentColor" strokeWidth="1" {...d(0.9)} />
-      <motion.path d="M18 100 L30 88 M18 100 L30 112" stroke="currentColor" strokeWidth="1" {...d(0.9)} />
-      <motion.circle cx="100" cy="100" r="3" fill="currentColor"
-        initial={{ scale: 0 }}
-        animate={isInView ? { scale: 1 } : {}}
-        transition={{ duration: 0.4, delay: 1.3, type: "spring", stiffness: 400 }}
-      />
-    </motion.svg>
-  );
-}
-
-function FolkBorder({ className, delay = 0 }: { className?: string; delay?: number }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-5%" });
-
-  return (
-    <svg ref={ref} viewBox="0 0 800 40" fill="none" className={className} aria-hidden="true">
-      {Array.from({ length: 16 }).map((_, i) => {
-        const cx = 25 + i * 50;
-        return (
-          <motion.path
-            key={i}
-            d={`M${cx} 4 L${cx + 16} 20 L${cx} 36 L${cx - 16} 20 Z`}
-            stroke="currentColor" strokeWidth="1" fill="none"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={isInView ? { pathLength: 1, opacity: 0.7 } : {}}
-            transition={{ duration: 0.6, ease: "easeOut", delay: delay + i * 0.06 }}
-          />
-        );
-      })}
-      <motion.line x1="9" y1="20" x2="791" y2="20" stroke="currentColor" strokeWidth="0.5" opacity={0.25}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 0.25 } : {}}
-        transition={{ duration: 1.6, ease: "easeInOut", delay }}
-      />
-      {Array.from({ length: 15 }).map((_, i) => (
-        <motion.circle key={i} cx={25 + 16 + i * 50} cy={20} r={1.5} fill="currentColor"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={isInView ? { scale: 1, opacity: 0.5 } : {}}
-          transition={{ duration: 0.3, delay: delay + 0.5 + i * 0.04 }}
-        />
-      ))}
-    </svg>
-  );
-}
-
-/* ─── Folk Pattern Interlude ─────────────────────────────────────── */
-function PatternInterlude() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-8%" });
-
-  return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-32">
-      {/* Ghost "УЗОРЫ" */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-        <span className="select-none font-serif leading-none text-background"
-          style={{ fontSize: "clamp(5rem,18vw,15rem)", opacity: 0.022, whiteSpace: "nowrap", letterSpacing: "0.06em" }}>
-          УЗОРЫ
-        </span>
-      </div>
-
-      <div className="site-shell relative z-10">
-        <motion.div
-          className="mb-14 text-center md:mb-20"
-          initial={{ opacity: 0, y: 24 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-        >
-          <p className="label-mono mb-3 text-couture-red">Folk Geometry</p>
-          <h3 className="font-serif" style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)" }}>
-            The Symbols We Carry
-          </h3>
-        </motion.div>
-
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
-          {[
-            {
-              Svg: SvgKodRoda,
-              name: "Kod Roda",
-              sub: "Ancestral Cipher",
-              desc: "A diamond lattice encoding lineage and protection. Found on ceremonial linens for centuries.",
-            },
-            {
-              Svg: SvgKola,
-              name: "Kola",
-              sub: "Solar Wheel",
-              desc: "The ancient 8-spoked sun symbol — energy, life force, and the cyclical nature of time.",
-            },
-            {
-              Svg: SvgZiamla,
-              name: "Ziamla",
-              sub: "Earth Grid",
-              desc: "Nested squares anchoring the wearer — symbol of fertility, material origin, and permanence.",
-            },
-          ].map(({ Svg, name, sub, desc }, i) => (
-            <motion.div
-              key={name}
-              className="group text-center"
-              initial={{ opacity: 0, y: 40 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: i * 0.16 }}
-            >
-              <div className="relative mb-8 flex items-center justify-center">
-                <Svg className="h-44 w-44 text-background/65 transition-colors duration-700 group-hover:text-couture-red md:h-48 md:w-48" />
-              </div>
-              <motion.div
-                className="mx-auto mb-6 h-px bg-background/15"
-                initial={{ scaleX: 0 }}
-                animate={isInView ? { scaleX: 1 } : {}}
-                transition={{ duration: 1, ease, delay: 0.4 + i * 0.16 }}
-                style={{ transformOrigin: "center" }}
-              />
-              <p className="label-caps mb-1 text-couture-red">{name}</p>
-              <p className="label-mono mb-4 text-background/40">{sub}</p>
-              <p className="text-sm leading-[1.9] text-background/55 md:text-base">{desc}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="mt-16 md:mt-24">
-          <FolkBorder className="w-full text-background/25" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Folk Spider Ornament ───────────────────────────────────────── */
-function FolkSpiderOrnament() {
-  const reduceMotion = useReducedMotion();
-  return (
-    <motion.div
-      className="mx-auto mb-10 flex w-fit origin-top justify-center text-foreground/40 dark:text-background/84 md:mb-12"
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.85, ease }}
-    >
-      <motion.svg
-        aria-hidden="true"
-        className="h-28 w-28 md:h-32 md:w-32"
-        viewBox="0 0 160 176"
-        fill="none"
-        animate={
-          reduceMotion
-            ? undefined
-            : { rotate: [0, 3.2, -2.2, 1.4, 0], y: [0, 4, -2, 2, 0] }
-        }
-        transition={
-          reduceMotion
-            ? undefined
-            : { duration: 8.5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }
-        }
-        style={{ transformOrigin: "50% 0%" }}
-      >
-        <path d="M80 0V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M80 18V34" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.72" />
-        <path d="M80 34L108 62L80 90L52 62L80 34Z" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M80 46L96 62L80 78L64 62L80 46Z" stroke="currentColor" strokeWidth="1.1" opacity="0.9" />
-        <path d="M80 54L88 62L80 70L72 62L80 54Z" stroke="currentColor" strokeWidth="1" opacity="0.82" />
-        <path d="M38 62H122" stroke="currentColor" strokeWidth="1" opacity="0.55" />
-        <path d="M48 74H112" stroke="currentColor" strokeWidth="0.9" opacity="0.48" />
-        <path d="M52 50H108" stroke="currentColor" strokeWidth="0.9" opacity="0.48" />
-        <path d="M60 84L80 104L100 84" stroke="currentColor" strokeWidth="1.05" opacity="0.78" />
-        <path d="M80 90V122" stroke="currentColor" strokeWidth="1.1" opacity="0.72" />
-        <path d="M80 104L120 124" stroke="currentColor" strokeWidth="0.9" opacity="0.62" />
-        <path d="M80 104L40 124" stroke="currentColor" strokeWidth="0.9" opacity="0.62" />
-        <path d="M80 114L108 138" stroke="currentColor" strokeWidth="0.85" opacity="0.48" />
-        <path d="M80 114L52 138" stroke="currentColor" strokeWidth="0.85" opacity="0.48" />
-        <path d="M32 124L40 132L32 140L24 132L32 124Z" stroke="currentColor" strokeWidth="0.95" opacity="0.86" />
-        <path d="M128 124L136 132L128 140L120 132L128 124Z" stroke="currentColor" strokeWidth="0.95" opacity="0.86" />
-        <path d="M44 140L52 148L44 156L36 148L44 140Z" stroke="currentColor" strokeWidth="0.85" opacity="0.65" />
-        <path d="M116 140L124 148L116 156L108 148L116 140Z" stroke="currentColor" strokeWidth="0.85" opacity="0.65" />
-        <path d="M80 126L92 138L80 150L68 138L80 126Z" stroke="currentColor" strokeWidth="1" opacity="0.76" />
-        <path d="M80 150V170" stroke="currentColor" strokeWidth="1" opacity="0.58" />
-        <path d="M72 170H88" stroke="currentColor" strokeWidth="1" opacity="0.45" />
-        <circle cx="80" cy="62" r="2.2" fill="currentColor" opacity="0.8" />
-      </motion.svg>
-    </motion.div>
-  );
-}
-
 /* ─── Final CTA ──────────────────────────────────────────────────── */
 function FinalCTA() {
   const ref = useRef<HTMLElement>(null);
@@ -1395,29 +993,21 @@ function FinalCTA() {
   return (
     <section ref={ref} className="relative overflow-hidden bg-surface py-0">
       {/* Parallax background */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <motion.div className="absolute inset-0 opacity-30" style={{ y: bgY }}>
         <img
-          alt="Gallery space"
+          alt=""
           className="h-full w-full scale-110 object-cover grayscale contrast-[0.9] brightness-[1.02]"
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlRjmhQRA-wxjueCOYYPh4npb_AwMuPibdeIi2xBnyzR6aYtnPozn9EXkqQs10M5j72a9Atq1kDdq_5pSYtM-T0IB5fPIEHyJeAuFNam5J8DWrxnTvLIF7IBocQHDm2RM38UDGNVZkP5F-iaJ7Ak7cEckBiQiR5WlNdz2CQAOR_HNTAVMF6Ffgge-YsqtxlAnWX_NgFcmd9MEIUgbno4x7uc6zMgiJk8mH649KBJetEKbQkt75J8_hBuYsX8S7b7_cVJ0ytra6MdMc"
         />
         <div className="absolute inset-0 bg-surface/72" />
       </motion.div>
 
-      {/* Ghost Kola rotating behind CTA */}
+      {/* Ghost Kola */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.04]">
-        <SvgKola className="h-[65vw] w-[65vw] max-h-[600px] max-w-[600px] text-foreground" />
+        <KolaStatic className="h-[65vw] w-[65vw] max-h-[600px] max-w-[600px] text-foreground" />
       </div>
 
-      {/* Pulsing red orb */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute left-1/2 top-1/2 h-[60vw] w-[60vw] max-w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(166,25,46,0.13) 0%, transparent 70%)" }}
-          animate={{ scale: [1, 1.22, 1] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
 
       <div className="relative z-10 flex min-h-[72vh] items-center justify-center py-24 md:py-40">
         <div className="site-shell text-center text-foreground dark:text-background">
@@ -1455,35 +1045,7 @@ function FinalCTA() {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.34 }}
           >
-            <MagneticButton
-              href="/shop"
-              className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white"
-            >
-              <span className="relative z-10">Shop the Collection</span>
-              <svg
-                className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
-                viewBox="0 0 12 12"
-                fill="none"
-              >
-                <path
-                  d="M1 6h10M7 2l4 4-4 4"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                  backgroundSize: "200% 100%",
-                  animation: "shiny-sweep 2.5s infinite linear",
-                }}
-              />
-            </MagneticButton>
+            <PrimaryCtaButton href="/shop">Shop the Collection</PrimaryCtaButton>
 
             <Link
               href="/about"

@@ -2,8 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-
-const ease = [0.22, 1, 0.36, 1] as const;
+import { ease, GRAIN_STYLE } from "@/lib/animation";
 
 interface PageHeroProps {
   eyebrow: string;
@@ -38,10 +37,7 @@ export function PageHero({
       {/* Grain */}
       <div
         className="pointer-events-none absolute inset-0 z-0 mix-blend-multiply opacity-[0.035]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-          backgroundSize: "256px",
-        }}
+        style={GRAIN_STYLE}
       />
 
       {/* Ghost text */}
