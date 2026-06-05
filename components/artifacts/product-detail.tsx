@@ -312,25 +312,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Materials strip ────────────────────────────────────────────── */
-const MATERIALS = [
-  {
-    title: "Lava Stone",
-    body: "Primal energy captured from the earth's core. Porous, lightweight, and grounding.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC1bJ7ykeUWZbNNpZ4zXpG4SvAJjAQPMpH2D0v2qVUL3Ba8rL9yK6yAJhAybvdZGFOqRYdueOQMOG8LACGPAsxdq9XZkmCcT6u_NVTMYbdZ2rxCVIDcUe11J4hIkFlcfp7CeVur2isa6KbgGOQ32iIYXAjaKKMQ-10-9VyS2htqJu7NHcWYjQuNV-fF9gQLC20YtjoNHhF-z3N6Y8_m_q_vFnHOCINxrvJxGkR0GP3uR-DYJmfkE09_yvCDD72DRF9qBSIH5HrZHMXN",
-  },
-  {
-    title: "White Oak",
-    body: "Hand-turned wood, oil-finished to preserve the warmth of Belarusian forests.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCIlvjp4lBihCVwo4LwQUe3FT7_W35SdGVr6Zfrm0tN4HxiR6fN_IgsxjzXNsvyz8LAcB5J2GiRSo9EAhE-3aKH_7RzSsvp1NGgb6ia5KwCc2Ns_nXbuyGK73j1LgBOLiEGC3I_v_wO66xJb2FkJZ3ZIQAgt4ZopW1udde2_rQhEizoHb0141AxZjnz5PUdOYiWuCwQ8TRzh5yxJuZJdPnOeLnYF66RSZPIabh-YO5Kv836T5DhLOeTFlHLMMcz1YDl7OMQSTjmj_0h",
-  },
-  {
-    title: "Traditional Weave",
-    body: "A geometric protection motif, woven by master artisans using centuries-old techniques.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDgNxbCUeq6PwnV9fMol7H3gSKKn9-3hk2HER8IYcN4ZgFaK_WI8ymgWt_Ee1poxFW4OcwxoPzM-eYwa53r92ExOElEqMnuWzdS9qO8cjUTQlJqyJOwMma-GC1MeVWBWWgsMl1zF-p1AVwqMwSUlxClRbcxD78jRy_4iGCQU_MnsS31GUG56dvs03N9kPRFhQUNtfuiJTr5mPGYnR4j3_IRn4hNHYN0hfiKa1LN-EBPbMLQtZXKEEksLxzagXPjV9SP1LVvlYyZUp45",
-  },
-];
-
-function MaterialsSection() {
+function MaterialsSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-8%" });
 
@@ -362,7 +344,7 @@ function MaterialsSection() {
         </motion.div>
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 md:gap-6">
-          {MATERIALS.map((item, i) => (
+          {product.materials.map((item, i) => (
             <motion.article
               key={item.title}
               className="group space-y-5"
@@ -427,7 +409,7 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
 
           <div className="relative overflow-hidden">
             <motion.img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVNicx6BX7QK8-0S_xcnEC5OIPGkKfvUDChUtiI-G1t9Bkh2W9A6x4-aZZg1ZxRobK8rJzH4lll1yxq453fDfiLJ07UoJQasMpFW7CFhaOsAFAQwfcCiyTByw4h0vNvuoEusZADXXAD6pj9o4d41vLsFXzL01dChZ--KMmqn9RcXbjuQNarNZegP3FHOt2daIMbHrp5o7Sbk_oAG91bD6kM67FPxqING6QU9fiX7KlAlllqjoabSmXLiwIOw4un884KvpI3JJUOW4S"
+              src={product.lookbook[0]?.src || product.image}
               alt="Symbolic Detail"
               className="aspect-video w-full object-cover"
               style={{ scale: imgScale }}
@@ -518,14 +500,7 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Craftsmanship / Stats dark section ─────────────────────────── */
-const STATS: [string, string][] = [
-  ["12", "Hours of Weaving"],
-  ["100%", "Natural Cotton"],
-  ["02", "Master Craftsmen"],
-  ["∞", "Heritage Soul"],
-];
-
-function CraftSection() {
+function CraftSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -553,7 +528,7 @@ function CraftSection() {
             <div className="relative aspect-video cursor-pointer overflow-hidden">
               <img
                 className="h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmofw-Jl3CJtnxftqTYfRCfvMEZbwTFj9jJp9qj6qNia6D9BZ39ELrH5OIpc_-asXTq_9197RDp0w9y2MaYsazzHK5c3KzOfl1uPmxgYsd1FaIi4HELFmwvI0I7oqTe7e5MLDgGc1W0MK-wfoJtFpxqsD4-gZEyABj3x5tlK9ZLFScCUDw60daJKsCYvmBJgE6mh7cFHHw8DjQO1RqeldU6YcNV8x5tpoF8HJSFswbArPbPD8WeRip_1Bw_ePpMMjB3Alq1IDjz7Tk"
+                src={product.process.mediaImage}
                 alt="Craftsmanship"
               />
               {/* Play button */}
@@ -592,14 +567,14 @@ function CraftSection() {
             transition={{ duration: 1, ease, delay: 0.15 }}
           >
             <div>
-              <p className="label-mono mb-4 text-couture-red">Process</p>
+              <p className="label-mono mb-4 text-couture-red">{product.process.eyebrow}</p>
               <h2 className="font-serif leading-[1.05]" style={{ fontSize: "clamp(1.8rem,3.5vw,3rem)" }}>
-                Human Precision
+                {product.process.title}
               </h2>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
-              {STATS.map(([value, label], i) => (
+              {product.process.stats.map(({ value, label }, i) => (
                 <motion.div
                   key={label}
                   initial={{ opacity: 0, y: 16 }}
@@ -628,14 +603,19 @@ function CraftSection() {
 }
 
 /* ─── Lookbook ───────────────────────────────────────────────────── */
-const LOOKBOOK = [
-  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuB_Ie20hGCRnyWbIUk3WikrL29NSkFV0FzPiuVnJ0sRYnq-5sGpITU4zzVVIa3X_WHW57G1M7j9yVGq0e3eYoEle4MC86F9rl1INlF3Nf8O8pU06NxCKy2DAK9S1_p2ML8y_BDonMAVl9bNQZa-iGN8qHFDb2HzLal7vARnYSYo0bl0jAAKGWFcL1E0dBOTWuVEuR5doUi7uSQF3rTYXDsXU4t2QiUbdhx66sTBKqGjQuyjRUDwdv7nMQdGBrIJPJPRIuDoTsdtldOn", label: "01 / The Ensemble", colSpan: "md:col-span-2 md:row-span-2" },
-  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuAcHdMprl7YZ1Eqp_m9PN5LjGgHgpO7z9LqYfG2pJWftR5gxPOQHiJQY-Ob8XHfylhpDatz5S5iUSsKzUDsbLrfQht1zuMv6hjYk9Rujb--qtrgJtmkpWXp3QYfHItdcaOOBA1I5328QzhQnwKXqhSLNgEitVvoQ4te8m_kE4nrGTZ-C4Xh8VUqgYfuuObDn7cxfMoH_hQs046d_G9QSi3B60SSb7KtMHblZXLX06SvPAI-yv-xQxNS2KiLhp_tjb9PqBhB4XNRxjHZ", label: "02 / Watch Pairing", colSpan: "md:col-span-2" },
-  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBqNAoIB2RLpXNNoPRuqNzhk40thxv5VGyxi8ElGGChgVoL4qw89Sry8ZUj0TSxy53krf4-BbUeueIEOjs1WqLmgWon5yMNif8WaLWVmF0v1JIs8if3JemLyVNXjFrPI5edx6a9eurYhKgbqt1tSZ9N3ZsAJssMrNM4D5QbkHarrKPhiXkGP5xO8incgB3khvTO0u8S9c96TewXNZuvuScb0aXsedPXL8EDeXHAqBefSvWKoEbXgbLFebsHM5qfN-rTAikJP1YvuQj7", label: "", colSpan: "" },
-  { src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBfnxtP0tnzHpA4FJlWk06e5_0KhM8yN7jd2qnTKFjfVNlw9uy9AF_wv54EAH0Yl1wxofDtCYXCU9DTHTFlcbdn4G0EKZSdZhvyKXw1R_TIplVHHQWbq-vGeVL36bAFJ6rRjrLW5nvh1Qsx6ja7Fe0bmT6LhAkK6Mf3zX-npVmHzpcs1kIL376EfLqHsPONa74c4DY4-li-zpAKScW6JSIBp-M76623SP_ozugt7F29isLug4mNGz1LyAL-EdhMusDGq6lU-GMWCUSCj", label: "", colSpan: "" },
-];
+function lookbookClasses(index: number, item: ProductSummary["lookbook"][number]) {
+  if (item.featured || index === 0) {
+    return "md:col-span-2 md:row-span-2";
+  }
 
-function LookbookSection() {
+  if (index === 1) {
+    return "md:col-span-2";
+  }
+
+  return "";
+}
+
+function LookbookSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-8%" });
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -655,15 +635,15 @@ function LookbookSection() {
           </h2>
         </div>
         <p className="hidden label-mono text-foreground/35 md:block">
-          {LOOKBOOK.length} images
+          {product.lookbook.length} images
         </p>
       </motion.div>
 
       <div className="grid grid-cols-2 gap-3 md:h-[52rem] md:grid-cols-4 md:grid-rows-2 md:gap-4">
-        {LOOKBOOK.map((item, i) => (
+        {product.lookbook.map((item, i) => (
           <motion.div
             key={i}
-            className={`relative overflow-hidden bg-black/5 aspect-square md:aspect-auto ${item.colSpan}`}
+            className={`relative overflow-hidden bg-black/5 aspect-square md:aspect-auto ${lookbookClasses(i, item)}`}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.85, ease, delay: i * 0.1 }}
@@ -803,10 +783,10 @@ export function ProductDetail({ product }: { product: ProductSummary }) {
   return (
     <main className="artifact-shell min-h-screen overflow-x-hidden">
       <ProductHero product={product} />
-      <MaterialsSection />
+      <MaterialsSection product={product} />
       <SymbolismSection product={product} />
-      <CraftSection />
-      <LookbookSection />
+      <CraftSection product={product} />
+      <LookbookSection product={product} />
       <ProductFooter product={product} />
     </main>
   );

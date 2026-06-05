@@ -10,7 +10,7 @@ export default async function AdminDashboardPage() {
     { label: "Products", value: products.length, href: "/admin/products" },
     { label: "Categories", value: categories.length, href: "/admin/products" },
     { label: "Tags", value: tags.length, href: "/admin/products" },
-    { label: "Collections", value: collections.length, href: "/collections" },
+    { label: "Collections", value: collections.length, href: "/admin/collections" },
   ];
 
   return (

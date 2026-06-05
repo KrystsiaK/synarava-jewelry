@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const PRODUCT_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
+const UPLOADS_ROOT_DIR = path.join(process.cwd(), "public", "uploads");
 
 function sanitizeBaseName(filename: string) {
   return filename
@@ -31,7 +31,7 @@ function extensionFromFile(file: File) {
   return map[file.type] ?? ".bin";
 }
 
-export async function saveProductImageUpload(file: File) {
+async function saveImageUpload(file: File, folder: string, fallbackBaseName: string) {
   if (!file || file.size === 0) {
     return null;
   }
@@ -44,12 +44,13 @@ export async function saveProductImageUpload(file: File) {
     throw new Error("Image must be 10 MB or smaller.");
   }
 
-  await mkdir(PRODUCT_UPLOAD_DIR, { recursive: true });
+  const outputDir = path.join(UPLOADS_ROOT_DIR, folder);
+  await mkdir(outputDir, { recursive: true });
 
   const extension = extensionFromFile(file);
-  const baseName = sanitizeBaseName(file.name);
+  const baseName = sanitizeBaseName(file.name || fallbackBaseName);
   const filename = `${baseName}-${randomUUID()}${extension}`;
-  const outputPath = path.join(PRODUCT_UPLOAD_DIR, filename);
+  const outputPath = path.join(outputDir, filename);
   const buffer = Buffer.from(await file.arrayBuffer());
 
   await writeFile(outputPath, buffer);
@@ -59,7 +60,15 @@ export async function saveProductImageUpload(file: File) {
     extension,
     mimeType: file.type || "application/octet-stream",
     sizeBytes: file.size,
-    publicPath: `/uploads/products/${filename}`,
-    storageKey: `uploads/products/${filename}`,
+    publicPath: `/uploads/${folder}/${filename}`,
+    storageKey: `uploads/${folder}/${filename}`,
   };
+}
+
+export async function saveProductImageUpload(file: File) {
+  return saveImageUpload(file, "products", "product-image");
+}
+
+export async function saveCollectionImageUpload(file: File) {
+  return saveImageUpload(file, "collections", "collection-image");
 }

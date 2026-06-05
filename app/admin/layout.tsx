@@ -25,6 +25,9 @@ export default async function AdminLayout({
             <Link href="/admin/products" className="label-caps text-muted transition-colors hover:text-accent">
               Products
             </Link>
+            <Link href="/admin/collections" className="label-caps text-muted transition-colors hover:text-accent">
+              Collections
+            </Link>
             <Link href="/admin/account" className="label-caps text-muted transition-colors hover:text-accent">
               Account
             </Link>

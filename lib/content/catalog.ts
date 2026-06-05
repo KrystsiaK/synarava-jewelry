@@ -27,6 +27,33 @@ export type ProductSummary = {
   symbolismTitle: string;
   symbolismBody: string;
   symbolismBody2: string;
+  materials: ProductMaterialStory[];
+  process: ProductProcessStory;
+  lookbook: ProductLookbookStory[];
+};
+
+export type ProductMaterialStory = {
+  title: string;
+  body: string;
+  image: string;
+};
+
+export type ProductProcessStat = {
+  value: string;
+  label: string;
+};
+
+export type ProductProcessStory = {
+  eyebrow: string;
+  title: string;
+  mediaImage: string;
+  stats: ProductProcessStat[];
+};
+
+export type ProductLookbookStory = {
+  src: string;
+  label: string;
+  featured?: boolean;
 };
 
 export type ShopFilters = {
@@ -246,13 +273,131 @@ const defaultProducts = [
   },
 ];
 
+export const fallbackProductMaterials: ProductMaterialStory[] = [
+  {
+    title: "Lava Stone",
+    body: "Primal energy captured from the earth's core. Porous, lightweight, and grounding.",
+    image:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuC1bJ7ykeUWZbNNpZ4zXpG4SvAJjAQPMpH2D0v2qVUL3Ba8rL9yK6yAJhAybvdZGFOqRYdueOQMOG8LACGPAsxdq9XZkmCcT6u_NVTMYbdZ2rxCVIDcUe11J4hIkFlcfp7CeVur2isa6KbgGOQ32iIYXAjaKKMQ-10-9VyS2htqJu7NHcWYjQuNV-fF9gQLC20YtjoNHhF-z3N6Y8_m_q_vFnHOCINxrvJxGkR0GP3uR-DYJmfkE09_yvCDD72DRF9qBSIH5HrZHMXN",
+  },
+  {
+    title: "White Oak",
+    body: "Hand-turned wood, oil-finished to preserve the warmth of Belarusian forests.",
+    image:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuCIlvjp4lBihCVwo4LwQUe3FT7_W35SdGVr6Zfrm0tN4HxiR6fN_IgsxjzXNsvyz8LAcB5J2GiRSo9EAhE-3aKH_7RzSsvp1NGgb6ia5KwCc2Ns_nXbuyGK73j1LgBOLiEGC3I_v_wO66xJb2FkJZ3ZIQAgt4ZopW1udde2_rQhEizoHb0141AxZjnz5PUdOYiWuCwQ8TRzh5yxJuZJdPnOeLnYF66RSZPIabh-YO5Kv836T5DhLOeTFlHLMMcz1YDl7OMQSTjmj_0h",
+  },
+  {
+    title: "Traditional Weave",
+    body: "A geometric protection motif, woven by master artisans using centuries-old techniques.",
+    image:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuDgNxbCUeq6PwnV9fMol7H3gSKKn9-3hk2HER8IYcN4ZgFaK_WI8ymgWt_Ee1poxFW4OcwxoPzM-eYwa53r92ExOElEqMnuWzdS9qO8cjUTQlJqyJOwMma-GC1MeVWBWWgsMl1zF-p1AVwqMwSUlxClRbcxD78jRy_4iGCQU_MnsS31GUG56dvs03N9kPRFhQUNtfuiJTr5mPGYnR4j3_IRn4hNHYN0hfiKa1LN-EBPbMLQtZXKEEksLxzagXPjV9SP1LVvlYyZUp45",
+  },
+];
+
+export const fallbackProductProcess: ProductProcessStory = {
+  eyebrow: "Process",
+  title: "Human Precision",
+  mediaImage:
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuAmofw-Jl3CJtnxftqTYfRCfvMEZbwTFj9jJp9qj6qNia6D9BZ39ELrH5OIpc_-asXTq_9197RDp0w9y2MaYsazzHK5c3KzOfl1uPmxgYsd1FaIi4HELFmwvI0I7oqTe7e5MLDgGc1W0MK-wfoJtFpxqsD4-gZEyABj3x5tlK9ZLFScCUDw60daJKsCYvmBJgE6mh7cFHHw8DjQO1RqeldU6YcNV8x5tpoF8HJSFswbArPbPD8WeRip_1Bw_ePpMMjB3Alq1IDjz7Tk",
+  stats: [
+    { value: "12", label: "Hours of Weaving" },
+    { value: "100%", label: "Natural Cotton" },
+    { value: "02", label: "Master Craftsmen" },
+    { value: "∞", label: "Heritage Soul" },
+  ],
+};
+
+export const fallbackProductLookbook: ProductLookbookStory[] = [
+  {
+    src: "https://lh3.googleusercontent.com/aida-public/AB6AXuB_Ie20hGCRnyWbIUk3WikrL29NSkFV0FzPiuVnJ0sRYnq-5sGpITU4zzVVIa3X_WHW57G1M7j9yVGq0e3eYoEle4MC86F9rl1INlF3Nf8O8pU06NxCKy2DAK9S1_p2ML8y_BDonMAVl9bNQZa-iGN8qHFDb2HzLal7vARnYSYo0bl0jAAKGWFcL1E0dBOTWuVEuR5doUi7uSQF3rTYXDsXU4t2QiUbdhx66sTBKqGjQuyjRUDwdv7nMQdGBrIJPJPRIuDoTsdtldOn",
+    label: "01 / The Ensemble",
+    featured: true,
+  },
+  {
+    src: "https://lh3.googleusercontent.com/aida-public/AB6AXuAcHdMprl7YZ1Eqp_m9PN5LjGgHgpO7z9LqYfG2pJWftR5gxPOQHiJQY-Ob8XHfylhpDatz5S5iUSsKzUDsbLrfQht1zuMv6hjYk9Rujb--qtrgJtmkpWXp3QYfHItdcaOOBA1I5328QzhQnwKXqhSLNgEitVvoQ4te8m_kE4nrGTZ-C4Xh8VUqgYfuuObDn7cxfMoH_hQs046d_G9QSi3B60SSb7KtMHblZXLX06SvPAI-yv-xQxNS2KiLhp_tjb9PqBhB4XNRxjHZ",
+    label: "02 / Watch Pairing",
+  },
+  {
+    src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBqNAoIB2RLpXNNoPRuqNzhk40thxv5VGyxi8ElGGChgVoL4qw89Sry8ZUj0TSxy53krf4-BbUeueIEOjs1WqLmgWon5yMNif8WaLWVmF0v1JIs8if3JemLyVNXjFrPI5edx6a9eurYhKgbqt1tSZ9N3ZsAJssMrNM4D5QbkHarrKPhiXkGP5xO8incgB3khvTO0u8S9c96TewXNZuvuScb0aXsedPXL8EDeXHAqBefSvWKoEbXgbLFebsHM5qfN-rTAikJP1YvuQj7",
+    label: "",
+  },
+  {
+    src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBfnxtP0tnzHpA4FJlWk06e5_0KhM8yN7jd2qnTKFjfVNlw9uy9AF_wv54EAH0Yl1wxofDtCYXCU9DTHTFlcbdn4G0EKZSdZhvyKXw1R_TIplVHHQWbq-vGeVL36bAFJ6rRjrLW5nvh1Qsx6ja7Fe0bmT6LhAkK6Mf3zX-npVmHzpcs1kIL376EfLqHsPONa74c4DY4-li-zpAKScW6JSIBp-M76623SP_ozugt7F29isLug4mNGz1LyAL-EdhMusDGq6lU-GMWCUSCj",
+    label: "",
+  },
+];
+
+export type ProductDetailsPayload = {
+  materials?: ProductMaterialStory[];
+  process?: Partial<ProductProcessStory> & { stats?: ProductProcessStat[] };
+  lookbook?: ProductLookbookStory[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeMaterialStory(value: unknown): ProductMaterialStory | null {
+  if (!isRecord(value)) return null;
+  const title = typeof value.title === "string" ? value.title.trim() : "";
+  const body = typeof value.body === "string" ? value.body.trim() : "";
+  const image = typeof value.image === "string" ? value.image.trim() : "";
+  if (!title || !body || !image) return null;
+  return { title, body, image };
+}
+
+function normalizeLookbookStory(value: unknown): ProductLookbookStory | null {
+  if (!isRecord(value)) return null;
+  const src = typeof value.src === "string" ? value.src.trim() : "";
+  const label = typeof value.label === "string" ? value.label.trim() : "";
+  const featured = Boolean(value.featured);
+  if (!src) return null;
+  return { src, label, featured };
+}
+
+function normalizeProcessStat(value: unknown): ProductProcessStat | null {
+  if (!isRecord(value)) return null;
+  const valueText = typeof value.value === "string" ? value.value.trim() : "";
+  const label = typeof value.label === "string" ? value.label.trim() : "";
+  if (!valueText || !label) return null;
+  return { value: valueText, label };
+}
+
+export function parseProductDetails(details: unknown): ProductDetailsPayload {
+  if (!isRecord(details)) {
+    return {};
+  }
+
+  const materials = Array.isArray(details.materials)
+    ? details.materials.map(normalizeMaterialStory).filter(Boolean) as ProductMaterialStory[]
+    : [];
+
+  const lookbook = Array.isArray(details.lookbook)
+    ? details.lookbook.map(normalizeLookbookStory).filter(Boolean) as ProductLookbookStory[]
+    : [];
+
+  const rawProcess = isRecord(details.process) ? details.process : null;
+  const process = rawProcess
+    ? {
+        eyebrow: typeof rawProcess.eyebrow === "string" ? rawProcess.eyebrow.trim() : undefined,
+        title: typeof rawProcess.title === "string" ? rawProcess.title.trim() : undefined,
+        mediaImage: typeof rawProcess.mediaImage === "string" ? rawProcess.mediaImage.trim() : undefined,
+        stats: Array.isArray(rawProcess.stats)
+          ? rawProcess.stats.map(normalizeProcessStat).filter(Boolean) as ProductProcessStat[]
+          : undefined,
+      }
+    : undefined;
+
+  return { materials, process, lookbook };
+}
+
 const defaultPages = [
   {
     slug: "home",
-    title: "Ethereal Artifacts",
+    title: "The Thread Must Not Be Broken",
     template: "HOME",
     excerpt:
-      "Handcrafted jewelry that bridges the gap between ancient Slavic mysticism and the contemporary architectural avant-garde.",
+      "Living culture survives only when it is practiced.We create handcrafted jewelry that keeps this cultural code alive.",
     searchSummary: "Synarava home page",
     content: {
       eyebrow: "Couture Collection №01",
@@ -318,6 +463,7 @@ function toSummary(product: {
   symbolismTitle: string | null;
   symbolismBody: string | null;
   symbolismBody2: string | null;
+  details: unknown;
   category: { slug: string; name: string } | null;
   tags: { tag: { slug: string; name: string } }[];
   collections: {
@@ -332,6 +478,15 @@ function toSummary(product: {
   }[];
 }): ProductSummary {
   const leadCollection = product.collections[0]?.collection;
+  const details = parseProductDetails(product.details);
+  const materials = details.materials && details.materials.length > 0 ? details.materials : fallbackProductMaterials;
+  const process = {
+    eyebrow: details.process?.eyebrow || fallbackProductProcess.eyebrow,
+    title: details.process?.title || fallbackProductProcess.title,
+    mediaImage: details.process?.mediaImage || fallbackProductProcess.mediaImage,
+    stats: details.process?.stats && details.process.stats.length > 0 ? details.process.stats : fallbackProductProcess.stats,
+  };
+  const lookbook = details.lookbook && details.lookbook.length > 0 ? details.lookbook : fallbackProductLookbook;
 
   return {
     slug: product.slug,
@@ -357,6 +512,9 @@ function toSummary(product: {
       product.symbolismBody2 ??
       leadCollection?.symbolismBody2 ??
       "When nothing custom is set, the product inherits the symbolic reading of its collection.",
+    materials,
+    process,
+    lookbook,
   };
 }
 
