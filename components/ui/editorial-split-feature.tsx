@@ -1,97 +1,182 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Image from "next/image";
+import { useRef } from "react";
+import { motion, useInView, useScroll, useTransform } from "motion/react";
 import Link from "next/link";
 
-import { cn } from "@/lib/ui";
+import { ease } from "@/lib/animation";
 
 type EditorialSplitFeatureProps = {
-  href?: string;
-  reversed?: boolean;
-  showDivider?: boolean;
+  title: ReactNode;
   imageSrc: string;
   imageAlt: string;
+  href?: string;
+  description?: ReactNode;
+  topMeta?: ReactNode;
+  action?: ReactNode;
+  footer?: ReactNode;
+  imageOverlay?: ReactNode;
+  reversed?: boolean;
+  showDivider?: boolean;
+  className?: string;
   imagePanelClassName?: string;
   contentPanelClassName?: string;
   imageFrameClassName?: string;
   imageClassName?: string;
-  topMeta?: ReactNode;
-  title: ReactNode;
-  description?: ReactNode;
-  action?: ReactNode;
-  footer?: ReactNode;
-  imageOverlay?: ReactNode;
+  contentPaddingClassName?: string;
 };
 
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
 export function EditorialSplitFeature({
-  href,
-  reversed = false,
-  showDivider = true,
+  title,
   imageSrc,
   imageAlt,
+  href,
+  description,
+  topMeta,
+  action,
+  footer,
+  imageOverlay,
+  reversed = false,
+  showDivider = true,
+  className,
   imagePanelClassName,
   contentPanelClassName,
   imageFrameClassName,
   imageClassName,
-  topMeta,
-  title,
-  description,
-  action,
-  footer,
-  imageOverlay,
+  contentPaddingClassName,
 }: EditorialSplitFeatureProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-12%" });
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const imgY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
+
   const content = (
-    <article
-      className={cn(
-        "group grid grid-cols-1 gap-10 py-14 md:grid-cols-12 md:items-center md:gap-8 md:py-20",
-        showDivider && "border-t border-foreground/[0.08]",
+    <div
+      className={cx(
+        "grid grid-cols-1 items-stretch md:grid-cols-12",
+        reversed && "md:[&>*:first-child]:order-2",
       )}
     >
-      <div
-        className={cn(
-          "md:col-span-6",
-          reversed ? "md:col-start-7" : "md:col-start-1",
+      <motion.div
+        className={cx(
+          "relative overflow-hidden bg-stone-beige md:col-span-7",
           imagePanelClassName,
         )}
+        initial={{ opacity: 0, x: reversed ? 40 : -40 }}
+        animate={isInView ? { opacity: 1, x: 0 } : {}}
+        transition={{ duration: 1, ease, delay: 0.05 }}
       >
-        <div className={cn("relative aspect-[4/5] overflow-hidden bg-foreground/5", imageFrameClassName)}>
-          <Image
-            src={imageSrc}
+        <div
+          className={cx(
+            "aspect-[16/10] overflow-hidden md:h-full md:min-h-[34rem] lg:min-h-[38rem]",
+            imageFrameClassName,
+          )}
+        >
+          <motion.img
             alt={imageAlt}
-            fill
-            sizes="(max-width: 768px) 100vw, 50vw"
-            className={cn("object-cover transition-transform duration-700 group-hover:scale-[1.025]", imageClassName)}
+            src={imageSrc}
+            className={cx(
+              "h-full w-full object-cover will-change-transform",
+              imageClassName,
+            )}
+            style={{ y: imgY }}
+            initial={{ filter: "grayscale(0.4) brightness(0.85)" }}
+            whileHover={href ? { filter: "grayscale(0) brightness(0.92)", scale: 1.03 } : undefined}
+            transition={{ duration: 0.75 }}
           />
-          {imageOverlay ? <div className="absolute inset-0">{imageOverlay}</div> : null}
         </div>
-      </div>
+        {imageOverlay}
+      </motion.div>
 
-      <div
-        className={cn(
-          "flex min-h-full flex-col justify-between gap-10 md:col-span-5",
-          reversed ? "md:col-start-1 md:row-start-1" : "md:col-start-8",
+      <motion.div
+        className={cx(
+          "flex flex-col justify-center gap-7 md:col-span-5",
+          "px-7 py-10 sm:px-8 sm:py-12 md:px-10 md:py-12 lg:px-14 lg:py-16",
+          contentPaddingClassName,
           contentPanelClassName,
         )}
+        initial={{ opacity: 0, x: reversed ? -40 : 40 }}
+        animate={isInView ? { opacity: 1, x: 0 } : {}}
+        transition={{ duration: 1, ease, delay: 0.15 }}
       >
-        <div className="space-y-7">
-          {topMeta ? <div>{topMeta}</div> : null}
-          <div>{title}</div>
-          {description ? <p className="max-w-xl text-sm leading-[1.9] text-muted-ink md:text-base">{description}</p> : null}
-          {action ? <div>{action}</div> : null}
-        </div>
-        {footer ? <div>{footer}</div> : null}
-      </div>
-    </article>
+        {topMeta && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease, delay: 0.2 }}
+          >
+            {topMeta}
+          </motion.div>
+        )}
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.85, ease, delay: 0.28 }}
+        >
+          {title}
+        </motion.div>
+
+        {description && (
+          <motion.div
+            className="max-w-sm text-base leading-[1.85] text-muted-ink md:max-w-md md:text-[1.0625rem]"
+            initial={{ opacity: 0, y: 16 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8, ease, delay: 0.38 }}
+          >
+            {description}
+          </motion.div>
+        )}
+
+        {action && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.7, delay: 0.5 }}
+          >
+            {action}
+          </motion.div>
+        )}
+
+        {footer && (
+          <motion.div
+            className="mt-auto"
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.6, delay: 0.65 }}
+          >
+            {footer}
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
   );
 
-  if (!href) {
-    return content;
-  }
-
   return (
-    <Link href={href} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red">
-      {content}
-    </Link>
+    <div ref={ref} className={className}>
+      {showDivider && (
+        <div className="relative h-px bg-foreground/[0.06]">
+          <motion.div
+            className="absolute left-0 top-0 h-full bg-couture-red/30"
+            initial={{ width: "0%" }}
+            animate={isInView ? { width: "100%" } : {}}
+            transition={{ duration: 1.2, ease }}
+          />
+        </div>
+      )}
+
+      {href ? (
+        <Link href={href} className="group block">
+          {content}
+        </Link>
+      ) : (
+        <div className="group block">{content}</div>
+      )}
+    </div>
   );
 }
