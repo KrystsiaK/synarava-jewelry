@@ -227,8 +227,7 @@ const defaultProducts = [
     searchSummary:
       "Grounded bracelet built from bog oak, uncoated brass, and an earth-first composition.",
     priceCents: 19500,
-    imageUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCTBh4uODsB_2oyX9AmBHNSGlUyJqPXKQbQNaRDQf7YQ2XBEhpbLSy1c9aBBYd2HnvkYuTg_6QXcE0uo5jNc8Fe83yfMQtnHa2iY9kug7MeeSlpuQAdQ4nhFRm-oT6HbXKxXNGNycaQzsD9bbUfYYYmCvBwtUU3gqLFx8XT4hdlA77bfXDlOP-KYrwNh6PKewxgokAa2pnGhCnDPG1ftW_DUuMqzOkhfXnIl2lqZBHiYXBB0Mtusk5noGHMuMgiOmpzi4Z_e3Bm",
+    imageUrl: "/uploads/products/photo-2026-05-16-20-43-11-4bb9f6a4-243f-4754-9417-a98995b92664.jpg",
     collectionSlug: "earth-rituals",
     categorySlug: "earth-pieces",
     tags: ["oak", "brass", "minimal"],

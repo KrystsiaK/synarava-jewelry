@@ -15,6 +15,13 @@ type FilterChipsProps = {
 const labelOf = (value: string, options: FilterOption[]) =>
   options.find((o) => o.value === value)?.label ?? value;
 
+const DIM_LABELS: Record<keyof ShopFilters, string> = {
+  q:          "Search",
+  category:   "Category",
+  collection: "Collection",
+  tag:        "Tag",
+};
+
 export function FilterChips({
   filters,
   categories,
@@ -23,12 +30,12 @@ export function FilterChips({
   onRemove,
   onClearAll,
 }: FilterChipsProps) {
-  const chips: { key: keyof ShopFilters; label: string }[] = [];
+  const chips: { key: keyof ShopFilters; value: string }[] = [];
 
-  if (filters.q) chips.push({ key: "q", label: `"${filters.q}"` });
-  if (filters.category) chips.push({ key: "category", label: labelOf(filters.category, categories) });
-  if (filters.collection) chips.push({ key: "collection", label: labelOf(filters.collection, collections) });
-  if (filters.tag) chips.push({ key: "tag", label: labelOf(filters.tag, tags) });
+  if (filters.q)          chips.push({ key: "q",          value: `"${filters.q}"` });
+  if (filters.category)   chips.push({ key: "category",   value: labelOf(filters.category, categories) });
+  if (filters.collection) chips.push({ key: "collection", value: labelOf(filters.collection, collections) });
+  if (filters.tag)        chips.push({ key: "tag",        value: labelOf(filters.tag, tags) });
 
   if (chips.length === 0) return null;
 
@@ -42,14 +49,22 @@ export function FilterChips({
       {chips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-1.5 border border-stroke px-3 py-1 label-mono transition-colors"
+          className="inline-flex items-center gap-0 border border-accent/30 bg-accent/[0.05] overflow-hidden"
         >
-          {chip.label}
+          {/* Dimension label — dim prefix */}
+          <span className="label-mono text-[0.65rem] text-muted/70 px-2.5 py-1.5 border-r border-accent/20 select-none">
+            {DIM_LABELS[chip.key]}
+          </span>
+          {/* Value */}
+          <span className="label-mono text-accent px-2.5 py-1.5">
+            {chip.value}
+          </span>
+          {/* Remove */}
           <button
             type="button"
-            aria-label={`Remove filter ${chip.label}`}
+            aria-label={`Remove filter ${chip.value}`}
             onClick={() => onRemove(chip.key)}
-            className="ml-0.5 text-muted transition-colors hover:text-accent"
+            className="px-2 py-1.5 text-muted transition-colors hover:text-accent hover:bg-accent/10 cursor-pointer"
           >
             <X className="size-3" />
           </button>
@@ -60,7 +75,7 @@ export function FilterChips({
         <button
           type="button"
           onClick={onClearAll}
-          className="label-mono text-muted underline underline-offset-4 transition-colors hover:text-foreground"
+          className="label-caps text-muted/60 border-b border-muted/20 pb-0.5 transition-colors hover:text-foreground hover:border-foreground/40 cursor-pointer"
         >
           Clear all
         </button>

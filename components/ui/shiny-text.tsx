@@ -13,14 +13,19 @@ export function ShinyText({
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{
-          backgroundImage:
-            "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-          backgroundSize: "200% 100%",
-          animation: "shiny-sweep 4s infinite linear",
-          mixBlendMode: "overlay",
-        }}
-      />
+        style={{ mixBlendMode: "overlay" }}
+      >
+        <span
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
+            animation: "shiny-sweep 4s infinite linear",
+            willChange: "transform",
+          }}
+        />
+      </span>
     </span>
   );
 }

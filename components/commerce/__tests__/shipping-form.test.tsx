@@ -25,10 +25,10 @@ describe("ShippingForm", () => {
   it("renders all address fields", () => {
     render(<ShippingForm />);
     expect(screen.getByPlaceholderText("Address line 1")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Address line 2")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Address line 2 (optional)")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("City")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Postal code")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Country code")).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
   });
 
   it("pre-fills email when defaultEmail provided", () => {
@@ -41,13 +41,13 @@ describe("ShippingForm", () => {
     expect(screen.getByDisplayValue("Katia S.")).toBeInTheDocument();
   });
 
-  it("uses LT as default country code", () => {
+  it("uses Lithuania as default country", () => {
     render(<ShippingForm />);
-    expect(screen.getByDisplayValue("LT")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Lithuania")).toBeInTheDocument();
   });
 
   it("renders notes textarea", () => {
     render(<ShippingForm />);
-    expect(screen.getByPlaceholderText("Delivery notes")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Leave at door, gift message, etc.")).toBeInTheDocument();
   });
 });

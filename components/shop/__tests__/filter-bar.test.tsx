@@ -39,9 +39,9 @@ beforeEach(() => {
 describe("FilterBar", () => {
   it("renders filter dropdowns on desktop", () => {
     render(<FilterBar {...defaultProps} />);
-    expect(screen.getByRole("button", { name: /categories/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /collections/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /tags/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^category$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^collection$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^tag$/i })).toBeInTheDocument();
   });
 
   it("renders result count", () => {
@@ -64,7 +64,7 @@ describe("FilterBar", () => {
   it("navigates when a category is selected", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
-    await user.click(screen.getByRole("button", { name: /categories/i }));
+    await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop?category=bracelets"));
   });
@@ -72,7 +72,7 @@ describe("FilterBar", () => {
   it("saves filters to sessionStorage on selection", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
-    await user.click(screen.getByRole("button", { name: /categories/i }));
+    await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
     await waitFor(() => {
       const stored = JSON.parse(sessionStorage.getItem(FILTERS_STORAGE_KEY) ?? "{}");
@@ -95,30 +95,30 @@ describe("FilterBar", () => {
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop"));
   });
 
-  // ── Reset ─────────────────────────────────────────────────────────────────
+  // ── Clear all ─────────────────────────────────────────────────────────────
 
-  it("shows Reset button when filters are active", () => {
+  it("shows Clear all chip when multiple filters are active", () => {
+    render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
+    expect(screen.getByRole("button", { name: /^clear all$/i })).toBeInTheDocument();
+  });
+
+  it("does not show Clear all when only one filter active", () => {
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
-    expect(screen.getByRole("button", { name: /^reset$/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^clear all$/i })).not.toBeInTheDocument();
   });
 
-  it("does not show Reset button when no filters active", () => {
-    render(<FilterBar {...defaultProps} />);
-    expect(screen.queryByRole("button", { name: /^reset$/i })).not.toBeInTheDocument();
-  });
-
-  it("clears sessionStorage when Reset is clicked", async () => {
+  it("clears sessionStorage when Clear all is clicked", async () => {
     const user = userEvent.setup();
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ category: "bracelets" }));
-    render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
-    await user.click(screen.getByRole("button", { name: /^reset$/i }));
+    render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
+    await user.click(screen.getByRole("button", { name: /^clear all$/i }));
     await waitFor(() => expect(sessionStorage.getItem(FILTERS_STORAGE_KEY)).toBeNull());
   });
 
-  it("navigates to /shop when Reset is clicked", async () => {
+  it("navigates to /shop when Clear all is clicked", async () => {
     const user = userEvent.setup();
-    render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
-    await user.click(screen.getByRole("button", { name: /^reset$/i }));
+    render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
+    await user.click(screen.getByRole("button", { name: /^clear all$/i }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop"));
   });
 
@@ -144,11 +144,11 @@ describe("FilterBar", () => {
 
   // ── Session persistence ───────────────────────────────────────────────────
 
-  it("restores filters from sessionStorage on mount when URL has no params", async () => {
+  it("shows restore banner when saved filters exist and URL has no params", async () => {
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ category: "bracelets" }));
     render(<FilterBar {...defaultProps} initialFilters={{}} />);
     await waitFor(() =>
-      expect(mockReplace).toHaveBeenCalledWith("/shop?category=bracelets"),
+      expect(screen.getByRole("button", { name: /apply filters/i })).toBeInTheDocument(),
     );
   });
 
@@ -186,8 +186,8 @@ describe("FilterBar", () => {
     const allBtns = Array.from(sheet.querySelectorAll("button"));
     const braceletOpt = allBtns.find((b) => b.textContent?.includes("Bracelets"));
     if (braceletOpt) await user.click(braceletOpt);
-    // Click Apply
-    await user.click(screen.getByRole("button", { name: /apply filters/i }));
+    // Click the CTA (shows "View pieces · 1 filter active" after selecting Bracelets)
+    await user.click(screen.getByRole("button", { name: /view pieces/i }));
     await waitFor(() =>
       expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("bracelets")),
     );
@@ -198,8 +198,9 @@ describe("FilterBar", () => {
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog");
-    // Click Reset scoped to the dialog to avoid matching the desktop Reset button
-    await user.click(within(dialog).getByRole("button", { name: /^reset$/i }));
+    // Clear all in the sheet header, then confirm via CTA ("View all pieces")
+    await user.click(within(dialog).getByRole("button", { name: /^clear all$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /view all pieces/i }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop"));
   });
 
@@ -211,8 +212,8 @@ describe("FilterBar", () => {
     // Click "All" in the Category section to clear that filter
     const allBtns = within(dialog).getAllByRole("button", { name: "All" });
     await user.click(allBtns[0]);
-    // Then apply
-    await user.click(within(dialog).getByRole("button", { name: /apply filters/i }));
+    // Then confirm via CTA (localActiveCount=0 after deselecting, so "View all pieces")
+    await user.click(within(dialog).getByRole("button", { name: /view all pieces/i }));
     await waitFor(() => expect(mockPush).toHaveBeenCalled());
   });
 

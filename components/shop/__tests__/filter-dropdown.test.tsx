@@ -82,17 +82,16 @@ describe("FilterDropdown", () => {
     expect(necklacesOption).toHaveAttribute("aria-selected", "true");
   });
 
-  it("shows active dot indicator when a value is set", () => {
+  it("shows accent border active state when a value is set", () => {
     setup({ value: "rings" });
-    // The button should contain the active dot
     const btn = screen.getByRole("button");
-    expect(btn.querySelector("[class*='bg-accent']")).toBeInTheDocument();
+    expect(btn.className).toContain("border-accent");
   });
 
-  it("does not show active dot when no value", () => {
+  it("does not show accent border when no value", () => {
     setup({ value: "" });
     const btn = screen.getByRole("button");
-    expect(btn.querySelector("[class*='bg-accent']")).not.toBeInTheDocument();
+    expect(btn.className).not.toContain("border-accent");
   });
 
   it("closes when Escape is pressed", async () => {

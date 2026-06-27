@@ -8,6 +8,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { ProductCard } from "@/components/ui/product-card";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
+import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -64,14 +65,47 @@ function FilterSection({
 }
 
 /* ─── Empty state ────────────────────────────────────────────────── */
-function EmptyState() {
+type EmptyStateProps = {
+  filters: ShopFilters;
+  categories: FilterOption[];
+  collections: FilterOption[];
+  tags: FilterOption[];
+};
+
+const labelOf = (value: string, opts: FilterOption[]) =>
+  opts.find((o) => o.value === value)?.label ?? value;
+
+const DIM: Record<keyof ShopFilters, string> = {
+  q: "Search", category: "Category", collection: "Collection", tag: "Tag",
+};
+
+function EmptyState({ filters, categories, collections, tags }: EmptyStateProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
+
+  /* Active filter chips with remove-one URLs */
+  const active: { key: keyof ShopFilters; label: string; removeHref: string }[] = [];
+  if (filters.q) {
+    const next = { ...filters, q: undefined };
+    active.push({ key: "q", label: `"${filters.q}"`, removeHref: `/shop?${buildSearchParams(next)}` });
+  }
+  if (filters.category) {
+    const next = { ...filters, category: undefined };
+    active.push({ key: "category", label: labelOf(filters.category, categories), removeHref: `/shop?${buildSearchParams(next)}` });
+  }
+  if (filters.collection) {
+    const next = { ...filters, collection: undefined };
+    active.push({ key: "collection", label: labelOf(filters.collection, collections), removeHref: `/shop?${buildSearchParams(next)}` });
+  }
+  if (filters.tag) {
+    const next = { ...filters, tag: undefined };
+    active.push({ key: "tag", label: labelOf(filters.tag, tags), removeHref: `/shop?${buildSearchParams(next)}` });
+  }
 
   return (
     <motion.div
       ref={ref}
-      className="panel flex flex-col items-start gap-6 p-8 md:p-12"
+      className="panel flex flex-col items-start gap-8 p-8 md:p-12"
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, ease }}
@@ -84,17 +118,44 @@ function EmptyState() {
       </div>
 
       <div>
-        <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">No pieces matched.</h2>
-        <p className="mt-3 max-w-xl text-base leading-[1.85] text-foreground/65">
-          Try a broader search or clear one of the active filters.
+        <p className="label-mono mb-3 text-couture-red">0 pieces found</p>
+        <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">No pieces match these filters.</h2>
+        <p className="mt-3 max-w-xl text-base leading-[1.85] text-foreground/55">
+          The combination you selected returned no results. Try removing one filter at a time,
+          or clear everything to browse the full archive.
         </p>
       </div>
 
+      {/* Active filter pills with individual remove */}
+      {active.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="label-mono text-[0.7rem] text-muted/60 mr-1">Active:</span>
+          {active.map((f) => (
+            <Link
+              key={f.key}
+              href={f.removeHref}
+              className="inline-flex items-center gap-0 border border-stroke overflow-hidden transition-colors hover:border-foreground/30 group"
+            >
+              <span className="label-mono text-[0.65rem] text-muted/50 px-2 py-1.5 border-r border-stroke">
+                {DIM[f.key]}
+              </span>
+              <span className="label-mono text-foreground/70 px-2.5 py-1.5 group-hover:text-foreground transition-colors">
+                {f.label}
+              </span>
+              <span className="px-2 py-1.5 text-muted/40 group-hover:text-couture-red transition-colors label-mono text-[0.7rem]">
+                ✕
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Primary CTA */}
       <Link
         href="/shop"
-        className="group inline-flex items-center gap-3 label-caps border-b border-foreground/20 pb-1.5 transition-colors hover:border-couture-red hover:text-couture-red"
+        className="group inline-flex items-center gap-3 bg-couture-red px-7 py-3.5 label-caps text-white transition-colors hover:bg-[#8f1325]"
       >
-        Clear all filters
+        Show all pieces
         <svg className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
           <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -118,14 +179,14 @@ function ProductGrid({ products }: { products: ProductSummary[] }) {
   return (
     <div
       ref={ref}
-      className="grid grid-cols-2 gap-x-4 gap-y-12 md:gap-x-6 md:gap-y-20 lg:grid-cols-3"
+      className="grid grid-cols-1 gap-x-4 gap-y-10 sm:grid-cols-2 md:gap-x-6 md:gap-y-20 lg:grid-cols-3"
     >
       {products.map((product, index) => {
         const isFeatured = index === 0;
         return (
           <div
             key={product.slug}
-            className={`${isFeatured ? "col-span-2 lg:col-span-2" : ""} ${offsetClass(index) ?? ""}`}
+            className={`${isFeatured ? "sm:col-span-2 lg:col-span-2" : ""} ${offsetClass(index) ?? ""}`}
           >
             <ProductCard
               product={product}
@@ -209,9 +270,9 @@ function ShopFooter() {
               aria-hidden="true"
               className="pointer-events-none absolute inset-0"
               style={{
-                backgroundImage: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                backgroundSize: "200% 100%",
+                background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
                 animation: "shiny-sweep 2.5s infinite linear",
+                willChange: "transform",
               }}
             />
           </MagneticButton>
@@ -252,7 +313,12 @@ export function ShopPage({ products, filterProps }: ShopPageProps) {
           <FilterSection filterProps={filterProps} totalCount={products.length} />
 
           {products.length === 0 ? (
-            <EmptyState />
+            <EmptyState
+              filters={filterProps.initialFilters}
+              categories={filterProps.categories}
+              collections={filterProps.collections}
+              tags={filterProps.tags}
+            />
           ) : (
             <ProductGrid products={products} />
           )}

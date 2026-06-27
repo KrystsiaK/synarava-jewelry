@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 type AddToCartButtonProps = {
   productSlug: string;
@@ -15,9 +16,7 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
     };
   }, []);
 
@@ -28,13 +27,8 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
     try {
       const response = await fetch("/api/cart/items", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          productSlug,
-          quantity: 1,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productSlug, quantity: 1 }),
       });
 
       const payload = (await response.json()) as {
@@ -60,18 +54,19 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
       setMessage(error instanceof Error ? error.message : "Could not add the piece to the cart.");
     } finally {
       setIsPending(false);
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      // Give user 5s to click the CTAs before dismissing
       timeoutRef.current = window.setTimeout(() => {
         setMessage(null);
         setRecentCount(null);
-      }, 2200);
+      }, 5000);
     }
   }
 
+  const showPanel = Boolean(message);
+
   return (
-    <div className="relative space-y-3">
+    <div className="relative">
       <button
         type="button"
         onClick={handleAdd}
@@ -81,31 +76,52 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
         {isPending ? "Adding…" : "Add to cart"}
       </button>
 
+      {/* Toast panel */}
       <div
         aria-live="polite"
-        className={`pointer-events-none absolute left-0 top-full z-10 mt-2 min-w-[13rem] border border-foreground/10 bg-[color:rgba(249,248,246,0.96)] px-4 py-3 text-sm shadow-[0_18px_40px_rgba(25,21,18,0.08)] backdrop-blur transition-all duration-300 ${
-          message
-            ? "translate-y-0 opacity-100"
-            : "translate-y-1 opacity-0"
+        className={`absolute left-0 top-full z-20 mt-2 w-[min(22rem,90vw)] border border-foreground/10 bg-[color:rgba(249,248,246,0.97)] shadow-[0_18px_48px_rgba(25,21,18,0.11)] backdrop-blur transition-all duration-300 ${
+          showPanel ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-1 opacity-0 pointer-events-none"
         }`}
       >
-        <div className={isError ? "text-[color:#7e1a29]" : "text-foreground"}>
-          {message}
-        </div>
-        {!isError && recentCount !== null ? (
-          <div className="mt-1 label-caps text-foreground/55">Cart now holds {recentCount}</div>
-        ) : null}
-      </div>
+        {isError ? (
+          <div className="px-5 py-4">
+            <p className="text-sm text-[color:#7e1a29]">{message}</p>
+            <p className="mt-1 text-xs text-foreground/50">Please try again.</p>
+          </div>
+        ) : (
+          <div className="px-5 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              {/* Green check */}
+              <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 text-emerald-600" fill="none">
+                <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <p className="label-caps text-foreground text-[0.72rem]">Piece added to cart</p>
+            </div>
 
-      <div
-        aria-live="polite"
-        className={`text-sm transition-all duration-300 ${
-          message
-            ? "translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-1 opacity-0"
-        } ${isError ? "text-[color:#7e1a29]" : "text-foreground/65"}`}
-      >
-        {message ? (isError ? "Please try again." : "Piece added without leaving the page.") : " "}
+            {recentCount !== null && (
+              <p className="label-mono text-[0.68rem] text-foreground/45 mb-4">
+                {recentCount} {recentCount === 1 ? "piece" : "pieces"} in cart
+              </p>
+            )}
+
+            {/* CTAs */}
+            <div className="flex gap-2">
+              <Link
+                href="/cart"
+                className="flex-1 border border-stroke px-3 py-2.5 label-caps text-center text-[0.68rem] text-foreground/70 transition-colors hover:border-foreground/30 hover:text-foreground"
+              >
+                View cart
+              </Link>
+              <Link
+                href="/checkout/shipping"
+                className="flex-1 bg-couture-red px-3 py-2.5 label-caps text-center text-[0.68rem] text-white transition-colors hover:bg-[#8f1325]"
+              >
+                Checkout →
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

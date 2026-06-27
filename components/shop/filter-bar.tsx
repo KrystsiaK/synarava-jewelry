@@ -25,6 +25,9 @@ export type FilterBarProps = {
   totalCount: number;
 };
 
+const labelOf = (value: string, opts: FilterOption[]) =>
+  opts.find((o) => o.value === value)?.label ?? value;
+
 export function FilterBar({
   categories,
   collections,
@@ -38,27 +41,25 @@ export function FilterBar({
   const [filters, setFilters] = useState<ShopFilters>(initialFilters);
   const [search, setSearch] = useState(initialFilters.q ?? "");
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Saved filters pending opt-in restore (not yet applied)
+  const [pendingRestore, setPendingRestore] = useState<ShopFilters | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sessionRestoredRef = useRef(false);
+  const sessionCheckedRef = useRef(false);
 
-  // ── Session restore on first mount (only when no URL params) ──────────────
+  // ── Session restore: offer, don't auto-apply ───────────────────────────────
   useEffect(() => {
-    if (sessionRestoredRef.current) return;
-    sessionRestoredRef.current = true;
+    if (sessionCheckedRef.current) return;
+    sessionCheckedRef.current = true;
 
     const hasUrlFilters = countActiveFilters(initialFilters) > 0;
-    if (hasUrlFilters) return;
+    if (hasUrlFilters) return; // URL already has filters — don't offer restore
 
     const saved = loadFiltersFromSession();
-    if (saved) {
+    if (saved && countActiveFilters(saved) > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFilters(saved);
-      setSearch(saved.q ?? "");
-      startTransition(() => {
-        router.replace(`/shop?${buildSearchParams(saved)}`);
-      });
+      setPendingRestore(saved);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -124,47 +125,101 @@ export function FilterBar({
   const activeCount = countActiveFilters(filters);
 
   return (
-    <div className={cn("transition-opacity", isPending && "opacity-60 pointer-events-none")}>
-      {/* ── Desktop filter bar ─────────────────────────────────────────────── */}
-      <div className="panel hidden md:flex items-center justify-between gap-6 px-6 py-4">
-        {/* Left: Dropdowns */}
-        <div className="flex items-center gap-8">
-          <FilterDropdown
-            label="Categories"
-            options={categories}
-            value={filters.category ?? ""}
-            onChange={(v) => setFilter("category", v)}
-            allLabel="All categories"
-          />
-          <FilterDropdown
-            label="Collections"
-            options={collections}
-            value={filters.collection ?? ""}
-            onChange={(v) => setFilter("collection", v)}
-            allLabel="All collections"
-          />
-          <FilterDropdown
-            label="Tags"
-            options={tags}
-            value={filters.tag ?? ""}
-            onChange={(v) => setFilter("tag", v)}
-            allLabel="All tags"
-          />
-          {activeCount > 0 && (
+    <div className={cn("transition-opacity duration-200", isPending && "opacity-50 pointer-events-none")}>
+
+      {/* ── Session restore banner ───────────────────────────────────────────── */}
+      {pendingRestore && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 border border-stroke bg-surface/60 px-4 py-3">
+          <span className="label-mono text-[0.72rem] text-muted/70 shrink-0">Last session:</span>
+
+          {/* Summary pills */}
+          <div className="flex flex-wrap gap-1.5">
+            {pendingRestore.category && (
+              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+                {labelOf(pendingRestore.category, categories)}
+              </span>
+            )}
+            {pendingRestore.collection && (
+              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+                {labelOf(pendingRestore.collection, collections)}
+              </span>
+            )}
+            {pendingRestore.tag && (
+              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+                {labelOf(pendingRestore.tag, tags)}
+              </span>
+            )}
+            {pendingRestore.q && (
+              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+                &ldquo;{pendingRestore.q}&rdquo;
+              </span>
+            )}
+          </div>
+
+          <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
-              onClick={clearAll}
-              className="label-caps text-muted transition-colors hover:text-accent"
+              onClick={() => {
+                setFilters(pendingRestore);
+                setSearch(pendingRestore.q ?? "");
+                navigate(pendingRestore);
+                setPendingRestore(null);
+              }}
+              className="label-caps bg-foreground px-4 py-2 text-background transition-colors hover:bg-accent cursor-pointer text-[0.68rem]"
             >
-              Reset
+              Apply filters
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => { clearFiltersSession(); setPendingRestore(null); }}
+              className="text-muted hover:text-foreground transition-colors cursor-pointer"
+              aria-label="Dismiss filter restore"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop filter bar ──────────────────────────────────────────────── */}
+      <div className="panel hidden md:flex items-center justify-between gap-6 px-6 py-3.5">
+
+        {/* Left: label + divider + dropdowns */}
+        <div className="flex items-center gap-6">
+          <span className="label-mono text-[0.72rem] text-muted/50 shrink-0 tracking-[0.2em]">
+            Refine
+          </span>
+          <div className="h-5 w-px bg-stroke shrink-0" />
+
+          <div className="flex items-center gap-3">
+            <FilterDropdown
+              label="Category"
+              options={categories}
+              value={filters.category ?? ""}
+              onChange={(v) => setFilter("category", v)}
+              allLabel="All categories"
+            />
+            <FilterDropdown
+              label="Collection"
+              options={collections}
+              value={filters.collection ?? ""}
+              onChange={(v) => setFilter("collection", v)}
+              allLabel="All collections"
+            />
+            <FilterDropdown
+              label="Tag"
+              options={tags}
+              value={filters.tag ?? ""}
+              onChange={(v) => setFilter("tag", v)}
+              allLabel="All tags"
+            />
+          </div>
         </div>
 
-        {/* Right: Search + count */}
-        <div className="flex items-center gap-6">
+        {/* Right: search + count */}
+        <div className="flex items-center gap-5">
           <div className="relative flex items-center">
-            <Search className="absolute left-0 size-3.5 text-muted" aria-hidden="true" />
+            <Search className="absolute left-0 size-3.5 text-muted/60 pointer-events-none" aria-hidden="true" />
             <input
               ref={searchRef}
               type="search"
@@ -172,68 +227,85 @@ export function FilterBar({
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search archive…"
               aria-label="Search products"
-              className="bg-transparent border-none border-b border-stroke/0 pl-6 pr-6 font-mono text-[0.82rem] uppercase tracking-[0.14em] placeholder:text-muted/50 outline-none focus:border-b focus:border-accent w-48 transition-all"
+              className={cn(
+                "bg-transparent pl-6 pr-6 font-mono text-[0.78rem] uppercase tracking-[0.14em]",
+                "placeholder:text-muted/40 outline-none w-44 transition-all duration-200",
+                "border-b border-transparent focus:border-accent",
+                search && "border-stroke",
+              )}
             />
             {search && (
               <button
                 type="button"
                 onClick={handleSearchClear}
                 aria-label="Clear search"
-                className="absolute right-0 text-muted hover:text-accent transition-colors"
+                className="absolute right-0 text-muted hover:text-accent transition-colors cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
             )}
           </div>
 
-          <span className="label-mono text-muted/70 whitespace-nowrap hidden lg:block">
+          <div className="h-5 w-px bg-stroke" />
+
+          <span className="label-mono text-[0.72rem] text-muted/50 whitespace-nowrap tabular-nums">
             {totalCount} {totalCount === 1 ? "piece" : "pieces"}
           </span>
         </div>
       </div>
 
-      {/* ── Mobile filter bar ──────────────────────────────────────────────── */}
+      {/* ── Mobile filter row ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 md:hidden">
-        {/* Search */}
         <div className="relative flex flex-1 items-center border-b border-stroke">
-          <Search className="absolute left-0 size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <Search className="absolute left-0 size-3.5 shrink-0 text-muted/60 pointer-events-none" aria-hidden="true" />
           <input
             type="search"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search…"
             aria-label="Search products"
-            className="w-full bg-transparent pl-6 pr-6 py-2.5 font-mono text-[0.82rem] uppercase tracking-[0.14em] placeholder:text-muted/50 outline-none"
+            className="w-full bg-transparent pl-6 pr-6 py-3 font-mono text-[0.78rem] uppercase tracking-[0.14em] placeholder:text-muted/40 outline-none"
           />
           {search && (
-            <button type="button" onClick={handleSearchClear} aria-label="Clear search" className="absolute right-0">
-              <X className="size-3.5 text-muted" />
+            <button
+              type="button"
+              onClick={handleSearchClear}
+              aria-label="Clear search"
+              className="absolute right-0 text-muted hover:text-accent transition-colors cursor-pointer"
+            >
+              <X className="size-3.5" />
             </button>
           )}
         </div>
 
-        {/* Filters button */}
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label={`Filters${activeCount > 0 ? `, ${activeCount} active` : ""}`}
-          className="relative flex shrink-0 items-center gap-2 border border-stroke px-4 py-2.5 label-caps transition-colors hover:border-accent"
+          className={cn(
+            "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
+            "transition-all duration-200 cursor-pointer active:scale-[0.97]",
+            activeCount > 0
+              ? "border-accent bg-accent/[0.06] text-accent"
+              : "border-stroke text-muted hover:border-foreground/25 hover:text-foreground",
+          )}
         >
-          <SlidersHorizontal className="size-3.5" />
+          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
           Filters
           {activeCount > 0 && (
-            <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent label-mono text-[10px] text-white">
+            <span className="inline-flex h-4 w-4 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full shrink-0">
               {activeCount}
             </span>
           )}
         </button>
 
-        <span className="label-mono text-muted/70 whitespace-nowrap text-xs">
-          {totalCount}
+        {/* Labelled count */}
+        <span className="label-mono text-[0.7rem] text-muted/50 whitespace-nowrap tabular-nums shrink-0">
+          {totalCount} {totalCount === 1 ? "pc" : "pcs"}
         </span>
       </div>
 
-      {/* ── Active filter chips (both views) ───────────────────────────────── */}
+      {/* ── Active filter chips ──────────────────────────────────────────────── */}
       {activeCount > 0 && (
         <div className="mt-3">
           <FilterChips
@@ -247,7 +319,7 @@ export function FilterBar({
         </div>
       )}
 
-      {/* ── Mobile filter sheet ────────────────────────────────────────────── */}
+      {/* ── Mobile filter sheet ──────────────────────────────────────────────── */}
       {mobileOpen && (
         <MobileFilterSheet
           categories={categories}
@@ -292,17 +364,19 @@ function MobileFilterSheet({
     return () => { document.body.style.overflow = ""; };
   }, []);
 
+  const localActiveCount = countActiveFilters(local);
+
   const sections: { key: keyof ShopFilters; label: string; options: FilterOption[] }[] = [
-    { key: "category", label: "Category", options: categories },
+    { key: "category",   label: "Category",   options: categories },
     { key: "collection", label: "Collection", options: collections },
-    { key: "tag", label: "Tag", options: tags },
+    { key: "tag",        label: "Tag",        options: tags },
   ];
 
   return (
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -312,32 +386,57 @@ function MobileFilterSheet({
         role="dialog"
         aria-label="Filter products"
         aria-modal="true"
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col bg-background border-t border-stroke"
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col bg-background border-t border-stroke"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stroke px-5 py-4">
-          <p className="label-caps text-foreground">Filters</p>
-          <button type="button" onClick={onClose} aria-label="Close filters" className="text-muted hover:text-foreground">
-            <X className="size-4" />
-          </button>
+        <div className="flex shrink-0 items-center justify-between px-5 py-4 border-b border-stroke">
+          <div className="flex items-center gap-3">
+            <p className="label-caps text-foreground">Refine by</p>
+            {localActiveCount > 0 && (
+              <span className="inline-flex h-5 px-1.5 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full">
+                {localActiveCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            {localActiveCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setLocal({})}
+                className="label-caps text-[0.68rem] text-muted/60 hover:text-accent transition-colors cursor-pointer min-h-[44px] px-2"
+              >
+                Clear all
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close filters"
+              className="text-muted hover:text-foreground transition-colors cursor-pointer p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Scrollable options — min-h-0 ensures it shrinks within flex column */}
+        <div className="min-h-0 flex-1 overflow-y-auto pb-2">
           {sections.map(({ key, label, options }) => {
             if (options.length === 0) return null;
+            const selectedValue = local[key as keyof ShopFilters];
+
             return (
               <div key={key} className="border-b border-stroke px-5 py-5">
-                <p className="label-caps mb-4 text-muted">{label}</p>
+                <p className="label-caps mb-4 text-muted/60">{label}</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setLocal((p) => ({ ...p, [key]: undefined }))}
                     className={cn(
-                      "border px-3 py-1.5 label-mono transition-colors",
-                      !local[key]
-                        ? "border-foreground text-foreground"
-                        : "border-stroke text-muted hover:border-foreground/40",
+                      "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
+                      !selectedValue
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-stroke text-muted hover:border-foreground/30 hover:text-foreground",
                     )}
                   >
                     All
@@ -348,10 +447,10 @@ function MobileFilterSheet({
                       type="button"
                       onClick={() => setLocal((p) => ({ ...p, [key]: opt.value }))}
                       className={cn(
-                        "border px-3 py-1.5 label-mono transition-colors",
-                        local[key] === opt.value
-                          ? "border-accent text-accent"
-                          : "border-stroke text-muted hover:border-foreground/40",
+                        "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
+                        selectedValue === opt.value
+                          ? "border-accent bg-accent/[0.08] text-accent"
+                          : "border-stroke text-muted hover:border-foreground/30 hover:text-foreground",
                       )}
                     >
                       {opt.label}
@@ -363,21 +462,21 @@ function MobileFilterSheet({
           })}
         </div>
 
-        {/* Footer actions */}
-        <div className="flex gap-3 border-t border-stroke p-4">
-          <button
-            type="button"
-            onClick={() => { setLocal({}); onApply({}); }}
-            className="flex-1 border border-stroke px-4 py-3 label-caps text-muted transition-colors hover:border-accent hover:text-accent"
-          >
-            Reset
-          </button>
+        {/* Footer CTA */}
+        <div className="shrink-0 border-t border-stroke p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={() => onApply(local)}
-            className="flex-1 bg-foreground px-4 py-3 label-caps text-background transition-colors hover:bg-accent"
+            className={cn(
+              "w-full py-3.5 label-caps transition-colors duration-200 cursor-pointer active:scale-[0.99]",
+              localActiveCount > 0
+                ? "bg-accent text-white hover:bg-accent/90"
+                : "bg-foreground text-background hover:bg-foreground/90",
+            )}
           >
-            Apply filters
+            {localActiveCount > 0
+              ? `View pieces · ${localActiveCount} filter${localActiveCount > 1 ? "s" : ""} active`
+              : "View all pieces"}
           </button>
         </div>
       </aside>

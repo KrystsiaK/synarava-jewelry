@@ -8,6 +8,7 @@ import { ease } from "@/lib/animation";
 export function KodRoda({ className }: { className?: string }) {
   const ref = useRef<SVGSVGElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const isVisible = useInView(ref, { once: false, margin: "0px" });
   const reduce = useReducedMotion();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,7 +24,7 @@ export function KodRoda({ className }: { className?: string }) {
       viewBox="0 0 200 200"
       fill="none"
       className={className}
-      animate={reduce ? undefined : isInView ? { rotate: [0, 2, -1.5, 0] } : {}}
+      animate={reduce ? undefined : isVisible ? { rotate: [0, 2, -1.5, 0] } : {}}
       transition={{ duration: 12, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
     >
       <motion.path d="M100 8 L192 100 L100 192 L8 100 Z" stroke="currentColor" strokeWidth="1.2" {...d(0)} />
@@ -124,6 +125,7 @@ export function Kola({ className }: { className?: string }) {
 export function Ziamla({ className }: { className?: string }) {
   const ref = useRef<SVGSVGElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const isVisible = useInView(ref, { once: false, margin: "0px" });
   const reduce = useReducedMotion();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,7 +141,7 @@ export function Ziamla({ className }: { className?: string }) {
       viewBox="0 0 200 200"
       fill="none"
       className={className}
-      animate={reduce ? undefined : isInView ? { scale: [1, 1.015, 1] } : {}}
+      animate={reduce ? undefined : isVisible ? { scale: [1, 1.015, 1] } : {}}
       transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
     >
       <motion.rect x="18" y="18" width="164" height="164" stroke="currentColor" strokeWidth="1.1" transform="rotate(45 100 100)" {...d(0)} />
@@ -198,9 +200,13 @@ export function FolkBorder({ className, delay = 0 }: { className?: string; delay
 
 /* ─── FolkSpiderOrnament ─────────────────────────────────────────── */
 export function FolkSpiderOrnament() {
+  const ref = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
+  const isVisible = useInView(ref, { once: false, margin: "0px" });
+
   return (
     <motion.div
+      ref={ref}
       className="mx-auto mb-10 flex w-fit origin-top justify-center text-foreground/40 dark:text-background/84 md:mb-12"
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -214,7 +220,7 @@ export function FolkSpiderOrnament() {
         animate={
           reduceMotion
             ? undefined
-            : { rotate: [0, 3.2, -2.2, 1.4, 0], y: [0, 4, -2, 2, 0] }
+            : isVisible ? { rotate: [0, 3.2, -2.2, 1.4, 0], y: [0, 4, -2, 2, 0] } : {}
         }
         transition={
           reduceMotion

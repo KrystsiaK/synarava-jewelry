@@ -91,9 +91,9 @@ function EmptyCart() {
           </svg>
           <span aria-hidden="true" className="pointer-events-none absolute inset-0"
             style={{
-              backgroundImage: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-              backgroundSize: "200% 100%",
+              background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
               animation: "shiny-sweep 2.5s infinite linear",
+              willChange: "transform",
             }}
           />
         </MagneticButton>

@@ -12,154 +12,15 @@ import {
 import Link from "next/link";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { ShinyText } from "@/components/ui/shiny-text";
+import {
+  KodRoda as SvgKodRoda,
+  Kola as SvgKola,
+  FolkBorder,
+} from "@/components/ui/folk-patterns";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-/* ═══════════════════════════════════════════════════════════════════
-   SVG FOLK PATTERNS
-   ═══════════════════════════════════════════════════════════════════ */
-
-/** KodRoda — ancestral diamond cipher */
-function SvgKodRoda({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const reduceMotion = useReducedMotion();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const draw = (delay: number): any => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: isInView ? { pathLength: 1, opacity: 1 } : {},
-    transition: { duration: reduceMotion ? 0 : 1.6, ease: "easeInOut", delay },
-  });
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={
-        reduceMotion
-          ? undefined
-          : isInView
-            ? { rotate: [0, 2, -1.5, 0] }
-            : {}
-      }
-      transition={{ duration: 12, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-    >
-      {/* Outer diamond */}
-      <motion.path d="M100 8 L192 100 L100 192 L8 100 Z" stroke="currentColor" strokeWidth="1.2" {...draw(0)} />
-      {/* Inner diamond */}
-      <motion.path d="M100 42 L158 100 L100 158 L42 100 Z" stroke="currentColor" strokeWidth="1" {...draw(0.2)} />
-      {/* Innermost diamond */}
-      <motion.path d="M100 68 L132 100 L100 132 L68 100 Z" stroke="currentColor" strokeWidth="0.85" {...draw(0.4)} />
-      {/* Cardinal cross */}
-      <motion.path d="M100 8 L100 192" stroke="currentColor" strokeWidth="0.7" opacity={0.5} {...draw(0.55)} />
-      <motion.path d="M8 100 L192 100" stroke="currentColor" strokeWidth="0.7" opacity={0.5} {...draw(0.55)} />
-      {/* Diagonal cross */}
-      <motion.path d="M42 42 L158 158" stroke="currentColor" strokeWidth="0.6" opacity={0.35} {...draw(0.7)} />
-      <motion.path d="M158 42 L42 158" stroke="currentColor" strokeWidth="0.6" opacity={0.35} {...draw(0.7)} />
-      {/* Corner ticks on outer diamond */}
-      <motion.path d="M100 8 L112 20 M100 8 L88 20" stroke="currentColor" strokeWidth="1" {...draw(1)} />
-      <motion.path d="M192 100 L180 112 M192 100 L180 88" stroke="currentColor" strokeWidth="1" {...draw(1)} />
-      <motion.path d="M100 192 L112 180 M100 192 L88 180" stroke="currentColor" strokeWidth="1" {...draw(1)} />
-      <motion.path d="M8 100 L20 112 M8 100 L20 88" stroke="currentColor" strokeWidth="1" {...draw(1)} />
-      {/* Centre dot */}
-      <motion.circle cx="100" cy="100" r="3.5" fill="currentColor"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={isInView ? { scale: 1, opacity: 1 } : {}}
-        transition={{ duration: 0.5, delay: 1.4, type: "spring", stiffness: 400 }}
-      />
-      {/* Cardinal dots */}
-      {[[100, 42], [158, 100], [100, 158], [42, 100]].map(([cx, cy], i) => (
-        <motion.circle key={i} cx={cx} cy={cy} r="2.5" fill="currentColor"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={isInView ? { scale: 1, opacity: 0.7 } : {}}
-          transition={{ duration: 0.4, delay: 1.5 + i * 0.1, type: "spring", stiffness: 400 }}
-        />
-      ))}
-    </motion.svg>
-  );
-}
-
-/** Kola — solar wheel, 8-spoked */
-function SvgKola({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const reduceMotion = useReducedMotion();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const draw = (delay: number, opacity = 1): any => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: isInView ? { pathLength: 1, opacity } : {},
-    transition: { duration: reduceMotion ? 0 : 1.8, ease: "easeInOut", delay },
-  });
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={reduceMotion ? undefined : isInView ? { rotate: 360 } : {}}
-      transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
-    >
-      {/* Outer ring */}
-      <motion.circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="1"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
-        transition={{ duration: 2, ease: "easeInOut", delay: 0 }}
-      />
-      {/* Mid ring */}
-      <motion.circle cx="100" cy="100" r="60" stroke="currentColor" strokeWidth="0.85" opacity={0.6}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 0.6 } : {}}
-        transition={{ duration: 1.8, ease: "easeInOut", delay: 0.3 }}
-      />
-      {/* Inner ring */}
-      <motion.circle cx="100" cy="100" r="28" stroke="currentColor" strokeWidth="1"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
-        transition={{ duration: 1.4, ease: "easeInOut", delay: 0.6 }}
-      />
-      {/* 8 spokes */}
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        const x1 = 100 + 28 * Math.cos(rad);
-        const y1 = 100 + 28 * Math.sin(rad);
-        const x2 = 100 + 88 * Math.cos(rad);
-        const y2 = 100 + 88 * Math.sin(rad);
-        return (
-          <motion.line key={angle} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke="currentColor" strokeWidth={i % 2 === 0 ? "1" : "0.6"} opacity={i % 2 === 0 ? 1 : 0.5}
-            {...draw(0.9 + i * 0.08)}
-          />
-        );
-      })}
-      {/* Diamond tips at cardinal spokes */}
-      {[0, 90, 180, 270].map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        const cx = 100 + 88 * Math.cos(rad);
-        const cy = 100 + 88 * Math.sin(rad);
-        return (
-          <motion.circle key={angle} cx={cx} cy={cy} r="3" fill="currentColor"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={isInView ? { scale: 1, opacity: 1 } : {}}
-            transition={{ duration: 0.4, delay: 1.8 + i * 0.1, type: "spring", stiffness: 400 }}
-          />
-        );
-      })}
-      {/* Centre dot */}
-      <motion.circle cx="100" cy="100" r="4" fill="currentColor"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={isInView ? { scale: 1, opacity: 1 } : {}}
-        transition={{ duration: 0.5, delay: 0.5, type: "spring", stiffness: 500 }}
-      />
-    </motion.svg>
-  );
-}
-
-/** Ziamla — earth grid, nested squares with corner growths */
+/** Ziamla — extended version with diagonal lines (more detailed than folk-patterns) */
 function SvgZiamla({ className }: { className?: string }) {
   const ref = useRef<SVGSVGElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
@@ -211,51 +72,6 @@ function SvgZiamla({ className }: { className?: string }) {
     </motion.svg>
   );
 }
-
-/** Animated horizontal border — embroidery wave */
-function FolkBorder({ className, delay = 0 }: { className?: string; delay?: number }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-5%" });
-
-  return (
-    <svg ref={ref} viewBox="0 0 800 40" fill="none" className={className} aria-hidden="true">
-      {/* Diamond chain */}
-      {Array.from({ length: 16 }).map((_, i) => {
-        const cx = 25 + i * 50;
-        return (
-          <motion.path
-            key={i}
-            d={`M${cx} 4 L${cx + 16} 20 L${cx} 36 L${cx - 16} 20 Z`}
-            stroke="currentColor"
-            strokeWidth="1"
-            fill="none"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={isInView ? { pathLength: 1, opacity: 0.7 } : {}}
-            transition={{ duration: 0.6, ease: "easeOut", delay: delay + i * 0.06 }}
-          />
-        );
-      })}
-      {/* Connecting line */}
-      <motion.line x1="9" y1="20" x2="791" y2="20" stroke="currentColor" strokeWidth="0.5" opacity={0.25}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 0.25 } : {}}
-        transition={{ duration: 1.6, ease: "easeInOut", delay: delay }}
-      />
-      {/* Centre dots between diamonds */}
-      {Array.from({ length: 15 }).map((_, i) => (
-        <motion.circle key={i} cx={25 + 16 + i * 50} cy={20} r={1.5} fill="currentColor"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={isInView ? { scale: 1, opacity: 0.5 } : {}}
-          transition={{ duration: 0.3, delay: delay + 0.5 + i * 0.04 }}
-        />
-      ))}
-    </svg>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   PAGE SECTIONS
-   ═══════════════════════════════════════════════════════════════════ */
 
 const PRINCIPLES = [
   {
@@ -352,7 +168,6 @@ function AboutHero({
         style={{
           background: "radial-gradient(circle, #a6192e 0%, transparent 65%)",
           opacity: 0.07,
-          animation: "pulse-glow 6s ease-in-out infinite",
         }}
       />
 
@@ -414,9 +229,9 @@ function AboutHero({
               </svg>
               <span aria-hidden="true" className="pointer-events-none absolute inset-0"
                 style={{
-                  backgroundImage: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)",
-                  backgroundSize: "200% 100%",
+                  background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)",
                   animation: "shiny-sweep 2.5s infinite linear",
+                  willChange: "transform",
                 }}
               />
             </MagneticButton>
@@ -701,11 +516,6 @@ function StorySection({ secondaryBody }: { secondaryBody: string }) {
                 alt="Synarava exhibition-style space"
                 className="aspect-[16/9] h-full w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
               />
-              <motion.div
-                className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/25"
-                animate={{ top: ["0%", "100%", "0%"] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-              />
             </div>
           </motion.div>
         </div>
@@ -728,8 +538,6 @@ function DarkQuoteSection() {
 
   const quote =
     "We do not inherit the earth from our ancestors; we borrow it from our children. We do the same with our stories. SYNARAVA is the vessel for the stories that refuse to be forgotten.";
-  const words = quote.split(" ");
-
   return (
     <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-48">
       {/* Parallax ghost pattern */}
@@ -763,23 +571,15 @@ function DarkQuoteSection() {
           04 // Identity &amp; Memory
         </motion.p>
 
-        <blockquote
+        <motion.blockquote
           className="mx-auto max-w-4xl font-serif italic leading-[1.45] text-background"
           style={{ fontSize: "clamp(1.4rem,2.8vw,2.6rem)" }}
+          initial={{ opacity: 0, y: 24 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.85, ease, delay: 0.15 }}
         >
-          {words.map((word, i) => (
-            <span key={i} className="mb-1 mr-[0.28em] inline-block overflow-hidden last:mr-0">
-              <motion.span
-                className="inline-block"
-                initial={{ y: "110%", opacity: 0 }}
-                animate={isInView ? { y: 0, opacity: 1 } : {}}
-                transition={{ duration: 0.65, ease, delay: i * 0.022 }}
-              >
-                {word}
-              </motion.span>
-            </span>
-          ))}
-        </blockquote>
+          {quote}
+        </motion.blockquote>
 
         <motion.div
           className="mt-14 flex items-center justify-center gap-5"
@@ -870,9 +670,9 @@ function AboutFooter() {
             </svg>
             <span aria-hidden="true" className="pointer-events-none absolute inset-0"
               style={{
-                backgroundImage: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                backgroundSize: "200% 100%",
+                background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
                 animation: "shiny-sweep 2.5s infinite linear",
+                willChange: "transform",
               }} />
           </MagneticButton>
           <Link href="/collections"

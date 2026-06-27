@@ -56,12 +56,6 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
       {/* Red side accent */}
       <div className="pointer-events-none absolute right-0 top-0 h-full w-1 bg-couture-red/40" />
 
-      {/* Scan line */}
-      <motion.div
-        className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
-        animate={{ top: ["0%", "100%", "0%"] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-      />
 
       {/* Breadcrumb */}
       <motion.div
@@ -171,8 +165,6 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const bgScale = useTransform(scrollYProgress, [0, 1], [0.88, 1.06]);
 
-  const words = manifesto.split(" ");
-
   return (
     <section ref={ref} className="relative overflow-hidden bg-foreground py-20 md:py-40">
       {/* Ghost text background */}
@@ -198,23 +190,15 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
           Collection Manifesto
         </motion.p>
 
-        <blockquote
+        <motion.blockquote
           className="max-w-5xl font-serif italic leading-[1.4] text-background"
           style={{ fontSize: "clamp(1.5rem,3vw,2.8rem)" }}
+          initial={{ opacity: 0, y: 24 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.85, ease, delay: 0.15 }}
         >
-          {words.map((word, i) => (
-            <span key={i} className="mb-1 mr-[0.3em] inline-block overflow-hidden last:mr-0">
-              <motion.span
-                className="inline-block"
-                initial={{ y: "110%", opacity: 0 }}
-                animate={isInView ? { y: 0, opacity: 1 } : {}}
-                transition={{ duration: 0.7, ease, delay: i * 0.025 }}
-              >
-                {word}
-              </motion.span>
-            </span>
-          ))}
-        </blockquote>
+          {manifesto}
+        </motion.blockquote>
 
         <motion.div
           className="mt-12 flex items-center gap-5"
@@ -267,11 +251,6 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
             <>
               <div className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60" />
               <div className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60" />
-              <motion.div
-                className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
-                animate={{ top: ["0%", "100%", "0%"] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-              />
               <div className="absolute -bottom-5 -right-4 hidden items-center justify-center border border-foreground/[0.07] bg-stone-beige/90 p-5 backdrop-blur-sm sm:flex md:-right-8 md:p-7">
                 <span className="text-center font-mono text-[0.72rem] uppercase tracking-[0.14em]">
                   {collection.accent}
@@ -538,9 +517,9 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0"
                 style={{
-                  backgroundImage: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                  backgroundSize: "200% 100%",
+                  background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
                   animation: "shiny-sweep 2.5s infinite linear",
+                  willChange: "transform",
                 }}
               />
             </Link>

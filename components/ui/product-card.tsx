@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import type { ProductSummary } from "@/lib/content/catalog";
@@ -11,9 +12,7 @@ interface ProductCardProps {
   product: ProductSummary;
   index: number;
   isFeatured?: boolean;
-  /** Controls the staggered entrance; pass isInView from parent */
   isParentInView: boolean;
-  /** Optional vertical offset class for editorial stagger (e.g. "md:mt-16") */
   offsetClass?: string;
 }
 
@@ -24,6 +23,7 @@ export function ProductCard({
   isParentInView,
   offsetClass,
 }: ProductCardProps) {
+  const [imgError, setImgError] = useState(false);
   const aspectClass = isFeatured ? "aspect-[16/9]" : "aspect-[3/4]";
 
   return (
@@ -34,23 +34,40 @@ export function ProductCard({
       transition={{ duration: 0.9, ease, delay: 0.06 + index * 0.11 }}
     >
       <Link href={`/products/${product.slug}`} className="group block cursor-pointer">
-        {/* Image with Framer variants */}
         <motion.div
           className={`relative mb-5 overflow-hidden bg-stone-beige ${aspectClass}`}
           initial="rest"
           whileHover="hover"
           animate="rest"
         >
-          <motion.img
-            alt={product.title}
-            src={product.image}
-            className="h-full w-full object-cover will-change-transform"
-            variants={{
-              rest: { scale: 1, filter: "grayscale(0.35) brightness(0.88)" },
-              hover: { scale: 1.06, filter: "grayscale(0) brightness(0.92)" },
-            }}
-            transition={{ type: "spring", stiffness: 250, damping: 30 }}
-          />
+          {imgError ? (
+            /* ── Broken image fallback ─────────────────────────────── */
+            <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-stone-beige/60">
+              <svg
+                viewBox="0 0 48 48"
+                fill="none"
+                className="size-10 text-foreground/15"
+                aria-hidden="true"
+              >
+                <rect x="6" y="10" width="36" height="28" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="18" cy="20" r="4" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              </svg>
+              <span className="label-mono text-[0.65rem] text-foreground/25">Image unavailable</span>
+            </div>
+          ) : (
+            <motion.img
+              alt={product.title}
+              src={product.image}
+              onError={() => setImgError(true)}
+              className="h-full w-full object-cover will-change-transform"
+              variants={{
+                rest: { scale: 1, filter: "grayscale(0.35) brightness(0.88)" },
+                hover: { scale: 1.06, filter: "grayscale(0) brightness(0.92)" },
+              }}
+              transition={{ type: "spring", stiffness: 250, damping: 30 }}
+            />
+          )}
 
           {/* Overlay slide-up */}
           <motion.div

@@ -47,7 +47,7 @@ describe("AddToCartButton", () => {
     const user = userEvent.setup();
     render(<AddToCartButton productSlug="birch-bracelet" />);
     await user.click(screen.getByRole("button"));
-    await waitFor(() => expect(screen.getByText("Added to cart")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Piece added to cart")).toBeInTheDocument());
   });
 
   it("shows cart count after successful add", async () => {
@@ -55,7 +55,7 @@ describe("AddToCartButton", () => {
     const user = userEvent.setup();
     render(<AddToCartButton productSlug="birch-bracelet" />);
     await user.click(screen.getByRole("button"));
-    await waitFor(() => expect(screen.getByText("Cart now holds 3")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("3 pieces in cart")).toBeInTheDocument());
   });
 
   it("dispatches cart-updated event on success", async () => {

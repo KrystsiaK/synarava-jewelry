@@ -129,7 +129,6 @@ function ProductHero({ product }: { product: ProductSummary }) {
         style={{
           background: "radial-gradient(circle, #a6192e 0%, transparent 65%)",
           opacity: 0.06,
-          animation: "pulse-glow 7s ease-in-out infinite",
         }}
       />
 
@@ -189,15 +188,32 @@ function ProductHero({ product }: { product: ProductSummary }) {
 
           {/* Price + CTA */}
           <motion.div
-            className="flex flex-wrap items-center gap-6 pt-2"
+            className="space-y-5 pt-2"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease, delay: 0.85 }}
           >
-            <AddToCartButton productSlug={product.slug} />
-            <span className="font-mono text-[0.85rem] uppercase tracking-[0.18em] text-foreground/70">
-              {product.price}
-            </span>
+            <div className="flex flex-wrap items-center gap-6">
+              <AddToCartButton productSlug={product.slug} />
+              <span className="font-mono text-[0.85rem] uppercase tracking-[0.18em] text-foreground/70">
+                {product.price}
+              </span>
+            </div>
+
+            {/* Trust strip */}
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5 border-t border-foreground/[0.07] pt-4">
+              {[
+                { icon: "M5 12l5-5 5 5", label: "In stock" },
+                { icon: "M3 8h2l2-5 4 10 2-5h2", label: "Ships in 3–5 days" },
+                { icon: "M20 7H4a1 1 0 00-1 1v8a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z", label: "Gift packaging" },
+                { icon: "M4 4l16 16M4 20L20 4", label: "14-day returns" },
+              ].map(({ label }) => (
+                <span key={label} className="flex items-center gap-1.5 label-mono text-[0.65rem] text-foreground/40">
+                  <span className="inline-block h-1 w-1 rounded-full bg-couture-red/60" aria-hidden="true" />
+                  {label}
+                </span>
+              ))}
+            </div>
           </motion.div>
 
           {/* Tags */}
@@ -266,12 +282,6 @@ function ProductHero({ product }: { product: ProductSummary }) {
               transition={{ duration: 0.6, delay: 1.25, ease }}
             />
 
-            {/* Scan line */}
-            <motion.div
-              className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
-              animate={{ top: ["0%", "100%", "0%"] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-            />
 
             {/* Series badge */}
             <motion.div
@@ -413,11 +423,6 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
               alt="Symbolic Detail"
               className="aspect-video w-full object-cover"
               style={{ scale: imgScale }}
-            />
-            <motion.div
-              className="pointer-events-none absolute left-0 right-0 h-px bg-couture-red/20"
-              animate={{ top: ["0%", "100%", "0%"] }}
-              transition={{ duration: 5.5, repeat: Infinity, ease: "linear" }}
             />
           </div>
         </motion.div>
@@ -759,9 +764,9 @@ function ProductFooter({ product }: { product: ProductSummary }) {
             </svg>
             <span aria-hidden="true" className="pointer-events-none absolute inset-0"
               style={{
-                backgroundImage: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                backgroundSize: "200% 100%",
+                background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
                 animation: "shiny-sweep 2.5s infinite linear",
+                willChange: "transform",
               }}
             />
           </MagneticButton>

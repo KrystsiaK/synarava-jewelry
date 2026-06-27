@@ -34,7 +34,6 @@ export function FilterDropdown({
   const panelRef = useRef<HTMLDivElement>(null);
   const isActive = Boolean(value);
 
-  // Portal needs client-side mount guard
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true); }, []);
 
@@ -42,13 +41,12 @@ export function FilterDropdown({
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     setPanelPos({
-      top: rect.bottom + 6,
+      top: rect.bottom + 4,
       left: rect.left,
-      minWidth: Math.max(rect.width, 168),
+      minWidth: Math.max(rect.width, 192),
     });
   }, []);
 
-  // Recompute position when opening; close on scroll / resize
   useEffect(() => {
     if (!open) return;
     computePosition();
@@ -61,15 +59,13 @@ export function FilterDropdown({
     };
   }, [open, computePosition]);
 
-  // Click-outside and Escape — check both trigger AND portalled panel
   useEffect(() => {
     if (!open) return;
     function handleOutside(e: MouseEvent) {
       if (
         triggerRef.current?.contains(e.target as Node) ||
         panelRef.current?.contains(e.target as Node)
-      )
-        return;
+      ) return;
       setOpen(false);
     }
     function handleEsc(e: KeyboardEvent) {
@@ -100,18 +96,26 @@ export function FilterDropdown({
         minWidth: panelPos.minWidth,
         zIndex: 9999,
       }}
-      className="panel py-1 shadow-[0_20px_48px_rgba(0,0,0,0.18)]"
+      className="border border-stroke bg-panel/95 backdrop-blur-sm shadow-[0_16px_40px_rgba(0,0,0,0.14)] py-1.5"
     >
+      {/* All option */}
       <button
         role="option"
         aria-selected={!isActive}
         type="button"
         onClick={() => { onChange(""); setOpen(false); }}
-        className="flex w-full items-center justify-between gap-4 px-4 py-2.5 label-mono text-left transition-colors hover:bg-foreground/5"
+        className={cn(
+          "flex w-full items-center justify-between gap-4 px-4 py-3 label-mono text-left transition-colors cursor-pointer",
+          "min-h-[44px] hover:bg-accent/[0.06]",
+          !isActive ? "text-foreground" : "text-muted hover:text-foreground",
+        )}
       >
-        <span className={cn(!isActive ? "text-foreground" : "text-muted")}>{allLabel}</span>
+        <span>{allLabel}</span>
         {!isActive && <Check className="size-3 shrink-0 text-accent" />}
       </button>
+
+      {/* Divider */}
+      <div className="mx-4 my-1 h-px bg-stroke" />
 
       {options.length === 0 ? (
         <p className="px-4 py-3 label-mono text-muted/60">No options</p>
@@ -123,11 +127,13 @@ export function FilterDropdown({
             aria-selected={value === option.value}
             type="button"
             onClick={() => { onChange(option.value); setOpen(false); }}
-            className="flex w-full items-center justify-between gap-4 px-4 py-2.5 label-mono text-left transition-colors hover:bg-foreground/5"
+            className={cn(
+              "flex w-full items-center justify-between gap-4 px-4 py-3 label-mono text-left transition-colors cursor-pointer",
+              "min-h-[44px] hover:bg-accent/[0.06]",
+              value === option.value ? "text-foreground" : "text-muted hover:text-foreground",
+            )}
           >
-            <span className={cn(value === option.value ? "text-foreground" : "text-muted")}>
-              {option.label}
-            </span>
+            <span>{option.label}</span>
             {value === option.value && <Check className="size-3 shrink-0 text-accent" />}
           </button>
         ))
@@ -145,19 +151,22 @@ export function FilterDropdown({
         aria-haspopup="listbox"
         disabled={disabled}
         className={cn(
-          "label-caps flex items-center gap-1.5 py-2 transition-colors",
-          "hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
+          /* base */
+          "inline-flex items-center gap-2 px-4 py-2 border transition-all duration-200 cursor-pointer",
+          "label-caps focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
           "disabled:cursor-not-allowed disabled:opacity-40",
-          isActive ? "text-foreground" : "text-muted",
+          "active:scale-[0.97]",
+          /* states */
+          isActive
+            ? "border-accent bg-accent/[0.06] text-accent"
+            : "border-stroke text-muted hover:border-foreground/25 hover:text-foreground",
+          open && !isActive && "border-foreground/25 text-foreground",
         )}
       >
         <span>{selectedLabel ?? label}</span>
-        {isActive && (
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-        )}
         <ChevronDown
           aria-hidden="true"
-          className={cn("size-3 transition-transform duration-200", open && "rotate-180")}
+          className={cn("size-3 transition-transform duration-200 shrink-0", open && "rotate-180")}
         />
       </button>
 

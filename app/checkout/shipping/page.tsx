@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { CartSummaryPanel } from "@/components/commerce/cart-summary-panel";
 import { CheckoutShell } from "@/components/commerce/checkout-shell";
@@ -14,6 +15,9 @@ export const metadata: Metadata = {
 
 export default async function ShippingPage() {
   const cart = await getCartViewModel();
+
+  if (cart.itemCount === 0) redirect("/cart");
+
   const user = await getCurrentUser();
 
   return (
