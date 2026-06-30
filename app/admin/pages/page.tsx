@@ -1,130 +1,159 @@
 import { savePageAction } from "@/app/admin/actions";
+import { AdminHelp } from "@/components/admin/admin-help";
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 
 export default async function AdminPagesPage() {
   const { pages } = await getAdminCatalogData();
 
   return (
     <div className="space-y-8">
-      <header className="space-y-4">
-        <p className="label-caps text-accent">Pages</p>
-        <h1 className="font-serif text-[3rem] leading-none md:text-[4rem]">Edit home and about</h1>
-        <p className="max-w-2xl text-lg leading-8 text-foreground/68">
-          Minimal page CMS for the key editorial routes. Right now it covers the storefront text
-          layer for home, about, and manifesto.
+      {/* Header */}
+      <div>
+        <p className="adm-section-tag mb-3">[ SYN-ADM // PGS ]</p>
+        <h1 className="adm-page-title">
+          Pages
+        </h1>
+        <p className="adm-page-subtitle">
+          Editorial CMS for home, about, manifesto, and locale-aware content work.
         </p>
-      </header>
+      </div>
 
+      {/* i18n notice */}
+      <div
+        className="adm-panel flex items-start gap-3 p-4"
+      >
+        <span style={{ color: "var(--adm-accent)", fontSize: "0.8rem" }}>◆</span>
+        <div className="adm-label-row">
+          <span className="adm-title-sm">Locale status: EN only</span>
+          <AdminHelp>
+            Edits here affect the EN locale only. BE and RU translation support is planned and will be wired in a future release.
+          </AdminHelp>
+        </div>
+      </div>
+
+      {/* Page forms */}
       <div className="grid gap-6">
         {pages.map((page) => {
           const content = (page.content ?? {}) as Record<string, string | undefined>;
 
           return (
-            <form key={page.id} action={savePageAction} className="panel grid gap-5 p-6">
+            <form key={page.id} action={savePageAction} className="adm-panel grid gap-5 p-5 md:p-6">
               <input type="hidden" name="slug" value={page.slug} />
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stroke pb-4">
+              {/* Page header */}
+              <div
+                className="flex flex-wrap items-start justify-between gap-4 pb-5"
+                style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+              >
                 <div>
-                  <p className="label-caps text-accent">/{page.slug}</p>
-                  <h2 className="mt-2 font-serif text-[2rem]">{page.title}</h2>
+                  <p className="adm-section-tag">
+                    [ PAGE // {page.slug.toUpperCase()} ]
+                  </p>
+                  <h2 className="adm-title-sm mt-2">
+                    {page.title}
+                  </h2>
                 </div>
-                <button
-                  type="submit"
-                  className="bg-charcoal px-5 py-3 label-caps text-white transition-colors hover:bg-couture-red"
-                >
+                <button type="submit" className="adm-btn-primary">
                   Save page
                 </button>
               </div>
 
+              {/* Locale tabs — i18n groundwork */}
+              <LocaleTabStrip />
+
+              {/* Fields */}
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2">
-                  <span className="label-caps text-muted">Title</span>
-                  <input
-                    name="title"
-                    defaultValue={page.title}
-                    className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
-                  />
+                  <span className="adm-label">Title</span>
+                  <input name="title" defaultValue={page.title} className="adm-field" />
                 </label>
-
                 <label className="grid gap-2">
-                  <span className="label-caps text-muted">Eyebrow</span>
+                  <span className="adm-label">Eyebrow</span>
                   <input
                     name="eyebrow"
                     defaultValue={content.eyebrow ?? ""}
-                    className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                    className="adm-field"
                   />
                 </label>
               </div>
 
               <label className="grid gap-2">
-                <span className="label-caps text-muted">Excerpt</span>
+                <span className="adm-label">Excerpt</span>
                 <textarea
                   name="excerpt"
                   defaultValue={page.excerpt ?? ""}
                   rows={3}
-                  className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                  className="adm-field"
                 />
               </label>
 
               <label className="grid gap-2">
-                <span className="label-caps text-muted">Body</span>
+                <span className="adm-label">Body</span>
                 <textarea
                   name="body"
                   defaultValue={content.body ?? ""}
                   rows={5}
-                  className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                  className="adm-field"
                 />
               </label>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2">
-                  <span className="label-caps text-muted">CTA label</span>
+                  <span className="adm-label">CTA label</span>
                   <input
                     name="ctaLabel"
                     defaultValue={content.ctaLabel ?? ""}
-                    className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                    className="adm-field"
                   />
                 </label>
-
                 <label className="grid gap-2">
-                  <span className="label-caps text-muted">CTA href</span>
+                  <span className="adm-label">CTA href</span>
                   <input
                     name="ctaHref"
                     defaultValue={content.ctaHref ?? ""}
-                    className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                    className="adm-field"
                   />
                 </label>
               </div>
 
               <label className="grid gap-2">
-                <span className="label-caps text-muted">Quote</span>
+                <span className="adm-label">Quote</span>
                 <textarea
                   name="quote"
                   defaultValue={content.quote ?? ""}
                   rows={4}
-                  className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                  className="adm-field"
                 />
               </label>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2">
-                  <span className="label-caps text-muted">Secondary title</span>
+                  <span className="adm-label">Secondary title</span>
                   <input
                     name="secondaryTitle"
                     defaultValue={content.secondaryTitle ?? ""}
-                    className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                    className="adm-field"
                   />
                 </label>
-
                 <label className="grid gap-2">
-                  <span className="label-caps text-muted">Secondary body</span>
+                  <span className="adm-label">Secondary body</span>
                   <textarea
                     name="secondaryBody"
                     defaultValue={content.secondaryBody ?? ""}
                     rows={3}
-                    className="border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent"
+                    className="adm-field"
                   />
                 </label>
+              </div>
+
+              <div
+                className="flex justify-end pt-4"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <button type="submit" className="adm-btn-primary">
+                  Save page
+                </button>
               </div>
             </form>
           );

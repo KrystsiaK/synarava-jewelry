@@ -2,22 +2,21 @@ import { saveCategoryAction, saveTagAction } from "@/app/admin/actions";
 import { ProductsCms } from "@/components/admin/products-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
-const adminFieldClass =
-  "admin-field w-full min-w-0 border border-stroke bg-transparent px-4 py-3 outline-none focus:border-accent";
-
 export default async function AdminProductsPage() {
   const { products, categories, tags, collections } = await getAdminCatalogData();
 
   return (
     <div className="space-y-8">
-      <header className="space-y-4">
-        <p className="label-caps text-accent">Catalog</p>
-        <h1 className="font-serif text-[3rem] leading-none md:text-[4rem]">Products, categories, tags</h1>
-        <p className="max-w-2xl text-lg leading-8 text-foreground/68">
-          Add or edit store items together with the taxonomy that powers search and filtering on
-          the public shop page.
+      {/* Header */}
+      <div>
+        <p className="adm-section-tag mb-3">[ SYN-ADM // CAT ]</p>
+        <h1 className="adm-page-title">
+          Catalog
+        </h1>
+        <p className="adm-page-subtitle">
+          Products, categories, tags, media, and storefront publishing state.
         </p>
-      </header>
+      </div>
 
       <ProductsCms
         initialProducts={products}
@@ -26,39 +25,40 @@ export default async function AdminProductsPage() {
         collections={collections}
       />
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <form action={saveCategoryAction} className="panel grid gap-4 p-6">
+      {/* Taxonomy editors */}
+      <div
+        className="grid gap-4 md:grid-cols-2"
+      >
+        <form action={saveCategoryAction} className="adm-panel grid gap-4 p-5">
           <div>
-            <p className="label-caps text-accent">Taxonomy</p>
-            <h2 className="mt-2 font-serif text-[1.8rem]">Add category</h2>
+            <p className="adm-section-tag">[ TAXONOMY // CATEGORY ]</p>
+            <h2 className="adm-title-sm mt-2">
+              Add category
+            </h2>
           </div>
-          <input name="name" placeholder="Bracelets" className={adminFieldClass} />
-          <input name="slug" placeholder="bracelets" className={adminFieldClass} />
+          <input name="name" placeholder="Bracelets" className="adm-field" />
+          <input name="slug" placeholder="bracelets" className="adm-field" />
           <textarea
             name="description"
             rows={3}
             placeholder="What this group means"
-            className={adminFieldClass}
+            className="adm-field"
           />
-          <button
-            type="submit"
-            className="w-fit border border-stroke px-4 py-3 label-caps transition-colors hover:border-accent hover:text-accent"
-          >
+          <button type="submit" className="adm-btn-ghost w-fit">
             Save category
           </button>
         </form>
 
-        <form action={saveTagAction} className="panel grid gap-4 p-6">
+        <form action={saveTagAction} className="adm-panel grid gap-4 p-5">
           <div>
-            <p className="label-caps text-accent">Search tags</p>
-            <h2 className="mt-2 font-serif text-[1.8rem]">Add tag</h2>
+            <p className="adm-section-tag">[ TAXONOMY // TAG ]</p>
+            <h2 className="adm-title-sm mt-2">
+              Add tag
+            </h2>
           </div>
-          <input name="name" placeholder="Lava" className={adminFieldClass} />
-          <input name="slug" placeholder="lava" className={adminFieldClass} />
-          <button
-            type="submit"
-            className="w-fit border border-stroke px-4 py-3 label-caps transition-colors hover:border-accent hover:text-accent"
-          >
+          <input name="name" placeholder="Lava" className="adm-field" />
+          <input name="slug" placeholder="lava" className="adm-field" />
+          <button type="submit" className="adm-btn-ghost w-fit">
             Save tag
           </button>
         </form>

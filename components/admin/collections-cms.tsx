@@ -11,11 +11,8 @@ import {
   type SavedCollectionPayload,
 } from "@/app/admin/actions";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-
-const adminFieldClass =
-  "admin-field w-full min-w-0 border border-stroke bg-transparent px-4 py-3 outline-none focus:border-accent";
-
-const fieldErrorClass = "text-xs leading-6 text-couture-red";
+import { AdminHelp } from "@/components/admin/admin-help";
+import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 
 type AdminCollection = SavedCollectionPayload;
 
@@ -39,34 +36,23 @@ const initialState: CollectionActionState = {};
 
 function emptyCollectionDraft(): CollectionDraft {
   return {
-    name: "",
-    slug: "",
-    code: "",
-    subtitle: "",
-    description: "",
-    manifesto: "",
-    searchSummary: "",
-    symbolismLabel: "",
-    symbolismTitle: "",
-    symbolismBody: "",
-    symbolismBody2: "",
-    workflowState: "DRAFT",
-    sortOrder: "0",
+    name: "", slug: "", code: "", subtitle: "", description: "",
+    manifesto: "", searchSummary: "", symbolismLabel: "", symbolismTitle: "",
+    symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT", sortOrder: "0",
   };
 }
 
 function normalizeCollections(items: AdminCollection[]) {
   return [...items].sort((left, right) => {
     const orderDiff = (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
-    if (orderDiff !== 0) {
-      return orderDiff;
-    }
-
+    if (orderDiff !== 0) return orderDiff;
     return left.name.localeCompare(right.name);
   });
 }
 
-function workflowStateFromCollection(collection: AdminCollection): CollectionDraft["workflowState"] {
+function workflowStateFromCollection(
+  collection: AdminCollection,
+): CollectionDraft["workflowState"] {
   return collection.status === "ACTIVE" && collection.visibility === "PUBLIC"
     ? "PUBLISHED"
     : "DRAFT";
@@ -100,41 +86,35 @@ function smartSlugify(value: string) {
 
 function FieldLabel({
   children,
+  help,
   required,
 }: {
   children: React.ReactNode;
+  help?: React.ReactNode;
   required?: boolean;
 }) {
   return (
-    <span className="label-caps text-muted">
-      {children}
-      {required ? <span className="ml-1 text-couture-red">*</span> : null}
+    <span className="adm-label-row">
+      <span className="adm-label">
+        {children}
+        {required ? <span style={{ color: "var(--adm-accent)", marginLeft: "0.25rem" }}>*</span> : null}
+      </span>
+      {help ? <AdminHelp>{help}</AdminHelp> : null}
     </span>
   );
 }
 
 function FieldError({ message }: { message?: string }) {
-  if (!message) {
-    return null;
-  }
-
-  return <p className={fieldErrorClass}>{message}</p>;
+  if (!message) return null;
+  return <p className="adm-field-error">{message}</p>;
 }
 
-function collectionFieldClass(error?: string) {
-  return `${adminFieldClass}${error ? " border-couture-red text-foreground" : ""}`;
+function fieldClass(error?: string) {
+  return error ? "adm-field adm-field--error" : "adm-field";
 }
 
-function submitActionLabel(base: string, pending: boolean, pendingLabel: string) {
+function submitLabel(base: string, pending: boolean, pendingLabel: string) {
   return pending ? pendingLabel : base;
-}
-
-function CollectionStateNote() {
-  return (
-    <p className="text-sm leading-7 text-foreground/55">
-      Fields marked with <span className="text-couture-red">*</span> are required. Drafts stay in the form until a save succeeds.
-    </p>
-  );
 }
 
 function WorkflowStateField({
@@ -165,27 +145,30 @@ function WorkflowStateField({
 
   return (
     <div className="grid gap-2">
-      <FieldLabel required>Storefront state</FieldLabel>
+      <FieldLabel required help="Draft collections stay private. Published collections appear on the collections index and their public detail page.">
+        Storefront state
+      </FieldLabel>
       <input type="hidden" name="workflowState" value={value} />
       <div className="grid gap-3 md:grid-cols-2">
         {options.map((option) => {
           const selected = value === option.value;
-
           return (
             <button
               key={option.value}
               type="button"
               onClick={() => onChange(option.value)}
-              className={[
-                "grid gap-2 border p-4 text-left transition-colors",
-                selected
-                  ? "border-accent bg-accent/8"
-                  : "border-stroke bg-transparent hover:border-accent/50",
-              ].join(" ")}
+              className={selected ? "adm-workflow-btn adm-workflow-btn--on" : "adm-workflow-btn adm-workflow-btn--off"}
               aria-pressed={selected}
+              aria-label={`${option.title}. ${option.description}`}
             >
-              <span className="label-caps text-foreground">{option.title}</span>
-              <span className="text-sm leading-7 text-foreground/60">{option.description}</span>
+              <span className="adm-label-row">
+                <span
+                  className="text-left text-[0.72rem] font-bold uppercase tracking-[0.08em]"
+                  style={{ color: selected ? "var(--adm-accent)" : "var(--adm-muted)" }}
+                >
+                  {option.title}
+                </span>
+              </span>
             </button>
           );
         })}
@@ -202,7 +185,6 @@ function CollectionFields({
   currentHeroImageUrl,
   currentHeroImageLabel,
   fileInputKey,
-  slugLocked,
 }: {
   draft: CollectionDraft;
   onChange: <K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) => void;
@@ -210,10 +192,12 @@ function CollectionFields({
   currentHeroImageUrl?: string | null;
   currentHeroImageLabel?: string;
   fileInputKey?: string | number;
-  slugLocked?: boolean;
 }) {
   return (
     <>
+      {/* i18n groundwork */}
+      <LocaleTabStrip />
+
       <div className="grid gap-4 md:grid-cols-3">
         <label className="grid gap-2">
           <FieldLabel required>Name</FieldLabel>
@@ -221,8 +205,8 @@ function CollectionFields({
             name="name"
             required
             value={draft.name}
-            onChange={(event) => onChange("name", event.target.value)}
-            className={collectionFieldClass(fieldErrors?.name)}
+            onChange={(e) => onChange("name", e.target.value)}
+            className={fieldClass(fieldErrors?.name)}
             aria-invalid={Boolean(fieldErrors?.name)}
             placeholder="Belarus Heritage"
           />
@@ -230,20 +214,19 @@ function CollectionFields({
         </label>
 
         <label className="grid gap-2">
-          <FieldLabel required>Slug</FieldLabel>
+          <FieldLabel required help="Auto-generated from the collection name until you edit it manually. Keep it short, lowercase, and URL-friendly.">
+            Slug
+          </FieldLabel>
           <input
             name="slug"
             required
             value={draft.slug}
-            onChange={(event) => onChange("slug", event.target.value)}
-            className={collectionFieldClass(fieldErrors?.slug)}
+            onChange={(e) => onChange("slug", e.target.value)}
+            className={fieldClass(fieldErrors?.slug)}
             aria-invalid={Boolean(fieldErrors?.slug)}
             placeholder="belarus-heritage"
           />
           <FieldError message={fieldErrors?.slug} />
-          {!slugLocked ? (
-            <p className="text-xs leading-6 text-foreground/45">Auto-generated from the collection name until you edit it manually.</p>
-          ) : null}
         </label>
 
         <label className="grid gap-2">
@@ -251,8 +234,8 @@ function CollectionFields({
           <input
             name="code"
             value={draft.code}
-            onChange={(event) => onChange("code", event.target.value)}
-            className={adminFieldClass}
+            onChange={(e) => onChange("code", e.target.value)}
+            className="adm-field"
             placeholder="COL-01"
           />
         </label>
@@ -264,37 +247,47 @@ function CollectionFields({
           <input
             name="subtitle"
             value={draft.subtitle}
-            onChange={(event) => onChange("subtitle", event.target.value)}
-            className={adminFieldClass}
+            onChange={(e) => onChange("subtitle", e.target.value)}
+            className="adm-field"
             placeholder="Collection 01"
           />
         </label>
 
         <label className="grid gap-2">
-          <FieldLabel>Hero image</FieldLabel>
+          <FieldLabel help="Upload a new image only when you want to replace the current hero. Leave the field empty to keep the existing media.">
+            Hero image
+          </FieldLabel>
           <input
             key={fileInputKey}
             name="heroImageFile"
             type="file"
             accept="image/*"
-            className={collectionFieldClass(fieldErrors?.heroImageFile)}
+            className={fieldClass(fieldErrors?.heroImageFile)}
           />
           <FieldError message={fieldErrors?.heroImageFile} />
-          <p className="text-xs leading-6 text-foreground/45">Upload a new image only when you want to replace the current hero.</p>
         </label>
       </div>
 
       {currentHeroImageUrl ? (
-        <div className="flex items-center gap-3 border border-stroke p-3">
+        <div
+          className="flex items-center gap-3 p-3"
+          style={{ border: "1px solid var(--adm-border)", borderRadius: "10px" }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={currentHeroImageUrl}
             alt={currentHeroImageLabel ?? "Collection hero image"}
-            className="h-16 w-16 object-cover"
+            className="h-14 w-14 object-cover"
+            style={{ opacity: 0.7 }}
           />
           <div className="space-y-1">
-            <p className="label-caps text-muted">Current hero image</p>
-            <p className="text-sm text-foreground/60">{currentHeroImageUrl}</p>
+            <p className="adm-label">Current hero image</p>
+            <p
+              className="break-all text-xs leading-5"
+              style={{ color: "var(--adm-muted)" }}
+            >
+              {currentHeroImageUrl}
+            </p>
           </div>
         </div>
       ) : null}
@@ -306,8 +299,8 @@ function CollectionFields({
           rows={3}
           required
           value={draft.description}
-          onChange={(event) => onChange("description", event.target.value)}
-          className={collectionFieldClass(fieldErrors?.description)}
+          onChange={(e) => onChange("description", e.target.value)}
+          className={fieldClass(fieldErrors?.description)}
           aria-invalid={Boolean(fieldErrors?.description)}
           placeholder="This text appears on the collection card and collection hero."
         />
@@ -320,8 +313,8 @@ function CollectionFields({
           name="manifesto"
           rows={4}
           value={draft.manifesto}
-          onChange={(event) => onChange("manifesto", event.target.value)}
-          className={adminFieldClass}
+          onChange={(e) => onChange("manifesto", e.target.value)}
+          className="adm-field"
           placeholder="This text powers the manifesto strip on the collection page."
         />
       </label>
@@ -332,13 +325,16 @@ function CollectionFields({
           name="searchSummary"
           rows={2}
           value={draft.searchSummary}
-          onChange={(event) => onChange("searchSummary", event.target.value)}
-          className={adminFieldClass}
+          onChange={(e) => onChange("searchSummary", e.target.value)}
+          className="adm-field"
           placeholder="Optional short search/discovery helper text."
         />
       </label>
 
-      <div className="grid gap-4 border-t border-stroke pt-4">
+      <div
+        className="grid gap-4 pt-4"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
         <WorkflowStateField
           value={draft.workflowState}
           onChange={(value) => onChange("workflowState", value)}
@@ -351,17 +347,23 @@ function CollectionFields({
             name="sortOrder"
             type="number"
             value={draft.sortOrder}
-            onChange={(event) => onChange("sortOrder", event.target.value)}
-            className={adminFieldClass}
+            onChange={(e) => onChange("sortOrder", e.target.value)}
+            className="adm-field"
           />
         </label>
       </div>
 
-      <div className="grid gap-4 border-t border-stroke pt-4">
+      {/* Default symbolism */}
+      <div
+        className="grid gap-4 pt-4"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
         <div>
-          <p className="label-caps text-accent">Default product symbolism</p>
-          <p className="mt-2 text-sm leading-7 text-foreground/60">
-            Products in this collection inherit these values when their own symbolism override is empty.
+          <p className="adm-label-row">
+            <span className="adm-section-tag">[ DEFAULT PRODUCT SYMBOLISM ]</span>
+            <AdminHelp>
+              Products in this collection inherit these values when their own symbolism override is empty.
+            </AdminHelp>
           </p>
         </div>
 
@@ -371,19 +373,18 @@ function CollectionFields({
             <input
               name="symbolismLabel"
               value={draft.symbolismLabel}
-              onChange={(event) => onChange("symbolismLabel", event.target.value)}
-              className={adminFieldClass}
+              onChange={(e) => onChange("symbolismLabel", e.target.value)}
+              className="adm-field"
               placeholder="Symbolic Language"
             />
           </label>
-
           <label className="grid gap-2">
             <FieldLabel>Symbolism title</FieldLabel>
             <input
               name="symbolismTitle"
               value={draft.symbolismTitle}
-              onChange={(event) => onChange("symbolismTitle", event.target.value)}
-              className={adminFieldClass}
+              onChange={(e) => onChange("symbolismTitle", e.target.value)}
+              className="adm-field"
               placeholder="Wood, Lava, Embroidery"
             />
           </label>
@@ -395,8 +396,8 @@ function CollectionFields({
             name="symbolismBody"
             rows={4}
             value={draft.symbolismBody}
-            onChange={(event) => onChange("symbolismBody", event.target.value)}
-            className={adminFieldClass}
+            onChange={(e) => onChange("symbolismBody", e.target.value)}
+            className="adm-field"
           />
         </label>
 
@@ -406,8 +407,8 @@ function CollectionFields({
             name="symbolismBody2"
             rows={3}
             value={draft.symbolismBody2}
-            onChange={(event) => onChange("symbolismBody2", event.target.value)}
-            className={adminFieldClass}
+            onChange={(e) => onChange("symbolismBody2", e.target.value)}
+            className="adm-field"
           />
         </label>
       </div>
@@ -444,46 +445,54 @@ function CreateCollectionForm({ onCreated }: { onCreated: (collection: AdminColl
   function updateDraft<K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) {
     setDraft((current) => {
       const next = { ...current, [key]: value };
-
       if (key === "name" && !slugLocked) {
         next.slug = smartSlugify(String(value));
       }
-
       return next;
     });
   }
 
   return (
-    <form ref={formRef} action={formAction} className="panel grid gap-4 p-6">
-      <div className="flex items-center justify-between gap-4 border-b border-stroke pb-4">
+    <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
+      <div
+        className="flex items-center justify-between gap-4 pb-4"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
         <div>
-          <p className="label-caps text-accent">Create collection</p>
-          <h2 className="mt-2 font-serif text-[2rem]">New collection</h2>
+          <p className="adm-section-tag">[ NEW COLLECTION ]</p>
+          <div className="adm-label-row mt-2">
+            <h2 className="adm-title-sm">
+              Create collection
+            </h2>
+            <AdminHelp label="Collection fields guidance">
+              Name, subtitle, and summary feed the collection card and hero. Accent code is a short admin label. Hero image replaces current media only when a file is selected. Manifesto and symbolism defaults shape the public collection story. State controls draft versus published visibility.
+            </AdminHelp>
+          </div>
         </div>
         <button
           type="submit"
           disabled={isPending}
-          className="border border-accent bg-accent px-4 py-3 text-[11px] uppercase tracking-[0.16em] text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+          className="adm-btn-primary"
         >
-          {submitActionLabel("Save collection", isPending, "Saving...")}
+          {submitLabel("Save collection", isPending, "Saving...")}
         </button>
       </div>
 
       <AuthMessage error={state.error} success={state.success} />
-      <CollectionStateNote />
+      <div>
+        <AdminHelp label="Save guidance">
+          Fields marked with * are required. Drafts stay in the form until a save succeeds.
+        </AdminHelp>
+      </div>
 
       <CollectionFields
         draft={draft}
         onChange={(key, value) => {
-          if (key === "slug") {
-            setSlugLocked(Boolean(String(value).trim()));
-          }
-
+          if (key === "slug") setSlugLocked(Boolean(String(value).trim()));
           updateDraft(key, value);
         }}
         fieldErrors={state.fieldErrors}
         fileInputKey={fileInputKey}
-        slugLocked={slugLocked}
       />
     </form>
   );
@@ -505,7 +514,6 @@ function DeleteCollectionForm({
     startTransition(async () => {
       const nextState = await deleteCollectionAction(initialState, formData);
       setState(nextState);
-
       if (nextState.deletedCollectionId) {
         onDeleted(nextState.deletedCollectionId);
       }
@@ -516,12 +524,8 @@ function DeleteCollectionForm({
     <form action={formAction} className="flex flex-col items-end gap-2">
       <input type="hidden" name="collectionId" value={collectionId} />
       <input type="hidden" name="collectionSlug" value={collectionSlug} />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="border border-couture-red/35 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-couture-red transition-colors hover:border-couture-red hover:bg-couture-red hover:text-white"
-      >
-        {submitActionLabel("Delete", isPending, "Deleting...")}
+      <button type="submit" disabled={isPending} className="adm-btn-danger">
+        {submitLabel("Delete collection", isPending, "Deleting...")}
       </button>
       <AuthMessage error={state.error} success={state.success} />
     </form>
@@ -540,14 +544,12 @@ function EditCollectionForm({
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const [draft, setDraft] = useState<CollectionDraft>(() => collectionToDraft(collection));
-  const [slugLocked, setSlugLocked] = useState(true);
   const fileInputKey = collection.heroImageUrl ?? collection.id;
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
       const nextState = await saveCollectionAction(initialState, formData);
       setState(nextState);
-
       if (nextState.collection) {
         onUpdated(nextState.collection);
       }
@@ -558,24 +560,39 @@ function EditCollectionForm({
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
+  const isPublished =
+    collection.status === "ACTIVE" && collection.visibility === "PUBLIC";
+
   return (
-    <details className="border-t border-stroke pt-6 first:border-t-0 first:pt-0">
+    <details
+      style={{
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+        paddingTop: "1.25rem",
+      }}
+    >
       <summary className="cursor-pointer list-none">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="font-serif text-[1.6rem]">{collection.name}</p>
-            <p className="text-sm text-foreground/55">/{collection.slug}</p>
-            <p className="mt-2 text-xs uppercase tracking-[0.14em] text-foreground/45">
-              Change this collection to <span className="text-accent">Published</span> inside the form below under <span className="text-foreground">Storefront state</span>.
+            <p
+              className="text-sm font-semibold"
+              style={{ color: "var(--adm-ink)" }}
+            >
+              {collection.name}
+            </p>
+            <p
+              className="mt-0.5 text-xs"
+              style={{ color: "var(--adm-muted)" }}
+            >
+              /{collection.slug}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="border border-stroke px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-foreground/60">
+            <span className={isPublished ? "adm-badge-published" : "adm-badge-draft"}>
               {draft.workflowState}
             </span>
             <Link
               href={`/collections/${collection.slug}`}
-              className="border border-stroke px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-foreground/60 transition-colors hover:border-accent hover:text-accent"
+              className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
             >
               Open page
             </Link>
@@ -585,40 +602,41 @@ function EditCollectionForm({
 
       <div className="mt-5 grid gap-4">
         <AuthMessage error={state.error} success={state.success} />
-        <CollectionStateNote />
+        <div>
+          <AdminHelp label="Save guidance">
+            Fields marked with * are required. Drafts stay in the form until a save succeeds.
+          </AdminHelp>
+        </div>
 
         <form action={formAction} className="grid gap-4">
           <input type="hidden" name="collectionId" value={collection.id} />
-          <input type="hidden" name="existingHeroImageUrl" value={collection.heroImageUrl ?? ""} />
+          <input
+            type="hidden"
+            name="existingHeroImageUrl"
+            value={collection.heroImageUrl ?? ""}
+          />
 
           <CollectionFields
             draft={draft}
             onChange={(key, value) => {
-              if (key === "slug") {
-                setSlugLocked(Boolean(String(value).trim()));
-              }
-
               updateDraft(key, value);
             }}
             fieldErrors={state.fieldErrors}
             currentHeroImageUrl={collection.heroImageUrl}
             currentHeroImageLabel={collection.name}
             fileInputKey={fileInputKey}
-            slugLocked={slugLocked}
           />
 
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <p className="max-w-xl text-sm leading-7 text-foreground/55">
-              Draft collections stay private and do not appear on the storefront. Published collections become public on
-              the collections index and their own detail page.
-            </p>
-
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <AdminHelp label="Publishing guidance">
+              Draft collections stay private. Published collections become public on the collections index and their own detail page.
+            </AdminHelp>
             <button
               type="submit"
               disabled={isPending}
-              className="border border-accent bg-accent px-4 py-3 text-[11px] uppercase tracking-[0.16em] text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+              className="adm-btn-primary"
             >
-              {submitActionLabel("Update collection", isPending, "Saving...")}
+              {submitLabel("Update collection", isPending, "Saving...")}
             </button>
           </div>
         </form>
@@ -639,11 +657,20 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
   const [items, setItems] = useState(() => normalizeCollections(collections));
 
   function handleCreated(collection: AdminCollection) {
-    setItems((current) => normalizeCollections([collection, ...current.filter((item) => item.id !== collection.id)]));
+    setItems((current) =>
+      normalizeCollections([
+        collection,
+        ...current.filter((item) => item.id !== collection.id),
+      ]),
+    );
   }
 
   function handleUpdated(collection: AdminCollection) {
-    setItems((current) => normalizeCollections(current.map((item) => (item.id === collection.id ? collection : item))));
+    setItems((current) =>
+      normalizeCollections(
+        current.map((item) => (item.id === collection.id ? collection : item)),
+      ),
+    );
   }
 
   function handleDeleted(collectionId: string) {
@@ -652,34 +679,29 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
+      {/* Create + info */}
+      <section className="grid gap-3">
         <CreateCollectionForm onCreated={handleCreated} />
-
-        <aside className="panel p-6">
-          <p className="label-caps text-muted">What this config affects</p>
-          <div className="mt-5 space-y-4 text-sm leading-7 text-foreground/65">
-            <p><strong className="text-foreground">Name, subtitle, summary:</strong> collection card on <code>/collections</code> and the hero on the collection page.</p>
-            <p><strong className="text-foreground">Accent code:</strong> small mono accent details on collection UI.</p>
-            <p><strong className="text-foreground">Hero image:</strong> image used in collection list and collection detail story/hero areas.</p>
-            <p><strong className="text-foreground">Manifesto:</strong> the large manifesto strip on the collection page.</p>
-            <p><strong className="text-foreground">Symbolism defaults:</strong> fallback content for product symbolism blocks.</p>
-            <p><strong className="text-foreground">State:</strong> only two storefront states exist here now — <strong>Draft</strong> and <strong>Published</strong>.</p>
-          </div>
-        </aside>
       </section>
 
-      <section className="panel p-6">
-        <div className="flex flex-col gap-3 border-b border-stroke pb-4 md:flex-row md:items-end md:justify-between">
+      {/* Existing collections */}
+      <section className="adm-panel p-5">
+        <div
+          className="flex flex-col gap-3 pb-4 mb-1 md:flex-row md:items-end md:justify-between"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
           <div>
-            <p className="label-caps text-muted">Current collections</p>
-            <h2 className="mt-2 font-serif text-[2rem]">Edit existing collections</h2>
+            <p className="adm-section-tag">[ CURRENT COLLECTIONS ]</p>
+            <h2 className="adm-title-sm mt-2">
+              Edit existing collections
+            </h2>
           </div>
-          <p className="text-sm text-foreground/55">
-            Every save returns an explicit result. Every collection can be either draft or published, and can also be deleted.
-          </p>
+          <AdminHelp label="Collection editing guidance">
+            Every save returns an explicit result. Each collection can be draft or published, or deleted.
+          </AdminHelp>
         </div>
 
-        <div className="mt-6 space-y-8">
+        <div className="mt-5 space-y-0">
           {items.length > 0 ? (
             items.map((collection) => (
               <EditCollectionForm
@@ -698,7 +720,9 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
               />
             ))
           ) : (
-            <p className="text-sm leading-7 text-foreground/55">No collections yet. Create your first collection using the form above.</p>
+            <p className="text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
+              No collections yet. Create your first collection using the form above.
+            </p>
           )}
         </div>
       </section>

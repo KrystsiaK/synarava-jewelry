@@ -1,7 +1,6 @@
-import Link from "next/link";
-
 import { LogoutForm } from "@/components/auth/logout-form";
 import { requirePermission } from "@/lib/auth/session";
+import { AdminThemeShell, AdminNav } from "@/components/admin/admin-primitives";
 
 export default async function AdminLayout({
   children,
@@ -11,37 +10,67 @@ export default async function AdminLayout({
   await requirePermission("admin.access", "/admin");
 
   return (
-    <main className="artifact-shell min-h-screen pt-28">
-      <div className="site-shell grid gap-8 pb-16 md:grid-cols-[16rem_minmax(0,1fr)]">
-        <aside className="panel h-fit p-6">
-          <p className="mb-6 font-serif text-[1.6rem]">Admin</p>
-          <nav className="flex flex-col gap-3">
-            <Link href="/admin" className="label-caps text-muted transition-colors hover:text-accent">
-              Overview
-            </Link>
-            <Link href="/admin/pages" className="label-caps text-muted transition-colors hover:text-accent">
-              Pages
-            </Link>
-            <Link href="/admin/products" className="label-caps text-muted transition-colors hover:text-accent">
-              Products
-            </Link>
-            <Link href="/admin/collections" className="label-caps text-muted transition-colors hover:text-accent">
-              Collections
-            </Link>
-            <Link href="/admin/account" className="label-caps text-muted transition-colors hover:text-accent">
-              Account
-            </Link>
-            <Link href="/shop" className="label-caps text-muted transition-colors hover:text-accent">
-              Open shop
-            </Link>
-          </nav>
-          <div className="mt-8 border-t border-stroke pt-6">
-            <LogoutForm />
+    <div className="admin-terminal min-h-screen flex flex-col">
+      <AdminThemeShell />
+
+      {/* Identity rail */}
+      <div
+        className="adm-topbar shrink-0 flex items-center justify-between gap-4 border-b px-4 py-3 md:px-5"
+      >
+        <div className="min-w-0 flex items-center gap-3">
+          <span className="adm-brand-mark">
+            SYN
+          </span>
+          <span className="adm-brand-kicker truncate">
+            Admin studio
+          </span>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="adm-online-dot" />
+          <span className="adm-brand-kicker hidden sm:inline">
+            Live CMS
+          </span>
+        </div>
+      </div>
+
+      <div className="adm-mobile-nav shrink-0 border-b px-3 py-2 md:hidden">
+        <AdminNav compact />
+      </div>
+
+      {/* Shell */}
+      <div className="flex flex-1">
+        {/* Left rail */}
+        <aside
+          className="adm-sidebar hidden w-56 shrink-0 flex-col border-r p-4 lg:w-64 lg:p-5 md:flex"
+        >
+          <div
+            className="mb-5 border-b pb-4"
+            style={{ borderColor: "var(--adm-border)" }}
+          >
+            <p className="adm-section-tag">Workspace</p>
+            <p className="adm-title-sm mt-1.5">
+              Synarava
+            </p>
+          </div>
+
+          <AdminNav />
+
+          <div
+            className="mt-auto border-t pt-5"
+            style={{ borderColor: "var(--adm-border)" }}
+          >
+            <div className="flex items-center gap-2">
+              <LogoutForm />
+            </div>
           </div>
         </aside>
 
-        <section>{children}</section>
+        {/* Content */}
+        <div className="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
+          {children}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

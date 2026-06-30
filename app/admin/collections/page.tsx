@@ -6,15 +6,15 @@ export default async function AdminCollectionsPage() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-4">
-        <p className="label-caps text-accent">Collections</p>
-        <h1 className="font-serif text-[3rem] leading-none md:text-[4rem]">Collection CMS</h1>
-        <p className="max-w-3xl text-lg leading-8 text-foreground/68">
-          This page controls the real storefront UI for collection cards and collection detail pages:
-          hero image, eyebrow, accent code, summary text, manifesto block, symbolism defaults, sorting,
-          and publication state.
+      <div>
+        <p className="adm-section-tag mb-3">[ SYN-ADM // COL ]</p>
+        <h1 className="adm-page-title">
+          Collections
+        </h1>
+        <p className="adm-page-subtitle">
+          Collection heroes, editorial copy, symbolism, product grouping, and publish state.
         </p>
-      </header>
+      </div>
       <CollectionsCms collections={collections} />
     </div>
   );

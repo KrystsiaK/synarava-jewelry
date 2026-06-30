@@ -11,31 +11,46 @@ export default async function AdminAccountPage() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-4">
-        <p className="label-caps text-accent">Account</p>
-        <h1 className="font-serif text-[3rem] leading-none md:text-[4rem]">Admin credentials</h1>
-        <p className="max-w-2xl text-lg leading-8 text-foreground/68">
-          Change the email login and password used to access the internal Synarava admin.
+      <div>
+        <p className="adm-section-tag mb-3">[ SYN-ADM // ACC ]</p>
+        <h1 className="adm-page-title">
+          Account
+        </h1>
+        <p className="adm-page-subtitle">
+          Access credentials, active session details, and permission visibility.
         </p>
-      </header>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(18rem,0.65fr)]">
         <AdminCredentialsForm currentEmail={user.email} />
 
-        <aside className="panel p-6">
-          <p className="label-caps text-muted">Current access</p>
-          <div className="mt-4 space-y-3">
-            <p className="font-serif text-[1.8rem]">{user.name ?? "Synarava admin"}</p>
-            <p className="text-sm text-foreground/60">{user.email}</p>
+        <aside className="adm-panel p-5">
+          <p className="adm-section-tag mb-4">[ ACTIVE SESSION ]</p>
+
+          <div
+            className="pb-5 space-y-2"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+          >
+            <p className="adm-title-sm">
+              {user.name ?? "Synarava Admin"}
+            </p>
+            <p className="text-sm" style={{ color: "var(--adm-muted)" }}>
+              {user.email}
+            </p>
           </div>
 
-          <div className="mt-8 border-t border-stroke pt-6">
-            <p className="label-caps text-muted">Permissions</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-5">
+            <p className="adm-section-tag mb-3">[ PERMISSIONS ]</p>
+            <div className="flex flex-wrap gap-1.5">
               {permissions.map((permission) => (
                 <span
                   key={permission}
-                  className="border border-stroke px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-foreground/60"
+                  className="px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em]"
+                  style={{
+                    color: "var(--adm-muted)",
+                    border: "1px solid var(--adm-border)",
+                    borderRadius: "999px",
+                  }}
                 >
                   {permission}
                 </span>

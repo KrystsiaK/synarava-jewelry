@@ -164,7 +164,7 @@ export function PasswordInput({
               ))}
             </div>
             {meta && (
-              <span className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-foreground/50">
+              <span className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-foreground/50">
                 {t(meta.labelKey)}
               </span>
             )}
@@ -178,7 +178,7 @@ export function PasswordInput({
                 <li
                   key={key}
                   className={cn(
-                    "flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-[0.08em] transition-colors",
+                    "flex items-center gap-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] transition-colors",
                     met ? "text-green-500" : "text-foreground/40",
                   )}
                 >

@@ -5,7 +5,7 @@ export function LogoutForm() {
     <form action={logoutAction}>
       <button
         type="submit"
-        className="label-caps text-muted transition-colors hover:text-accent"
+        className="adm-btn-ghost w-full"
       >
         Log out
       </button>

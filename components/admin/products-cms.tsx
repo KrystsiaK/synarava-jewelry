@@ -9,7 +9,9 @@ import {
   type ProductActionState,
   type SavedProductPayload,
 } from "@/app/admin/actions";
+import { AdminHelp } from "@/components/admin/admin-help";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import {
   fallbackProductLookbook,
   fallbackProductMaterials,
@@ -17,27 +19,9 @@ import {
   parseProductDetails,
 } from "@/lib/content/catalog";
 
-const adminFieldClass =
-  "admin-field w-full min-w-0 border border-stroke bg-transparent px-4 py-3 outline-none focus:border-accent";
-
-type CategoryOption = {
-  id: string;
-  slug: string;
-  name: string;
-};
-
-type TagOption = {
-  id: string;
-  slug: string;
-  name: string;
-};
-
-type CollectionOption = {
-  id: string;
-  slug: string;
-  name: string;
-};
-
+type CategoryOption = { id: string; slug: string; name: string };
+type TagOption = { id: string; slug: string; name: string };
+type CollectionOption = { id: string; slug: string; name: string };
 type ProductRecord = SavedProductPayload;
 
 type ProductCmsProps = {
@@ -89,10 +73,7 @@ function getProductEditorDetails(details: unknown) {
     mediaImage: parsed.process?.mediaImage ?? fallbackProductProcess.mediaImage,
     stats: Array.from({ length: 4 }, (_, index) => {
       const source = parsed.process?.stats?.[index] ?? fallbackProductProcess.stats[index];
-      return {
-        value: source?.value ?? "",
-        label: source?.label ?? "",
-      };
+      return { value: source?.value ?? "", label: source?.label ?? "" };
     }),
   };
 
@@ -110,23 +91,11 @@ function getProductEditorDetails(details: unknown) {
 
 function emptyDraft(): ProductDraft {
   return {
-    name: "",
-    slug: "",
-    sku: "",
-    price: "",
-    seriesLabel: "",
-    shortDescription: "",
-    description: "",
-    materialLine: "",
-    symbolismLabel: "",
-    symbolismTitle: "",
-    symbolismBody: "",
-    symbolismBody2: "",
-    categorySlug: "",
-    collectionSlug: "",
-    tags: "",
-    workflowState: "DRAFT",
-    imageUrl: "",
+    name: "", slug: "", sku: "", price: "", seriesLabel: "",
+    shortDescription: "", description: "", materialLine: "",
+    symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
+    symbolismBody2: "", categorySlug: "", collectionSlug: "",
+    tags: "", workflowState: "DRAFT", imageUrl: "",
   };
 }
 
@@ -148,7 +117,9 @@ function productToDraft(product: ProductRecord): ProductDraft {
     collectionSlug: product.collections[0]?.collection.slug ?? "",
     tags: product.tags.map((item) => item.tag.slug).join(", "),
     workflowState:
-      product.status === "ACTIVE" && product.visibility === "PUBLIC" ? "PUBLISHED" : "DRAFT",
+      product.status === "ACTIVE" && product.visibility === "PUBLIC"
+        ? "PUBLISHED"
+        : "DRAFT",
     imageUrl: product.imageUrl ?? "",
   };
 }
@@ -157,24 +128,20 @@ function normalizeProducts(items: ProductRecord[]) {
   return [...items].sort((left, right) => right.name.localeCompare(left.name));
 }
 
-function ProductCmsMessage({ state }: { state: ProductActionState }) {
-  return <AuthMessage error={state.error} success={state.success} />;
-}
-
 function ProgressBar({ pending }: { pending: boolean }) {
   return (
-    <div className="h-1 overflow-hidden bg-stroke/70">
+    <div className="adm-progress-bar">
       <div
         className={[
-          "h-full bg-couture-red transition-all duration-300",
-          pending ? "w-full animate-pulse" : "w-0",
+          "adm-progress-fill",
+          pending ? "adm-progress-fill--active" : "",
         ].join(" ")}
       />
     </div>
   );
 }
 
-function SaveConfirmModal({
+function ConfirmModal({
   open,
   title,
   description,
@@ -194,26 +161,32 @@ function SaveConfirmModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/60 px-6">
-      <div className="w-full max-w-lg border border-stroke bg-background p-6 shadow-2xl">
-        <p className="label-caps text-accent">Confirm save</p>
-        <h3 className="mt-3 font-serif text-[2rem] leading-none">{title}</h3>
-        <p className="mt-4 text-sm leading-7 text-foreground/65">{description}</p>
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="border border-stroke px-4 py-3 label-caps transition-colors hover:border-accent hover:text-accent"
-          >
+      <div
+        className="fixed inset-0 z-[200] flex items-center justify-center px-6"
+        style={{ background: "rgba(5,4,3,0.82)", backdropFilter: "blur(10px)" }}
+      >
+      <div className="adm-panel w-full max-w-md p-6">
+        <p className="adm-section-tag mb-3">[ CONFIRM OPERATION ]</p>
+        <h3 className="adm-title-sm">
+          {title}
+        </h3>
+        <p className="adm-copy mt-4">
+          {description}
+        </p>
+        <div
+          className="mt-6 flex flex-wrap justify-end gap-3 pt-4"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <button type="button" onClick={onCancel} className="adm-btn-ghost">
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={pending}
-            className="bg-charcoal px-4 py-3 label-caps text-white transition-colors hover:bg-couture-red disabled:opacity-60"
+            className="adm-btn-primary"
           >
-            {pending ? "Saving..." : confirmLabel}
+            {pending ? "Processing..." : confirmLabel}
           </button>
         </div>
       </div>
@@ -229,16 +202,14 @@ function SaveButtons({
   pending: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end">
-      <button
-        type="button"
-        onClick={onOpenConfirm}
-        disabled={pending}
-        className="bg-charcoal px-5 py-3 label-caps text-white transition-colors hover:bg-couture-red disabled:opacity-60"
-      >
-        {pending ? "Saving..." : "Save product"}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onOpenConfirm}
+      disabled={pending}
+      className="adm-btn-primary"
+    >
+      {pending ? "Saving..." : "Save product"}
+    </button>
   );
 }
 
@@ -250,51 +221,72 @@ function ProductDetailFields({
   mode: "create" | "edit";
 }) {
   return (
-    <div className="grid gap-6 border-t border-stroke pt-4">
+    <div
+      className="grid gap-6 pt-5"
+      style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+    >
       <div>
-        <p className="label-caps text-accent">Product detail page</p>
-        <p className="mt-2 max-w-2xl text-sm leading-7 text-foreground/60">
-          These sections feed the actual product page: materials, process story, and lookbook.
+        <p className="adm-label-row">
+          <span className="adm-section-tag">[ PRODUCT DETAIL PAGE ]</span>
+          <AdminHelp>
+            Materials, process story, and lookbook blocks feed the public product detail page.
+          </AdminHelp>
         </p>
       </div>
 
-      <section className="grid gap-4 border border-stroke/70 p-5">
+      {/* Materials */}
+      <section
+        className="grid gap-4 p-4"
+        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+      >
         <div>
-          <p className="label-caps text-muted">Materials</p>
-          <p className="mt-2 text-sm leading-7 text-foreground/55">
-            Three material cards shown on the storefront product detail page.
+          <p className="adm-label-row">
+            <span className="adm-label">Materials</span>
+            <AdminHelp>Three material cards shown on the storefront product detail page.</AdminHelp>
           </p>
         </div>
-
         <div className="grid gap-4 xl:grid-cols-3">
           {details.materials.map((material, index) => (
-            <div key={`material-${index}`} className="grid gap-3 border border-stroke/60 p-4">
-              <p className="label-caps text-accent">Material {index + 1}</p>
+            <div
+              key={`material-${index}`}
+              className="grid gap-3 p-4"
+              style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <p className="adm-section-tag">MATERIAL {index + 1}</p>
               <input
                 name={`materialTitle${index + 1}`}
                 defaultValue={material.title}
                 placeholder="Lava Stone"
-                className={adminFieldClass}
+                className="adm-field"
               />
               <textarea
                 name={`materialBody${index + 1}`}
                 rows={4}
                 defaultValue={material.body}
                 placeholder="Describe the material story."
-                className={adminFieldClass}
+                className="adm-field"
               />
-              <input type="hidden" name={`existingMaterialImage${index + 1}`} value={material.image} />
+              <input
+                type="hidden"
+                name={`existingMaterialImage${index + 1}`}
+                value={material.image}
+              />
               <input
                 name={`materialImageFile${index + 1}`}
                 type="file"
                 accept="image/*"
-                className={adminFieldClass}
+                className="adm-field"
               />
               {mode === "edit" && material.image ? (
                 <div className="grid gap-2">
-                  <p className="label-caps text-muted">Current image</p>
+                  <p className="adm-label">Current image</p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={material.image} alt={material.title || `Material ${index + 1}`} className="aspect-square w-full object-cover" />
+                  <img
+                    src={material.image}
+                    alt={material.title || `Material ${index + 1}`}
+                    className="aspect-square w-full object-cover"
+                    style={{ opacity: 0.7 }}
+                  />
                 </div>
               ) : null}
             </div>
@@ -302,75 +294,103 @@ function ProductDetailFields({
         </div>
       </section>
 
-      <section className="grid gap-4 border border-stroke/70 p-5">
+      {/* Process */}
+      <section
+        className="grid gap-4 p-4"
+        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+      >
         <div>
-          <p className="label-caps text-muted">Process</p>
-          <p className="mt-2 text-sm leading-7 text-foreground/55">
-            Dark craftsmanship section with media and stats.
+          <p className="adm-label-row">
+            <span className="adm-label">Process</span>
+            <AdminHelp>Craftsmanship section with media and stats.</AdminHelp>
           </p>
         </div>
-
         <div className="grid gap-4 md:grid-cols-2">
           <input
             name="processEyebrow"
             defaultValue={details.process.eyebrow}
             placeholder="Process"
-            className={adminFieldClass}
+            className="adm-field"
           />
           <input
             name="processTitle"
             defaultValue={details.process.title}
             placeholder="Human Precision"
-            className={adminFieldClass}
+            className="adm-field"
           />
         </div>
-
-        <input type="hidden" name="existingProcessMediaImage" value={details.process.mediaImage} />
-        <input name="processMediaImageFile" type="file" accept="image/*" className={adminFieldClass} />
-
+        <input
+          type="hidden"
+          name="existingProcessMediaImage"
+          value={details.process.mediaImage}
+        />
+        <input
+          name="processMediaImageFile"
+          type="file"
+          accept="image/*"
+          className="adm-field"
+        />
         {mode === "edit" && details.process.mediaImage ? (
           <div className="grid gap-2">
-            <p className="label-caps text-muted">Current process media</p>
+            <p className="adm-label">Current process media</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={details.process.mediaImage} alt={details.process.title || "Process media"} className="aspect-video w-full object-cover" />
+            <img
+              src={details.process.mediaImage}
+              alt={details.process.title || "Process media"}
+              className="aspect-video w-full object-cover"
+              style={{ opacity: 0.7 }}
+            />
           </div>
         ) : null}
-
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {details.process.stats.map((stat, index) => (
-            <div key={`process-stat-${index}`} className="grid gap-3 border border-stroke/60 p-4">
-              <p className="label-caps text-accent">Stat {index + 1}</p>
+            <div
+              key={`process-stat-${index}`}
+              className="grid gap-3 p-3"
+              style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <p className="adm-section-tag">STAT {index + 1}</p>
               <input
                 name={`processStatValue${index + 1}`}
                 defaultValue={stat.value}
                 placeholder="12"
-                className={adminFieldClass}
+                className="adm-field"
               />
               <input
                 name={`processStatLabel${index + 1}`}
                 defaultValue={stat.label}
                 placeholder="Hours of weaving"
-                className={adminFieldClass}
+                className="adm-field"
               />
             </div>
           ))}
         </div>
       </section>
 
-      <section className="grid gap-4 border border-stroke/70 p-5">
+      {/* Lookbook */}
+      <section
+        className="grid gap-4 p-4"
+        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+      >
         <div>
-          <p className="label-caps text-muted">Lookbook</p>
-          <p className="mt-2 text-sm leading-7 text-foreground/55">
-            Gallery blocks used in the pairing guide / lookbook section.
+          <p className="adm-label-row">
+            <span className="adm-label">Lookbook</span>
+            <AdminHelp>Gallery blocks used in the pairing guide and lookbook section.</AdminHelp>
           </p>
         </div>
-
         <div className="grid gap-4 xl:grid-cols-2">
           {details.lookbook.map((item, index) => (
-            <div key={`lookbook-${index}`} className="grid gap-3 border border-stroke/60 p-4">
+            <div
+              key={`lookbook-${index}`}
+              className="grid gap-3 p-4"
+              style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+            >
               <div className="flex items-center justify-between gap-3">
-                <p className="label-caps text-accent">Lookbook {index + 1}</p>
-                <label className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-foreground/55">
+                <p className="adm-section-tag">LOOKBOOK {index + 1}</p>
+                <label
+                  className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-[0.08em] cursor-pointer"
+                  style={{ color: "var(--adm-muted)" }}
+                >
                   <input
                     type="checkbox"
                     name={`lookbookFeatured${index + 1}`}
@@ -383,20 +403,29 @@ function ProductDetailFields({
                 name={`lookbookLabel${index + 1}`}
                 defaultValue={item.label}
                 placeholder="01 / The Ensemble"
-                className={adminFieldClass}
+                className="adm-field"
               />
-              <input type="hidden" name={`existingLookbookImage${index + 1}`} value={item.src} />
+              <input
+                type="hidden"
+                name={`existingLookbookImage${index + 1}`}
+                value={item.src}
+              />
               <input
                 name={`lookbookImageFile${index + 1}`}
                 type="file"
                 accept="image/*"
-                className={adminFieldClass}
+                className="adm-field"
               />
               {mode === "edit" && item.src ? (
                 <div className="grid gap-2">
-                  <p className="label-caps text-muted">Current image</p>
+                  <p className="adm-label">Current image</p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.src} alt={item.label || `Lookbook ${index + 1}`} className="aspect-square w-full object-cover" />
+                  <img
+                    src={item.src}
+                    alt={item.label || `Lookbook ${index + 1}`}
+                    className="aspect-square w-full object-cover"
+                    style={{ opacity: 0.7 }}
+                  />
                 </div>
               ) : null}
             </div>
@@ -418,73 +447,117 @@ function ProductFormFields({
 }) {
   return (
     <>
+      {/* i18n groundwork */}
+      <LocaleTabStrip />
+
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
-          <span className="label-caps text-muted">Name</span>
-          <input name="name" defaultValue={draft.name} className={adminFieldClass} />
+          <span className="adm-label">Name</span>
+          <input name="name" defaultValue={draft.name} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="label-caps text-muted">Slug</span>
-          <input name="slug" defaultValue={draft.slug} className={adminFieldClass} />
+          <span className="adm-label">Slug</span>
+          <input name="slug" defaultValue={draft.slug} className="adm-field" />
         </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <label className="grid gap-2">
-          <span className="label-caps text-muted">SKU</span>
-          <input name="sku" defaultValue={draft.sku} className={adminFieldClass} />
+          <span className="adm-label">SKU</span>
+          <input name="sku" defaultValue={draft.sku} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="label-caps text-muted">Series label</span>
-          <input name="seriesLabel" defaultValue={draft.seriesLabel} className={adminFieldClass} />
+          <span className="adm-label">Series label</span>
+          <input name="seriesLabel" defaultValue={draft.seriesLabel} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="label-caps text-muted">Price EUR</span>
-          <input name="price" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={draft.price} className={adminFieldClass} />
+          <span className="adm-label">Price EUR</span>
+          <input
+            name="price"
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            defaultValue={draft.price}
+            className="adm-field"
+          />
         </label>
       </div>
 
       <label className="grid gap-2">
-        <span className="label-caps text-muted">Short description</span>
-        <textarea name="shortDescription" rows={3} defaultValue={draft.shortDescription} className={adminFieldClass} />
+        <span className="adm-label">Short description</span>
+        <textarea
+          name="shortDescription"
+          rows={3}
+          defaultValue={draft.shortDescription}
+          className="adm-field"
+        />
       </label>
 
       <label className="grid gap-2">
-        <span className="label-caps text-muted">Description</span>
-        <textarea name="description" rows={4} defaultValue={draft.description} className={adminFieldClass} />
+        <span className="adm-label">Description</span>
+        <textarea
+          name="description"
+          rows={4}
+          defaultValue={draft.description}
+          className="adm-field"
+        />
       </label>
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
-          <span className="label-caps text-muted">Material line</span>
-          <input name="materialLine" defaultValue={draft.materialLine} className={adminFieldClass} />
+          <span className="adm-label">Material line</span>
+          <input name="materialLine" defaultValue={draft.materialLine} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="label-caps text-muted">Product image</span>
+          <span className="adm-label">Product image</span>
           <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
-          <input name="imageFile" type="file" accept="image/*" className={adminFieldClass} />
+          <input name="imageFile" type="file" accept="image/*" className="adm-field" />
         </label>
       </div>
 
-      <div className="grid gap-4 border-t border-stroke pt-4">
+      {/* Symbolism */}
+      <div
+        className="grid gap-4 pt-4"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
         <div>
-          <p className="label-caps text-accent">Product symbolism override</p>
-          <p className="mt-2 text-sm leading-7 text-foreground/60">
-            If empty, the product page falls back to the selected collection defaults.
+          <p className="adm-label-row">
+            <span className="adm-section-tag">[ PRODUCT SYMBOLISM OVERRIDE ]</span>
+            <AdminHelp>If empty, the product page falls back to the selected collection defaults.</AdminHelp>
           </p>
         </div>
-
         <div className="grid gap-4 md:grid-cols-2">
-          <input name="symbolismLabel" defaultValue={draft.symbolismLabel} placeholder="Symbolic Language" className={adminFieldClass} />
-          <input name="symbolismTitle" defaultValue={draft.symbolismTitle} placeholder="Wood, Lava, Embroidery" className={adminFieldClass} />
+          <input
+            name="symbolismLabel"
+            defaultValue={draft.symbolismLabel}
+            placeholder="Symbolic Language"
+            className="adm-field"
+          />
+          <input
+            name="symbolismTitle"
+            defaultValue={draft.symbolismTitle}
+            placeholder="Wood, Lava, Embroidery"
+            className="adm-field"
+          />
         </div>
-
-        <textarea name="symbolismBody" rows={4} defaultValue={draft.symbolismBody} className={adminFieldClass} />
-        <textarea name="symbolismBody2" rows={3} defaultValue={draft.symbolismBody2} className={adminFieldClass} />
+        <textarea
+          name="symbolismBody"
+          rows={4}
+          defaultValue={draft.symbolismBody}
+          className="adm-field"
+        />
+        <textarea
+          name="symbolismBody2"
+          rows={3}
+          defaultValue={draft.symbolismBody2}
+          className="adm-field"
+        />
       </div>
 
+      {/* Taxonomy + state */}
       <div className="grid gap-4 md:grid-cols-3">
-        <select name="categorySlug" defaultValue={draft.categorySlug} className={adminFieldClass}>
+        <select name="categorySlug" defaultValue={draft.categorySlug} className="adm-field">
           <option value="">No category</option>
           {categories.map((category) => (
             <option key={category.id} value={category.slug}>
@@ -492,8 +565,7 @@ function ProductFormFields({
             </option>
           ))}
         </select>
-
-        <select name="collectionSlug" defaultValue={draft.collectionSlug} className={adminFieldClass}>
+        <select name="collectionSlug" defaultValue={draft.collectionSlug} className="adm-field">
           <option value="">No collection</option>
           {collections.map((collection) => (
             <option key={collection.id} value={collection.slug}>
@@ -501,15 +573,19 @@ function ProductFormFields({
             </option>
           ))}
         </select>
-
-        <input name="tags" defaultValue={draft.tags} placeholder="lava, heritage, symbolic" className={adminFieldClass} />
+        <input
+          name="tags"
+          defaultValue={draft.tags}
+          placeholder="lava, heritage, symbolic"
+          className="adm-field"
+        />
       </div>
 
-      <label className="grid gap-2 md:max-w-sm">
-        <span className="label-caps text-muted">Storefront state</span>
-        <select name="workflowState" defaultValue={draft.workflowState} className={adminFieldClass}>
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
+      <label className="grid gap-2 md:max-w-xs">
+        <span className="adm-label">Storefront state</span>
+        <select name="workflowState" defaultValue={draft.workflowState} className="adm-field">
+          <option value="DRAFT">Draft — hidden</option>
+          <option value="PUBLISHED">Published — visible</option>
         </select>
       </label>
     </>
@@ -528,7 +604,7 @@ function CreateProductForm({
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
+  const [draft] = useState<ProductDraft>(emptyDraft);
   const formRef = useRef<HTMLFormElement>(null);
 
   async function formAction(formData: FormData) {
@@ -542,7 +618,6 @@ function CreateProductForm({
       }
 
       if (result.success && result.created) {
-        setDraft(emptyDraft());
         formRef.current?.reset();
       }
     });
@@ -550,30 +625,40 @@ function CreateProductForm({
 
   return (
     <>
-      <form ref={formRef} action={formAction} className="panel grid gap-4 p-6">
-        <div className="flex items-center justify-between gap-4 border-b border-stroke pb-4">
+      <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
+        <div
+          className="flex items-center justify-between gap-4 pb-4"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
           <div>
-            <p className="label-caps text-accent">Create product</p>
-            <h2 className="mt-2 font-serif text-[2rem]">New storefront piece</h2>
+            <p className="adm-section-tag">[ NEW UNIT ]</p>
+            <h2 className="adm-title-sm mt-2">
+              Create product
+            </h2>
           </div>
           <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
         </div>
 
         <ProgressBar pending={isPending} />
-        <ProductCmsMessage state={state} />
-        <p className="text-sm leading-7 text-foreground/55">
-          Saving updates the database and can immediately affect the public storefront if the product is published.
-        </p>
+        <AuthMessage error={state.error} success={state.success} />
+        <div>
+          <AdminHelp label="Publishing guidance">
+            Saving updates the database. Published products can immediately affect the public storefront.
+          </AdminHelp>
+        </div>
 
         <ProductFormFields draft={draft} categories={categories} collections={collections} />
         <ProductDetailFields details={getProductEditorDetails(null)} mode="create" />
 
-        <div className="border-t border-stroke pt-4">
+        <div
+          className="flex items-center justify-end pt-4"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
           <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
         </div>
       </form>
 
-      <SaveConfirmModal
+      <ConfirmModal
         open={confirmOpen}
         title="Create product"
         description="This will save a new product record to the database. If the product is marked as Published, it can become visible on the storefront immediately after save."
@@ -637,60 +722,93 @@ function EditProductForm({
     });
   }
 
+  const isPublished = product.status === "ACTIVE" && product.visibility === "PUBLIC";
+
   return (
     <>
       <details
         ref={rowRef}
-        className={[
-          "border-t border-stroke pt-6 transition-colors",
-          highlighted ? "bg-accent/5 ring-1 ring-accent/35" : "",
-        ].join(" ")}
+        className="transition-colors"
+        style={{
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          paddingTop: "1rem",
+          ...(highlighted
+            ? { background: "var(--adm-accent-soft)", outline: "1px solid var(--adm-border-strong)" }
+            : {}),
+        }}
       >
         <summary className="cursor-pointer list-none">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-4 py-1">
             <div>
-              <p className="font-serif text-[1.45rem]">{product.name}</p>
-              <p className="text-sm text-foreground/55">/{product.slug}</p>
-              {highlighted ? (
-                <p className="mt-2 text-xs uppercase tracking-[0.14em] text-accent">Just created</p>
-              ) : null}
+          <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+            {product.name}
+          </p>
+          <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
+            /{product.slug}
+          </p>
+              {highlighted && (
+                <p
+                  className="mt-1 text-xs font-bold uppercase tracking-[0.08em]"
+                  style={{ color: "var(--adm-accent)" }}
+                >
+                  Just created
+                </p>
+              )}
             </div>
-            <span className="label-caps text-muted">{centsToPrice(product.priceCents)} EUR</span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "var(--adm-muted)" }}
+              >
+                {centsToPrice(product.priceCents)} EUR
+              </span>
+              <span className={isPublished ? "adm-badge-published" : "adm-badge-draft"}>
+                {isPublished ? "PUB" : "DRF"}
+              </span>
+            </div>
           </div>
         </summary>
 
-        <form action={formAction} className="mt-5 grid gap-4">
+        <form action={formAction} className="mt-4 grid gap-4">
           <input type="hidden" name="productId" value={product.id} />
 
-          <div className="flex items-center justify-between gap-4 border-b border-stroke pb-4">
+          <div
+            className="flex items-center justify-between gap-4 pb-4"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          >
             <div>
-              <p className="label-caps text-accent">Edit product</p>
-              <h3 className="mt-2 font-serif text-[1.8rem]">{product.name}</h3>
+              <p className="adm-section-tag">[ EDIT UNIT ]</p>
+              <h3 className="adm-title-sm mt-2">
+                {product.name}
+              </h3>
             </div>
             <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
           </div>
 
           <ProgressBar pending={isPending} />
-          <ProductCmsMessage state={state} />
+          <AuthMessage error={state.error} success={state.success} />
 
           <ProductFormFields draft={draft} categories={categories} collections={collections} />
           <ProductDetailFields details={details} mode="edit" />
 
-          <div className="flex items-center justify-between gap-4 border-t border-stroke pt-4">
+          <div
+            className="flex items-center justify-between gap-4 pt-4"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          >
             <button
               type="button"
               onClick={() => setDeleteOpen(true)}
               disabled={isPending}
-              className="border border-couture-red/35 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-couture-red transition-colors hover:border-couture-red hover:bg-couture-red hover:text-white"
+              className="adm-btn-danger"
             >
-              Delete
+              Delete product
             </button>
             <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
           </div>
         </form>
       </details>
 
-      <SaveConfirmModal
+      <ConfirmModal
         open={confirmOpen}
         title={`Save ${product.name}`}
         description="This will write changes to the database. If the product is in Published state, changes can immediately affect the storefront product page and listings."
@@ -703,11 +821,11 @@ function EditProductForm({
         pending={isPending}
       />
 
-      <SaveConfirmModal
+      <ConfirmModal
         open={deleteOpen}
         title={`Delete ${product.name}`}
-        description="This action removes the product record. Public storefront pages for this item will stop working after deletion."
-        confirmLabel="Yes, delete"
+        description="This action removes the product record permanently. Public storefront pages for this item will stop working after deletion."
+        confirmLabel="Yes, delete permanently"
         onCancel={() => setDeleteOpen(false)}
         onConfirm={() => {
           const formData = new FormData();
@@ -727,11 +845,15 @@ export function ProductsCms({
   tags,
   collections,
 }: ProductCmsProps) {
-  const [products, setProducts] = useState<ProductRecord[]>(() => normalizeProducts(initialProducts));
+  const [products, setProducts] = useState<ProductRecord[]>(() =>
+    normalizeProducts(initialProducts),
+  );
   const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
 
   function handleCreated(product: ProductRecord) {
-    setProducts((current) => normalizeProducts([product, ...current.filter((item) => item.id !== product.id)]));
+    setProducts((current) =>
+      normalizeProducts([product, ...current.filter((item) => item.id !== product.id)]),
+    );
     setHighlightedProductId(product.id);
     window.setTimeout(() => {
       setHighlightedProductId((current) => (current === product.id ? null : current));
@@ -753,7 +875,8 @@ export function ProductsCms({
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
-      <div className="space-y-6">
+      {/* Create form */}
+      <div>
         <CreateProductForm
           categories={categories}
           collections={collections}
@@ -761,9 +884,11 @@ export function ProductsCms({
         />
       </div>
 
-      <div className="panel p-6">
-        <p className="label-caps text-muted">Current catalog</p>
-        <div className="mt-6 space-y-6">
+      {/* Current catalog */}
+      <div className="adm-panel p-5">
+        <p className="adm-section-tag mb-5">[ CURRENT CATALOG ]</p>
+
+        <div className="space-y-0">
           {products.map((product) => (
             <EditProductForm
               key={product.id}
@@ -777,28 +902,41 @@ export function ProductsCms({
           ))}
         </div>
 
-        <div className="mt-8 grid gap-4 border-t border-stroke pt-6 md:grid-cols-2">
+        {/* Taxonomy summary */}
+        <div
+          className="mt-6 grid gap-4 pt-5 md:grid-cols-2"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
           <div>
-            <p className="label-caps text-muted">Categories</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <p className="adm-section-tag mb-3">[ CATEGORIES ]</p>
+            <div className="flex flex-wrap gap-1.5">
               {categories.map((category) => (
                 <span
                   key={category.id}
-                  className="border border-stroke px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-foreground/60"
+                  className="px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em]"
+                  style={{
+                    color: "var(--adm-muted)",
+                    border: "1px solid var(--adm-border)",
+                    borderRadius: "999px",
+                  }}
                 >
                   {category.name}
                 </span>
               ))}
             </div>
           </div>
-
           <div>
-            <p className="label-caps text-muted">Tags</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <p className="adm-section-tag mb-3">[ TAGS ]</p>
+            <div className="flex flex-wrap gap-1.5">
               {tags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="border border-stroke px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-foreground/60"
+                  className="px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em]"
+                  style={{
+                    color: "var(--adm-muted)",
+                    border: "1px solid var(--adm-border)",
+                    borderRadius: "999px",
+                  }}
                 >
                   {tag.name}
                 </span>
@@ -807,28 +945,32 @@ export function ProductsCms({
           </div>
         </div>
 
-        <div className="mt-8 border-t border-stroke pt-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        {/* Collections link */}
+        <div
+          className="mt-5 pt-5"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="label-caps text-muted">Collections</p>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-foreground/60">
-                Collection pages, hero images, manifesto copy, symbolism defaults, order, and publication
-                status are managed in a dedicated collections CMS.
-              </p>
+              <p className="adm-section-tag mb-2">[ COLLECTIONS ]</p>
+              <AdminHelp>
+                Hero images, manifesto copy, symbolism defaults, sort order, and publication state are managed in the collections module.
+              </AdminHelp>
             </div>
-            <Link
-              href="/admin/collections"
-              className="w-fit border border-stroke px-4 py-3 label-caps transition-colors hover:border-accent hover:text-accent"
-            >
+            <Link href="/admin/collections" className="adm-btn-ghost shrink-0">
               Manage collections
             </Link>
           </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {collections.map((collection) => (
               <span
                 key={collection.id}
-                className="border border-stroke px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-foreground/60"
+                className="px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em]"
+                style={{
+                  color: "var(--adm-muted)",
+                  border: "1px solid var(--adm-border)",
+                  borderRadius: "999px",
+                }}
               >
                 {collection.name}
               </span>
