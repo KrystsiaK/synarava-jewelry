@@ -119,7 +119,9 @@ function EmptyState({ filters, categories, collections, tags }: EmptyStateProps)
 
       <div>
         <p className="label-mono mb-3 text-couture-red">0 pieces found</p>
-        <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">No pieces match these filters.</h2>
+        <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">
+          No pieces matched.
+        </h2>
         <p className="mt-3 max-w-xl text-base leading-[1.85] text-foreground/55">
           The combination you selected returned no results. Try removing one filter at a time,
           or clear everything to browse the full archive.

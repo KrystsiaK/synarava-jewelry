@@ -123,7 +123,9 @@ export default async function ManifestoPage() {
       {/* Section 3 — Heritage */}
       <section className="site-shell relative z-10 overflow-hidden py-20 md:py-32">
         <div className="pointer-events-none absolute right-0 top-0 -translate-y-12 translate-x-6 select-none opacity-[0.05] md:translate-x-[calc(var(--spacing-page-x-desktop))]">
-          <span className="font-serif text-[5rem] leading-none md:text-[12rem]">HERITAGE</span>
+          <span className="font-serif text-[5rem] leading-none md:text-[12rem]">
+            HERITAGE
+          </span>
         </div>
 
         <div className="artifact-grid items-center">
@@ -161,7 +163,9 @@ export default async function ManifestoPage() {
 
             {/* Floating caption — hidden on mobile to prevent overflow */}
             <div className="absolute -bottom-10 right-0 hidden h-36 w-36 items-center justify-center border border-[color:var(--color-border-subtle)] bg-background p-4 text-center sm:flex md:-bottom-12 md:-right-8 md:h-48 md:w-48">
-              <CapsLabel className="text-[10px] tracking-[0.2em]">The evolution of the ancestral cipher</CapsLabel>
+              <CapsLabel className="text-[10px] tracking-[0.2em]">
+                The evolution of the ancestral cipher
+              </CapsLabel>
             </div>
           </ScrollReveal>
         </div>
@@ -171,7 +175,9 @@ export default async function ManifestoPage() {
       <section className="relative z-10 bg-[color:var(--color-charcoal)] py-20 text-background md:py-40">
         <ScrollReveal className="site-shell max-w-4xl text-center" direction="none">
           <div className="mb-8 text-4xl text-[color:var(--color-stone-beige)] md:mb-12 md:text-5xl">✶</div>
-          <h2 className="mb-8 font-serif text-[2.6rem] leading-none md:mb-12 md:text-[5rem]">Identity &amp; Memory</h2>
+          <h2 className="mb-8 font-serif text-[2.6rem] leading-none md:mb-12 md:text-[5rem]">
+            Identity &amp; Memory
+          </h2>
           <div className="mx-auto mb-8 h-px w-16 bg-[color:var(--color-couture-red)] md:mb-12 md:w-24" />
           <p className="mb-12 text-base leading-8 text-white/60 italic md:mb-16 md:text-lg">
             &quot;We do not inherit the earth from our ancestors; we borrow it from our children. We do the same with our stories. SYNARAVA is the vessel for the stories that refuse to be forgotten.&quot;
@@ -204,7 +210,9 @@ export default async function ManifestoPage() {
           </ScrollReveal>
 
           <ScrollReveal className="flex flex-1 flex-col justify-center bg-[color:var(--color-stone-beige)]/30 p-8 md:p-12" direction="right" delay={120}>
-            <h3 className="mb-4 font-serif text-[1.8rem] md:mb-6 md:text-[2.4rem]">Experience the Archive</h3>
+            <h3 className="mb-4 font-serif text-[1.8rem] md:mb-6 md:text-[2.4rem]">
+              Experience the Archive
+            </h3>
             <p className="mb-6 text-base leading-8 text-foreground/70 md:mb-8">
               Our collections travel as exhibitions. Discover the physical presence of SYNARAVA in curated galleries from Minsk to Paris.
             </p>

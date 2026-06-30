@@ -13,7 +13,7 @@ import Link from "next/link";
 
 import { ease, GRAIN_STYLE } from "@/lib/animation";
 import { useCountUp } from "@/lib/hooks/use-count-up";
-import { ShinyText, MagneticButton, PrimaryCtaButton } from "@/components/ui";
+import { ShinyText, PrimaryCtaButton } from "@/components/ui";
 import {
   KodRoda,
   KodRodaStatic,
@@ -107,6 +107,21 @@ const ATELIER_STEPS = [
   },
 ];
 
+function splitHeadlineIntoAnimatedTokens(headline: string) {
+  const normalized = headline.trim().replace(/\s+/g, " ");
+
+  if (normalized.includes(" ")) {
+    return normalized.split(" ");
+  }
+
+  const camelCaseChunks = normalized.match(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+/g);
+  if (camelCaseChunks && camelCaseChunks.length > 1) {
+    return camelCaseChunks;
+  }
+
+  return normalized.match(/.{1,10}/g) ?? [normalized];
+}
+
 /* ─── RotatingText ───────────────────────────────────────────────── */
 function RotatingText() {
   const [index, setIndex] = useState(0);
@@ -146,7 +161,7 @@ function HeroSection({
   const textY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-8%"]);
 
   const headline = title ?? "Ethereal Artifacts";
-  const words = headline.split(" ");
+  const words = splitHeadlineIntoAnimatedTokens(headline);
 
   return (
     <motion.header
@@ -223,13 +238,13 @@ function HeroSection({
 
           <div>
             <h1
-              className="max-w-[10ch] font-serif leading-[0.92] tracking-tight"
+              className="max-w-[10ch] text-balance font-serif leading-[0.92] tracking-tight [overflow-wrap:anywhere]"
               style={{ fontSize: "clamp(2.8rem,7vw,6.5rem)" }}
             >
               {words.map((word, i) => (
-                <span key={i} className="mr-[0.2em] inline-block overflow-hidden last:mr-0">
+                <span key={`${word}-${i}`} className="mr-[0.2em] inline-block max-w-full overflow-hidden last:mr-0">
                   <motion.span
-                    className="inline-block"
+                    className="inline-block max-w-full"
                     initial={{ y: "110%", opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 1, ease, delay: 0.15 + i * 0.12 }}
@@ -267,8 +282,8 @@ function HeroSection({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.9, ease }}
           >
-            <PrimaryCtaButton href={content?.ctaHref ?? "/shop"}>
-              {content?.ctaLabel ?? "Explore Archive"}
+            <PrimaryCtaButton href={content?.ctaHref ?? "/shop"} className="self-start">
+              {content?.ctaLabel ?? "All products"}
             </PrimaryCtaButton>
           </motion.div>
         </div>
@@ -332,13 +347,17 @@ function HeroSection({
 
           {/* Pieces badge */}
           <motion.div
-            className="absolute -left-4 bottom-16 hidden flex-col gap-1 border border-foreground/[0.08] bg-background/85 p-4 backdrop-blur-sm md:flex"
+            className="absolute -left-2 bottom-10 hidden min-w-[9.5rem] flex-col gap-1 border border-foreground/[0.08] bg-background/85 px-4 py-3 backdrop-blur-sm md:flex lg:-left-4 lg:bottom-16"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 1.6, ease }}
           >
             <span className="font-serif text-2xl leading-none">47</span>
-            <span className="label-mono text-[0.65rem] text-muted-ink">Pieces crafted</span>
+            <span className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-muted-ink lg:text-[0.65rem] lg:tracking-[0.2em]">
+              <span className="block whitespace-pre-line leading-[1.22]">
+                Pieces crafted
+              </span>
+            </span>
           </motion.div>
         </div>
       </motion.div>
@@ -449,7 +468,9 @@ function ManifestoSection({ content }: { content?: Record<string, string> }) {
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.8, delay: 0.55 }}
         >
-          <span className="label-mono text-muted-ink">Synarava Studio, 2024</span>
+          <span className="label-mono text-muted-ink">
+            Synarava Studio, 2024
+          </span>
           <div className="flex items-center justify-center gap-5">
             <motion.div
               className="h-px w-14 bg-stone-beige"
@@ -497,7 +518,9 @@ function CollectionsSection({
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease }}
           >
-            <p className="label-mono mb-3 text-muted-ink">Collections 2024</p>
+            <p className="label-mono mb-3 text-muted-ink">
+              Collections 2024
+            </p>
             <h3 className="font-serif" style={{ fontSize: "clamp(2rem,4vw,3rem)" }}>
               {content?.secondaryTitle ?? "Current Archive"}
             </h3>
@@ -695,7 +718,9 @@ function AtelierSection() {
               <h4 className="mb-4 font-serif" style={{ fontSize: "clamp(1.3rem,2vw,1.7rem)" }}>
                 {step.title}
               </h4>
-              <p className="text-sm leading-[1.9] text-muted-ink md:text-base">{step.body}</p>
+              <p className="text-sm leading-[1.9] text-muted-ink md:text-base">
+                {step.body}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -773,7 +798,9 @@ function PatternInterlude() {
               />
               <p className="label-caps mb-1 text-couture-red">{name}</p>
               <p className="label-mono mb-4 text-background/40">{sub}</p>
-              <p className="text-sm leading-[1.9] text-background/55 md:text-base">{desc}</p>
+              <p className="text-sm leading-[1.9] text-background/55 md:text-base">
+                {desc}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -959,8 +986,7 @@ function HeritageSection() {
               The Geometry of Protection
             </h3>
             <p className="mb-8 text-base leading-[1.85] text-foreground/70 md:mb-10 md:text-[1.0625rem]">
-              Every pattern is a word. Every knot is a prayer. We integrate ancestral embroidery
-              motifs into modern jewelry, transforming adornment into a talisman for the modern world.
+              Every pattern is a word. Every knot is a prayer. We integrate ancestral embroidery motifs into modern jewelry, transforming adornment into a talisman for the modern world.
             </p>
             <ul className="space-y-3.5 font-mono text-[0.76rem] uppercase tracking-[0.16em]">
               {SYMBOLISM.map((pt, i) => (
@@ -1036,8 +1062,7 @@ function FinalCTA() {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.22 }}
           >
-            Each piece is a singular artifact — handcrafted, numbered, and rooted in centuries of
-            Belarusian heritage. Yours to carry forward.
+            Each piece is a singular artifact — handcrafted, numbered, and rooted in centuries of Belarusian heritage. Yours to carry forward.
           </motion.p>
           <motion.div
             className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-5"
@@ -1045,7 +1070,9 @@ function FinalCTA() {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.34 }}
           >
-            <PrimaryCtaButton href="/shop">Shop the Collection</PrimaryCtaButton>
+            <PrimaryCtaButton href="/shop">
+              Shop the Collection
+            </PrimaryCtaButton>
 
             <Link
               href="/about"

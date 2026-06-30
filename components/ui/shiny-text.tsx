@@ -9,22 +9,20 @@ export function ShinyText({
 }) {
   return (
     <span className={`relative inline-block ${className ?? ""}`}>
-      {children}
+      <span className="relative z-0">{children}</span>
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{ mixBlendMode: "overlay" }}
+        className="pointer-events-none absolute inset-0 z-10 text-transparent"
+        style={{
+          backgroundImage:
+            "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)",
+          backgroundSize: "200% 100%",
+          animation: "shiny-sweep 4s infinite linear",
+          backgroundClip: "text",
+          WebkitBackgroundClip: "text",
+        }}
       >
-        <span
-          aria-hidden="true"
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-            animation: "shiny-sweep 4s infinite linear",
-            willChange: "transform",
-          }}
-        />
+        {children}
       </span>
     </span>
   );

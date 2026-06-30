@@ -401,7 +401,7 @@ const defaultPages = [
     content: {
       eyebrow: "Couture Collection №01",
       body: "Handcrafted jewelry that bridges the gap between ancient Slavic mysticism and the contemporary architectural avant-garde.",
-      ctaLabel: "Explore Archive",
+      ctaLabel: "All products",
       ctaHref: "/shop",
       quote:
         "We do not create accessories. We archive the soul of materials—wood that has witnessed centuries, stone that holds the earth’s heat, and the silent rhythm of folk geometry.",

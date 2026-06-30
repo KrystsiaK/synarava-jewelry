@@ -282,7 +282,6 @@ function ProductHero({ product }: { product: ProductSummary }) {
               transition={{ duration: 0.6, delay: 1.25, ease }}
             />
 
-
             {/* Series badge */}
             <motion.div
               className="absolute -left-4 bottom-14 hidden lg:block"

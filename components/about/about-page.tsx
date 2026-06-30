@@ -335,7 +335,9 @@ function PatternShowcase() {
 
               <p className="label-caps mb-2 text-couture-red">{name}</p>
               <p className="label-mono mb-4 text-background/40">{subhead}</p>
-              <p className="text-sm leading-[1.9] text-background/55 md:text-base">{description}</p>
+              <p className="text-sm leading-[1.9] text-background/55 md:text-base">
+                {description}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -568,7 +570,7 @@ function DarkQuoteSection() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease }}
         >
-          04 // Identity &amp; Memory
+          04 // Identity & Memory
         </motion.p>
 
         <motion.blockquote

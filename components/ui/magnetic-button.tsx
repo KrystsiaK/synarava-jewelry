@@ -1,7 +1,10 @@
 "use client";
 
 import { useRef, useCallback } from "react";
+import Link from "next/link";
 import { motion, useMotionValue, useSpring } from "motion/react";
+
+const MotionLink = motion.create(Link);
 
 export function MagneticButton({
   children,
@@ -46,9 +49,9 @@ export function MagneticButton({
 
   if (href) {
     return (
-      <motion.a href={href} {...shared}>
+      <MotionLink href={href} {...shared}>
         {children}
-      </motion.a>
+      </MotionLink>
     );
   }
 

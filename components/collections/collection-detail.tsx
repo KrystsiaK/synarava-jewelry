@@ -36,7 +36,7 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
   return (
     <motion.header
       ref={ref}
-      className="relative flex h-[90vh] min-h-[600px] w-full items-end overflow-hidden pb-16 md:h-screen md:pb-20"
+      className="relative flex h-[90vh] min-h-[600px] w-full items-end overflow-hidden pb-16 pt-28 md:h-screen md:pb-20 md:pt-32"
     >
       {/* Parallax image */}
       <motion.div className="absolute inset-0 scale-110" style={{ y: imgY }}>
@@ -56,10 +56,9 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
       {/* Red side accent */}
       <div className="pointer-events-none absolute right-0 top-0 h-full w-1 bg-couture-red/40" />
 
-
       {/* Breadcrumb */}
       <motion.div
-        className="absolute left-0 right-0 top-28 z-20 px-5 md:px-16"
+        className="absolute left-0 right-0 top-32 z-20 px-5 md:top-36 md:px-16"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.3 }}
@@ -251,7 +250,7 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
             <>
               <div className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60" />
               <div className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60" />
-              <div className="absolute -bottom-5 -right-4 hidden items-center justify-center border border-foreground/[0.07] bg-stone-beige/90 p-5 backdrop-blur-sm sm:flex md:-right-8 md:p-7">
+              <div className="absolute bottom-4 right-4 z-10 hidden items-center justify-center border border-foreground/[0.07] bg-stone-beige/90 p-5 backdrop-blur-sm sm:flex md:bottom-6 md:right-6 md:p-7">
                 <span className="text-center font-mono text-[0.72rem] uppercase tracking-[0.14em]">
                   {collection.accent}
                   <br />
