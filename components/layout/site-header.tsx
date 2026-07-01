@@ -14,11 +14,17 @@ type SiteHeaderProps = {
   initialCartCount: number;
 };
 
+const HIDE_SCROLL_DELTA = 8;
+const REVEAL_SCROLL_DELTA = 4;
+const PINNED_TOP_OFFSET = 96;
+
 export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
   const pathname = usePathname();
   const { t } = useTranslations();
   const [cartCountOverride, setCartCountOverride] = useState<number | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const [hasScrolledHeader, setHasScrolledHeader] = useState(false);
   const cartCount = cartCountOverride ?? initialCartCount;
   const hasCartItems = cartCount > 0;
 
@@ -43,10 +49,47 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
+
     return () => {
       document.body.style.overflow = "";
     };
   }, [isMenuOpen]);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let frame = 0;
+
+    function updateHeader() {
+      const currentY = window.scrollY;
+      const delta = currentY - lastY;
+
+      setHasScrolledHeader(currentY > 16);
+
+      if (currentY <= PINNED_TOP_OFFSET) {
+        setIsHeaderHidden(false);
+      } else if (delta > HIDE_SCROLL_DELTA) {
+        setIsHeaderHidden(true);
+      } else if (delta < -REVEAL_SCROLL_DELTA) {
+        setIsHeaderHidden(false);
+      }
+
+      lastY = currentY;
+      frame = 0;
+    }
+
+    function handleScroll() {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateHeader);
+    }
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   function isActive(match: string) {
     if (match === "/") {
@@ -66,12 +109,17 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
 
   return (
     <>
-      <header className="artifact-nav relative">
+      <header
+        className="artifact-nav"
+        data-hidden={isHeaderHidden && !isMenuOpen ? "true" : "false"}
+        data-scrolled={hasScrolledHeader ? "true" : "false"}
+        data-menu-open={isMenuOpen ? "true" : "false"}
+      >
         <div className="z-10 flex items-center gap-2 md:gap-4">
           <button
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
-            className="inline-flex size-11 items-center justify-center border border-foreground/10 text-foreground transition-colors hover:border-foreground/25 hover:bg-foreground/5 xl:hidden"
+            className="site-nav-icon-button xl:hidden"
             aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isMenuOpen}
           >
@@ -80,10 +128,10 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
 
           <Link
             href="/"
-            className="absolute left-1/2 flex -translate-x-1/2 items-center justify-center md:static md:translate-x-0 md:gap-4"
+            className="site-nav-brand absolute left-1/2 flex -translate-x-1/2 items-center justify-center md:static md:translate-x-0 md:gap-4"
             aria-label="SYNARAVA"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden md:h-14 md:w-14 xl:h-20 xl:w-20">
+            <span className="site-nav-mark flex shrink-0 items-center justify-center overflow-hidden">
               <BrandMark
                 alt=""
                 priority
@@ -91,7 +139,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
                 className="h-full w-full object-contain object-center p-0.5 md:p-0.75 xl:p-1.5"
               />
             </span>
-            <span className="hidden font-serif text-[0.98rem] tracking-[0.2em] text-foreground md:inline md:text-[1.7rem] md:tracking-[0.28em]">
+            <span className="site-nav-wordmark hidden font-serif text-[0.98rem] tracking-[0.2em] text-foreground md:inline md:text-[1.45rem] md:tracking-[0.25em]">
               SYNARAVA
             </span>
           </Link>

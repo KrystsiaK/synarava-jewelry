@@ -9,7 +9,6 @@ import {
   useInView,
 } from "motion/react";
 import Link from "next/link";
-import { EditorialSplitFeature } from "@/components/ui";
 import type { CollectionSummary, ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -228,57 +227,77 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
 
 /* ─── Collection Story ───────────────────────────────────────────── */
 function CollectionStory({ collection }: { collection: CollectionDetail }) {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-14%" });
+
   return (
-    <section className="bg-background py-20 md:py-40">
-      <div className="site-shell">
-        <EditorialSplitFeature
-          showDivider={false}
-          imageSrc={collection.heroImage}
-          imageAlt={`${collection.name} detail`}
-          imagePanelClassName="md:col-span-5"
-          contentPanelClassName="md:col-span-6 md:col-start-7"
-          imageFrameClassName="aspect-[3/4] md:min-h-[36rem]"
-          imageClassName="transition-transform duration-700 hover:scale-[1.03]"
-          topMeta={<span className="label-mono block text-couture-red">Collection Story</span>}
-          title={(
-            <h2 className="font-serif" style={{ fontSize: "clamp(1.8rem,3vw,2.6rem)" }}>
-              A world with a clear visual logic
-            </h2>
-          )}
-          description={collection.summary}
-          imageOverlay={(
-            <>
-              <div className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60" />
-              <div className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60" />
-              <div className="absolute bottom-4 right-4 z-10 hidden items-center justify-center border border-foreground/[0.07] bg-stone-beige/90 p-5 backdrop-blur-sm sm:flex md:bottom-6 md:right-6 md:p-7">
-                <span className="text-center font-mono text-[0.72rem] uppercase tracking-[0.14em]">
-                  {collection.accent}
-                  <br />
-                  <span className="text-couture-red">accent code</span>
-                </span>
+    <section ref={ref} className="relative overflow-hidden bg-foreground py-16 text-background md:py-16 lg:py-28">
+      <div className="pointer-events-none absolute right-[-7vw] top-[-4rem] hidden font-serif text-[18vw] leading-none text-background/[0.035] md:block">
+        {collection.accent}
+      </div>
+      <div className="site-shell relative">
+        <div className="grid items-start gap-10 md:grid-cols-[minmax(0,0.96fr)_minmax(18rem,0.66fr)] md:gap-10 lg:gap-14">
+          <motion.figure
+            className="relative m-0 -mx-5 overflow-hidden bg-charcoal md:mx-0 md:-ml-16 md:w-[calc(100%+4rem)] lg:-ml-28 lg:w-[calc(100%+7rem)] xl:-ml-40 xl:w-[calc(100%+10rem)]"
+            initial={{ opacity: 0, transform: "translate3d(-36px, 0, 0)" }}
+            animate={isInView ? { opacity: 1, transform: "translate3d(0, 0, 0)" } : {}}
+            transition={{ duration: 0.85, ease }}
+          >
+            <div className="aspect-[4/5] overflow-hidden sm:aspect-[5/4] md:aspect-[0.86] lg:aspect-[0.98]">
+              <motion.img
+                alt={`${collection.name} detail`}
+                src={collection.heroImage}
+                className="h-full w-full object-cover object-[48%_44%] brightness-[0.78] saturate-[0.84] contrast-[1.03]"
+                initial={{ transform: "scale(1.06)" }}
+                animate={isInView ? { transform: "scale(1)" } : {}}
+                transition={{ duration: 1.25, ease }}
+              />
+            </div>
+
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-foreground/22 via-transparent to-foreground/18" />
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-background/20" />
+            <figcaption className="absolute bottom-5 left-5 flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-background/72 md:bottom-7 md:left-7">
+              <span>{collection.accent}</span>
+              <span className="h-px w-12 bg-couture-red" />
+              <span className="text-couture-red">Accent code</span>
+            </figcaption>
+          </motion.figure>
+
+          <motion.div
+            className="relative z-10 md:py-8 lg:py-12"
+            initial={{ opacity: 0, transform: "translate3d(28px, 0, 0)" }}
+            animate={isInView ? { opacity: 1, transform: "translate3d(0, 0, 0)" } : {}}
+            transition={{ duration: 0.8, ease, delay: 0.08 }}
+          >
+            <div className="border-y border-background/14 py-7 lg:py-8">
+              <div className="mb-6 flex items-center gap-4 text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-couture-red">
+                <span>Collection Story</span>
+                <span className="h-px flex-1 bg-current/35" />
               </div>
-            </>
-          )}
-          action={<div className="h-px w-24 bg-couture-red" />}
-          footer={(
-            <div className="space-y-6">
-              <div className="border-l-2 border-couture-red/30 pl-6 md:pl-8">
-                <p className="label-caps mb-3 text-couture-red">{collection.symbolismLabel}</p>
-                <p className="mb-2 font-serif" style={{ fontSize: "clamp(1.1rem,1.8vw,1.4rem)" }}>
-                  {collection.symbolismTitle}
-                </p>
-                <p className="text-sm leading-[1.9] text-foreground/65 md:text-base">
-                  {collection.symbolismBody}
-                </p>
-              </div>
+              <h2 className="max-w-[10.5ch] text-balance font-serif leading-[0.93] tracking-[-0.02em]" style={{ fontSize: "clamp(2.45rem,4.4vw,4.45rem)" }}>
+                A world with a clear visual logic
+              </h2>
+              <p className="mt-7 max-w-xl text-base leading-[1.85] text-background/68 md:text-[1.04rem]">
+                {collection.summary}
+              </p>
+            </div>
+
+            <div className="mt-7 border-t border-background/14 pt-6 lg:mt-9 lg:pt-8">
+              <p className="mb-4 text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-couture-red">{collection.symbolismLabel}</p>
+              <p className="mb-4 max-w-[18rem] font-serif leading-tight tracking-[-0.015em]" style={{ fontSize: "clamp(1.35rem,2.1vw,1.85rem)" }}>
+                {collection.symbolismTitle}
+              </p>
+              <p className="max-w-md text-sm leading-[1.85] text-background/62 md:text-[0.98rem]">
+                {collection.symbolismBody}
+              </p>
               {collection.symbolismBody2 ? (
-                <p className="text-sm leading-[1.9] text-foreground/55 md:text-base">
+                <p className="mt-4 max-w-md text-sm leading-[1.85] text-background/52 md:text-[0.98rem]">
                   {collection.symbolismBody2}
                 </p>
               ) : null}
             </div>
-          )}
-        />
+          </motion.div>
+        </div>
       </div>
     </section>
   );

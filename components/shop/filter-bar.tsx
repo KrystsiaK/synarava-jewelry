@@ -28,6 +28,8 @@ export type FilterBarProps = {
 const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
+const SHOP_SCROLL_OPTIONS = { scroll: false };
+
 export function FilterBar({
   categories,
   collections,
@@ -69,7 +71,7 @@ export function FilterBar({
       saveFiltersToSession(next);
       startTransition(() => {
         const qs = buildSearchParams(next);
-        router.push(qs ? `/shop?${qs}` : "/shop");
+        router.push(qs ? `/shop?${qs}` : "/shop", SHOP_SCROLL_OPTIONS);
       });
     },
     [router],
@@ -98,7 +100,7 @@ export function FilterBar({
     setFilters({});
     setSearch("");
     clearFiltersSession();
-    startTransition(() => router.push("/shop"));
+    startTransition(() => router.push("/shop", SHOP_SCROLL_OPTIONS));
   }, [router]);
 
   // ── Debounced search ───────────────────────────────────────────────────────
@@ -129,28 +131,28 @@ export function FilterBar({
 
       {/* ── Session restore banner ───────────────────────────────────────────── */}
       {pendingRestore && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 border border-stroke bg-surface/60 px-4 py-3">
-          <span className="label-mono text-[0.72rem] text-muted/70 shrink-0">Last session:</span>
+        <div className="mb-4 flex flex-wrap items-center gap-3 border border-foreground/[0.08] bg-surface/80 px-4 py-3">
+          <span className="shrink-0 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted/70">Last viewing:</span>
 
           {/* Summary pills */}
           <div className="flex flex-wrap gap-1.5">
             {pendingRestore.category && (
-              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 {labelOf(pendingRestore.category, categories)}
               </span>
             )}
             {pendingRestore.collection && (
-              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 {labelOf(pendingRestore.collection, collections)}
               </span>
             )}
             {pendingRestore.tag && (
-              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 {labelOf(pendingRestore.tag, tags)}
               </span>
             )}
             {pendingRestore.q && (
-              <span className="label-mono text-[0.68rem] border border-stroke px-2 py-0.5 text-foreground/60">
+              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 &ldquo;{pendingRestore.q}&rdquo;
               </span>
             )}
@@ -182,16 +184,30 @@ export function FilterBar({
       )}
 
       {/* ── Desktop filter bar ──────────────────────────────────────────────── */}
-      <div className="panel hidden md:flex items-center justify-between gap-6 px-6 py-3.5">
+      <div className="hidden border-y border-foreground/[0.08] bg-background/82 md:block">
+        <div className="flex items-end justify-between gap-8 border-b border-foreground/[0.06] px-5 py-4 lg:px-6">
+          <div>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-couture-red">
+              Curate the archive
+            </p>
+            <p className="mt-1 max-w-xl text-sm leading-6 text-foreground/58">
+              Refine by form, collection, material language, or a quiet search term.
+            </p>
+          </div>
+
+          <div className="shrink-0 text-right">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-muted/55">
+              Showing
+            </p>
+            <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground">
+              {totalCount} <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{totalCount === 1 ? "piece" : "pieces"}</span>
+            </p>
+          </div>
+        </div>
 
         {/* Left: label + divider + dropdowns */}
-        <div className="flex items-center gap-6">
-          <span className="label-mono text-[0.72rem] text-muted/50 shrink-0 tracking-[0.2em]">
-            Refine
-          </span>
-          <div className="h-5 w-px bg-stroke shrink-0" />
-
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-5 px-5 py-4 lg:px-6">
+          <div className="flex min-w-0 items-center gap-2.5">
             <FilterDropdown
               label="Category"
               options={categories}
@@ -214,12 +230,9 @@ export function FilterBar({
               allLabel="All tags"
             />
           </div>
-        </div>
 
-        {/* Right: search + count */}
-        <div className="flex items-center gap-5">
-          <div className="relative flex items-center">
-            <Search className="absolute left-0 size-3.5 text-muted/60 pointer-events-none" aria-hidden="true" />
+          <div className="relative flex w-[min(28vw,17rem)] items-center border-b border-foreground/[0.14] transition-colors focus-within:border-couture-red">
+            <Search className="pointer-events-none absolute left-0 size-3.5 text-muted/60" aria-hidden="true" />
             <input
               ref={searchRef}
               type="search"
@@ -228,10 +241,8 @@ export function FilterBar({
               placeholder="Search archive…"
               aria-label="Search products"
               className={cn(
-                "bg-transparent pl-6 pr-6 font-mono text-[0.78rem] uppercase tracking-[0.14em]",
-                "placeholder:text-muted/40 outline-none w-44 transition-all duration-200",
-                "border-b border-transparent focus:border-accent",
-                search && "border-stroke",
+                "w-full bg-transparent py-2 pl-6 pr-6 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
+                "placeholder:text-muted/42 outline-none transition-all duration-200",
               )}
             />
             {search && (
@@ -245,18 +256,12 @@ export function FilterBar({
               </button>
             )}
           </div>
-
-          <div className="h-5 w-px bg-stroke" />
-
-          <span className="label-mono text-[0.72rem] text-muted/50 whitespace-nowrap tabular-nums">
-            {totalCount} {totalCount === 1 ? "piece" : "pieces"}
-          </span>
         </div>
       </div>
 
       {/* ── Mobile filter row ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 md:hidden">
-        <div className="relative flex flex-1 items-center border-b border-stroke">
+        <div className="relative flex flex-1 items-center border-b border-foreground/[0.14]">
           <Search className="absolute left-0 size-3.5 shrink-0 text-muted/60 pointer-events-none" aria-hidden="true" />
           <input
             type="search"
@@ -264,7 +269,7 @@ export function FilterBar({
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search…"
             aria-label="Search products"
-            className="w-full bg-transparent pl-6 pr-6 py-3 font-mono text-[0.78rem] uppercase tracking-[0.14em] placeholder:text-muted/40 outline-none"
+            className="w-full bg-transparent py-3 pl-6 pr-6 text-[0.78rem] font-semibold uppercase tracking-[0.13em] placeholder:text-muted/42 outline-none"
           />
           {search && (
             <button
@@ -286,8 +291,8 @@ export function FilterBar({
             "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
             "transition-all duration-200 cursor-pointer active:scale-[0.97]",
             activeCount > 0
-              ? "border-accent bg-accent/[0.06] text-accent"
-              : "border-stroke text-muted hover:border-foreground/25 hover:text-foreground",
+              ? "border-couture-red bg-couture-red/[0.06] text-couture-red"
+              : "border-foreground/[0.12] text-muted hover:border-foreground/25 hover:text-foreground",
           )}
         >
           <SlidersHorizontal className="size-3.5" aria-hidden="true" />
@@ -300,8 +305,8 @@ export function FilterBar({
         </button>
 
         {/* Labelled count */}
-        <span className="label-mono text-[0.7rem] text-muted/50 whitespace-nowrap tabular-nums shrink-0">
-          {totalCount} {totalCount === 1 ? "pc" : "pcs"}
+        <span className="shrink-0 whitespace-nowrap text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted/55 tabular-nums">
+          {totalCount} {totalCount === 1 ? "piece" : "pieces"}
         </span>
       </div>
 

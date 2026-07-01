@@ -94,9 +94,9 @@ export function FilterDropdown({
         top: panelPos.top,
         left: panelPos.left,
         minWidth: panelPos.minWidth,
-        zIndex: 9999,
+        zIndex: 70,
       }}
-      className="border border-stroke bg-panel/95 backdrop-blur-sm shadow-[0_16px_40px_rgba(0,0,0,0.14)] py-1.5"
+      className="border border-foreground/[0.08] bg-background/96 py-1.5 shadow-[0_10px_24px_rgba(25,21,18,0.12)] backdrop-blur-md"
     >
       {/* All option */}
       <button
@@ -105,8 +105,8 @@ export function FilterDropdown({
         type="button"
         onClick={() => { onChange(""); setOpen(false); }}
         className={cn(
-          "flex w-full items-center justify-between gap-4 px-4 py-3 label-mono text-left transition-colors cursor-pointer",
-          "min-h-[44px] hover:bg-accent/[0.06]",
+          "flex min-h-[44px] w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left",
+          "text-[0.74rem] font-semibold uppercase tracking-[0.14em] transition-colors hover:bg-couture-red/[0.05]",
           !isActive ? "text-foreground" : "text-muted hover:text-foreground",
         )}
       >
@@ -115,10 +115,10 @@ export function FilterDropdown({
       </button>
 
       {/* Divider */}
-      <div className="mx-4 my-1 h-px bg-stroke" />
+      <div className="mx-4 my-1 h-px bg-foreground/[0.08]" />
 
       {options.length === 0 ? (
-        <p className="px-4 py-3 label-mono text-muted/60">No options</p>
+        <p className="px-4 py-3 text-[0.74rem] font-semibold uppercase tracking-[0.14em] text-muted/60">No options</p>
       ) : (
         options.map((option) => (
           <button
@@ -128,8 +128,8 @@ export function FilterDropdown({
             type="button"
             onClick={() => { onChange(option.value); setOpen(false); }}
             className={cn(
-              "flex w-full items-center justify-between gap-4 px-4 py-3 label-mono text-left transition-colors cursor-pointer",
-              "min-h-[44px] hover:bg-accent/[0.06]",
+              "flex min-h-[44px] w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left",
+              "text-[0.74rem] font-semibold uppercase tracking-[0.14em] transition-colors hover:bg-couture-red/[0.05]",
               value === option.value ? "text-foreground" : "text-muted hover:text-foreground",
             )}
           >
@@ -152,14 +152,14 @@ export function FilterDropdown({
         disabled={disabled}
         className={cn(
           /* base */
-          "inline-flex items-center gap-2 px-4 py-2 border transition-all duration-200 cursor-pointer",
-          "label-caps focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
+          "inline-flex min-h-10 cursor-pointer items-center gap-2 border px-3.5 py-2 transition-all duration-200",
+          "text-[0.7rem] font-semibold uppercase tracking-[0.16em] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
           "disabled:cursor-not-allowed disabled:opacity-40",
           "active:scale-[0.97]",
           /* states */
           isActive
-            ? "border-accent bg-accent/[0.06] text-accent"
-            : "border-stroke text-muted hover:border-foreground/25 hover:text-foreground",
+            ? "border-accent bg-couture-red/[0.055] text-couture-red"
+            : "border-foreground/[0.1] bg-surface/45 text-muted hover:border-foreground/24 hover:bg-surface hover:text-foreground",
           open && !isActive && "border-foreground/25 text-foreground",
         )}
       >

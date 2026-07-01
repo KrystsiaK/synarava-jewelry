@@ -41,7 +41,7 @@ export function FilterChips({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center gap-2.5"
       role="group"
       aria-label="Active filters"
       data-testid="filter-chips"
@@ -49,14 +49,14 @@ export function FilterChips({
       {chips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-0 border border-accent/30 bg-accent/[0.05] overflow-hidden"
+          className="inline-flex items-center gap-0 overflow-hidden border border-couture-red/22 bg-background/70"
         >
           {/* Dimension label — dim prefix */}
-          <span className="label-mono text-[0.65rem] text-muted/70 px-2.5 py-1.5 border-r border-accent/20 select-none">
+          <span className="select-none border-r border-couture-red/14 px-2.5 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.15em] text-muted/70">
             {DIM_LABELS[chip.key]}
           </span>
           {/* Value */}
-          <span className="label-mono text-accent px-2.5 py-1.5">
+          <span className="px-2.5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-couture-red">
             {chip.value}
           </span>
           {/* Remove */}
@@ -75,7 +75,7 @@ export function FilterChips({
         <button
           type="button"
           onClick={onClearAll}
-          className="label-caps text-muted/60 border-b border-muted/20 pb-0.5 transition-colors hover:text-foreground hover:border-foreground/40 cursor-pointer"
+          className="cursor-pointer border-b border-muted/20 pb-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted/60 transition-colors hover:border-foreground/40 hover:text-foreground"
         >
           Clear all
         </button>
