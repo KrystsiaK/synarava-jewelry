@@ -107,6 +107,22 @@ export type SavedCollectionPayload = {
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
 };
 
+export type PageActionState = {
+  error?: string;
+  success?: string;
+  page?: SavedPagePayload;
+};
+
+export type SavedPagePayload = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: unknown;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
+};
+
 export type ProductActionState = {
   error?: string;
   success?: string;
@@ -149,6 +165,99 @@ export type SavedProductPayload = {
   }[];
 };
 
+export type CategoryActionState = {
+  error?: string;
+  success?: string;
+  category?: SavedCategoryPayload;
+  deletedCategoryId?: string;
+  affectedProducts?: number;
+};
+
+export type SavedCategoryPayload = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+};
+
+export type TagActionState = {
+  error?: string;
+  success?: string;
+  tag?: SavedTagPayload;
+  deletedTagId?: string;
+  affectedProducts?: number;
+};
+
+export type SavedTagPayload = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+async function getSavedProductPayload(productId: string): Promise<SavedProductPayload> {
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      slug: true,
+      sku: true,
+      name: true,
+      seriesLabel: true,
+      shortDescription: true,
+      description: true,
+      materialLine: true,
+      symbolismLabel: true,
+      symbolismTitle: true,
+      symbolismBody: true,
+      symbolismBody2: true,
+      details: true,
+      imageUrl: true,
+      priceCents: true,
+      status: true,
+      visibility: true,
+      category: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+        },
+      },
+      collections: {
+        include: {
+          collection: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+      tags: {
+        include: {
+          tag: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!product) {
+    throw new Error("Product not found.");
+  }
+
+  return product;
+}
+
 function validateCollectionInput(input: {
   name: string;
   slug: string;
@@ -176,10 +285,11 @@ function validateCollectionInput(input: {
   return fieldErrors;
 }
 
-export async function savePageAction(formData: FormData) {
+export async function savePageAction(formData: FormData): Promise<PageActionState> {
   await requirePermission("pages.manage", "/admin/pages");
 
   const slug = String(formData.get("slug") ?? "");
+  const workflowState = String(formData.get("workflowState") ?? "PUBLISHED");
   const title = String(formData.get("title") ?? "").trim();
   const excerpt = String(formData.get("excerpt") ?? "").trim();
   const eyebrow = String(formData.get("eyebrow") ?? "").trim();
@@ -190,7 +300,13 @@ export async function savePageAction(formData: FormData) {
   const secondaryTitle = String(formData.get("secondaryTitle") ?? "").trim();
   const secondaryBody = String(formData.get("secondaryBody") ?? "").trim();
 
-  await db.page.update({
+  if (!slug || !title) {
+    return { error: "Page slug and title are required." };
+  }
+
+  const isPublished = workflowState === "PUBLISHED";
+
+  const page = await db.page.update({
     where: { slug },
     data: {
       title,
@@ -204,67 +320,192 @@ export async function savePageAction(formData: FormData) {
         secondaryTitle,
         secondaryBody,
       },
-      status: "PUBLISHED",
-      visibility: "PUBLIC",
-      publishedAt: new Date(),
+      status: isPublished ? "PUBLISHED" : "DRAFT",
+      visibility: isPublished ? "PUBLIC" : "PRIVATE",
+      publishedAt: isPublished ? new Date() : null,
+    },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      excerpt: true,
+      content: true,
+      status: true,
+      visibility: true,
     },
   });
 
   revalidateStorefront();
   revalidatePath(`/admin/pages?updated=${slug}`);
+  return { success: "Page updated.", page };
 }
 
-export async function saveCategoryAction(formData: FormData) {
+export async function updatePageStatusAction(formData: FormData): Promise<PageActionState> {
+  await requirePermission("pages.manage", "/admin/pages");
+
+  const slug = String(formData.get("slug") ?? "").trim();
+  const action = String(formData.get("action") ?? "").trim();
+
+  if (!slug) {
+    return { error: "Page slug is missing." };
+  }
+
+  const state =
+    action === "publish"
+      ? { status: "PUBLISHED" as const, visibility: "PUBLIC" as const, publishedAt: new Date() }
+      : action === "draft"
+        ? { status: "DRAFT" as const, visibility: "PRIVATE" as const, publishedAt: null }
+        : action === "archive"
+          ? { status: "ARCHIVED" as const, visibility: "PRIVATE" as const, publishedAt: null }
+          : null;
+
+  if (!state) {
+    return { error: "Unknown page action." };
+  }
+
+  const page = await db.page.update({
+    where: { slug },
+    data: state,
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      excerpt: true,
+      content: true,
+      status: true,
+      visibility: true,
+    },
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/pages");
+  return { success: `Page moved to ${page.status.toLowerCase()}.`, page };
+}
+
+export async function saveCategoryAction(formData: FormData): Promise<CategoryActionState> {
   await requirePermission("products.manage", "/admin/products");
 
+  const categoryId = String(formData.get("categoryId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
-    return;
+    return { error: "Category name is required." };
   }
 
   const slug = slugify(String(formData.get("slug") ?? "") || name);
   const description = String(formData.get("description") ?? "").trim();
+  const sortOrder = Number(String(formData.get("sortOrder") ?? "0").trim() || "0");
 
-  await db.productCategory.upsert({
-    where: { slug },
+  const category = await db.productCategory.upsert({
+    where: categoryId ? { id: categoryId } : { slug },
     update: {
+      slug,
       name,
       description,
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     },
     create: {
       slug,
       name,
       description,
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      description: true,
+      sortOrder: true,
     },
   });
 
   revalidateStorefront();
   revalidatePath("/admin/products");
+  revalidatePath("/admin/categories");
+  return { success: categoryId ? "Category updated." : "Category created.", category };
 }
 
-export async function saveTagAction(formData: FormData) {
+export async function deleteCategoryAction(formData: FormData): Promise<CategoryActionState> {
   await requirePermission("products.manage", "/admin/products");
 
+  const categoryId = String(formData.get("categoryId") ?? "").trim();
+
+  if (!categoryId) {
+    return { error: "Category id is missing." };
+  }
+
+  const affectedProducts = await db.product.count({ where: { categoryId } });
+
+  await db.productCategory.delete({
+    where: { id: categoryId },
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/categories");
+  return {
+    success: "Category deleted. Products that used it now have no category.",
+    deletedCategoryId: categoryId,
+    affectedProducts,
+  };
+}
+
+export async function saveTagAction(formData: FormData): Promise<TagActionState> {
+  await requirePermission("products.manage", "/admin/products");
+
+  const tagId = String(formData.get("tagId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
-    return;
+    return { error: "Tag name is required." };
   }
 
   const slug = slugify(String(formData.get("slug") ?? "") || name);
 
-  await db.tag.upsert({
-    where: { slug },
+  const tag = await db.tag.upsert({
+    where: tagId ? { id: tagId } : { slug },
     update: {
+      slug,
       name,
     },
     create: {
       slug,
       name,
     },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+    },
   });
 
   revalidateStorefront();
   revalidatePath("/admin/products");
+  revalidatePath("/admin/tags");
+  return { success: tagId ? "Tag updated." : "Tag created.", tag };
+}
+
+export async function deleteTagAction(formData: FormData): Promise<TagActionState> {
+  await requirePermission("products.manage", "/admin/products");
+
+  const tagId = String(formData.get("tagId") ?? "").trim();
+
+  if (!tagId) {
+    return { error: "Tag id is missing." };
+  }
+
+  const affectedProducts = await db.productTag.count({ where: { tagId } });
+
+  await db.tag.delete({
+    where: { id: tagId },
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/tags");
+  return {
+    success: "Tag deleted and removed from products.",
+    deletedTagId: tagId,
+    affectedProducts,
+  };
 }
 
 export async function saveCollectionAction(
@@ -412,6 +653,60 @@ export async function deleteCollectionAction(
     resetKey: Date.now(),
     deletedCollectionId: collectionId,
   };
+}
+
+export async function updateCollectionStatusAction(
+  _prevState: CollectionActionState,
+  formData: FormData,
+): Promise<CollectionActionState> {
+  await requirePermission("products.manage", "/admin/collections");
+
+  const collectionId = String(formData.get("collectionId") ?? "").trim();
+  const action = String(formData.get("action") ?? "").trim();
+
+  if (!collectionId) {
+    return { error: "Collection id is missing." };
+  }
+
+  const state =
+    action === "publish"
+      ? { status: "ACTIVE" as const, visibility: "PUBLIC" as const, publishedAt: new Date() }
+      : action === "draft"
+        ? { status: "DRAFT" as const, visibility: "PRIVATE" as const, publishedAt: null }
+        : action === "archive"
+          ? { status: "ARCHIVED" as const, visibility: "PRIVATE" as const, publishedAt: null }
+          : null;
+
+  if (!state) {
+    return { error: "Unknown collection action." };
+  }
+
+  const collection = await db.collection.update({
+    where: { id: collectionId },
+    data: state,
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      code: true,
+      subtitle: true,
+      description: true,
+      manifesto: true,
+      searchSummary: true,
+      symbolismLabel: true,
+      symbolismTitle: true,
+      symbolismBody: true,
+      symbolismBody2: true,
+      heroImageUrl: true,
+      sortOrder: true,
+      status: true,
+      visibility: true,
+    },
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/collections");
+  return { success: `Collection moved to ${collection.status.toLowerCase()}.`, collection };
 }
 
 export async function saveProductAction(formData: FormData): Promise<ProductActionState> {
@@ -583,57 +878,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       visibility: isPublished ? "PUBLIC" : "PRIVATE",
       publishedAt: isPublished ? new Date() : null,
     },
-    select: {
-      id: true,
-      slug: true,
-      sku: true,
-      name: true,
-      seriesLabel: true,
-      shortDescription: true,
-      description: true,
-      materialLine: true,
-      symbolismLabel: true,
-      symbolismTitle: true,
-      symbolismBody: true,
-      symbolismBody2: true,
-      details: true,
-      imageUrl: true,
-      priceCents: true,
-      status: true,
-      visibility: true,
-      category: {
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-        },
-      },
-      collections: {
-        include: {
-          collection: {
-            select: {
-              id: true,
-              slug: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: {
-          sortOrder: "asc",
-        },
-      },
-      tags: {
-        include: {
-          tag: {
-            select: {
-              id: true,
-              slug: true,
-              name: true,
-            },
-          },
-        },
-      },
-    },
+    select: { id: true, slug: true },
   });
 
   await db.productCollection.deleteMany({
@@ -673,10 +918,12 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   revalidatePath("/admin/products");
   revalidatePath(`/products/${product.slug}`);
 
+  const savedProduct = await getSavedProductPayload(product.id);
+
   return {
     success: wasCreate ? "Product created." : "Product updated.",
     created: wasCreate,
-    product,
+    product: savedProduct,
   };
 }
 
@@ -706,5 +953,44 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
   return {
     success: "Product deleted.",
     deletedProductId: productId,
+  };
+}
+
+export async function updateProductStatusAction(formData: FormData): Promise<ProductActionState> {
+  await requirePermission("products.manage", "/admin/products");
+
+  const productId = String(formData.get("productId") ?? "").trim();
+  const action = String(formData.get("action") ?? "").trim();
+
+  if (!productId) {
+    return { error: "Product id is missing." };
+  }
+
+  const state =
+    action === "publish"
+      ? { status: "ACTIVE" as const, visibility: "PUBLIC" as const, publishedAt: new Date() }
+      : action === "draft"
+        ? { status: "DRAFT" as const, visibility: "PRIVATE" as const, publishedAt: null }
+        : action === "archive"
+          ? { status: "ARCHIVED" as const, visibility: "PRIVATE" as const, publishedAt: null }
+          : null;
+
+  if (!state) {
+    return { error: "Unknown product action." };
+  }
+
+  const product = await db.product.update({
+    where: { id: productId },
+    data: state,
+    select: { id: true, slug: true, status: true },
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/products");
+  revalidatePath(`/products/${product.slug}`);
+
+  return {
+    success: `Product moved to ${product.status.toLowerCase()}.`,
+    product: await getSavedProductPayload(product.id),
   };
 }

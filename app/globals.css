@@ -602,6 +602,52 @@ body.admin-mode .artifact-footer {
   background: color-mix(in srgb, var(--adm-bg-soft) 92%, transparent);
 }
 
+.adm-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  color: var(--adm-text);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--adm-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.adm-menu-btn:hover {
+  color: var(--adm-accent);
+  background: var(--adm-accent-soft);
+  border-color: var(--adm-border-strong);
+}
+
+.adm-menu-btn:active {
+  transform: scale(0.98);
+}
+
+.adm-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  background: rgba(5, 4, 3, 0.72);
+}
+
+.adm-menu-drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(21rem, calc(100vw - 2rem));
+  min-height: 100dvh;
+  padding: 1rem;
+  border-right: 1px solid var(--adm-border);
+  background: color-mix(in srgb, var(--adm-bg-soft) 98%, black);
+  box-shadow: 8px 0 8px rgba(0, 0, 0, 0.18);
+}
+
 .adm-brand-kicker,
 .adm-section-tag {
   font-size: 0.62rem;

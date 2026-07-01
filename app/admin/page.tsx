@@ -16,8 +16,8 @@ export default async function AdminDashboardPage() {
     { label: "Pages", value: pages.length, href: "/admin/pages", code: "PGS" },
     { label: "Products", value: products.length, href: "/admin/products", code: "CAT" },
     { label: "Collections", value: collections.length, href: "/admin/collections", code: "COL" },
-    { label: "Categories", value: categories.length, href: "/admin/products", code: "TAX" },
-    { label: "Tags", value: tags.length, href: "/admin/products", code: "TAG" },
+    { label: "Categories", value: categories.length, href: "/admin/categories", code: "TAX" },
+    { label: "Tags", value: tags.length, href: "/admin/tags", code: "TAG" },
   ];
 
   return (

@@ -905,7 +905,7 @@ export async function getPageBySlug(slug: string) {
     where: { slug },
   });
 
-  if (!page || page.status === "ARCHIVED") {
+  if (!page || page.status !== "PUBLISHED" || page.visibility !== "PUBLIC") {
     return null;
   }
 

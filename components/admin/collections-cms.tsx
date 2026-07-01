@@ -6,12 +6,15 @@ import Link from "next/link";
 import {
   deleteCollectionAction,
   saveCollectionAction,
+  updateCollectionStatusAction,
   type CollectionActionState,
   type CollectionFieldName,
   type SavedCollectionPayload,
 } from "@/app/admin/actions";
+import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/admin-help";
+import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 
 type AdminCollection = SavedCollectionPayload;
@@ -56,6 +59,53 @@ function workflowStateFromCollection(
   return collection.status === "ACTIVE" && collection.visibility === "PUBLIC"
     ? "PUBLISHED"
     : "DRAFT";
+}
+
+function collectionStatusLabel(collection: AdminCollection) {
+  if (collection.status === "ARCHIVED") return "ARCHIVED";
+  return collection.status === "ACTIVE" && collection.visibility === "PUBLIC" ? "PUBLISHED" : "DRAFT";
+}
+
+type CollectionRowAction = {
+  collection: AdminCollection;
+  action: "publish" | "draft" | "archive" | "delete";
+};
+
+function collectionActionCopy(target: CollectionRowAction) {
+  if (target.action === "publish") {
+    return {
+      title: `Publish ${target.collection.name}`,
+      description:
+        "This makes the collection visible on the collections index and its detail page. Products assigned to it may become reachable through collection filters.",
+      confirmLabel: "Publish collection",
+      tone: "default" as const,
+    };
+  }
+  if (target.action === "draft") {
+    return {
+      title: `Move ${target.collection.name} to draft`,
+      description:
+        "This hides the collection page and removes it from public collection lists. Product records remain unchanged.",
+      confirmLabel: "Move to draft",
+      tone: "default" as const,
+    };
+  }
+  if (target.action === "archive") {
+    return {
+      title: `Archive ${target.collection.name}`,
+      description:
+        "This hides the collection and keeps the record available in admin. Products remain in the catalog, but this collection will no longer appear publicly.",
+      confirmLabel: "Archive collection",
+      tone: "danger" as const,
+    };
+  }
+  return {
+    title: `Permanently delete ${target.collection.name}`,
+    description:
+      "This permanently removes the collection and its collection sections. Products are not deleted, but their link to this collection is removed, which affects collection pages and filters. Prefer Archive unless you are certain.",
+    confirmLabel: "Delete permanently",
+    tone: "danger" as const,
+  };
 }
 
 function collectionToDraft(collection: AdminCollection): CollectionDraft {
@@ -257,40 +307,19 @@ function CollectionFields({
           <FieldLabel help="Upload a new image only when you want to replace the current hero. Leave the field empty to keep the existing media.">
             Hero image
           </FieldLabel>
-          <input
+          <ImageFileField
             key={fileInputKey}
             name="heroImageFile"
-            type="file"
-            accept="image/*"
             className={fieldClass(fieldErrors?.heroImageFile)}
+            aria-invalid={Boolean(fieldErrors?.heroImageFile)}
+            currentImageUrl={currentHeroImageUrl}
+            currentImageAlt={currentHeroImageLabel ?? "Collection hero image"}
+            currentImageLabel="Current hero image"
+            previewAspect="video"
           />
           <FieldError message={fieldErrors?.heroImageFile} />
         </label>
       </div>
-
-      {currentHeroImageUrl ? (
-        <div
-          className="flex items-center gap-3 p-3"
-          style={{ border: "1px solid var(--adm-border)", borderRadius: "10px" }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={currentHeroImageUrl}
-            alt={currentHeroImageLabel ?? "Collection hero image"}
-            className="h-14 w-14 object-cover"
-            style={{ opacity: 0.7 }}
-          />
-          <div className="space-y-1">
-            <p className="adm-label">Current hero image</p>
-            <p
-              className="break-all text-xs leading-5"
-              style={{ color: "var(--adm-muted)" }}
-            >
-              {currentHeroImageUrl}
-            </p>
-          </div>
-        </div>
-      ) : null}
 
       <label className="grid gap-2">
         <FieldLabel required>Collection summary</FieldLabel>
@@ -416,9 +445,10 @@ function CollectionFields({
   );
 }
 
-function CreateCollectionForm({ onCreated }: { onCreated: (collection: AdminCollection) => void }) {
+export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: AdminCollection) => void }) {
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [slugLocked, setSlugLocked] = useState(false);
@@ -428,9 +458,10 @@ function CreateCollectionForm({ onCreated }: { onCreated: (collection: AdminColl
     startTransition(async () => {
       const nextState = await saveCollectionAction(initialState, formData);
       setState(nextState);
+      setConfirmOpen(false);
 
       if (nextState.collection) {
-        onCreated(nextState.collection);
+        onCreated?.(nextState.collection);
       }
 
       if (nextState.success && nextState.collection) {
@@ -453,48 +484,60 @@ function CreateCollectionForm({ onCreated }: { onCreated: (collection: AdminColl
   }
 
   return (
-    <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
-      <div
-        className="flex items-center justify-between gap-4 pb-4"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <div>
-          <p className="adm-section-tag">[ NEW COLLECTION ]</p>
-          <div className="adm-label-row mt-2">
-            <h2 className="adm-title-sm">
-              Create collection
-            </h2>
-            <AdminHelp label="Collection fields guidance">
-              Name, subtitle, and summary feed the collection card and hero. Accent code is a short admin label. Hero image replaces current media only when a file is selected. Manifesto and symbolism defaults shape the public collection story. State controls draft versus published visibility.
-            </AdminHelp>
-          </div>
-        </div>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="adm-btn-primary"
+    <>
+      <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
+        <div
+          className="flex items-center justify-between gap-4 pb-4"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
-          {submitLabel("Save collection", isPending, "Saving...")}
-        </button>
-      </div>
+          <div>
+            <p className="adm-section-tag">[ NEW COLLECTION ]</p>
+            <div className="adm-label-row mt-2">
+              <h2 className="adm-title-sm">
+                Create collection
+              </h2>
+              <AdminHelp label="Collection fields guidance">
+                Name, subtitle, and summary feed the collection card and hero. Accent code is a short admin label. Hero image replaces current media only when a file is selected. Manifesto and symbolism defaults shape the public collection story. State controls draft versus published visibility.
+              </AdminHelp>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={isPending}
+            className="adm-btn-primary"
+            onClick={() => setConfirmOpen(true)}
+          >
+            {submitLabel("Save collection", isPending, "Saving...")}
+          </button>
+        </div>
 
-      <AuthMessage error={state.error} success={state.success} />
-      <div>
-        <AdminHelp label="Save guidance">
-          Fields marked with * are required. Drafts stay in the form until a save succeeds.
-        </AdminHelp>
-      </div>
+        <AuthMessage error={state.error} success={state.success} />
+        <div>
+          <AdminHelp label="Save guidance">
+            Fields marked with * are required. Drafts stay in the form until a save succeeds.
+          </AdminHelp>
+        </div>
 
-      <CollectionFields
-        draft={draft}
-        onChange={(key, value) => {
-          if (key === "slug") setSlugLocked(Boolean(String(value).trim()));
-          updateDraft(key, value);
-        }}
-        fieldErrors={state.fieldErrors}
-        fileInputKey={fileInputKey}
+        <CollectionFields
+          draft={draft}
+          onChange={(key, value) => {
+            if (key === "slug") setSlugLocked(Boolean(String(value).trim()));
+            updateDraft(key, value);
+          }}
+          fieldErrors={state.fieldErrors}
+          fileInputKey={fileInputKey}
+        />
+      </form>
+      <AdminConfirmModal
+        open={confirmOpen}
+        title="Create collection"
+        description="This creates a new collection record. If its state is Published, it may appear on the public collections index and become available for product grouping immediately."
+        confirmLabel="Create collection"
+        pending={isPending}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => formRef.current?.requestSubmit()}
       />
-    </form>
+    </>
   );
 }
 
@@ -509,6 +552,7 @@ function DeleteCollectionForm({
 }) {
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
@@ -521,37 +565,62 @@ function DeleteCollectionForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col items-end gap-2">
-      <input type="hidden" name="collectionId" value={collectionId} />
-      <input type="hidden" name="collectionSlug" value={collectionSlug} />
-      <button type="submit" disabled={isPending} className="adm-btn-danger">
-        {submitLabel("Delete collection", isPending, "Deleting...")}
-      </button>
-      <AuthMessage error={state.error} success={state.success} />
-    </form>
+    <>
+      <form action={formAction} className="flex flex-col items-end gap-2">
+        <input type="hidden" name="collectionId" value={collectionId} />
+        <input type="hidden" name="collectionSlug" value={collectionSlug} />
+        <button
+          type="button"
+          disabled={isPending}
+          className="adm-btn-danger"
+          onClick={() => setConfirmOpen(true)}
+        >
+          {submitLabel("Delete collection", isPending, "Deleting...")}
+        </button>
+        <AuthMessage error={state.error} success={state.success} />
+      </form>
+      <AdminConfirmModal
+        open={confirmOpen}
+        title={`Permanently delete ${collectionSlug}`}
+        description="This permanently removes the collection and its sections. Products are not deleted, but they lose this collection assignment, which affects collection pages and storefront filters. Prefer Archive unless you are certain."
+        confirmLabel="Delete permanently"
+        tone="danger"
+        pending={isPending}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          const formData = new FormData();
+          formData.set("collectionId", collectionId);
+          formData.set("collectionSlug", collectionSlug);
+          void formAction(formData);
+        }}
+      />
+    </>
   );
 }
 
-function EditCollectionForm({
+export function EditCollectionForm({
   collection,
   onUpdated,
   onDeleted,
 }: {
   collection: AdminCollection;
-  onUpdated: (collection: AdminCollection) => void;
-  onDeleted: (collectionId: string) => void;
+  onUpdated?: (collection: AdminCollection) => void;
+  onDeleted?: (collectionId: string) => void;
 }) {
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [draft, setDraft] = useState<CollectionDraft>(() => collectionToDraft(collection));
+  const formRef = useRef<HTMLFormElement>(null);
   const fileInputKey = collection.heroImageUrl ?? collection.id;
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
       const nextState = await saveCollectionAction(initialState, formData);
       setState(nextState);
+      setConfirmOpen(false);
       if (nextState.collection) {
-        onUpdated(nextState.collection);
+        onUpdated?.(nextState.collection);
       }
     });
   }
@@ -560,47 +629,24 @@ function EditCollectionForm({
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
-  const isPublished =
-    collection.status === "ACTIVE" && collection.visibility === "PUBLIC";
-
   return (
-    <details
-      style={{
-        borderTop: "1px solid rgba(255,255,255,0.06)",
-        paddingTop: "1.25rem",
-      }}
-    >
-      <summary className="cursor-pointer list-none">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <>
+      <div className="adm-panel grid gap-4 p-5">
+        <div
+          className="flex flex-wrap items-start justify-between gap-4 pb-4"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
           <div>
-            <p
-              className="text-sm font-semibold"
-              style={{ color: "var(--adm-ink)" }}
-            >
-              {collection.name}
-            </p>
-            <p
-              className="mt-0.5 text-xs"
-              style={{ color: "var(--adm-muted)" }}
-            >
+            <p className="adm-section-tag">[ EDIT COLLECTION ]</p>
+            <h2 className="adm-title-sm mt-2">{collection.name}</h2>
+            <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
               /{collection.slug}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={isPublished ? "adm-badge-published" : "adm-badge-draft"}>
-              {draft.workflowState}
-            </span>
-            <Link
-              href={`/collections/${collection.slug}`}
-              className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-            >
-              Open page
-            </Link>
-          </div>
+          <Link href={`/collections/${collection.slug}`} className="adm-btn-ghost">
+            Open page
+          </Link>
         </div>
-      </summary>
-
-      <div className="mt-5 grid gap-4">
         <AuthMessage error={state.error} success={state.success} />
         <div>
           <AdminHelp label="Save guidance">
@@ -608,7 +654,7 @@ function EditCollectionForm({
           </AdminHelp>
         </div>
 
-        <form action={formAction} className="grid gap-4">
+        <form ref={formRef} action={formAction} className="grid gap-4">
           <input type="hidden" name="collectionId" value={collection.id} />
           <input
             type="hidden"
@@ -632,9 +678,10 @@ function EditCollectionForm({
               Draft collections stay private. Published collections become public on the collections index and their own detail page.
             </AdminHelp>
             <button
-              type="submit"
+              type="button"
               disabled={isPending}
               className="adm-btn-primary"
+              onClick={() => setConfirmOpen(true)}
             >
               {submitLabel("Update collection", isPending, "Saving...")}
             </button>
@@ -645,25 +692,29 @@ function EditCollectionForm({
           <DeleteCollectionForm
             collectionId={collection.id}
             collectionSlug={collection.slug}
-            onDeleted={onDeleted}
+            onDeleted={(collectionId) => onDeleted?.(collectionId)}
           />
         </div>
       </div>
-    </details>
+      <AdminConfirmModal
+        open={confirmOpen}
+        title={`Save ${collection.name}`}
+        description="This writes collection content and publishing state to the database. If the collection is Published, the public collection page and filters can update immediately."
+        confirmLabel="Save collection"
+        pending={isPending}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => formRef.current?.requestSubmit()}
+      />
+    </>
   );
 }
 
 export function CollectionsCms({ collections }: { collections: AdminCollection[] }) {
   const [items, setItems] = useState(() => normalizeCollections(collections));
-
-  function handleCreated(collection: AdminCollection) {
-    setItems((current) =>
-      normalizeCollections([
-        collection,
-        ...current.filter((item) => item.id !== collection.id),
-      ]),
-    );
-  }
+  const [rowAction, setRowAction] = useState<CollectionRowAction | null>(null);
+  const [rowState, setRowState] = useState<CollectionActionState>(initialState);
+  const [isPending, startTransition] = useTransition();
+  const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
 
   function handleUpdated(collection: AdminCollection) {
     setItems((current) =>
@@ -677,14 +728,35 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
     setItems((current) => current.filter((item) => item.id !== collectionId));
   }
 
+  function runRowAction() {
+    if (!rowAction) return;
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("collectionId", rowAction.collection.id);
+
+      if (rowAction.action === "delete") {
+        formData.set("collectionSlug", rowAction.collection.slug);
+        const result = await deleteCollectionAction(initialState, formData);
+        setRowState(result);
+        if (result.deletedCollectionId) {
+          handleDeleted(result.deletedCollectionId);
+        }
+      } else {
+        formData.set("action", rowAction.action);
+        const result = await updateCollectionStatusAction(initialState, formData);
+        setRowState(result);
+        if (result.collection) {
+          handleUpdated(result.collection);
+        }
+      }
+
+      setRowAction(null);
+    });
+  }
+
   return (
     <div className="space-y-8">
-      {/* Create + info */}
-      <section className="grid gap-3">
-        <CreateCollectionForm onCreated={handleCreated} />
-      </section>
-
-      {/* Existing collections */}
       <section className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 mb-1 md:flex-row md:items-end md:justify-between"
@@ -692,40 +764,119 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
         >
           <div>
             <p className="adm-section-tag">[ CURRENT COLLECTIONS ]</p>
-            <h2 className="adm-title-sm mt-2">
-              Edit existing collections
-            </h2>
+            <h2 className="adm-title-sm mt-2">Collections table</h2>
           </div>
-          <AdminHelp label="Collection editing guidance">
-            Every save returns an explicit result. Each collection can be draft or published, or deleted.
-          </AdminHelp>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/collections/new" className="adm-btn-primary">
+              New collection
+            </Link>
+            <AdminHelp label="Collection editing guidance">
+              Edit opens a dedicated route. Archive hides a collection without destroying its record.
+            </AdminHelp>
+          </div>
         </div>
+        <AuthMessage error={rowState.error} success={rowState.success} />
 
-        <div className="mt-5 space-y-0">
+        <div className="mt-5 grid gap-2">
           {items.length > 0 ? (
-            items.map((collection) => (
-              <EditCollectionForm
-                key={[
-                  collection.id,
-                  collection.slug,
-                  collection.name,
-                  collection.heroImageUrl ?? "",
-                  collection.sortOrder,
-                  collection.status,
-                  collection.visibility,
-                ].join(":")}
-                collection={collection}
-                onUpdated={handleUpdated}
-                onDeleted={handleDeleted}
-              />
-            ))
+            items.map((collection) => {
+              const status = collectionStatusLabel(collection);
+
+              return (
+                <div
+                  key={collection.id}
+	                  className="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_7rem_5rem_minmax(19rem,auto)] md:items-center"
+	                  style={{
+	                    border: "1px solid rgba(255,255,255,0.06)",
+	                  }}
+                >
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+                      {collection.name}
+                    </p>
+                    <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
+                      /{collection.slug}
+                    </p>
+                  </div>
+                  <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
+                    {status}
+                  </span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
+                    {collection.sortOrder}
+                  </span>
+	                  <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+	                    <Link
+	                      href={`/admin/collections/${collection.id}`}
+	                      className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+	                    >
+	                      Edit
+	                    </Link>
+                    {status === "PUBLISHED" ? (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ collection, action: "draft" })}
+                      >
+                        Draft
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ collection, action: "publish" })}
+                        disabled={status === "ARCHIVED"}
+                      >
+                        Publish
+                      </button>
+                    )}
+                    {status === "ARCHIVED" ? (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ collection, action: "draft" })}
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ collection, action: "archive" })}
+                      >
+                        Archive
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="adm-btn-danger py-1 px-2 text-[0.58rem]"
+                      onClick={() => setRowAction({ collection, action: "delete" })}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })
           ) : (
-            <p className="text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-              No collections yet. Create your first collection using the form above.
-            </p>
+	            <p className="text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
+	              No collections yet. Create your first collection using New collection.
+	            </p>
           )}
         </div>
       </section>
+
+      {modalCopy ? (
+        <AdminConfirmModal
+          open={Boolean(rowAction)}
+          title={modalCopy.title}
+          description={modalCopy.description}
+          confirmLabel={modalCopy.confirmLabel}
+          tone={modalCopy.tone}
+          pending={isPending}
+          onCancel={() => setRowAction(null)}
+          onConfirm={runRowAction}
+        />
+      ) : null}
     </div>
   );
 }

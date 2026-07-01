@@ -1,6 +1,6 @@
 import { LogoutForm } from "@/components/auth/logout-form";
 import { requirePermission } from "@/lib/auth/session";
-import { AdminThemeShell, AdminNav } from "@/components/admin/admin-primitives";
+import { AdminThemeShell, AdminMobileMenu, AdminNav } from "@/components/admin/admin-primitives";
 
 export default async function AdminLayout({
   children,
@@ -18,6 +18,7 @@ export default async function AdminLayout({
         className="adm-topbar shrink-0 flex items-center justify-between gap-4 border-b px-4 py-3 md:px-5"
       >
         <div className="min-w-0 flex items-center gap-3">
+          <AdminMobileMenu footer={<LogoutForm />} />
           <span className="adm-brand-mark">
             SYN
           </span>
@@ -32,10 +33,6 @@ export default async function AdminLayout({
             Live CMS
           </span>
         </div>
-      </div>
-
-      <div className="adm-mobile-nav shrink-0 border-b px-3 py-2 md:hidden">
-        <AdminNav compact />
       </div>
 
       {/* Shell */}

@@ -6,11 +6,16 @@ import Link from "next/link";
 import {
   deleteProductAction,
   saveProductAction,
+  updateProductStatusAction,
   type ProductActionState,
+  type SavedCategoryPayload,
   type SavedProductPayload,
+  type SavedTagPayload,
 } from "@/app/admin/actions";
+import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/admin-help";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import {
   fallbackProductLookbook,
@@ -19,8 +24,8 @@ import {
   parseProductDetails,
 } from "@/lib/content/catalog";
 
-type CategoryOption = { id: string; slug: string; name: string };
-type TagOption = { id: string; slug: string; name: string };
+type CategoryOption = SavedCategoryPayload;
+type TagOption = SavedTagPayload;
 type CollectionOption = { id: string; slug: string; name: string };
 type ProductRecord = SavedProductPayload;
 
@@ -141,59 +146,6 @@ function ProgressBar({ pending }: { pending: boolean }) {
   );
 }
 
-function ConfirmModal({
-  open,
-  title,
-  description,
-  confirmLabel,
-  onCancel,
-  onConfirm,
-  pending,
-}: {
-  open: boolean;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  onCancel: () => void;
-  onConfirm: () => void;
-  pending: boolean;
-}) {
-  if (!open) return null;
-
-  return (
-      <div
-        className="fixed inset-0 z-[200] flex items-center justify-center px-6"
-        style={{ background: "rgba(5,4,3,0.82)", backdropFilter: "blur(10px)" }}
-      >
-      <div className="adm-panel w-full max-w-md p-6">
-        <p className="adm-section-tag mb-3">[ CONFIRM OPERATION ]</p>
-        <h3 className="adm-title-sm">
-          {title}
-        </h3>
-        <p className="adm-copy mt-4">
-          {description}
-        </p>
-        <div
-          className="mt-6 flex flex-wrap justify-end gap-3 pt-4"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <button type="button" onClick={onCancel} className="adm-btn-ghost">
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={pending}
-            className="adm-btn-primary"
-          >
-            {pending ? "Processing..." : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SaveButtons({
   onOpenConfirm,
   pending,
@@ -211,6 +163,54 @@ function SaveButtons({
       {pending ? "Saving..." : "Save product"}
     </button>
   );
+}
+
+function productStatusLabel(product: ProductRecord) {
+  if (product.status === "ARCHIVED") return "ARCHIVED";
+  return product.status === "ACTIVE" && product.visibility === "PUBLIC" ? "PUBLISHED" : "DRAFT";
+}
+
+type ProductRowAction = {
+  product: ProductRecord;
+  action: "publish" | "draft" | "archive" | "delete";
+};
+
+function productActionCopy(target: ProductRowAction) {
+  const name = target.product.name;
+  if (target.action === "publish") {
+    return {
+      title: `Publish ${name}`,
+      description:
+        "This will make the product visible on the storefront and product listings. Customers may be able to view and add it to cart immediately.",
+      confirmLabel: "Publish product",
+      tone: "default" as const,
+    };
+  }
+  if (target.action === "draft") {
+    return {
+      title: `Move ${name} to draft`,
+      description:
+        "This will remove the product from public listings and direct public product pages. Existing order history remains unchanged.",
+      confirmLabel: "Move to draft",
+      tone: "default" as const,
+    };
+  }
+  if (target.action === "archive") {
+    return {
+      title: `Archive ${name}`,
+      description:
+        "This will hide the product from the storefront and keep the record in admin for later recovery. Use this instead of permanent delete when you may need history or content back.",
+      confirmLabel: "Archive product",
+      tone: "danger" as const,
+    };
+  }
+  return {
+    title: `Permanently delete ${name}`,
+    description:
+      "This permanently removes the product record and related product media, variants, tags, and collection links. Public product URLs will stop working. Prefer Archive unless you are certain.",
+    confirmLabel: "Delete permanently",
+    tone: "danger" as const,
+  };
 }
 
 function ProductDetailFields({
@@ -271,24 +271,11 @@ function ProductDetailFields({
                 name={`existingMaterialImage${index + 1}`}
                 value={material.image}
               />
-              <input
+              <ImageFileField
                 name={`materialImageFile${index + 1}`}
-                type="file"
-                accept="image/*"
-                className="adm-field"
+                currentImageUrl={mode === "edit" ? material.image : ""}
+                currentImageAlt={material.title || `Material ${index + 1}`}
               />
-              {mode === "edit" && material.image ? (
-                <div className="grid gap-2">
-                  <p className="adm-label">Current image</p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={material.image}
-                    alt={material.title || `Material ${index + 1}`}
-                    className="aspect-square w-full object-cover"
-                    style={{ opacity: 0.7 }}
-                  />
-                </div>
-              ) : null}
             </div>
           ))}
         </div>
@@ -324,24 +311,13 @@ function ProductDetailFields({
           name="existingProcessMediaImage"
           value={details.process.mediaImage}
         />
-        <input
+        <ImageFileField
           name="processMediaImageFile"
-          type="file"
-          accept="image/*"
-          className="adm-field"
+          currentImageUrl={mode === "edit" ? details.process.mediaImage : ""}
+          currentImageAlt={details.process.title || "Process media"}
+          currentImageLabel="Current process media"
+          previewAspect="video"
         />
-        {mode === "edit" && details.process.mediaImage ? (
-          <div className="grid gap-2">
-            <p className="adm-label">Current process media</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={details.process.mediaImage}
-              alt={details.process.title || "Process media"}
-              className="aspect-video w-full object-cover"
-              style={{ opacity: 0.7 }}
-            />
-          </div>
-        ) : null}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {details.process.stats.map((stat, index) => (
             <div
@@ -410,24 +386,11 @@ function ProductDetailFields({
                 name={`existingLookbookImage${index + 1}`}
                 value={item.src}
               />
-              <input
+              <ImageFileField
                 name={`lookbookImageFile${index + 1}`}
-                type="file"
-                accept="image/*"
-                className="adm-field"
+                currentImageUrl={mode === "edit" ? item.src : ""}
+                currentImageAlt={item.label || `Lookbook ${index + 1}`}
               />
-              {mode === "edit" && item.src ? (
-                <div className="grid gap-2">
-                  <p className="adm-label">Current image</p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.src}
-                    alt={item.label || `Lookbook ${index + 1}`}
-                    className="aspect-square w-full object-cover"
-                    style={{ opacity: 0.7 }}
-                  />
-                </div>
-              ) : null}
             </div>
           ))}
         </div>
@@ -512,7 +475,11 @@ function ProductFormFields({
         <label className="grid gap-2">
           <span className="adm-label">Product image</span>
           <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
-          <input name="imageFile" type="file" accept="image/*" className="adm-field" />
+          <ImageFileField
+            name="imageFile"
+            currentImageUrl={draft.imageUrl}
+            currentImageAlt={draft.name || "Product image"}
+          />
         </label>
       </div>
 
@@ -592,14 +559,14 @@ function ProductFormFields({
   );
 }
 
-function CreateProductForm({
+export function CreateProductForm({
   categories,
   collections,
   onCreated,
 }: {
   categories: CategoryOption[];
   collections: CollectionOption[];
-  onCreated: (product: ProductRecord) => void;
+  onCreated?: (product: ProductRecord) => void;
 }) {
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
@@ -614,7 +581,7 @@ function CreateProductForm({
       setConfirmOpen(false);
 
       if (result.product) {
-        onCreated(result.product);
+        onCreated?.(result.product);
       }
 
       if (result.success && result.created) {
@@ -658,7 +625,7 @@ function CreateProductForm({
         </div>
       </form>
 
-      <ConfirmModal
+      <AdminConfirmModal
         open={confirmOpen}
         title="Create product"
         description="This will save a new product record to the database. If the product is marked as Published, it can become visible on the storefront immediately after save."
@@ -671,32 +638,31 @@ function CreateProductForm({
   );
 }
 
-function EditProductForm({
+export function EditProductForm({
   product,
   categories,
   collections,
   onUpdated,
   onDeleted,
-  highlighted,
+  highlighted = false,
 }: {
   product: ProductRecord;
   categories: CategoryOption[];
   collections: CollectionOption[];
-  onUpdated: (product: ProductRecord) => void;
-  onDeleted: (productId: string) => void;
-  highlighted: boolean;
+  onUpdated?: (product: ProductRecord) => void;
+  onDeleted?: (productId: string) => void;
+  highlighted?: boolean;
 }) {
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const rowRef = useRef<HTMLDetailsElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const draft = productToDraft(product);
   const details = getProductEditorDetails(product.details);
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) return;
-    rowRef.current.open = true;
     rowRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [highlighted]);
 
@@ -706,7 +672,7 @@ function EditProductForm({
       setState(result);
       setConfirmOpen(false);
       if (result.product) {
-        onUpdated(result.product);
+        onUpdated?.(result.product);
       }
     });
   }
@@ -717,70 +683,43 @@ function EditProductForm({
       setState(result);
       setDeleteOpen(false);
       if (result.deletedProductId) {
-        onDeleted(result.deletedProductId);
+        onDeleted?.(result.deletedProductId);
       }
     });
   }
 
-  const isPublished = product.status === "ACTIVE" && product.visibility === "PUBLIC";
-
   return (
     <>
-      <details
+      <div
         ref={rowRef}
-        className="transition-colors"
+        className="adm-panel grid gap-4 p-5 transition-colors"
         style={{
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          paddingTop: "1rem",
           ...(highlighted
             ? { background: "var(--adm-accent-soft)", outline: "1px solid var(--adm-border-strong)" }
             : {}),
         }}
       >
-        <summary className="cursor-pointer list-none">
-          <div className="flex items-start justify-between gap-4 py-1">
+        <form action={formAction} className="grid gap-4">
+          <input type="hidden" name="productId" value={product.id} />
+
+          <div
+            className="flex flex-wrap items-start justify-between gap-4 pb-4"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          >
             <div>
-          <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
-            {product.name}
-          </p>
-          <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
-            /{product.slug}
-          </p>
-              {highlighted && (
+              <p className="adm-section-tag">[ EDIT PRODUCT ]</p>
+              <h3 className="adm-title-sm mt-2">{product.name}</h3>
+              <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
+                /{product.slug}
+              </p>
+              {highlighted ? (
                 <p
                   className="mt-1 text-xs font-bold uppercase tracking-[0.08em]"
                   style={{ color: "var(--adm-accent)" }}
                 >
                   Just created
                 </p>
-              )}
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span
-                className="text-xs font-semibold"
-                style={{ color: "var(--adm-muted)" }}
-              >
-                {centsToPrice(product.priceCents)} EUR
-              </span>
-              <span className={isPublished ? "adm-badge-published" : "adm-badge-draft"}>
-                {isPublished ? "PUB" : "DRF"}
-              </span>
-            </div>
-          </div>
-        </summary>
-
-        <form action={formAction} className="mt-4 grid gap-4">
-          <input type="hidden" name="productId" value={product.id} />
-
-          <div
-            className="flex items-center justify-between gap-4 pb-4"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-          >
-            <div>
-              <p className="adm-section-tag">[ EDIT UNIT ]</p>
-              <h3 className="adm-title-sm mt-2">
-                {product.name}
-              </h3>
+              ) : null}
             </div>
             <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
           </div>
@@ -806,9 +745,9 @@ function EditProductForm({
             <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
           </div>
         </form>
-      </details>
+      </div>
 
-      <ConfirmModal
+      <AdminConfirmModal
         open={confirmOpen}
         title={`Save ${product.name}`}
         description="This will write changes to the database. If the product is in Published state, changes can immediately affect the storefront product page and listings."
@@ -821,7 +760,7 @@ function EditProductForm({
         pending={isPending}
       />
 
-      <ConfirmModal
+      <AdminConfirmModal
         open={deleteOpen}
         title={`Delete ${product.name}`}
         description="This action removes the product record permanently. Public storefront pages for this item will stop working after deletion."
@@ -834,6 +773,7 @@ function EditProductForm({
           void handleDelete(formData);
         }}
         pending={isPending}
+        tone="danger"
       />
     </>
   );
@@ -848,17 +788,13 @@ export function ProductsCms({
   const [products, setProducts] = useState<ProductRecord[]>(() =>
     normalizeProducts(initialProducts),
   );
-  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
-
-  function handleCreated(product: ProductRecord) {
-    setProducts((current) =>
-      normalizeProducts([product, ...current.filter((item) => item.id !== product.id)]),
-    );
-    setHighlightedProductId(product.id);
-    window.setTimeout(() => {
-      setHighlightedProductId((current) => (current === product.id ? null : current));
-    }, 4500);
-  }
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [collectionFilter, setCollectionFilter] = useState("ALL");
+  const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
+  const [rowActionState, setRowActionState] = useState<ProductActionState>({});
+  const [isRowActionPending, startRowActionTransition] = useTransition();
 
   function handleUpdated(product: ProductRecord) {
     setProducts((current) =>
@@ -868,116 +804,235 @@ export function ProductsCms({
 
   function handleDeleted(productId: string) {
     setProducts((current) => current.filter((item) => item.id !== productId));
-    if (highlightedProductId === productId) {
-      setHighlightedProductId(null);
-    }
   }
 
+  function runRowAction() {
+    if (!rowAction) return;
+
+    startRowActionTransition(async () => {
+      const formData = new FormData();
+      formData.set("productId", rowAction.product.id);
+
+      if (rowAction.action === "delete") {
+        formData.set("productSlug", rowAction.product.slug);
+        const result = await deleteProductAction(formData);
+        setRowActionState(result);
+        if (result.deletedProductId) {
+          handleDeleted(result.deletedProductId);
+        }
+      } else {
+        formData.set("action", rowAction.action);
+        const result = await updateProductStatusAction(formData);
+        setRowActionState(result);
+        if (result.product) {
+          handleUpdated(result.product);
+        }
+      }
+
+      setRowAction(null);
+    });
+  }
+
+  const modalCopy = rowAction ? productActionCopy(rowAction) : null;
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredProducts = products.filter((product) => {
+    const status = productStatusLabel(product);
+    const matchesQuery =
+      !normalizedQuery ||
+      [product.name, product.slug, product.sku, product.seriesLabel ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    const matchesStatus = statusFilter === "ALL" || status === statusFilter;
+    const matchesCategory =
+      categoryFilter === "ALL" || product.category?.slug === categoryFilter;
+    const matchesCollection =
+      collectionFilter === "ALL" ||
+      product.collections.some((item) => item.collection.slug === collectionFilter);
+
+    return matchesQuery && matchesStatus && matchesCategory && matchesCollection;
+  });
+
   return (
-    <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
-      {/* Create form */}
-      <div>
-        <CreateProductForm
-          categories={categories}
-          collections={collections}
-          onCreated={handleCreated}
-        />
-      </div>
-
-      {/* Current catalog */}
+    <section className="grid gap-6">
       <div className="adm-panel p-5">
-        <p className="adm-section-tag mb-5">[ CURRENT CATALOG ]</p>
+        <div
+          className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <div>
+            <p className="adm-section-tag">[ CURRENT CATALOG ]</p>
+            <h2 className="adm-title-sm mt-2">Products table</h2>
+            <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
+              {categories.length} categories · {tags.length} tags · {collections.length} collections
+            </p>
+          </div>
+          <Link href="/admin/products/new" className="adm-btn-primary">
+            New product
+          </Link>
+        </div>
 
-        <div className="space-y-0">
-          {products.map((product) => (
-            <EditProductForm
-              key={product.id}
-              product={product}
-              categories={categories}
-              collections={collections}
-              onUpdated={handleUpdated}
-              onDeleted={handleDeleted}
-              highlighted={highlightedProductId === product.id}
+        <div
+          className="grid gap-3 py-4 md:grid-cols-[minmax(16rem,1fr)_10rem_12rem_12rem]"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <label className="grid gap-2">
+            <span className="adm-label">Search</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Name, slug, SKU"
+              className="adm-field"
             />
-          ))}
-        </div>
-
-        {/* Taxonomy summary */}
-        <div
-          className="mt-6 grid gap-4 pt-5 md:grid-cols-2"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <div>
-            <p className="adm-section-tag mb-3">[ CATEGORIES ]</p>
-            <div className="flex flex-wrap gap-1.5">
+          </label>
+          <label className="grid gap-2">
+            <span className="adm-label">Status</span>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="adm-field"
+            >
+              <option value="ALL">All</option>
+              <option value="PUBLISHED">Published</option>
+              <option value="DRAFT">Draft</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="adm-label">Category</span>
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+              className="adm-field"
+            >
+              <option value="ALL">All categories</option>
               {categories.map((category) => (
-                <span
-                  key={category.id}
-                  className="px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em]"
-                  style={{
-                    color: "var(--adm-muted)",
-                    border: "1px solid var(--adm-border)",
-                    borderRadius: "999px",
-                  }}
-                >
+                <option key={category.id} value={category.slug}>
                   {category.name}
-                </span>
+                </option>
               ))}
-            </div>
-          </div>
-          <div>
-            <p className="adm-section-tag mb-3">[ TAGS ]</p>
-            <div className="flex flex-wrap gap-1.5">
-              {tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em]"
-                  style={{
-                    color: "var(--adm-muted)",
-                    border: "1px solid var(--adm-border)",
-                    borderRadius: "999px",
-                  }}
-                >
-                  {tag.name}
-                </span>
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="adm-label">Collection</span>
+            <select
+              value={collectionFilter}
+              onChange={(event) => setCollectionFilter(event.target.value)}
+              className="adm-field"
+            >
+              <option value="ALL">All collections</option>
+              {collections.map((collection) => (
+                <option key={collection.id} value={collection.slug}>
+                  {collection.name}
+                </option>
               ))}
-            </div>
-          </div>
+            </select>
+          </label>
         </div>
 
-        {/* Collections link */}
-        <div
-          className="mt-5 pt-5"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="adm-section-tag mb-2">[ COLLECTIONS ]</p>
-              <AdminHelp>
-                Hero images, manifesto copy, symbolism defaults, sort order, and publication state are managed in the collections module.
-              </AdminHelp>
-            </div>
-            <Link href="/admin/collections" className="adm-btn-ghost shrink-0">
-              Manage collections
-            </Link>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {collections.map((collection) => (
-              <span
-                key={collection.id}
-                className="px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em]"
-                style={{
-                  color: "var(--adm-muted)",
-                  border: "1px solid var(--adm-border)",
-                  borderRadius: "999px",
-                }}
-              >
-                {collection.name}
-              </span>
-            ))}
-          </div>
+        <AuthMessage error={rowActionState.error} success={rowActionState.success} />
+
+        <div className="mt-4 grid gap-2">
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((product) => {
+              const status = productStatusLabel(product);
+
+              return (
+                <div
+                  key={product.id}
+                  className="grid gap-3 p-3 md:grid-cols-[minmax(0,1.3fr)_8rem_8rem_10rem_minmax(20rem,auto)] md:items-center"
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+                      {product.name}
+                    </p>
+                    <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
+                      /{product.slug}
+                    </p>
+                  </div>
+                  <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
+                    {status}
+                  </span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
+                    {centsToPrice(product.priceCents)} EUR
+                  </span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
+                    {product.category?.name ?? "No category"}
+                  </span>
+                  <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+                    <Link
+                      href={`/admin/products/${product.id}`}
+                      className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                    >
+                      Edit
+                    </Link>
+                    {status === "PUBLISHED" ? (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ product, action: "draft" })}
+                      >
+                        Draft
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ product, action: "publish" })}
+                        disabled={status === "ARCHIVED"}
+                      >
+                        Publish
+                      </button>
+                    )}
+                    {status === "ARCHIVED" ? (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ product, action: "draft" })}
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ product, action: "archive" })}
+                      >
+                        Archive
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="adm-btn-danger py-1 px-2 text-[0.58rem]"
+                      onClick={() => setRowAction({ product, action: "delete" })}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="adm-copy py-6">No products match the current filters.</p>
+          )}
         </div>
       </div>
+
+      {modalCopy ? (
+        <AdminConfirmModal
+          open={Boolean(rowAction)}
+          title={modalCopy.title}
+          description={modalCopy.description}
+          confirmLabel={modalCopy.confirmLabel}
+          tone={modalCopy.tone}
+          pending={isRowActionPending}
+          onCancel={() => setRowAction(null)}
+          onConfirm={runRowAction}
+        />
+      ) : null}
     </section>
   );
 }
