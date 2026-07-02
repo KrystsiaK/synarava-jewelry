@@ -14,8 +14,10 @@ import {
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/admin-help";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
+import { slugifyForAdmin } from "@/components/admin/slug-utils";
 
 type AdminCollection = SavedCollectionPayload;
 
@@ -124,14 +126,6 @@ function collectionToDraft(collection: AdminCollection): CollectionDraft {
     workflowState: workflowStateFromCollection(collection),
     sortOrder: String(collection.sortOrder ?? 0),
   };
-}
-
-function smartSlugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 function FieldLabel({
@@ -477,7 +471,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
     setDraft((current) => {
       const next = { ...current, [key]: value };
       if (key === "name" && !slugLocked) {
-        next.slug = smartSlugify(String(value));
+        next.slug = slugifyForAdmin(String(value));
       }
       return next;
     });
@@ -712,6 +706,7 @@ export function EditCollectionForm({
 export function CollectionsCms({ collections }: { collections: AdminCollection[] }) {
   const [items, setItems] = useState(() => normalizeCollections(collections));
   const [rowAction, setRowAction] = useState<CollectionRowAction | null>(null);
+  const [editingCollection, setEditingCollection] = useState<AdminCollection | null>(null);
   const [rowState, setRowState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
@@ -785,10 +780,10 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
               return (
                 <div
                   key={collection.id}
-	                  className="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_7rem_5rem_minmax(19rem,auto)] md:items-center"
-	                  style={{
-	                    border: "1px solid rgba(255,255,255,0.06)",
-	                  }}
+                  className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_7rem_5rem_minmax(19rem,auto)] lg:items-center"
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.06)",
+                  }}
                 >
                   <div>
                     <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
@@ -797,6 +792,7 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
                     <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
                       /{collection.slug}
                     </p>
+                    <AdminRecordDates record={collection} />
                   </div>
                   <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
                     {status}
@@ -804,13 +800,14 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
                   <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
                     {collection.sortOrder}
                   </span>
-	                  <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-	                    <Link
-	                      href={`/admin/collections/${collection.id}`}
-	                      className="adm-btn-primary py-1 px-2 text-[0.58rem]"
-	                    >
-	                      Edit
-	                    </Link>
+                  <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+                    <button
+                      type="button"
+                      className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                      onClick={() => setEditingCollection(collection)}
+                    >
+                      Details
+                    </button>
                     {status === "PUBLISHED" ? (
                       <button
                         type="button"
@@ -877,6 +874,21 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
           onConfirm={runRowAction}
         />
       ) : null}
+
+      <AdminRecordMetaModal
+        open={Boolean(editingCollection)}
+        title={editingCollection?.name ?? "Collection"}
+        subtitle={editingCollection ? `/${editingCollection.slug}` : undefined}
+        href={
+          editingCollection
+            ? `/admin/collections/${editingCollection.id}`
+            : "/admin/collections"
+        }
+        entityType="COLLECTION"
+        entityId={editingCollection?.id ?? ""}
+        record={editingCollection}
+        onClose={() => setEditingCollection(null)}
+      />
     </div>
   );
 }

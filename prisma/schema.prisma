@@ -500,6 +500,31 @@ model AuditLog {
   @@index([actorId, createdAt])
 }
 
+model AdminIssue {
+  id                 String           @id @default(cuid())
+  key                String           @unique
+  entityType         String
+  entityId           String
+  entityLabel        String
+  fieldPath          String
+  issueType          String
+  severity           String           @default("ERROR")
+  status             AdminIssueStatus @default(OPEN)
+  title              String
+  description        String
+  targetHref         String
+  metadata           Json?
+  firstSeenAt        DateTime         @default(now())
+  lastSeenAt         DateTime         @updatedAt
+  resolvedAt         DateTime?
+  notificationSentAt DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([status, severity, updatedAt])
+  @@index([entityType, entityId])
+}
+
 enum UserStatus {
   PENDING_VERIFICATION
   ACTIVE
@@ -628,4 +653,10 @@ model TranslationCache {
   messages  Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum AdminIssueStatus {
+  OPEN
+  RESOLVED
+  IGNORED
 }

@@ -1,0 +1,20 @@
+export type AdminIssueSummary = {
+  id: string;
+  key: string;
+  entityType: string;
+  entityId: string;
+  entityLabel: string;
+  fieldPath: string;
+  issueType: string;
+  severity: string;
+  status: "OPEN" | "RESOLVED" | "IGNORED";
+  title: string;
+  description: string;
+  targetHref: string;
+  firstSeenAt: Date;
+  lastSeenAt: Date;
+  resolvedAt: Date | null;
+  notificationSentAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { getCurrentUser, requirePermission } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { saveCollectionImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
@@ -72,6 +73,65 @@ function revalidateStorefront() {
   revalidatePath("/about/manifesto");
 }
 
+export type AdminAuditEntityType = "PRODUCT" | "COLLECTION" | "PAGE" | "CATEGORY" | "TAG";
+
+export type AdminRecordHistoryItem = {
+  id: string;
+  action: string;
+  createdAt: Date;
+};
+
+export type AdminRecordHistoryState = {
+  error?: string;
+  success?: string;
+  history?: AdminRecordHistoryItem[];
+};
+
+function toAuditJson(value: unknown) {
+  return value == null ? null : JSON.parse(JSON.stringify(value));
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function snapshotString(snapshot: Record<string, unknown>, key: string) {
+  const value = snapshot[key];
+  return typeof value === "string" ? value : "";
+}
+
+function snapshotNullableString(snapshot: Record<string, unknown>, key: string) {
+  const value = snapshot[key];
+  return typeof value === "string" ? value : null;
+}
+
+function snapshotNumber(snapshot: Record<string, unknown>, key: string) {
+  const value = snapshot[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+async function writeAuditLog(input: {
+  action: string;
+  entityType: AdminAuditEntityType;
+  entityId: string;
+  before?: unknown;
+  after?: unknown;
+  metadata?: unknown;
+  actorId?: string | null;
+}) {
+  await db.auditLog.create({
+    data: {
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      before: toAuditJson(input.before),
+      after: toAuditJson(input.after),
+      metadata: toAuditJson(input.metadata),
+      actorId: input.actorId ?? null,
+    },
+  });
+}
+
 export type CollectionActionState = {
   error?: string;
   success?: string;
@@ -90,6 +150,8 @@ export type CollectionFieldName =
 
 export type SavedCollectionPayload = {
   id: string;
+  createdAt: Date;
+  updatedAt: Date;
   name: string;
   slug: string;
   code: string | null;
@@ -115,6 +177,8 @@ export type PageActionState = {
 
 export type SavedPagePayload = {
   id: string;
+  createdAt: Date;
+  updatedAt: Date;
   slug: string;
   title: string;
   excerpt: string | null;
@@ -133,6 +197,8 @@ export type ProductActionState = {
 
 export type SavedProductPayload = {
   id: string;
+  createdAt: Date;
+  updatedAt: Date;
   slug: string;
   sku: string;
   name: string;
@@ -175,6 +241,8 @@ export type CategoryActionState = {
 
 export type SavedCategoryPayload = {
   id: string;
+  createdAt: Date;
+  updatedAt: Date;
   slug: string;
   name: string;
   description: string | null;
@@ -191,6 +259,8 @@ export type TagActionState = {
 
 export type SavedTagPayload = {
   id: string;
+  createdAt: Date;
+  updatedAt: Date;
   slug: string;
   name: string;
 };
@@ -200,6 +270,8 @@ async function getSavedProductPayload(productId: string): Promise<SavedProductPa
     where: { id: productId },
     select: {
       id: true,
+      createdAt: true,
+      updatedAt: true,
       slug: true,
       sku: true,
       name: true,
@@ -258,6 +330,109 @@ async function getSavedProductPayload(productId: string): Promise<SavedProductPa
   return product;
 }
 
+async function getSavedCollectionPayload(collectionId: string): Promise<SavedCollectionPayload> {
+  const collection = await db.collection.findUnique({
+    where: { id: collectionId },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      name: true,
+      slug: true,
+      code: true,
+      subtitle: true,
+      description: true,
+      manifesto: true,
+      searchSummary: true,
+      symbolismLabel: true,
+      symbolismTitle: true,
+      symbolismBody: true,
+      symbolismBody2: true,
+      heroImageUrl: true,
+      sortOrder: true,
+      status: true,
+      visibility: true,
+    },
+  });
+
+  if (!collection) {
+    throw new Error("Collection not found.");
+  }
+
+  return collection;
+}
+
+async function getSavedPagePayload(pageIdOrSlug: string): Promise<SavedPagePayload> {
+  const page = await db.page.findFirst({
+    where: { OR: [{ id: pageIdOrSlug }, { slug: pageIdOrSlug }] },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      slug: true,
+      title: true,
+      excerpt: true,
+      content: true,
+      status: true,
+      visibility: true,
+    },
+  });
+
+  if (!page) {
+    throw new Error("Page not found.");
+  }
+
+  return page;
+}
+
+async function getSavedCategoryPayload(categoryId: string): Promise<SavedCategoryPayload> {
+  const category = await db.productCategory.findUnique({
+    where: { id: categoryId },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      slug: true,
+      name: true,
+      description: true,
+      sortOrder: true,
+    },
+  });
+
+  if (!category) {
+    throw new Error("Category not found.");
+  }
+
+  return category;
+}
+
+async function getSavedTagPayload(tagId: string): Promise<SavedTagPayload> {
+  const tag = await db.tag.findUnique({
+    where: { id: tagId },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      slug: true,
+      name: true,
+    },
+  });
+
+  if (!tag) {
+    throw new Error("Tag not found.");
+  }
+
+  return tag;
+}
+
+async function getCurrentRecordSnapshot(entityType: AdminAuditEntityType, entityId: string) {
+  if (entityType === "PRODUCT") return getSavedProductPayload(entityId);
+  if (entityType === "COLLECTION") return getSavedCollectionPayload(entityId);
+  if (entityType === "PAGE") return getSavedPagePayload(entityId);
+  if (entityType === "CATEGORY") return getSavedCategoryPayload(entityId);
+  return getSavedTagPayload(entityId);
+}
+
 function validateCollectionInput(input: {
   name: string;
   slug: string;
@@ -287,6 +462,7 @@ function validateCollectionInput(input: {
 
 export async function savePageAction(formData: FormData): Promise<PageActionState> {
   await requirePermission("pages.manage", "/admin/pages");
+  const currentUser = await getCurrentUser();
 
   const slug = String(formData.get("slug") ?? "");
   const workflowState = String(formData.get("workflowState") ?? "PUBLISHED");
@@ -305,6 +481,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   }
 
   const isPublished = workflowState === "PUBLISHED";
+  const before = await getSavedPagePayload(slug).catch(() => null);
 
   const page = await db.page.update({
     where: { slug },
@@ -326,6 +503,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     },
     select: {
       id: true,
+      createdAt: true,
+      updatedAt: true,
       slug: true,
       title: true,
       excerpt: true,
@@ -335,6 +514,15 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     },
   });
 
+  await writeAuditLog({
+    action: "UPDATE",
+    entityType: "PAGE",
+    entityId: page.id,
+    before,
+    after: page,
+    actorId: currentUser?.id,
+  });
+
   revalidateStorefront();
   revalidatePath(`/admin/pages?updated=${slug}`);
   return { success: "Page updated.", page };
@@ -342,6 +530,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
 
 export async function updatePageStatusAction(formData: FormData): Promise<PageActionState> {
   await requirePermission("pages.manage", "/admin/pages");
+  const currentUser = await getCurrentUser();
 
   const slug = String(formData.get("slug") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -363,11 +552,15 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
     return { error: "Unknown page action." };
   }
 
+  const before = await getSavedPagePayload(slug).catch(() => null);
+
   const page = await db.page.update({
     where: { slug },
     data: state,
     select: {
       id: true,
+      createdAt: true,
+      updatedAt: true,
       slug: true,
       title: true,
       excerpt: true,
@@ -377,6 +570,15 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
     },
   });
 
+  await writeAuditLog({
+    action: `STATUS_${action.toUpperCase()}`,
+    entityType: "PAGE",
+    entityId: page.id,
+    before,
+    after: page,
+    actorId: currentUser?.id,
+  });
+
   revalidateStorefront();
   revalidatePath("/admin/pages");
   return { success: `Page moved to ${page.status.toLowerCase()}.`, page };
@@ -384,6 +586,7 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
 
 export async function saveCategoryAction(formData: FormData): Promise<CategoryActionState> {
   await requirePermission("products.manage", "/admin/products");
+  const currentUser = await getCurrentUser();
 
   const categoryId = String(formData.get("categoryId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -394,6 +597,7 @@ export async function saveCategoryAction(formData: FormData): Promise<CategoryAc
   const slug = slugify(String(formData.get("slug") ?? "") || name);
   const description = String(formData.get("description") ?? "").trim();
   const sortOrder = Number(String(formData.get("sortOrder") ?? "0").trim() || "0");
+  const before = categoryId ? await getSavedCategoryPayload(categoryId).catch(() => null) : null;
 
   const category = await db.productCategory.upsert({
     where: categoryId ? { id: categoryId } : { slug },
@@ -411,11 +615,22 @@ export async function saveCategoryAction(formData: FormData): Promise<CategoryAc
     },
     select: {
       id: true,
+      createdAt: true,
+      updatedAt: true,
       slug: true,
       name: true,
       description: true,
       sortOrder: true,
     },
+  });
+
+  await writeAuditLog({
+    action: categoryId ? "UPDATE" : "CREATE",
+    entityType: "CATEGORY",
+    entityId: category.id,
+    before,
+    after: category,
+    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -451,6 +666,7 @@ export async function deleteCategoryAction(formData: FormData): Promise<Category
 
 export async function saveTagAction(formData: FormData): Promise<TagActionState> {
   await requirePermission("products.manage", "/admin/products");
+  const currentUser = await getCurrentUser();
 
   const tagId = String(formData.get("tagId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -459,6 +675,7 @@ export async function saveTagAction(formData: FormData): Promise<TagActionState>
   }
 
   const slug = slugify(String(formData.get("slug") ?? "") || name);
+  const before = tagId ? await getSavedTagPayload(tagId).catch(() => null) : null;
 
   const tag = await db.tag.upsert({
     where: tagId ? { id: tagId } : { slug },
@@ -472,9 +689,20 @@ export async function saveTagAction(formData: FormData): Promise<TagActionState>
     },
     select: {
       id: true,
+      createdAt: true,
+      updatedAt: true,
       slug: true,
       name: true,
     },
+  });
+
+  await writeAuditLog({
+    action: tagId ? "UPDATE" : "CREATE",
+    entityType: "TAG",
+    entityId: tag.id,
+    before,
+    after: tag,
+    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -577,6 +805,7 @@ export async function saveCollectionAction(
   }
 
   const isPublished = workflowState === "PUBLISHED";
+  const before = collectionId ? await getSavedCollectionPayload(collectionId).catch(() => null) : null;
 
   const baseData = {
     slug,
@@ -604,6 +833,8 @@ export async function saveCollectionAction(
     create: baseData,
     select: {
       id: true,
+      createdAt: true,
+      updatedAt: true,
       name: true,
       slug: true,
       code: true,
@@ -620,6 +851,15 @@ export async function saveCollectionAction(
       status: true,
       visibility: true,
     },
+  });
+
+  await writeAuditLog({
+    action: collectionId ? "UPDATE" : "CREATE",
+    entityType: "COLLECTION",
+    entityId: savedCollection.id,
+    before,
+    after: savedCollection,
+    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -660,6 +900,7 @@ export async function updateCollectionStatusAction(
   formData: FormData,
 ): Promise<CollectionActionState> {
   await requirePermission("products.manage", "/admin/collections");
+  const currentUser = await getCurrentUser();
 
   const collectionId = String(formData.get("collectionId") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -681,11 +922,15 @@ export async function updateCollectionStatusAction(
     return { error: "Unknown collection action." };
   }
 
+  const before = await getSavedCollectionPayload(collectionId).catch(() => null);
+
   const collection = await db.collection.update({
     where: { id: collectionId },
     data: state,
     select: {
       id: true,
+      createdAt: true,
+      updatedAt: true,
       name: true,
       slug: true,
       code: true,
@@ -702,6 +947,15 @@ export async function updateCollectionStatusAction(
       status: true,
       visibility: true,
     },
+  });
+
+  await writeAuditLog({
+    action: `STATUS_${action.toUpperCase()}`,
+    entityType: "COLLECTION",
+    entityId: collection.id,
+    before,
+    after: collection,
+    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -832,6 +1086,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const isPublished = workflowState === "PUBLISHED";
 
   const wasCreate = !productId;
+  const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
 
   const product = await db.product.upsert({
     where: productId ? { id: productId } : { slug },
@@ -920,6 +1175,15 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   const savedProduct = await getSavedProductPayload(product.id);
 
+  await writeAuditLog({
+    action: wasCreate ? "CREATE" : "UPDATE",
+    entityType: "PRODUCT",
+    entityId: savedProduct.id,
+    before,
+    after: savedProduct,
+    actorId: currentUser?.id,
+  });
+
   return {
     success: wasCreate ? "Product created." : "Product updated.",
     created: wasCreate,
@@ -958,6 +1222,7 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
 
 export async function updateProductStatusAction(formData: FormData): Promise<ProductActionState> {
   await requirePermission("products.manage", "/admin/products");
+  const currentUser = await getCurrentUser();
 
   const productId = String(formData.get("productId") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -979,6 +1244,8 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
     return { error: "Unknown product action." };
   }
 
+  const before = await getSavedProductPayload(productId).catch(() => null);
+
   const product = await db.product.update({
     where: { id: productId },
     data: state,
@@ -989,8 +1256,211 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
   revalidatePath("/admin/products");
   revalidatePath(`/products/${product.slug}`);
 
+  const savedProduct = await getSavedProductPayload(product.id);
+
+  await writeAuditLog({
+    action: `STATUS_${action.toUpperCase()}`,
+    entityType: "PRODUCT",
+    entityId: savedProduct.id,
+    before,
+    after: savedProduct,
+    actorId: currentUser?.id,
+  });
+
   return {
     success: `Product moved to ${product.status.toLowerCase()}.`,
-    product: await getSavedProductPayload(product.id),
+    product: savedProduct,
   };
+}
+
+export async function getAdminRecordHistoryAction(input: {
+  entityType: AdminAuditEntityType;
+  entityId: string;
+}): Promise<AdminRecordHistoryState> {
+  await requirePermission(
+    input.entityType === "PAGE" ? "pages.manage" : "products.manage",
+    "/admin",
+  );
+
+  const history = await db.auditLog.findMany({
+    where: {
+      entityType: input.entityType,
+      entityId: input.entityId,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+    select: {
+      id: true,
+      action: true,
+      createdAt: true,
+    },
+  });
+
+  return { history };
+}
+
+export async function restoreAdminRecordVersionAction(input: {
+  entityType: AdminAuditEntityType;
+  entityId: string;
+  auditLogId: string;
+}): Promise<AdminRecordHistoryState> {
+  await requirePermission(
+    input.entityType === "PAGE" ? "pages.manage" : "products.manage",
+    "/admin",
+  );
+  const currentUser = await getCurrentUser();
+
+  const auditLog = await db.auditLog.findFirst({
+    where: {
+      id: input.auditLogId,
+      entityType: input.entityType,
+      entityId: input.entityId,
+    },
+  });
+
+  if (!auditLog?.after) {
+    return { error: "This history item cannot be restored." };
+  }
+
+  const before = await getCurrentRecordSnapshot(input.entityType, input.entityId);
+  const snapshot = asRecord(auditLog.after);
+
+  try {
+    if (input.entityType === "TAG") {
+      await db.tag.update({
+        where: { id: input.entityId },
+        data: {
+          slug: snapshotString(snapshot, "slug"),
+          name: snapshotString(snapshot, "name"),
+        },
+      });
+      revalidatePath("/admin/tags");
+      revalidatePath("/admin/products");
+    }
+
+    if (input.entityType === "CATEGORY") {
+      await db.productCategory.update({
+        where: { id: input.entityId },
+        data: {
+          slug: snapshotString(snapshot, "slug"),
+          name: snapshotString(snapshot, "name"),
+          description: snapshotNullableString(snapshot, "description"),
+          sortOrder: snapshotNumber(snapshot, "sortOrder"),
+        },
+      });
+      revalidatePath("/admin/categories");
+      revalidatePath("/admin/products");
+    }
+
+    if (input.entityType === "PAGE") {
+      await db.page.update({
+        where: { id: input.entityId },
+        data: {
+          slug: snapshotString(snapshot, "slug"),
+          title: snapshotString(snapshot, "title"),
+          excerpt: snapshotNullableString(snapshot, "excerpt"),
+          content: snapshot.content ?? Prisma.JsonNull,
+          status: snapshotString(snapshot, "status") as "DRAFT" | "PUBLISHED" | "ARCHIVED",
+          visibility: snapshotString(snapshot, "visibility") as "PRIVATE" | "UNLISTED" | "PUBLIC",
+        },
+      });
+      revalidatePath("/admin/pages");
+    }
+
+    if (input.entityType === "COLLECTION") {
+      await db.collection.update({
+        where: { id: input.entityId },
+        data: {
+          slug: snapshotString(snapshot, "slug"),
+          code: snapshotNullableString(snapshot, "code"),
+          name: snapshotString(snapshot, "name"),
+          subtitle: snapshotNullableString(snapshot, "subtitle"),
+          description: snapshotNullableString(snapshot, "description"),
+          manifesto: snapshotNullableString(snapshot, "manifesto"),
+          searchSummary: snapshotNullableString(snapshot, "searchSummary"),
+          symbolismLabel: snapshotNullableString(snapshot, "symbolismLabel"),
+          symbolismTitle: snapshotNullableString(snapshot, "symbolismTitle"),
+          symbolismBody: snapshotNullableString(snapshot, "symbolismBody"),
+          symbolismBody2: snapshotNullableString(snapshot, "symbolismBody2"),
+          heroImageUrl: snapshotNullableString(snapshot, "heroImageUrl"),
+          sortOrder: snapshotNumber(snapshot, "sortOrder"),
+          status: snapshotString(snapshot, "status") as "DRAFT" | "ACTIVE" | "ARCHIVED",
+          visibility: snapshotString(snapshot, "visibility") as "PRIVATE" | "UNLISTED" | "PUBLIC",
+        },
+      });
+      revalidatePath("/admin/collections");
+    }
+
+    if (input.entityType === "PRODUCT") {
+      const collectionIds = Array.isArray(snapshot.collections)
+        ? snapshot.collections
+            .map((item) => asRecord(asRecord(item).collection).id)
+            .filter((id): id is string => typeof id === "string")
+        : [];
+      const tagIds = Array.isArray(snapshot.tags)
+        ? snapshot.tags
+            .map((item) => asRecord(asRecord(item).tag).id)
+            .filter((id): id is string => typeof id === "string")
+        : [];
+      const category = asRecord(snapshot.category);
+
+      await db.product.update({
+        where: { id: input.entityId },
+        data: {
+          slug: snapshotString(snapshot, "slug"),
+          sku: snapshotString(snapshot, "sku"),
+          name: snapshotString(snapshot, "name"),
+          seriesLabel: snapshotNullableString(snapshot, "seriesLabel"),
+          shortDescription: snapshotNullableString(snapshot, "shortDescription"),
+          description: snapshotNullableString(snapshot, "description"),
+          materialLine: snapshotNullableString(snapshot, "materialLine"),
+          symbolismLabel: snapshotNullableString(snapshot, "symbolismLabel"),
+          symbolismTitle: snapshotNullableString(snapshot, "symbolismTitle"),
+          symbolismBody: snapshotNullableString(snapshot, "symbolismBody"),
+          symbolismBody2: snapshotNullableString(snapshot, "symbolismBody2"),
+          details: snapshot.details ?? Prisma.JsonNull,
+          imageUrl: snapshotNullableString(snapshot, "imageUrl"),
+          priceCents: snapshotNumber(snapshot, "priceCents"),
+          categoryId: typeof category.id === "string" ? category.id : null,
+          status: snapshotString(snapshot, "status") as "DRAFT" | "ACTIVE" | "ARCHIVED",
+          visibility: snapshotString(snapshot, "visibility") as "PRIVATE" | "UNLISTED" | "PUBLIC",
+        },
+      });
+
+      await db.productCollection.deleteMany({ where: { productId: input.entityId } });
+      for (const collectionId of collectionIds) {
+        await db.productCollection.create({
+          data: { productId: input.entityId, collectionId },
+        });
+      }
+
+      await db.productTag.deleteMany({ where: { productId: input.entityId } });
+      for (const tagId of tagIds) {
+        await db.productTag.create({
+          data: { productId: input.entityId, tagId },
+        });
+      }
+
+      revalidatePath("/admin/products");
+      revalidatePath(`/products/${snapshotString(snapshot, "slug")}`);
+    }
+
+    const after = await getCurrentRecordSnapshot(input.entityType, input.entityId);
+    await writeAuditLog({
+      action: "RESTORE",
+      entityType: input.entityType,
+      entityId: input.entityId,
+      before,
+      after,
+      metadata: { restoredFromAuditLogId: input.auditLogId },
+      actorId: currentUser?.id,
+    });
+
+    revalidateStorefront();
+    return { success: "Version restored. The table has been refreshed." };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Version restore failed.",
+    };
+  }
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import Link from "next/link";
 
 import {
   savePageAction,
@@ -11,6 +10,7 @@ import {
 } from "@/app/admin/actions";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/admin-help";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
@@ -203,6 +203,7 @@ export function PageEditor({
 export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] }) {
   const [pages, setPages] = useState(initialPages);
   const [rowAction, setRowAction] = useState<PageRowAction | null>(null);
+  const [editingPage, setEditingPage] = useState<SavedPagePayload | null>(null);
   const [rowState, setRowState] = useState<PageActionState>({});
   const [isPending, startTransition] = useTransition();
 
@@ -245,11 +246,13 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
         >
           <div>
             <p className="adm-section-tag">[ PAGES TABLE ]</p>
-            <h2 className="adm-title-sm mt-2">Pages table</h2>
+            <div className="adm-label-row mt-2">
+              <h2 className="adm-title-sm">Pages table</h2>
+              <AdminHelp label="Page actions">
+                Edit opens a dedicated route. Publish, draft, and archive show a warning before saving.
+              </AdminHelp>
+            </div>
           </div>
-          <AdminHelp label="Page actions">
-            Edit opens a dedicated route. Publish, draft, and archive show a warning before saving.
-          </AdminHelp>
         </div>
         <AuthMessage error={rowState.error} success={rowState.success} />
         <div className="mt-4 grid gap-2">
@@ -259,7 +262,7 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
             return (
               <div
                 key={page.id}
-                className="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_7rem_minmax(16rem,auto)] md:items-center"
+                className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_7rem_minmax(16rem,auto)] lg:items-center"
                 style={{
                   border: "1px solid rgba(255,255,255,0.06)",
                 }}
@@ -271,17 +274,19 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
                   <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
                     /{page.slug}
                   </p>
+                  <AdminRecordDates record={page} />
                 </div>
-                  <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
+                <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
                   {status}
                 </span>
                 <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-                  <Link
-                    href={`/admin/pages/${page.slug}`}
+                  <button
+                    type="button"
                     className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                    onClick={() => setEditingPage(page)}
                   >
-                    Edit
-                  </Link>
+                    Details
+                  </button>
                   {status === "PUBLISHED" ? (
                     <button
                       type="button"
@@ -336,6 +341,17 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
           onConfirm={runRowAction}
         />
       ) : null}
+
+      <AdminRecordMetaModal
+        open={Boolean(editingPage)}
+        title={editingPage?.title ?? "Page"}
+        subtitle={editingPage ? `/${editingPage.slug}` : undefined}
+        href={editingPage ? `/admin/pages/${editingPage.slug}` : "/admin/pages"}
+        entityType="PAGE"
+        entityId={editingPage?.id ?? ""}
+        record={editingPage}
+        onClose={() => setEditingPage(null)}
+      />
     </div>
   );
 }

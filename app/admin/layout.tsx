@@ -1,6 +1,13 @@
 import { LogoutForm } from "@/components/auth/logout-form";
 import { requirePermission } from "@/lib/auth/session";
-import { AdminThemeShell, AdminMobileMenu, AdminNav } from "@/components/admin/admin-primitives";
+import { db } from "@/lib/db";
+import {
+  AdminMobileMenu,
+  AdminNav,
+  AdminSmartTopbar,
+  AdminThemeShell,
+  AdminTopbarIssueLink,
+} from "@/components/admin/admin-primitives";
 
 export default async function AdminLayout({
   children,
@@ -8,17 +15,37 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }>) {
   await requirePermission("admin.access", "/admin");
+  const openIssues = await db.adminIssue.findMany({
+    where: { status: "OPEN" },
+    select: { entityType: true, targetHref: true },
+  });
+  const openIssueCount = openIssues.length;
+  const issueNavHrefs = Array.from(
+    new Set(
+      openIssues.map((issue) => {
+        if (issue.entityType === "PRODUCT") return "/admin/products";
+        if (issue.entityType === "COLLECTION") return "/admin/collections";
+        if (issue.entityType === "PAGE") return "/admin/pages";
+        if (issue.entityType === "CATEGORY") return "/admin/categories";
+        if (issue.entityType === "TAG") return "/admin/tags";
+        return "/admin/issues";
+      }),
+    ),
+  );
+  if (openIssueCount > 0) issueNavHrefs.push("/admin/issues");
 
   return (
     <div className="admin-terminal min-h-screen flex flex-col">
       <AdminThemeShell />
 
       {/* Identity rail */}
-      <div
-        className="adm-topbar shrink-0 flex items-center justify-between gap-4 border-b px-4 py-3 md:px-5"
-      >
+      <AdminSmartTopbar>
         <div className="min-w-0 flex items-center gap-3">
-          <AdminMobileMenu footer={<LogoutForm />} />
+          <AdminMobileMenu
+            issueCount={openIssueCount}
+            issueNavHrefs={issueNavHrefs}
+            footer={<LogoutForm />}
+          />
           <span className="adm-brand-mark">
             SYN
           </span>
@@ -28,12 +55,13 @@ export default async function AdminLayout({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <AdminTopbarIssueLink issues={openIssues} />
           <span className="adm-online-dot" />
           <span className="adm-brand-kicker hidden sm:inline">
             Live CMS
           </span>
         </div>
-      </div>
+      </AdminSmartTopbar>
 
       {/* Shell */}
       <div className="flex flex-1">
@@ -51,7 +79,7 @@ export default async function AdminLayout({
             </p>
           </div>
 
-          <AdminNav />
+          <AdminNav issueCount={openIssueCount} issueNavHrefs={issueNavHrefs} />
 
           <div
             className="mt-auto border-t pt-5"

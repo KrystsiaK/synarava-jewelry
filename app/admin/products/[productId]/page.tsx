@@ -9,8 +9,11 @@ export default async function EditProductPage({
   params: Promise<{ productId: string }>;
 }) {
   const { productId } = await params;
-  const { products, categories, collections } = await getAdminCatalogData();
+  const { products, categories, collections, issues } = await getAdminCatalogData();
   const product = products.find((item) => item.id === productId);
+  const productIssues = issues.filter(
+    (issue) => issue.entityType === "PRODUCT" && issue.entityId === productId,
+  );
 
   if (!product) {
     return (
@@ -46,7 +49,12 @@ export default async function EditProductPage({
         </div>
       </div>
 
-      <ProductEditRoute product={product} categories={categories} collections={collections} />
+      <ProductEditRoute
+        product={product}
+        categories={categories}
+        collections={collections}
+        issues={productIssues}
+      />
     </div>
   );
 }

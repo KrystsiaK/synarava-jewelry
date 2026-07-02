@@ -2,7 +2,7 @@ import { ProductsCms } from "@/components/admin/products-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminProductsPage() {
-  const { products, categories, tags, collections } = await getAdminCatalogData();
+  const { products, categories, tags, collections, issues } = await getAdminCatalogData();
 
   return (
     <div className="space-y-8">
@@ -22,6 +22,7 @@ export default async function AdminProductsPage() {
         categories={categories}
         tags={tags}
         collections={collections}
+        issues={issues}
       />
     </div>
   );

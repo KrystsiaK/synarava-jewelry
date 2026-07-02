@@ -11,6 +11,8 @@ import {
   type SavedCategoryPayload,
 } from "@/app/admin/actions";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { slugifyForAdmin } from "@/components/admin/slug-utils";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function CategoriesTable({
@@ -19,6 +21,7 @@ export function CategoriesTable({
   categories: SavedCategoryPayload[];
 }) {
   const [query, setQuery] = useState("");
+  const [editingCategory, setEditingCategory] = useState<SavedCategoryPayload | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -61,7 +64,7 @@ export function CategoriesTable({
           filtered.map((category) => (
             <div
               key={category.id}
-              className="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_6rem_minmax(10rem,auto)] md:items-center"
+              className="grid grid-cols-[minmax(0,1fr)_4rem_auto] items-center gap-3 p-3"
               style={{ border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <div>
@@ -71,17 +74,19 @@ export function CategoriesTable({
                 <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
                   /{category.slug}
                 </p>
+                <AdminRecordDates record={category} />
               </div>
               <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
                 {category.sortOrder}
               </span>
-              <div className="flex justify-start md:justify-end">
-                <Link
-                  href={`/admin/categories/${category.id}`}
+              <div className="flex justify-end">
+                <button
+                  type="button"
                   className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                  onClick={() => setEditingCategory(category)}
                 >
-                  Edit
-                </Link>
+                  Details
+                </button>
               </div>
             </div>
           ))
@@ -89,6 +94,17 @@ export function CategoriesTable({
           <p className="adm-copy py-6">No categories match the current search.</p>
         )}
       </div>
+
+      <AdminRecordMetaModal
+        open={Boolean(editingCategory)}
+        title={editingCategory?.name ?? "Category"}
+        subtitle={editingCategory ? `/${editingCategory.slug}` : undefined}
+        href={editingCategory ? `/admin/categories/${editingCategory.id}` : "/admin/categories"}
+        entityType="CATEGORY"
+        entityId={editingCategory?.id ?? ""}
+        record={editingCategory}
+        onClose={() => setEditingCategory(null)}
+      />
     </section>
   );
 }
@@ -99,7 +115,28 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
   const [state, setState] = useState<CategoryActionState>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [nameValue, setNameValue] = useState(category?.name ?? "");
+  const [slugValue, setSlugValue] = useState(category?.slug ?? "");
+  const [slugLocked, setSlugLocked] = useState(Boolean(category?.slug));
   const [isPending, startTransition] = useTransition();
+
+  function updateName(value: string) {
+    setNameValue(value);
+    if (!slugLocked) {
+      setSlugValue(slugifyForAdmin(value));
+    }
+  }
+
+  function updateSlug(value: string) {
+    if (!value.trim()) {
+      setSlugValue(slugifyForAdmin(nameValue));
+      setSlugLocked(false);
+      return;
+    }
+
+    setSlugValue(value);
+    setSlugLocked(true);
+  }
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -157,11 +194,21 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
             <span className="adm-label">Name</span>
-            <input name="name" defaultValue={category?.name ?? ""} className="adm-field" />
+            <input
+              name="name"
+              value={nameValue}
+              onChange={(event) => updateName(event.target.value)}
+              className="adm-field"
+            />
           </label>
           <label className="grid gap-2">
             <span className="adm-label">Slug</span>
-            <input name="slug" defaultValue={category?.slug ?? ""} className="adm-field" />
+            <input
+              name="slug"
+              value={slugValue}
+              onChange={(event) => updateSlug(event.target.value)}
+              className="adm-field"
+            />
           </label>
         </div>
 

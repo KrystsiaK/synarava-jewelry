@@ -11,10 +11,13 @@ import {
   type TagActionState,
 } from "@/app/admin/actions";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { slugifyForAdmin } from "@/components/admin/slug-utils";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {
   const [query, setQuery] = useState("");
+  const [editingTag, setEditingTag] = useState<SavedTagPayload | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -54,7 +57,7 @@ export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {
           filtered.map((tag) => (
             <div
               key={tag.id}
-              className="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_minmax(10rem,auto)] md:items-center"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3"
               style={{ border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <div>
@@ -64,14 +67,16 @@ export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {
                 <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
                   /{tag.slug}
                 </p>
+                <AdminRecordDates record={tag} />
               </div>
-              <div className="flex justify-start md:justify-end">
-                <Link
-                  href={`/admin/tags/${tag.id}`}
+              <div className="flex justify-end">
+                <button
+                  type="button"
                   className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                  onClick={() => setEditingTag(tag)}
                 >
-                  Edit
-                </Link>
+                  Details
+                </button>
               </div>
             </div>
           ))
@@ -79,6 +84,17 @@ export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {
           <p className="adm-copy py-6">No tags match the current search.</p>
         )}
       </div>
+
+      <AdminRecordMetaModal
+        open={Boolean(editingTag)}
+        title={editingTag?.name ?? "Tag"}
+        subtitle={editingTag ? `/${editingTag.slug}` : undefined}
+        href={editingTag ? `/admin/tags/${editingTag.id}` : "/admin/tags"}
+        entityType="TAG"
+        entityId={editingTag?.id ?? ""}
+        record={editingTag}
+        onClose={() => setEditingTag(null)}
+      />
     </section>
   );
 }
@@ -89,7 +105,28 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
   const [state, setState] = useState<TagActionState>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [nameValue, setNameValue] = useState(tag?.name ?? "");
+  const [slugValue, setSlugValue] = useState(tag?.slug ?? "");
+  const [slugLocked, setSlugLocked] = useState(Boolean(tag?.slug));
   const [isPending, startTransition] = useTransition();
+
+  function updateName(value: string) {
+    setNameValue(value);
+    if (!slugLocked) {
+      setSlugValue(slugifyForAdmin(value));
+    }
+  }
+
+  function updateSlug(value: string) {
+    if (!value.trim()) {
+      setSlugValue(slugifyForAdmin(nameValue));
+      setSlugLocked(false);
+      return;
+    }
+
+    setSlugValue(value);
+    setSlugLocked(true);
+  }
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -145,11 +182,21 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
             <span className="adm-label">Name</span>
-            <input name="name" defaultValue={tag?.name ?? ""} className="adm-field" />
+            <input
+              name="name"
+              value={nameValue}
+              onChange={(event) => updateName(event.target.value)}
+              className="adm-field"
+            />
           </label>
           <label className="grid gap-2">
             <span className="adm-label">Slug</span>
-            <input name="slug" defaultValue={tag?.slug ?? ""} className="adm-field" />
+            <input
+              name="slug"
+              value={slugValue}
+              onChange={(event) => updateSlug(event.target.value)}
+              className="adm-field"
+            />
           </label>
         </div>
 

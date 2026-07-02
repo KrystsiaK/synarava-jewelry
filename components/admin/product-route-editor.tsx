@@ -10,6 +10,7 @@ import type {
   SavedCategoryPayload,
   SavedProductPayload,
 } from "@/app/admin/actions";
+import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
 
 type CollectionOption = { id: string; slug: string; name: string };
 
@@ -38,10 +39,12 @@ export function ProductEditRoute({
   product,
   categories,
   collections,
+  issues = [],
 }: {
   product: SavedProductPayload;
   categories: SavedCategoryPayload[];
   collections: CollectionOption[];
+  issues?: AdminIssueSummary[];
 }) {
   const router = useRouter();
 
@@ -50,6 +53,7 @@ export function ProductEditRoute({
       product={product}
       categories={categories}
       collections={collections}
+      issues={issues}
       onUpdated={() => router.refresh()}
       onDeleted={() => {
         router.push("/admin/products");

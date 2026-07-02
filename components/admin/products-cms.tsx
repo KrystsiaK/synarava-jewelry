@@ -14,6 +14,10 @@ import {
 } from "@/app/admin/actions";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/admin-help";
+import { AdminIssueInlineWarning } from "@/components/admin/admin-issues-cms";
+import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { slugifyForAdmin } from "@/components/admin/slug-utils";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
@@ -34,6 +38,7 @@ type ProductCmsProps = {
   categories: CategoryOption[];
   tags: TagOption[];
   collections: CollectionOption[];
+  issues?: AdminIssueSummary[];
 };
 
 type ProductDraft = {
@@ -170,6 +175,10 @@ function productStatusLabel(product: ProductRecord) {
   return product.status === "ACTIVE" && product.visibility === "PUBLIC" ? "PUBLISHED" : "DRAFT";
 }
 
+function issuesForField(issues: AdminIssueSummary[], fieldPath: string) {
+  return issues.filter((issue) => issue.fieldPath === fieldPath && issue.status === "OPEN");
+}
+
 type ProductRowAction = {
   product: ProductRecord;
   action: "publish" | "draft" | "archive" | "delete";
@@ -216,9 +225,11 @@ function productActionCopy(target: ProductRowAction) {
 function ProductDetailFields({
   details,
   mode,
+  issues = [],
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   mode: "create" | "edit";
+  issues?: AdminIssueSummary[];
 }) {
   return (
     <div
@@ -249,10 +260,12 @@ function ProductDetailFields({
           {details.materials.map((material, index) => (
             <div
               key={`material-${index}`}
+              id={`field-details-materials-${index}-image`}
               className="grid gap-3 p-4"
               style={{ border: "1px solid rgba(255,255,255,0.05)" }}
             >
               <p className="adm-section-tag">MATERIAL {index + 1}</p>
+              <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-materials-${index}-image`)} />
               <input
                 name={`materialTitle${index + 1}`}
                 defaultValue={material.title}
@@ -317,7 +330,9 @@ function ProductDetailFields({
           currentImageAlt={details.process.title || "Process media"}
           currentImageLabel="Current process media"
           previewAspect="video"
+          fieldId="field-details-process-mediaImage"
         />
+        <AdminIssueInlineWarning issues={issuesForField(issues, "field-details-process-mediaImage")} />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {details.process.stats.map((stat, index) => (
             <div
@@ -358,9 +373,11 @@ function ProductDetailFields({
           {details.lookbook.map((item, index) => (
             <div
               key={`lookbook-${index}`}
+              id={`field-details-lookbook-${index}-src`}
               className="grid gap-3 p-4"
               style={{ border: "1px solid rgba(255,255,255,0.05)" }}
             >
+              <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-lookbook-${index}-src`)} />
               <div className="flex items-center justify-between gap-3">
                 <p className="adm-section-tag">LOOKBOOK {index + 1}</p>
                 <label
@@ -403,11 +420,35 @@ function ProductFormFields({
   draft,
   categories,
   collections,
+  issues = [],
 }: {
   draft: ProductDraft;
   categories: CategoryOption[];
   collections: CollectionOption[];
+  issues?: AdminIssueSummary[];
 }) {
+  const [nameValue, setNameValue] = useState(draft.name);
+  const [slugValue, setSlugValue] = useState(draft.slug);
+  const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
+
+  function updateName(value: string) {
+    setNameValue(value);
+    if (!slugLocked) {
+      setSlugValue(slugifyForAdmin(value));
+    }
+  }
+
+  function updateSlug(value: string) {
+    if (!value.trim()) {
+      setSlugValue(slugifyForAdmin(nameValue));
+      setSlugLocked(false);
+      return;
+    }
+
+    setSlugValue(value);
+    setSlugLocked(true);
+  }
+
   return (
     <>
       {/* i18n groundwork */}
@@ -416,11 +457,21 @@ function ProductFormFields({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
           <span className="adm-label">Name</span>
-          <input name="name" defaultValue={draft.name} className="adm-field" />
+          <input
+            name="name"
+            value={nameValue}
+            onChange={(event) => updateName(event.target.value)}
+            className="adm-field"
+          />
         </label>
         <label className="grid gap-2">
           <span className="adm-label">Slug</span>
-          <input name="slug" defaultValue={draft.slug} className="adm-field" />
+          <input
+            name="slug"
+            value={slugValue}
+            onChange={(event) => updateSlug(event.target.value)}
+            className="adm-field"
+          />
         </label>
       </div>
 
@@ -472,8 +523,9 @@ function ProductFormFields({
           <span className="adm-label">Material line</span>
           <input name="materialLine" defaultValue={draft.materialLine} className="adm-field" />
         </label>
-        <label className="grid gap-2">
+        <label id="field-imageUrl" className="grid gap-2">
           <span className="adm-label">Product image</span>
+          <AdminIssueInlineWarning issues={issuesForField(issues, "field-imageUrl")} />
           <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
           <ImageFileField
             name="imageFile"
@@ -524,28 +576,37 @@ function ProductFormFields({
 
       {/* Taxonomy + state */}
       <div className="grid gap-4 md:grid-cols-3">
-        <select name="categorySlug" defaultValue={draft.categorySlug} className="adm-field">
-          <option value="">No category</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.slug}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        <select name="collectionSlug" defaultValue={draft.collectionSlug} className="adm-field">
-          <option value="">No collection</option>
-          {collections.map((collection) => (
-            <option key={collection.id} value={collection.slug}>
-              {collection.name}
-            </option>
-          ))}
-        </select>
-        <input
-          name="tags"
-          defaultValue={draft.tags}
-          placeholder="lava, heritage, symbolic"
-          className="adm-field"
-        />
+        <div id="field-taxonomy-category" className="grid gap-2">
+          <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-category")} />
+          <select name="categorySlug" defaultValue={draft.categorySlug} className="adm-field">
+            <option value="">No category</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.slug}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div id="field-taxonomy-collection" className="grid gap-2">
+          <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-collection")} />
+          <select name="collectionSlug" defaultValue={draft.collectionSlug} className="adm-field">
+            <option value="">No collection</option>
+            {collections.map((collection) => (
+              <option key={collection.id} value={collection.slug}>
+                {collection.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div id="field-taxonomy-tags" className="grid gap-2">
+          <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-tags")} />
+          <input
+            name="tags"
+            defaultValue={draft.tags}
+            placeholder="lava, heritage, symbolic"
+            className="adm-field"
+          />
+        </div>
       </div>
 
       <label className="grid gap-2 md:max-w-xs">
@@ -642,6 +703,7 @@ export function EditProductForm({
   product,
   categories,
   collections,
+  issues = [],
   onUpdated,
   onDeleted,
   highlighted = false,
@@ -649,6 +711,7 @@ export function EditProductForm({
   product: ProductRecord;
   categories: CategoryOption[];
   collections: CollectionOption[];
+  issues?: AdminIssueSummary[];
   onUpdated?: (product: ProductRecord) => void;
   onDeleted?: (productId: string) => void;
   highlighted?: boolean;
@@ -712,6 +775,7 @@ export function EditProductForm({
               <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
                 /{product.slug}
               </p>
+              <AdminIssueInlineWarning issues={issues} className="mt-3" />
               {highlighted ? (
                 <p
                   className="mt-1 text-xs font-bold uppercase tracking-[0.08em]"
@@ -727,8 +791,13 @@ export function EditProductForm({
           <ProgressBar pending={isPending} />
           <AuthMessage error={state.error} success={state.success} />
 
-          <ProductFormFields draft={draft} categories={categories} collections={collections} />
-          <ProductDetailFields details={details} mode="edit" />
+          <ProductFormFields
+            draft={draft}
+            categories={categories}
+            collections={collections}
+            issues={issues}
+          />
+          <ProductDetailFields details={details} mode="edit" issues={issues} />
 
           <div
             className="flex items-center justify-between gap-4 pt-4"
@@ -784,6 +853,7 @@ export function ProductsCms({
   categories,
   tags,
   collections,
+  issues = [],
 }: ProductCmsProps) {
   const [products, setProducts] = useState<ProductRecord[]>(() =>
     normalizeProducts(initialProducts),
@@ -793,6 +863,7 @@ export function ProductsCms({
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [collectionFilter, setCollectionFilter] = useState("ALL");
   const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [rowActionState, setRowActionState] = useState<ProductActionState>({});
   const [isRowActionPending, startRowActionTransition] = useTransition();
 
@@ -936,11 +1007,14 @@ export function ProductsCms({
           {filteredProducts.length > 0 ? (
             filteredProducts.map((product) => {
               const status = productStatusLabel(product);
+              const productIssues = issues.filter(
+                (issue) => issue.entityType === "PRODUCT" && issue.entityId === product.id,
+              );
 
               return (
                 <div
                   key={product.id}
-                  className="grid gap-3 p-3 md:grid-cols-[minmax(0,1.3fr)_8rem_8rem_10rem_minmax(20rem,auto)] md:items-center"
+                  className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1.3fr)_8rem_8rem_10rem_minmax(20rem,auto)] lg:items-center"
                   style={{
                     border: "1px solid rgba(255,255,255,0.06)",
                   }}
@@ -952,6 +1026,16 @@ export function ProductsCms({
                     <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
                       /{product.slug}
                     </p>
+                    <AdminRecordDates record={product} />
+                    {productIssues.length > 0 ? (
+                      <Link
+                        href={productIssues[0]?.targetHref ?? `/admin/products/${product.id}`}
+                        className="mt-2 inline-flex items-center text-[0.62rem] font-bold uppercase tracking-[0.08em]"
+                        style={{ color: "var(--adm-danger)" }}
+                      >
+                        {productIssues.length} problem{productIssues.length === 1 ? "" : "s"}
+                      </Link>
+                    ) : null}
                   </div>
                   <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
                     {status}
@@ -963,12 +1047,13 @@ export function ProductsCms({
                     {product.category?.name ?? "No category"}
                   </span>
                   <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-                    <Link
-                      href={`/admin/products/${product.id}`}
+                    <button
+                      type="button"
                       className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                      onClick={() => setEditingProduct(product)}
                     >
-                      Edit
-                    </Link>
+                      Details
+                    </button>
                     {status === "PUBLISHED" ? (
                       <button
                         type="button"
@@ -1033,6 +1118,17 @@ export function ProductsCms({
           onConfirm={runRowAction}
         />
       ) : null}
+
+      <AdminRecordMetaModal
+        open={Boolean(editingProduct)}
+        title={editingProduct?.name ?? "Product"}
+        subtitle={editingProduct ? `/${editingProduct.slug}` : undefined}
+        href={editingProduct ? `/admin/products/${editingProduct.id}` : "/admin/products"}
+        entityType="PRODUCT"
+        entityId={editingProduct?.id ?? ""}
+        record={editingProduct}
+        onClose={() => setEditingProduct(null)}
+      />
     </section>
   );
 }

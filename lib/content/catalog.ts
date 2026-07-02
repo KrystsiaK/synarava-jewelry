@@ -920,7 +920,7 @@ export async function getPageBySlug(slug: string) {
 export async function getAdminCatalogData() {
   await ensureStorefrontSeed();
 
-  const [pages, products, categories, tags, collections] = await Promise.all([
+  const [pages, products, categories, tags, collections, issues] = await Promise.all([
     db.page.findMany({
       orderBy: { slug: "asc" },
     }),
@@ -949,7 +949,11 @@ export async function getAdminCatalogData() {
     db.collection.findMany({
       orderBy: { name: "asc" },
     }),
+    db.adminIssue.findMany({
+      where: { status: "OPEN" },
+      orderBy: { updatedAt: "desc" },
+    }),
   ]);
 
-  return { pages, products, categories, tags, collections };
+  return { pages, products, categories, tags, collections, issues };
 }
