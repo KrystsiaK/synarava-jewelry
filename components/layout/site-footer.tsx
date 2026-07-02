@@ -31,7 +31,7 @@ export function SiteFooter() {
               className="h-full w-full object-contain object-center p-1 md:p-1.5"
             />
           </span>
-          <p className="label-mono max-w-xs text-foreground uppercase md:max-w-sm">
+          <p className="label-mono max-w-[15rem] text-[0.8rem] leading-[1.35] text-foreground uppercase md:max-w-sm md:text-inherit md:leading-inherit">
             {t("footer.copyright")} {t("footer.tagline")}
           </p>
         </div>
@@ -40,18 +40,18 @@ export function SiteFooter() {
       <FooterOrnamentDivider />
 
       <div className="flex flex-col gap-4 text-center md:text-left">
-        <p className="label-caps mb-4 text-foreground">{t("footer.navigationHeading")}</p>
-        <nav className="flex flex-col gap-4 items-center md:items-start">
-          <Link href="/shop" className="label-mono font-bold text-accent">
+        <p className="label-caps mb-3 text-[0.72rem] text-foreground md:mb-4 md:text-inherit">{t("footer.navigationHeading")}</p>
+        <nav className="flex flex-col gap-3 items-center md:items-start md:gap-4">
+          <Link href="/shop" className="label-mono text-[0.9rem] font-bold text-accent md:text-inherit">
             {t("footer.shop")}
           </Link>
-          <Link href="/collections" className="label-mono text-muted transition-colors hover:text-foreground">
+          <Link href="/collections" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.collections")}
           </Link>
-          <Link href="/about" className="label-mono text-muted transition-colors hover:text-foreground">
+          <Link href="/about" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.about")}
           </Link>
-          <Link href="/about/manifesto" className="label-mono text-muted transition-colors hover:text-foreground">
+          <Link href="/about/manifesto" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.manifesto")}
           </Link>
         </nav>
@@ -60,15 +60,15 @@ export function SiteFooter() {
       <FooterOrnamentDivider />
 
       <div className="flex flex-col gap-4 text-center md:text-left">
-        <p className="label-caps mb-4 text-foreground">{t("footer.serviceHeading")}</p>
-        <nav className="flex flex-col gap-4 items-center md:items-start">
-          <Link href="/about" className="label-mono text-muted transition-colors hover:text-foreground">
+        <p className="label-caps mb-3 text-[0.72rem] text-foreground md:mb-4 md:text-inherit">{t("footer.serviceHeading")}</p>
+        <nav className="flex flex-col gap-3 items-center md:items-start md:gap-4">
+          <Link href="/about" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.careGuide")}
           </Link>
-          <Link href="/about" className="label-mono text-muted transition-colors hover:text-foreground">
+          <Link href="/about" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.shipping")}
           </Link>
-          <Link href="mailto:studio@synarava.com" className="label-mono text-muted transition-colors hover:text-foreground">
+          <Link href="mailto:studio@synarava.com" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.contact")}
           </Link>
         </nav>

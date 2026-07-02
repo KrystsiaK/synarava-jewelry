@@ -37,10 +37,19 @@ const LANGUAGES = [
   { code: "zh", name: "中文" },
 ];
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({
+  showCode = false,
+  fullWidth = false,
+  align = "right",
+}: {
+  showCode?: boolean;
+  fullWidth?: boolean;
+  align?: "left" | "right";
+}) {
   const { locale, setLocale, loading, t } = useTranslations();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const activeLanguage = LANGUAGES.find((lang) => lang.code === locale);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -58,23 +67,38 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={`relative ${fullWidth ? "w-full" : ""}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={t("language.select")}
         aria-expanded={open}
-        className="inline-flex size-9 items-center justify-center border border-foreground/10 text-muted transition-colors hover:border-foreground/25 hover:text-foreground"
+        className={`inline-flex items-center justify-center border border-foreground/10 text-muted transition-colors hover:border-foreground/25 hover:text-foreground ${
+          fullWidth
+            ? "w-full justify-between gap-3 px-3 py-2.5"
+            : showCode
+              ? "h-9 gap-2 px-3"
+              : "size-9"
+        }`}
       >
         {loading ? (
           <Loader2 size={15} className="animate-spin" />
         ) : (
           <Globe size={15} />
         )}
+        {showCode ? (
+          <span className="label-caps text-[0.72rem]">
+            {activeLanguage?.code.toUpperCase() ?? locale.toUpperCase()}
+          </span>
+        ) : null}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 max-h-72 w-48 overflow-y-auto border border-stroke bg-background shadow-lg [scrollbar-width:thin]">
+        <div
+          className={`absolute top-full z-50 mt-1 max-h-72 overflow-y-auto border border-stroke bg-background shadow-lg [scrollbar-width:thin] ${
+            fullWidth ? "left-0 w-full min-w-48" : "w-48"
+          } ${align === "left" ? "left-0" : "right-0"}`}
+        >
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}

@@ -221,23 +221,34 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(88vw,24rem)] flex-col border-r border-foreground/10 bg-background px-5 pb-8 pt-24 shadow-[0_20px_50px_rgba(25,21,18,0.12)] transition-transform duration-300 xl:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-foreground/10 bg-background px-4 pb-7 pt-20 shadow-[0_20px_50px_rgba(25,21,18,0.12)] transition-transform duration-300 xl:hidden ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-hidden={!isMenuOpen}
       >
-        <div className="mb-8 flex items-center gap-3">
-          <ThemeToggle />
-          <LanguageSwitcher />
+        <div className="mb-7 border border-foreground/10 bg-background/85 p-3 backdrop-blur">
+          <p className="label-caps mb-3 text-muted">Panel</p>
+          <div className="grid gap-3">
+            <div>
+              <p className="label-caps mb-2 text-[0.68rem] text-muted">Appearance</p>
+              <div className="overflow-x-auto">
+                <ThemeToggle compact />
+              </div>
+            </div>
+            <div>
+              <p className="label-caps mb-2 text-[0.68rem] text-muted">Language</p>
+              <LanguageSwitcher showCode fullWidth align="left" />
+            </div>
+          </div>
         </div>
 
-        <nav className="flex flex-col border-t border-foreground/10 pt-6">
+        <nav className="flex flex-col border-t border-foreground/10 pt-5">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setIsMenuOpen(false)}
-              className={`border-b border-foreground/8 py-4 font-serif text-[1.55rem] transition-colors ${
+              className={`border-b border-foreground/8 py-4 font-serif text-[1.38rem] leading-none transition-colors ${
                 isActive(item.match) ? "text-foreground" : "text-muted"
               }`}
             >
@@ -246,7 +257,7 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
           ))}
         </nav>
 
-        <div className="mt-8 flex flex-col gap-4">
+        <div className="mt-7 flex flex-col gap-3">
           <Link href="/login" onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-accent">
             {t("nav.loginRegister")}
           </Link>

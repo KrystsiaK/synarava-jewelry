@@ -72,6 +72,8 @@ function revalidateStorefront() {
   revalidatePath("/about/manifesto");
 }
 
+const PROTECTED_PAGE_SLUGS = new Set(["home", "about", "manifesto"]);
+
 export type CollectionActionState = {
   error?: string;
   success?: string;
@@ -179,8 +181,9 @@ function validateCollectionInput(input: {
 export async function savePageAction(formData: FormData) {
   await requirePermission("pages.manage", "/admin/pages");
 
-  const slug = String(formData.get("slug") ?? "");
+  const rawSlug = String(formData.get("slug") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
+  const slug = slugify(rawSlug || title);
   const excerpt = String(formData.get("excerpt") ?? "").trim();
   const eyebrow = String(formData.get("eyebrow") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
@@ -189,10 +192,20 @@ export async function savePageAction(formData: FormData) {
   const quote = String(formData.get("quote") ?? "").trim();
   const secondaryTitle = String(formData.get("secondaryTitle") ?? "").trim();
   const secondaryBody = String(formData.get("secondaryBody") ?? "").trim();
-
-  await db.page.update({
+  const currentUser = await getCurrentUser();
+  const existing = await db.page.findUnique({
     where: { slug },
-    data: {
+    select: { template: true },
+  });
+
+  if (!slug || !title) {
+    revalidatePath("/admin/pages");
+    return;
+  }
+
+  await db.page.upsert({
+    where: { slug },
+    update: {
       title,
       excerpt,
       content: {
@@ -207,11 +220,58 @@ export async function savePageAction(formData: FormData) {
       status: "PUBLISHED",
       visibility: "PUBLIC",
       publishedAt: new Date(),
+      authoredById: currentUser?.id ?? null,
+    },
+    create: {
+      slug,
+      title,
+      template: existing?.template ?? "STATIC_PAGE",
+      excerpt,
+      searchSummary: excerpt || title,
+      content: {
+        eyebrow,
+        body,
+        ctaLabel,
+        ctaHref,
+        quote,
+        secondaryTitle,
+        secondaryBody,
+      },
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      publishedAt: new Date(),
+      authoredById: currentUser?.id ?? null,
     },
   });
 
   revalidateStorefront();
+  revalidatePath(`/${slug}`);
   revalidatePath(`/admin/pages?updated=${slug}`);
+}
+
+export async function deletePageAction(formData: FormData) {
+  await requirePermission("pages.manage", "/admin/pages");
+
+  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+
+  if (!slug) {
+    return { error: "Page slug is required." };
+  }
+
+  if (PROTECTED_PAGE_SLUGS.has(slug)) {
+    return { error: "System pages cannot be deleted." };
+  }
+
+  await db.page.delete({
+    where: { slug },
+  });
+
+  revalidateStorefront();
+  revalidatePath(`/${slug}`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/pages");
+
+  return { success: "Page deleted.", deletedSlug: slug };
 }
 
 export async function saveCategoryAction(formData: FormData) {
