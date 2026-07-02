@@ -585,6 +585,8 @@ html[data-theme="dark"] .etched-glass {
 }
 
 /* ── Synarava Admin ─────────────────────────────────────────────────── */
+body:has(.admin-terminal) .artifact-nav,
+body:has(.admin-terminal) .artifact-footer,
 body.admin-mode .artifact-nav,
 body.admin-mode .artifact-footer {
   display: none;

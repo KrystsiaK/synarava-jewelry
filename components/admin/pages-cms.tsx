@@ -12,6 +12,7 @@ import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
+import { PageDeleteButton } from "@/components/admin/page-delete-button";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 type PageRowAction = {
@@ -22,6 +23,10 @@ type PageRowAction = {
 function pageStatusLabel(page: SavedPagePayload) {
   if (page.status === "ARCHIVED") return "ARCHIVED";
   return page.status === "PUBLISHED" && page.visibility === "PUBLIC" ? "PUBLISHED" : "DRAFT";
+}
+
+function isProtectedPage(slug: string) {
+  return slug === "home" || slug === "about" || slug === "manifesto";
 }
 
 function pageActionCopy(target: PageRowAction) {
@@ -200,6 +205,121 @@ export function PageEditor({
   );
 }
 
+function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePayload) => void }) {
+  const [state, setState] = useState<PageActionState>({});
+  const [isPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function formAction(formData: FormData) {
+    startTransition(async () => {
+      const result = await savePageAction(formData);
+      setState(result);
+      if (result.page) {
+        onCreated(result.page);
+        formRef.current?.reset();
+      }
+    });
+  }
+
+  return (
+    <form ref={formRef} action={formAction} className="adm-panel grid gap-5 p-5 md:p-6">
+      <div
+        className="flex flex-wrap items-start justify-between gap-4 pb-5"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div>
+          <p className="adm-section-tag">[ PAGE // NEW ]</p>
+          <h2 className="adm-title-sm mt-2">Untitled page</h2>
+          <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--adm-muted)" }}>
+            New custom pages are published at <code>/{`slug`}</code>. Built-in routes stay
+            protected from deletion.
+          </p>
+        </div>
+        <button type="submit" disabled={isPending} className="adm-btn-primary">
+          {isPending ? "Creating..." : "Create page"}
+        </button>
+      </div>
+
+      <LocaleTabStrip />
+      <AuthMessage error={state.error} success={state.success} />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-2">
+          <span className="adm-label">Title</span>
+          <input name="title" placeholder="Journal" className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">Slug</span>
+          <input name="slug" placeholder="journal" className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">Eyebrow</span>
+          <input name="eyebrow" placeholder="Editorial note" className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">Publishing state</span>
+          <select name="workflowState" defaultValue="PUBLISHED" className="adm-field">
+            <option value="DRAFT">Draft - hidden</option>
+            <option value="PUBLISHED">Published - visible</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="grid gap-2">
+        <span className="adm-label">Excerpt</span>
+        <textarea
+          name="excerpt"
+          rows={3}
+          className="adm-field"
+          placeholder="Short summary for the page intro and metadata."
+        />
+      </label>
+
+      <label className="grid gap-2">
+        <span className="adm-label">Body</span>
+        <textarea name="body" rows={5} className="adm-field" placeholder="Main editorial body copy." />
+      </label>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-2">
+          <span className="adm-label">CTA label</span>
+          <input name="ctaLabel" placeholder="Shop all products" className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">CTA href</span>
+          <input name="ctaHref" placeholder="/shop" className="adm-field" />
+        </label>
+      </div>
+
+      <label className="grid gap-2">
+        <span className="adm-label">Quote</span>
+        <textarea
+          name="quote"
+          rows={4}
+          className="adm-field"
+          placeholder="Optional quote or highlighted statement."
+        />
+      </label>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-2">
+          <span className="adm-label">Secondary title</span>
+          <input name="secondaryTitle" placeholder="Further reading" className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">Secondary body</span>
+          <textarea
+            name="secondaryBody"
+            rows={3}
+            className="adm-field"
+            placeholder="Optional follow-up copy block."
+          />
+        </label>
+      </div>
+    </form>
+  );
+}
+
 export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] }) {
   const [pages, setPages] = useState(initialPages);
   const [rowAction, setRowAction] = useState<PageRowAction | null>(null);
@@ -211,6 +331,16 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
 
   function handleUpdated(page: SavedPagePayload) {
     setPages((current) => current.map((item) => (item.slug === page.slug ? page : item)));
+  }
+
+  function handleCreated(page: SavedPagePayload) {
+    setPages((current) => {
+      const existing = current.some((item) => item.slug === page.slug);
+      const next = existing
+        ? current.map((item) => (item.slug === page.slug ? page : item))
+        : [page, ...current];
+      return next.sort((left, right) => left.title.localeCompare(right.title));
+    });
   }
 
   function runRowAction() {
@@ -238,6 +368,8 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
           </AdminHelp>
         </div>
       </div>
+
+      <CreatePageForm onCreated={handleCreated} />
 
       <section className="adm-panel p-5">
         <div
@@ -322,6 +454,9 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
                       Archive
                     </button>
                   )}
+                  {!isProtectedPage(page.slug) ? (
+                    <PageDeleteButton slug={page.slug} title={page.title} />
+                  ) : null}
                 </div>
               </div>
             );

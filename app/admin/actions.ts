@@ -132,6 +132,8 @@ async function writeAuditLog(input: {
   });
 }
 
+const PROTECTED_PAGE_SLUGS = new Set(["home", "about", "manifesto"]);
+
 export type CollectionActionState = {
   error?: string;
   success?: string;
@@ -173,6 +175,7 @@ export type PageActionState = {
   error?: string;
   success?: string;
   page?: SavedPagePayload;
+  deletedSlug?: string;
 };
 
 export type SavedPagePayload = {
@@ -464,9 +467,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   await requirePermission("pages.manage", "/admin/pages");
   const currentUser = await getCurrentUser();
 
-  const slug = String(formData.get("slug") ?? "");
+  const rawSlug = String(formData.get("slug") ?? "").trim();
   const workflowState = String(formData.get("workflowState") ?? "PUBLISHED");
   const title = String(formData.get("title") ?? "").trim();
+  const slug = slugify(rawSlug || title);
   const excerpt = String(formData.get("excerpt") ?? "").trim();
   const eyebrow = String(formData.get("eyebrow") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
@@ -482,10 +486,14 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
 
   const isPublished = workflowState === "PUBLISHED";
   const before = await getSavedPagePayload(slug).catch(() => null);
-
-  const page = await db.page.update({
+  const existing = await db.page.findUnique({
     where: { slug },
-    data: {
+    select: { template: true },
+  });
+
+  const page = await db.page.upsert({
+    where: { slug },
+    update: {
       title,
       excerpt,
       content: {
@@ -500,6 +508,27 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       status: isPublished ? "PUBLISHED" : "DRAFT",
       visibility: isPublished ? "PUBLIC" : "PRIVATE",
       publishedAt: isPublished ? new Date() : null,
+      authoredById: currentUser?.id ?? null,
+    },
+    create: {
+      slug,
+      title,
+      template: existing?.template ?? "STATIC_PAGE",
+      excerpt,
+      searchSummary: excerpt || title,
+      content: {
+        eyebrow,
+        body,
+        ctaLabel,
+        ctaHref,
+        quote,
+        secondaryTitle,
+        secondaryBody,
+      },
+      status: isPublished ? "PUBLISHED" : "DRAFT",
+      visibility: isPublished ? "PUBLIC" : "PRIVATE",
+      publishedAt: isPublished ? new Date() : null,
+      authoredById: currentUser?.id ?? null,
     },
     select: {
       id: true,
@@ -515,7 +544,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   });
 
   await writeAuditLog({
-    action: "UPDATE",
+    action: before ? "UPDATE" : "CREATE",
     entityType: "PAGE",
     entityId: page.id,
     before,
@@ -524,8 +553,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   });
 
   revalidateStorefront();
+  revalidatePath(`/${slug}`);
+  revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages?updated=${slug}`);
-  return { success: "Page updated.", page };
+  return { success: before ? "Page updated." : "Page created.", page };
 }
 
 export async function updatePageStatusAction(formData: FormData): Promise<PageActionState> {
@@ -582,6 +613,52 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
   revalidateStorefront();
   revalidatePath("/admin/pages");
   return { success: `Page moved to ${page.status.toLowerCase()}.`, page };
+}
+
+export async function deletePageAction(formData: FormData): Promise<PageActionState> {
+  await requirePermission("pages.manage", "/admin/pages");
+  const currentUser = await getCurrentUser();
+
+  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+
+  if (!slug) {
+    return { error: "Page slug is required." };
+  }
+
+  if (PROTECTED_PAGE_SLUGS.has(slug)) {
+    return { error: "System pages cannot be deleted." };
+  }
+
+  const before = await getSavedPagePayload(slug).catch(() => null);
+  const page = await db.page.delete({
+    where: { slug },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      slug: true,
+      title: true,
+      excerpt: true,
+      content: true,
+      status: true,
+      visibility: true,
+    },
+  });
+
+  await writeAuditLog({
+    action: "DELETE",
+    entityType: "PAGE",
+    entityId: page.id,
+    before,
+    actorId: currentUser?.id,
+  });
+
+  revalidateStorefront();
+  revalidatePath(`/${slug}`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/pages");
+
+  return { success: "Page deleted.", deletedSlug: slug };
 }
 
 export async function saveCategoryAction(formData: FormData): Promise<CategoryActionState> {

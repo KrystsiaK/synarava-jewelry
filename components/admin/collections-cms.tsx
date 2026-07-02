@@ -542,37 +542,36 @@ function DeleteCollectionForm({
 }: {
   collectionId: string;
   collectionSlug: string;
-  onDeleted: (collectionId: string) => void;
+  onDeleted?: (collectionId: string) => void;
 }) {
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function formAction(formData: FormData) {
+  async function handleDelete(formData: FormData) {
     startTransition(async () => {
       const nextState = await deleteCollectionAction(initialState, formData);
       setState(nextState);
+      setConfirmOpen(false);
       if (nextState.deletedCollectionId) {
-        onDeleted(nextState.deletedCollectionId);
+        onDeleted?.(nextState.deletedCollectionId);
       }
     });
   }
 
   return (
     <>
-      <form action={formAction} className="flex flex-col items-end gap-2">
-        <input type="hidden" name="collectionId" value={collectionId} />
-        <input type="hidden" name="collectionSlug" value={collectionSlug} />
+      <div className="flex flex-col items-start gap-2">
         <button
           type="button"
+          onClick={() => setConfirmOpen(true)}
           disabled={isPending}
           className="adm-btn-danger"
-          onClick={() => setConfirmOpen(true)}
         >
           {submitLabel("Delete collection", isPending, "Deleting...")}
         </button>
         <AuthMessage error={state.error} success={state.success} />
-      </form>
+      </div>
       <AdminConfirmModal
         open={confirmOpen}
         title={`Permanently delete ${collectionSlug}`}
@@ -585,7 +584,7 @@ function DeleteCollectionForm({
           const formData = new FormData();
           formData.set("collectionId", collectionId);
           formData.set("collectionSlug", collectionSlug);
-          void formAction(formData);
+          void handleDelete(formData);
         }}
       />
     </>
@@ -667,10 +666,26 @@ export function EditCollectionForm({
             fileInputKey={fileInputKey}
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
             <AdminHelp label="Publishing guidance">
               Draft collections stay private. Published collections become public on the collections index and their own detail page.
             </AdminHelp>
+          </div>
+
+          <div
+            className="flex flex-wrap items-center justify-between gap-4 py-5"
+            style={{
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <div className="flex items-center">
+              <DeleteCollectionForm
+                collectionId={collection.id}
+                collectionSlug={collection.slug}
+                onDeleted={onDeleted}
+              />
+            </div>
             <button
               type="button"
               disabled={isPending}
@@ -681,14 +696,6 @@ export function EditCollectionForm({
             </button>
           </div>
         </form>
-
-        <div className="flex justify-end">
-          <DeleteCollectionForm
-            collectionId={collection.id}
-            collectionSlug={collection.slug}
-            onDeleted={(collectionId) => onDeleted?.(collectionId)}
-          />
-        </div>
       </div>
       <AdminConfirmModal
         open={confirmOpen}

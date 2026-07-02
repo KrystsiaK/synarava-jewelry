@@ -6,12 +6,9 @@ export default async function AdminPagesPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <p className="adm-section-tag mb-3">[ SYN-ADM // PGS ]</p>
-        <h1 className="adm-page-title">
-          Pages
-        </h1>
+        <h1 className="adm-page-title">Pages</h1>
         <p className="adm-page-subtitle">
           Editorial CMS for home, about, manifesto, and locale-aware content work.
         </p>
