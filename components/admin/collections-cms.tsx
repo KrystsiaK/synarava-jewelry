@@ -4,7 +4,9 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 
 import {
+  autosaveCollectionDraftAction,
   deleteCollectionAction,
+  moveCollectionOrderAction,
   saveCollectionAction,
   updateCollectionStatusAction,
   type CollectionActionState,
@@ -15,9 +17,11 @@ import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { useAdminToast } from "@/components/admin/admin-toast";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { slugifyForAdmin } from "@/components/admin/slug-utils";
+import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
 
 type AdminCollection = SavedCollectionPayload;
 
@@ -25,7 +29,6 @@ type CollectionDraft = {
   name: string;
   slug: string;
   code: string;
-  subtitle: string;
   description: string;
   manifesto: string;
   searchSummary: string;
@@ -34,17 +37,43 @@ type CollectionDraft = {
   symbolismBody: string;
   symbolismBody2: string;
   workflowState: "DRAFT" | "PUBLISHED";
-  sortOrder: string;
 };
 
 const initialState: CollectionActionState = {};
 
 function emptyCollectionDraft(): CollectionDraft {
   return {
-    name: "", slug: "", code: "", subtitle: "", description: "",
+    name: "", slug: "", code: "", description: "",
     manifesto: "", searchSummary: "", symbolismLabel: "", symbolismTitle: "",
-    symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT", sortOrder: "0",
+    symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT",
   };
+}
+
+function generateCollectionCode(value: string) {
+  const normalized = value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  const words = normalized.split(/\s+/).filter(Boolean);
+  const joined = words.join("");
+
+  let prefix = "";
+  if (words.length >= 2) {
+    prefix = `${words[0]?.slice(0, 2) ?? ""}${words[1]?.slice(0, 2) ?? ""}`;
+  } else {
+    prefix = joined.slice(0, 4);
+  }
+
+  const safePrefix = `${prefix}${joined}`.slice(0, 4).padEnd(3, "X");
+  const checksum =
+    Array.from(joined).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 100;
+
+  return `${safePrefix}-${String(checksum).padStart(2, "0")}`;
 }
 
 function normalizeCollections(items: AdminCollection[]) {
@@ -115,7 +144,6 @@ function collectionToDraft(collection: AdminCollection): CollectionDraft {
     name: collection.name,
     slug: collection.slug,
     code: collection.code ?? "",
-    subtitle: collection.subtitle ?? "",
     description: collection.description ?? "",
     manifesto: collection.manifesto ?? "",
     searchSummary: collection.searchSummary ?? "",
@@ -124,7 +152,6 @@ function collectionToDraft(collection: AdminCollection): CollectionDraft {
     symbolismBody: collection.symbolismBody ?? "",
     symbolismBody2: collection.symbolismBody2 ?? "",
     workflowState: workflowStateFromCollection(collection),
-    sortOrder: String(collection.sortOrder ?? 0),
   };
 }
 
@@ -274,42 +301,43 @@ function CollectionFields({
         </label>
 
         <label className="grid gap-2">
-          <FieldLabel>Accent code</FieldLabel>
+          <FieldLabel required help="Short collection code used in storefront views and admin references.">
+            Accent code
+          </FieldLabel>
           <input
             name="code"
+            required
             value={draft.code}
             onChange={(e) => onChange("code", e.target.value)}
-            className="adm-field"
+            className={fieldClass(fieldErrors?.code)}
+            aria-invalid={Boolean(fieldErrors?.code)}
             placeholder="COL-01"
           />
+          <FieldError message={fieldErrors?.code} />
         </label>
+
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
-          <FieldLabel>Eyebrow / subtitle</FieldLabel>
-          <input
-            name="subtitle"
-            value={draft.subtitle}
-            onChange={(e) => onChange("subtitle", e.target.value)}
-            className="adm-field"
-            placeholder="Collection 01"
-          />
-        </label>
-
-        <label className="grid gap-2">
-          <FieldLabel help="Upload a new image only when you want to replace the current hero. Leave the field empty to keep the existing media.">
+          <FieldLabel
+            required
+            help="Upload a hero image for new collections. When editing, leave the field empty to keep the current media."
+          >
             Hero image
           </FieldLabel>
           <ImageFileField
             key={fileInputKey}
             name="heroImageFile"
+            required={!currentHeroImageUrl}
             className={fieldClass(fieldErrors?.heroImageFile)}
             aria-invalid={Boolean(fieldErrors?.heroImageFile)}
             currentImageUrl={currentHeroImageUrl}
             currentImageAlt={currentHeroImageLabel ?? "Collection hero image"}
             currentImageLabel="Current hero image"
             previewAspect="video"
+            removeFieldName="removeHeroImage"
+            removeLabel="Remove"
           />
           <FieldError message={fieldErrors?.heroImageFile} />
         </label>
@@ -331,27 +359,33 @@ function CollectionFields({
       </label>
 
       <label className="grid gap-2">
-        <FieldLabel>Manifesto</FieldLabel>
+        <FieldLabel required>Manifesto</FieldLabel>
         <textarea
           name="manifesto"
           rows={4}
+          required
           value={draft.manifesto}
           onChange={(e) => onChange("manifesto", e.target.value)}
-          className="adm-field"
+          className={fieldClass(fieldErrors?.manifesto)}
+          aria-invalid={Boolean(fieldErrors?.manifesto)}
           placeholder="This text powers the manifesto strip on the collection page."
         />
+        <FieldError message={fieldErrors?.manifesto} />
       </label>
 
       <label className="grid gap-2">
-        <FieldLabel>Search summary</FieldLabel>
+        <FieldLabel required>Search summary</FieldLabel>
         <textarea
           name="searchSummary"
           rows={2}
+          required
           value={draft.searchSummary}
           onChange={(e) => onChange("searchSummary", e.target.value)}
-          className="adm-field"
-          placeholder="Optional short search/discovery helper text."
+          className={fieldClass(fieldErrors?.searchSummary)}
+          aria-invalid={Boolean(fieldErrors?.searchSummary)}
+          placeholder="Short search/discovery helper text."
         />
+        <FieldError message={fieldErrors?.searchSummary} />
       </label>
 
       <div
@@ -363,17 +397,6 @@ function CollectionFields({
           onChange={(value) => onChange("workflowState", value)}
           error={fieldErrors?.workflowState}
         />
-
-        <label className="grid gap-2 md:max-w-xs">
-          <FieldLabel>Sort order</FieldLabel>
-          <input
-            name="sortOrder"
-            type="number"
-            value={draft.sortOrder}
-            onChange={(e) => onChange("sortOrder", e.target.value)}
-            className="adm-field"
-          />
-        </label>
       </div>
 
       {/* Default symbolism */}
@@ -443,16 +466,29 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [draftId, setDraftId] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [slugLocked, setSlugLocked] = useState(false);
+  const [codeLocked, setCodeLocked] = useState(false);
   const [draft, setDraft] = useState<CollectionDraft>(emptyCollectionDraft);
+  const { pushToast } = useAdminToast();
+
+  useDraftAutosave({
+    formRef,
+    saveDraft: autosaveCollectionDraftAction,
+    onSaved: (result) => {
+      if (result.recordId) setDraftId(result.recordId);
+    },
+  });
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
       const nextState = await saveCollectionAction(initialState, formData);
       setState(nextState);
       setConfirmOpen(false);
+      if (nextState.error) pushToast({ message: nextState.error, tone: "error" });
+      if (nextState.success) pushToast({ message: nextState.success, tone: "success" });
 
       if (nextState.collection) {
         onCreated?.(nextState.collection);
@@ -461,6 +497,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
       if (nextState.success && nextState.collection) {
         setDraft(emptyCollectionDraft());
         setSlugLocked(false);
+        setCodeLocked(false);
         setFileInputKey((current) => current + 1);
         formRef.current?.reset();
       }
@@ -473,6 +510,15 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
       if (key === "name" && !slugLocked) {
         next.slug = slugifyForAdmin(String(value));
       }
+      if (key === "name" && !codeLocked) {
+        next.code = generateCollectionCode(String(value));
+      }
+      if (key === "code") {
+        const normalizedValue = String(value).trim();
+        if (!normalizedValue) {
+          next.code = generateCollectionCode(current.name);
+        }
+      }
       return next;
     });
   }
@@ -480,6 +526,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
   return (
     <>
       <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
+        <input type="hidden" name="collectionId" value={draftId} />
         <div
           className="flex items-center justify-between gap-4 pb-4"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
@@ -491,7 +538,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
                 Create collection
               </h2>
               <AdminHelp label="Collection fields guidance">
-                Name, subtitle, and summary feed the collection card and hero. Accent code is a short admin label. Hero image replaces current media only when a file is selected. Manifesto and symbolism defaults shape the public collection story. State controls draft versus published visibility.
+                Name and summary feed the collection card and hero. The collection eyebrow and numbering are generated automatically from sort order. Hero image replaces current media only when a file is selected. Manifesto and symbolism defaults shape the public collection story. State controls draft versus published visibility.
               </AdminHelp>
             </div>
           </div>
@@ -505,7 +552,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
           </button>
         </div>
 
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
         <div>
           <AdminHelp label="Save guidance">
             Fields marked with * are required. Drafts stay in the form until a save succeeds.
@@ -516,6 +563,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
           draft={draft}
           onChange={(key, value) => {
             if (key === "slug") setSlugLocked(Boolean(String(value).trim()));
+            if (key === "code") setCodeLocked(Boolean(String(value).trim()));
             updateDraft(key, value);
           }}
           fieldErrors={state.fieldErrors}
@@ -547,12 +595,15 @@ function DeleteCollectionForm({
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { pushToast } = useAdminToast();
 
   async function handleDelete(formData: FormData) {
     startTransition(async () => {
       const nextState = await deleteCollectionAction(initialState, formData);
       setState(nextState);
       setConfirmOpen(false);
+      if (nextState.error) pushToast({ message: nextState.error, tone: "error" });
+      if (nextState.success) pushToast({ message: nextState.success, tone: "success" });
       if (nextState.deletedCollectionId) {
         onDeleted?.(nextState.deletedCollectionId);
       }
@@ -570,7 +621,7 @@ function DeleteCollectionForm({
         >
           {submitLabel("Delete collection", isPending, "Deleting...")}
         </button>
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
       </div>
       <AdminConfirmModal
         open={confirmOpen}
@@ -606,12 +657,16 @@ export function EditCollectionForm({
   const [draft, setDraft] = useState<CollectionDraft>(() => collectionToDraft(collection));
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputKey = collection.heroImageUrl ?? collection.id;
+  const { pushToast } = useAdminToast();
+  const [codeLocked, setCodeLocked] = useState(Boolean(collection.code?.trim()));
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
       const nextState = await saveCollectionAction(initialState, formData);
       setState(nextState);
       setConfirmOpen(false);
+      if (nextState.error) pushToast({ message: nextState.error, tone: "error" });
+      if (nextState.success) pushToast({ message: nextState.success, tone: "success" });
       if (nextState.collection) {
         onUpdated?.(nextState.collection);
       }
@@ -619,7 +674,19 @@ export function EditCollectionForm({
   }
 
   function updateDraft<K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) {
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "name" && !codeLocked) {
+        next.code = generateCollectionCode(String(value));
+      }
+      if (key === "code") {
+        const normalizedValue = String(value).trim();
+        if (!normalizedValue) {
+          next.code = generateCollectionCode(current.name);
+        }
+      }
+      return next;
+    });
   }
 
   return (
@@ -640,7 +707,7 @@ export function EditCollectionForm({
             Open page
           </Link>
         </div>
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
         <div>
           <AdminHelp label="Save guidance">
             Fields marked with * are required. Drafts stay in the form until a save succeeds.
@@ -658,6 +725,7 @@ export function EditCollectionForm({
           <CollectionFields
             draft={draft}
             onChange={(key, value) => {
+              if (key === "code") setCodeLocked(Boolean(String(value).trim()));
               updateDraft(key, value);
             }}
             fieldErrors={state.fieldErrors}
@@ -717,6 +785,7 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
   const [rowState, setRowState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
+  const { pushToast } = useAdminToast();
 
   function handleUpdated(collection: AdminCollection) {
     setItems((current) =>
@@ -741,6 +810,8 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
         formData.set("collectionSlug", rowAction.collection.slug);
         const result = await deleteCollectionAction(initialState, formData);
         setRowState(result);
+        if (result.error) pushToast({ message: result.error, tone: "error" });
+        if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.deletedCollectionId) {
           handleDeleted(result.deletedCollectionId);
         }
@@ -748,12 +819,28 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
         formData.set("action", rowAction.action);
         const result = await updateCollectionStatusAction(initialState, formData);
         setRowState(result);
+        if (result.error) pushToast({ message: result.error, tone: "error" });
+        if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.collection) {
           handleUpdated(result.collection);
         }
       }
 
       setRowAction(null);
+    });
+  }
+
+  function moveCollection(collection: AdminCollection, direction: "up" | "down") {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("collectionId", collection.id);
+      formData.set("direction", direction);
+
+      const result = await moveCollectionOrderAction(initialState, formData);
+      setRowState(result);
+      if (result.collections) {
+        setItems(normalizeCollections(result.collections));
+      }
     });
   }
 
@@ -772,22 +859,22 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
             <Link href="/admin/collections/new" className="adm-btn-primary">
               New collection
             </Link>
-            <AdminHelp label="Collection editing guidance">
-              Edit opens a dedicated route. Archive hides a collection without destroying its record.
+            <AdminHelp label="Collection editing guidance" align="end">
+              New collection opens the create route. Details opens the collection edit route. Draft, Publish, and Archive change storefront visibility. Delete removes the record.
             </AdminHelp>
           </div>
         </div>
-        <AuthMessage error={rowState.error} success={rowState.success} />
+        <AuthMessage error={rowState.error} />
 
         <div className="mt-5 grid gap-2">
           {items.length > 0 ? (
-            items.map((collection) => {
+            items.map((collection, index) => {
               const status = collectionStatusLabel(collection);
 
               return (
                 <div
                   key={collection.id}
-                  className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_7rem_5rem_minmax(19rem,auto)] lg:items-center"
+                  className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_auto_auto_minmax(19rem,auto)] xl:items-center"
                   style={{
                     border: "1px solid rgba(255,255,255,0.06)",
                   }}
@@ -804,10 +891,27 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
                   <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
                     {status}
                   </span>
-                  <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
-                    {collection.sortOrder}
-                  </span>
-                  <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="adm-btn-ghost py-1 px-2 text-[0.7rem]"
+                      aria-label={`Move ${collection.name} up`}
+                      disabled={isPending || index === 0}
+                      onClick={() => moveCollection(collection, "up")}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="adm-btn-ghost py-1 px-2 text-[0.7rem]"
+                      aria-label={`Move ${collection.name} down`}
+                      disabled={isPending || index === items.length - 1}
+                      onClick={() => moveCollection(collection, "down")}
+                    >
+                      ↓
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
                     <button
                       type="button"
                       className="adm-btn-primary py-1 px-2 text-[0.58rem]"

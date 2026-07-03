@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { PageEditor } from "@/components/admin/pages-cms";
+import { PageEditRoute } from "@/components/admin/page-route-editor";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function EditPagePage({
@@ -46,7 +46,7 @@ export default async function EditPagePage({
         </div>
       </div>
 
-      <PageEditor page={page} />
+      <PageEditRoute page={page} />
     </div>
   );
 }

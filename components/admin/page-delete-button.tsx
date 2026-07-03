@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { deletePageAction } from "@/app/admin/actions";
+import { useAdminToast } from "@/components/admin/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 function ConfirmModal({
@@ -66,6 +67,7 @@ export function PageDeleteButton({
   const [state, setState] = useState<{ error?: string; success?: string }>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { pushToast } = useAdminToast();
 
   function handleDelete() {
     startTransition(async () => {
@@ -73,6 +75,8 @@ export function PageDeleteButton({
       formData.set("slug", slug);
       const result = await deletePageAction(formData);
       setState(result);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (!result?.error) {
         setConfirmOpen(false);
         router.refresh();
@@ -91,7 +95,7 @@ export function PageDeleteButton({
         >
           {isPending ? "Deleting..." : "Delete page"}
         </button>
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
       </div>
 
       <ConfirmModal

@@ -33,12 +33,16 @@ async function uploadOptionalProductAsset(input: {
   formData: FormData;
   fieldName: string;
   existingValue: string;
+  removeFieldName?: string;
   currentUserId?: string | null;
 }) {
   const file = input.formData.get(input.fieldName);
+  const shouldRemoveExisting = input.removeFieldName
+    ? String(input.formData.get(input.removeFieldName) ?? "").trim() === "1"
+    : false;
 
   if (!(file instanceof File) || file.size === 0) {
-    return input.existingValue.trim();
+    return shouldRemoveExisting ? "" : input.existingValue.trim();
   }
 
   const uploaded = await saveProductImageUpload(file);
@@ -110,6 +114,27 @@ function snapshotNumber(snapshot: Record<string, unknown>, key: string) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function createDraftToken(prefix: string) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function hasMeaningfulDraftInput(formData: FormData, ignoredNames: string[] = []) {
+  const ignored = new Set(ignoredNames);
+
+  for (const [key, value] of formData.entries()) {
+    if (ignored.has(key)) continue;
+
+    if (value instanceof File) {
+      if (value.size > 0) return true;
+      continue;
+    }
+
+    if (String(value).trim()) return true;
+  }
+
+  return false;
+}
+
 async function writeAuditLog(input: {
   action: string;
   entityType: AdminAuditEntityType;
@@ -140,13 +165,21 @@ export type CollectionActionState = {
   resetKey?: number;
   fieldErrors?: Partial<Record<CollectionFieldName, string>>;
   collection?: SavedCollectionPayload;
+  collections?: SavedCollectionPayload[];
   deletedCollectionId?: string;
+};
+
+export type DraftAutosaveResult = {
+  recordId?: string;
 };
 
 export type CollectionFieldName =
   | "name"
   | "slug"
+  | "code"
   | "description"
+  | "manifesto"
+  | "searchSummary"
   | "workflowState"
   | "heroImageFile";
 
@@ -268,6 +301,48 @@ export type SavedTagPayload = {
   name: string;
 };
 
+const savedCollectionSelect = {
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  name: true,
+  slug: true,
+  code: true,
+  subtitle: true,
+  description: true,
+  manifesto: true,
+  searchSummary: true,
+  symbolismLabel: true,
+  symbolismTitle: true,
+  symbolismBody: true,
+  symbolismBody2: true,
+  heroImageUrl: true,
+  sortOrder: true,
+  status: true,
+  visibility: true,
+} satisfies Prisma.CollectionSelect;
+
+async function listSavedCollections(client: Prisma.TransactionClient | typeof db = db) {
+  return client.collection.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { name: "asc" }],
+    select: savedCollectionSelect,
+  });
+}
+
+async function resequenceCollections(
+  tx: Prisma.TransactionClient,
+  collections: Array<{ id: string }>,
+) {
+  await Promise.all(
+    collections.map((collection, index) =>
+      tx.collection.update({
+        where: { id: collection.id },
+        data: { sortOrder: index + 1 },
+      }),
+    ),
+  );
+}
+
 async function getSavedProductPayload(productId: string): Promise<SavedProductPayload> {
   const product = await db.product.findUnique({
     where: { id: productId },
@@ -336,26 +411,7 @@ async function getSavedProductPayload(productId: string): Promise<SavedProductPa
 async function getSavedCollectionPayload(collectionId: string): Promise<SavedCollectionPayload> {
   const collection = await db.collection.findUnique({
     where: { id: collectionId },
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      name: true,
-      slug: true,
-      code: true,
-      subtitle: true,
-      description: true,
-      manifesto: true,
-      searchSummary: true,
-      symbolismLabel: true,
-      symbolismTitle: true,
-      symbolismBody: true,
-      symbolismBody2: true,
-      heroImageUrl: true,
-      sortOrder: true,
-      status: true,
-      visibility: true,
-    },
+    select: savedCollectionSelect,
   });
 
   if (!collection) {
@@ -439,8 +495,12 @@ async function getCurrentRecordSnapshot(entityType: AdminAuditEntityType, entity
 function validateCollectionInput(input: {
   name: string;
   slug: string;
+  code: string;
   description: string;
+  manifesto: string;
+  searchSummary: string;
   workflowState: string;
+  hasHeroImage: boolean;
 }) {
   const fieldErrors: Partial<Record<CollectionFieldName, string>> = {};
 
@@ -452,8 +512,24 @@ function validateCollectionInput(input: {
     fieldErrors.slug = "Slug is required.";
   }
 
+  if (!input.code) {
+    fieldErrors.code = "Collection code is required.";
+  }
+
   if (!input.description) {
     fieldErrors.description = "Collection summary is required.";
+  }
+
+  if (!input.manifesto) {
+    fieldErrors.manifesto = "Manifesto is required.";
+  }
+
+  if (!input.searchSummary) {
+    fieldErrors.searchSummary = "Search summary is required.";
+  }
+
+  if (!input.hasHeroImage) {
+    fieldErrors.heroImageFile = "Hero image is required.";
   }
 
   if (input.workflowState !== "DRAFT" && input.workflowState !== "PUBLISHED") {
@@ -467,6 +543,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   await requirePermission("pages.manage", "/admin/pages");
   const currentUser = await getCurrentUser();
 
+  const pageId = String(formData.get("pageId") ?? "").trim();
   const rawSlug = String(formData.get("slug") ?? "").trim();
   const workflowState = String(formData.get("workflowState") ?? "PUBLISHED");
   const title = String(formData.get("title") ?? "").trim();
@@ -485,63 +562,69 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   }
 
   const isPublished = workflowState === "PUBLISHED";
-  const before = await getSavedPagePayload(slug).catch(() => null);
-  const existing = await db.page.findUnique({
-    where: { slug },
-    select: { template: true },
-  });
+  const before = await getSavedPagePayload(pageId || slug).catch(() => null);
+  const pageData = {
+    slug,
+    title,
+    excerpt,
+    content: {
+      eyebrow,
+      body,
+      ctaLabel,
+      ctaHref,
+      quote,
+      secondaryTitle,
+      secondaryBody,
+    },
+    status: isPublished ? "PUBLISHED" : "DRAFT",
+    visibility: isPublished ? "PUBLIC" : "PRIVATE",
+    publishedAt: isPublished ? new Date() : null,
+    authoredById: currentUser?.id ?? null,
+  };
 
-  const page = await db.page.upsert({
-    where: { slug },
-    update: {
-      title,
-      excerpt,
-      content: {
-        eyebrow,
-        body,
-        ctaLabel,
-        ctaHref,
-        quote,
-        secondaryTitle,
-        secondaryBody,
-      },
-      status: isPublished ? "PUBLISHED" : "DRAFT",
-      visibility: isPublished ? "PUBLIC" : "PRIVATE",
-      publishedAt: isPublished ? new Date() : null,
-      authoredById: currentUser?.id ?? null,
-    },
-    create: {
-      slug,
-      title,
-      template: existing?.template ?? "STATIC_PAGE",
-      excerpt,
-      searchSummary: excerpt || title,
-      content: {
-        eyebrow,
-        body,
-        ctaLabel,
-        ctaHref,
-        quote,
-        secondaryTitle,
-        secondaryBody,
-      },
-      status: isPublished ? "PUBLISHED" : "DRAFT",
-      visibility: isPublished ? "PUBLIC" : "PRIVATE",
-      publishedAt: isPublished ? new Date() : null,
-      authoredById: currentUser?.id ?? null,
-    },
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      slug: true,
-      title: true,
-      excerpt: true,
-      content: true,
-      status: true,
-      visibility: true,
-    },
-  });
+  const page = pageId
+    ? await db.page.update({
+        where: { id: pageId },
+        data: pageData,
+        select: {
+          id: true,
+          createdAt: true,
+          updatedAt: true,
+          slug: true,
+          title: true,
+          excerpt: true,
+          content: true,
+          status: true,
+          visibility: true,
+        },
+      })
+    : await (async () => {
+        const existing = await db.page.findUnique({
+          where: { slug },
+          select: { template: true },
+        });
+
+        return db.page.upsert({
+          where: { slug },
+          update: pageData,
+          create: {
+            ...pageData,
+            template: existing?.template ?? "STATIC_PAGE",
+            searchSummary: excerpt || title,
+          },
+          select: {
+            id: true,
+            createdAt: true,
+            updatedAt: true,
+            slug: true,
+            title: true,
+            excerpt: true,
+            content: true,
+            status: true,
+            visibility: true,
+          },
+        });
+      })();
 
   await writeAuditLog({
     action: before ? "UPDATE" : "CREATE",
@@ -557,6 +640,66 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages?updated=${slug}`);
   return { success: before ? "Page updated." : "Page created.", page };
+}
+
+export async function autosavePageDraftAction(formData: FormData): Promise<DraftAutosaveResult> {
+  await requirePermission("pages.manage", "/admin/pages");
+  const currentUser = await getCurrentUser();
+
+  if (!hasMeaningfulDraftInput(formData, ["pageId", "workflowState"])) {
+    return {};
+  }
+
+  const pageId = String(formData.get("pageId") ?? "").trim();
+  const rawSlug = String(formData.get("slug") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const excerpt = String(formData.get("excerpt") ?? "").trim();
+  const eyebrow = String(formData.get("eyebrow") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const ctaLabel = String(formData.get("ctaLabel") ?? "").trim();
+  const ctaHref = String(formData.get("ctaHref") ?? "").trim();
+  const quote = String(formData.get("quote") ?? "").trim();
+  const secondaryTitle = String(formData.get("secondaryTitle") ?? "").trim();
+  const secondaryBody = String(formData.get("secondaryBody") ?? "").trim();
+  const slug = slugify(rawSlug || title) || createDraftToken("draft-page");
+
+  const pageData = {
+    slug,
+    title: title || "Untitled page",
+    excerpt: excerpt || null,
+    searchSummary: excerpt || title || "Untitled page",
+    content: {
+      eyebrow,
+      body,
+      ctaLabel,
+      ctaHref,
+      quote,
+      secondaryTitle,
+      secondaryBody,
+    },
+    status: "DRAFT" as const,
+    visibility: "PRIVATE" as const,
+    publishedAt: null,
+    authoredById: currentUser?.id ?? null,
+  };
+
+  const page = pageId
+    ? await db.page.update({
+        where: { id: pageId },
+        data: pageData,
+        select: { id: true },
+      })
+    : await db.page.create({
+        data: {
+          ...pageData,
+          template: "STATIC_PAGE",
+        },
+        select: { id: true },
+      });
+
+  revalidatePath("/admin/pages");
+  revalidatePath("/admin");
+  return { recordId: page.id };
 }
 
 export async function updatePageStatusAction(formData: FormData): Promise<PageActionState> {
@@ -824,7 +967,6 @@ export async function saveCollectionAction(
   const slug = slugify(String(formData.get("slug") ?? "").trim());
   const code = String(formData.get("code") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
-  const subtitle = String(formData.get("subtitle") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const manifesto = String(formData.get("manifesto") ?? "").trim();
   const searchSummary = String(formData.get("searchSummary") ?? "").trim();
@@ -832,16 +974,24 @@ export async function saveCollectionAction(
   const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
   const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
   const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
-  const existingHeroImageUrl = String(formData.get("existingHeroImageUrl") ?? "").trim();
+  const removeHeroImage = String(formData.get("removeHeroImage") ?? "").trim() === "1";
+  const existingHeroImageUrl = removeHeroImage
+    ? ""
+    : String(formData.get("existingHeroImageUrl") ?? "").trim();
   const workflowState = String(formData.get("workflowState") ?? "DRAFT").trim();
-  const sortOrder = Number(String(formData.get("sortOrder") ?? "0").trim() || "0");
   const imageFile = formData.get("heroImageFile");
 
   const fieldErrors = validateCollectionInput({
     name,
     slug,
+    code,
     description,
+    manifesto,
+    searchSummary,
     workflowState,
+    hasHeroImage: Boolean(
+      existingHeroImageUrl || (imageFile instanceof File && imageFile.size > 0),
+    ),
   });
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -888,7 +1038,6 @@ export async function saveCollectionAction(
     slug,
     code: code || null,
     name,
-    subtitle: subtitle || null,
     description: description || null,
     manifesto: manifesto || null,
     searchSummary: searchSummary || null,
@@ -900,35 +1049,32 @@ export async function saveCollectionAction(
     ...(uploadedAssetId ? { heroAssetId: uploadedAssetId } : {}),
     status: (isPublished ? "ACTIVE" : "DRAFT") as "DRAFT" | "ACTIVE",
     visibility: (isPublished ? "PUBLIC" : "PRIVATE") as "PRIVATE" | "PUBLIC",
-    sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     publishedAt: isPublished ? new Date() : null,
   };
 
-  const savedCollection = await db.collection.upsert({
-    where: collectionId ? { id: collectionId } : { slug },
-    update: baseData,
-    create: baseData,
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      name: true,
-      slug: true,
-      code: true,
-      subtitle: true,
-      description: true,
-      manifesto: true,
-      searchSummary: true,
-      symbolismLabel: true,
-      symbolismTitle: true,
-      symbolismBody: true,
-      symbolismBody2: true,
-      heroImageUrl: true,
-      sortOrder: true,
-      status: true,
-      visibility: true,
-    },
-  });
+  const savedCollection = collectionId
+    ? await db.collection.update({
+        where: { id: collectionId },
+        data: baseData,
+        select: savedCollectionSelect,
+      })
+    : await db.$transaction(async (tx) => {
+        await tx.collection.updateMany({
+          data: {
+            sortOrder: {
+              increment: 1,
+            },
+          },
+        });
+
+        return tx.collection.create({
+          data: {
+            ...baseData,
+            sortOrder: 1,
+          },
+          select: savedCollectionSelect,
+        });
+      });
 
   await writeAuditLog({
     action: collectionId ? "UPDATE" : "CREATE",
@@ -947,6 +1093,86 @@ export async function saveCollectionAction(
   };
 }
 
+export async function autosaveCollectionDraftAction(
+  formData: FormData,
+): Promise<DraftAutosaveResult> {
+  await requirePermission("products.manage", "/admin/collections");
+  const currentUser = await getCurrentUser();
+
+  if (!hasMeaningfulDraftInput(formData, ["collectionId", "workflowState", "existingHeroImageUrl"])) {
+    return {};
+  }
+
+  const collectionId = String(formData.get("collectionId") ?? "").trim();
+  const slug = slugify(String(formData.get("slug") ?? "").trim()) || createDraftToken("draft-collection");
+  const code = String(formData.get("code") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim() || "Untitled collection";
+  const description = String(formData.get("description") ?? "").trim();
+  const manifesto = String(formData.get("manifesto") ?? "").trim();
+  const searchSummary = String(formData.get("searchSummary") ?? "").trim();
+  const symbolismLabel = String(formData.get("symbolismLabel") ?? "").trim();
+  const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
+  const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
+  const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
+  const removeHeroImage = String(formData.get("removeHeroImage") ?? "").trim() === "1";
+  const existingHeroImageUrl = removeHeroImage
+    ? ""
+    : String(formData.get("existingHeroImageUrl") ?? "").trim();
+
+  const collectionData = {
+    slug,
+    code: code || null,
+    name,
+    description: description || null,
+    manifesto: manifesto || null,
+    searchSummary: searchSummary || null,
+    symbolismLabel: symbolismLabel || null,
+    symbolismTitle: symbolismTitle || null,
+    symbolismBody: symbolismBody || null,
+    symbolismBody2: symbolismBody2 || null,
+    heroImageUrl: existingHeroImageUrl || null,
+    status: "DRAFT" as const,
+    visibility: "PRIVATE" as const,
+    publishedAt: null,
+  };
+
+  const collection = collectionId
+    ? await db.collection.update({
+        where: { id: collectionId },
+        data: collectionData,
+        select: { id: true },
+      })
+    : await db.$transaction(async (tx) => {
+        await tx.collection.updateMany({
+          data: {
+            sortOrder: {
+              increment: 1,
+            },
+          },
+        });
+
+        return tx.collection.create({
+          data: {
+            ...collectionData,
+            sortOrder: 1,
+          },
+          select: { id: true },
+        });
+      });
+
+  await writeAuditLog({
+    action: collectionId ? "AUTOSAVE_DRAFT_UPDATE" : "AUTOSAVE_DRAFT_CREATE",
+    entityType: "COLLECTION",
+    entityId: collection.id,
+    after: collectionData,
+    actorId: currentUser?.id,
+  });
+
+  revalidatePath("/admin/collections");
+  revalidatePath("/admin");
+  return { recordId: collection.id };
+}
+
 export async function deleteCollectionAction(
   _prevState: CollectionActionState,
   formData: FormData,
@@ -960,15 +1186,90 @@ export async function deleteCollectionAction(
     return { error: "Collection id is missing." };
   }
 
-  await db.collection.delete({
-    where: { id: collectionId },
+  await db.$transaction(async (tx) => {
+    await tx.collection.delete({
+      where: { id: collectionId },
+    });
+
+    const remainingCollections = await tx.collection.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { name: "asc" }],
+      select: { id: true },
+    });
+
+    await resequenceCollections(tx, remainingCollections);
   });
 
   revalidateStorefront();
+  revalidatePath("/admin/collections");
   return {
     success: collectionSlug ? `Collection ${collectionSlug} deleted.` : "Collection deleted.",
     resetKey: Date.now(),
     deletedCollectionId: collectionId,
+  };
+}
+
+export async function moveCollectionOrderAction(
+  _prevState: CollectionActionState,
+  formData: FormData,
+): Promise<CollectionActionState> {
+  await requirePermission("products.manage", "/admin/collections");
+  const currentUser = await getCurrentUser();
+
+  const collectionId = String(formData.get("collectionId") ?? "").trim();
+  const direction = String(formData.get("direction") ?? "").trim();
+
+  if (!collectionId) {
+    return { error: "Collection id is missing." };
+  }
+
+  if (direction !== "up" && direction !== "down") {
+    return { error: "Unknown collection move direction." };
+  }
+
+  const before = await getSavedCollectionPayload(collectionId).catch(() => null);
+
+  const collections = await db.$transaction(async (tx) => {
+    const orderedCollections = await tx.collection.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { name: "asc" }],
+      select: { id: true },
+    });
+
+    const currentIndex = orderedCollections.findIndex((collection) => collection.id === collectionId);
+    if (currentIndex === -1) {
+      throw new Error("Collection not found.");
+    }
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= orderedCollections.length) {
+      return listSavedCollections(tx);
+    }
+
+    const reorderedCollections = [...orderedCollections];
+    const [movedCollection] = reorderedCollections.splice(currentIndex, 1);
+    reorderedCollections.splice(targetIndex, 0, movedCollection);
+
+    await resequenceCollections(tx, reorderedCollections);
+    return listSavedCollections(tx);
+  });
+
+  const movedCollection = collections.find((collection) => collection.id === collectionId);
+
+  await writeAuditLog({
+    action: `REORDER_${direction.toUpperCase()}`,
+    entityType: "COLLECTION",
+    entityId: collectionId,
+    before,
+    after: movedCollection ?? null,
+    metadata: { direction },
+    actorId: currentUser?.id,
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/collections");
+  return {
+    success: direction === "up" ? "Collection moved up." : "Collection moved down.",
+    collection: movedCollection,
+    collections,
   };
 }
 
@@ -1004,26 +1305,7 @@ export async function updateCollectionStatusAction(
   const collection = await db.collection.update({
     where: { id: collectionId },
     data: state,
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      name: true,
-      slug: true,
-      code: true,
-      subtitle: true,
-      description: true,
-      manifesto: true,
-      searchSummary: true,
-      symbolismLabel: true,
-      symbolismTitle: true,
-      symbolismBody: true,
-      symbolismBody2: true,
-      heroImageUrl: true,
-      sortOrder: true,
-      status: true,
-      visibility: true,
-    },
+    select: savedCollectionSelect,
   });
 
   await writeAuditLog({
@@ -1056,7 +1338,10 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
   const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
   const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
-  const existingImageUrl = String(formData.get("existingImageUrl") ?? "").trim();
+  const removeImage = String(formData.get("removeImage") ?? "").trim() === "1";
+  const existingImageUrl = removeImage
+    ? ""
+    : String(formData.get("existingImageUrl") ?? "").trim();
   const price = Number(String(formData.get("price") ?? "0").trim() || "0");
   const categorySlug = String(formData.get("categorySlug") ?? "").trim();
   const collectionSlug = String(formData.get("collectionSlug") ?? "").trim();
@@ -1094,6 +1379,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         formData,
         fieldName: `materialImageFile${index}`,
         existingValue: formValue(formData, `existingMaterialImage${index}`),
+        removeFieldName: `removeMaterialImage${index}`,
         currentUserId: currentUser?.id,
       });
 
@@ -1109,6 +1395,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     formData,
     fieldName: "processMediaImageFile",
     existingValue: formValue(formData, "existingProcessMediaImage"),
+    removeFieldName: "removeProcessMediaImage",
     currentUserId: currentUser?.id,
   });
 
@@ -1125,6 +1412,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         formData,
         fieldName: `lookbookImageFile${index}`,
         existingValue: formValue(formData, `existingLookbookImage${index}`),
+        removeFieldName: `removeLookbookImage${index}`,
         currentUserId: currentUser?.id,
       });
 
@@ -1266,6 +1554,59 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     created: wasCreate,
     product: savedProduct,
   };
+}
+
+export async function autosaveProductDraftAction(formData: FormData): Promise<DraftAutosaveResult> {
+  await requirePermission("products.manage", "/admin/products");
+
+  if (!hasMeaningfulDraftInput(formData, ["productId", "workflowState", "existingImageUrl"])) {
+    return {};
+  }
+
+  const productId = String(formData.get("productId") ?? "").trim();
+  const slug = slugify(String(formData.get("slug") ?? "").trim()) || createDraftToken("draft-product");
+  const sku = String(formData.get("sku") ?? "").trim() || createDraftToken("sku").toUpperCase();
+  const name = String(formData.get("name") ?? "").trim() || "Untitled product";
+  const seriesLabel = String(formData.get("seriesLabel") ?? "").trim();
+  const shortDescription = String(formData.get("shortDescription") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const materialLine = String(formData.get("materialLine") ?? "").trim();
+  const price = Number(String(formData.get("price") ?? "0").trim() || "0");
+  const removeImage = String(formData.get("removeImage") ?? "").trim() === "1";
+  const existingImageUrl = removeImage
+    ? ""
+    : String(formData.get("existingImageUrl") ?? "").trim();
+
+  const productData = {
+    slug,
+    sku,
+    name,
+    seriesLabel: seriesLabel || null,
+    shortDescription: shortDescription || null,
+    description: description || null,
+    materialLine: materialLine || null,
+    details: {},
+    imageUrl: existingImageUrl || null,
+    priceCents: Number.isFinite(price) ? Math.round(price * 100) : 0,
+    status: "DRAFT" as const,
+    visibility: "PRIVATE" as const,
+    publishedAt: null,
+  };
+
+  const product = productId
+    ? await db.product.update({
+        where: { id: productId },
+        data: productData,
+        select: { id: true },
+      })
+    : await db.product.create({
+        data: productData,
+        select: { id: true },
+      });
+
+  revalidatePath("/admin/products");
+  revalidatePath("/admin");
+  return { recordId: product.id };
 }
 
 export async function deleteProductAction(formData: FormData): Promise<ProductActionState> {

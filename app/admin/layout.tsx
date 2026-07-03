@@ -8,6 +8,7 @@ import {
   AdminThemeShell,
   AdminTopbarIssueLink,
 } from "@/components/admin/admin-primitives";
+import { AdminToastProvider } from "@/components/admin/admin-toast";
 
 export default async function AdminLayout({
   children,
@@ -35,8 +36,9 @@ export default async function AdminLayout({
   if (openIssueCount > 0) issueNavHrefs.push("/admin/issues");
 
   return (
-    <div className="admin-terminal min-h-screen flex flex-col">
-      <AdminThemeShell />
+    <AdminToastProvider>
+      <div className="admin-terminal min-h-screen flex flex-col">
+        <AdminThemeShell />
 
       {/* Identity rail */}
       <AdminSmartTopbar>
@@ -64,7 +66,7 @@ export default async function AdminLayout({
       </AdminSmartTopbar>
 
       {/* Shell */}
-      <div className="flex flex-1">
+        <div className="flex flex-1">
         {/* Left rail */}
         <aside
           className="adm-sidebar hidden w-56 shrink-0 flex-col border-r p-4 lg:w-64 lg:p-5 md:flex"
@@ -92,10 +94,11 @@ export default async function AdminLayout({
         </aside>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
-          {children}
+          <div className="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
+            {children}
+          </div>
         </div>
       </div>
-    </div>
+    </AdminToastProvider>
   );
 }

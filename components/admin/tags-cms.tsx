@@ -13,6 +13,7 @@ import {
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { slugifyForAdmin } from "@/components/admin/slug-utils";
+import { useAdminToast } from "@/components/admin/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {
@@ -109,6 +110,7 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
   const [slugValue, setSlugValue] = useState(tag?.slug ?? "");
   const [slugLocked, setSlugLocked] = useState(Boolean(tag?.slug));
   const [isPending, startTransition] = useTransition();
+  const { pushToast } = useAdminToast();
 
   function updateName(value: string) {
     setNameValue(value);
@@ -133,6 +135,8 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
       const result = await saveTagAction(formData);
       setState(result);
       setConfirmOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.tag) {
         router.push(`/admin/tags/${result.tag.id}`);
         router.refresh();
@@ -148,6 +152,8 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
       const result = await deleteTagAction(formData);
       setState(result);
       setDeleteOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.deletedTagId) {
         router.push("/admin/tags");
         router.refresh();
@@ -177,7 +183,7 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
           </button>
         </div>
 
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">

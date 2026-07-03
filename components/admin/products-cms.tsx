@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 
 import {
+  autosaveProductDraftAction,
   deleteProductAction,
   saveProductAction,
   updateProductStatusAction,
@@ -17,10 +18,12 @@ import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminIssueInlineWarning } from "@/components/admin/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { useAdminToast } from "@/components/admin/admin-toast";
 import { slugifyForAdmin } from "@/components/admin/slug-utils";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
+import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
 import {
   fallbackProductLookbook,
   fallbackProductMaterials,
@@ -288,6 +291,8 @@ function ProductDetailFields({
                 name={`materialImageFile${index + 1}`}
                 currentImageUrl={mode === "edit" ? material.image : ""}
                 currentImageAlt={material.title || `Material ${index + 1}`}
+                removeFieldName={`removeMaterialImage${index + 1}`}
+                removeLabel="Remove"
               />
             </div>
           ))}
@@ -331,6 +336,8 @@ function ProductDetailFields({
           currentImageLabel="Current process media"
           previewAspect="video"
           fieldId="field-details-process-mediaImage"
+          removeFieldName="removeProcessMediaImage"
+          removeLabel="Remove"
         />
         <AdminIssueInlineWarning issues={issuesForField(issues, "field-details-process-mediaImage")} />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -407,6 +414,8 @@ function ProductDetailFields({
                 name={`lookbookImageFile${index + 1}`}
                 currentImageUrl={mode === "edit" ? item.src : ""}
                 currentImageAlt={item.label || `Lookbook ${index + 1}`}
+                removeFieldName={`removeLookbookImage${index + 1}`}
+                removeLabel="Remove"
               />
             </div>
           ))}
@@ -531,6 +540,8 @@ function ProductFormFields({
             name="imageFile"
             currentImageUrl={draft.imageUrl}
             currentImageAlt={draft.name || "Product image"}
+            removeFieldName="removeImage"
+            removeLabel="Remove"
           />
         </label>
       </div>
@@ -632,14 +643,26 @@ export function CreateProductForm({
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [draftId, setDraftId] = useState("");
   const [draft] = useState<ProductDraft>(emptyDraft);
   const formRef = useRef<HTMLFormElement>(null);
+  const { pushToast } = useAdminToast();
+
+  useDraftAutosave({
+    formRef,
+    saveDraft: autosaveProductDraftAction,
+    onSaved: (result) => {
+      if (result.recordId) setDraftId(result.recordId);
+    },
+  });
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
       const result = await saveProductAction(formData);
       setState(result);
       setConfirmOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
 
       if (result.product) {
         onCreated?.(result.product);
@@ -654,6 +677,7 @@ export function CreateProductForm({
   return (
     <>
       <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
+        <input type="hidden" name="productId" value={draftId} />
         <div
           className="flex items-center justify-between gap-4 pb-4"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
@@ -668,7 +692,7 @@ export function CreateProductForm({
         </div>
 
         <ProgressBar pending={isPending} />
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
         <div>
           <AdminHelp label="Publishing guidance">
             Saving updates the database. Published products can immediately affect the public storefront.
@@ -723,6 +747,7 @@ export function EditProductForm({
   const rowRef = useRef<HTMLDivElement>(null);
   const draft = productToDraft(product);
   const details = getProductEditorDetails(product.details);
+  const { pushToast } = useAdminToast();
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) return;
@@ -734,6 +759,8 @@ export function EditProductForm({
       const result = await saveProductAction(formData);
       setState(result);
       setConfirmOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.product) {
         onUpdated?.(result.product);
       }
@@ -745,6 +772,8 @@ export function EditProductForm({
       const result = await deleteProductAction(formData);
       setState(result);
       setDeleteOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.deletedProductId) {
         onDeleted?.(result.deletedProductId);
       }
@@ -789,7 +818,7 @@ export function EditProductForm({
           </div>
 
           <ProgressBar pending={isPending} />
-          <AuthMessage error={state.error} success={state.success} />
+          <AuthMessage error={state.error} />
 
           <ProductFormFields
             draft={draft}
@@ -866,6 +895,7 @@ export function ProductsCms({
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [rowActionState, setRowActionState] = useState<ProductActionState>({});
   const [isRowActionPending, startRowActionTransition] = useTransition();
+  const { pushToast } = useAdminToast();
 
   function handleUpdated(product: ProductRecord) {
     setProducts((current) =>
@@ -888,6 +918,8 @@ export function ProductsCms({
         formData.set("productSlug", rowAction.product.slug);
         const result = await deleteProductAction(formData);
         setRowActionState(result);
+        if (result.error) pushToast({ message: result.error, tone: "error" });
+        if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.deletedProductId) {
           handleDeleted(result.deletedProductId);
         }
@@ -895,6 +927,8 @@ export function ProductsCms({
         formData.set("action", rowAction.action);
         const result = await updateProductStatusAction(formData);
         setRowActionState(result);
+        if (result.error) pushToast({ message: result.error, tone: "error" });
+        if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.product) {
           handleUpdated(result.product);
         }
@@ -906,6 +940,8 @@ export function ProductsCms({
 
   const modalCopy = rowAction ? productActionCopy(rowAction) : null;
   const normalizedQuery = query.trim().toLowerCase();
+  const desktopTableGridClass =
+    "lg:grid-cols-[minmax(18rem,24rem)_8.5rem_8.5rem_11rem_minmax(24rem,1fr)]";
   const filteredProducts = products.filter((product) => {
     const status = productStatusLabel(product);
     const matchesQuery =
@@ -1001,108 +1037,121 @@ export function ProductsCms({
           </label>
         </div>
 
-        <AuthMessage error={rowActionState.error} success={rowActionState.success} />
+        <AuthMessage error={rowActionState.error} />
 
-        <div className="mt-4 grid gap-2">
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => {
-              const status = productStatusLabel(product);
-              const productIssues = issues.filter(
-                (issue) => issue.entityType === "PRODUCT" && issue.entityId === product.id,
-              );
+        <div className="mt-4 overflow-x-auto lg:pb-1">
+          <div className="grid gap-2 lg:min-w-[74rem]">
+            <div
+              className={`hidden gap-3 px-3 pb-1 lg:grid ${desktopTableGridClass}`}
+              style={{ color: "var(--adm-subtle)" }}
+            >
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Product</span>
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Status</span>
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Price</span>
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Category</span>
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-right">Actions</span>
+            </div>
 
-              return (
-                <div
-                  key={product.id}
-                  className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1.3fr)_8rem_8rem_10rem_minmax(20rem,auto)] lg:items-center"
-                  style={{
-                    border: "1px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
-                      {product.name}
-                    </p>
-                    <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
-                      /{product.slug}
-                    </p>
-                    <AdminRecordDates record={product} />
-                    {productIssues.length > 0 ? (
-                      <Link
-                        href={productIssues[0]?.targetHref ?? `/admin/products/${product.id}`}
-                        className="mt-2 inline-flex items-center text-[0.62rem] font-bold uppercase tracking-[0.08em]"
-                        style={{ color: "var(--adm-danger)" }}
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => {
+                const status = productStatusLabel(product);
+                const productIssues = issues.filter(
+                  (issue) => issue.entityType === "PRODUCT" && issue.entityId === product.id,
+                );
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`grid gap-3 p-3 lg:items-center ${desktopTableGridClass}`}
+                    style={{
+                      border: "1px solid rgba(255,255,255,0.06)",
+                    }}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+                        {product.name}
+                      </p>
+                      <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
+                        /{product.slug}
+                      </p>
+                      <AdminRecordDates record={product} />
+                      {productIssues.length > 0 ? (
+                        <Link
+                          href={productIssues[0]?.targetHref ?? `/admin/products/${product.id}`}
+                          className="mt-2 inline-flex items-center text-[0.62rem] font-bold uppercase tracking-[0.08em]"
+                          style={{ color: "var(--adm-danger)" }}
+                        >
+                          {productIssues.length} problem{productIssues.length === 1 ? "" : "s"}
+                        </Link>
+                      ) : null}
+                    </div>
+                    <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
+                      {status}
+                    </span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
+                      {centsToPrice(product.priceCents)} EUR
+                    </span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
+                      {product.category?.name ?? "No category"}
+                    </span>
+                    <div className="flex flex-wrap justify-start gap-2 lg:flex-nowrap lg:justify-end">
+                      <button
+                        type="button"
+                        className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                        onClick={() => setEditingProduct(product)}
                       >
-                        {productIssues.length} problem{productIssues.length === 1 ? "" : "s"}
-                      </Link>
-                    ) : null}
+                        Details
+                      </button>
+                      {status === "PUBLISHED" ? (
+                        <button
+                          type="button"
+                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                          onClick={() => setRowAction({ product, action: "draft" })}
+                        >
+                          Draft
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                          onClick={() => setRowAction({ product, action: "publish" })}
+                          disabled={status === "ARCHIVED"}
+                        >
+                          Publish
+                        </button>
+                      )}
+                      {status === "ARCHIVED" ? (
+                        <button
+                          type="button"
+                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                          onClick={() => setRowAction({ product, action: "draft" })}
+                        >
+                          Restore
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                          onClick={() => setRowAction({ product, action: "archive" })}
+                        >
+                          Archive
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="adm-btn-danger py-1 px-2 text-[0.58rem]"
+                        onClick={() => setRowAction({ product, action: "delete" })}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
-                    {status}
-                  </span>
-                  <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
-                    {centsToPrice(product.priceCents)} EUR
-                  </span>
-                  <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
-                    {product.category?.name ?? "No category"}
-                  </span>
-                  <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-                    <button
-                      type="button"
-                      className="adm-btn-primary py-1 px-2 text-[0.58rem]"
-                      onClick={() => setEditingProduct(product)}
-                    >
-                      Details
-                    </button>
-                    {status === "PUBLISHED" ? (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                        onClick={() => setRowAction({ product, action: "draft" })}
-                      >
-                        Draft
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                        onClick={() => setRowAction({ product, action: "publish" })}
-                        disabled={status === "ARCHIVED"}
-                      >
-                        Publish
-                      </button>
-                    )}
-                    {status === "ARCHIVED" ? (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                        onClick={() => setRowAction({ product, action: "draft" })}
-                      >
-                        Restore
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                        onClick={() => setRowAction({ product, action: "archive" })}
-                      >
-                        Archive
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="adm-btn-danger py-1 px-2 text-[0.58rem]"
-                      onClick={() => setRowAction({ product, action: "delete" })}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p className="adm-copy py-6">No products match the current filters.</p>
-          )}
+                );
+              })
+            ) : (
+              <p className="adm-copy py-6">No products match the current filters.</p>
+            )}
+          </div>
         </div>
       </div>
 

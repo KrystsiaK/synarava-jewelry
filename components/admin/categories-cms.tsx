@@ -13,6 +13,7 @@ import {
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { slugifyForAdmin } from "@/components/admin/slug-utils";
+import { useAdminToast } from "@/components/admin/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function CategoriesTable({
@@ -119,6 +120,7 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
   const [slugValue, setSlugValue] = useState(category?.slug ?? "");
   const [slugLocked, setSlugLocked] = useState(Boolean(category?.slug));
   const [isPending, startTransition] = useTransition();
+  const { pushToast } = useAdminToast();
 
   function updateName(value: string) {
     setNameValue(value);
@@ -143,6 +145,8 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
       const result = await saveCategoryAction(formData);
       setState(result);
       setConfirmOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.category) {
         router.push(`/admin/categories/${result.category.id}`);
         router.refresh();
@@ -158,6 +162,8 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
       const result = await deleteCategoryAction(formData);
       setState(result);
       setDeleteOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.deletedCategoryId) {
         router.push("/admin/categories");
         router.refresh();
@@ -189,7 +195,7 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
           </button>
         </div>
 
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">

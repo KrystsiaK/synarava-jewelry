@@ -27,7 +27,7 @@ function CollectionRow({
       reversed={isReversed}
       imageSrc={collection.heroImage}
       imageAlt={collection.name}
-      imageFrameClassName="md:aspect-auto md:min-h-[55vh]"
+      imageFrameClassName="md:aspect-[6/5] md:min-h-0 lg:aspect-[5/4] xl:aspect-[4/3]"
       topMeta={(
         <div className="flex items-center gap-4">
           <span className="label-mono text-couture-red">{numLabel}</span>

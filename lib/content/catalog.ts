@@ -741,7 +741,7 @@ export async function listCollections() {
   return collections.map((collection) => ({
     slug: collection.slug,
     name: collection.name,
-    eyebrow: collection.subtitle ?? "Collection",
+    eyebrow: formatCollectionEyebrow(collection.sortOrder),
     summary: collection.description ?? "",
     heroImage: collection.heroImageUrl ?? "",
     accent: collection.code ?? "Synarava",
@@ -762,7 +762,7 @@ export async function getCollectionBySlug(slug: string) {
   return {
     slug: collection.slug,
     name: collection.name,
-    eyebrow: collection.subtitle ?? "Collection",
+    eyebrow: formatCollectionEyebrow(collection.sortOrder),
     summary: collection.description ?? "",
     heroImage: collection.heroImageUrl ?? "",
     accent: collection.code ?? "Synarava",
@@ -772,6 +772,14 @@ export async function getCollectionBySlug(slug: string) {
     symbolismBody: collection.symbolismBody ?? "",
     symbolismBody2: collection.symbolismBody2 ?? "",
   };
+}
+
+function formatCollectionEyebrow(sortOrder: number | null | undefined) {
+  if (!Number.isFinite(sortOrder) || (sortOrder ?? 0) <= 0) {
+    return "Collection";
+  }
+
+  return `Collection ${String(sortOrder).padStart(2, "0")}`;
 }
 
 export async function listShopProducts(filters: ShopFilters = {}) {

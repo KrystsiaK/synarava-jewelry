@@ -263,11 +263,22 @@ export function AdminMobileMenu({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <>
       <button
         type="button"
-        className="adm-menu-btn md:hidden"
+        className="adm-menu-btn adm-mobile-menu-trigger hidden"
         aria-label={open ? "Close admin menu" : "Open admin menu"}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}

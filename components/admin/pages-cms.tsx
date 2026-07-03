@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 
 import {
+  autosavePageDraftAction,
   savePageAction,
   updatePageStatusAction,
   type PageActionState,
@@ -13,6 +15,8 @@ import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { PageDeleteButton } from "@/components/admin/page-delete-button";
+import { useAdminToast } from "@/components/admin/admin-toast";
+import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 type PageRowAction = {
@@ -69,12 +73,15 @@ export function PageEditor({
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const content = (page.content ?? {}) as Record<string, string | undefined>;
+  const { pushToast } = useAdminToast();
 
   function formAction(formData: FormData) {
     startTransition(async () => {
       const result = await savePageAction(formData);
       setState(result);
       setConfirmOpen(false);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.page) onUpdated?.(result.page);
     });
   }
@@ -106,7 +113,7 @@ export function PageEditor({
         </div>
 
         <LocaleTabStrip />
-        <AuthMessage error={state.error} success={state.success} />
+        <AuthMessage error={state.error} />
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
@@ -205,15 +212,27 @@ export function PageEditor({
   );
 }
 
-function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePayload) => void }) {
+export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePayload) => void }) {
   const [state, setState] = useState<PageActionState>({});
   const [isPending, startTransition] = useTransition();
+  const [draftId, setDraftId] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const { pushToast } = useAdminToast();
+
+  useDraftAutosave({
+    formRef,
+    saveDraft: autosavePageDraftAction,
+    onSaved: (result) => {
+      if (result.recordId) setDraftId(result.recordId);
+    },
+  });
 
   function formAction(formData: FormData) {
     startTransition(async () => {
       const result = await savePageAction(formData);
       setState(result);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.page) {
         onCreated(result.page);
         formRef.current?.reset();
@@ -223,6 +242,7 @@ function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePayload) => 
 
   return (
     <form ref={formRef} action={formAction} className="adm-panel grid gap-5 p-5 md:p-6">
+      <input type="hidden" name="pageId" value={draftId} />
       <div
         className="flex flex-wrap items-start justify-between gap-4 pb-5"
         style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
@@ -241,7 +261,7 @@ function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePayload) => 
       </div>
 
       <LocaleTabStrip />
-      <AuthMessage error={state.error} success={state.success} />
+      <AuthMessage error={state.error} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
@@ -333,16 +353,6 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
     setPages((current) => current.map((item) => (item.slug === page.slug ? page : item)));
   }
 
-  function handleCreated(page: SavedPagePayload) {
-    setPages((current) => {
-      const existing = current.some((item) => item.slug === page.slug);
-      const next = existing
-        ? current.map((item) => (item.slug === page.slug ? page : item))
-        : [page, ...current];
-      return next.sort((left, right) => left.title.localeCompare(right.title));
-    });
-  }
-
   function runRowAction() {
     if (!rowAction) return;
 
@@ -352,6 +362,8 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
       formData.set("action", rowAction.action);
       const result = await updatePageStatusAction(formData);
       setRowState(result);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.page) handleUpdated(result.page);
       setRowAction(null);
     });
@@ -369,8 +381,6 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
         </div>
       </div>
 
-      <CreatePageForm onCreated={handleCreated} />
-
       <section className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
@@ -380,13 +390,18 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
             <p className="adm-section-tag">[ PAGES TABLE ]</p>
             <div className="adm-label-row mt-2">
               <h2 className="adm-title-sm">Pages table</h2>
-              <AdminHelp label="Page actions">
-                Edit opens a dedicated route. Publish, draft, and archive show a warning before saving.
+              <AdminHelp label="Page actions" align="end">
+                New page opens the create route. Details opens the page edit route. Publish, Draft, and Archive change public visibility after confirmation.
               </AdminHelp>
             </div>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/pages/new" className="adm-btn-primary">
+              New page
+            </Link>
+          </div>
         </div>
-        <AuthMessage error={rowState.error} success={rowState.success} />
+        <AuthMessage error={rowState.error} />
         <div className="mt-4 grid gap-2">
           {pages.map((page) => {
             const status = pageStatusLabel(page);

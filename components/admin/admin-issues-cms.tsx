@@ -9,6 +9,7 @@ import {
   type AdminIssueScanState,
 } from "@/app/admin/issues/actions";
 import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
+import { useAdminToast } from "@/components/admin/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 function formatDate(value: Date) {
@@ -61,11 +62,14 @@ export function AdminIssuesCms({ issues }: { issues: AdminIssueSummary[] }) {
   const [isPending, startTransition] = useTransition();
   const openIssues = issues.filter((issue) => issue.status === "OPEN");
   const resolvedIssues = issues.filter((issue) => issue.status !== "OPEN");
+  const { pushToast } = useAdminToast();
 
   function runScan() {
     startTransition(async () => {
       const result = await scanAdminIssuesAction();
       setState(result);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
     });
   }
 
@@ -93,7 +97,7 @@ export function AdminIssuesCms({ issues }: { issues: AdminIssueSummary[] }) {
         </button>
       </div>
 
-      <AuthMessage error={state.error} success={state.success} />
+      <AuthMessage error={state.error} />
 
       <div className="grid gap-2">
         {issues.length > 0 ? (
