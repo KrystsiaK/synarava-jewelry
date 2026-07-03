@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CartSummaryPanel } from "@/components/commerce/cart-summary-panel";
 import { CheckoutShell } from "@/components/commerce/checkout-shell";
 import { PaymentConfirmPanel } from "@/components/commerce/payment-confirm-panel";
-import { getCheckoutOrder } from "@/lib/commerce/checkout";
+import { createOrGetStripeCheckoutSession, getCheckoutOrder } from "@/lib/commerce/checkout";
 
 export const metadata: Metadata = {
   title: "Payment | Synarava",
@@ -18,6 +18,12 @@ export default async function PaymentPage() {
     redirect("/checkout/error?reason=payment");
   }
 
+  const clientSecret = await createOrGetStripeCheckoutSession(order.id);
+
+  if (!clientSecret) {
+    redirect("/checkout/error?reason=stripe");
+  }
+
   const total = new Intl.NumberFormat("en-IE", {
     style: "currency",
     currency: order.currency,
@@ -28,17 +34,16 @@ export default async function PaymentPage() {
     <CheckoutShell
       eyebrow="SYNARAVA | Secure Acquisition (Payment)"
       title="A final quiet checkpoint before confirmation."
-      description="This is the secure acquisition layer: review the order, verify the shipping destination, and commit the record."
+      description="Enter your payment details to complete the acquisition."
       step="payment"
       aside={
         <CartSummaryPanel
           itemCount={order.items.reduce((sum, item) => sum + item.quantity, 0)}
           subtotal={total}
-          note="The current implementation confirms the order in local mode and is ready for the next Stripe wiring pass."
         />
       }
     >
-      <PaymentConfirmPanel order={order} />
+      <PaymentConfirmPanel order={order} clientSecret={clientSecret} />
     </CheckoutShell>
   );
 }

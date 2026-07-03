@@ -396,7 +396,7 @@ const defaultPages = [
     title: "The Thread Must Not Be Broken",
     template: "HOME",
     excerpt:
-      "Living culture survives only when it is practiced.We create handcrafted jewelry that keeps this cultural code alive.",
+      "Living culture survives only when it is practiced. We create handcrafted jewelry that keeps this cultural code alive.",
     searchSummary: "Synarava home page",
     content: {
       eyebrow: "Couture Collection №01",

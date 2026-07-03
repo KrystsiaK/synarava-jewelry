@@ -12,13 +12,14 @@ import { useTranslations } from "@/lib/i18n/context";
 
 type SiteHeaderProps = {
   initialCartCount: number;
+  isLoggedIn?: boolean;
 };
 
 const HIDE_SCROLL_DELTA = 8;
 const REVEAL_SCROLL_DELTA = 4;
 const PINNED_TOP_OFFSET = 96;
 
-export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
+export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderProps) {
   const pathname = usePathname();
   const { t } = useTranslations();
   const [cartCountOverride, setCartCountOverride] = useState<number | null>(null);
@@ -198,16 +199,10 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
           </Link>
 
           <Link
-            href="/login"
+            href={isLoggedIn ? "/profile" : "/login"}
             className="hidden label-caps px-2 text-muted transition-colors hover:text-accent md:inline"
           >
-            {t("nav.login")}
-          </Link>
-          <Link
-            href="/admin"
-            className="hidden label-caps px-2 text-muted transition-colors hover:text-accent lg:inline"
-          >
-            {t("nav.admin")}
+            {isLoggedIn ? t("nav.account") : t("nav.login")}
           </Link>
         </div>
       </header>
@@ -258,11 +253,8 @@ export function SiteHeader({ initialCartCount }: SiteHeaderProps) {
         </nav>
 
         <div className="mt-7 flex flex-col gap-3">
-          <Link href="/login" onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-accent">
-            {t("nav.loginRegister")}
-          </Link>
-          <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-accent">
-            {t("nav.admin")}
+          <Link href={isLoggedIn ? "/profile" : "/login"} onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-accent">
+            {isLoggedIn ? t("nav.account") : t("nav.loginRegister")}
           </Link>
         </div>
       </aside>

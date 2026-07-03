@@ -1,6 +1,9 @@
-import { confirmOrderAction, resetCheckoutAction } from "@/app/checkout/actions";
+import { resetCheckoutAction } from "@/app/checkout/actions";
+import { PaymentForm } from "./payment-form";
+import { SubmitButton } from "./submit-button";
 
 type PaymentConfirmPanelProps = {
+  clientSecret: string;
   order: {
     customerName: string | null;
     customerEmail: string;
@@ -24,7 +27,7 @@ function formatMoney(cents: number, currency = "EUR") {
   }).format(cents / 100);
 }
 
-export function PaymentConfirmPanel({ order }: PaymentConfirmPanelProps) {
+export function PaymentConfirmPanel({ order, clientSecret }: PaymentConfirmPanelProps) {
   const address = (order.shippingAddress ?? {}) as Record<string, string | null>;
 
   return (
@@ -62,35 +65,20 @@ export function PaymentConfirmPanel({ order }: PaymentConfirmPanelProps) {
       </section>
 
       <section className="panel p-6 md:p-8">
-        <div className="flex items-center justify-between border-b border-stroke pb-4">
+        <div className="flex items-center justify-between border-b border-stroke pb-4 mb-8">
           <span className="label-caps text-muted">Order total</span>
           <span className="font-mono text-sm uppercase tracking-[0.14em]">
             {formatMoney(order.totalCents, order.currency)}
           </span>
         </div>
 
-        <p className="mt-5 text-sm leading-6 text-foreground/60">
-          Local mode currently simulates the secure acquisition step. The order is confirmed in the
-          database and ready for the real Stripe handoff layer next.
-        </p>
+        <PaymentForm clientSecret={clientSecret} />
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <form action={confirmOrderAction}>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center bg-charcoal px-6 py-4 label-caps text-white transition-colors hover:bg-couture-red"
-            >
-              Confirm acquisition
-            </button>
-          </form>
-
+        <div className="mt-4">
           <form action={resetCheckoutAction}>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center border border-stroke px-6 py-4 label-caps transition-colors hover:border-accent hover:text-accent"
-            >
+            <SubmitButton className="inline-flex items-center justify-center border border-stroke px-6 py-4 label-caps transition-colors hover:border-accent hover:text-accent disabled:opacity-60 disabled:cursor-not-allowed">
               Back to cart
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </section>

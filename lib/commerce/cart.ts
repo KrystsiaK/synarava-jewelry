@@ -307,22 +307,28 @@ export async function addProductToCart(productSlug: string, quantity = 1) {
 }
 
 export async function updateCartItemQuantity(itemId: string, quantity: number) {
+  const cart = await getOrCreateCart({ createIfMissing: false });
+  if (!cart) return;
+
   if (quantity <= 0) {
-    await db.cartItem.delete({
-      where: { id: itemId },
+    await db.cartItem.deleteMany({
+      where: { id: itemId, cartId: cart.id },
     });
     return;
   }
 
-  await db.cartItem.update({
-    where: { id: itemId },
+  await db.cartItem.updateMany({
+    where: { id: itemId, cartId: cart.id },
     data: { quantity },
   });
 }
 
 export async function removeCartItem(itemId: string) {
-  await db.cartItem.delete({
-    where: { id: itemId },
+  const cart = await getOrCreateCart({ createIfMissing: false });
+  if (!cart) return;
+
+  await db.cartItem.deleteMany({
+    where: { id: itemId, cartId: cart.id },
   });
 }
 

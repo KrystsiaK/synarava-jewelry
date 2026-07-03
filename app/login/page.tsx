@@ -5,7 +5,7 @@ import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
   title: "Login | Synarava",
-  description: "Identify yourself to access Synarava customer or admin areas.",
+  description: "Identify yourself to access your Synarava account.",
 };
 
 type Props = {
@@ -23,10 +23,9 @@ export default async function LoginPage({ searchParams }: Props) {
     <AuthShell
       eyebrow="SYNARAVA | Login (Identify)"
       title="A quiet entrance into the archive."
-      description="Sign in to access your storefront account or the internal admin tools. The same credential layer protects both, with permissions deciding where you can go next."
-      asideTitle="Internal logic"
-      asideBody="Admins, editors, and customers share one auth foundation. Roles and permissions decide what each person can open and edit."
-      footer="If this is the first account created on the project, it will automatically receive admin access."
+      description="Sign in to access your storefront account, saved details, and checkout history."
+      asideTitle="Private archive"
+      asideBody="Your account keeps order details and saved contact information in one calm, protected place."
     >
       <LoginForm redirectTo={params.redirectTo} error={error} />
     </AuthShell>

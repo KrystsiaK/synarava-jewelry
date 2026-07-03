@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { CheckoutShell } from "@/components/commerce/checkout-shell";
+import { ArtifactLink } from "@/components/ui/artifact-button";
 
 export const metadata: Metadata = {
   title: "Checkout Error | Synarava",
@@ -18,6 +18,7 @@ const reasonMap: Record<string, string> = {
   shipping: "The shipping details were incomplete, so the acquisition could not continue.",
   payment: "The payment step lost its draft order context and needs to be restarted.",
   cart: "The cart is currently empty, so there is nothing to acquire.",
+  stripe: "Stripe payments are not configured for this environment yet. Add the Stripe keys and restart the app before taking payments.",
 };
 
 export default async function CheckoutErrorPage({ searchParams }: Props) {
@@ -45,18 +46,12 @@ export default async function CheckoutErrorPage({ searchParams }: Props) {
         <p className="mt-5 max-w-2xl text-base leading-8 text-foreground/68">{message}</p>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/cart"
-            className="inline-flex items-center justify-center bg-charcoal px-6 py-4 label-caps text-white transition-colors hover:bg-couture-red"
-          >
+          <ArtifactLink href="/cart">
             Return to cart
-          </Link>
-          <Link
-            href="/checkout/shipping"
-            className="inline-flex items-center justify-center border border-stroke px-6 py-4 label-caps transition-colors hover:border-accent hover:text-accent"
-          >
+          </ArtifactLink>
+          <ArtifactLink href="/checkout/shipping" variant="secondary">
             Restart shipping
-          </Link>
+          </ArtifactLink>
         </div>
       </section>
     </CheckoutShell>

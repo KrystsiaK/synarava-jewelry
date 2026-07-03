@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { clearUserSession, createUserSession, getCurrentUser, getCurrentUserPermissions } from "@/lib/auth/session";
+import { clearUserSession, createUserSession } from "@/lib/auth/session";
 import { attachCurrentCartToUser } from "@/lib/commerce/cart";
 import {
   authenticateUser,
@@ -40,20 +40,8 @@ export async function loginAction(
   await createUserSession(user.id);
   await attachCurrentCartToUser(user.id);
 
-  const permissions = Array.from(
-    new Set(
-      user.roles.flatMap((assignment) =>
-        assignment.role.permissions.map((permissionAssignment) => permissionAssignment.permission.key),
-      ),
-    ),
-  );
-
   if (redirectTo) {
     redirect(redirectTo);
-  }
-
-  if (permissions.includes("admin.access")) {
-    redirect("/admin");
   }
 
   redirect("/shop");
@@ -87,13 +75,6 @@ export async function registerAction(
 
   await createUserSession(result.userId);
   await attachCurrentCartToUser(result.userId);
-
-  const user = await getCurrentUser();
-  const permissions = await getCurrentUserPermissions();
-
-  if (user && permissions.includes("admin.access")) {
-    redirect("/admin");
-  }
 
   redirect("/shop");
 }

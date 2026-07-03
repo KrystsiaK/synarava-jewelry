@@ -13,9 +13,9 @@ export default function RegisterPage() {
     <AuthShell
       eyebrow="SYNARAVA | Register (Join)"
       title="Join the store without losing the editorial calm."
-      description="Registration is intentionally simple: one account model for store and team access, with roles layered underneath instead of separate systems."
+      description="Registration is intentionally simple: create one storefront account for saved details, smoother checkout, and order history."
       asideTitle="Customer first"
-      asideBody="Most new accounts become customer accounts. The first account on a fresh project is promoted to admin automatically so the internal tools remain reachable."
+      asideBody="Most new accounts become customer accounts with a quiet profile area for personal details and purchase flow."
     >
       <RegisterForm />
     </AuthShell>

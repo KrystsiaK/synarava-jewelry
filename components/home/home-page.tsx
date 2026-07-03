@@ -156,9 +156,9 @@ function HeroSection({
 }: Pick<HomePageProps, "title" | "excerpt" | "content">) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "7%"]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const textY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-8%"]);
+  const textY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-4%"]);
 
   const headline = title ?? "Ethereal Artifacts";
   const words = splitHeadlineIntoAnimatedTokens(headline);
@@ -166,7 +166,7 @@ function HeroSection({
   return (
     <motion.header
       ref={ref}
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background pt-20"
+      className="relative flex min-h-[100svh] items-start overflow-hidden bg-background pb-16 pt-[8.25rem] md:pb-20 md:pt-[9.25rem] lg:pt-[10.25rem]"
     >
       {/* Grain */}
       <div
@@ -175,33 +175,20 @@ function HeroSection({
       />
 
       {/* KodRoda ghost pattern */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden opacity-[0.04]">
-        <KodRodaStatic className="h-[80vw] w-[80vw] max-h-[720px] max-w-[720px] translate-x-[20%] text-foreground" />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden opacity-[0.025]">
+        <KodRodaStatic className="h-[80vw] w-[80vw] max-h-[720px] max-w-[720px] translate-x-[28%] text-foreground" />
       </div>
 
       {/* Ambient glows */}
-      <div
-        className="pointer-events-none absolute -right-60 -top-60 h-[70vw] w-[70vw] max-w-[900px] rounded-full"
-        style={{
-          background: "radial-gradient(circle, #a6192e 0%, transparent 65%)",
-          opacity: 0.09,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute -bottom-40 -left-40 h-[50vw] w-[50vw] max-w-[600px] rounded-full"
-        style={{
-          background: "radial-gradient(circle, #c78f73 0%, transparent 65%)",
-          opacity: 0.05,
-        }}
-      />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-background via-background/80 to-transparent" />
 
       {/* Background wordmark */}
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-0 hidden justify-center overflow-hidden md:flex">
+      <div className="pointer-events-none absolute -bottom-12 left-0 right-0 z-0 hidden justify-center overflow-hidden md:flex">
         <motion.span
           className="select-none font-serif leading-none tracking-widest text-foreground"
-          style={{ fontSize: "clamp(4rem,18vw,15rem)", opacity: 0.025 }}
+          style={{ fontSize: "clamp(4rem,16vw,13rem)", opacity: 0.018 }}
           initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 0.025 }}
+          animate={{ y: 0, opacity: 0.018 }}
           transition={{ duration: 2, ease, delay: 1 }}
         >
           SYNARAVA
@@ -222,11 +209,11 @@ function HeroSection({
       </div>
 
       <motion.div
-        className="site-shell relative z-10 grid grid-cols-12 items-center gap-y-20 px-7 pb-4 pt-6 md:gap-y-20 md:px-0 md:pb-0 md:pt-0"
+        className="site-shell relative z-10 grid min-h-[calc(100svh-9.5rem)] grid-cols-12 items-center gap-y-12 px-7 md:min-h-[calc(100svh-10.5rem)] md:px-0 lg:gap-x-16 lg:gap-y-0"
         style={{ opacity: textOpacity, y: textY }}
       >
         {/* Text */}
-        <div className="col-span-12 space-y-10 pt-8 md:col-span-6 md:space-y-12 md:pt-8">
+        <div className="col-span-12 max-w-3xl space-y-8 lg:col-span-5 lg:max-w-none lg:space-y-9">
           <motion.p
             className="label-mono text-couture-red"
             initial={{ opacity: 0, x: -24 }}
@@ -238,8 +225,8 @@ function HeroSection({
 
           <div>
             <h1
-              className="max-w-[10ch] text-balance font-serif leading-[0.92] tracking-tight [overflow-wrap:anywhere]"
-              style={{ fontSize: "clamp(2.8rem,7vw,6.5rem)" }}
+              className="max-w-[9.6ch] text-balance font-serif leading-[0.96] tracking-normal [overflow-wrap:anywhere]"
+              style={{ fontSize: "clamp(3rem,6vw,5.75rem)" }}
             >
               {words.map((word, i) => (
                 <span key={`${word}-${i}`} className="mr-[0.2em] inline-block max-w-full overflow-hidden last:mr-0">
@@ -256,8 +243,8 @@ function HeroSection({
             </h1>
 
             <motion.div
-              className="mt-4 font-serif italic leading-none"
-              style={{ fontSize: "clamp(1.3rem,2.8vw,2.6rem)", opacity: 0.72 }}
+              className="mt-5 font-serif italic leading-none"
+              style={{ fontSize: "clamp(1.25rem,2.2vw,2.1rem)", opacity: 0.68 }}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 0.72, y: 0 }}
               transition={{ duration: 0.9, delay: 0.85, ease }}
@@ -267,7 +254,7 @@ function HeroSection({
           </div>
 
           <motion.p
-            className="max-w-lg text-[1.03rem] leading-[2.1] text-muted-ink"
+            className="max-w-xl text-[1.02rem] leading-[1.95] text-muted-ink"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.65, ease }}
@@ -289,9 +276,9 @@ function HeroSection({
         </div>
 
         {/* Image */}
-        <div className="relative col-span-12 -mx-5 md:mx-0 md:col-span-6">
+        <div className="relative col-span-12 lg:col-span-7">
           <motion.div
-            className="relative aspect-[4/5] w-full max-w-none md:mx-auto"
+            className="relative mx-auto aspect-[4/5] w-full max-w-[38rem] overflow-hidden border border-foreground/[0.08] bg-stone-beige/20 md:aspect-[16/11] lg:ml-auto lg:mt-8 lg:max-h-[min(62svh,42rem)] lg:max-w-[46rem] lg:aspect-[5/4]"
             style={{ y: imageY }}
             initial={{ opacity: 0, scale: 0.93 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -302,8 +289,8 @@ function HeroSection({
               priority
               alt="SYNARAVA artisan bracelet"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr"
-              className="object-cover brightness-[0.86] contrast-[1.12]"
-              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover object-[center_58%] brightness-[0.9] contrast-[1.08]"
+              sizes="(max-width: 1024px) 100vw, 58vw"
             />
 
             {/* Red bottom vignette */}
@@ -312,70 +299,32 @@ function HeroSection({
               style={{ background: "linear-gradient(to top, rgba(166,25,46,0.2) 0%, transparent 100%)" }}
             />
 
-            {/* Frame */}
-            <div className="pointer-events-none absolute -inset-5 border border-foreground/[0.07] md:-inset-8" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-couture-red/45" />
 
             {/* Corner accents */}
             <motion.div
-              className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60"
+              className="absolute left-5 top-5 h-10 w-10 border-l border-t border-couture-red/55"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 1.3, ease }}
             />
             <motion.div
-              className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60"
+              className="absolute bottom-5 right-5 h-10 w-10 border-b border-r border-couture-red/55"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 1.45, ease }}
             />
-
           </motion.div>
 
-          {/* Floating diamond */}
           <motion.div
-            className="absolute -right-3 top-6 hidden h-28 w-28 items-center justify-center md:-right-14 md:-top-10 md:flex md:h-40 md:w-40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.5 }}
+            className="mx-auto mt-4 flex w-full max-w-[38rem] items-center justify-between border-t border-foreground/10 pt-3 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-ink lg:ml-auto lg:max-w-[46rem]"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.2, ease }}
           >
-            <div className="flex h-full w-full items-center justify-center border border-foreground/[0.09]">
-              <div className="flex h-[62%] w-[62%] rotate-45 items-center justify-center border border-couture-red/50">
-                <div className="-rotate-45 h-[40%] w-[40%] border border-foreground/15" />
-              </div>
-            </div>
+            <span>47 pieces crafted</span>
+            <span className="hidden sm:inline">Belarusian couture</span>
           </motion.div>
-
-          {/* Pieces badge */}
-          <motion.div
-            className="absolute -left-2 bottom-10 hidden min-w-[9.5rem] flex-col gap-1 border border-foreground/[0.08] bg-background/85 px-4 py-3 backdrop-blur-sm md:flex lg:-left-4 lg:bottom-16"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 1.6, ease }}
-          >
-            <span className="font-serif text-2xl leading-none">47</span>
-            <span className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-muted-ink lg:text-[0.65rem] lg:tracking-[0.2em]">
-              <span className="block whitespace-pre-line leading-[1.22]">
-                Pieces crafted
-              </span>
-            </span>
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* Scroll indicator */}
-      <motion.div
-        className="absolute bottom-10 left-1/2 hidden w-16 -translate-x-1/2 flex-col items-center gap-4 text-center md:flex"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.9, duration: 0.9 }}
-      >
-        <span className="label-mono text-foreground/35">Scroll</span>
-        <div className="relative h-20 w-px overflow-hidden bg-foreground/15">
-          <motion.div
-            className="absolute top-0 h-1/2 w-full bg-couture-red"
-            animate={{ y: ["0%", "200%"] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          />
         </div>
       </motion.div>
     </motion.header>
@@ -555,7 +504,7 @@ function CollectionsSection({
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start md:gap-8">
           {collections.map((item, i) => (
-            <CollectionCard key={item.series} item={item} index={i} isParentInView={isInView} />
+            <CollectionCard key={item.href} item={item} index={i} isParentInView={isInView} />
           ))}
         </div>
       </div>

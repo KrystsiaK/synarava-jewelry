@@ -7,6 +7,7 @@ import {
   clearCheckoutOrderCookie,
   confirmCheckoutOrder,
   createOrUpdateDraftOrderFromCart,
+  setConfirmedOrderCookie,
 } from "@/lib/commerce/checkout";
 
 export async function submitShippingAction(formData: FormData) {
@@ -52,6 +53,7 @@ export async function confirmOrderAction() {
     redirect("/checkout/error?reason=payment");
   }
 
+  await setConfirmedOrderCookie(orderId);
   await clearCheckoutOrderCookie();
   revalidatePath("/cart");
   revalidatePath("/checkout/payment");

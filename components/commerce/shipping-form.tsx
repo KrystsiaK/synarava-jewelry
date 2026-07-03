@@ -1,4 +1,5 @@
 import { submitShippingAction } from "@/app/checkout/actions";
+import { SubmitButton } from "./submit-button";
 
 /* Common countries ordered by likelihood for a European luxury brand */
 const COUNTRIES: { code: string; name: string }[] = [
@@ -137,12 +138,12 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="mt-2 inline-flex w-full items-center justify-center bg-charcoal px-6 py-4 label-caps text-white transition-colors hover:bg-couture-red"
+      <SubmitButton
+        pendingLabel="Processing…"
+        className="mt-2 inline-flex w-full items-center justify-center bg-charcoal px-6 py-4 label-caps text-white transition-colors hover:bg-couture-red disabled:opacity-60 disabled:cursor-not-allowed"
       >
         Continue to payment
-      </button>
+      </SubmitButton>
     </form>
   );
 }

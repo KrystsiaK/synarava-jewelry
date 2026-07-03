@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getCartCount } from "@/lib/commerce/cart";
+import { getCurrentUser } from "@/lib/auth/session";
 import { isThemePreference } from "@/lib/theme/shared";
 
 import "./globals.css";
@@ -88,7 +89,7 @@ export default async function RootLayout({
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
   const initialLocale = cookieStore.get("synarava-locale")?.value ?? "en";
-  const cartCount = await getCartCount();
+  const [cartCount, currentUser] = await Promise.all([getCartCount(), getCurrentUser()]);
 
   return (
     <html
@@ -116,7 +117,7 @@ export default async function RootLayout({
         <ThemeScript initialPreference={themePreference} />
         <TranslationProvider initialLocale={initialLocale}>
           <ThemeProvider initialPreference={themePreference}>
-            <SiteHeader key={`${themePreference}-${cartCount}`} initialCartCount={cartCount} />
+            <SiteHeader key={`${themePreference}-${cartCount}`} initialCartCount={cartCount} isLoggedIn={!!currentUser} />
             {children}
             <SiteFooter />
           </ThemeProvider>

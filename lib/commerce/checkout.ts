@@ -3,8 +3,10 @@ import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth/session";
 import { clearActiveCart, getCartViewModel, getOrCreateCart } from "@/lib/commerce/cart";
 import { db } from "@/lib/db";
+import { getStripe, isStripePaymentConfigured } from "@/lib/stripe";
 
 const CHECKOUT_ORDER_COOKIE = "synarava-checkout-order";
+const CONFIRMED_ORDER_COOKIE = "synarava-confirmed-order";
 
 export type ShippingPayload = {
   email: string;
@@ -17,6 +19,64 @@ export type ShippingPayload = {
   countryCode: string;
   notes?: string;
 };
+
+function normalizeStripeClientSecret(clientSecret: string) {
+  try {
+    return decodeURIComponent(clientSecret);
+  } catch {
+    return clientSecret;
+  }
+}
+
+export async function createOrGetStripeCheckoutSession(orderId: string): Promise<string | null> {
+  const order = await db.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+
+  if (!order || order.status !== "DRAFT") return null;
+  if (!isStripePaymentConfigured()) return null;
+
+  const stripe = getStripe();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  if (order.stripeCheckoutSessionId) {
+    try {
+      const existing = await stripe.checkout.sessions.retrieve(order.stripeCheckoutSessionId);
+      if (existing.status === "open" && existing.client_secret) {
+        return normalizeStripeClientSecret(existing.client_secret);
+      }
+    } catch {
+      // expired or invalid — fall through to create a new one
+    }
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    ui_mode: "elements",
+    mode: "payment",
+    currency: order.currency.toLowerCase(),
+    line_items: order.items.map((item) => ({
+      price_data: {
+        currency: order.currency.toLowerCase(),
+        product_data: { name: item.title },
+        unit_amount: item.unitCents,
+      },
+      quantity: item.quantity,
+    })),
+    customer_email: order.customerEmail,
+    return_url: `${appUrl}/checkout/confirmed?session_id={CHECKOUT_SESSION_ID}`,
+    metadata: { orderId: order.id },
+  });
+
+  if (!session.client_secret) return null;
+
+  await db.order.update({
+    where: { id: order.id },
+    data: { stripeCheckoutSessionId: session.id },
+  });
+
+  return normalizeStripeClientSecret(session.client_secret);
+}
 
 export async function getCheckoutOrderIdFromCookie() {
   const cookieStore = await cookies();
@@ -37,6 +97,34 @@ export async function setCheckoutOrderCookie(orderId: string) {
 export async function clearCheckoutOrderCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(CHECKOUT_ORDER_COOKIE);
+}
+
+export async function setConfirmedOrderCookie(orderId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(CONFIRMED_ORDER_COOKIE, orderId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 5,
+  });
+}
+
+export async function getConfirmedOrderIdFromCookie() {
+  const cookieStore = await cookies();
+  return cookieStore.get(CONFIRMED_ORDER_COOKIE)?.value ?? null;
+}
+
+export async function clearConfirmedOrderCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete(CONFIRMED_ORDER_COOKIE);
+}
+
+export async function consumeConfirmedOrderCookie() {
+  const cookieStore = await cookies();
+  const value = cookieStore.get(CONFIRMED_ORDER_COOKIE)?.value ?? null;
+  if (value) cookieStore.delete(CONFIRMED_ORDER_COOKIE);
+  return value;
 }
 
 export async function createOrUpdateDraftOrderFromCart(shipping: ShippingPayload) {
