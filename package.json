@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "clean": "rm -rf .next",
+    "admin:seed": "node scripts/seed-admin.mjs",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
