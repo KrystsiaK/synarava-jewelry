@@ -4,6 +4,8 @@ import { useRef } from "react";
 import Link from "next/link";
 import { motion, useInView } from "motion/react";
 
+import { ArtifactLink } from "@/components/ui";
+
 const ease = [0.22, 1, 0.36, 1] as const;
 
 type CartItem = {
@@ -154,21 +156,9 @@ export function CartSection({ cart }: Props) {
           <p className="text-xs text-foreground/40">Shipping calculated at checkout</p>
         </div>
 
-        <Link
-          href="/checkout"
-          className="group inline-flex items-center gap-3 border border-foreground/80 px-6 py-3 transition-colors hover:border-couture-red hover:bg-couture-red hover:text-linen"
-        >
-          <span className="label-caps text-sm">Proceed to checkout</span>
-          <svg
-            className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
+        <ArtifactLink href="/checkout" size="md" showArrow>
+          Proceed to checkout
+        </ArtifactLink>
       </motion.div>
     </div>
   );

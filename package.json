@@ -1,9 +1,10 @@
 {
   "name": "synarava-jewelry",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=1536' next dev",
+    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
     "clean": "rm -rf .next",
@@ -17,6 +18,7 @@
     "build-storybook": "storybook build",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio"
   },

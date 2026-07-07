@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CheckoutFinalizer } from "@/components/commerce/checkout-finalizer";
 import { CheckoutShell } from "@/components/commerce/checkout-shell";
+import { ArtifactLink } from "@/components/ui";
 import { getCheckoutOrderIdFromCookie, getConfirmedOrderIdFromCookie } from "@/lib/commerce/checkout";
 import { db } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
@@ -39,11 +39,9 @@ export default async function ConfirmedPage({ searchParams }: Props) {
         const session = await getStripe().checkout.sessions.retrieve(params.session_id);
         const isComplete =
           session.status === "complete" ||
-          session.payment_status === "paid" ||
-          // session_id present means payment was submitted; treat as success for UX
-          session.status === "open";
+          session.payment_status === "paid";
 
-        if (!isComplete && session.status !== "open") {
+        if (!isComplete) {
           redirect("/checkout/error?reason=payment");
         }
 
@@ -94,18 +92,12 @@ export default async function ConfirmedPage({ searchParams }: Props) {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/shop"
-              className="inline-flex items-center justify-center bg-charcoal px-6 py-4 label-caps text-white transition-colors hover:bg-couture-red"
-            >
+            <ArtifactLink href="/shop" size="md">
               Back to shop
-            </Link>
-            <Link
-              href="/collections"
-              className="inline-flex items-center justify-center border border-stroke px-6 py-4 label-caps transition-colors hover:border-accent hover:text-accent"
-            >
+            </ArtifactLink>
+            <ArtifactLink href="/collections" variant="secondary" size="md">
               Browse collections
-            </Link>
+            </ArtifactLink>
           </div>
         </section>
       </CheckoutShell>
@@ -150,18 +142,12 @@ export default async function ConfirmedPage({ searchParams }: Props) {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/shop"
-            className="inline-flex items-center justify-center bg-charcoal px-6 py-4 label-caps text-white transition-colors hover:bg-couture-red"
-          >
+          <ArtifactLink href="/shop" size="md">
             Back to shop
-          </Link>
-          <Link
-            href="/collections"
-            className="inline-flex items-center justify-center border border-stroke px-6 py-4 label-caps transition-colors hover:border-accent hover:text-accent"
-          >
+          </ArtifactLink>
+          <ArtifactLink href="/collections" variant="secondary" size="md">
             Browse collections
-          </Link>
+          </ArtifactLink>
         </div>
       </section>
     </CheckoutShell>

@@ -62,7 +62,7 @@ export function ProductCard({
               onError={() => setImgError(true)}
               className="h-full w-full object-cover will-change-transform"
               variants={{
-                rest: { scale: 1, filter: "grayscale(0.35) brightness(0.88)" },
+                rest: { scale: 1, filter: "grayscale(1) brightness(0.84)" },
                 hover: { scale: 1.06, filter: "grayscale(0) brightness(0.92)" },
               }}
               transition={{ type: "spring", stiffness: 250, damping: 30 }}

@@ -39,15 +39,6 @@ export function PasswordResetRequestForm() {
 
       <AuthSubmitButton label={t("auth.resetRequest.submit")} pendingLabel={t("auth.resetRequest.submitting")} className="mt-2" />
 
-      {state.previewUrl ? (
-        <p className="text-sm leading-6 text-foreground/68">
-          {t("auth.resetRequest.previewLink")}:{" "}
-          <a href={state.previewUrl} className="break-all text-accent underline underline-offset-4">
-            {state.previewUrl}
-          </a>
-        </p>
-      ) : null}
-
       <p className="text-sm text-foreground/60">
         {t("auth.resetRequest.returnTo")}{" "}
         <Link href="/login" className="transition-colors hover:text-accent">

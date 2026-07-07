@@ -4,6 +4,13 @@ import { notFound } from "next/navigation";
 import { getProductBySlug } from "@/lib/content/catalog";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 
+function safeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 type Props = {
   params: Promise<{ slug?: string; id?: string }>;
 };
@@ -73,11 +80,11 @@ export default async function ProductDetailPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(productJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <ProductDetail product={product} />
     </>

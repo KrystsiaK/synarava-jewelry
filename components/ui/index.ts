@@ -1,11 +1,11 @@
-export { ArtifactButton, ArtifactLink } from "./artifact-button";
+export { ArtifactButton, ArtifactLink, artifactButtonClasses } from "./artifact-button";
 export { ArtifactPanel } from "./artifact-panel";
 export { BodyLead } from "./body-lead";
 export { CapsLabel } from "./caps-label";
 export { DividerOrnament } from "./divider-ornament";
 export { EditorialSplitFeature } from "./editorial-split-feature";
 export { EditorialHeading } from "./editorial-heading";
-export { FolkBorder, FolkSpiderOrnament, KodRoda, Kola, Ziamla } from "./folk-patterns";
+export { FolkBorder, FolkOrnamentBand, FolkSpiderOrnament, KodRoda, Kola, Ziamla } from "./folk-patterns";
 export { InfoList } from "./info-list";
 export { MagneticButton } from "./magnetic-button";
 export { MediaFrame } from "./media-frame";

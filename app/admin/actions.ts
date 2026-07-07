@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/client";
 import { getCurrentUser, requirePermission } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { saveCollectionImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
@@ -576,8 +576,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       secondaryTitle,
       secondaryBody,
     },
-    status: isPublished ? "PUBLISHED" : "DRAFT",
-    visibility: isPublished ? "PUBLIC" : "PRIVATE",
+    status: isPublished ? PageStatus.PUBLISHED : PageStatus.DRAFT,
+    visibility: isPublished ? ContentVisibility.PUBLIC : ContentVisibility.PRIVATE,
     publishedAt: isPublished ? new Date() : null,
     authoredById: currentUser?.id ?? null,
   };
@@ -609,7 +609,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
           update: pageData,
           create: {
             ...pageData,
-            template: existing?.template ?? "STATIC_PAGE",
+            template: existing?.template ?? PageTemplate.STATIC_PAGE,
             searchSummary: excerpt || title,
           },
           select: {

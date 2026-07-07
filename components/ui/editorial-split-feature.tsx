@@ -85,7 +85,7 @@ export function EditorialSplitFeature({
               imageClassName,
             )}
             style={{ y: imgY }}
-            initial={{ filter: "grayscale(0.4) brightness(0.85)" }}
+            initial={{ filter: "grayscale(1) brightness(0.84)" }}
             whileHover={href ? { filter: "grayscale(0) brightness(0.92)", scale: 1.03 } : undefined}
             transition={{ duration: 0.75 }}
           />

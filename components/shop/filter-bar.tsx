@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
+import { ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
@@ -159,7 +160,7 @@ export function FilterBar({
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <button
+            <ArtifactButton
               type="button"
               onClick={() => {
                 setFilters(pendingRestore);
@@ -167,10 +168,10 @@ export function FilterBar({
                 navigate(pendingRestore);
                 setPendingRestore(null);
               }}
-              className="label-caps bg-foreground px-4 py-2 text-background transition-colors hover:bg-accent cursor-pointer text-[0.68rem]"
+              size="sm"
             >
               Apply filters
-            </button>
+            </ArtifactButton>
             <button
               type="button"
               onClick={() => { clearFiltersSession(); setPendingRestore(null); }}
@@ -469,20 +470,15 @@ function MobileFilterSheet({
 
         {/* Footer CTA */}
         <div className="shrink-0 border-t border-stroke p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <button
+          <ArtifactButton
             type="button"
             onClick={() => onApply(local)}
-            className={cn(
-              "w-full py-3.5 label-caps transition-colors duration-200 cursor-pointer active:scale-[0.99]",
-              localActiveCount > 0
-                ? "bg-accent text-white hover:bg-accent/90"
-                : "bg-foreground text-background hover:bg-foreground/90",
-            )}
+            className="w-full"
           >
             {localActiveCount > 0
               ? `View pieces · ${localActiveCount} filter${localActiveCount > 1 ? "s" : ""} active`
               : "View all pieces"}
-          </button>
+          </ArtifactButton>
         </div>
       </aside>
     </>

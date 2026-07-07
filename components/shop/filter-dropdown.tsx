@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/ui";
@@ -47,9 +47,13 @@ export function FilterDropdown({
     });
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     computePosition();
+  }, [open, computePosition]);
+
+  useEffect(() => {
+    if (!open) return;
     const close = () => setOpen(false);
     window.addEventListener("scroll", close, { passive: true, capture: true });
     window.addEventListener("resize", close);
@@ -81,6 +85,16 @@ export function FilterDropdown({
       document.removeEventListener("keydown", handleEsc);
     };
   }, [open]);
+
+  const handleTriggerClick = () => {
+    if (disabled) return;
+    setOpen((current) => {
+      if (!current) {
+        computePosition();
+      }
+      return !current;
+    });
+  };
 
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
@@ -146,7 +160,7 @@ export function FilterDropdown({
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => !disabled && setOpen((v) => !v)}
+        onClick={handleTriggerClick}
         aria-expanded={open}
         aria-haspopup="listbox"
         disabled={disabled}

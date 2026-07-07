@@ -235,18 +235,11 @@ export async function confirmCheckoutOrder() {
     return null;
   }
 
-  const updated = await db.order.update({
-    where: { id: order.id },
-    data: {
-      status: "PENDING",
-      paymentStatus: "AUTHORIZED",
-      fulfillmentStatus: "UNFULFILLED",
-    },
-  });
-
+  // Payment status transitions (DRAFT → PAID) are handled exclusively by the
+  // Stripe webhook. This function only clears the cart.
   if (cart) {
     await clearActiveCart(cart.id);
   }
 
-  return updated.id;
+  return order.id;
 }

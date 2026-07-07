@@ -140,7 +140,7 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
 
       <SubmitButton
         pendingLabel="Processing…"
-        className="mt-2 inline-flex w-full items-center justify-center bg-charcoal px-6 py-4 label-caps text-white transition-colors hover:bg-couture-red disabled:opacity-60 disabled:cursor-not-allowed"
+        className="mt-2 w-full"
       >
         Continue to payment
       </SubmitButton>

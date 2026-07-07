@@ -56,10 +56,17 @@ async function translateWithDeepL(texts: string[], targetLang: string): Promise<
   return results;
 }
 
+// Explicit allowlist — prevents arbitrary locales from hitting DeepL or poisoning the cache.
+const ALLOWED_LOCALES = new Set(["en", "ru", "de", "fr", "pl"]);
+
 export async function GET(req: NextRequest) {
   const locale = req.nextUrl.searchParams.get("locale")?.trim().toLowerCase();
 
   if (!locale || locale === "en") {
+    return NextResponse.json(enFlat);
+  }
+
+  if (!ALLOWED_LOCALES.has(locale)) {
     return NextResponse.json(enFlat);
   }
 

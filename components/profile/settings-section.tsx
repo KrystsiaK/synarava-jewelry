@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 
+import { ArtifactButton } from "@/components/ui";
 import {
   updateNameAction,
   updatePasswordAction,
@@ -49,13 +50,14 @@ function FieldInput({
 function SubmitBtn({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <button
+    <ArtifactButton
       type="submit"
       disabled={pending}
-      className="label-caps border border-foreground/60 px-5 py-2.5 text-sm transition-colors hover:border-couture-red hover:bg-couture-red hover:text-linen disabled:cursor-not-allowed disabled:opacity-40"
+      variant="secondary"
+      size="sm"
     >
       {pending ? pendingLabel : label}
-    </button>
+    </ArtifactButton>
   );
 }
 
@@ -156,12 +158,14 @@ export function SettingsSection({ userName, sessionCount }: Props) {
         </p>
         <form action={sessionAction}>
           <div className="flex items-center gap-4">
-            <button
+            <ArtifactButton
               type="submit"
-              className="label-caps border border-couture-red/40 px-5 py-2.5 text-sm text-couture-red transition-colors hover:bg-couture-red hover:text-linen"
+              variant="secondary"
+              size="sm"
+              className="border-couture-red/40 text-couture-red hover:bg-[#7f1424] hover:text-[#fff2f3]"
             >
               Revoke all sessions
-            </button>
+            </ArtifactButton>
             <ActionFeedback state={sessionState} />
           </div>
         </form>

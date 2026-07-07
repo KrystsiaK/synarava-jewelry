@@ -346,6 +346,7 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
   const [editingPage, setEditingPage] = useState<SavedPagePayload | null>(null);
   const [rowState, setRowState] = useState<PageActionState>({});
   const [isPending, startTransition] = useTransition();
+  const { pushToast } = useAdminToast();
 
   const modalCopy = rowAction ? pageActionCopy(rowAction) : null;
 

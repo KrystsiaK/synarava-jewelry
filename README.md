@@ -6,7 +6,7 @@ System rebuild of the Synarava storefront and lightweight CMS on:
 - pnpm
 - Tailwind CSS v4
 - Prisma + PostgreSQL
-- Railway-ready deployment setup
+- Railway config-as-code deployment setup
 - S3-compatible storage scaffold
 - Stripe checkout scaffold
 - RBAC-ready admin/CMS foundation
@@ -48,17 +48,30 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment
 
-Copy values from `.env.example` into `.env.local` and fill in:
+Fill in local/production variables as needed:
 
 - `DATABASE_URL`
-- `NEXTAUTH_SECRET`
+- `AUTH_SESSION_SECRET` (or `NEXTAUTH_SECRET` as a fallback)
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_APP_URL`
 - `S3_REGION`
 - `S3_BUCKET`
 - `S3_ACCESS_KEY_ID`
 - `S3_SECRET_ACCESS_KEY`
 - `S3_ENDPOINT` if using an S3-compatible provider
+
+## Railway
+
+Production deployment is defined in `railway.json`:
+
+- build: `pnpm build`
+- pre-deploy: `pnpm prisma:deploy`
+- start: `pnpm start`
+- healthcheck: `/api/health`
+
+Use `package.json` `version` as the release marker. Bump it before deploying a meaningful production release.
 
 ## Architecture notes
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { PageHero } from "@/components/ui/page-hero";
 import { ProductCard } from "@/components/ui/product-card";
-import { MagneticButton } from "@/components/ui/magnetic-button";
+import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
@@ -153,15 +153,9 @@ function EmptyState({ filters, categories, collections, tags }: EmptyStateProps)
       )}
 
       {/* Primary CTA */}
-      <Link
-        href="/shop"
-        className="group inline-flex items-center gap-3 bg-couture-red px-7 py-3.5 label-caps text-white transition-colors hover:bg-[#8f1325]"
-      >
+      <ArtifactLink href="/shop" size="md" showArrow>
         Show all pieces
-        <svg className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-          <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </Link>
+      </ArtifactLink>
     </motion.div>
   );
 }
@@ -260,24 +254,9 @@ function ShopFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.28 }}
         >
-          <MagneticButton
-            href="/collections"
-            className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white"
-          >
-            <span className="relative z-10">View collections</span>
-            <svg className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-              <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                animation: "shiny-sweep 2.5s infinite linear",
-                willChange: "transform",
-              }}
-            />
-          </MagneticButton>
+          <PrimaryCtaButton href="/collections">
+            View collections
+          </PrimaryCtaButton>
 
           <Link
             href="/about"

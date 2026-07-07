@@ -22,6 +22,7 @@ import {
   Ziamla,
   ZiamlaStatic,
   FolkBorder,
+  FolkOrnamentBand,
   FolkSpiderOrnament,
 } from "@/components/ui/folk-patterns";
 
@@ -39,6 +40,8 @@ export interface HomePageProps {
   excerpt?: string;
   content?: Record<string, string>;
   collections: CollectionItem[];
+  /** Optional video URL for the hero background (mp4 / webm). Falls back to poster image. */
+  heroVideoSrc?: string;
 }
 
 /* ─── Page-local data constants ──────────────────────────────────── */
@@ -153,12 +156,13 @@ function HeroSection({
   title,
   excerpt,
   content,
-}: Pick<HomePageProps, "title" | "excerpt" | "content">) {
+  heroVideoSrc,
+}: Pick<HomePageProps, "title" | "excerpt" | "content" | "heroVideoSrc">) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "7%"]);
+  const videoScale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const textY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-4%"]);
+  const textY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-5%"]);
 
   const headline = title ?? "Ethereal Artifacts";
   const words = splitHeadlineIntoAnimatedTokens(headline);
@@ -166,29 +170,59 @@ function HeroSection({
   return (
     <motion.header
       ref={ref}
-      className="relative flex min-h-[100svh] items-start overflow-hidden bg-background pb-16 pt-[8.25rem] md:pb-20 md:pt-[9.25rem] lg:pt-[10.25rem]"
+      className="relative flex min-h-[100svh] items-center overflow-hidden bg-background"
     >
+      {/* ── Video background ──────────────────────────────────────── */}
+      <motion.div className="absolute inset-0 z-0" style={{ scale: videoScale }}>
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr"
+          className="h-full w-full object-cover brightness-[0.72] contrast-[1.06]"
+          aria-hidden="true"
+        >
+          {heroVideoSrc && <source src={heroVideoSrc} type="video/mp4" />}
+        </video>
+      </motion.div>
+
+      {/* ── Overlays ──────────────────────────────────────────────── */}
+      {/* Base dark tint */}
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-background/55" />
+      {/* Top gradient — merges with nav */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-56 bg-gradient-to-b from-background via-background/70 to-transparent" />
+      {/* Bottom gradient */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-44 bg-gradient-to-t from-background to-transparent" />
+      {/* Left atmosphere */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-1/2"
+        style={{ background: "linear-gradient(to right, rgba(0,0,0,0.3) 0%, transparent 100%)" }}
+      />
+      {/* Red left accent glow */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-px opacity-60"
+        style={{ background: "linear-gradient(to bottom, transparent 0%, #a6192e 50%, transparent 100%)" }}
+      />
+
       {/* Grain */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 mix-blend-multiply opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 z-[3] mix-blend-multiply opacity-[0.055]"
         style={GRAIN_STYLE}
       />
 
-      {/* KodRoda ghost pattern */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden opacity-[0.025]">
-        <KodRodaStatic className="h-[80vw] w-[80vw] max-h-[720px] max-w-[720px] translate-x-[28%] text-foreground" />
+      {/* KodRoda ghost — more visible against dark video */}
+      <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-end overflow-hidden opacity-[0.06]">
+        <KodRodaStatic className="h-[80vw] w-[80vw] max-h-[780px] max-w-[780px] translate-x-[22%] text-foreground" />
       </div>
 
-      {/* Ambient glows */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-background via-background/80 to-transparent" />
-
       {/* Background wordmark */}
-      <div className="pointer-events-none absolute -bottom-12 left-0 right-0 z-0 hidden justify-center overflow-hidden md:flex">
+      <div className="pointer-events-none absolute -bottom-10 left-0 right-0 z-[3] hidden justify-center overflow-hidden md:flex">
         <motion.span
           className="select-none font-serif leading-none tracking-widest text-foreground"
-          style={{ fontSize: "clamp(4rem,16vw,13rem)", opacity: 0.018 }}
+          style={{ fontSize: "clamp(4rem,16vw,13rem)", opacity: 0.028 }}
           initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 0.018 }}
+          animate={{ y: 0, opacity: 0.028 }}
           transition={{ duration: 2, ease, delay: 1 }}
         >
           SYNARAVA
@@ -196,24 +230,24 @@ function HeroSection({
       </div>
 
       {/* Mobile vertical wordmark */}
-      <div className="pointer-events-none absolute inset-y-24 right-0 z-0 flex items-center overflow-hidden md:hidden" aria-hidden="true">
+      <div className="pointer-events-none absolute inset-y-24 right-0 z-[3] flex items-center overflow-hidden md:hidden" aria-hidden="true">
         <motion.span
           className="select-none font-serif leading-none tracking-[0.14em] text-foreground [writing-mode:vertical-rl]"
-          style={{ fontSize: "clamp(4rem,16vw,6rem)", opacity: 0.04 }}
+          style={{ fontSize: "clamp(4rem,16vw,6rem)", opacity: 0.055 }}
           initial={{ x: 24, opacity: 0 }}
-          animate={{ x: 0, opacity: 0.04 }}
+          animate={{ x: 0, opacity: 0.055 }}
           transition={{ duration: 1.4, ease, delay: 0.75 }}
         >
           SYNARAVA
         </motion.span>
       </div>
 
+      {/* ── Text content ──────────────────────────────────────────── */}
       <motion.div
-        className="site-shell relative z-10 grid min-h-[calc(100svh-9.5rem)] grid-cols-12 items-center gap-y-12 px-7 md:min-h-[calc(100svh-10.5rem)] md:px-0 lg:gap-x-16 lg:gap-y-0"
+        className="site-shell relative z-10 w-full pb-24 pt-[8.25rem] md:pb-28 md:pt-[9.25rem] lg:pt-[10.25rem]"
         style={{ opacity: textOpacity, y: textY }}
       >
-        {/* Text */}
-        <div className="col-span-12 max-w-3xl space-y-8 lg:col-span-5 lg:max-w-none lg:space-y-9">
+        <div className="max-w-3xl space-y-8 lg:space-y-10">
           <motion.p
             className="label-mono text-couture-red"
             initial={{ opacity: 0, x: -24 }}
@@ -226,7 +260,7 @@ function HeroSection({
           <div>
             <h1
               className="max-w-[9.6ch] text-balance font-serif leading-[0.96] tracking-normal [overflow-wrap:anywhere]"
-              style={{ fontSize: "clamp(3rem,6vw,5.75rem)" }}
+              style={{ fontSize: "clamp(3.5rem,7vw,6.5rem)" }}
             >
               {words.map((word, i) => (
                 <span key={`${word}-${i}`} className="mr-[0.2em] inline-block max-w-full overflow-hidden last:mr-0">
@@ -244,7 +278,7 @@ function HeroSection({
 
             <motion.div
               className="mt-5 font-serif italic leading-none"
-              style={{ fontSize: "clamp(1.25rem,2.2vw,2.1rem)", opacity: 0.68 }}
+              style={{ fontSize: "clamp(1.25rem,2.2vw,2.1rem)", opacity: 0.72 }}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 0.72, y: 0 }}
               transition={{ duration: 0.9, delay: 0.85, ease }}
@@ -264,68 +298,53 @@ function HeroSection({
           </motion.p>
 
           <motion.div
-            className="flex flex-col gap-5"
+            className="flex flex-wrap items-center gap-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.9, ease }}
           >
-            <PrimaryCtaButton href={content?.ctaHref ?? "/shop"} className="self-start">
+            <PrimaryCtaButton href={content?.ctaHref ?? "/shop"}>
               {content?.ctaLabel ?? "All products"}
             </PrimaryCtaButton>
+            <span className="label-mono hidden text-muted-ink/60 sm:inline">47 pieces crafted</span>
           </motion.div>
         </div>
 
-        {/* Image */}
-        <div className="relative col-span-12 lg:col-span-7">
-          <motion.div
-            className="relative mx-auto aspect-[4/5] w-full max-w-[38rem] overflow-hidden border border-foreground/[0.08] bg-stone-beige/20 md:aspect-[16/11] lg:ml-auto lg:mt-8 lg:max-h-[min(62svh,42rem)] lg:max-w-[46rem] lg:aspect-[5/4]"
-            style={{ y: imageY }}
-            initial={{ opacity: 0, scale: 0.93 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.4, delay: 0.3, ease }}
-          >
-            <Image
-              fill
-              priority
-              alt="SYNARAVA artisan bracelet"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr"
-              className="object-cover object-[center_58%] brightness-[0.9] contrast-[1.08]"
-              sizes="(max-width: 1024px) 100vw, 58vw"
-            />
+        {/* Corner accents */}
+        <motion.div
+          className="absolute bottom-24 right-8 h-10 w-10 border-b border-r border-couture-red/45 md:right-0"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.7, delay: 1.4, ease }}
+        />
+        <motion.div
+          className="absolute bottom-24 left-8 h-10 w-10 border-b border-l border-couture-red/25 md:left-0"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.7, delay: 1.55, ease }}
+        />
+      </motion.div>
 
-            {/* Red bottom vignette */}
-            <div
-              className="pointer-events-none absolute bottom-0 left-0 right-0 h-1/3"
-              style={{ background: "linear-gradient(to top, rgba(166,25,46,0.2) 0%, transparent 100%)" }}
-            />
+      {/* Folk ornament band — bottom decorative border */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-20 md:h-28">
+        <FolkOrnamentBand className="h-full w-full text-foreground/22" delay={1.4} />
+      </div>
 
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-couture-red/45" />
-
-            {/* Corner accents */}
-            <motion.div
-              className="absolute left-5 top-5 h-10 w-10 border-l border-t border-couture-red/55"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 1.3, ease }}
-            />
-            <motion.div
-              className="absolute bottom-5 right-5 h-10 w-10 border-b border-r border-couture-red/55"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 1.45, ease }}
-            />
-          </motion.div>
-
-          <motion.div
-            className="mx-auto mt-4 flex w-full max-w-[38rem] items-center justify-between border-t border-foreground/10 pt-3 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-ink lg:ml-auto lg:max-w-[46rem]"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.2, ease }}
-          >
-            <span>47 pieces crafted</span>
-            <span className="hidden sm:inline">Belarusian couture</span>
-          </motion.div>
-        </div>
+      {/* Scroll hint */}
+      <motion.div
+        className="absolute bottom-9 right-8 z-10 flex flex-col items-center gap-2.5 md:bottom-11 md:right-12"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2, delay: 2 }}
+        aria-hidden="true"
+      >
+        <span className="label-mono text-[0.6rem] text-muted-ink/45 [writing-mode:vertical-rl]">Scroll</span>
+        <motion.div
+          className="h-9 w-px bg-couture-red/55"
+          animate={{ scaleY: [1, 0.25, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          style={{ transformOrigin: "top" }}
+        />
       </motion.div>
     </motion.header>
   );
@@ -543,8 +562,8 @@ function CollectionCard({
             className="h-full w-full object-cover will-change-transform"
             src={item.image}
             variants={{
-              rest: { scale: 1 },
-              hover: { scale: 1.07 },
+              rest: { scale: 1, filter: "grayscale(1) brightness(0.82)" },
+              hover: { scale: 1.07, filter: "grayscale(0) brightness(0.92)" },
             }}
             transition={{ type: "spring", stiffness: 260, damping: 32 }}
           />
@@ -705,14 +724,7 @@ function PatternInterlude() {
   ] as const;
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-32">
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-        <span className="select-none font-serif leading-none text-background"
-          style={{ fontSize: "clamp(5rem,18vw,15rem)", opacity: 0.022, whiteSpace: "nowrap", letterSpacing: "0.06em" }}>
-          УЗОРЫ
-        </span>
-      </div>
-
+    <section ref={ref} className="relative overflow-hidden bg-foreground pb-32 pt-20 text-background md:pb-44 md:pt-32">
       <div className="site-shell relative z-10">
         <motion.div
           className="mb-14 text-center md:mb-20"
@@ -754,10 +766,8 @@ function PatternInterlude() {
           ))}
         </div>
 
-        <div className="mt-16 md:mt-24">
-          <FolkBorder className="w-full text-background/25" />
-        </div>
       </div>
+
     </section>
   );
 }
@@ -899,13 +909,13 @@ function HeritageSection() {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 1, ease }}
           >
-            <div className="relative overflow-hidden">
+            <div className="artifact-hover-image-wrap relative">
               <Image
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeoC4s0GytU2DJHgrs3Y0VtvzJzV8XnZqdlM-zu7Pj5SOSNmgf2fH0UUWquiyWXIKpNLyYe7uIZO3_8XVObSjX88ucZFaSmB7RmcgsRhsPnG7tPGc0n0_G6K7x3a5mstC1CRokMdByQ5QzcXX2nFedtwx42wOm2YsJwOSo6OzbspMc5J8qdpMsI2dZi4z_wUwpmA0QdXlFyhLvOkujl25D4nxEsU7IcGhDLxyZA3K6CO9_k9Sx1YFGtL1eqQjnZEl_HFLyG9-8uxkN"
                 alt="Traditional craft"
                 width={900}
                 height={900}
-                className="aspect-square w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
+                className="artifact-hover-image aspect-square w-full object-cover hover:scale-[1.03]"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
@@ -985,8 +995,8 @@ function FinalCTA() {
 
 
       <div className="relative z-10 flex min-h-[72vh] items-center justify-center py-24 md:py-40">
-        <div className="site-shell text-center text-foreground dark:text-background">
-          <FolkSpiderOrnament />
+        <div className="site-shell text-center text-foreground">
+          <FolkSpiderOrnament className="text-couture-red/68 dark:text-couture-red/78" />
 
           <motion.p
             className="label-mono mb-8 text-couture-red"
@@ -997,7 +1007,7 @@ function FinalCTA() {
             Ready to begin
           </motion.p>
           <motion.h2
-            className="mx-auto mb-6 max-w-3xl font-serif leading-[1.05] text-foreground dark:text-background md:mb-8"
+            className="mx-auto mb-6 max-w-3xl font-serif leading-[1.05] text-foreground md:mb-8"
             style={{ fontSize: "clamp(2.2rem,5.5vw,5rem)" }}
             initial={{ opacity: 0, y: 28 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -1006,7 +1016,7 @@ function FinalCTA() {
             Begin Your Collection
           </motion.h2>
           <motion.p
-            className="mx-auto mb-12 max-w-lg text-base leading-[1.85] text-foreground/62 dark:text-background/72 md:mb-16 md:text-[1.0625rem]"
+            className="mx-auto mb-12 max-w-lg text-base leading-[1.85] text-foreground/72 md:mb-16 md:text-[1.0625rem]"
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.22 }}
@@ -1025,7 +1035,7 @@ function FinalCTA() {
 
             <Link
               href="/about"
-              className="inline-flex cursor-pointer items-center gap-2 border-b border-foreground/24 pb-1 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/78 transition-colors duration-300 hover:border-foreground hover:text-foreground dark:border-background/55 dark:text-background/90 dark:hover:border-background dark:hover:text-background"
+              className="inline-flex cursor-pointer items-center gap-2 border-b border-foreground/24 pb-1 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/78 transition-colors duration-300 hover:border-foreground hover:text-foreground"
             >
               Learn Our Story
             </Link>
@@ -1037,15 +1047,17 @@ function FinalCTA() {
 }
 
 /* ─── Root ───────────────────────────────────────────────────────── */
-export function HomePage({ title, excerpt, content, collections }: HomePageProps) {
+export function HomePage({ title, excerpt, content, collections, heroVideoSrc }: HomePageProps) {
   return (
     <main className="artifact-shell min-h-screen overflow-x-hidden">
-      <HeroSection title={title} excerpt={excerpt} content={content} />
+      <HeroSection title={title} excerpt={excerpt} content={content} heroVideoSrc={heroVideoSrc} />
       <MarqueeStrip />
       <ManifestoSection content={content} />
       <CollectionsSection collections={collections} content={content} />
       <AtelierSection />
       <PatternInterlude />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/4321.png" alt="" aria-hidden="true" className="w-full" />
       <MaterialsSection />
       <StatsSection />
       <HeritageSection />

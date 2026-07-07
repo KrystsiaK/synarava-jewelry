@@ -9,6 +9,7 @@ import {
   useInView,
 } from "motion/react";
 import Link from "next/link";
+import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import type { CollectionSummary, ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -118,15 +119,9 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.85, ease }}
         >
-          <Link
-            href="/shop"
-            className="group inline-flex cursor-pointer items-center gap-3 bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white transition-colors duration-500 hover:bg-[#8f1325]"
-          >
+          <ArtifactLink href="/shop" showArrow>
             Shop products
-            <svg className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-              <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
+          </ArtifactLink>
           <Link
             href="/collections"
             className="label-mono border-b border-background/30 pb-1 text-background/60 transition-colors hover:border-background/60 hover:text-background/90"
@@ -514,33 +509,15 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.22 }}
           >
-            <Link
+            <ArtifactLink
               href="/collections"
-              className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden border border-background/20 px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-background transition-colors hover:border-couture-red hover:text-couture-red"
+              variant="secondary"
+              showArrow
+              className="border-background/25 text-background hover:border-couture-red hover:text-couture-red"
             >
               All collections
-              <svg className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-                <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-            <Link
-              href="/shop"
-              className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white"
-            >
-              <span className="relative z-10">Shop all products</span>
-              <svg className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-                <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                  animation: "shiny-sweep 2.5s infinite linear",
-                  willChange: "transform",
-                }}
-              />
-            </Link>
+            </ArtifactLink>
+            <PrimaryCtaButton href="/shop">Shop all products</PrimaryCtaButton>
           </motion.div>
         </div>
       </div>

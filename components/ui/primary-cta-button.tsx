@@ -1,9 +1,9 @@
 "use client";
 
-import { MagneticButton } from "./magnetic-button";
+import { ArrowRight } from "lucide-react";
 
-const BASE_CLASS =
-  "group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white";
+import { artifactButtonClasses } from "./artifact-button";
+import { MagneticButton } from "./magnetic-button";
 
 interface PrimaryCtaButtonProps {
   href: string;
@@ -13,22 +13,20 @@ interface PrimaryCtaButtonProps {
 
 export function PrimaryCtaButton({ href, children, className }: PrimaryCtaButtonProps) {
   return (
-    <MagneticButton href={href} className={`${BASE_CLASS}${className ? ` ${className}` : ""}`}>
+    <MagneticButton
+      href={href}
+      className={artifactButtonClasses({
+        variant: "primary",
+        size: "lg",
+        className: `relative overflow-hidden ${className ?? ""}`,
+      })}
+    >
       <span className="relative z-10">{children}</span>
-      <svg
-        className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
-        viewBox="0 0 12 12"
-        fill="none"
+      <ArrowRight
+        className="relative z-10 size-3.5 transition-transform duration-300 group-hover:translate-x-1"
         aria-hidden="true"
-      >
-        <path
-          d="M1 6h10M7 2l4 4-4 4"
-          stroke="currentColor"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+        strokeWidth={1.8}
+      />
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"

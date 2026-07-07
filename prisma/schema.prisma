@@ -94,6 +94,9 @@ model UserSession {
   updatedAt    DateTime @updatedAt
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model VerificationToken {
@@ -229,6 +232,7 @@ model Product {
   orderItems       OrderItem[]
 
   @@index([status, visibility, productType, publishedAt])
+  @@index([status, visibility, publishedAt])
   @@index([categoryId])
 }
 
@@ -465,6 +469,8 @@ model Order {
   items                   OrderItem[]
 
   @@index([status, paymentStatus, fulfillmentStatus, createdAt])
+  @@index([userId, createdAt])
+  @@index([userId, paymentStatus])
 }
 
 model OrderItem {
@@ -482,6 +488,9 @@ model OrderItem {
   order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product         Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
   variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model AuditLog {

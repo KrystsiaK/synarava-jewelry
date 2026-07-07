@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -9,12 +9,19 @@ import { env } from "@/lib/env";
 const SESSION_COOKIE = "synarava-session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 14;
 
-function getSessionSecret() {
-  return env.AUTH_SESSION_SECRET ?? env.NEXTAUTH_SECRET ?? "synarava-dev-session-secret";
+function getSessionSecret(): string {
+  const secret = env.AUTH_SESSION_SECRET ?? env.NEXTAUTH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SESSION_SECRET must be set in production.");
+    }
+    return "synarava-dev-secret-do-not-use-in-production";
+  }
+  return secret;
 }
 
-function signSessionToken(token: string) {
-  return createHash("sha256").update(`${token}:${getSessionSecret()}`).digest("hex");
+function signSessionToken(token: string): string {
+  return createHmac("sha256", getSessionSecret()).update(token).digest("hex");
 }
 
 export async function createUserSession(userId: string) {
@@ -72,7 +79,17 @@ export async function getCurrentSession() {
     },
     include: {
       user: {
-        include: {
+        // Explicit select — never load passwordHash into the session object that
+        // flows through Server Components and may reach the client.
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          status: true,
+          emailVerifiedAt: true,
+          avatarAssetId: true,
+          createdAt: true,
+          updatedAt: true,
           roles: {
             include: {
               role: {
@@ -92,13 +109,11 @@ export async function getCurrentSession() {
   });
 
   if (!session) {
-    cookieStore.delete(SESSION_COOKIE);
     return null;
   }
 
   if (session.expiresAt.getTime() <= Date.now()) {
     await db.userSession.delete({ where: { id: session.id } });
-    cookieStore.delete(SESSION_COOKIE);
     return null;
   }
 

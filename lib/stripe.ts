@@ -15,12 +15,14 @@ export function isStripePaymentConfigured() {
 }
 
 export function getStripe(): Stripe {
-  if (!hasStripeSecretKey()) {
+  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+
+  if (!secretKey) {
     throw new Error("STRIPE_SECRET_KEY is not configured.");
   }
 
   if (!stripeClient) {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    stripeClient = new Stripe(secretKey, {
       apiVersion: Stripe.API_VERSION,
     });
   }

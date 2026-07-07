@@ -13,8 +13,7 @@ import {
 import Link from "next/link";
 
 import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
-import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ShinyText } from "@/components/ui/shiny-text";
+import { PrimaryCtaButton, ShinyText } from "@/components/ui";
 import type { ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -361,12 +360,11 @@ function MaterialsSection({ product }: { product: ProductSummary }) {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.8, ease, delay: i * 0.14 }}
             >
-              <div className="relative overflow-hidden bg-charcoal">
+              <div className="artifact-hover-image-wrap relative bg-charcoal">
                 <img
                   src={item.image}
                   alt={item.title}
-                  className="aspect-square h-full w-full object-cover opacity-80 transition-all duration-700 group-hover:scale-110 group-hover:opacity-90 group-hover:grayscale-0"
-                  style={{ filter: "grayscale(30%) contrast(1.05)" }}
+                  className="artifact-hover-image aspect-square h-full w-full object-cover opacity-80 contrast-[1.05] transition-all duration-700 group-hover:scale-110 group-hover:opacity-90"
                 />
                 {/* Hover red overlay */}
                 <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
@@ -531,7 +529,7 @@ function CraftSection({ product }: { product: ProductSummary }) {
           >
             <div className="relative aspect-video cursor-pointer overflow-hidden">
               <img
-                className="h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
+                className="artifact-hover-image h-full w-full object-cover opacity-50 group-hover:scale-105"
                 src={product.process.mediaImage}
                 alt="Craftsmanship"
               />
@@ -753,22 +751,9 @@ function ProductFooter({ product }: { product: ProductSummary }) {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.28 }}
         >
-          <MagneticButton
-            href={`/collections/${product.collectionSlug}`}
-            className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white"
-          >
-            <span className="relative z-10">View collection</span>
-            <svg className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-              <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span aria-hidden="true" className="pointer-events-none absolute inset-0"
-              style={{
-                background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                animation: "shiny-sweep 2.5s infinite linear",
-                willChange: "transform",
-              }}
-            />
-          </MagneticButton>
+          <PrimaryCtaButton href={`/collections/${product.collectionSlug}`}>
+            View collection
+          </PrimaryCtaButton>
 
           <Link
             href="/shop"

@@ -107,6 +107,12 @@ async function saveImageUpload(file: File, folder: string, fallbackBaseName: str
     throw new Error("Only image uploads are supported.");
   }
 
+  // SVG is rejected: it can contain <script> tags and would be served on the same
+  // origin, creating a stored XSS vector. Use a raster format instead.
+  if (file.type === "image/svg+xml") {
+    throw new Error("SVG uploads are not supported. Please use JPEG, PNG, or WebP.");
+  }
+
   if (file.size > 10 * 1024 * 1024) {
     throw new Error("Image must be 10 MB or smaller.");
   }

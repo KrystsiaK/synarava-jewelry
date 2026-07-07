@@ -10,8 +10,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import Link from "next/link";
-import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ShinyText } from "@/components/ui/shiny-text";
+import { ArtifactLink, PrimaryCtaButton, ShinyText } from "@/components/ui";
 import {
   KodRoda as SvgKodRoda,
   Kola as SvgKola,
@@ -219,22 +218,7 @@ function AboutHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.9, ease }}
           >
-            <MagneticButton
-              href={ctaHref}
-              className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white"
-            >
-              <span className="relative z-10">{ctaLabel}</span>
-              <svg className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-                <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span aria-hidden="true" className="pointer-events-none absolute inset-0"
-                style={{
-                  background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)",
-                  animation: "shiny-sweep 2.5s infinite linear",
-                  willChange: "transform",
-                }}
-              />
-            </MagneticButton>
+            <PrimaryCtaButton href={ctaHref}>{ctaLabel}</PrimaryCtaButton>
             <Link
               href="/about/manifesto"
               className="inline-flex items-center gap-2 border-b border-foreground/20 pb-1 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
@@ -512,11 +496,11 @@ function StorySection({ secondaryBody }: { secondaryBody: string }) {
             </div>
 
             {/* Exhibition image */}
-            <div className="relative overflow-hidden">
+            <div className="artifact-hover-image-wrap relative">
               <img
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHaoUd-Rm7sOtHmb7DqP0M9OBv7dVOeIrBaE0HeI7OBXaGfWpDZ-Rydjig7P70HXomp3svTh1hAwUXUsAVSBjU5XjcXsfg8B3AK0ZyL-1_ULgDFpb-5IemGJkyXlntN3f-ihPcc1u86fbTV48rKP9E6HYYe53wCujXW5Yy4jVQ7fvgqcipoQSMO0V7fwxVedwilASfgNwSlcTU4FHWCQyj2cT_-Uetg5LcpKBkJ0LbTtRcCKlG63G2PXW1UtqsGCgiQKVOZn1a-NUv"
                 alt="Synarava exhibition-style space"
-                className="aspect-[16/9] h-full w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
+                className="artifact-hover-image aspect-[16/9] h-full w-full object-cover hover:scale-[1.03]"
               />
             </div>
           </motion.div>
@@ -663,24 +647,10 @@ function AboutFooter() {
           initial={{ opacity: 0, y: 14 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.28 }}>
-          <MagneticButton
-            href="/shop"
-            className="group relative inline-flex cursor-pointer items-center gap-3 overflow-hidden bg-couture-red px-8 py-4 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white">
-            <span className="relative z-10">Shop all products</span>
-            <svg className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-              <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span aria-hidden="true" className="pointer-events-none absolute inset-0"
-              style={{
-                background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
-                animation: "shiny-sweep 2.5s infinite linear",
-                willChange: "transform",
-              }} />
-          </MagneticButton>
-          <Link href="/collections"
-            className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red">
+          <PrimaryCtaButton href="/shop">Shop all products</PrimaryCtaButton>
+          <ArtifactLink href="/collections" variant="ghost" size="sm">
             View collections
-          </Link>
+          </ArtifactLink>
         </motion.div>
       </div>
     </div>

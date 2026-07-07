@@ -9,6 +9,8 @@ import {
   useCheckoutElements,
 } from "@stripe/react-stripe-js/checkout";
 
+import { ArtifactButton } from "@/components/ui";
+
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const elementsAppearance: Appearance = {
@@ -123,13 +125,13 @@ function CheckoutForm() {
         <p className="text-sm text-couture-red leading-5">{error ?? providerError}</p>
       )}
 
-      <button
+      <ArtifactButton
         type="submit"
         disabled={!isReady || loading}
-        className="w-full inline-flex items-center justify-center bg-couture-red px-6 py-4 label-caps text-linen !text-linen transition-colors hover:bg-[#8f1325] disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full"
       >
         {loading ? "Processing…" : isReady ? "Pay now" : "Loading payment…"}
-      </button>
+      </ArtifactButton>
     </form>
   );
 }

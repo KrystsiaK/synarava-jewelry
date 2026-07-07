@@ -4,6 +4,13 @@ import { notFound } from "next/navigation";
 import { getCollectionBySlug, getProductsByCollection } from "@/lib/content/catalog";
 import { CollectionDetail } from "@/components/collections/collection-detail";
 
+function safeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 type Props = {
   params: Promise<{ slug: string }>;
 };
@@ -57,7 +64,7 @@ export default async function Page({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <CollectionDetail collection={collection} products={products} />
     </>

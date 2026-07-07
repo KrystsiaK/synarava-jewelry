@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+
+import { ArtifactButton, ArtifactLink } from "@/components/ui";
 
 type AddToCartButtonProps = {
   productSlug: string;
@@ -67,14 +68,14 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
 
   return (
     <div className="relative">
-      <button
+      <ArtifactButton
         type="button"
         onClick={handleAdd}
         disabled={isPending}
-        className="bg-charcoal px-12 py-5 label-caps text-linen transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+        className="px-12 py-5"
       >
         {isPending ? "Adding…" : "Add to cart"}
-      </button>
+      </ArtifactButton>
 
       {/* Toast panel */}
       <div
@@ -107,18 +108,21 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
 
             {/* CTAs */}
             <div className="flex gap-2">
-              <Link
+              <ArtifactLink
                 href="/cart"
-                className="flex-1 border border-stroke px-3 py-2.5 label-caps text-center text-[0.68rem] text-foreground/70 transition-colors hover:border-foreground/30 hover:text-foreground"
+                variant="secondary"
+                size="sm"
+                className="flex-1"
               >
                 View cart
-              </Link>
-              <Link
+              </ArtifactLink>
+              <ArtifactLink
                 href="/checkout/shipping"
-                className="flex-1 bg-couture-red px-3 py-2.5 label-caps text-center text-[0.68rem] text-white transition-colors hover:bg-[#8f1325]"
+                size="sm"
+                className="flex-1"
               >
-                Checkout →
-              </Link>
+                Checkout
+              </ArtifactLink>
             </div>
           </div>
         )}

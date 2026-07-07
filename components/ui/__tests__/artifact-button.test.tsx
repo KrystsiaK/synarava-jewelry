@@ -11,14 +11,14 @@ describe("ArtifactButton", () => {
   it("applies primary variant by default", () => {
     render(<ArtifactButton>Explore</ArtifactButton>);
     const btn = screen.getByRole("button");
-    expect(btn).toHaveClass("bg-couture-red");
-    expect(btn).toHaveClass("text-linen");
+    expect(btn).toHaveClass("bg-[#7f1424]");
+    expect(btn).toHaveClass("text-[#fff2f3]");
   });
 
   it("applies secondary variant classes", () => {
     render(<ArtifactButton variant="secondary">Explore</ArtifactButton>);
     const btn = screen.getByRole("button");
-    expect(btn).toHaveClass("border-foreground/30");
+    expect(btn).toHaveClass("border-foreground/28");
   });
 
   it("applies ghost variant classes", () => {
@@ -57,11 +57,11 @@ describe("ArtifactLink", () => {
 
   it("applies primary variant by default", () => {
     render(<ArtifactLink href="/shop">Shop</ArtifactLink>);
-    expect(screen.getByRole("link")).toHaveClass("bg-couture-red");
+    expect(screen.getByRole("link")).toHaveClass("bg-[#7f1424]");
   });
 
   it("applies secondary variant", () => {
     render(<ArtifactLink href="/shop" variant="secondary">Shop</ArtifactLink>);
-    expect(screen.getByRole("link")).toHaveClass("border-foreground/30");
+    expect(screen.getByRole("link")).toHaveClass("border-foreground/28");
   });
 });

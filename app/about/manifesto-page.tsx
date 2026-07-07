@@ -65,11 +65,11 @@ export default async function ManifestoPage() {
 
           <div className="col-span-12 md:col-span-5 md:pt-12">
             <div className="relative">
-              <div className="aspect-[3/4] overflow-hidden bg-[color:var(--color-stone-beige)]">
+              <div className="artifact-hover-image-wrap aspect-[3/4] bg-[color:var(--color-stone-beige)]">
                 <img
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsOpilx95kk9tsj12r0FFG2UFEpnvVCSCj8zjj1_un-K347C_bYyfjiBfHqVhN7zzUIZ6ozazQxs49HgYM0nwLxVV_V-oCjDAD6QJftXKg4uJF9VXZZMF7SnXTuGUbTcXPb8YpkhuyReJ5XbM6cmIPd1_ZewFgYq_eM3-SzvrzxvrGS91YDoHIO1EY-VONHmNa2LsvHgEWNqfyALYgIDXy_TuRnrTrcjodxqPvTs-9GvTow0A7s7QXartwC2wPcxedNcDYyDBOZOpL"
                   alt="An atmospheric editorial artifact composition"
-                  className="h-full w-full object-cover transition-transform duration-[3000ms] hover:scale-105"
+                  className="artifact-hover-image h-full w-full object-cover duration-[3000ms] hover:scale-105"
                 />
               </div>
 
@@ -200,7 +200,7 @@ export default async function ManifestoPage() {
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHaoUd-Rm7sOtHmb7DqP0M9OBv7dVOeIrBaE0HeI7OBXaGfWpDZ-Rydjig7P70HXomp3svTh1hAwUXUsAVSBjU5XjcXsfg8B3AK0ZyL-1_ULgDFpb-5IemGJkyXlntN3f-ihPcc1u86fbTV48rKP9E6HYYe53wCujXW5Yy4jVQ7fvgqcipoQSMO0V7fwxVedwilASfgNwSlcTU4FHWCQyj2cT_-Uetg5LcpKBkJ0LbTtRcCKlG63G2PXW1UtqsGCgiQKVOZn1a-NUv"
               alt="Synarava exhibition gallery"
-              className="aspect-[16/9] w-full object-cover transition-transform duration-1000 group-hover:scale-110 md:h-96 md:aspect-auto"
+              className="artifact-hover-image aspect-[16/9] w-full object-cover duration-1000 group-hover:scale-110 md:h-96 md:aspect-auto"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
               <button className="border border-white px-6 py-3 font-sans text-[0.76rem] font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-white hover:text-black">

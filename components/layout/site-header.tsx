@@ -57,6 +57,23 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
   }, [isMenuOpen]);
 
   useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 920px)");
+
+    function closeMenuOnDesktop(event: MediaQueryListEvent | MediaQueryList) {
+      if (event.matches) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    closeMenuOnDesktop(desktopQuery);
+    desktopQuery.addEventListener("change", closeMenuOnDesktop);
+
+    return () => {
+      desktopQuery.removeEventListener("change", closeMenuOnDesktop);
+    };
+  }, []);
+
+  useEffect(() => {
     let lastY = window.scrollY;
     let frame = 0;
 
@@ -120,7 +137,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           <button
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
-            className="site-nav-icon-button xl:hidden"
+            className="site-nav-icon-button min-[920px]:hidden"
             aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isMenuOpen}
           >
@@ -146,7 +163,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-8 xl:flex xl:gap-12">
+        <nav className="hidden items-center gap-5 min-[920px]:flex xl:gap-12">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -208,7 +225,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       </header>
 
       <div
-        className={`fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm transition-opacity duration-300 xl:hidden ${
+        className={`site-nav-drawer-backdrop fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm transition-opacity duration-300 min-[920px]:hidden ${
           isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setIsMenuOpen(false)}
@@ -216,7 +233,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-foreground/10 bg-background px-4 pb-7 pt-20 shadow-[0_20px_50px_rgba(25,21,18,0.12)] transition-transform duration-300 xl:hidden ${
+        className={`site-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-foreground/10 bg-background px-4 pb-7 pt-20 shadow-[0_20px_50px_rgba(25,21,18,0.12)] transition-transform duration-300 min-[920px]:hidden ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-hidden={!isMenuOpen}

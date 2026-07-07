@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useReducedMotion, useInView } from "motion/react";
 import { ease } from "@/lib/animation";
+import { cn } from "@/lib/ui";
 
 /* ─── KodRoda (Ancestral Cipher) ─────────────────────────────────── */
 export function KodRoda({ className }: { className?: string }) {
@@ -198,8 +199,125 @@ export function FolkBorder({ className, delay = 0 }: { className?: string; delay
   );
 }
 
+/* ─── FolkOrnamentBand ───────────────────────────────────────────── */
+export function FolkOrnamentBand({
+  className,
+  delay = 0,
+}: {
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-8%" });
+
+  const diamonds = Array.from({ length: 25 }, (_, i) => 60 + i * 55);
+  const nodes = Array.from({ length: 13 }, (_, i) => 87.5 + i * 110);
+
+  return (
+    <svg
+      ref={ref}
+      viewBox="0 0 1440 128"
+      fill="none"
+      className={className}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <motion.path
+        d="M0 64H1440"
+        stroke="currentColor"
+        strokeWidth="0.7"
+        opacity="0.3"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={isInView ? { pathLength: 1, opacity: 0.3 } : {}}
+        transition={{ duration: 1.4, ease: "easeInOut", delay }}
+      />
+      <motion.path
+        d="M0 86C120 64 240 108 360 86C480 64 600 108 720 86C840 64 960 108 1080 86C1200 64 1320 108 1440 86"
+        stroke="currentColor"
+        strokeWidth="0.55"
+        opacity="0.18"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={isInView ? { pathLength: 1, opacity: 0.18 } : {}}
+        transition={{ duration: 1.8, ease: "easeInOut", delay: delay + 0.12 }}
+      />
+      <motion.path
+        d="M0 42C120 64 240 20 360 42C480 64 600 20 720 42C840 64 960 20 1080 42C1200 64 1320 20 1440 42"
+        stroke="currentColor"
+        strokeWidth="0.55"
+        opacity="0.18"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={isInView ? { pathLength: 1, opacity: 0.18 } : {}}
+        transition={{ duration: 1.8, ease: "easeInOut", delay: delay + 0.18 }}
+      />
+
+      {diamonds.map((cx, i) => {
+        const large = i % 4 === 0;
+        const r = large ? 28 : 22;
+        return (
+          <motion.g
+            key={cx}
+            initial={{ opacity: 0, scale: 0.78 }}
+            animate={isInView ? { opacity: large ? 0.72 : 0.5, scale: 1 } : {}}
+            transition={{ duration: 0.55, ease: "easeOut", delay: delay + 0.08 + i * 0.025 }}
+            style={{ transformOrigin: `${cx}px 64px` }}
+          >
+            <path
+              d={`M${cx} ${64 - r}L${cx + r} 64L${cx} ${64 + r}L${cx - r} 64Z`}
+              stroke="currentColor"
+              strokeWidth={large ? "1.15" : "0.85"}
+            />
+            <path
+              d={`M${cx} ${64 - r * 0.52}L${cx + r * 0.52} 64L${cx} ${64 + r * 0.52}L${cx - r * 0.52} 64Z`}
+              stroke="currentColor"
+              strokeWidth="0.65"
+              opacity="0.55"
+            />
+            {large ? <circle cx={cx} cy="64" r="2.8" fill="currentColor" opacity="0.85" /> : null}
+          </motion.g>
+        );
+      })}
+
+      {nodes.map((cx, i) => (
+        <motion.g
+          key={cx}
+          initial={{ opacity: 0, y: 8 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, ease: "easeOut", delay: delay + 0.35 + i * 0.035 }}
+        >
+          <path
+            d={`M${cx - 9} 32L${cx} 23L${cx + 9} 32L${cx} 41Z`}
+            fill="var(--color-couture-red)"
+            opacity={i % 2 === 0 ? "0.95" : "0.58"}
+          />
+          <path
+            d={`M${cx - 9} 96L${cx} 87L${cx + 9} 96L${cx} 105Z`}
+            fill="var(--color-couture-red)"
+            opacity={i % 2 === 0 ? "0.58" : "0.95"}
+          />
+        </motion.g>
+      ))}
+
+      <motion.path
+        d="M0 12H1440M0 116H1440"
+        stroke="currentColor"
+        strokeWidth="0.8"
+        opacity="0.12"
+        initial={{ pathLength: 0 }}
+        animate={isInView ? { pathLength: 1 } : {}}
+        transition={{ duration: 1.5, ease: "easeInOut", delay: delay + 0.24 }}
+      />
+    </svg>
+  );
+}
+
 /* ─── FolkSpiderOrnament ─────────────────────────────────────────── */
-export function FolkSpiderOrnament() {
+export function FolkSpiderOrnament({
+  className,
+  ornamentClassName,
+}: {
+  className?: string;
+  ornamentClassName?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const isVisible = useInView(ref, { once: false, margin: "0px" });
@@ -207,14 +325,17 @@ export function FolkSpiderOrnament() {
   return (
     <motion.div
       ref={ref}
-      className="mx-auto mb-10 flex w-fit origin-top justify-center text-foreground/40 dark:text-background/84 md:mb-12"
+      className={cn(
+        "mx-auto mb-10 flex w-fit origin-top justify-center text-foreground/40 dark:text-background/84 md:mb-12",
+        className,
+      )}
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.85, ease }}
     >
       <motion.svg
         aria-hidden="true"
-        className="h-28 w-28 md:h-32 md:w-32"
+        className={cn("h-28 w-28 md:h-32 md:w-32", ornamentClassName)}
         viewBox="0 0 160 176"
         fill="none"
         animate={

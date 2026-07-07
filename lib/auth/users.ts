@@ -30,16 +30,22 @@ export async function registerUser(input: {
     return { ok: false as const, error: "An account with that email already exists." };
   }
 
-  const adminRole = await getRoleId("admin");
+  // Admin role is granted only when ADMIN_EMAIL env var matches the registering address
+  // and no admin exists yet. Never grant admin by registration order.
   const customerRole = await getRoleId("customer");
-  const existingAdmin = await db.userRole.findFirst({
-    where: {
-      role: {
-        key: "admin",
-      },
-    },
-    select: { id: true },
-  });
+  let roleId = customerRole;
+
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (adminEmail && email === adminEmail) {
+    const existingAdmin = await db.userRole.findFirst({
+      where: { role: { key: "admin" } },
+      select: { id: true },
+    });
+    if (!existingAdmin) {
+      const adminRole = await getRoleId("admin");
+      if (adminRole) roleId = adminRole;
+    }
+  }
 
   const user = await db.user.create({
     data: {
@@ -47,11 +53,8 @@ export async function registerUser(input: {
       name: input.name?.trim() || null,
       passwordHash: hashPassword(input.password),
       status: "ACTIVE",
-      emailVerifiedAt: new Date(),
     },
   });
-
-  const roleId = !existingAdmin && adminRole ? adminRole : customerRole;
 
   if (roleId) {
     await db.userRole.create({
@@ -147,7 +150,8 @@ export async function resetPasswordFromToken(token: string, password: string) {
     where: { email: record.identifier },
     data: {
       passwordHash: hashPassword(password),
-      status: "ACTIVE",
+      // Intentionally do NOT set status: "ACTIVE" — a SUSPENDED account must not
+      // regain access through password reset.
     },
   });
 
@@ -195,6 +199,11 @@ export async function updateUserCredentials(input: {
       passwordHash: input.nextPassword ? hashPassword(input.nextPassword) : undefined,
     },
   });
+
+  if (input.nextPassword) {
+    // Invalidate all sessions so stolen tokens cannot be used after a password change.
+    await db.userSession.deleteMany({ where: { userId: input.userId } });
+  }
 
   return { ok: true as const };
 }

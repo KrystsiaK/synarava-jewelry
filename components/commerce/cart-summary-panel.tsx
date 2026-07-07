@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ArtifactLink } from "@/components/ui";
 
 type CartSummaryPanelProps = {
   itemCount: number;
@@ -30,12 +30,9 @@ export function CartSummaryPanel({
       </div>
 
       {ctaHref && ctaLabel ? (
-        <Link
-          href={ctaHref}
-          className="mt-8 inline-flex w-full items-center justify-center bg-charcoal px-6 py-4 text-center label-caps text-white transition-colors hover:bg-couture-red"
-        >
+        <ArtifactLink href={ctaHref} className="mt-8 w-full" showArrow>
           {ctaLabel}
-        </Link>
+        </ArtifactLink>
       ) : null}
 
       {note ? <p className="mt-6 text-sm leading-6 text-foreground/60">{note}</p> : null}

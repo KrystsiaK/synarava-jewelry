@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { checkRateLimit } from "@/lib/auth/guard";
 import { clearUserSession, createUserSession } from "@/lib/auth/session";
 import { attachCurrentCartToUser } from "@/lib/commerce/cart";
 import {
@@ -15,12 +17,11 @@ import { validatePasswordPolicy } from "@/lib/auth/password-policy";
 export type AuthActionState = {
   error?: string;
   success?: string;
-  previewUrl?: string;
 };
 
-function buildResetUrl(token: string) {
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  return `${base}/reset-password?token=${token}`;
+async function getClientIp(): Promise<string> {
+  const h = await headers();
+  return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 }
 
 export async function loginAction(
@@ -30,6 +31,13 @@ export async function loginAction(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const redirectTo = String(formData.get("redirectTo") ?? "").trim();
+
+  const ip = await getClientIp();
+  const byIp = checkRateLimit("login-ip", ip, { max: 20, windowMs: 15 * 60 * 1000 });
+  if (!byIp.ok) return { error: byIp.error };
+
+  const byEmail = checkRateLimit("login-email", email, { max: 5, windowMs: 15 * 60 * 1000 });
+  if (!byEmail.ok) return { error: byEmail.error };
 
   const user = await authenticateUser(email, password);
 
@@ -60,6 +68,10 @@ export async function registerAction(
     return { error: "Email and password are required." };
   }
 
+  const ip = await getClientIp();
+  const byIp = checkRateLimit("register-ip", ip, { max: 10, windowMs: 60 * 60 * 1000 });
+  if (!byIp.ok) return { error: byIp.error };
+
   const policy = validatePasswordPolicy(password);
   if (!policy.ok) return { error: policy.error };
 
@@ -70,7 +82,8 @@ export async function registerAction(
   const result = await registerUser({ name, email, password });
 
   if (!result.ok) {
-    return { error: result.error };
+    // Generic message to avoid confirming whether an email is registered.
+    return { error: "Registration failed. Please check your details and try again." };
   }
 
   await createUserSession(result.userId);
@@ -85,23 +98,25 @@ export async function requestPasswordResetAction(
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
 
+  // Always the same response — never reveal whether an email exists.
+  const neutral = { success: "If that email exists in our system, a reset link has been sent." };
+
   if (!email) {
     return { error: "Enter the account email to continue." };
   }
 
-  const result = await createPasswordResetToken(email);
+  const ip = await getClientIp();
+  const byIp = checkRateLimit("reset-ip", ip, { max: 5, windowMs: 15 * 60 * 1000 });
+  if (!byIp.ok) return { error: byIp.error };
 
-  if (!result) {
-    return {
-      success:
-        "If that email exists in the system, a reset link has been prepared. In local mode, only real accounts show the preview link.",
-    };
-  }
+  const byEmail = checkRateLimit("reset-email", email, { max: 3, windowMs: 60 * 60 * 1000 });
+  if (!byEmail.ok) return { error: byEmail.error };
 
-  return {
-    success: "Reset link generated.",
-    previewUrl: buildResetUrl(result.token),
-  };
+  await createPasswordResetToken(email);
+
+  // Token is stored in DB only. Wire an email provider here to deliver it.
+  // Never expose the token in the HTTP response.
+  return neutral;
 }
 
 export async function resetPasswordAction(
@@ -111,6 +126,10 @@ export async function resetPasswordAction(
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  const ip = await getClientIp();
+  const byIp = checkRateLimit("reset-confirm-ip", ip, { max: 10, windowMs: 15 * 60 * 1000 });
+  if (!byIp.ok) return { error: byIp.error };
 
   const policy = validatePasswordPolicy(password);
   if (!policy.ok) return { error: policy.error };
