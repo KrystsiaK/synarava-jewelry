@@ -7,7 +7,10 @@ describe("MediaFrame", () => {
   it("renders the image with alt text", () => {
     render(<MediaFrame {...baseProps} />);
     expect(screen.getByAltText("Bracelet")).toBeInTheDocument();
-    expect(screen.getByAltText("Bracelet")).toHaveAttribute("src", "/image.jpg");
+    expect(screen.getByAltText("Bracelet")).toHaveAttribute(
+      "src",
+      expect.stringContaining("url=%2Fimage.jpg"),
+    );
   });
 
   it("renders as figure element", () => {

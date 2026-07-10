@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 
-const UPLOADS_ROOT_DIR = path.join(process.cwd(), "public", "uploads");
+import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
+
 const MAX_IMAGE_DIMENSION = 3200;
 const LARGE_IMAGE_BYTES = 4 * 1024 * 1024;
 const WEBP_QUALITY = 94;
@@ -50,6 +51,8 @@ async function prepareImageForStorage(file: File) {
       extension: originalExtension,
       mimeType: originalMimeType,
       sizeBytes: originalBuffer.byteLength,
+      width: null,
+      height: null,
     };
   }
 
@@ -69,6 +72,8 @@ async function prepareImageForStorage(file: File) {
         extension: originalExtension,
         mimeType: originalMimeType,
         sizeBytes: originalBuffer.byteLength,
+        width: width || null,
+        height: height || null,
       };
     }
 
@@ -87,6 +92,8 @@ async function prepareImageForStorage(file: File) {
       extension: ".webp",
       mimeType: "image/webp",
       sizeBytes: processedBuffer.byteLength,
+      width: width || null,
+      height: height || null,
     };
   } catch {
     return {
@@ -94,6 +101,8 @@ async function prepareImageForStorage(file: File) {
       extension: originalExtension,
       mimeType: originalMimeType,
       sizeBytes: originalBuffer.byteLength,
+      width: null,
+      height: null,
     };
   }
 }
@@ -117,24 +126,31 @@ async function saveImageUpload(file: File, folder: string, fallbackBaseName: str
     throw new Error("Image must be 10 MB or smaller.");
   }
 
-  const outputDir = path.join(UPLOADS_ROOT_DIR, folder);
-  await mkdir(outputDir, { recursive: true });
-
   const prepared = await prepareImageForStorage(file);
   const extension = prepared.extension;
   const baseName = sanitizeBaseName(file.name || fallbackBaseName);
   const filename = `${baseName}-${randomUUID()}${extension}`;
-  const outputPath = path.join(outputDir, filename);
+  const storageKey = `uploads/${folder}/${filename}`;
 
-  await writeFile(outputPath, prepared.buffer);
+  await getS3().send(
+    new PutObjectCommand({
+      Bucket: getS3Bucket(),
+      Key: storageKey,
+      Body: prepared.buffer,
+      ContentType: prepared.mimeType,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
 
   return {
     filename,
     extension,
     mimeType: prepared.mimeType,
     sizeBytes: prepared.sizeBytes,
-    publicPath: `/uploads/${folder}/${filename}`,
-    storageKey: `uploads/${folder}/${filename}`,
+    width: prepared.width,
+    height: prepared.height,
+    publicPath: getS3PublicUrl(storageKey),
+    storageKey,
   };
 }
 

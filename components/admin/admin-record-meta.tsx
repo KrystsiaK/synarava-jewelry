@@ -40,13 +40,13 @@ export function AdminRecordDates({ record }: { record: AdminRecordMeta }) {
       className="mt-2 grid gap-1.5 text-xs sm:grid-cols-2 sm:gap-x-4"
       style={{ color: "var(--adm-muted)" }}
     >
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <dt className="font-semibold uppercase tracking-[0.08em]">Created</dt>
-        <dd>{formatAdminDate(record.createdAt)}</dd>
+        <dd className="min-w-0">{formatAdminDate(record.createdAt)}</dd>
       </div>
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <dt className="font-semibold uppercase tracking-[0.08em]">Updated</dt>
-        <dd>{formatAdminDate(record.updatedAt)}</dd>
+        <dd className="min-w-0">{formatAdminDate(record.updatedAt)}</dd>
       </div>
     </dl>
   );

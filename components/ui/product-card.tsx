@@ -1,8 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
 import { motion } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import type { ProductSummary } from "@/lib/content/catalog";
 
@@ -56,17 +56,23 @@ export function ProductCard({
               <span className="label-mono text-[0.65rem] text-foreground/25">Image unavailable</span>
             </div>
           ) : (
-            <motion.img
-              alt={product.title}
-              src={product.image}
-              onError={() => setImgError(true)}
-              className="h-full w-full object-cover will-change-transform"
+            <motion.div
+              className="relative h-full w-full will-change-transform"
               variants={{
                 rest: { scale: 1, filter: "grayscale(1) brightness(0.84)" },
                 hover: { scale: 1.06, filter: "grayscale(0) brightness(0.92)" },
               }}
               transition={{ type: "spring", stiffness: 250, damping: 30 }}
-            />
+            >
+              <Image
+                alt={product.title}
+                src={product.image}
+                fill
+                sizes={isFeatured ? "(max-width: 768px) 100vw, 66vw" : "(max-width: 768px) 100vw, 33vw"}
+                className="object-cover"
+                onError={() => setImgError(true)}
+              />
+            </motion.div>
           )}
 
           {/* Overlay slide-up */}

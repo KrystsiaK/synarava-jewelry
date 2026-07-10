@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -23,11 +23,13 @@ type CartItemRowProps = {
 export function CartItemRow({ item }: CartItemRowProps) {
   return (
     <article className="grid gap-5 border-t border-stroke py-6 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
-      <Link href={`/products/${item.slug}`} className="overflow-hidden bg-stone-beige">
-        <img
+      <Link href={`/products/${item.slug}`} className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
+        <Image
           alt={item.title}
           src={item.imageUrl}
-          className="aspect-[4/5] h-full w-full object-cover"
+          fill
+          sizes="8rem"
+          className="object-cover"
         />
       </Link>
 

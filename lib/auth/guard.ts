@@ -23,7 +23,7 @@ export function checkRateLimit(
   action: string,
   identifier: string,
   opts: { max: number; windowMs: number },
-): { ok: true } | { ok: false; error: string } {
+): { ok: true } | { ok: false; error: string; retryAfterSeconds: number } {
   scheduleCleanup();
 
   const key = `${action}:${identifier}`;
@@ -37,11 +37,19 @@ export function checkRateLimit(
 
   if (entry.count >= opts.max) {
     const secs = Math.ceil((entry.resetAt - now) / 1000);
-    return { ok: false, error: `Too many attempts. Try again in ${secs}s.` };
+    return {
+      ok: false,
+      error: `Too many attempts. Try again in ${secs}s.`,
+      retryAfterSeconds: secs,
+    };
   }
 
   entry.count++;
   return { ok: true };
+}
+
+export function clearRateLimit(action: string, identifier: string) {
+  _rl.delete(`${action}:${identifier}`);
 }
 
 export class AuthorizationError extends Error {

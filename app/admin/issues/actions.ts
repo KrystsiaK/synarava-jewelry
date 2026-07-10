@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { scanAdminIssues } from "@/lib/admin/issues";
-import { requirePermission } from "@/lib/auth/session";
+import { requireAdminSession } from "@/lib/auth/admin-session";
 
 export type AdminIssueScanState = {
   error?: string;
@@ -11,7 +11,7 @@ export type AdminIssueScanState = {
 };
 
 export async function scanAdminIssuesAction(): Promise<AdminIssueScanState> {
-  await requirePermission("products.manage", "/admin/issues");
+  await requireAdminSession("/admin/issues");
 
   try {
     const result = await scanAdminIssues();

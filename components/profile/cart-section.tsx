@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion, useInView } from "motion/react";
 
@@ -80,12 +81,13 @@ export function CartSection({ cart }: Props) {
             {/* Desktop row */}
             <div className="hidden py-5 transition-colors hover:bg-foreground/[0.018] md:grid md:grid-cols-[5rem_1fr_4rem_5rem_5rem] md:items-center md:gap-4">
               {item.imageUrl && item.slug ? (
-                <Link href={`/products/${item.slug}`} className="block overflow-hidden bg-stone-beige">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                <Link href={`/products/${item.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-stone-beige">
+                  <Image
                     src={item.imageUrl}
                     alt={item.title}
-                    className="aspect-[4/5] w-full object-cover"
+                    fill
+                    sizes="5rem"
+                    className="object-cover"
                   />
                 </Link>
               ) : (
@@ -119,9 +121,8 @@ export function CartSection({ cart }: Props) {
             {/* Mobile card */}
             <div className="flex gap-4 py-5 md:hidden">
               {item.imageUrl && item.slug ? (
-                <Link href={`/products/${item.slug}`} className="block w-16 shrink-0 overflow-hidden bg-stone-beige">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.imageUrl} alt={item.title} className="aspect-[4/5] w-full object-cover" />
+                <Link href={`/products/${item.slug}`} className="relative block aspect-[4/5] w-16 shrink-0 overflow-hidden bg-stone-beige">
+                  <Image src={item.imageUrl} alt={item.title} fill sizes="4rem" className="object-cover" />
                 </Link>
               ) : (
                 <div className="aspect-[4/5] w-16 shrink-0 bg-stone-beige" />

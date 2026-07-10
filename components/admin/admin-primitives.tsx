@@ -22,33 +22,14 @@ export function AdminThemeShell() {
   return null;
 }
 
-const HIDE_SCROLL_DELTA = 8;
-const REVEAL_SCROLL_DELTA = 4;
-const PINNED_TOP_OFFSET = 96;
-
 export function AdminSmartTopbar({ children }: { children: ReactNode }) {
-  const [isHidden, setIsHidden] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
 
   useEffect(() => {
-    let lastY = window.scrollY;
     let frame = 0;
 
     function updateTopbar() {
-      const currentY = window.scrollY;
-      const delta = currentY - lastY;
-
-      setHasScrolled(currentY > 16);
-
-      if (currentY <= PINNED_TOP_OFFSET) {
-        setIsHidden(false);
-      } else if (delta > HIDE_SCROLL_DELTA) {
-        setIsHidden(true);
-      } else if (delta < -REVEAL_SCROLL_DELTA) {
-        setIsHidden(false);
-      }
-
-      lastY = currentY;
+      setHasScrolled(window.scrollY > 16);
       frame = 0;
     }
 
@@ -69,7 +50,6 @@ export function AdminSmartTopbar({ children }: { children: ReactNode }) {
   return (
     <div
       className="adm-topbar shrink-0 flex items-center justify-between gap-4 border-b px-4 py-3 md:px-5"
-      data-hidden={isHidden ? "true" : "false"}
       data-scrolled={hasScrolled ? "true" : "false"}
     >
       {children}
@@ -287,7 +267,7 @@ export function AdminMobileMenu({
       </button>
 
       {open ? (
-        <div className="adm-menu-overlay md:hidden" role="presentation" onMouseDown={() => setOpen(false)}>
+        <div className="adm-menu-overlay lg:hidden" role="presentation" onMouseDown={() => setOpen(false)}>
           <aside
             className="adm-menu-drawer"
             role="dialog"

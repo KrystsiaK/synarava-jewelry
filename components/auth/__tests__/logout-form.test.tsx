@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@/app/(auth)/actions", () => ({
-  logoutAction: vi.fn(),
+vi.mock("@/app/admin/login/actions", () => ({
+  adminLogoutAction: vi.fn(),
 }));
 
 import { LogoutForm } from "../logout-form";

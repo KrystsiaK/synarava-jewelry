@@ -1,5 +1,23 @@
 import { db } from "@/lib/db";
 
+function fallbackUploadUrl(key: string) {
+  const normalizedKey = key.replace(/^\/+/, "");
+
+  if (process.env.S3_PUBLIC_URL) {
+    return `${process.env.S3_PUBLIC_URL.replace(/\/+$/, "")}/${normalizedKey}`;
+  }
+
+  if (process.env.S3_ENDPOINT && process.env.S3_BUCKET) {
+    return `${process.env.S3_ENDPOINT.replace(/\/+$/, "")}/${process.env.S3_BUCKET}/${normalizedKey}`;
+  }
+
+  if (process.env.S3_BUCKET && process.env.S3_REGION) {
+    return `https://${process.env.S3_BUCKET}.s3.${process.env.S3_REGION}.amazonaws.com/${normalizedKey}`;
+  }
+
+  return `/${normalizedKey}`;
+}
+
 export type CollectionSummary = {
   slug: string;
   name: string;
@@ -227,7 +245,7 @@ const defaultProducts = [
     searchSummary:
       "Grounded bracelet built from bog oak, uncoated brass, and an earth-first composition.",
     priceCents: 19500,
-    imageUrl: "/uploads/products/photo-2026-05-16-20-43-11-4bb9f6a4-243f-4754-9417-a98995b92664.jpg",
+    imageUrl: fallbackUploadUrl("uploads/products/photo-2026-05-16-20-43-11-4bb9f6a4-243f-4754-9417-a98995b92664.jpg"),
     collectionSlug: "earth-rituals",
     categorySlug: "earth-pieces",
     tags: ["oak", "brass", "minimal"],

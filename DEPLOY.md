@@ -13,6 +13,9 @@
 |-----------|----------|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `AUTH_SESSION_SECRET` | Секрет для подписи сессионных токенов (HMAC-SHA256). Минимум 32 случайных символа. Генерить: `openssl rand -hex 32` |
+| `ADMIN_USERNAME` | Логин для отдельного входа в `/admin/login` |
+| `ADMIN_PASSWORD_HASH` | Хеш пароля админки. Генерить локально: `pnpm auth:hash` |
+| `ADMIN_SESSION_SECRET` | Отдельный секрет для подписи admin-cookie. Минимум 32 случайных символа. Генерить: `openssl rand -hex 32` |
 
 ### Обязательные для оплаты
 
@@ -23,12 +26,6 @@
 | `STRIPE_WEBHOOK_SECRET` | Секрет вебхука Stripe (`whsec_...`). Создаётся в Stripe Dashboard → Webhooks |
 | `NEXT_PUBLIC_APP_URL` | Полный URL приложения (`https://synarava.com`). Нужен для return_url Stripe |
 
-### Для первого администратора
-
-| Переменная | Описание |
-|-----------|----------|
-| `ADMIN_EMAIL` | Email первого администратора. Только этот email при регистрации получит роль `admin`. Убрать после создания аккаунта. |
-
 ### Для медиа (выбрать одно: S3 или локальное хранилище)
 
 | Переменная | Описание |
@@ -38,6 +35,7 @@
 | `S3_ACCESS_KEY_ID` | AWS access key |
 | `S3_SECRET_ACCESS_KEY` | AWS secret key |
 | `S3_ENDPOINT` | Опционально — для совместимых хранилищ (Minio, R2, etc.) |
+| `S3_PUBLIC_URL` | Публичный origin бакета или CDN для `next/image` (`https://cdn.example.com` или публичный S3 endpoint) |
 
 ### Опциональные
 
@@ -53,9 +51,9 @@
 - [ ] Проверить версию релиза в `package.json` (`0.2.0` для текущего Railway-ready pass)
 - [ ] Прогнать preflight локально: `pnpm lint`, `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm build`
 - [ ] Запустить миграции: `pnpm prisma:deploy` (на Railway это делает `railway.json` `preDeployCommand`)
-- [ ] Зарегистрироваться по адресу из `ADMIN_EMAIL` — аккаунт получит роль `admin`
-- [ ] После регистрации убрать `ADMIN_EMAIL` из env (или оставить — повторно admin не выдастся)
-- [ ] Проверить что `/admin` открывается и доступны все разделы
+- [ ] Сгенерировать `ADMIN_PASSWORD_HASH`: `pnpm auth:hash`
+- [ ] Установить `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`
+- [ ] Проверить что `/admin` редиректит на `/admin/login`, а после входа доступны все разделы
 
 ## Railway
 
@@ -75,6 +73,7 @@
 - [ ] Для визуальных/UI изменений без breaking changes использовать minor (`0.1.0` → `0.2.0`).
 - [ ] Для hotfix после production использовать patch (`0.2.0` → `0.2.1`).
 - [ ] В git tag использовать формат `vX.Y.Z`, например `v0.2.0`.
+- [ ] Убедиться, что GitHub CI прошел `check:version`, typecheck, lint, unit tests и build.
 - [ ] В release commit включать `railway.json`, `prisma/migrations/**`, `DEPLOY.md`, `SECURITY_AUDIT.md` и кодовые изменения.
 
 ---
@@ -112,6 +111,7 @@
 ## Безопасность
 
 - [ ] `AUTH_SESSION_SECRET` установлен и не менее 32 символов (приложение падает без него в production)
+- [ ] `ADMIN_SESSION_SECRET` установлен и не менее 32 символов (приложение падает без него в production)
 - [ ] Все Stripe ключи — live (`sk_live_`, `pk_live_`), не test
 - [ ] `NEXTAUTH_SECRET` или `AUTH_SESSION_SECRET` не совпадают с дефолтными dev-значениями
 - [ ] S3 бакет не публичный — доступ только через подписанные URL или Nginx/CDN

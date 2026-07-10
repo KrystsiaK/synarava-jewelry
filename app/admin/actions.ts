@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/client";
-import { getCurrentUser, requirePermission } from "@/lib/auth/session";
+import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { saveCollectionImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
 
@@ -57,6 +57,9 @@ async function uploadOptionalProductAsset(input: {
       mimeType: uploaded.mimeType,
       extension: uploaded.extension.replace(/^\./, ""),
       sizeBytes: uploaded.sizeBytes,
+      width: uploaded.width,
+      height: uploaded.height,
+      bucket: process.env.S3_BUCKET ?? null,
       source: "UPLOAD",
       status: "READY",
       uploadedById: input.currentUserId ?? null,
@@ -540,8 +543,7 @@ function validateCollectionInput(input: {
 }
 
 export async function savePageAction(formData: FormData): Promise<PageActionState> {
-  await requirePermission("pages.manage", "/admin/pages");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/pages");
 
   const pageId = String(formData.get("pageId") ?? "").trim();
   const rawSlug = String(formData.get("slug") ?? "").trim();
@@ -643,8 +645,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
 }
 
 export async function autosavePageDraftAction(formData: FormData): Promise<DraftAutosaveResult> {
-  await requirePermission("pages.manage", "/admin/pages");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/pages");
 
   if (!hasMeaningfulDraftInput(formData, ["pageId", "workflowState"])) {
     return {};
@@ -703,8 +704,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
 }
 
 export async function updatePageStatusAction(formData: FormData): Promise<PageActionState> {
-  await requirePermission("pages.manage", "/admin/pages");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/pages");
 
   const slug = String(formData.get("slug") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -759,8 +759,7 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
 }
 
 export async function deletePageAction(formData: FormData): Promise<PageActionState> {
-  await requirePermission("pages.manage", "/admin/pages");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/pages");
 
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
 
@@ -805,8 +804,7 @@ export async function deletePageAction(formData: FormData): Promise<PageActionSt
 }
 
 export async function saveCategoryAction(formData: FormData): Promise<CategoryActionState> {
-  await requirePermission("products.manage", "/admin/products");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/products");
 
   const categoryId = String(formData.get("categoryId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -860,7 +858,7 @@ export async function saveCategoryAction(formData: FormData): Promise<CategoryAc
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<CategoryActionState> {
-  await requirePermission("products.manage", "/admin/products");
+  await requireAdminSession("/admin/products");
 
   const categoryId = String(formData.get("categoryId") ?? "").trim();
 
@@ -885,8 +883,7 @@ export async function deleteCategoryAction(formData: FormData): Promise<Category
 }
 
 export async function saveTagAction(formData: FormData): Promise<TagActionState> {
-  await requirePermission("products.manage", "/admin/products");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/products");
 
   const tagId = String(formData.get("tagId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -932,7 +929,7 @@ export async function saveTagAction(formData: FormData): Promise<TagActionState>
 }
 
 export async function deleteTagAction(formData: FormData): Promise<TagActionState> {
-  await requirePermission("products.manage", "/admin/products");
+  await requireAdminSession("/admin/products");
 
   const tagId = String(formData.get("tagId") ?? "").trim();
 
@@ -960,8 +957,7 @@ export async function saveCollectionAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
-  await requirePermission("products.manage", "/admin/collections");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/collections");
 
   const collectionId = String(formData.get("collectionId") ?? "").trim();
   const slug = slugify(String(formData.get("slug") ?? "").trim());
@@ -1016,6 +1012,9 @@ export async function saveCollectionAction(
             mimeType: uploaded.mimeType,
             extension: uploaded.extension.replace(/^\./, ""),
             sizeBytes: uploaded.sizeBytes,
+            width: uploaded.width,
+            height: uploaded.height,
+            bucket: process.env.S3_BUCKET ?? null,
             source: "UPLOAD",
             status: "READY",
             uploadedById: currentUser?.id ?? null,
@@ -1096,8 +1095,7 @@ export async function saveCollectionAction(
 export async function autosaveCollectionDraftAction(
   formData: FormData,
 ): Promise<DraftAutosaveResult> {
-  await requirePermission("products.manage", "/admin/collections");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/collections");
 
   if (!hasMeaningfulDraftInput(formData, ["collectionId", "workflowState", "existingHeroImageUrl"])) {
     return {};
@@ -1177,7 +1175,7 @@ export async function deleteCollectionAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
-  await requirePermission("products.manage", "/admin/collections");
+  await requireAdminSession("/admin/collections");
 
   const collectionId = String(formData.get("collectionId") ?? "").trim();
   const collectionSlug = String(formData.get("collectionSlug") ?? "").trim();
@@ -1212,8 +1210,7 @@ export async function moveCollectionOrderAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
-  await requirePermission("products.manage", "/admin/collections");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/collections");
 
   const collectionId = String(formData.get("collectionId") ?? "").trim();
   const direction = String(formData.get("direction") ?? "").trim();
@@ -1277,8 +1274,7 @@ export async function updateCollectionStatusAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
-  await requirePermission("products.manage", "/admin/collections");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/collections");
 
   const collectionId = String(formData.get("collectionId") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -1323,8 +1319,7 @@ export async function updateCollectionStatusAction(
 }
 
 export async function saveProductAction(formData: FormData): Promise<ProductActionState> {
-  await requirePermission("products.manage", "/admin/products");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/products");
 
   const productId = String(formData.get("productId") ?? "").trim();
   const slug = slugify(String(formData.get("slug") ?? ""));
@@ -1363,6 +1358,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
           mimeType: uploaded.mimeType,
           extension: uploaded.extension.replace(/^\./, ""),
           sizeBytes: uploaded.sizeBytes,
+          width: uploaded.width,
+          height: uploaded.height,
+          bucket: process.env.S3_BUCKET ?? null,
           source: "UPLOAD",
           status: "READY",
           uploadedById: currentUser?.id ?? null,
@@ -1557,7 +1555,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 }
 
 export async function autosaveProductDraftAction(formData: FormData): Promise<DraftAutosaveResult> {
-  await requirePermission("products.manage", "/admin/products");
+  await requireAdminSession("/admin/products");
 
   if (!hasMeaningfulDraftInput(formData, ["productId", "workflowState", "existingImageUrl"])) {
     return {};
@@ -1610,7 +1608,7 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
 }
 
 export async function deleteProductAction(formData: FormData): Promise<ProductActionState> {
-  await requirePermission("products.manage", "/admin/products");
+  await requireAdminSession("/admin/products");
 
   const productId = String(formData.get("productId") ?? "").trim();
   const productSlug = String(formData.get("productSlug") ?? "").trim();
@@ -1639,8 +1637,7 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
 }
 
 export async function updateProductStatusAction(formData: FormData): Promise<ProductActionState> {
-  await requirePermission("products.manage", "/admin/products");
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin/products");
 
   const productId = String(formData.get("productId") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -1695,10 +1692,7 @@ export async function getAdminRecordHistoryAction(input: {
   entityType: AdminAuditEntityType;
   entityId: string;
 }): Promise<AdminRecordHistoryState> {
-  await requirePermission(
-    input.entityType === "PAGE" ? "pages.manage" : "products.manage",
-    "/admin",
-  );
+  await requireAdminSession("/admin");
 
   const history = await db.auditLog.findMany({
     where: {
@@ -1722,11 +1716,7 @@ export async function restoreAdminRecordVersionAction(input: {
   entityId: string;
   auditLogId: string;
 }): Promise<AdminRecordHistoryState> {
-  await requirePermission(
-    input.entityType === "PAGE" ? "pages.manage" : "products.manage",
-    "/admin",
-  );
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdminSession("/admin");
 
   const auditLog = await db.auditLog.findFirst({
     where: {

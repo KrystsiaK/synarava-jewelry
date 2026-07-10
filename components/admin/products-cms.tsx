@@ -941,7 +941,7 @@ export function ProductsCms({
   const modalCopy = rowAction ? productActionCopy(rowAction) : null;
   const normalizedQuery = query.trim().toLowerCase();
   const desktopTableGridClass =
-    "lg:grid-cols-[minmax(18rem,24rem)_8.5rem_8.5rem_11rem_minmax(24rem,1fr)]";
+    "xl:grid-cols-[minmax(14rem,1.5fr)_7rem_7rem_9rem_minmax(18rem,1fr)]";
   const filteredProducts = products.filter((product) => {
     const status = productStatusLabel(product);
     const matchesQuery =
@@ -969,7 +969,7 @@ export function ProductsCms({
         >
           <div>
             <p className="adm-section-tag">[ CURRENT CATALOG ]</p>
-            <h2 className="adm-title-sm mt-2">Products table</h2>
+            <h2 className="adm-title-sm mt-2">Products list</h2>
             <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
               {categories.length} categories · {tags.length} tags · {collections.length} collections
             </p>
@@ -980,7 +980,7 @@ export function ProductsCms({
         </div>
 
         <div
-          className="grid gap-3 py-4 md:grid-cols-[minmax(16rem,1fr)_10rem_12rem_12rem]"
+          className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_10rem_12rem_12rem]"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
           <label className="grid gap-2">
@@ -1039,10 +1039,10 @@ export function ProductsCms({
 
         <AuthMessage error={rowActionState.error} />
 
-        <div className="mt-4 overflow-x-auto lg:pb-1">
-          <div className="grid gap-2 lg:min-w-[74rem]">
+        <div className="mt-4 min-w-0 overflow-hidden">
+          <div className="grid min-w-0 gap-2">
             <div
-              className={`hidden gap-3 px-3 pb-1 lg:grid ${desktopTableGridClass}`}
+              className={`hidden gap-3 px-3 pb-1 xl:grid ${desktopTableGridClass}`}
               style={{ color: "var(--adm-subtle)" }}
             >
               <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Product</span>
@@ -1062,16 +1062,16 @@ export function ProductsCms({
                 return (
                   <div
                     key={product.id}
-                    className={`grid gap-3 p-3 lg:items-center ${desktopTableGridClass}`}
+                    className={`grid min-w-0 gap-3 p-3 xl:items-center ${desktopTableGridClass}`}
                     style={{
                       border: "1px solid rgba(255,255,255,0.06)",
                     }}
                   >
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
                         {product.name}
                       </p>
-                      <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
+                      <p className="mt-0.5 break-words text-xs" style={{ color: "var(--adm-muted)" }}>
                         /{product.slug}
                       </p>
                       <AdminRecordDates record={product} />
@@ -1094,7 +1094,7 @@ export function ProductsCms({
                     <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
                       {product.category?.name ?? "No category"}
                     </span>
-                    <div className="flex flex-wrap justify-start gap-2 lg:flex-nowrap lg:justify-end">
+                    <div className="flex min-w-0 flex-wrap justify-start gap-2 xl:justify-end">
                       <button
                         type="button"
                         className="adm-btn-primary py-1 px-2 text-[0.58rem]"

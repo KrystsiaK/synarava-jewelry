@@ -30,22 +30,7 @@ export async function registerUser(input: {
     return { ok: false as const, error: "An account with that email already exists." };
   }
 
-  // Admin role is granted only when ADMIN_EMAIL env var matches the registering address
-  // and no admin exists yet. Never grant admin by registration order.
   const customerRole = await getRoleId("customer");
-  let roleId = customerRole;
-
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (adminEmail && email === adminEmail) {
-    const existingAdmin = await db.userRole.findFirst({
-      where: { role: { key: "admin" } },
-      select: { id: true },
-    });
-    if (!existingAdmin) {
-      const adminRole = await getRoleId("admin");
-      if (adminRole) roleId = adminRole;
-    }
-  }
 
   const user = await db.user.create({
     data: {
@@ -56,11 +41,11 @@ export async function registerUser(input: {
     },
   });
 
-  if (roleId) {
+  if (customerRole) {
     await db.userRole.create({
       data: {
         userId: user.id,
-        roleId,
+        roleId: customerRole,
       },
     });
   }

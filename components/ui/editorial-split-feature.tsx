@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useRef } from "react";
 import { motion, useInView, useScroll, useTransform } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { ease } from "@/lib/animation";
@@ -77,18 +78,24 @@ export function EditorialSplitFeature({
             imageFrameClassName,
           )}
         >
-          <motion.img
-            alt={imageAlt}
-            src={imageSrc}
+          <motion.div
             className={cx(
-              "h-full w-full object-cover will-change-transform",
+              "relative h-full w-full will-change-transform",
               imageClassName,
             )}
             style={{ y: imgY }}
             initial={{ filter: "grayscale(1) brightness(0.84)" }}
             whileHover={href ? { filter: "grayscale(0) brightness(0.92)", scale: 1.03 } : undefined}
             transition={{ duration: 0.75 }}
-          />
+          >
+            <Image
+              alt={imageAlt}
+              src={imageSrc}
+              fill
+              sizes="(max-width: 768px) 100vw, 58vw"
+              className="object-cover"
+            />
+          </motion.div>
         </div>
         {imageOverlay}
       </motion.div>

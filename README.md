@@ -52,6 +52,9 @@ Fill in local/production variables as needed:
 
 - `DATABASE_URL`
 - `AUTH_SESSION_SECRET` (or `NEXTAUTH_SECRET` as a fallback)
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD_HASH` (generate with `pnpm auth:hash`)
+- `ADMIN_SESSION_SECRET`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
@@ -61,6 +64,7 @@ Fill in local/production variables as needed:
 - `S3_ACCESS_KEY_ID`
 - `S3_SECRET_ACCESS_KEY`
 - `S3_ENDPOINT` if using an S3-compatible provider
+- `S3_PUBLIC_URL` public bucket/CDN origin used for optimized media URLs
 
 ## Railway
 
@@ -72,6 +76,7 @@ Production deployment is defined in `railway.json`:
 - healthcheck: `/api/health`
 
 Use `package.json` `version` as the release marker. Bump it before deploying a meaningful production release.
+GitHub CI checks that this value is valid semver and that release tags match `vX.Y.Z`.
 
 ## Architecture notes
 

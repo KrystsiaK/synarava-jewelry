@@ -642,6 +642,15 @@ body.admin-mode .artifact-footer {
   color: var(--adm-text);
   font-family: var(--font-sans), sans-serif;
   padding-top: var(--adm-topbar-height);
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.admin-shell,
+.admin-content {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .adm-topbar,
@@ -658,23 +667,41 @@ body.admin-mode .artifact-footer {
   z-index: 120;
   min-height: var(--adm-topbar-height);
   backdrop-filter: blur(18px) saturate(1.12);
-  transform: translate3d(0, 0, 0);
   transition:
-    transform 210ms cubic-bezier(0.22, 1, 0.36, 1),
     background 180ms ease,
     border-color 180ms ease,
     box-shadow 180ms ease;
-  will-change: transform;
-}
-
-.adm-topbar[data-hidden="true"] {
-  transform: translate3d(0, calc(-100% - 1px), 0);
 }
 
 .adm-topbar[data-scrolled="true"] {
   background: color-mix(in srgb, var(--adm-bg-soft) 96%, transparent);
   border-color: var(--adm-border-strong);
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+}
+
+.admin-sidebar-shell {
+  position: sticky;
+  top: var(--adm-topbar-height);
+  height: calc(100dvh - var(--adm-topbar-height));
+  max-height: calc(100dvh - var(--adm-topbar-height));
+  overflow: hidden;
+}
+
+.admin-sidebar-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.15rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--adm-accent) 28%, transparent) transparent;
+}
+
+.admin-sidebar-footer {
+  flex: 0 0 auto;
+  margin-top: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--adm-border);
 }
 
 .adm-menu-btn {
@@ -709,7 +736,7 @@ body.admin-mode .artifact-footer {
   display: none;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .adm-mobile-menu-trigger {
     display: inline-flex !important;
   }

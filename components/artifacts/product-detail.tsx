@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import {
   motion,
   useScroll,
@@ -243,20 +243,29 @@ function ProductHero({ product }: { product: ProductSummary }) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.4, ease, delay: 0.2 }}
           >
-            <motion.img
-              src={product.image}
-              alt={product.title}
-              className="aspect-[4/5] w-full object-cover brightness-[0.9] contrast-[1.08]"
+            <motion.div
+              className="relative aspect-[4/5] w-full"
               style={{ y: imgY }}
-            />
+            >
+              <Image
+                src={product.image}
+                alt={product.title}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 58vw"
+                className="object-cover brightness-[0.9] contrast-[1.08]"
+              />
+            </motion.div>
 
             {/* Mirror fragment */}
             <div className="pointer-events-none absolute inset-y-0 right-0 w-2/5 overflow-hidden">
-              <img
+              <Image
                 aria-hidden="true"
                 src={product.image}
                 alt=""
-                className="absolute inset-y-0 -right-full h-full w-[200%] scale-x-[-1] object-cover opacity-40"
+                fill
+                sizes="24vw"
+                className="!-right-full !left-auto !w-[200%] scale-x-[-1] object-cover opacity-40"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/10 to-background/40" />
             </div>
@@ -360,11 +369,13 @@ function MaterialsSection({ product }: { product: ProductSummary }) {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.8, ease, delay: i * 0.14 }}
             >
-              <div className="artifact-hover-image-wrap relative bg-charcoal">
-                <img
+              <div className="artifact-hover-image-wrap relative aspect-square bg-charcoal">
+                <Image
                   src={item.image}
                   alt={item.title}
-                  className="artifact-hover-image aspect-square h-full w-full object-cover opacity-80 contrast-[1.05] transition-all duration-700 group-hover:scale-110 group-hover:opacity-90"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="artifact-hover-image object-cover opacity-80 contrast-[1.05] transition-all duration-700 group-hover:scale-110 group-hover:opacity-90"
                 />
                 {/* Hover red overlay */}
                 <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
@@ -414,13 +425,19 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
             КОД РОДА
           </div>
 
-          <div className="relative overflow-hidden">
-            <motion.img
-              src={product.lookbook[0]?.src || product.image}
-              alt="Symbolic Detail"
-              className="aspect-video w-full object-cover"
+          <div className="relative aspect-video overflow-hidden">
+            <motion.div
+              className="relative h-full w-full"
               style={{ scale: imgScale }}
-            />
+            >
+              <Image
+                src={product.lookbook[0]?.src || product.image}
+                alt="Symbolic Detail"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </motion.div>
           </div>
         </motion.div>
 
@@ -528,10 +545,12 @@ function CraftSection({ product }: { product: ProductSummary }) {
             transition={{ duration: 1, ease }}
           >
             <div className="relative aspect-video cursor-pointer overflow-hidden">
-              <img
-                className="artifact-hover-image h-full w-full object-cover opacity-50 group-hover:scale-105"
+              <Image
+                className="artifact-hover-image object-cover opacity-50 group-hover:scale-105"
                 src={product.process.mediaImage}
                 alt="Craftsmanship"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
               />
               {/* Play button */}
               <motion.div
@@ -652,13 +671,19 @@ function LookbookSection({ product }: { product: ProductSummary }) {
             onHoverStart={() => setHoveredIdx(i)}
             onHoverEnd={() => setHoveredIdx(null)}
           >
-            <motion.img
-              className="h-full w-full object-cover"
-              src={item.src}
-              alt={item.label || `Lookbook ${i + 1}`}
+            <motion.div
+              className="relative h-full w-full"
               animate={{ filter: hoveredIdx === i ? "grayscale(0%) contrast(1.08)" : "grayscale(40%) contrast(1.02)" }}
               transition={{ duration: 0.5 }}
-            />
+            >
+              <Image
+                className="object-cover"
+                src={item.src}
+                alt={item.label || `Lookbook ${i + 1}`}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+              />
+            </motion.div>
             {/* Hover overlay */}
             <AnimatePresence>
               {hoveredIdx === i && (

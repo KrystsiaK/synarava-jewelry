@@ -13,6 +13,11 @@ const optionalUrl = z.preprocess(
 const envSchema = z.object({
   DATABASE_URL: optionalString,
   AUTH_SESSION_SECRET: optionalString,
+  ADMIN_USERNAME: optionalString,
+  ADMIN_EMAIL: optionalString,
+  ADMIN_PASSWORD: optionalString,
+  ADMIN_PASSWORD_HASH: optionalString,
+  ADMIN_SESSION_SECRET: optionalString,
   NEXTAUTH_SECRET: optionalString,
   NEXTAUTH_URL: optionalUrl,
   STRIPE_SECRET_KEY: optionalString,
@@ -22,12 +27,18 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: optionalString,
   S3_SECRET_ACCESS_KEY: optionalString,
   S3_ENDPOINT: optionalUrl,
+  S3_PUBLIC_URL: optionalUrl,
   DEEPL_API_KEY: optionalString,
 });
 
 export const env = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
   AUTH_SESSION_SECRET: process.env.AUTH_SESSION_SECRET,
+  ADMIN_USERNAME: process.env.ADMIN_USERNAME,
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL,
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+  ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+  ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
@@ -37,5 +48,6 @@ export const env = envSchema.parse({
   S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
   S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
   S3_ENDPOINT: process.env.S3_ENDPOINT,
+  S3_PUBLIC_URL: process.env.S3_PUBLIC_URL,
   DEEPL_API_KEY: process.env.DEEPL_API_KEY,
 });

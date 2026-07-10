@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import {
   motion,
   useScroll,
@@ -40,10 +40,13 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
     >
       {/* Parallax image */}
       <motion.div className="absolute inset-0 scale-110" style={{ y: imgY }}>
-        <img
+        <Image
           alt={collection.name}
           src={collection.heroImage}
-          className="h-full w-full object-cover brightness-90"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover brightness-90"
         />
       </motion.div>
 
@@ -238,15 +241,21 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
             animate={isInView ? { opacity: 1, transform: "translate3d(0, 0, 0)" } : {}}
             transition={{ duration: 0.85, ease }}
           >
-            <div className="aspect-[4/5] overflow-hidden sm:aspect-[5/4] md:aspect-[0.86] lg:aspect-[0.98]">
-              <motion.img
-                alt={`${collection.name} detail`}
-                src={collection.heroImage}
-                className="h-full w-full object-cover object-[48%_44%] brightness-[0.78] saturate-[0.84] contrast-[1.03]"
+            <div className="relative aspect-[4/5] overflow-hidden sm:aspect-[5/4] md:aspect-[0.86] lg:aspect-[0.98]">
+              <motion.div
+                className="relative h-full w-full"
                 initial={{ transform: "scale(1.06)" }}
                 animate={isInView ? { transform: "scale(1)" } : {}}
                 transition={{ duration: 1.25, ease }}
-              />
+              >
+                <Image
+                  alt={`${collection.name} detail`}
+                  src={collection.heroImage}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 58vw"
+                  className="object-cover object-[48%_44%] brightness-[0.78] saturate-[0.84] contrast-[1.03]"
+                />
+              </motion.div>
             </div>
 
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-foreground/22 via-transparent to-foreground/18" />
@@ -324,16 +333,22 @@ function ProductCard({
           whileHover="hover"
           animate="rest"
         >
-          <motion.img
-            alt={product.title}
-            className="h-full w-full object-cover will-change-transform"
-            src={product.image}
+          <motion.div
+            className="relative h-full w-full will-change-transform"
             variants={{
               rest: { scale: 1, filter: "grayscale(1) brightness(0.8)" },
               hover: { scale: 1.06, filter: "grayscale(0) brightness(0.9)" },
             }}
             transition={{ type: "spring", stiffness: 240, damping: 30 }}
-          />
+          >
+            <Image
+              alt={product.title}
+              className="object-cover"
+              src={product.image}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+            />
+          </motion.div>
 
           {/* Overlay reveal */}
           <motion.div
@@ -466,10 +481,12 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
     <section ref={ref} className="relative overflow-hidden bg-foreground py-0">
       {/* Parallax background */}
       <motion.div className="absolute inset-0 opacity-25" style={{ y: bgY }}>
-        <img
+        <Image
           alt="backdrop"
           src={collection.heroImage}
-          className="h-full w-full scale-110 object-cover grayscale"
+          fill
+          sizes="100vw"
+          className="scale-110 object-cover grayscale"
         />
         <div className="absolute inset-0 bg-foreground/75" />
       </motion.div>

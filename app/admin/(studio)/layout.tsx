@@ -1,5 +1,5 @@
 import { LogoutForm } from "@/components/auth/logout-form";
-import { requirePermission } from "@/lib/auth/session";
+import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import {
   AdminMobileMenu,
@@ -15,7 +15,7 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await requirePermission("admin.access", "/admin");
+  await requireAdminSession("/admin");
   const openIssues = await db.adminIssue.findMany({
     where: { status: "OPEN" },
     select: { entityType: true, targetHref: true },
@@ -66,27 +66,26 @@ export default async function AdminLayout({
       </AdminSmartTopbar>
 
       {/* Shell */}
-        <div className="flex flex-1">
+        <div className="admin-shell flex flex-1">
         {/* Left rail */}
         <aside
-          className="adm-sidebar hidden w-56 shrink-0 flex-col border-r p-4 lg:w-64 lg:p-5 md:flex"
+          className="adm-sidebar admin-sidebar-shell hidden w-64 shrink-0 flex-col border-r p-5 lg:flex"
         >
-          <div
-            className="mb-5 border-b pb-4"
-            style={{ borderColor: "var(--adm-border)" }}
-          >
-            <p className="adm-section-tag">Workspace</p>
-            <p className="adm-title-sm mt-1.5">
-              Synarava
-            </p>
+          <div className="admin-sidebar-scroll">
+            <div
+              className="mb-5 border-b pb-4"
+              style={{ borderColor: "var(--adm-border)" }}
+            >
+              <p className="adm-section-tag">Workspace</p>
+              <p className="adm-title-sm mt-1.5">
+                Synarava
+              </p>
+            </div>
+
+            <AdminNav issueCount={openIssueCount} issueNavHrefs={issueNavHrefs} />
           </div>
 
-          <AdminNav issueCount={openIssueCount} issueNavHrefs={issueNavHrefs} />
-
-          <div
-            className="mt-auto border-t pt-5"
-            style={{ borderColor: "var(--adm-border)" }}
-          >
+          <div className="admin-sidebar-footer">
             <div className="flex items-center gap-2">
               <LogoutForm />
             </div>
@@ -94,7 +93,7 @@ export default async function AdminLayout({
         </aside>
 
         {/* Content */}
-          <div className="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
+          <div className="admin-content flex-1 min-w-0 p-4 md:p-6 lg:p-8">
             {children}
           </div>
         </div>

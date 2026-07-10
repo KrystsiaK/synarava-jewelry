@@ -38,6 +38,11 @@ describe("AuthSubmitButton", () => {
     expect(screen.getByRole("button")).not.toBeDisabled();
   });
 
+  it("button is disabled when disabled prop is true", () => {
+    render(<AuthSubmitButton label="Sign in" disabled />);
+    expect(screen.getByRole("button")).toBeDisabled();
+  });
+
   it("uses default pendingLabel 'Working…'", () => {
     useFormStatus.mockReturnValue({ pending: true });
     render(<AuthSubmitButton label="Sign in" />);
