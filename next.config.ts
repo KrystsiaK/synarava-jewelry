@@ -41,6 +41,8 @@ const s3PublicProtocol =
   protocolFromUrl(process.env.S3_PUBLIC_URL) ??
   protocolFromUrl(process.env.S3_ENDPOINT) ??
   "https";
+const s3EndpointHostname = hostnameFromUrl(process.env.S3_ENDPOINT);
+const s3EndpointProtocol = protocolFromUrl(process.env.S3_ENDPOINT) ?? "https";
 
 const imageOrigins = [
   "https://lh3.googleusercontent.com",
@@ -51,6 +53,13 @@ const imageOrigins = [
     : null,
 ].filter((origin): origin is string => Boolean(origin));
 
+// Railway uses virtual-hosted signed URLs (`bucket.storage.railway.app`).
+// CSP must allow that final redirect target as well as the base endpoint.
+const signedStorageOrigins = [
+  ...imageOrigins,
+  s3EndpointHostname ? `${s3EndpointProtocol}://*.${s3EndpointHostname}` : null,
+].filter((origin): origin is string => Boolean(origin));
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
@@ -58,6 +67,15 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    // Keep the variant matrix intentionally small: these widths cover the actual
+    // layouts in the storefront without creating dozens of one-off transforms.
+    deviceSizes: [360, 430, 640, 750, 828, 1080, 1440, 1920],
+    imageSizes: [32, 48, 64, 96, 128, 256],
+    formats: ["image/webp"],
+    qualities: [75, 85, 90],
+    minimumCacheTTL: 31_536_000,
+    maximumRedirects: 2,
+    contentDispositionType: "inline",
     remotePatterns: [
       {
         protocol: "https",
@@ -88,9 +106,9 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' data: blob: ${imageOrigins.join(" ")}`,
-      `media-src 'self' ${imageOrigins.join(" ")}`,
-      "connect-src 'self' https://api.stripe.com",
+      `img-src 'self' data: blob: ${signedStorageOrigins.join(" ")}`,
+      `media-src 'self' ${signedStorageOrigins.join(" ")}`,
+      `connect-src 'self' https://api.stripe.com ${signedStorageOrigins.join(" ")}`,
       "frame-src https://js.stripe.com",
       "font-src 'self' data:",
       "object-src 'none'",

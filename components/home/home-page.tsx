@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import {
   cubicBezier,
   motion,
+  useInView,
   useMotionValue,
   useScroll,
   useSpring,
@@ -19,6 +20,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { ease } from "@/lib/animation";
 import { useTranslations } from "@/lib/i18n/context";
 import { PrimaryCtaButton } from "@/components/ui";
+import { PerformanceVideo } from "@/components/media/performance-video";
 
 export interface CollectionItem {
   series: string;
@@ -37,13 +39,7 @@ export interface HomePageProps {
 }
 
 const HERO_IMAGE = "https://lh3.googleusercontent.com/aida/AP1WRLv3TGm4IeeKlLUiQxW8Hc3nSncMdMHyfmCzU9wpUE4H6DZ2__vML46WGDGCpf_R3lcpvCQiTRGvLXUF72WHO40QXtyITJqlFUXF42Q0ZuzCsAnsWC58PasoEcf9X6NnNz6m7Q5HwKljf6J9CwLDdNGADnKbaeLw3oBsfyBLFxuVOlns79WfDTYP7_JMzXnpBxNSiz1lGPIE0IZJd63qtBQT0-0TohGViEDXlnUdhoYktnLq3ii4UwcQck8";
-const HERO_VIDEOS = [
-  "/videos/synarava-beads.mp4",
-  "/videos/Model_woomen_hero.mp4",
-  "/videos/Man_bracelet_hero_web.mp4",
-  "/videos/synarava-materials.mp4",
-] as const;
-const HERO_POSTER = "/videos/model-hero-section.png";
+const HERO_POSTER = "/videos/model-hero-section.webp";
 const LAVA_CONSTRUCT_IMAGE = "https://lh3.googleusercontent.com/aida/AP1WRLvg_bkn6bvxAkNEsIJ5_yzxXX6ldISFGygqcEk3uncUMoan5A52LxZ4eGlil6FLlWw9sVu8RRFFF841LexUxAHrcbNkv3_ukNq0Iee8cDZS1iRCuh1tNVzLW7Tjx6LqWy9uGeWeBi9kTJck5aon69PCAQDX2wMZfpl36XxA0K5u92ZVEXAA6HgwCF4ioCIqBRtDNsoFdUq7qD8mpU76aYNOb4c-LmDOYw_fy0NYMf9LS53FM1RER28T_Ww";
 const FRACTURED_QUARTZ_IMAGE = "https://lh3.googleusercontent.com/aida-public/AB6AXuChB26VkIkJfAS3suudP3zDdmZoI0ZbrsARVGw6isbyHNWuyApo5Z0x9Jd8gAWIJbUnjblDLmLwSsQc-TTeAgpKirYU7FiWgEHg1gprSFl-1XSsQCCOYpzhtXBZNT_UUmNcC8gmjNVdCkLXrvzY7ITzxE0pxjuv8hfnnni6al-gOWHc9n98SpVBkAy3MY1-zmS7Pa-g92ROigpPArvsBAgZ4ErsYKcE_PoEY_yrJXrFGI2cNQ2Ur7U-h1APrD8MLZJCnN6t_RD0E30";
 
@@ -245,7 +241,7 @@ function useDesktopViewport() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px)");
+    const media = window.matchMedia("(min-width: 920px)");
     const update = () => setIsDesktop(media.matches);
 
     update();
@@ -299,9 +295,9 @@ function HeroSection({
   const reduceMotion = useReducedMotion();
   const videoSources = heroVideoSrc
     ? Array.isArray(heroVideoSrc)
-      ? heroVideoSrc
+      ? heroVideoSrc.filter(Boolean)
       : [heroVideoSrc]
-    : HERO_VIDEOS;
+    : [];
   const hasVideo = videoSources.length > 0;
   const activeVideoSrc = hasVideo
     ? videoSources[activeVideoIndex % videoSources.length]
@@ -345,8 +341,9 @@ function HeroSection({
       >
         <motion.div className="relative h-full w-full transform-gpu [backface-visibility:hidden]" style={{ transform: mediaTransform }}>
           {activeVideoSrc ? (
-            <video
+            <PerformanceVideo
               key={activeVideoSrc}
+              eager
               autoPlay
               muted
               loop={videoSources.length === 1}
@@ -364,7 +361,8 @@ function HeroSection({
               src={HERO_IMAGE}
               alt="Handcrafted Synarava jewelry"
               fill
-              priority
+              preload
+              quality={90}
               loading="eager"
               sizes="100vw"
               className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]"
@@ -1086,8 +1084,13 @@ function FinalFooter() {
 }
 
 function CompactFinalCTA() {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.22 });
+  const reduceMotion = useReducedMotion() ?? false;
+
   return (
     <section
+      ref={ref}
       className="relative overflow-hidden bg-[#09090a] px-5 py-16 text-linen"
       style={{
         "--color-linen": "#f9f8f6",
@@ -1096,8 +1099,21 @@ function CompactFinalCTA() {
       } as CSSProperties}
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:52px_52px]" aria-hidden="true" />
+      <motion.div
+        className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-couture-red/20 blur-3xl"
+        initial={false}
+        animate={inView && !reduceMotion ? { scale: [0.72, 1], opacity: [0.18, 0.48] } : { scale: 1, opacity: 0.28 }}
+        transition={{ duration: 0.8, ease: FINAL_SCENE_EASE }}
+        aria-hidden="true"
+      />
       <div className="relative mx-auto flex min-h-[min(42rem,100svh)] max-w-[90rem] flex-col">
-        <FinalFooter />
+        <motion.div
+          initial={false}
+          animate={inView && !reduceMotion ? { y: [28, 0], opacity: [0.72, 1] } : { y: 0, opacity: 1 }}
+          transition={{ duration: 0.58, ease: FINAL_SCENE_EASE }}
+        >
+          <FinalFooter />
+        </motion.div>
       </div>
     </section>
   );
@@ -1296,12 +1312,16 @@ function DesktopFinalCTA({ collections }: { collections: CollectionItem[] }) {
 
 function FinalCTA({ collections }: { collections: CollectionItem[] }) {
   const isDesktop = useDesktopViewport();
+  const scrollContext = useContext(HomeScrollContext);
+  const isIOSWebKit = scrollContext?.isIOSWebKit ?? false;
 
-  return isDesktop ? <DesktopFinalCTA collections={collections} /> : <CompactFinalCTA />;
+  return isDesktop && !isIOSWebKit
+    ? <DesktopFinalCTA collections={collections} />
+    : <CompactFinalCTA />;
 }
 
 export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) {
-  const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo ?? [...HERO_VIDEOS];
+  const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
 
   return (
     <HomeScrollProvider>

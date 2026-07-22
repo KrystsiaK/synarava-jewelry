@@ -1,6 +1,6 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowDown, ArrowRight } from "lucide-react";
 import {
@@ -14,6 +14,7 @@ import {
 import { useRef } from "react";
 
 import { PrimaryCtaButton } from "@/components/ui";
+import { PerformanceVideo } from "@/components/media/performance-video";
 import {
   KodRodaStatic,
   KolaStatic,
@@ -23,9 +24,7 @@ import {
 const ease = [0.22, 1, 0.36, 1] as const;
 const scrollSpring = { stiffness: 72, damping: 22, mass: 0.7 } as const;
 
-const HERO_POSTER = "/videos/model-hero-section.png";
-const HERO_VIDEO = "/videos/Man_bracelet_hero_web.mp4";
-const MATERIAL_VIDEO = "/videos/synarava-materials.mp4";
+const HERO_POSTER = "/videos/model-hero-section.webp";
 const CUFF_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCBX63WCgWtPnScacT2NdSX0EXxTLNA95jHIIkVfY1Fhxfa_tNgorlYdDTKcQu28PFCfFxuVr2dfa__XKYWebZyvt6mCthqPE0YN8c8QpKX4Ge6z363LyMizVS2x-rcrcmGIrzR9ExiDST3DRKgZJ8xhXOwA3ZmFWhCH6OC-Zcq8mpEyCNnt-Pi2r2PyfKB5bOGVAM9azkLweV_1zkNAJ7xShSTvruw5sNV_WDWHMrtNa_lT8dT3iVBFC2XV1rjXB8UI1Iw6uz5xpV3";
 const HERITAGE_IMAGE =
@@ -76,7 +75,7 @@ function AboutHero({
   eyebrow: string;
   ctaHref: string;
   ctaLabel: string;
-  heroVideoSrc: string;
+  heroVideoSrc?: string;
 }) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
@@ -98,17 +97,21 @@ function AboutHero({
         className="absolute inset-0"
         style={{ scale: reduceMotion ? 1 : imageScale }}
       >
-        <video
-          className="h-full w-full object-cover object-[58%_center]"
-          autoPlay={!reduceMotion}
-          muted
-          loop
-          playsInline
-          poster={HERO_POSTER}
-          aria-hidden="true"
-        >
-          <source src={heroVideoSrc} type="video/mp4" />
-        </video>
+        {heroVideoSrc ? (
+          <PerformanceVideo
+            src={heroVideoSrc}
+            eager
+            className="h-full w-full object-cover object-[58%_center]"
+            autoPlay={!reduceMotion}
+            muted
+            loop
+            playsInline
+            poster={HERO_POSTER}
+            aria-hidden="true"
+          />
+        ) : (
+          <Image src={HERO_POSTER} alt="" fill preload sizes="100vw" className="object-cover object-[58%_center]" aria-hidden="true" />
+        )}
       </motion.div>
 
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,10,.15)_0%,rgba(7,8,10,.22)_35%,rgba(7,8,10,.94)_100%)]" />
@@ -207,10 +210,12 @@ function Chapter({ chapter }: { chapter: (typeof CHAPTERS)[number] }) {
   const { Symbol } = chapter;
   return (
     <article className="relative h-full w-[88vw] shrink-0 overflow-hidden bg-[#111216] sm:w-[78vw] md:w-screen">
-      <img
+      <Image
         src={chapter.image}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        sizes="100vw"
+        className="object-cover"
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,10,.92)_0%,rgba(7,8,10,.68)_48%,rgba(7,8,10,.16)_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(7,8,10,.65),transparent_54%)]" />
@@ -291,24 +296,27 @@ function ScrollChapters() {
   );
 }
 
-function OnTheBody({ materialVideoSrc }: { materialVideoSrc: string }) {
+function OnTheBody({ materialVideoSrc }: { materialVideoSrc?: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10%" });
   const reduceMotion = useReducedMotion();
 
   return (
     <section ref={ref} className="relative min-h-[100svh] overflow-hidden bg-[#0a0a0b] text-white">
-      <video
-        className="absolute inset-0 h-full w-full object-cover"
-        autoPlay={!reduceMotion}
-        muted
-        loop
-        playsInline
-        poster={HERO_POSTER}
-        aria-hidden="true"
-      >
-        <source src={materialVideoSrc} type="video/mp4" />
-      </video>
+      {materialVideoSrc ? (
+        <PerformanceVideo
+          src={materialVideoSrc}
+          className="absolute inset-0 h-full w-full object-cover"
+          autoPlay={!reduceMotion}
+          muted
+          loop
+          playsInline
+          poster={HERO_POSTER}
+          aria-hidden="true"
+        />
+      ) : (
+        <Image src={HERO_POSTER} alt="" fill sizes="100vw" className="object-cover" aria-hidden="true" />
+      )}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,9,11,.22),rgba(8,9,11,.92))]" />
 
       <div className="site-shell relative z-10 flex min-h-[100svh] flex-col justify-between py-28 md:py-36">
@@ -346,11 +354,15 @@ function FinalInvitation() {
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-[#0a0a0b] py-28 text-[#f2efe9] md:py-44">
-      <img
-        src={DARK_IMAGE}
-        alt="Dark symbolic Synarava bracelet"
-        className="absolute -right-[10%] top-1/2 h-[72%] w-[62%] -translate-y-1/2 object-cover opacity-32 grayscale md:w-[48%]"
-      />
+      <div className="absolute -right-[10%] top-1/2 h-[72%] w-[62%] -translate-y-1/2 md:w-[48%]">
+        <Image
+          src={DARK_IMAGE}
+          alt="Dark symbolic Synarava bracelet"
+          fill
+          sizes="(max-width: 768px) 62vw, 48vw"
+          className="object-cover opacity-32 grayscale"
+        />
+      </div>
       <div className="absolute inset-0 bg-[linear-gradient(90deg,#0a0a0b_28%,rgba(10,10,11,.78)_62%,#0a0a0b)]" />
 
       <div className="site-shell relative z-10">
@@ -390,8 +402,8 @@ export function AboutPage({
   ctaHref,
   ctaLabel,
   secondaryBody,
-  heroVideoSrc = HERO_VIDEO,
-  materialVideoSrc = MATERIAL_VIDEO,
+  heroVideoSrc,
+  materialVideoSrc,
 }: {
   title: string;
   excerpt: string;

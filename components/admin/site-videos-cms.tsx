@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { saveSiteVideosAction, type SiteVideosActionState } from "@/app/admin/actions";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/admin-toast";
 import type { SiteVideos } from "@/lib/site-videos";
@@ -23,23 +22,65 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const { pushToast } = useAdminToast();
-  const [state, setState] = useState<SiteVideosActionState>({});
-  const [isPending, startTransition] = useTransition();
+  const [state, setState] = useState<{ error?: string }>({});
+  const [isPending, setIsPending] = useState(false);
 
-  function submit(formData: FormData) {
-    startTransition(async () => {
-      const result = await saveSiteVideosAction(formData);
-      setState(result);
-      if (result.error) {
-        pushToast({ message: result.error, tone: "error" });
-        return;
-      }
-      if (result.success) {
-        formRef.current?.reset();
-        pushToast({ message: result.success, tone: "success" });
-        router.refresh();
-      }
-    });
+  async function submit(formData: FormData) {
+    setIsPending(true);
+    setState({});
+
+    try {
+      const files = VIDEO_FIELDS.flatMap(({ slot }) => {
+        const file = formData.get(slot);
+        return file instanceof File && file.size > 0 ? [{ slot, file }] : [];
+      });
+      if (files.length === 0) throw new Error("Choose at least one MP4 or WebM video to upload.");
+
+      const uploads = await Promise.all(files.map(async ({ slot, file }) => {
+        const preparedResponse = await fetch("/admin/api/videos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "prepare",
+            slot,
+            filename: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size,
+          }),
+        });
+        const prepared = await preparedResponse.json();
+        if (!preparedResponse.ok) throw new Error(prepared.error || "Could not prepare the bucket upload.");
+
+        const uploadResponse = await fetch(prepared.uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+            "Cache-Control": "public, max-age=31536000, immutable",
+          },
+          body: file,
+        });
+        if (!uploadResponse.ok) throw new Error(`Bucket upload failed for ${file.name}.`);
+        return prepared.upload;
+      }));
+
+      const completedResponse = await fetch("/admin/api/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete", uploads }),
+      });
+      const completed = await completedResponse.json();
+      if (!completedResponse.ok) throw new Error(completed.error || "Could not publish uploaded videos.");
+
+      formRef.current?.reset();
+      pushToast({ message: `${completed.count} video${completed.count === 1 ? "" : "s"} uploaded directly to Railway Bucket and published.`, tone: "success" });
+      router.refresh();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Video upload failed.";
+      setState({ error: message });
+      pushToast({ message, tone: "error" });
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
@@ -48,7 +89,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
         <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
         <h2 className="adm-title-sm">Storefront video</h2>
         <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-          Upload MP4 or WebM files directly to the configured S3 bucket. Replacing a video changes every storefront placement listed below after cache revalidation.
+          Upload MP4 or WebM files directly from this browser to Railway Bucket. Replacing a video changes every storefront placement listed below after cache revalidation. The bucket must allow PUT requests from this admin origin in its CORS policy.
         </p>
       </div>
 
@@ -66,7 +107,13 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
                 Current: {videos[slot]}
               </p>
             </div>
-            <video className="aspect-video max-h-52 w-full rounded object-cover md:max-w-md" src={videos[slot]} muted playsInline preload="metadata" />
+            {videos[slot] ? (
+              <video className="aspect-video max-h-52 w-full rounded object-cover md:max-w-md" src={videos[slot]} muted playsInline preload="metadata" />
+            ) : (
+              <div className="grid aspect-video max-h-52 w-full place-items-center rounded border text-xs uppercase tracking-[0.12em] md:max-w-md" style={{ borderColor: "var(--adm-border)", color: "var(--adm-muted)" }}>
+                No video uploaded
+              </div>
+            )}
             <input
               name={slot}
               type="file"

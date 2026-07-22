@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 
 import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
+import { PerformanceVideo } from "@/components/media/performance-video";
 import { PrimaryCtaButton } from "@/components/ui";
 import type { ProductSummary } from "@/lib/content/catalog";
 
@@ -46,7 +47,8 @@ function ProductHero({ product }: { product: ProductSummary }) {
           src={product.image}
           alt={product.title}
           fill
-          priority
+          preload
+          quality={90}
           sizes="(max-width: 768px) 100vw, 68vw"
           className="object-cover brightness-[0.88] contrast-[1.06] saturate-[1.08]"
         />
@@ -382,7 +384,7 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Craftsmanship / Stats dark section ─────────────────────────── */
-function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc: string }) {
+function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -419,26 +421,30 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
 
         <figure className="border-y border-foreground/12 py-5 md:py-8">
           <div className="relative aspect-[4/5] overflow-hidden bg-charcoal md:aspect-[16/9]">
-            <video
-              ref={videoRef}
-              className="h-full w-full object-cover grayscale contrast-[1.08]"
-              src={fitVideoSrc}
-              poster={product.process.mediaImage}
-              autoPlay={!reduceMotion}
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              onPlay={() => setIsVideoPlaying(true)}
-              onPause={() => setIsVideoPlaying(false)}
-              aria-label={`${product.title} worn on the body`}
-            />
+            {fitVideoSrc ? (
+              <PerformanceVideo
+                ref={videoRef}
+                className="h-full w-full object-cover grayscale contrast-[1.08]"
+                src={fitVideoSrc}
+                poster={product.process.mediaImage}
+                autoPlay={!reduceMotion}
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                onPlay={() => setIsVideoPlaying(true)}
+                onPause={() => setIsVideoPlaying(false)}
+                aria-label={`${product.title} worn on the body`}
+              />
+            ) : (
+              <Image src={product.process.mediaImage} alt={`${product.title} worn on the body`} fill sizes="100vw" className="object-cover grayscale contrast-[1.08]" />
+            )}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
             <div className="pointer-events-none absolute inset-4 border border-white/20 md:inset-7" />
             <p className="absolute left-7 top-7 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-white/72 md:left-11 md:top-11">
               Fit film / {product.series}
             </p>
-            <button
+            {fitVideoSrc ? <button
               type="button"
               onClick={toggleVideo}
               aria-pressed={isVideoPlaying}
@@ -458,7 +464,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
                 )}
               </span>
               {isVideoPlaying ? "Pause" : "Play"}
-            </button>
+            </button> : null}
           </div>
           <figcaption className="grid gap-6 pt-5 md:grid-cols-12 md:items-start md:pt-7">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/42 md:col-span-3">
@@ -665,7 +671,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Root ───────────────────────────────────────────────────────── */
-export function ProductDetail({ product, fitVideoSrc = "/videos/Man_bracelet_hero_web.mp4" }: { product: ProductSummary; fitVideoSrc?: string }) {
+export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc?: string }) {
   const pageStyle = {
     "--color-background": "#09090a",
     "--color-foreground": "#eeeae4",

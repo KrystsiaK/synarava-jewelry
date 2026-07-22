@@ -77,7 +77,8 @@ function ShopHero({
             src={leadProduct.image}
             alt={leadProduct.title}
             fill
-            priority
+            preload
+            quality={90}
             sizes="(max-width: 768px) 110vw, 68vw"
             className="object-cover grayscale contrast-125 brightness-[0.58]"
           />

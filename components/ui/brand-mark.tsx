@@ -29,7 +29,7 @@ export function BrandMark({
       alt={alt}
       width={size}
       height={size}
-      priority={priority}
+      preload={priority}
       className={className}
     />
   );

@@ -63,7 +63,8 @@ function CollectionsHero({ collections }: { collections: CollectionSummary[] }) 
             src={leadCollection.heroImage}
             alt=""
             fill
-            priority
+            preload
+            quality={90}
             sizes="(min-width: 768px) 64vw, 96vw"
             className="object-cover grayscale"
           />

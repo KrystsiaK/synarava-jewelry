@@ -28,7 +28,8 @@ export function AuthShell({
           src="/uploads/home/wood-lava-hero.jpg"
           alt=""
           fill
-          priority
+          preload
+          quality={85}
           sizes="100vw"
           className="object-cover object-[62%_50%] opacity-[0.18] grayscale"
         />

@@ -1,5 +1,5 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import { ArtifactButton } from "@/components/ui/artifact-button";
@@ -65,11 +65,15 @@ export default async function ManifestoPage() {
 
           <div className="col-span-12 md:col-span-5 md:pt-12">
             <div className="relative">
-              <div className="artifact-hover-image-wrap aspect-[3/4] bg-[color:var(--color-stone-beige)]">
-                <img
+              <div className="artifact-hover-image-wrap relative aspect-[3/4] bg-[color:var(--color-stone-beige)]">
+                <Image
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsOpilx95kk9tsj12r0FFG2UFEpnvVCSCj8zjj1_un-K347C_bYyfjiBfHqVhN7zzUIZ6ozazQxs49HgYM0nwLxVV_V-oCjDAD6QJftXKg4uJF9VXZZMF7SnXTuGUbTcXPb8YpkhuyReJ5XbM6cmIPd1_ZewFgYq_eM3-SzvrzxvrGS91YDoHIO1EY-VONHmNa2LsvHgEWNqfyALYgIDXy_TuRnrTrcjodxqPvTs-9GvTow0A7s7QXartwC2wPcxedNcDYyDBOZOpL"
                   alt="An atmospheric editorial artifact composition"
-                  className="artifact-hover-image h-full w-full object-cover duration-[3000ms] hover:scale-105"
+                  fill
+                  preload
+                  quality={85}
+                  sizes="(max-width: 768px) 100vw, 42vw"
+                  className="artifact-hover-image object-cover duration-[3000ms] hover:scale-105"
                 />
               </div>
 
@@ -101,18 +105,22 @@ export default async function ManifestoPage() {
             </ScrollReveal>
 
             <ScrollReveal className="grid w-full grid-cols-2 gap-gutter md:w-1/2" direction="right" delay={150}>
-              <div className="aspect-square overflow-hidden bg-[color:var(--color-stone-beige)]">
-                <img
+              <div className="relative aspect-square overflow-hidden bg-[color:var(--color-stone-beige)]">
+                <Image
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1Q9Y5mTOg4JUp7ltbWF7UCVszQDvMhK4HkZeiKBH0sIaPUR-UTsap-qKNQrRxs3rB5Sowo82wlYmwo20D0nqr3Q4-7pfoZRCeaIDPtyLX3ZNXQP2Xz_nQCkprKPJvwx5TIja3QNWzei9N-hLk51vB7X_GuDh0Dtn3IRJ5H0M3pC8kYZjTik5LWwFsa8rBwH1PRScpi6BvuAPPBFPF1GUuoCg209ofG6zTPdWg2QGoWwmmKGn39ArL0g7Yf8IdHxBlM8rPqTOo4DIV"
                   alt="Artisan hands and threads"
-                  className="h-full w-full object-cover grayscale transition-all duration-700 hover:grayscale-0"
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover grayscale transition-all duration-700 hover:grayscale-0"
                 />
               </div>
-              <div className="mt-10 aspect-square overflow-hidden bg-[color:var(--color-stone-beige)] md:mt-12">
-                <img
+              <div className="relative mt-10 aspect-square overflow-hidden bg-[color:var(--color-stone-beige)] md:mt-12">
+                <Image
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7W843EHQdZY1jBm55opNlIRmN9QiRAMGmzyqF5zdXt2cwigQhhPV4qkXKAVtEaBfzwdxIpmBR2KOfDI2ymoCQvaPh_dNvuOGRdGSXTg0Nk2edENnTUcURfnB3uKsA53ByrmrUpL-UceWrVoGdW_31a6BwydIalVlC2sofkQtrybUuGmpNKQufRtbC-d-3eEV70YQZVGpjPvf8FUjpEmI3DWVcC1LpNQJJTwyJnvnaxErGyVGWp-5VFVIMQJiReO8VcV4dJQsO_axC"
                   alt="Raw jewelry materials in archive composition"
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover"
                 />
               </div>
             </ScrollReveal>
@@ -151,11 +159,15 @@ export default async function ManifestoPage() {
 
           <ScrollReveal className="relative col-span-12 md:order-1 md:col-span-6" direction="left" delay={100}>
             <div className="grid grid-cols-2 gap-4">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2bzj_Kwa15jaUTfnpQ74fpNyH8oR-ka1zPvi4y5EYwfqQGycU5PY7ov2VsofrBIraiU8YHmwXHaFFxfa54THQO5e7jbNdofGkc237LsCdRCuudHo3palaWRyr17uyHspNWYL2D3KZoWPIZVn1SO89RSDvBKhlFuOjdxcrmijL8FSYFy3_vkSTS0mReFPYKla38QSAfzGOi_BITgn_rwnCTbBz2vXrG3738a4AZEbxICC1QciJvVK3TQt5W6R4WpSQoo5HimIvoela"
-                alt="Heritage textile and jewelry comparison"
-                className="aspect-square w-full object-cover shadow-2xl"
-              />
+              <div className="relative aspect-square shadow-2xl">
+                <Image
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2bzj_Kwa15jaUTfnpQ74fpNyH8oR-ka1zPvi4y5EYwfqQGycU5PY7ov2VsofrBIraiU8YHmwXHaFFxfa54THQO5e7jbNdofGkc237LsCdRCuudHo3palaWRyr17uyHspNWYL2D3KZoWPIZVn1SO89RSDvBKhlFuOjdxcrmijL8FSYFy3_vkSTS0mReFPYKla38QSAfzGOi_BITgn_rwnCTbBz2vXrG3738a4AZEbxICC1QciJvVK3TQt5W6R4WpSQoo5HimIvoela"
+                  alt="Heritage textile and jewelry comparison"
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover"
+                />
+              </div>
               <div className="flex aspect-square items-center justify-center bg-[color:var(--color-charcoal)] p-8 text-background md:p-12">
                 <span className="text-5xl md:text-6xl">✦</span>
               </div>
@@ -196,11 +208,13 @@ export default async function ManifestoPage() {
       {/* Section 5 — Exhibition */}
       <section className="site-shell relative z-10 py-20 md:py-32">
         <div className="flex flex-col gap-gutter md:flex-row">
-          <ScrollReveal className="group relative flex-1 overflow-hidden" direction="left">
-            <img
+          <ScrollReveal className="group relative aspect-[16/9] flex-1 overflow-hidden md:h-96 md:aspect-auto" direction="left">
+            <Image
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHaoUd-Rm7sOtHmb7DqP0M9OBv7dVOeIrBaE0HeI7OBXaGfWpDZ-Rydjig7P70HXomp3svTh1hAwUXUsAVSBjU5XjcXsfg8B3AK0ZyL-1_ULgDFpb-5IemGJkyXlntN3f-ihPcc1u86fbTV48rKP9E6HYYe53wCujXW5Yy4jVQ7fvgqcipoQSMO0V7fwxVedwilASfgNwSlcTU4FHWCQyj2cT_-Uetg5LcpKBkJ0LbTtRcCKlG63G2PXW1UtqsGCgiQKVOZn1a-NUv"
               alt="Synarava exhibition gallery"
-              className="artifact-hover-image aspect-[16/9] w-full object-cover duration-1000 group-hover:scale-110 md:h-96 md:aspect-auto"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="artifact-hover-image object-cover duration-1000 group-hover:scale-110"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
               <button className="border border-white px-6 py-3 font-sans text-[0.76rem] font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-white hover:text-black">

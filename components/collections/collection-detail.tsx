@@ -44,7 +44,8 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
           alt={collection.name}
           src={collection.heroImage}
           fill
-          priority
+          preload
+          quality={90}
           sizes="100vw"
           className="object-cover grayscale brightness-[0.72] contrast-[1.04]"
         />

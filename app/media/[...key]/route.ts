@@ -1,5 +1,5 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3";
-import { Readable } from "node:stream";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { getS3, getS3Bucket } from "@/lib/s3";
 
@@ -13,33 +13,33 @@ function isSafeUploadKey(parts: string[]) {
   return parts[0] === "uploads" && parts.every((part) => part.length > 0 && part !== "." && part !== "..");
 }
 
-export async function GET(request: Request, { params }: Props) {
+export async function GET(_request: Request, { params }: Props) {
   const { key } = await params;
   if (!isSafeUploadKey(key)) {
     return new Response("Not found", { status: 404 });
   }
 
   try {
-    const range = request.headers.get("range") ?? undefined;
-    const object = await getS3().send(new GetObjectCommand({
-      Bucket: getS3Bucket(),
-      Key: key.join("/"),
-      Range: range,
-    }));
-    if (!object.Body) {
-      return new Response("Not found", { status: 404 });
-    }
+    // Redirect the browser (and Next's image optimizer) to Railway Object
+    // Storage. This keeps private bucket credentials server-side while avoiding
+    // double egress and memory pressure in the Next.js service. Range requests
+    // for video are then handled natively by the bucket.
+    const signedUrl = await getSignedUrl(
+      getS3(),
+      new GetObjectCommand({
+        Bucket: getS3Bucket(),
+        Key: key.join("/"),
+      }),
+      { expiresIn: 60 * 60 },
+    );
 
-    const body = Readable.toWeb(object.Body as Readable) as ReadableStream<Uint8Array>;
-    const headers = new Headers({
-      "Content-Type": object.ContentType ?? "application/octet-stream",
-      "Cache-Control": object.CacheControl ?? "public, max-age=31536000, immutable",
-      "Accept-Ranges": "bytes",
+    return new Response(null, {
+      status: 307,
+      headers: {
+        Location: signedUrl,
+        "Cache-Control": "private, no-store",
+      },
     });
-    if (object.ContentLength !== undefined) headers.set("Content-Length", object.ContentLength.toString());
-    if (object.ContentRange) headers.set("Content-Range", object.ContentRange);
-
-    return new Response(body, { status: range ? 206 : 200, headers });
   } catch (error) {
     const status = error && typeof error === "object" && "$metadata" in error
       ? 404
