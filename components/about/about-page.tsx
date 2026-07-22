@@ -1,585 +1,388 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useRef } from "react";
+import Link from "next/link";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import {
   motion,
-  useScroll,
-  useTransform,
   useInView,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
 } from "motion/react";
-import Link from "next/link";
-import { ArtifactLink, PrimaryCtaButton, ShinyText } from "@/components/ui";
+import { useRef } from "react";
+
+import { PrimaryCtaButton } from "@/components/ui";
 import {
-  KodRodaStatic as SvgKodRoda,
-  KolaStatic as SvgKola,
-  ZiamlaStatic as SvgZiamla,
-  FolkBorder,
+  KodRodaStatic,
+  KolaStatic,
+  ZiamlaStatic,
 } from "@/components/ui/folk-patterns";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+const scrollSpring = { stiffness: 72, damping: 22, mass: 0.7 } as const;
 
-const PRINCIPLES = [
-  {
-    label: "Studio first",
-    body: "Synarava is built as a small atelier with a fashion-editorial eye, not as a mass catalog of interchangeable accessories.",
-    symbol: "✦",
-  },
-  {
-    label: "Material honesty",
-    body: "Wood should look like wood, lava like lava, ceramic like fired earth. The material carries meaning before ornament does.",
-    symbol: "◆",
-  },
-  {
-    label: "Wearable clarity",
-    body: "Even when the symbolism runs deep, the object still needs to feel easy to wear, easy to understand, and easy to choose.",
-    symbol: "◇",
-  },
-];
+const HERO_POSTER = "/videos/model-hero-section.png";
+const HERO_VIDEO = "/videos/Man_bracelet_hero_web.mp4";
+const MATERIAL_VIDEO = "/videos/synarava-materials.mp4";
+const CUFF_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCBX63WCgWtPnScacT2NdSX0EXxTLNA95jHIIkVfY1Fhxfa_tNgorlYdDTKcQu28PFCfFxuVr2dfa__XKYWebZyvt6mCthqPE0YN8c8QpKX4Ge6z363LyMizVS2x-rcrcmGIrzR9ExiDST3DRKgZJ8xhXOwA3ZmFWhCH6OC-Zcq8mpEyCNnt-Pi2r2PyfKB5bOGVAM9azkLweV_1zkNAJ7xShSTvruw5sNV_WDWHMrtNa_lT8dT3iVBFC2XV1rjXB8UI1Iw6uz5xpV3";
+const HERITAGE_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCeoC4s0GytU2DJHgrs3Y0VtvzJzV8XnZqdlM-zu7Pj5SOSNmgf2fH0UUWquiyWXIKpNLyYe7uIZO3_8XVObSjX88ucZFaSmB7RmcgsRhsPnG7tPGc0n0_G6K7x3a5mstC1CRokMdByQ5QzcXX2nFedtwx42wOm2YsJwOSo6OzbspMc5J8qdpMsI2dZi4z_wUwpmA0QdXlFyhLvOkujl25D4nxEsU7IcGhDLxyZA3K6CO9_k9Sx1YFGtL1eqQjnZEl_HFLyG9-8uxkN";
+const DARK_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCt_d_ebEGOWp1ihdn9E9rOzPoAp47x8VK2oL2u1osFvrQrI82dVRunrsFTkmF6e79LX4G83igcALJUo5v5SceK_LnOAXpuLcDGxmdguwDbzYZfYfT4Kk-H2rFkGCuvXFHelznWeIfm0Cz4PhL0-R3AdSg-sflr3SXMGyiug95M4h2kaYuM_QxNL-4sy_cYB6svoR3ufc6WqLHbzfRc2go7AndpuUWUDAsC6jmigW4FSDC2IrDbxXCxpbXO78mXwNxpHUWKfTI1Efka";
 
-const INFO_ITEMS = [
-  { label: "What we make", value: "Bracelets, necklace studies, symbolic objects, and collection-led editorial releases." },
-  { label: "How we work", value: "Small-batch production, material-first design, and story-led collections instead of endless product drops." },
-  { label: "What matters", value: "Clarity of form, emotional durability, and a respectful link to Belarusian visual memory." },
-];
+const CHAPTERS = [
+  {
+    number: "01",
+    eyebrow: "Material before ornament",
+    title: "Honest matter",
+    italic: "keeps its voice.",
+    body: "Lava stays porous. Oak keeps its grain. Ceramic carries the trace of the hand. We compose with what a material already knows instead of disguising it.",
+    image: "/uploads/home/wood-lava-hero.jpg",
+    Symbol: ZiamlaStatic,
+  },
+  {
+    number: "02",
+    eyebrow: "Memory without costume",
+    title: "The past is a",
+    italic: "living language.",
+    body: "Belarusian geometry enters through rhythm, proportion, and coded detail. Heritage is not copied; it is translated into pieces that belong to the present.",
+    image: HERITAGE_IMAGE,
+    Symbol: KodRodaStatic,
+  },
+  {
+    number: "03",
+    eyebrow: "Made to leave the archive",
+    title: "An object becomes",
+    italic: "personal in use.",
+    body: "The work is complete only on a body. Weight, movement, touch, and daily wear turn an edition into something intimate and entirely your own.",
+    image: CUFF_IMAGE,
+    Symbol: KolaStatic,
+  },
+] as const;
 
-const PATTERNS = [
-  {
-    id: "kodroda",
-    name: "Kod Roda",
-    subhead: "Ancestral Cipher",
-    description: "The foundational folk symbol — a diamond lattice encoding family lineage, protection, and the cycle of generations. Found on ceremonial linens and now distilled into form.",
-    Svg: SvgKodRoda,
-  },
-  {
-    id: "kola",
-    name: "Kola",
-    subhead: "Solar Wheel",
-    description: "The ancient sun symbol — an 8-spoked wheel of light. In Belarusian tradition, Kola represents energy, life-giving force, and the cyclical nature of time.",
-    Svg: SvgKola,
-  },
-  {
-    id: "ziamla",
-    name: "Ziamla",
-    subhead: "Earth Grid",
-    description: "Nested squares anchoring the wearer to the earth — a symbol of fertility, material origin, and the permanence of land. The foundation beneath all other motifs.",
-    Svg: SvgZiamla,
-  },
-];
-
-/* ─── Hero ───────────────────────────────────────────────────────── */
 function AboutHero({
   title,
   excerpt,
   eyebrow,
   ctaHref,
   ctaLabel,
+  heroVideoSrc,
 }: {
   title: string;
   excerpt: string;
   eyebrow: string;
   ctaHref: string;
   ctaLabel: string;
+  heroVideoSrc: string;
 }) {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
-  const textY = useTransform(scrollYProgress, [0, 0.55], ["0%", "-6%"]);
-
-  const words = title.split(" ");
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+  const smooth = useSpring(scrollYProgress, scrollSpring);
+  const imageScale = useTransform(smooth, [0, 1], [1.02, 1.12]);
+  const copyY = useTransform(smooth, [0, 0.75], [0, -80]);
+  const copyOpacity = useTransform(smooth, [0, 0.62], [1, 0]);
 
   return (
-    <motion.header
+    <header
       ref={ref}
-      className="relative min-h-screen overflow-hidden bg-background pt-28"
+      className="relative flex min-h-[100svh] items-end overflow-hidden bg-[#08090b] text-[#f2efe9]"
     >
-      {/* Grain */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0 mix-blend-multiply opacity-[0.035]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-          backgroundSize: "256px",
-        }}
-      />
+      <motion.div
+        className="absolute inset-0"
+        style={{ scale: reduceMotion ? 1 : imageScale }}
+      >
+        <video
+          className="h-full w-full object-cover object-[58%_center]"
+          autoPlay={!reduceMotion}
+          muted
+          loop
+          playsInline
+          poster={HERO_POSTER}
+          aria-hidden="true"
+        >
+          <source src={heroVideoSrc} type="video/mp4" />
+        </video>
+      </motion.div>
 
-      {/* Ambient glow */}
-      <div
-        className="pointer-events-none absolute -right-40 top-0 h-[60vw] w-[60vw] max-w-[800px] rounded-full"
-        style={{
-          background: "radial-gradient(circle, #a6192e 0%, transparent 65%)",
-          opacity: 0.07,
-        }}
-      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,10,.15)_0%,rgba(7,8,10,.22)_35%,rgba(7,8,10,.94)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,10,.52),transparent_62%)]" />
 
       <motion.div
-        className="site-shell relative z-10 grid min-h-[calc(100vh-7rem)] grid-cols-12 items-center gap-y-16 pb-20 pt-10"
-        style={{ opacity: textOpacity, y: textY }}
+        className="site-shell relative z-10 grid w-full grid-cols-1 gap-8 pb-12 pt-40 md:grid-cols-12 md:pb-16"
+        style={{
+          y: reduceMotion ? 0 : copyY,
+          opacity: reduceMotion ? 1 : copyOpacity,
+        }}
       >
-        {/* Text */}
-        <div className="col-span-12 space-y-10 lg:col-span-6">
+        <div className="md:col-span-9 xl:col-span-8">
           <motion.p
-            className="label-mono text-couture-red"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            className="mb-5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[#d65b7a]"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease }}
           >
-            {eyebrow}
+            {eyebrow} · Minsk / Belarus
           </motion.p>
-
-          <h1
-            className="font-serif leading-[0.9] tracking-tight"
-            style={{ fontSize: "clamp(2.8rem,6.5vw,6rem)" }}
-          >
-            {words.map((word, i) => (
-              <span key={i} className="mr-[0.2em] inline-block overflow-hidden last:mr-0">
-                <motion.span
-                  className="inline-block"
-                  initial={{ y: "110%", opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 1, ease, delay: 0.1 + i * 0.1 }}
-                >
-                  <ShinyText>{word}</ShinyText>
-                </motion.span>
-              </span>
-            ))}
-          </h1>
-
-          <motion.p
-            className="max-w-xl text-base leading-[2] text-muted-ink md:text-[1.0625rem]"
-            initial={{ opacity: 0, y: 16 }}
+          <motion.h1
+            className="max-w-[12ch] font-serif text-[clamp(3.25rem,8.2vw,7.6rem)] leading-[0.84] tracking-[-0.04em]"
+            initial={{ opacity: 0, y: 36 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, delay: 0.65, ease }}
+            transition={{ duration: 1, delay: 0.08, ease }}
           >
-            {excerpt}
-          </motion.p>
-
-          <motion.div
-            className="flex flex-col gap-5 sm:flex-row sm:items-center"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9, ease }}
-          >
-            <PrimaryCtaButton href={ctaHref}>{ctaLabel}</PrimaryCtaButton>
-            <Link
-              href="/about/manifesto"
-              className="inline-flex items-center gap-2 border-b border-foreground/20 pb-1 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
-            >
-              Read the manifesto
-            </Link>
-          </motion.div>
+            {title}
+          </motion.h1>
         </div>
 
-        {/* Image */}
-        <div className="col-span-12 lg:col-span-6">
-          <motion.div
-            className="relative overflow-hidden bg-stone-beige"
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.4, delay: 0.3, ease }}
-          >
-            <motion.img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsOpilx95kk9tsj12r0FFG2UFEpnvVCSCj8zjj1_un-K347C_bYyfjiBfHqVhN7zzUIZ6ozazQxs49HgYM0nwLxVV_V-oCjDAD6QJftXKg4uJF9VXZZMF7SnXTuGUbTcXPb8YpkhuyReJ5XbM6cmIPd1_ZewFgYq_eM3-SzvrzxvrGS91YDoHIO1EY-VONHmNa2LsvHgEWNqfyALYgIDXy_TuRnrTrcjodxqPvTs-9GvTow0A7s7QXartwC2wPcxedNcDYyDBOZOpL"
-              alt="Synarava studio composition"
-              className="aspect-[4/5] h-full w-full object-cover brightness-[0.88] contrast-[1.08]"
-              style={{ y: imgY }}
-            />
-            {/* Red vignette */}
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-1/3"
-              style={{ background: "linear-gradient(to top, rgba(166,25,46,0.18) 0%, transparent 100%)" }} />
-            {/* Corner accents */}
-            <motion.div className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60"
-              initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 1.2, ease }} />
-            <motion.div className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60"
-              initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 1.35, ease }} />
-          </motion.div>
+        <motion.div
+          className="flex flex-col items-start gap-6 md:col-span-5 md:col-start-8 md:items-end"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.85, delay: 0.42, ease }}
+        >
+          <p className="max-w-md text-sm leading-[1.75] text-[#f2efe9]/68 md:text-right md:text-base">
+            {excerpt}
+          </p>
+          <PrimaryCtaButton href={ctaHref}>{ctaLabel}</PrimaryCtaButton>
+        </motion.div>
+
+        <div className="mt-2 flex items-center gap-3 text-[0.62rem] uppercase tracking-[0.24em] text-white/45 md:col-span-4">
+          <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+          Scroll to enter the studio
         </div>
       </motion.div>
-    </motion.header>
+    </header>
   );
 }
 
-/* ─── Folk Pattern Showcase ──────────────────────────────────────── */
-function PatternShowcase() {
+function Manifesto({ secondaryBody }: { secondaryBody: string }) {
   const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-8%" });
+  const inView = useInView(ref, { once: true, margin: "-12%" });
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-44">
-      {/* Faint ghost text */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-        <span className="select-none font-serif leading-none text-background"
-          style={{ fontSize: "clamp(4rem,16vw,13rem)", opacity: 0.025, whiteSpace: "nowrap", letterSpacing: "0.06em" }}>
-          УЗОРЫ
-        </span>
-      </div>
-
-      <div className="site-shell relative z-10">
-        <motion.div className="mb-16 md:mb-24"
-          initial={{ opacity: 0, y: 28 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}>
-          <p className="label-mono mb-4 text-couture-red">02 // Folk Geometry</p>
-          <h2 className="max-w-lg font-serif" style={{ fontSize: "clamp(2rem,4vw,3rem)" }}>
-            The Symbols We Carry
-          </h2>
-          <p className="mt-5 max-w-2xl text-base leading-[1.9] text-background/60 md:text-[1.0625rem]">
-            Each piece bears one of three foundational motifs — geometric ciphers that have marked Belarusian ceremonial objects for centuries. They do not decorate. They speak.
-          </p>
-        </motion.div>
-
-        {/* Pattern grid */}
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8">
-          {PATTERNS.map(({ id, name, subhead, description, Svg }, i) => (
-            <motion.div
-              key={id}
-              className="group"
-              initial={{ opacity: 0, y: 44 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: i * 0.16 }}
-            >
-              {/* Pattern SVG */}
-              <div className="relative mb-8 flex items-center justify-center">
-                <Svg className="h-48 w-48 text-background/70 transition-colors duration-700 group-hover:text-couture-red md:h-52 md:w-52" />
-                {/* Hover glow */}
-                <motion.div
-                  className="pointer-events-none absolute inset-0 rounded-full"
-                  style={{ background: "radial-gradient(circle, rgba(166,25,46,0) 0%, transparent 70%)" }}
-                  whileHover={{ background: "radial-gradient(circle, rgba(166,25,46,0.12) 0%, transparent 70%)" }}
-                  transition={{ duration: 0.5 }}
-                />
-              </div>
-
-              {/* Border line */}
-              <motion.div
-                className="mb-6 h-px bg-background/15"
-                initial={{ scaleX: 0 }}
-                animate={isInView ? { scaleX: 1 } : {}}
-                transition={{ duration: 1, ease, delay: 0.4 + i * 0.16 }}
-                style={{ transformOrigin: "left" }}
-              />
-
-              <p className="label-caps mb-2 text-couture-red">{name}</p>
-              <p className="label-mono mb-4 text-background/40">{subhead}</p>
-              <p className="text-sm leading-[1.9] text-background/55 md:text-base">
-                {description}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Bottom border ornament */}
-        <div className="mt-20 md:mt-28">
-          <FolkBorder className="w-full text-background/30" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Principles ─────────────────────────────────────────────────── */
-function PrinciplesSection() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-8%" });
-
-  return (
-    <section ref={ref} className="relative overflow-hidden bg-surface py-20 md:py-40">
-      <div className="site-shell relative z-10">
-        <div className="mb-14 grid grid-cols-1 gap-8 md:mb-20 md:grid-cols-12">
-          <motion.div
-            className="md:col-span-5"
-            initial={{ opacity: 0, y: 28 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease }}
-          >
-            <p className="label-mono mb-4 text-couture-red">01 // What kind of brand this is</p>
-            <h2 className="font-serif leading-[0.95]" style={{ fontSize: "clamp(2rem,3.8vw,3.2rem)" }}>
-              A clear store first, with deeper editorial layers behind it.
-            </h2>
-          </motion.div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {PRINCIPLES.map((p, i) => (
-            <motion.div
-              key={p.label}
-              className="group relative border border-foreground/[0.07] p-8 transition-colors duration-500 hover:border-couture-red/30"
-              initial={{ opacity: 0, y: 44 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: i * 0.14 }}
-            >
-              {/* Animated left accent */}
-              <motion.div
-                className="absolute left-0 top-0 w-0.5 bg-couture-red"
-                initial={{ height: 0 }}
-                animate={isInView ? { height: "100%" } : {}}
-                transition={{ duration: 1, delay: 0.3 + i * 0.14, ease }}
-              />
-
-              <span className="mb-6 block font-serif text-3xl text-couture-red opacity-60 transition-opacity duration-300 group-hover:opacity-100">
-                {p.symbol}
-              </span>
-              <p className="label-caps mb-4 text-couture-red">{p.label}</p>
-              <p className="text-base leading-[1.85] text-foreground/70">{p.body}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Story / How to use ─────────────────────────────────────────── */
-function StorySection({ secondaryBody }: { secondaryBody: string }) {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-
-  return (
-    <section ref={ref} className="bg-background py-20 md:py-40">
-      <div className="site-shell">
-        {/* Top folk border */}
-        <div className="mb-14 md:mb-20">
-          <FolkBorder className="w-full text-foreground/25" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-12 md:items-start">
-          {/* Info */}
-          <motion.div
-            className="space-y-8 md:col-span-5"
-            initial={{ opacity: 0, x: -28 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
+    <section ref={ref} className="relative overflow-hidden bg-[#0a0a0b] py-24 text-[#eeeae3] md:py-40">
+      <div className="site-shell grid grid-cols-1 gap-16 md:grid-cols-12 md:items-center">
+        <div className="md:col-span-7">
+          <motion.p
+            className="font-serif text-[clamp(2.8rem,6.3vw,6.7rem)] leading-[0.92] tracking-[-0.04em]"
+            initial={{ opacity: 0, y: 38 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 1, ease }}
           >
-            <div>
-              <p className="label-mono mb-4 text-couture-red">03 // How to use the site</p>
-              <h2 className="font-serif leading-[0.95]" style={{ fontSize: "clamp(1.8rem,3.2vw,2.8rem)" }}>
-                Shop by product, browse by collection, learn through story.
-              </h2>
-            </div>
-            <motion.div
-              className="h-px bg-couture-red"
-              initial={{ width: 0 }}
-              animate={isInView ? { width: 80 } : {}}
-              transition={{ duration: 0.8, delay: 0.3, ease }}
-            />
-            <p className="text-base leading-[2] text-foreground/70 md:text-[1.0625rem]">
-              {secondaryBody}
-            </p>
+            Not nostalgia.
+            <br />
+            Not decoration.
+            <br />
+            <em className="font-normal text-[#d45c7b]">A material memory.</em>
+          </motion.p>
+        </div>
 
-            {/* Info list */}
-            <ul className="space-y-5">
-              {INFO_ITEMS.map((item, i) => (
-                <motion.li
-                  key={item.label}
-                  className="border-t border-foreground/[0.07] pt-5"
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.65, ease, delay: 0.4 + i * 0.1 }}
-                >
-                  <p className="label-caps mb-2 text-couture-red">{item.label}</p>
-                  <p className="text-base leading-[1.85] text-foreground/65">{item.value}</p>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Right panel */}
-          <motion.div
-            className="space-y-6 md:col-span-7"
-            initial={{ opacity: 0, x: 28 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease, delay: 0.15 }}
+        <motion.div
+          className="md:col-span-4 md:col-start-9"
+          initial={{ opacity: 0, y: 26 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.85, delay: 0.22, ease }}
+        >
+          <div className="mb-8 h-px w-full bg-white/18" />
+          <p className="text-base leading-[1.9] text-white/62">{secondaryBody}</p>
+          <Link
+            href="/about/manifesto"
+            className="mt-9 inline-flex items-center gap-3 border-b border-white/20 pb-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white transition-colors hover:border-[#d45c7b] hover:text-[#d45c7b]"
           >
-            {/* Site map panel */}
-            <div className="etched-glass relative border border-foreground/[0.06] p-8 md:p-10">
-              <motion.div
-                className="absolute left-0 top-0 w-0.5 bg-couture-red"
-                initial={{ height: 0 }}
-                animate={isInView ? { height: "100%" } : {}}
-                transition={{ duration: 1.2, delay: 0.5, ease }}
-              />
-              <div className="grid grid-cols-3 gap-6">
-                {[
-                  { label: "Home", body: "Brand entry and featured products." },
-                  { label: "Shop", body: "Product listing with filters and direct links." },
-                  { label: "Collections", body: "Editorial groupings by material and theme." },
-                ].map((item, i) => (
-                  <motion.div key={item.label}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.6, ease, delay: 0.6 + i * 0.1 }}>
-                    <p className="label-caps mb-3 text-couture-red">{item.label}</p>
-                    <p className="text-sm leading-[1.85] text-foreground/65">{item.body}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Ziamla pattern as decorative element in this section */}
-            <div className="relative overflow-hidden bg-stone-beige/40 p-10">
-              <div className="flex items-center justify-center gap-8 md:gap-16">
-                <div className="text-center">
-                  <SvgZiamla className="mx-auto mb-5 h-28 w-28 text-foreground/50" />
-                  <p className="label-mono text-[0.65rem] text-muted-ink">Ziamla — Earth</p>
-                </div>
-                <div className="h-16 w-px bg-foreground/10" />
-                <div className="max-w-xs">
-                  <p className="label-caps mb-3 text-couture-red">From the Archive</p>
-                  <p className="text-sm leading-[1.9] text-foreground/60">
-                    Every material in our pieces is catalogued, numbered, and sourced with intention. The archive is not a metaphor — it is a practice.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Exhibition image */}
-            <div className="artifact-hover-image-wrap relative">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHaoUd-Rm7sOtHmb7DqP0M9OBv7dVOeIrBaE0HeI7OBXaGfWpDZ-Rydjig7P70HXomp3svTh1hAwUXUsAVSBjU5XjcXsfg8B3AK0ZyL-1_ULgDFpb-5IemGJkyXlntN3f-ihPcc1u86fbTV48rKP9E6HYYe53wCujXW5Yy4jVQ7fvgqcipoQSMO0V7fwxVedwilASfgNwSlcTU4FHWCQyj2cT_-Uetg5LcpKBkJ0LbTtRcCKlG63G2PXW1UtqsGCgiQKVOZn1a-NUv"
-                alt="Synarava exhibition-style space"
-                className="artifact-hover-image aspect-[16/9] h-full w-full object-cover hover:scale-[1.03]"
-              />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Bottom folk border */}
-        <div className="mt-16 md:mt-24">
-          <FolkBorder className="w-full text-foreground/20" delay={0.3} />
-        </div>
+            Read the full manifesto <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </motion.div>
       </div>
     </section>
   );
 }
 
-/* ─── Dark Quote ─────────────────────────────────────────────────── */
-function DarkQuoteSection() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-12%" });
-
-  const quote =
-    "We do not inherit the earth from our ancestors; we borrow it from our children. We do the same with our stories. SYNARAVA is the vessel for the stories that refuse to be forgotten.";
+function Chapter({ chapter }: { chapter: (typeof CHAPTERS)[number] }) {
+  const { Symbol } = chapter;
   return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-48">
-      <div className="site-shell relative z-10 text-center">
-        <motion.div
-          className="mx-auto mb-12 flex h-20 w-20 items-center justify-center border border-couture-red/40"
-          initial={{ opacity: 0, rotate: 0, scale: 0.6 }}
-          animate={isInView ? { opacity: 1, rotate: 45, scale: 1 } : {}}
-          transition={{ duration: 0.8, ease, delay: 0.1 }}
-        >
-          <motion.div
-            className="h-10 w-10 border border-background/20"
-            animate={isInView ? { rotate: -45 } : {}}
-            transition={{ duration: 0.8, ease, delay: 0.1 }}
-          />
-        </motion.div>
+    <article className="relative h-full w-[88vw] shrink-0 overflow-hidden bg-[#111216] sm:w-[78vw] md:w-screen">
+      <img
+        src={chapter.image}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,10,.92)_0%,rgba(7,8,10,.68)_48%,rgba(7,8,10,.16)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(7,8,10,.65),transparent_54%)]" />
+      <Symbol className="absolute -right-12 top-1/2 h-[44vw] w-[44vw] -translate-y-1/2 text-white/[0.07]" />
 
-        <motion.p
-          className="label-mono mb-10 text-couture-red"
-          initial={{ opacity: 0, y: 16 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease }}
-        >
-          04 // Identity & Memory
-        </motion.p>
+      <div className="relative z-10 flex h-full max-w-3xl flex-col justify-between p-7 pb-10 pt-24 sm:p-12 sm:pt-28 md:p-16 md:pt-36 lg:p-24 lg:pt-40">
+        <div className="flex items-center gap-5">
+          <span className="font-serif text-4xl text-[#d45c7b]">{chapter.number}</span>
+          <span className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-white/62">
+            {chapter.eyebrow}
+          </span>
+        </div>
+        <div>
+          <h3 className="max-w-[9ch] font-serif text-[clamp(2.6rem,5.4vw,6.4rem)] leading-[0.88] tracking-[-0.04em] text-[#f2efe9]">
+            {chapter.title} <em className="font-normal text-[#d45c7b]">{chapter.italic}</em>
+          </h3>
+          <p className="mt-8 max-w-xl text-sm leading-[1.85] text-white/68 md:text-base">
+            {chapter.body}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
 
-        <motion.blockquote
-          className="mx-auto max-w-4xl font-serif italic leading-[1.45] text-background"
-          style={{ fontSize: "clamp(1.4rem,2.8vw,2.6rem)" }}
-          initial={{ opacity: 0, y: 24 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.85, ease, delay: 0.15 }}
-        >
-          {quote}
-        </motion.blockquote>
+function ScrollChapters() {
+  const ref = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end end"],
+  });
+  const progress = useSpring(scrollYProgress, scrollSpring);
+  const x = useTransform(progress, [0, 1], ["0%", "-66.6667%"]);
 
-        <motion.div
-          className="mt-14 flex items-center justify-center gap-5"
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 1.2 }}
-        >
-          <motion.div className="h-px w-14 bg-background/20"
-            initial={{ scaleX: 0 }} animate={isInView ? { scaleX: 1 } : {}}
-            transition={{ duration: 0.8, delay: 1.3 }} style={{ transformOrigin: "left" }} />
-          <div className="h-2 w-2 rotate-45 border border-couture-red" />
-          <motion.div className="h-px w-14 bg-background/20"
-            initial={{ scaleX: 0 }} animate={isInView ? { scaleX: 1 } : {}}
-            transition={{ duration: 0.8, delay: 1.4 }} style={{ transformOrigin: "right" }} />
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          className="mt-16 grid grid-cols-3 gap-6 border-t border-background/10 pt-14 md:mt-20 md:pt-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease, delay: 1.4 }}
-        >
-          {[
-            { value: "3", label: "Collections" },
-            { value: "47", label: "Pieces made" },
-            { value: "∞", label: "Heritage" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="mb-2 font-serif text-background" style={{ fontSize: "clamp(1.8rem,3vw,2.4rem)" }}>{stat.value}</p>
-              <p className="label-mono text-background/40">{stat.label}</p>
+  return (
+    <>
+      <section className="bg-[#08090b] px-4 py-16 text-white md:hidden">
+        <div className="mb-8 flex items-end justify-between px-2">
+          <div>
+            <p className="text-[0.62rem] uppercase tracking-[0.24em] text-[#d45c7b]">Studio principles</p>
+            <h2 className="mt-3 font-serif text-4xl">Three acts</h2>
+          </div>
+          <span className="text-[0.6rem] uppercase tracking-[0.2em] text-white/40">Swipe</span>
+        </div>
+        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {CHAPTERS.map((chapter) => (
+            <div key={chapter.number} className="h-[72svh] snap-center">
+              <Chapter chapter={chapter} />
             </div>
           ))}
+        </div>
+      </section>
+
+      <section ref={ref} className="relative hidden h-[400vh] bg-[#08090b] md:block">
+        <div className="sticky top-0 h-screen overflow-hidden">
+          <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex items-center justify-between px-8 pt-28 lg:px-12">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-white/62">
+              Studio principles / scroll to move
+            </p>
+            <p className="font-serif text-xl text-white/48">01 — 03</p>
+          </div>
+          <motion.div
+            className="absolute left-0 top-0 z-20 h-px w-full origin-left bg-[#d45c7b]"
+            style={{ scaleX: reduceMotion ? 1 : progress }}
+          />
+          <motion.div
+            className="flex h-full w-[300vw]"
+            style={{ x: reduceMotion ? "-66.6667%" : x }}
+          >
+            {CHAPTERS.map((chapter) => (
+              <Chapter chapter={chapter} key={chapter.number} />
+            ))}
+          </motion.div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function OnTheBody({ materialVideoSrc }: { materialVideoSrc: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-10%" });
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <section ref={ref} className="relative min-h-[100svh] overflow-hidden bg-[#0a0a0b] text-white">
+      <video
+        className="absolute inset-0 h-full w-full object-cover"
+        autoPlay={!reduceMotion}
+        muted
+        loop
+        playsInline
+        poster={HERO_POSTER}
+        aria-hidden="true"
+      >
+        <source src={materialVideoSrc} type="video/mp4" />
+      </video>
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,9,11,.22),rgba(8,9,11,.92))]" />
+
+      <div className="site-shell relative z-10 flex min-h-[100svh] flex-col justify-between py-28 md:py-36">
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, ease }}
+        >
+          <p className="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-[#d45c7b]">The object in motion</p>
+        </motion.div>
+
+        <motion.div
+          className="max-w-4xl"
+          initial={{ opacity: 0, y: 42 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 1, delay: 0.16, ease }}
+        >
+          <h2 className="font-serif text-[clamp(3rem,7vw,7rem)] leading-[0.88] tracking-[-0.04em]">
+            Jewelry is not still.
+            <br />
+            <em className="font-normal text-[#d45c7b]">It remembers touch.</em>
+          </h2>
+          <p className="mt-8 max-w-lg text-sm leading-[1.85] text-white/68 md:text-base">
+            Every decision is tested against the body: how the piece catches light, how it settles, and how its materials change through wear.
+          </p>
         </motion.div>
       </div>
     </section>
   );
 }
 
-/* ─── CTA Footer ─────────────────────────────────────────────────── */
-function AboutFooter() {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
+function FinalInvitation() {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-10%" });
 
   return (
-    <div ref={ref} className="relative overflow-hidden bg-surface py-20 md:py-32">
-      <div className="site-shell relative z-10 flex flex-col items-center gap-8 text-center">
-        <motion.div className="flex items-center gap-5"
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.7, ease }}>
-          <div className="h-px w-14 bg-foreground/15" />
-          <div className="h-2 w-2 rotate-45 border border-couture-red" />
-          <div className="h-px w-14 bg-foreground/15" />
-        </motion.div>
+    <section ref={ref} className="relative overflow-hidden bg-[#0a0a0b] py-28 text-[#f2efe9] md:py-44">
+      <img
+        src={DARK_IMAGE}
+        alt="Dark symbolic Synarava bracelet"
+        className="absolute -right-[10%] top-1/2 h-[72%] w-[62%] -translate-y-1/2 object-cover opacity-32 grayscale md:w-[48%]"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,#0a0a0b_28%,rgba(10,10,11,.78)_62%,#0a0a0b)]" />
 
-        <motion.p className="label-mono text-couture-red"
-          initial={{ opacity: 0, y: 12 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7, ease, delay: 0.1 }}>
-          Enter the archive
+      <div className="site-shell relative z-10">
+        <motion.p
+          className="max-w-5xl font-serif text-[clamp(3.2rem,7.8vw,7.8rem)] leading-[0.86] tracking-[-0.04em]"
+          initial={{ opacity: 0, y: 44 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 1, ease }}
+        >
+          The archive is not a room.
+          <br />
+          <em className="font-normal text-[#d45c7b]">It is what you carry.</em>
         </motion.p>
-        <motion.h2
-          className="max-w-xl font-serif leading-[1.05]"
-          style={{ fontSize: "clamp(1.8rem,4vw,3.2rem)" }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.85, ease, delay: 0.18 }}>
-          Ready to find your piece?
-        </motion.h2>
-
         <motion.div
-          className="flex flex-col items-center gap-4 sm:flex-row sm:gap-5"
-          initial={{ opacity: 0, y: 14 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease, delay: 0.28 }}>
-          <PrimaryCtaButton href="/shop">Shop all products</PrimaryCtaButton>
-          <ArtifactLink href="/collections" variant="ghost" size="sm">
-            View collections
-          </ArtifactLink>
+          className="mt-12 flex flex-col items-start gap-5 sm:flex-row sm:items-center"
+          initial={{ opacity: 0, y: 24 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.24, ease }}
+        >
+          <PrimaryCtaButton href="/shop">Enter the collection</PrimaryCtaButton>
+          <Link
+            href="/collections"
+            className="inline-flex items-center gap-3 border-b border-white/20 px-1 pb-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white hover:border-[#d45c7b] hover:text-[#d45c7b]"
+          >
+            Browse the worlds <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </motion.div>
       </div>
-    </div>
+    </section>
   );
 }
 
-/* ─── Root Export ────────────────────────────────────────────────── */
 export function AboutPage({
   title,
   excerpt,
@@ -587,6 +390,8 @@ export function AboutPage({
   ctaHref,
   ctaLabel,
   secondaryBody,
+  heroVideoSrc = HERO_VIDEO,
+  materialVideoSrc = MATERIAL_VIDEO,
 }: {
   title: string;
   excerpt: string;
@@ -594,21 +399,23 @@ export function AboutPage({
   ctaHref: string;
   ctaLabel: string;
   secondaryBody: string;
+  heroVideoSrc?: string;
+  materialVideoSrc?: string;
 }) {
   return (
-    <main className="artifact-shell min-h-screen overflow-x-hidden">
+    <main className="about-experience min-h-screen overflow-x-clip bg-[#08090b]">
       <AboutHero
         title={title}
         excerpt={excerpt}
         eyebrow={eyebrow}
         ctaHref={ctaHref}
         ctaLabel={ctaLabel}
+        heroVideoSrc={heroVideoSrc}
       />
-      <PrinciplesSection />
-      <PatternShowcase />
-      <StorySection secondaryBody={secondaryBody} />
-      <DarkQuoteSection />
-      <AboutFooter />
+      <Manifesto secondaryBody={secondaryBody} />
+      <ScrollChapters />
+      <OnTheBody materialVideoSrc={materialVideoSrc} />
+      <FinalInvitation />
     </main>
   );
 }

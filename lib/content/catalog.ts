@@ -7,6 +7,10 @@ function fallbackUploadUrl(key: string) {
     return `${process.env.S3_PUBLIC_URL.replace(/\/+$/, "")}/${normalizedKey}`;
   }
 
+  if (process.env.S3_USE_PROXY === "true") {
+    return `/media/${normalizedKey}`;
+  }
+
   if (process.env.S3_ENDPOINT && process.env.S3_BUCKET) {
     return `${process.env.S3_ENDPOINT.replace(/\/+$/, "")}/${process.env.S3_BUCKET}/${normalizedKey}`;
   }

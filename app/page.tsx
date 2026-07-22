@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getPageBySlug, listCollections } from "@/lib/content/catalog";
+import { getSiteVideos } from "@/lib/site-videos";
 import { HomePage } from "@/components/home/home-page";
 
 export const metadata: Metadata = {
@@ -21,9 +22,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const [page, collectionData] = await Promise.all([
+  const [page, collectionData, videos] = await Promise.all([
     getPageBySlug("home"),
     listCollections(),
+    getSiteVideos(),
   ]);
 
   const collections = collectionData.slice(0, 3).map((c, i) => ({
@@ -42,6 +44,7 @@ export default async function Page() {
       excerpt={page?.excerpt}
       content={content}
       collections={collections}
+      heroVideoSrc={[videos.homeBeads, videos.homeModel, videos.braceletFilm, videos.materialsFilm]}
     />
   );
 }

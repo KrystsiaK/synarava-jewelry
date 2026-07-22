@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
+import Script from "next/script";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { getThemeScript } from "@/components/theme/theme-script";
+import { ThemeScript } from "@/components/theme/theme-script";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getCartCount } from "@/lib/commerce/cart";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -94,8 +95,10 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <script
+        <Script
+          id="organization-json-ld"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
@@ -108,12 +111,7 @@ export default async function RootLayout({
             }),
           }}
         />
-        <script
-          id="theme-initializer-script"
-          dangerouslySetInnerHTML={{
-            __html: getThemeScript(themePreference),
-          }}
-        />
+        <ThemeScript initialPreference={themePreference} />
         <TranslationProvider initialLocale={initialLocale}>
           <svg
             id="lg-filter-svg"
@@ -135,7 +133,7 @@ export default async function RootLayout({
             </defs>
           </svg>
           <ThemeProvider initialPreference={themePreference}>
-            <SiteHeader key={`${themePreference}-${cartCount}`} initialCartCount={cartCount} isLoggedIn={!!currentUser} />
+            <SiteHeader initialCartCount={cartCount} isLoggedIn={!!currentUser} />
             {children}
             <SiteFooter />
           </ThemeProvider>

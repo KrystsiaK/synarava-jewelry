@@ -31,9 +31,9 @@ test.describe("Navigation", () => {
     await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeVisible();
   });
 
-  test("theme toggle is present", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByLabel("Theme switcher")).toBeVisible();
+  test("theme toggle is present on non-immersive pages", async ({ page }) => {
+    await page.goto("/about");
+    await expect(page.getByRole("banner").getByLabel("Theme switcher")).toBeVisible();
   });
 
   test("/about/manifesto loads", async ({ page }) => {

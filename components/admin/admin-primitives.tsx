@@ -129,6 +129,7 @@ export function LocaleTabStrip() {
 const NAV_ITEMS = [
   { href: "/admin", exact: true, label: "Overview", code: "CTRL" },
   { href: "/admin/pages", label: "Pages", code: "PGS" },
+  { href: "/admin/videos", label: "Videos", code: "VID" },
   { href: "/admin/products", label: "Catalog", code: "CAT" },
   { href: "/admin/issues", label: "Problems", code: "QA" },
   { href: "/admin/categories", label: "Categories", code: "TAX" },

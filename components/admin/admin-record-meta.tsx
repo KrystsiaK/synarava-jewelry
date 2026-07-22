@@ -10,6 +10,7 @@ import {
   type AdminAuditEntityType,
   type AdminRecordHistoryItem,
 } from "@/app/admin/actions";
+import { AnimatedModal } from "@/components/ui/animated-modal";
 
 export type AdminRecordMeta = {
   createdAt: Date | string;
@@ -102,18 +103,16 @@ export function AdminRecordMetaModal({
     });
   }
 
-  if (!open || !record) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center px-6"
-      style={{ background: "rgba(5,4,3,0.82)", backdropFilter: "blur(10px)" }}
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <AnimatedModal
+      open={open && Boolean(record)}
+      onClose={onClose}
+      className="adm-panel pointer-events-auto w-full max-w-lg p-6"
+      zIndexClassName="z-[200]"
+      backdropZIndexClassName="z-[190]"
     >
-      <div className="adm-panel w-full max-w-lg p-6" role="dialog" aria-modal="true">
+      {record ? (
+        <>
         <p className="adm-section-tag mb-3">[ RECORD DETAILS ]</p>
         <h3 className="adm-title-sm">{title}</h3>
         {subtitle ? (
@@ -198,7 +197,8 @@ export function AdminRecordMetaModal({
             Open editor
           </Link>
         </div>
-      </div>
-    </div>
+        </>
+      ) : null}
+    </AnimatedModal>
   );
 }

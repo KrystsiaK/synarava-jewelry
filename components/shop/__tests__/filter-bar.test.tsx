@@ -166,7 +166,9 @@ describe("FilterBar", () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
-    expect(screen.getByRole("dialog", { name: /filter products/i })).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: /filter products/i });
+    expect(dialog).toBeInTheDocument();
+    await waitFor(() => expect(dialog).toHaveAttribute("data-open", "true"));
   });
 
   it("closes mobile sheet when X button is clicked", async () => {
@@ -174,7 +176,8 @@ describe("FilterBar", () => {
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     await user.click(screen.getByRole("button", { name: /close filters/i }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-open", "false");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("applies filters from mobile sheet and navigates", async () => {

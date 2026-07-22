@@ -8,6 +8,9 @@ import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 const MAX_IMAGE_DIMENSION = 3200;
 const LARGE_IMAGE_BYTES = 4 * 1024 * 1024;
 const WEBP_QUALITY = 94;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 
 function sanitizeBaseName(filename: string) {
   return filename
@@ -31,6 +34,8 @@ function extensionFromFile(file: File) {
     "image/svg+xml": ".svg",
     "image/gif": ".gif",
     "image/avif": ".avif",
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
   };
 
   return map[file.type] ?? ".bin";
@@ -160,4 +165,43 @@ export async function saveProductImageUpload(file: File) {
 
 export async function saveCollectionImageUpload(file: File) {
   return saveImageUpload(file, "collections", "collection-image");
+}
+
+export async function saveSiteVideoUpload(file: File, slot: string) {
+  if (!file || file.size === 0) {
+    return null;
+  }
+
+  if (!VIDEO_TYPES.has(file.type)) {
+    throw new Error("Only MP4 and WebM video uploads are supported.");
+  }
+
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error("Video must be 50 MB or smaller.");
+  }
+
+  const extension = extensionFromFile(file);
+  const baseName = sanitizeBaseName(file.name || `${slot}-video`);
+  const filename = `${baseName}-${randomUUID()}${extension}`;
+  const storageKey = `uploads/videos/${slot}/${filename}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  await getS3().send(
+    new PutObjectCommand({
+      Bucket: getS3Bucket(),
+      Key: storageKey,
+      Body: buffer,
+      ContentType: file.type,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
+
+  return {
+    filename,
+    extension,
+    mimeType: file.type,
+    sizeBytes: buffer.byteLength,
+    publicPath: getS3PublicUrl(storageKey),
+    storageKey,
+  };
 }

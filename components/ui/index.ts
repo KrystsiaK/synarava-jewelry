@@ -1,4 +1,5 @@
 export { ArtifactButton, ArtifactLink, artifactButtonClasses } from "./artifact-button";
+export { AnimatedModal } from "./animated-modal";
 export { ArtifactPanel } from "./artifact-panel";
 export { BodyLead } from "./body-lead";
 export { CapsLabel } from "./caps-label";

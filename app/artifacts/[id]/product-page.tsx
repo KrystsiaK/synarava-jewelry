@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getProductBySlug } from "@/lib/content/catalog";
+import { getSiteVideos } from "@/lib/site-videos";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 
 function safeJsonLd(obj: unknown): string {
@@ -43,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductDetailPage({ params }: Props) {
   const resolved = await params;
   const key = resolved.slug ?? resolved.id ?? "";
-  const product = await getProductBySlug(key);
+  const [product, videos] = await Promise.all([getProductBySlug(key), getSiteVideos()]);
 
   if (!product) notFound();
 
@@ -86,7 +87,7 @@ export default async function ProductDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
-      <ProductDetail product={product} />
+      <ProductDetail product={product} fitVideoSrc={videos.braceletFilm} />
     </>
   );
 }

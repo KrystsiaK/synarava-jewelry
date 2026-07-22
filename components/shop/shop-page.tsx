@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useRef } from "react";
 import {
+  AnimatePresence,
+  LayoutGroup,
   motion,
   useInView,
   useReducedMotion,
@@ -28,10 +30,15 @@ const SHOP_HERO_SPRING = {
   restDelta: 0.0005,
 } as const;
 
-function ShopHero({ products }: { products: ProductSummary[] }) {
+function ShopHero({
+  leadProduct,
+  archiveCount,
+}: {
+  leadProduct?: ProductSummary;
+  archiveCount: number;
+}) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
-  const leadProduct = products[0];
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -115,7 +122,7 @@ function ShopHero({ products }: { products: ProductSummary[] }) {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-x-10 gap-y-3 border-t border-white/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/55 md:mt-10">
-          <span><strong className="mr-2 text-couture-red">{String(products.length).padStart(2, "0")}</strong> objects available</span>
+          <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong> objects available</span>
           <span>Small-batch / numbered</span>
         </div>
       </motion.div>
@@ -243,6 +250,7 @@ function EmptyState({ filters, categories, collections, tags }: EmptyStateProps)
 function ProductGrid({ products }: { products: ProductSummary[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-6%" });
+  const reduceMotion = useReducedMotion() ?? false;
 
   /* Editorial offset rules matching the original grid */
   function offsetClass(index: number) {
@@ -252,27 +260,46 @@ function ProductGrid({ products }: { products: ProductSummary[] }) {
   }
 
   return (
-    <div
+    <motion.div
       ref={ref}
+      layout
       className="grid grid-cols-1 gap-x-4 gap-y-10 sm:grid-cols-2 md:gap-x-6 md:gap-y-20 lg:grid-cols-3"
+      transition={{ layout: reduceMotion ? { duration: 0 } : { duration: 0.52, ease } }}
     >
-      {products.map((product, index) => {
-        const isFeatured = index === 0;
-        return (
-          <div
-            key={product.slug}
-            className={`${isFeatured ? "sm:col-span-2 lg:col-span-2" : ""} ${offsetClass(index) ?? ""}`}
-          >
-            <ProductCard
-              product={product}
-              index={index}
-              isFeatured={isFeatured}
-              isParentInView={isInView}
-            />
-          </div>
-        );
-      })}
-    </div>
+      <AnimatePresence initial={false} mode="popLayout">
+        {products.map((product, index) => {
+          const isFeatured = index === 0;
+          return (
+            <motion.div
+              layout
+              key={product.slug}
+              className={`${isFeatured ? "sm:col-span-2 lg:col-span-2" : ""} ${offsetClass(index) ?? ""}`}
+              initial={reduceMotion ? false : { opacity: 0, y: 22, scale: 0.985, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.985, filter: "blur(4px)" }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : {
+                      layout: { duration: 0.52, ease },
+                      opacity: { duration: 0.24, ease },
+                      y: { duration: 0.42, ease },
+                      scale: { duration: 0.42, ease },
+                      filter: { duration: 0.28, ease },
+                    }
+              }
+            >
+              <ProductCard
+                product={product}
+                index={index}
+                isFeatured={isFeatured}
+                isParentInView={isInView}
+              />
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -352,10 +379,12 @@ function ShopFooter() {
 /* ─── Root ───────────────────────────────────────────────────────── */
 export type ShopPageProps = {
   products: ProductSummary[];
+  leadProduct?: ProductSummary;
+  archiveCount: number;
   filterProps: Omit<FilterBarProps, "totalCount">;
 };
 
-export function ShopPage({ products, filterProps }: ShopPageProps) {
+export function ShopPage({ products, leadProduct, archiveCount, filterProps }: ShopPageProps) {
   return (
     <main
       className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-[#09090a] text-foreground selection:bg-couture-red selection:text-white"
@@ -374,7 +403,7 @@ export function ShopPage({ products, filterProps }: ShopPageProps) {
         "--color-glass": "rgba(18,18,20,0.86)",
       } as CSSProperties}
     >
-      <ShopHero products={products} />
+      <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} />
 
       <div className="relative bg-background pb-16 pt-10 md:pb-24 md:pt-14">
         <div
@@ -388,16 +417,28 @@ export function ShopPage({ products, filterProps }: ShopPageProps) {
         <div className="site-shell">
           <FilterSection filterProps={filterProps} totalCount={products.length} />
 
-          {products.length === 0 ? (
-            <EmptyState
-              filters={filterProps.initialFilters}
-              categories={filterProps.categories}
-              collections={filterProps.collections}
-              tags={filterProps.tags}
-            />
-          ) : (
-            <ProductGrid products={products} />
-          )}
+          <LayoutGroup id="shop-results">
+            <AnimatePresence mode="wait" initial={false}>
+              {products.length === 0 ? (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, y: 18, filter: "blur(5px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                  transition={{ duration: 0.34, ease }}
+                >
+                  <EmptyState
+                    filters={filterProps.initialFilters}
+                    categories={filterProps.categories}
+                    collections={filterProps.collections}
+                    tags={filterProps.tags}
+                  />
+                </motion.div>
+              ) : (
+                <ProductGrid key="products" products={products} />
+              )}
+            </AnimatePresence>
+          </LayoutGroup>
         </div>
       </div>
 

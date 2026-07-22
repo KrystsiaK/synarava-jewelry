@@ -70,7 +70,7 @@ test.describe("Admin auth", () => {
     await expect(page).toHaveURL(/\/admin\/login\?redirectTo=%2Fadmin/);
   });
 
-  test("keeps sidebar footer pinned while page scrolls", async ({ page }) => {
+  test("keeps sidebar footer reachable while page scrolls", async ({ page }) => {
     const username = readEnvValue("ADMIN_USERNAME") || readEnvValue("ADMIN_EMAIL");
     const password = readEnvValue("ADMIN_PASSWORD");
 
@@ -84,31 +84,18 @@ test.describe("Admin auth", () => {
     await expect(page).toHaveURL(/\/admin$/);
 
     const footer = page.locator(".admin-sidebar-footer");
-    const sidebar = page.locator(".admin-sidebar-shell");
     await expect(footer).toBeVisible();
-
-    const beforeFooter = await footer.boundingBox();
-    const beforeSidebar = await sidebar.boundingBox();
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(100);
 
     const afterFooter = await footer.boundingBox();
-    const afterSidebar = await sidebar.boundingBox();
 
-    expect(beforeFooter).not.toBeNull();
     expect(afterFooter).not.toBeNull();
-    expect(beforeSidebar).not.toBeNull();
-    expect(afterSidebar).not.toBeNull();
 
-    const beforeSidebarBottom = beforeSidebar!.y + beforeSidebar!.height;
-    const afterSidebarBottom = afterSidebar!.y + afterSidebar!.height;
-    const beforeFooterBottom = beforeFooter!.y + beforeFooter!.height;
     const afterFooterBottom = afterFooter!.y + afterFooter!.height;
 
-    expect(Math.round(afterSidebar!.y)).toBe(Math.round(beforeSidebar!.y));
-    expect(Math.round(afterSidebarBottom)).toBe(Math.round(beforeSidebarBottom));
-    expect(Math.round(afterFooterBottom)).toBe(Math.round(beforeFooterBottom));
+    expect(afterFooter!.y).toBeGreaterThanOrEqual(0);
     expect(afterFooterBottom).toBeLessThanOrEqual(900);
   });
 

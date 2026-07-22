@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BrandMark } from "@/components/ui/brand-mark";
@@ -19,10 +20,17 @@ type SiteHeaderProps = {
 export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderProps) {
   const pathname = usePathname();
   const { t } = useTranslations();
-  const [cartCountOverride, setCartCountOverride] = useState<number | null>(null);
+  const reduceMotion = useReducedMotion() ?? false;
+  const [cartCountOverride, setCartCountOverride] = useState<{
+    count: number;
+    sourceCount: number;
+  } | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasScrolledHeader, setHasScrolledHeader] = useState(false);
-  const cartCount = cartCountOverride ?? initialCartCount;
+  const cartCount =
+    cartCountOverride?.sourceCount === initialCartCount
+      ? cartCountOverride.count
+      : initialCartCount;
   const hasCartItems = cartCount > 0;
   const isHome = pathname === "/";
   const usesImmersiveTheme =
@@ -34,7 +42,8 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
     pathname.startsWith("/checkout") ||
     pathname.startsWith("/collections") ||
     pathname.startsWith("/products") ||
-    pathname.startsWith("/artifacts");
+    pathname.startsWith("/artifacts") ||
+    pathname.startsWith("/about");
 
   const navItems = [
     { href: "/", label: t("nav.home"), match: "/" },
@@ -46,14 +55,17 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
   useEffect(() => {
     function handleCartUpdated(event: Event) {
       const detail = (event as CustomEvent<{ count?: number }>).detail;
-      setCartCountOverride(detail?.count ?? 0);
+      setCartCountOverride({
+        count: detail?.count ?? 0,
+        sourceCount: initialCartCount,
+      });
     }
 
     window.addEventListener("synarava:cart-updated", handleCartUpdated);
     return () => {
       window.removeEventListener("synarava:cart-updated", handleCartUpdated);
     };
-  }, []);
+  }, [initialCartCount]);
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
@@ -82,6 +94,8 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
 
   useEffect(() => {
     let frame = 0;
+    let isListening = false;
+    const desktopQuery = window.matchMedia("(min-width: 920px)");
 
     function updateHeader() {
       const currentY = window.scrollY;
@@ -94,12 +108,31 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       frame = window.requestAnimationFrame(updateHeader);
     }
 
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    function syncScrollListener() {
+      if (desktopQuery.matches && !isListening) {
+        isListening = true;
+        handleScroll();
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return;
+      }
+
+      if (!desktopQuery.matches && isListening) {
+        isListening = false;
+        window.removeEventListener("scroll", handleScroll);
+        if (frame) window.cancelAnimationFrame(frame);
+        frame = 0;
+      }
+
+      if (!desktopQuery.matches) setHasScrolledHeader(false);
+    }
+
+    syncScrollListener();
+    desktopQuery.addEventListener("change", syncScrollListener);
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", handleScroll);
+      if (isListening) window.removeEventListener("scroll", handleScroll);
+      desktopQuery.removeEventListener("change", syncScrollListener);
     };
   }, []);
 
@@ -127,7 +160,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
         data-menu-open={isMenuOpen ? "true" : "false"}
       >
         <LiquidGlassSurface
-          className="absolute inset-0 z-0 h-full w-full"
+          className="site-nav-liquid-glass absolute inset-0 z-0 h-full w-full"
           variant="clear-glass"
           tone="neutral"
           effect="default"
@@ -147,6 +180,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
         >
           <div className="hidden" aria-hidden="true" />
         </LiquidGlassSurface>
+        <div className="site-nav-mobile-glass absolute inset-0 z-0" aria-hidden="true" />
 
         <div className="z-10 flex items-center gap-2 md:gap-4">
           <button
@@ -218,10 +252,30 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           >
             <span className="relative inline-flex items-center justify-center">
               <ShoppingBag className="size-5" />
-              <span className="t-badge" data-open={cartCount > 0 ? "true" : "false"}>
-                <span className="t-badge-dot inline-flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full border border-background/10 bg-foreground/88 px-1 text-[9px] font-semibold text-background shadow-[0_4px_10px_rgba(0,0,0,0.22)] backdrop-blur-sm">
-                  {cartCount}
-                </span>
+              <span className="t-badge" aria-hidden="true">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {hasCartItems ? (
+                    <motion.span
+                      key={cartCount}
+                      className="t-badge-dot"
+                      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.42, y: 3, filter: "blur(2px)" }}
+                      animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.52, y: -3, filter: "blur(1px)" }}
+                      transition={
+                        reduceMotion
+                          ? { duration: 0 }
+                          : {
+                              type: "spring",
+                              stiffness: 520,
+                              damping: 21,
+                              mass: 0.52,
+                            }
+                      }
+                    >
+                      {cartCount}
+                    </motion.span>
+                  ) : null}
+                </AnimatePresence>
               </span>
             </span>
             <span

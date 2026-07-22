@@ -28,6 +28,8 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: optionalString,
   S3_ENDPOINT: optionalUrl,
   S3_PUBLIC_URL: optionalUrl,
+  S3_FORCE_PATH_STYLE: optionalString,
+  S3_USE_PROXY: optionalString,
   DEEPL_API_KEY: optionalString,
 });
 
@@ -49,5 +51,7 @@ export const env = envSchema.parse({
   S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
   S3_ENDPOINT: process.env.S3_ENDPOINT,
   S3_PUBLIC_URL: process.env.S3_PUBLIC_URL,
+  S3_FORCE_PATH_STYLE: process.env.S3_FORCE_PATH_STYLE,
+  S3_USE_PROXY: process.env.S3_USE_PROXY,
   DEEPL_API_KEY: process.env.DEEPL_API_KEY,
 });

@@ -382,7 +382,7 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Craftsmanship / Stats dark section ─────────────────────────── */
-function CraftSection({ product }: { product: ProductSummary }) {
+function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -422,7 +422,7 @@ function CraftSection({ product }: { product: ProductSummary }) {
             <video
               ref={videoRef}
               className="h-full w-full object-cover grayscale contrast-[1.08]"
-              src="/videos/Man_bracelet_hero_web.mp4"
+              src={fitVideoSrc}
               poster={product.process.mediaImage}
               autoPlay={!reduceMotion}
               muted
@@ -665,7 +665,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Root ───────────────────────────────────────────────────────── */
-export function ProductDetail({ product }: { product: ProductSummary }) {
+export function ProductDetail({ product, fitVideoSrc = "/videos/Man_bracelet_hero_web.mp4" }: { product: ProductSummary; fitVideoSrc?: string }) {
   const pageStyle = {
     "--color-background": "#09090a",
     "--color-foreground": "#eeeae4",
@@ -685,7 +685,7 @@ export function ProductDetail({ product }: { product: ProductSummary }) {
       <ProductHero product={product} />
       <MaterialsSection product={product} />
       <SymbolismSection product={product} />
-      <CraftSection product={product} />
+      <CraftSection product={product} fitVideoSrc={fitVideoSrc} />
       <LookbookSection product={product} />
       <ProductFooter product={product} />
     </main>

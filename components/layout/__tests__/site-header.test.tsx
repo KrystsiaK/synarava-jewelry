@@ -1,4 +1,4 @@
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { usePathname } from "next/navigation";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -68,6 +68,18 @@ describe("SiteHeader", () => {
       window.dispatchEvent(new CustomEvent("synarava:cart-updated", { detail: { count: 5 } }));
     });
     expect(await screen.findByText("5")).toBeInTheDocument();
+  });
+
+  it("accepts the refreshed server count after a local cart update", async () => {
+    const { rerender } = render(<SiteHeader initialCartCount={2} />, { wrapper: Wrapper });
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent("synarava:cart-updated", { detail: { count: 5 } }));
+    });
+    expect(await screen.findByText("5")).toBeInTheDocument();
+
+    rerender(<SiteHeader initialCartCount={3} />);
+    await waitFor(() => expect(screen.getByText("3")).toBeInTheDocument());
   });
 
   it("marks active Home nav link when on /", () => {

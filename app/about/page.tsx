@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getPageBySlug } from "@/lib/content/catalog";
+import { getSiteVideos } from "@/lib/site-videos";
 import { AboutPage } from "@/components/about/about-page";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const page = await getPageBySlug("about");
+  const [page, videos] = await Promise.all([getPageBySlug("about"), getSiteVideos()]);
   const content = page?.content ?? {};
 
   return (
@@ -39,6 +40,8 @@ export default async function Page() {
         content.secondaryBody ??
         "The idea is simple: if someone wants to buy, they should go to Shop. If they want the broader aesthetic context, they should go to Collections. If they want to understand the studio itself, they should come here. The manifesto remains available, but it no longer replaces the About page."
       }
+      heroVideoSrc={videos.braceletFilm}
+      materialVideoSrc={videos.materialsFilm}
     />
   );
 }

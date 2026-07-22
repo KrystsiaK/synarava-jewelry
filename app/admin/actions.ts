@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/client";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
-import { saveCollectionImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
+import { saveCollectionImageUpload, saveProductImageUpload, saveSiteVideoUpload } from "@/lib/media/local-upload";
+import { SITE_VIDEO_SETTING_KEY, siteVideoSlots, type SiteVideoSlot } from "@/lib/site-videos";
 
 function slugify(value: string) {
   return value
@@ -78,6 +79,71 @@ function revalidateStorefront() {
   revalidatePath("/products/[slug]", "page");
   revalidatePath("/about");
   revalidatePath("/about/manifesto");
+}
+
+export type SiteVideosActionState = {
+  error?: string;
+  success?: string;
+};
+
+export async function saveSiteVideosAction(formData: FormData): Promise<SiteVideosActionState> {
+  const currentUser = await requireAdminSession("/admin/videos");
+  const existing = await db.siteSetting.findUnique({
+    where: { key: SITE_VIDEO_SETTING_KEY },
+    select: { value: true },
+  });
+  const current: Record<string, Prisma.InputJsonValue | null> = {};
+  if (existing?.value && typeof existing.value === "object") {
+    for (const [key, value] of Object.entries(existing.value as Prisma.InputJsonObject)) {
+      if (value !== undefined) current[key] = value;
+    }
+  }
+  const uploadedAssets: Array<{ slot: SiteVideoSlot; id: string }> = [];
+
+  try {
+    for (const slot of Object.keys(siteVideoSlots) as SiteVideoSlot[]) {
+      const file = formData.get(slot);
+      if (!(file instanceof File) || file.size === 0) continue;
+
+      const uploaded = await saveSiteVideoUpload(file, slot);
+      if (!uploaded) continue;
+
+      current[slot] = uploaded.publicPath;
+      const asset = await db.mediaAsset.create({
+        data: {
+          key: uploaded.storageKey,
+          filename: uploaded.filename,
+          mimeType: uploaded.mimeType,
+          extension: uploaded.extension.replace(/^\./, ""),
+          sizeBytes: uploaded.sizeBytes,
+          bucket: process.env.S3_BUCKET ?? null,
+          source: "UPLOAD",
+          status: "READY",
+          uploadedById: currentUser?.id ?? null,
+        },
+        select: { id: true },
+      });
+      uploadedAssets.push({ slot, id: asset.id });
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Video upload failed." };
+  }
+
+  if (uploadedAssets.length === 0) {
+    return { error: "Choose at least one MP4 or WebM video to upload." };
+  }
+
+  await db.siteSetting.upsert({
+    where: { key: SITE_VIDEO_SETTING_KEY },
+    update: { value: current as Prisma.InputJsonObject },
+    create: { key: SITE_VIDEO_SETTING_KEY, value: current as Prisma.InputJsonObject },
+  });
+
+  revalidateStorefront();
+  revalidatePath("/admin/videos");
+  return {
+    success: `${uploadedAssets.length} video${uploadedAssets.length === 1 ? "" : "s"} uploaded to S3 and published.`,
+  };
 }
 
 export type AdminAuditEntityType = "PRODUCT" | "COLLECTION" | "PAGE" | "CATEGORY" | "TAG";

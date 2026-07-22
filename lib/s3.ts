@@ -22,7 +22,12 @@ export function getS3() {
               secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
             }
           : undefined,
-      forcePathStyle: Boolean(process.env.S3_ENDPOINT),
+      forcePathStyle:
+        process.env.S3_FORCE_PATH_STYLE === "true"
+          ? true
+          : process.env.S3_FORCE_PATH_STYLE === "false"
+            ? false
+            : Boolean(process.env.S3_ENDPOINT),
     });
   }
 
@@ -47,6 +52,10 @@ export function getS3PublicUrl(key: string) {
 
   if (process.env.S3_PUBLIC_URL) {
     return `${trimTrailingSlash(process.env.S3_PUBLIC_URL)}/${normalizedKey}`;
+  }
+
+  if (process.env.S3_USE_PROXY === "true") {
+    return `/media/${normalizedKey}`;
   }
 
   const bucket = getS3Bucket();

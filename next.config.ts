@@ -54,7 +54,7 @@ const imageOrigins = [
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      bodySizeLimit: "12mb",
+      bodySizeLimit: "55mb",
     },
   },
   images: {
@@ -89,6 +89,7 @@ const nextConfig: NextConfig = {
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
       `img-src 'self' data: blob: ${imageOrigins.join(" ")}`,
+      `media-src 'self' ${imageOrigins.join(" ")}`,
       "connect-src 'self' https://api.stripe.com",
       "frame-src https://js.stripe.com",
       "font-src 'self' data:",

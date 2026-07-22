@@ -37,6 +37,8 @@
 | `S3_ENDPOINT` | Опционально — для совместимых хранилищ (Minio, R2, etc.) |
 | `S3_PUBLIC_URL` | Публичный origin бакета или CDN для `next/image` (`https://cdn.example.com` или публичный S3 endpoint) |
 
+Видео storefront загружаются только через `/admin/videos` и требуют S3. Для Railway Bucket добавьте references на `REGION`, `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `ENDPOINT`, а также `S3_FORCE_PATH_STYLE=false` и `S3_USE_PROXY=true`. Не задавайте `S3_PUBLIC_URL`: нативные Railway Buckets приватные, поэтому приложение отдаёт медиа по `/media/uploads/*` через защищённый server-side proxy.
+
 ### Опциональные
 
 | Переменная | Описание |

@@ -31,7 +31,7 @@ function resolveTheme(preference: ThemePreference) {
 
 export function ThemeProvider({ children, initialPreference }: ThemeProviderProps) {
   const pathname = usePathname();
-  const isHome = pathname === "/";
+  const usesDarkArtDirection = pathname === "/" || pathname.startsWith("/about");
   const [preference, setPreferenceState] = useState<ThemePreference>(initialPreference);
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(
     initialPreference === "dark" ? "dark" : "light",
@@ -42,11 +42,11 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
 
     function applyTheme(nextPreference: ThemePreference) {
       const preferredTheme = resolveTheme(nextPreference);
-      const nextResolved = isHome ? "dark" : preferredTheme;
+      const nextResolved = usesDarkArtDirection ? "dark" : preferredTheme;
       const root = document.documentElement;
       root.dataset.themePreference = nextPreference;
       root.dataset.theme = nextResolved;
-      root.dataset.themeScope = isHome ? "home-dark" : "preference";
+      root.dataset.themeScope = usesDarkArtDirection ? "immersive-dark" : "preference";
       root.style.colorScheme = nextResolved;
       document.cookie = `${THEME_COOKIE_NAME}=${nextPreference}; path=/; max-age=31536000; samesite=lax`;
       setResolvedTheme(nextResolved);
@@ -65,7 +65,7 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
     return () => {
       media.removeEventListener("change", handleSystemThemeChange);
     };
-  }, [isHome, preference]);
+  }, [usesDarkArtDirection, preference]);
 
   const value = useMemo(
     () => ({

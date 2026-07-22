@@ -22,12 +22,17 @@ type Props = {
 
 export default async function Page({ searchParams }: Props) {
   const filters = (await searchParams) ?? {};
-  const { categories, tags, collections } = await getShopFilterData();
-  const products = await listShopProducts(filters);
+  const [{ categories, tags, collections }, products, archiveProducts] = await Promise.all([
+    getShopFilterData(),
+    listShopProducts(filters),
+    listShopProducts({}),
+  ]);
 
   return (
     <ShopPage
       products={products}
+      leadProduct={archiveProducts[0]}
+      archiveCount={archiveProducts.length}
       filterProps={{
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
         collections: collections.map((c) => ({ value: c.slug, label: c.name })),

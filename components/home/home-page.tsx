@@ -6,13 +6,15 @@ import { ArrowRight } from "lucide-react";
 import {
   cubicBezier,
   motion,
+  useMotionValue,
   useScroll,
   useSpring,
   useTransform,
   useReducedMotion,
 } from "motion/react";
-import type { CSSProperties } from "react";
-import { useMemo, useRef, useState } from "react";
+import type { MotionValue } from "motion/react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { ease } from "@/lib/animation";
 import { useTranslations } from "@/lib/i18n/context";
@@ -97,14 +99,169 @@ const FINAL_SCENE_SPRING = {
 
 const FINAL_SCENE_EASE = cubicBezier(0.33, 0, 0.2, 1);
 
+type HomeScrollOffset =
+  | "cover"
+  | "hero"
+  | "sticky"
+  | "record-exit";
+
+interface HomeScrollContextValue {
+  scrollY: MotionValue<number>;
+  isIOSWebKit: boolean;
+}
+
+const HomeScrollContext = createContext<HomeScrollContextValue | null>(null);
+
+function ActiveHomeScrollProvider({ children }: { children: ReactNode }) {
+  const { scrollY } = useScroll();
+  const value = useMemo(() => ({ scrollY, isIOSWebKit: false }), [scrollY]);
+
+  return <HomeScrollContext.Provider value={value}>{children}</HomeScrollContext.Provider>;
+}
+
+function IOSHomeScrollProvider({ children }: { children: ReactNode }) {
+  // iOS WebKit keeps page scrolling on its compositor thread only while JS
+  // isn't scrubbing a graph of MotionValues on every touch-scroll frame.
+  const scrollY = useMotionValue(0);
+  const value = useMemo(() => ({ scrollY, isIOSWebKit: true }), [scrollY]);
+
+  return <HomeScrollContext.Provider value={value}>{children}</HomeScrollContext.Provider>;
+}
+
+function isIOSWebKitBrowser() {
+  if (typeof navigator === "undefined") return false;
+
+  const appleMobileDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const touchEnabledIPad = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return appleMobileDevice || touchEnabledIPad;
+}
+
+function HomeScrollProvider({ children }: { children: ReactNode }) {
+  const [isIOSWebKit] = useState(isIOSWebKitBrowser);
+
+  return isIOSWebKit
+    ? <IOSHomeScrollProvider>{children}</IOSHomeScrollProvider>
+    : <ActiveHomeScrollProvider>{children}</ActiveHomeScrollProvider>;
+}
+
+function resolveScrollRange(
+  elementTop: number,
+  elementHeight: number,
+  viewportHeight: number,
+  offset: HomeScrollOffset,
+): [number, number] {
+  switch (offset) {
+    case "cover":
+      // Motion offset: ["start end", "end start"]
+      return [elementTop - viewportHeight, elementTop + elementHeight];
+    case "hero":
+      // Motion offset: ["start start", "end start"]
+      return [elementTop, elementTop + elementHeight];
+    case "sticky":
+      // Motion offset: ["start start", "end end"]
+      return [elementTop, elementTop + elementHeight - viewportHeight];
+    case "record-exit":
+      // Motion offset: ["start 20vh", "start -12vh"]
+      return [elementTop - viewportHeight * 0.2, elementTop + viewportHeight * 0.12];
+  }
+}
+
+function useElementScrollProgress<T extends HTMLElement>(
+  ref: RefObject<T | null>,
+  offset: HomeScrollOffset,
+) {
+  const context = useContext(HomeScrollContext);
+  const [range, setRange] = useState<[number, number]>([0, 1]);
+
+  if (!context) {
+    throw new Error("useElementScrollProgress must be used inside HomeScrollProvider");
+  }
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    let frame = 0;
+    let lastViewportWidth = window.innerWidth;
+
+    const measure = () => {
+      frame = 0;
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = document.documentElement.clientHeight;
+      const nextRange = resolveScrollRange(
+        rect.top + window.scrollY,
+        rect.height,
+        viewportHeight,
+        offset,
+      );
+
+      setRange((currentRange) =>
+        currentRange[0] === nextRange[0] && currentRange[1] === nextRange[1]
+          ? currentRange
+          : nextRange,
+      );
+    };
+
+    const scheduleMeasure = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+
+    const handleResize = () => {
+      // Safari's collapsing browser chrome can emit height-only resize events
+      // during touch scroll. Those must not bring layout reads back into the
+      // hot path. Width changes and orientation changes still remeasure.
+      if (window.innerWidth === lastViewportWidth) return;
+      lastViewportWidth = window.innerWidth;
+      scheduleMeasure();
+    };
+
+    measure();
+
+    const resizeObserver = new ResizeObserver(scheduleMeasure);
+    resizeObserver.observe(element);
+    resizeObserver.observe(document.body);
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("orientationchange", scheduleMeasure, { passive: true });
+    document.fonts?.ready.then(scheduleMeasure).catch(() => undefined);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", scheduleMeasure);
+    };
+  }, [offset, ref]);
+
+  return useTransform(context.scrollY, range, [0, 1], { clamp: true });
+}
+
+/**
+ * Scroll-linked sticky scenes are expensive for WebKit while a touch gesture is
+ * active. Keep them for pointer/desktop layouts, where they add value, and
+ * switch to the same content without a scroll timeline on compact viewports.
+ */
+function useDesktopViewport() {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(media.matches);
+
+    update();
+    media.addEventListener("change", update);
+
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isDesktop;
+}
+
 // Image Component with dynamic GPU-accelerated Parallax scroll behavior
 function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipPath: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
+  const scrollYProgress = useElementScrollProgress(ref, "cover");
 
   const smoothProgress = useSpring(scrollYProgress, SCROLL_SPRING);
   const transform = useTransform(
@@ -150,10 +307,7 @@ function HeroSection({
     ? videoSources[activeVideoIndex % videoSources.length]
     : undefined;
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
+  const scrollYProgress = useElementScrollProgress(containerRef, "hero");
   const smoothProgress = useSpring(scrollYProgress, SCROLL_SPRING);
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
@@ -270,33 +424,24 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
   const thirdRecordRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
 
-  const { scrollYProgress: firstRecordProgress } = useScroll({
-    target: firstRecordRef,
-    offset: ["start 20vh", "start -12vh"],
-  });
-  const { scrollYProgress: secondRecordProgress } = useScroll({
-    target: secondRecordRef,
-    offset: ["start 20vh", "start -12vh"],
-  });
-  const { scrollYProgress: thirdRecordProgress } = useScroll({
-    target: thirdRecordRef,
-    offset: ["start 20vh", "start -12vh"],
-  });
+  const firstRecordProgress = useElementScrollProgress(firstRecordRef, "record-exit");
+  const secondRecordProgress = useElementScrollProgress(secondRecordRef, "record-exit");
+  const thirdRecordProgress = useElementScrollProgress(thirdRecordRef, "record-exit");
 
-  const firstRecordFilter = useTransform(
+  const firstRecordDim = useTransform(
     firstRecordProgress,
     [0, 1],
-    reduceMotion ? ["brightness(1)", "brightness(1)"] : ["brightness(1)", "brightness(0.42)"],
+    reduceMotion ? [0, 0] : [0, 0.58],
   );
-  const secondRecordFilter = useTransform(
+  const secondRecordDim = useTransform(
     secondRecordProgress,
     [0, 1],
-    reduceMotion ? ["brightness(1)", "brightness(1)"] : ["brightness(1)", "brightness(0.42)"],
+    reduceMotion ? [0, 0] : [0, 0.58],
   );
-  const thirdRecordFilter = useTransform(
+  const thirdRecordDim = useTransform(
     thirdRecordProgress,
     [0, 1],
-    reduceMotion ? ["brightness(1)", "brightness(1)"] : ["brightness(1)", "brightness(0.42)"],
+    reduceMotion ? [0, 0] : [0, 0.58],
   );
 
   const items = useMemo(() => {
@@ -354,8 +499,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
             whileInView={{ opacity: 1, y: 0, x: 0 }}
             viewport={{ once: true, margin: "-10%" }}
             transition={{ duration: 0.85, ease }}
-            style={{ filter: firstRecordFilter }}
-            className="relative z-20 w-full self-start overflow-hidden p-8 will-change-[filter] md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
+            className="relative z-20 w-full self-start overflow-hidden p-8 md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
           >
             <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
 
@@ -388,6 +532,11 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
               </div>
 
             </div>
+            <motion.div
+              className="pointer-events-none absolute inset-0 z-20 bg-black"
+              style={{ opacity: firstRecordDim }}
+              aria-hidden="true"
+            />
           </motion.div>
 
           {/* Right Image with Scroll Reveal + Parallax scroll */}
@@ -444,8 +593,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
             whileInView={{ opacity: 1, y: 0, x: 0 }}
             viewport={{ once: true, margin: "-10%" }}
             transition={{ duration: 0.85, ease }}
-            style={{ filter: secondRecordFilter }}
-            className="relative z-20 mt-6 w-full self-end overflow-hidden p-8 text-linen will-change-[filter] md:absolute md:right-10 md:top-[15%] md:mt-0 md:w-5/12 md:p-12"
+            className="relative z-20 mt-6 w-full self-end overflow-hidden p-8 text-linen md:absolute md:right-10 md:top-[15%] md:mt-0 md:w-5/12 md:p-12"
           >
             <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
 
@@ -479,6 +627,11 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
                 </tbody>
               </table>
             </div>
+            <motion.div
+              className="pointer-events-none absolute inset-0 z-20 bg-black"
+              style={{ opacity: secondRecordDim }}
+              aria-hidden="true"
+            />
           </motion.div>
 
         </div>
@@ -493,8 +646,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
             whileInView={{ opacity: 1, y: 0, x: 0 }}
             viewport={{ once: true, margin: "-10%" }}
             transition={{ duration: 0.85, ease }}
-            style={{ filter: thirdRecordFilter }}
-            className="relative z-20 w-full self-start overflow-hidden p-8 will-change-[filter] md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
+            className="relative z-20 w-full self-start overflow-hidden p-8 md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
           >
             <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
 
@@ -527,6 +679,11 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
               </div>
 
             </div>
+            <motion.div
+              className="pointer-events-none absolute inset-0 z-20 bg-black"
+              style={{ opacity: thirdRecordDim }}
+              aria-hidden="true"
+            />
           </motion.div>
 
           {/* Right Image with Scroll Reveal + Parallax scroll */}
@@ -564,11 +721,13 @@ function MaterialPlate({
   index,
   progress,
   reduceMotion,
+  activeIndex,
 }: {
   material: LexiconMaterial;
   index: number;
-  progress: ReturnType<typeof useScroll>["scrollYProgress"];
+  progress: MotionValue<number>;
   reduceMotion: boolean;
+  activeIndex?: number;
 }) {
   const ranges = [
     [0, 0.24, 0.42],
@@ -590,10 +749,33 @@ function MaterialPlate({
   const scale = useTransform(progress, ranges[index], reduceMotion ? opacityValues.map(() => 1) : scaleValues);
   const clipPath = useTransform(progress, revealRanges, reduceMotion ? revealValues.map(() => revealed) : revealValues);
   const imageX = useTransform(progress, [0, 1], reduceMotion ? ["0%", "0%"] : [`${index * -3 - 4}%`, `${index * 3 + 5}%`]);
+  const usesDiscreteIOSSteps = activeIndex !== undefined;
+  const isActive = activeIndex === index;
+  const isPast = activeIndex !== undefined && index < activeIndex;
+  const discreteState = reduceMotion
+    ? {
+        opacity: isActive ? 1 : 0,
+        x: "0%",
+        rotate: 0,
+        scale: 1,
+        clipPath: isActive ? revealed : concealed,
+      }
+    : {
+        opacity: isActive ? 1 : 0,
+        x: isActive ? "0%" : isPast ? "-8%" : "9%",
+        rotate: isActive ? 0 : isPast ? -3.5 : 3,
+        scale: isActive ? 1 : 0.985,
+        clipPath: isActive ? revealed : concealed,
+      };
 
   return (
     <motion.article
-      style={{ opacity, x, rotate, scale, clipPath, zIndex: index + 1 }}
+      initial={usesDiscreteIOSSteps ? false : undefined}
+      animate={usesDiscreteIOSSteps ? discreteState : undefined}
+      transition={usesDiscreteIOSSteps ? { duration: reduceMotion ? 0.16 : 0.48, ease } : undefined}
+      style={usesDiscreteIOSSteps
+        ? { zIndex: index + 1 }
+        : { opacity, x, rotate, scale, clipPath, zIndex: index + 1 }}
       className="absolute inset-x-0 top-1/2 grid -translate-y-1/2 transform-gpu grid-cols-1 overflow-hidden border border-linen/15 bg-[#09090a]/94 shadow-[0_18px_48px_rgba(0,0,0,0.42)] [backface-visibility:hidden] md:grid-cols-[0.92fr_1.08fr]"
       aria-label={`${String(index + 1).padStart(2, "0")}. ${material.name}`}
     >
@@ -657,14 +839,50 @@ function MaterialPlate({
 // 4. MATERIAL EXPOSITION — scroll-controlled cubist specimen carousel
 function MaterialLab() {
   const ref = useRef<HTMLElement>(null);
+  const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const scrollContext = useContext(HomeScrollContext);
+  const [activeIndex, setActiveIndex] = useState(0);
   const reduceMotion = useReducedMotion() ?? false;
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end end"],
-  });
+  const scrollYProgress = useElementScrollProgress(ref, "sticky");
   const smoothProgress = useSpring(scrollYProgress, MATERIAL_LAB_SPRING);
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
   const progressScale = useTransform(progress, [0, 1], [0, 1]);
+  const usesDiscreteIOSSteps = scrollContext?.isIOSWebKit ?? false;
+
+  useEffect(() => {
+    if (!usesDiscreteIOSSteps) return;
+
+    const visibility = new Map<Element, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          visibility.set(entry.target, entry.intersectionRatio);
+        }
+
+        let nextIndex = 0;
+        let highestVisibility = 0;
+        stepRefs.current.forEach((element, index) => {
+          if (!element) return;
+          const ratio = visibility.get(element) ?? 0;
+          if (ratio > highestVisibility) {
+            highestVisibility = ratio;
+            nextIndex = index;
+          }
+        });
+
+        if (highestVisibility > 0) {
+          setActiveIndex((currentIndex) => currentIndex === nextIndex ? currentIndex : nextIndex);
+        }
+      },
+      { rootMargin: "-18% 0px -18% 0px", threshold: [0, 0.25, 0.5, 0.75] },
+    );
+
+    stepRefs.current.forEach((element) => {
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [usesDiscreteIOSSteps]);
 
   return (
     <section
@@ -677,6 +895,17 @@ function MaterialLab() {
       } as CSSProperties}
       aria-labelledby="lexicon-title"
     >
+      {usesDiscreteIOSSteps ? (
+        <div className="pointer-events-none absolute inset-0 flex flex-col" aria-hidden="true">
+          {LEXICON_MATERIALS.map((material, index) => (
+            <div
+              key={material.name}
+              ref={(element) => { stepRefs.current[index] = element; }}
+              className="min-h-0 flex-1"
+            />
+          ))}
+        </div>
+      ) : null}
       <div className="sticky top-0 h-svh overflow-hidden px-4 py-5 md:px-[4vw] md:py-8">
         <div
           className="pointer-events-none absolute inset-0 opacity-50"
@@ -715,6 +944,7 @@ function MaterialLab() {
                 index={index}
                 progress={progress}
                 reduceMotion={reduceMotion}
+                activeIndex={usesDiscreteIOSSteps ? activeIndex : undefined}
               />
             ))}
           </div>
@@ -803,19 +1033,85 @@ function ManifestoGrid() {
   );
 }
 
+function FinalFooter() {
+  const { t } = useTranslations();
+
+  return (
+    <>
+      <div className="border-b border-linen/15 pb-5 md:pb-7">
+        <p className="font-serif text-[clamp(3.3rem,10vw,6rem)] font-bold uppercase leading-[0.8] tracking-[-0.035em] text-linen">
+          Synarava
+        </p>
+        <p className="mt-3 font-serif text-base italic text-stone-beige/65 md:text-xl">
+          {t("footer.tagline")}
+        </p>
+      </div>
+
+      <div className="grid flex-1 content-center gap-8 py-6 sm:grid-cols-[1.2fr_1fr_1fr] md:gap-14 md:py-9">
+        <div className="max-w-sm">
+          <p className="font-serif text-2xl leading-tight text-linen md:text-3xl">
+            Objects shaped slowly,<br />kept for a lifetime.
+          </p>
+          <a
+            href="mailto:studio@synarava.com"
+            className="mt-5 inline-block border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+          >
+            studio@synarava.com
+          </a>
+        </div>
+
+        <nav aria-label={t("footer.navigationHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
+          <Link href="/shop" className="font-sans text-sm font-semibold text-couture-red hover:text-linen">{t("footer.shop")}</Link>
+          <Link href="/collections" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.collections")}</Link>
+          <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.about")}</Link>
+          <Link href="/about/manifesto" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.manifesto")}</Link>
+        </nav>
+
+        <nav aria-label={t("footer.serviceHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
+          <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.careGuide")}</Link>
+          <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.shipping")}</Link>
+          <Link href="mailto:studio@synarava.com" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.contact")}</Link>
+        </nav>
+      </div>
+
+      <div className="flex flex-wrap items-end justify-between gap-4 border-t border-linen/15 pt-5 font-sans text-[0.62rem] uppercase tracking-[0.12em] text-stone-beige/65">
+        <p>{t("footer.copyright")}</p>
+        <div className="flex flex-wrap gap-5">
+          <Link href="/privacy" className="hover:text-linen">{t("footer.privacyPolicy")}</Link>
+          <Link href="/offer" className="hover:text-linen">{t("footer.publicOffer")}</Link>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CompactFinalCTA() {
+  return (
+    <section
+      className="relative overflow-hidden bg-[#09090a] px-5 py-16 text-linen"
+      style={{
+        "--color-linen": "#f9f8f6",
+        "--color-stone-beige": "#d9d4cc",
+        "--color-couture-red": "#e44b61",
+      } as CSSProperties}
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:52px_52px]" aria-hidden="true" />
+      <div className="relative mx-auto flex min-h-[min(42rem,100svh)] max-w-[90rem] flex-col">
+        <FinalFooter />
+      </div>
+    </section>
+  );
+}
+
 // 7. FINAL CTA — cubist shop portal
-function FinalCTA({ collections }: { collections: CollectionItem[] }) {
+function DesktopFinalCTA({ collections }: { collections: CollectionItem[] }) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
-  const { t } = useTranslations();
   const images = useMemo(() => {
     const source = collections.length ? collections : [{ image: HERO_IMAGE } as CollectionItem];
     return [...source, ...source].slice(0, 4);
   }, [collections]);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end end"],
-  });
+  const scrollYProgress = useElementScrollProgress(ref, "sticky");
   const smoothProgress = useSpring(scrollYProgress, FINAL_SCENE_SPRING);
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
@@ -986,49 +1282,7 @@ function FinalCTA({ collections }: { collections: CollectionItem[] }) {
           className="absolute inset-0 z-[8] flex flex-col pt-10 md:pt-0"
           style={{ y: footerY, opacity: footerOpacity }}
         >
-          <div className="border-b border-linen/15 pb-5 md:pb-7">
-            <p className="font-serif text-[clamp(3.3rem,10vw,6rem)] font-bold uppercase leading-[0.8] tracking-[-0.035em] text-linen">
-              Synarava
-            </p>
-            <p className="mt-3 font-serif text-base italic text-stone-beige/65 md:text-xl">
-              {t("footer.tagline")}
-            </p>
-          </div>
-
-          <div className="grid flex-1 content-center gap-8 py-6 sm:grid-cols-[1.2fr_1fr_1fr] md:gap-14 md:py-9">
-            <div className="max-w-sm">
-              <p className="font-serif text-2xl leading-tight text-linen md:text-3xl">
-                Objects shaped slowly,<br />kept for a lifetime.
-              </p>
-              <a
-                href="mailto:studio@synarava.com"
-                className="mt-5 inline-block border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
-              >
-                studio@synarava.com
-              </a>
-            </div>
-
-            <nav aria-label={t("footer.navigationHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
-              <Link href="/shop" className="font-sans text-sm font-semibold text-couture-red hover:text-linen">{t("footer.shop")}</Link>
-              <Link href="/collections" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.collections")}</Link>
-              <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.about")}</Link>
-              <Link href="/about/manifesto" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.manifesto")}</Link>
-            </nav>
-
-            <nav aria-label={t("footer.serviceHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
-              <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.careGuide")}</Link>
-              <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.shipping")}</Link>
-              <Link href="mailto:studio@synarava.com" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.contact")}</Link>
-            </nav>
-          </div>
-
-          <div className="flex flex-wrap items-end justify-between gap-4 border-t border-linen/15 pt-5 font-sans text-[0.62rem] uppercase tracking-[0.12em] text-stone-beige/65">
-            <p>{t("footer.copyright")}</p>
-            <div className="flex flex-wrap gap-5">
-              <Link href="/privacy" className="hover:text-linen">{t("footer.privacyPolicy")}</Link>
-              <Link href="/offer" className="hover:text-linen">{t("footer.publicOffer")}</Link>
-            </div>
-          </div>
+          <FinalFooter />
         </motion.div>
 
         <div className="absolute bottom-0 right-0 h-20 w-px bg-linen/15" aria-hidden="true">
@@ -1040,10 +1294,17 @@ function FinalCTA({ collections }: { collections: CollectionItem[] }) {
   );
 }
 
+function FinalCTA({ collections }: { collections: CollectionItem[] }) {
+  const isDesktop = useDesktopViewport();
+
+  return isDesktop ? <DesktopFinalCTA collections={collections} /> : <CompactFinalCTA />;
+}
+
 export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo ?? [...HERO_VIDEOS];
 
   return (
+    <HomeScrollProvider>
     <main
       className="home-experience min-h-screen overflow-x-clip bg-gradient-to-b from-[#0a0a0b] via-[#121214] to-[#070708] text-linen selection:bg-couture-red selection:text-white relative"
       style={{
@@ -1069,5 +1330,6 @@ export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) 
       <ManifestoGrid />
       <FinalCTA collections={collections} />
     </main>
+    </HomeScrollProvider>
   );
 }

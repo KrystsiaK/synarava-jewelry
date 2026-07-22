@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 
-import { ArtifactButton } from "@/components/ui";
+import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
@@ -44,6 +45,7 @@ export function FilterBar({
   const [filters, setFilters] = useState<ShopFilters>(initialFilters);
   const [search, setSearch] = useState(initialFilters.q ?? "");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSession, setMobileSession] = useState(0);
   // Saved filters pending opt-in restore (not yet applied)
   const [pendingRestore, setPendingRestore] = useState<ShopFilters | null>(null);
 
@@ -128,7 +130,19 @@ export function FilterBar({
   const activeCount = countActiveFilters(filters);
 
   return (
-    <div className={cn("transition-opacity duration-200", isPending && "opacity-50 pointer-events-none")}>
+    <div className={cn("relative", isPending && "pointer-events-none")} aria-busy={isPending}>
+      <AnimatePresence>
+        {isPending ? (
+          <motion.div
+            className="pointer-events-none absolute inset-x-0 -bottom-px z-20 h-px origin-left bg-couture-red"
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 0.82, opacity: 1 }}
+            exit={{ scaleX: 1, opacity: 0 }}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+            aria-hidden="true"
+          />
+        ) : null}
+      </AnimatePresence>
 
       {/* ── Session restore banner ───────────────────────────────────────────── */}
       {pendingRestore && (
@@ -286,7 +300,10 @@ export function FilterBar({
 
         <button
           type="button"
-          onClick={() => setMobileOpen(true)}
+          onClick={() => {
+            setMobileSession((session) => session + 1);
+            setMobileOpen(true);
+          }}
           aria-label={`Filters${activeCount > 0 ? `, ${activeCount} active` : ""}`}
           className={cn(
             "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
@@ -326,20 +343,20 @@ export function FilterBar({
       )}
 
       {/* ── Mobile filter sheet ──────────────────────────────────────────────── */}
-      {mobileOpen && (
-        <MobileFilterSheet
-          categories={categories}
-          collections={collections}
-          tags={tags}
-          filters={filters}
-          onApply={(next) => {
-            setFilters(next);
-            setMobileOpen(false);
-            navigate(next);
-          }}
-          onClose={() => setMobileOpen(false)}
-        />
-      )}
+      <MobileFilterSheet
+        key={mobileSession}
+        open={mobileOpen}
+        categories={categories}
+        collections={collections}
+        tags={tags}
+        filters={filters}
+        onApply={(next) => {
+          setFilters(next);
+          setMobileOpen(false);
+          navigate(next);
+        }}
+        onClose={() => setMobileOpen(false)}
+      />
     </div>
   );
 }
@@ -347,6 +364,7 @@ export function FilterBar({
 // ── Mobile filter sheet ────────────────────────────────────────────────────
 
 type MobileFilterSheetProps = {
+  open: boolean;
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
@@ -356,6 +374,7 @@ type MobileFilterSheetProps = {
 };
 
 function MobileFilterSheet({
+  open,
   categories,
   collections,
   tags,
@@ -364,11 +383,6 @@ function MobileFilterSheet({
   onClose,
 }: MobileFilterSheetProps) {
   const [local, setLocal] = useState<ShopFilters>(filters);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
 
   const localActiveCount = countActiveFilters(local);
 
@@ -379,25 +393,17 @@ function MobileFilterSheet({
   ];
 
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Sheet */}
-      <aside
-        role="dialog"
-        aria-label="Filter products"
-        aria-modal="true"
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col bg-background border-t border-stroke"
-      >
+    <AnimatedModal
+      open={open}
+      onClose={onClose}
+      variant="sheet"
+      ariaLabel="Filter products"
+      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col border-t border-white/10 bg-[#090a0c] text-[#f2efe9] shadow-[0_-12px_40px_rgba(0,0,0,0.28)]"
+    >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between px-5 py-4 border-b border-stroke">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-3">
-            <p className="label-caps text-foreground">Refine by</p>
+            <p className="label-caps text-[#f2efe9]">Refine by</p>
             {localActiveCount > 0 && (
               <span className="inline-flex h-5 px-1.5 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full">
                 {localActiveCount}
@@ -409,7 +415,7 @@ function MobileFilterSheet({
               <button
                 type="button"
                 onClick={() => setLocal({})}
-                className="label-caps text-[0.68rem] text-muted/60 hover:text-accent transition-colors cursor-pointer min-h-[44px] px-2"
+                className="label-caps min-h-[44px] cursor-pointer px-2 text-[0.68rem] text-white/55 transition-colors hover:text-[#d45c7b]"
               >
                 Clear all
               </button>
@@ -418,7 +424,7 @@ function MobileFilterSheet({
               type="button"
               onClick={onClose}
               aria-label="Close filters"
-              className="text-muted hover:text-foreground transition-colors cursor-pointer p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-white/55 transition-colors hover:text-white"
             >
               <X className="size-4" />
             </button>
@@ -432,8 +438,8 @@ function MobileFilterSheet({
             const selectedValue = local[key as keyof ShopFilters];
 
             return (
-              <div key={key} className="border-b border-stroke px-5 py-5">
-                <p className="label-caps mb-4 text-muted/60">{label}</p>
+              <div key={key} className="border-b border-white/10 px-5 py-5">
+                <p className="label-caps mb-4 text-white/45">{label}</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -441,8 +447,8 @@ function MobileFilterSheet({
                     className={cn(
                       "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
                       !selectedValue
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-stroke text-muted hover:border-foreground/30 hover:text-foreground",
+                        ? "border-[#f2efe9] bg-[#f2efe9] text-[#090a0c]"
+                        : "border-white/14 text-white/62 hover:border-white/35 hover:text-white",
                     )}
                   >
                     All
@@ -455,8 +461,8 @@ function MobileFilterSheet({
                       className={cn(
                         "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
                         selectedValue === opt.value
-                          ? "border-accent bg-accent/[0.08] text-accent"
-                          : "border-stroke text-muted hover:border-foreground/30 hover:text-foreground",
+                          ? "border-[#d45c7b] bg-[#d45c7b]/10 text-[#e87592]"
+                          : "border-white/14 text-white/62 hover:border-white/35 hover:text-white",
                       )}
                     >
                       {opt.label}
@@ -469,7 +475,7 @@ function MobileFilterSheet({
         </div>
 
         {/* Footer CTA */}
-        <div className="shrink-0 border-t border-stroke p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-white/10 bg-[#090a0c] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <ArtifactButton
             type="button"
             onClick={() => onApply(local)}
@@ -480,7 +486,6 @@ function MobileFilterSheet({
               : "View all pieces"}
           </ArtifactButton>
         </div>
-      </aside>
-    </>
+    </AnimatedModal>
   );
 }
