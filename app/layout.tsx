@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Hanken_Grotesk, Playfair_Display, Courier_Prime } from "next/font/google";
+import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { ThemeScript } from "@/components/theme/theme-script";
+import { getThemeScript } from "@/components/theme/theme-script";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getCartCount } from "@/lib/commerce/cart";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -23,12 +23,6 @@ const serif = Playfair_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
-});
-
-const mono = Courier_Prime({
-  variable: "--font-courier",
-  subsets: ["latin"],
-  weight: ["400", "700"],
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -94,7 +88,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${serif.variable} ${mono.variable}`}
+      className={`${sans.variable} ${serif.variable}`}
       data-theme-preference={themePreference}
       data-theme="light"
       suppressHydrationWarning
@@ -114,8 +108,32 @@ export default async function RootLayout({
             }),
           }}
         />
-        <ThemeScript initialPreference={themePreference} />
+        <script
+          id="theme-initializer-script"
+          dangerouslySetInnerHTML={{
+            __html: getThemeScript(themePreference),
+          }}
+        />
         <TranslationProvider initialLocale={initialLocale}>
+          <svg
+            id="lg-filter-svg"
+            style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
+            aria-hidden="true"
+          >
+            <defs>
+              <filter id="lg-refract" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.008 0.01" numOctaves="1" seed="5" result="noise"/>
+                <feGaussianBlur in="noise" stdDeviation="1.5" result="softNoise"/>
+                <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="40" xChannelSelector="R" yChannelSelector="G"/>
+              </filter>
+
+              <filter id="lg-refract-strong" x="-30%" y="-30%" width="160%" height="160%" colorInterpolationFilters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.005 0.007" numOctaves="2" seed="9" result="noise"/>
+                <feGaussianBlur in="noise" stdDeviation="2.5" result="softNoise"/>
+                <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="140" xChannelSelector="R" yChannelSelector="G"/>
+              </filter>
+            </defs>
+          </svg>
           <ThemeProvider initialPreference={themePreference}>
             <SiteHeader key={`${themePreference}-${cartCount}`} initialCartCount={cartCount} isLoggedIn={!!currentUser} />
             {children}

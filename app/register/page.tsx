@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 export default function RegisterPage() {
   return (
     <AuthShell
-      eyebrow="SYNARAVA | Register (Join)"
-      title="Join the store without losing the editorial calm."
-      description="Registration is intentionally simple: create one storefront account for saved details, smoother checkout, and order history."
-      asideTitle="Customer first"
-      asideBody="Most new accounts become customer accounts with a quiet profile area for personal details and purchase flow."
+      eyebrow="Private access"
+      title="Begin your personal archive."
+      description="Create one account for a smoother checkout, saved delivery details, and a lasting record of your pieces."
+      asideTitle="A quieter way to return."
+      asideBody="Your selection remains yours while you register, so you can continue without starting over."
     >
       <RegisterForm />
     </AuthShell>

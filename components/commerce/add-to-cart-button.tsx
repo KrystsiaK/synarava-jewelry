@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Check, X } from "lucide-react";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 
-import { ArtifactButton, ArtifactLink } from "@/components/ui";
+import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 
 type AddToCartButtonProps = {
   productSlug: string;
@@ -13,13 +15,6 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [recentCount, setRecentCount] = useState<number | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
-    };
-  }, []);
 
   async function handleAdd() {
     setIsError(false);
@@ -55,78 +50,84 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
       setMessage(error instanceof Error ? error.message : "Could not add the piece to the cart.");
     } finally {
       setIsPending(false);
-      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
-      // Give user 5s to click the CTAs before dismissing
-      timeoutRef.current = window.setTimeout(() => {
-        setMessage(null);
-        setRecentCount(null);
-      }, 5000);
     }
   }
 
   const showPanel = Boolean(message);
 
+  function dismissPanel() {
+    setMessage(null);
+    setRecentCount(null);
+  }
+
+  const confirmation = showPanel ? (
+    <aside
+      className={`cart-confirmation fixed bottom-4 right-4 z-[var(--z-toast)] w-[min(28rem,calc(100vw-2rem))] border bg-[rgba(12,12,14,0.94)] p-5 text-[#f3efe9] shadow-[0_8px_24px_rgba(0,0,0,0.34)] backdrop-blur-xl ${
+        isError ? "border-[#ff75875c]" : "border-white/15"
+      }`}
+      aria-live="polite"
+      aria-atomic="true"
+      data-tone={isError ? "error" : "success"}
+    >
+      <button
+        type="button"
+        onClick={dismissPanel}
+        className="absolute right-2 top-2 flex size-11 items-center justify-center text-white/58 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-couture-red"
+        aria-label="Close cart confirmation"
+      >
+        <X className="size-4" aria-hidden="true" />
+      </button>
+
+      {isError ? (
+        <div className="pr-10">
+          <p className="font-serif text-xl text-white">Couldn’t add this piece.</p>
+          <p className="mt-2 text-sm leading-6 text-white/68">
+            <span>{message}</span>
+            <span> Please try again.</span>
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-start gap-3 pr-10">
+            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border border-emerald-400/45 text-emerald-300">
+              <Check className="size-4" strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <div>
+              <p className="font-serif text-[1.45rem] leading-none text-white">Piece added to cart</p>
+              {recentCount !== null ? (
+                <p className="mt-2 text-sm text-white/58">
+                  {recentCount} {recentCount === 1 ? "piece" : "pieces"} in cart
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <ArtifactLink href="/cart" variant="secondary" size="md" className="flex-1 border-white/24 text-white hover:border-white hover:text-white">
+              View cart
+            </ArtifactLink>
+            <PrimaryCtaButton href="/checkout/shipping" className="w-full flex-1">
+              Checkout
+            </PrimaryCtaButton>
+          </div>
+        </>
+      )}
+    </aside>
+  ) : null;
+
   return (
     <div className="relative">
-      <ArtifactButton
+      <PrimaryCtaButton
         type="button"
         onClick={handleAdd}
         disabled={isPending}
-        className="px-12 py-5"
       >
         {isPending ? "Adding…" : "Add to cart"}
-      </ArtifactButton>
+      </PrimaryCtaButton>
 
-      {/* Toast panel */}
-      <div
-        aria-live="polite"
-        className={`absolute left-0 top-full z-20 mt-2 w-[min(22rem,90vw)] border border-foreground/10 bg-[color:rgba(249,248,246,0.97)] shadow-[0_18px_48px_rgba(25,21,18,0.11)] backdrop-blur transition-all duration-300 ${
-          showPanel ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-1 opacity-0 pointer-events-none"
-        }`}
-      >
-        {isError ? (
-          <div className="px-5 py-4">
-            <p className="text-sm text-[color:#7e1a29]">{message}</p>
-            <p className="mt-1 text-xs text-foreground/50">Please try again.</p>
-          </div>
-        ) : (
-          <div className="px-5 py-4">
-            <div className="flex items-center gap-2 mb-3">
-              {/* Green check */}
-              <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 text-emerald-600" fill="none">
-                <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
-                <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <p className="label-caps text-foreground text-[0.72rem]">Piece added to cart</p>
-            </div>
-
-            {recentCount !== null && (
-              <p className="label-mono text-[0.68rem] text-foreground/45 mb-4">
-                {recentCount} {recentCount === 1 ? "piece" : "pieces"} in cart
-              </p>
-            )}
-
-            {/* CTAs */}
-            <div className="flex gap-2">
-              <ArtifactLink
-                href="/cart"
-                variant="secondary"
-                size="sm"
-                className="flex-1"
-              >
-                View cart
-              </ArtifactLink>
-              <ArtifactLink
-                href="/checkout/shipping"
-                size="sm"
-                className="flex-1"
-              >
-                Checkout
-              </ArtifactLink>
-            </div>
-          </div>
-        )}
-      </div>
+      {confirmation && typeof document !== "undefined"
+        ? createPortal(confirmation, document.body)
+        : null}
     </div>
   );
 }

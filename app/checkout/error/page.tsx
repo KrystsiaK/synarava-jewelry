@@ -29,9 +29,9 @@ export default async function CheckoutErrorPage({ searchParams }: Props) {
 
   return (
     <CheckoutShell
-      eyebrow="SYNARAVA | Connection Fragmented (Error)"
-      title="The acquisition thread was interrupted."
-      description="This error screen is intentionally explicit: it explains where the flow broke and gives a clean route back into the checkout path."
+      eyebrow="Checkout paused"
+      title="Your order needs one more moment."
+      description="Nothing has been charged. Return to your cart or restart delivery details when you are ready."
       step="error"
       aside={
         <section className="panel p-6">
@@ -41,8 +41,8 @@ export default async function CheckoutErrorPage({ searchParams }: Props) {
       }
     >
       <section className="panel p-8 md:p-10">
-        <p className="label-caps text-accent">Error state</p>
-        <h2 className="mt-4 font-serif text-[2.4rem] leading-tight">Let’s reconnect the flow.</h2>
+        <p className="label-caps text-accent">What to do next</p>
+        <h2 className="mt-4 font-serif text-[2.4rem] leading-tight">Your selection is still waiting.</h2>
         <p className="mt-5 max-w-2xl text-base leading-8 text-foreground/68">{message}</p>
 
         <div className="mt-8 flex flex-wrap gap-3">

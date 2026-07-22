@@ -31,6 +31,7 @@
     "@prisma/client": "^6.19.0",
     "@stripe/react-stripe-js": "^6.7.0",
     "@stripe/stripe-js": "^9.9.0",
+    "@synarava/liquid-glass": "^1.0.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.17.0",
     "motion": "^12.40.0",

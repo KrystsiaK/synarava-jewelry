@@ -36,7 +36,7 @@ const COUNTRIES: { code: string; name: string }[] = [
 ];
 
 const inputClass =
-  "border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent";
+  "storefront-field";
 
 type ShippingFormProps = {
   defaultEmail?: string | null;
@@ -45,79 +45,60 @@ type ShippingFormProps = {
 
 export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
   return (
-    <form action={submitShippingAction} className="panel grid gap-5 p-6 md:p-8">
-      <div className="grid gap-2">
-        <span className="label-caps text-muted">Contact</span>
+    <form action={submitShippingAction} className="checkout-form-surface grid gap-5 p-6 md:p-8">
+      <label className="grid gap-2.5">
+        <span className="storefront-field-label">Contact email</span>
         <input
           type="email"
           name="email"
           required
           defaultValue={defaultEmail ?? ""}
           placeholder="Email"
+          autoComplete="email"
           className={inputClass}
         />
-      </div>
+      </label>
 
-      <div className="grid gap-2">
-        <span className="label-caps text-muted">Recipient</span>
+      <label className="grid gap-2.5">
+        <span className="storefront-field-label">Recipient</span>
         <input
           type="text"
           name="name"
           required
           defaultValue={defaultName ?? ""}
           placeholder="Full name"
+          autoComplete="name"
           className={inputClass}
         />
-      </div>
+      </label>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <input
-          type="text"
-          name="line1"
-          required
-          placeholder="Address line 1"
-          className={inputClass}
-        />
-        <input
-          type="text"
-          name="line2"
-          placeholder="Address line 2 (optional)"
-          className={inputClass}
-        />
+        <label className="grid gap-2.5">
+          <span className="storefront-field-label">Address</span>
+          <input type="text" name="line1" required placeholder="Address line 1" autoComplete="address-line1" className={inputClass} />
+        </label>
+        <label className="grid gap-2.5">
+          <span className="storefront-field-label">Apartment or suite</span>
+          <input type="text" name="line2" placeholder="Address line 2 (optional)" autoComplete="address-line2" className={inputClass} />
+        </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <input
-          type="text"
-          name="city"
-          required
-          placeholder="City"
-          className={inputClass}
-        />
-        <input
-          type="text"
-          name="region"
-          placeholder="Region / State"
-          className={inputClass}
-        />
-        <input
-          type="text"
-          name="postalCode"
-          required
-          placeholder="Postal code"
-          className={inputClass}
-        />
+        <label className="grid gap-2.5"><span className="storefront-field-label">City</span><input type="text" name="city" required placeholder="City" autoComplete="address-level2" className={inputClass} /></label>
+        <label className="grid gap-2.5"><span className="storefront-field-label">Region</span><input type="text" name="region" placeholder="Region / State" autoComplete="address-level1" className={inputClass} /></label>
+        <label className="grid gap-2.5"><span className="storefront-field-label">Postal code</span><input type="text" name="postalCode" required placeholder="Postal code" autoComplete="postal-code" className={inputClass} /></label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Country select — name kept as countryCode so server action needs no changes */}
-        <div className="grid gap-2">
-          <span className="label-caps text-muted">Country</span>
+        <label className="grid gap-2.5">
+          <span className="storefront-field-label">Country</span>
           <select
             name="countryCode"
             required
             defaultValue="LT"
-            className={`${inputClass} appearance-none cursor-pointer`}
+            autoComplete="country"
+            className={`${inputClass} cursor-pointer appearance-none`}
           >
             {COUNTRIES.map(({ code, name }) => (
               <option key={code} value={code}>
@@ -125,17 +106,17 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
               </option>
             ))}
           </select>
-        </div>
+        </label>
 
-        <div className="grid gap-2">
-          <span className="label-caps text-muted">Delivery notes</span>
+        <label className="grid gap-2.5">
+          <span className="storefront-field-label">Delivery notes</span>
           <textarea
             name="notes"
             rows={3}
             placeholder="Leave at door, gift message, etc."
             className={inputClass}
           />
-        </div>
+        </label>
       </div>
 
       <SubmitButton

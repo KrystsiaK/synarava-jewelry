@@ -69,7 +69,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
 
       <div className="space-y-1 text-left md:text-right">
         <p className="label-caps text-muted">{item.price} each</p>
-        <p className="font-mono text-sm uppercase tracking-[0.14em]">{item.total}</p>
+        <p className="font-sans text-sm uppercase tracking-[0.14em]">{item.total}</p>
       </div>
     </article>
   );

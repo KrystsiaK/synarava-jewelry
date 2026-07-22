@@ -6,19 +6,35 @@ import { artifactButtonClasses } from "./artifact-button";
 import { MagneticButton } from "./magnetic-button";
 
 interface PrimaryCtaButtonProps {
-  href: string;
+  href?: string;
   children: React.ReactNode;
   className?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
 }
 
-export function PrimaryCtaButton({ href, children, className }: PrimaryCtaButtonProps) {
+export const PRIMARY_CTA_SHAPE_CLASS =
+  "[clip-path:polygon(4%_0,100%_7%,94%_100%,0_88%)]";
+
+export function PrimaryCtaButton({
+  href,
+  children,
+  className,
+  onClick,
+  disabled,
+  type,
+}: PrimaryCtaButtonProps) {
   return (
     <MagneticButton
       href={href}
+      onClick={onClick}
+      disabled={disabled}
+      type={type}
       className={artifactButtonClasses({
         variant: "primary",
         size: "lg",
-        className: `relative overflow-hidden ${className ?? ""}`,
+        className: `relative h-14 overflow-hidden py-0 ${PRIMARY_CTA_SHAPE_CLASS} ${className ?? ""}`,
       })}
     >
       <span className="relative z-10">{children}</span>

@@ -9,48 +9,48 @@ import {
   useCheckoutElements,
 } from "@stripe/react-stripe-js/checkout";
 
-import { ArtifactButton } from "@/components/ui";
+import { PrimaryCtaButton } from "@/components/ui";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const elementsAppearance: Appearance = {
-  theme: "flat",
+  theme: "night",
   variables: {
-    colorPrimary: "#a6192e",
-    colorBackground: "#ffffff",
-    colorText: "#191512",
-    colorTextSecondary: "#6d655c",
-    colorDanger: "#a6192e",
+    colorPrimary: "#d62f44",
+    colorBackground: "rgba(255,255,255,0.055)",
+    colorText: "#f1efec",
+    colorTextSecondary: "#b9b4ae",
+    colorDanger: "#ff7587",
     fontFamily: "inherit",
     borderRadius: "0px",
     spacingUnit: "4px",
   },
   rules: {
     ".AccordionItem": {
-      border: "1px solid rgba(25, 21, 18, 0.14)",
+      border: "1px solid rgba(255,255,255,0.14)",
       boxShadow: "none",
-      backgroundColor: "#ffffff",
+      backgroundColor: "rgba(255,255,255,0.035)",
     },
     ".AccordionItem:hover": {
-      borderColor: "rgba(25, 21, 18, 0.28)",
+      borderColor: "rgba(255,255,255,0.3)",
     },
     ".AccordionItem--selected": {
-      borderColor: "#a6192e",
-      boxShadow: "0 0 0 1px #a6192e",
+      borderColor: "#d62f44",
+      boxShadow: "0 0 0 1px #d62f44",
     },
     ".Block": {
-      border: "1px solid rgba(25, 21, 18, 0.12)",
+      border: "1px solid rgba(255,255,255,0.12)",
       boxShadow: "none",
-      backgroundColor: "#ffffff",
+      backgroundColor: "rgba(255,255,255,0.035)",
     },
     ".Input": {
-      border: "1px solid rgba(25, 21, 18, 0.18)",
-      backgroundColor: "#ffffff",
-      color: "#191512",
+      border: "1px solid rgba(255,255,255,0.16)",
+      backgroundColor: "rgba(255,255,255,0.055)",
+      color: "#f1efec",
       padding: "12px 14px",
     },
     ".Input:focus": {
-      border: "1px solid #a6192e",
+      border: "1px solid #d62f44",
       outline: "none",
       boxShadow: "none",
     },
@@ -58,20 +58,20 @@ const elementsAppearance: Appearance = {
       fontSize: "10px",
       letterSpacing: "0.12em",
       textTransform: "uppercase",
-      color: "#6d655c",
+      color: "#b9b4ae",
     },
     ".Tab": {
-      border: "1px solid rgba(25, 21, 18, 0.14)",
+      border: "1px solid rgba(255,255,255,0.14)",
       boxShadow: "none",
-      backgroundColor: "#ffffff",
+      backgroundColor: "rgba(255,255,255,0.035)",
     },
     ".Tab:hover": {
-      borderColor: "rgba(25, 21, 18, 0.28)",
+      borderColor: "rgba(255,255,255,0.3)",
     },
     ".Tab--selected": {
-      borderColor: "#a6192e",
-      color: "#191512",
-      boxShadow: "0 0 0 1px #a6192e",
+      borderColor: "#d62f44",
+      color: "#f1efec",
+      boxShadow: "0 0 0 1px #d62f44",
     },
   },
 };
@@ -125,13 +125,13 @@ function CheckoutForm() {
         <p className="text-sm text-couture-red leading-5">{error ?? providerError}</p>
       )}
 
-      <ArtifactButton
+      <PrimaryCtaButton
         type="submit"
         disabled={!isReady || loading}
         className="w-full"
       >
         {loading ? "Processing…" : isReady ? "Pay now" : "Loading payment…"}
-      </ArtifactButton>
+      </PrimaryCtaButton>
     </form>
   );
 }

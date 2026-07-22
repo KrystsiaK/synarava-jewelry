@@ -38,7 +38,7 @@ type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
 };
 
 const baseClasses =
-  "group inline-flex cursor-pointer items-center justify-center gap-3 text-center font-sans font-semibold uppercase tracking-[0.18em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red disabled:cursor-not-allowed disabled:opacity-55";
+  "group inline-flex cursor-pointer items-center justify-center gap-3 text-center font-sans font-semibold uppercase tracking-[0.18em] transition-all duration-300 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red disabled:cursor-not-allowed disabled:opacity-55";
 
 export function artifactButtonClasses({
   variant = "primary",

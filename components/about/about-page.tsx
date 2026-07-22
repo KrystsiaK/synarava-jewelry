@@ -7,70 +7,17 @@ import {
   useScroll,
   useTransform,
   useInView,
-  useReducedMotion,
 } from "motion/react";
 import Link from "next/link";
 import { ArtifactLink, PrimaryCtaButton, ShinyText } from "@/components/ui";
 import {
-  KodRoda as SvgKodRoda,
-  Kola as SvgKola,
+  KodRodaStatic as SvgKodRoda,
+  KolaStatic as SvgKola,
+  ZiamlaStatic as SvgZiamla,
   FolkBorder,
 } from "@/components/ui/folk-patterns";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-
-/** Ziamla — extended version with diagonal lines (more detailed than folk-patterns) */
-function SvgZiamla({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const reduceMotion = useReducedMotion();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const draw = (delay: number, opacity = 1): any => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: isInView ? { pathLength: 1, opacity } : {},
-    transition: { duration: reduceMotion ? 0 : 1.6, ease: "easeInOut", delay },
-  });
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={reduceMotion ? undefined : isInView ? { scale: [1, 1.015, 1] } : {}}
-      transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-    >
-      {/* Outer square (rotated 45°) */}
-      <motion.rect x="18" y="18" width="164" height="164" stroke="currentColor" strokeWidth="1.1" transform="rotate(45 100 100)" {...draw(0)} />
-      {/* Mid square */}
-      <motion.rect x="44" y="44" width="112" height="112" stroke="currentColor" strokeWidth="1" transform="rotate(45 100 100)" opacity={0.7} {...draw(0.25)} />
-      {/* Inner square */}
-      <motion.rect x="68" y="68" width="64" height="64" stroke="currentColor" strokeWidth="0.9" transform="rotate(45 100 100)" opacity={0.5} {...draw(0.5)} />
-      {/* Axis lines */}
-      <motion.path d="M100 18 L100 182" stroke="currentColor" strokeWidth="0.7" opacity={0.4} {...draw(0.65)} />
-      <motion.path d="M18 100 L182 100" stroke="currentColor" strokeWidth="0.7" opacity={0.4} {...draw(0.65)} />
-      {/* Corner cross ticks at outer square corners */}
-      <motion.path d="M100 18 L88 30 M100 18 L112 30" stroke="currentColor" strokeWidth="1" {...draw(0.9)} />
-      <motion.path d="M182 100 L170 88 M182 100 L170 112" stroke="currentColor" strokeWidth="1" {...draw(0.9)} />
-      <motion.path d="M100 182 L88 170 M100 182 L112 170" stroke="currentColor" strokeWidth="1" {...draw(0.9)} />
-      <motion.path d="M18 100 L30 88 M18 100 L30 112" stroke="currentColor" strokeWidth="1" {...draw(0.9)} />
-      {/* Diagonal extension lines */}
-      <motion.path d="M40 40 L60 60 M160 40 L140 60 M40 160 L60 140 M160 160 L140 140" stroke="currentColor" strokeWidth="0.7" opacity={0.4} {...draw(1.1)} />
-      {/* Centre */}
-      <motion.rect x="93" y="93" width="14" height="14" stroke="currentColor" strokeWidth="1" transform="rotate(45 100 100)"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
-        transition={{ duration: 0.8, delay: 1.3, ease: "easeInOut" }}
-      />
-      <motion.circle cx="100" cy="100" r="3" fill="currentColor"
-        initial={{ scale: 0 }}
-        animate={isInView ? { scale: 1 } : {}}
-        transition={{ duration: 0.4, delay: 1.6, type: "spring", stiffness: 400 }}
-      />
-    </motion.svg>
-  );
-}
 
 const PRINCIPLES = [
   {
@@ -155,11 +102,6 @@ function AboutHero({
           backgroundSize: "256px",
         }}
       />
-
-      {/* Large background KodRoda pattern */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden opacity-[0.045] md:opacity-[0.055]">
-        <SvgKodRoda className="h-[90vw] w-[90vw] max-h-[780px] max-w-[780px] -translate-x-[-15%] text-foreground" />
-      </div>
 
       {/* Ambient glow */}
       <div
@@ -342,11 +284,6 @@ function PrinciplesSection() {
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-surface py-20 md:py-40">
-      {/* Faint Kola in background */}
-      <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/3 opacity-[0.04]">
-        <SvgKola className="h-[60vw] w-[60vw] max-h-[640px] max-w-[640px] text-foreground" />
-      </div>
-
       <div className="site-shell relative z-10">
         <div className="mb-14 grid grid-cols-1 gap-8 md:mb-20 md:grid-cols-12">
           <motion.div
@@ -519,21 +456,11 @@ function StorySection({ secondaryBody }: { secondaryBody: string }) {
 function DarkQuoteSection() {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-12%" });
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const bgScale = useTransform(scrollYProgress, [0, 1], [0.88, 1.06]);
 
   const quote =
     "We do not inherit the earth from our ancestors; we borrow it from our children. We do the same with our stories. SYNARAVA is the vessel for the stories that refuse to be forgotten.";
   return (
     <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-48">
-      {/* Parallax ghost pattern */}
-      <motion.div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        style={{ scale: bgScale }}
-      >
-        <SvgKodRoda className="h-[80vw] w-[80vw] max-h-[700px] max-w-[700px] text-background opacity-[0.025]" />
-      </motion.div>
-
       <div className="site-shell relative z-10 text-center">
         <motion.div
           className="mx-auto mb-12 flex h-20 w-20 items-center justify-center border border-couture-red/40"
@@ -612,11 +539,6 @@ function AboutFooter() {
 
   return (
     <div ref={ref} className="relative overflow-hidden bg-surface py-20 md:py-32">
-      {/* Ghost Kola */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-        <SvgKola className="h-[70vw] w-[70vw] max-h-[600px] max-w-[600px] text-foreground opacity-[0.03]" />
-      </div>
-
       <div className="site-shell relative z-10 flex flex-col items-center gap-8 text-center">
         <motion.div className="flex items-center gap-5"
           initial={{ opacity: 0 }}

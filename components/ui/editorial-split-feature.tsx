@@ -80,7 +80,7 @@ export function EditorialSplitFeature({
         >
           <motion.div
             className={cx(
-              "relative h-full w-full will-change-transform",
+              "relative -top-[11%] h-[122%] w-full will-change-transform",
               imageClassName,
             )}
             style={{ y: imgY }}

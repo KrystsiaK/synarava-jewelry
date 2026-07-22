@@ -73,7 +73,7 @@ export function LanguageSwitcher({
         onClick={() => setOpen((v) => !v)}
         aria-label={t("language.select")}
         aria-expanded={open}
-        className={`inline-flex items-center justify-center border border-foreground/10 text-muted transition-colors hover:border-foreground/25 hover:text-foreground ${
+        className={`inline-flex items-center justify-center text-muted transition-colors hover:text-foreground ${
           fullWidth
             ? "w-full justify-between gap-3 px-3 py-2.5"
             : showCode
@@ -104,7 +104,7 @@ export function LanguageSwitcher({
               key={lang.code}
               type="button"
               onClick={() => handleSelect(lang.code)}
-              className="flex w-full items-center justify-between px-4 py-2.5 text-left font-mono text-[0.72rem] uppercase tracking-[0.1em] transition-colors hover:bg-foreground/5"
+              className="flex w-full items-center justify-between px-4 py-2.5 text-left font-sans text-[0.72rem] uppercase tracking-[0.1em] transition-colors hover:bg-foreground/5"
             >
               <span className={locale === lang.code ? "text-foreground" : "text-muted"}>
                 {lang.name}

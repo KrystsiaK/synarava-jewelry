@@ -1,32 +1,23 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import {
+  cubicBezier,
   motion,
   useScroll,
+  useSpring,
   useTransform,
-  useInView,
-  AnimatePresence,
+  useReducedMotion,
 } from "motion/react";
-import Link from "next/link";
+import type { CSSProperties } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import { ease, GRAIN_STYLE } from "@/lib/animation";
-import { useCountUp } from "@/lib/hooks/use-count-up";
-import { ShinyText, PrimaryCtaButton } from "@/components/ui";
-import {
-  KodRoda,
-  KodRodaStatic,
-  Kola,
-  KolaStatic,
-  Ziamla,
-  ZiamlaStatic,
-  FolkBorder,
-  FolkOrnamentBand,
-  FolkSpiderOrnament,
-} from "@/components/ui/folk-patterns";
+import { ease } from "@/lib/animation";
+import { useTranslations } from "@/lib/i18n/context";
+import { PrimaryCtaButton } from "@/components/ui";
 
-/* ─── Types ──────────────────────────────────────────────────────── */
 export interface CollectionItem {
   series: string;
   title: string;
@@ -40,848 +31,771 @@ export interface HomePageProps {
   excerpt?: string;
   content?: Record<string, string>;
   collections: CollectionItem[];
-  /** Optional video URL for the hero background (mp4 / webm). Falls back to poster image. */
-  heroVideoSrc?: string;
+  heroVideoSrc?: string | string[];
 }
 
-/* ─── Page-local data constants ──────────────────────────────────── */
-const MARQUEE_ROW_A = [
-  "Handcrafted Jewelry", "◆", "Belarusian Folk Couture", "◆",
-  "Lava Stone", "◆", "Oak Wood", "◆", "White Ceramic", "◆",
-  "Artisan Made", "◆", "Since 2024", "◆",
-];
+const HERO_IMAGE = "https://lh3.googleusercontent.com/aida/AP1WRLv3TGm4IeeKlLUiQxW8Hc3nSncMdMHyfmCzU9wpUE4H6DZ2__vML46WGDGCpf_R3lcpvCQiTRGvLXUF72WHO40QXtyITJqlFUXF42Q0ZuzCsAnsWC58PasoEcf9X6NnNz6m7Q5HwKljf6J9CwLDdNGADnKbaeLw3oBsfyBLFxuVOlns79WfDTYP7_JMzXnpBxNSiz1lGPIE0IZJd63qtBQT0-0TohGViEDXlnUdhoYktnLq3ii4UwcQck8";
+const HERO_VIDEOS = [
+  "/videos/synarava-beads.mp4",
+  "/videos/Model_woomen_hero.mp4",
+  "/videos/Man_bracelet_hero_web.mp4",
+  "/videos/synarava-materials.mp4",
+] as const;
+const HERO_POSTER = "/videos/model-hero-section.png";
+const LAVA_CONSTRUCT_IMAGE = "https://lh3.googleusercontent.com/aida/AP1WRLvg_bkn6bvxAkNEsIJ5_yzxXX6ldISFGygqcEk3uncUMoan5A52LxZ4eGlil6FLlWw9sVu8RRFFF841LexUxAHrcbNkv3_ukNq0Iee8cDZS1iRCuh1tNVzLW7Tjx6LqWy9uGeWeBi9kTJck5aon69PCAQDX2wMZfpl36XxA0K5u92ZVEXAA6HgwCF4ioCIqBRtDNsoFdUq7qD8mpU76aYNOb4c-LmDOYw_fy0NYMf9LS53FM1RER28T_Ww";
+const FRACTURED_QUARTZ_IMAGE = "https://lh3.googleusercontent.com/aida-public/AB6AXuChB26VkIkJfAS3suudP3zDdmZoI0ZbrsARVGw6isbyHNWuyApo5Z0x9Jd8gAWIJbUnjblDLmLwSsQc-TTeAgpKirYU7FiWgEHg1gprSFl-1XSsQCCOYpzhtXBZNT_UUmNcC8gmjNVdCkLXrvzY7ITzxE0pxjuv8hfnnni6al-gOWHc9n98SpVBkAy3MY1-zmS7Pa-g92ROigpPArvsBAgZ4ErsYKcE_PoEY_yrJXrFGI2cNQ2Ur7U-h1APrD8MLZJCnN6t_RD0E30";
 
-const ROTATING_WORDS = ["Timeless", "Sacred", "Eternal", "Ancestral", "Singular"];
-
-const MATERIALS = [
+const LEXICON_MATERIALS = [
   {
-    label: "Oak Wood",
-    description:
-      "Sourced from fallen trees in the Belarusian hinterlands. Stabilized for eternity, retaining the memory of the forest.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCeoC4s0GytU2DJHgrs3Y0VtvzJzV8XnZqdlM-zu7Pj5SOSNmgf2fH0UUWquiyWXIKpNLyYe7uIZO3_8XVObSjX88ucZFaSmB7RmcgsRhsPnG7tPGc0n0_G6K7x3a5mstC1CRokMdByQ5QzcXX2nFedtwx42wOm2YsJwOSo6OzbspMc5J8qdpMsI2dZi4z_wUwpmA0QdXlFyhLvOkujl25D4nxEsU7IcGhDLxyZA3K6CO9_k9Sx1YFGtL1eqQjnZEl_HFLyG9-8uxkN",
-    glowColor: "rgba(139,94,60,0.4)",
+    name: "White Ceramic",
+    category: "Kiln Fired / Matte",
+    description: "Unglazed porcelain, hand-shaped to retain subtle human imperfections before high-heat vitrification. Analyzed for structural integrity and tactile response. The matte surface absorbs light, providing a stark contrast to highly polished metals.",
+    image: FRACTURED_QUARTZ_IMAGE,
+    symbol: "CER / 01",
+    properties: ["Vitrified", "Light-absorbing", "Hand-shaped"],
   },
   {
-    label: "Basalt Lava",
-    description:
-      "A symbol of earth's inner heat. Porous, raw, grounding. Each stone hand-picked for its textural narrative.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB3bC6VRl2dzJVp1zDJ6F8LIDDaDFjwENBdbLjc5V2HyeQtnfTBNXAnOIKy0hoaL6h__BXybYEv5shYBB_miy09TC6ZVM-f9lUfrO9JOTSxhjtxl-gHz2-hWOBoerCpdanN9qPwdZpiYbcHMYvvAjywffeHeMvC421vpXHTVGgwGsYQzA-PVG_gPvPmpBYeE80XCwL9ifkN2H-IZDB9zpkEr7GBI3CQdSKYAHtXO06qS8aYl7NcL9UeS9d1GYTuH2oO9y1A4a9ZgwIU",
-    glowColor: "rgba(58,58,58,0.5)",
+    name: "Ancient Oak",
+    category: "Petrified / Dense",
+    description: "Reclaimed timber submerged for centuries, yielding a density approaching stone. Carbon dating confirmed. The natural grain is preserved, yet the material behaves with the unyielding strength of mineral composites.",
+    image: HERO_IMAGE,
+    symbol: "OAK / 02",
+    properties: ["300+ years", "Carbon-rich", "Grain intact"],
   },
   {
-    label: "White Ceramic",
-    description:
-      "Fired at extreme temperatures. Each piece a canvas for traditional geometric symbols of protection.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDo0brMJO6QweYPgvVPClZ6gtXoEsD6e-ZxScM4lJ6vtH__edq9seA-CR7YVps8U1JzWeHTcIT_cpKq9MWv9wpXHmjUgemr7Ahuoai7FwxfiSTOLBCHw_dof0JzrUChWIiHy4T0T73Wh3m-mkmPrC0c2FokJ2WF9niHU5SmYy5qiSzxhcQZgC6qiZxqxNh9GQ10szMB9Te3bbw3PdffbHjIDGTZeOL6UCQ3nDKwZTdj3kOe5jQaoYsvOVaZM_SJN5oBviQ6gSa-ghUm",
-    glowColor: "rgba(217,212,204,0.35)",
-  },
-];
-
-const STATS = [
-  { value: 47, suffix: "", label: "Unique Pieces Crafted" },
-  { value: 3, suffix: "", label: "Heritage Materials" },
-  { value: 100, suffix: "%", label: "Hand-Finished" },
-];
-
-const SYMBOLISM = [
-  { color: "bg-couture-red", label: "The Sun (Kola) — Energy & Life" },
-  { color: "bg-charcoal", label: "The Earth (Ziamla) — Fertility & Origin" },
-  { color: "bg-stone-beige", label: "The Ancestors (Dziedy) — Wisdom & Continuity" },
-];
-
-const ATELIER_STEPS = [
-  {
-    num: "01",
-    title: "Material Selection",
-    body: "We travel to source each raw material — fallen oak, volcanic basalt, kiln-fired ceramic. Only pieces with the right resonance are chosen.",
-  },
-  {
-    num: "02",
-    title: "Hand Shaping",
-    body: "Every form is carved, sculpted, and shaped entirely by hand. No two pieces share the same silhouette — each bears the artist's fingerprint.",
-  },
-  {
-    num: "03",
-    title: "Symbol Inscription",
-    body: "Ancient Belarusian protective motifs are engraved or painted onto the surface, infusing every piece with ancestral intention.",
-  },
-];
-
-function splitHeadlineIntoAnimatedTokens(headline: string) {
-  const normalized = headline.trim().replace(/\s+/g, " ");
-
-  if (normalized.includes(" ")) {
-    return normalized.split(" ");
+    name: "Raw Obsidian",
+    category: "Volcanic / Porous",
+    description: "Rapidly cooled volcanic glass, resulting in a vesicular texture. Extremely lightweight yet structurally sound. The porous nature creates a micro-landscape on the surface of each bead, absorbing ambient sound and reflecting a deep, matte blackness.",
+    image: LAVA_CONSTRUCT_IMAGE,
+    symbol: "OBS / 03",
+    properties: ["Volcanic glass", "Micro-porous", "Sound-softening"],
   }
+];
 
-  const camelCaseChunks = normalized.match(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+/g);
-  if (camelCaseChunks && camelCaseChunks.length > 1) {
-    return camelCaseChunks;
-  }
+const STAMP_CLASS = "border-[3px] border-couture-red text-couture-red px-4 py-2 inline-block uppercase font-bold tracking-[0.2em] bg-[#0a0a0b] select-none shadow-sm";
 
-  return normalized.match(/.{1,10}/g) ?? [normalized];
-}
+const SCROLL_SPRING = {
+  stiffness: 92,
+  damping: 26,
+  mass: 0.42,
+  restDelta: 0.0005,
+} as const;
 
-/* ─── RotatingText ───────────────────────────────────────────────── */
-function RotatingText() {
-  const [index, setIndex] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
-    return () => clearInterval(id);
-  }, []);
+const MATERIAL_LAB_SPRING = {
+  stiffness: 72,
+  damping: 20,
+  mass: 0.75,
+  restDelta: 0.0005,
+} as const;
 
-  return (
-    <span className="relative inline-block overflow-hidden align-middle" style={{ minWidth: "7ch" }}>
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={index}
-          className="inline-block text-couture-red"
-          initial={{ y: "110%", opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: "-110%", opacity: 0 }}
-          transition={{ duration: 0.45, ease }}
-        >
-          {ROTATING_WORDS[index]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
+const FINAL_SCENE_SPRING = {
+  stiffness: 80,
+  damping: 17,
+  mass: 0.6,
+  restDelta: 0.0005,
+} as const;
+
+const FINAL_SCENE_EASE = cubicBezier(0.33, 0, 0.2, 1);
+
+// Image Component with dynamic GPU-accelerated Parallax scroll behavior
+function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipPath: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion() ?? false;
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"]
+  });
+
+  const smoothProgress = useSpring(scrollYProgress, SCROLL_SPRING);
+  const transform = useTransform(
+    reduceMotion ? scrollYProgress : smoothProgress,
+    [0, 1],
+    reduceMotion
+      ? ["translate3d(0, 0%, 0)", "translate3d(0, 0%, 0)"]
+      : ["translate3d(0, -8%, 0)", "translate3d(0, 8%, 0)"],
   );
-}
-
-/* ─── Hero ───────────────────────────────────────────────────────── */
-function HeroSection({
-  title,
-  excerpt,
-  content,
-  heroVideoSrc,
-}: Pick<HomePageProps, "title" | "excerpt" | "content" | "heroVideoSrc">) {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const videoScale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const textY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-5%"]);
-
-  const headline = title ?? "Ethereal Artifacts";
-  const words = splitHeadlineIntoAnimatedTokens(headline);
 
   return (
-    <motion.header
-      ref={ref}
-      className="relative flex min-h-[100svh] items-center overflow-hidden bg-background"
-    >
-      {/* ── Video background ──────────────────────────────────────── */}
-      <motion.div className="absolute inset-0 z-0" style={{ scale: videoScale }}>
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster="https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr"
-          className="h-full w-full object-cover brightness-[0.72] contrast-[1.06]"
-          aria-hidden="true"
-        >
-          {heroVideoSrc && <source src={heroVideoSrc} type="video/mp4" />}
-        </video>
-      </motion.div>
-
-      {/* ── Overlays ──────────────────────────────────────────────── */}
-      {/* Base dark tint */}
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-background/55" />
-      {/* Top gradient — merges with nav */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-56 bg-gradient-to-b from-background via-background/70 to-transparent" />
-      {/* Bottom gradient */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-44 bg-gradient-to-t from-background to-transparent" />
-      {/* Left atmosphere */}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-1/2"
-        style={{ background: "linear-gradient(to right, rgba(0,0,0,0.3) 0%, transparent 100%)" }}
-      />
-      {/* Red left accent glow */}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-px opacity-60"
-        style={{ background: "linear-gradient(to bottom, transparent 0%, #a6192e 50%, transparent 100%)" }}
-      />
-
-      {/* Grain */}
-      <div
-        className="pointer-events-none absolute inset-0 z-[3] mix-blend-multiply opacity-[0.055]"
-        style={GRAIN_STYLE}
-      />
-
-      {/* KodRoda ghost — more visible against dark video */}
-      <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-end overflow-hidden opacity-[0.06]">
-        <KodRodaStatic className="h-[80vw] w-[80vw] max-h-[780px] max-w-[780px] translate-x-[22%] text-foreground" />
-      </div>
-
-      {/* Background wordmark */}
-      <div className="pointer-events-none absolute -bottom-10 left-0 right-0 z-[3] hidden justify-center overflow-hidden md:flex">
-        <motion.span
-          className="select-none font-serif leading-none tracking-widest text-foreground"
-          style={{ fontSize: "clamp(4rem,16vw,13rem)", opacity: 0.028 }}
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 0.028 }}
-          transition={{ duration: 2, ease, delay: 1 }}
-        >
-          SYNARAVA
-        </motion.span>
-      </div>
-
-      {/* Mobile vertical wordmark */}
-      <div className="pointer-events-none absolute inset-y-24 right-0 z-[3] flex items-center overflow-hidden md:hidden" aria-hidden="true">
-        <motion.span
-          className="select-none font-serif leading-none tracking-[0.14em] text-foreground [writing-mode:vertical-rl]"
-          style={{ fontSize: "clamp(4rem,16vw,6rem)", opacity: 0.055 }}
-          initial={{ x: 24, opacity: 0 }}
-          animate={{ x: 0, opacity: 0.055 }}
-          transition={{ duration: 1.4, ease, delay: 0.75 }}
-        >
-          SYNARAVA
-        </motion.span>
-      </div>
-
-      {/* ── Text content ──────────────────────────────────────────── */}
+    <div ref={ref} className="w-full h-full relative overflow-hidden" style={{ clipPath }}>
       <motion.div
-        className="site-shell relative z-10 w-full pb-24 pt-[8.25rem] md:pb-28 md:pt-[9.25rem] lg:pt-[10.25rem]"
-        style={{ opacity: textOpacity, y: textY }}
+        style={{ transform }}
+        className="absolute -top-[8%] left-0 h-[116%] w-full transform-gpu [backface-visibility:hidden]"
       >
-        <div className="max-w-3xl space-y-8 lg:space-y-10">
-          <motion.p
-            className="label-mono text-couture-red"
-            initial={{ opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease }}
-          >
-            {content?.eyebrow ?? "Couture Collection №01"}
-          </motion.p>
-
-          <div>
-            <h1
-              className="max-w-[9.6ch] text-balance font-serif leading-[0.96] tracking-normal [overflow-wrap:anywhere]"
-              style={{ fontSize: "clamp(3.5rem,7vw,6.5rem)" }}
-            >
-              {words.map((word, i) => (
-                <span key={`${word}-${i}`} className="mr-[0.2em] inline-block max-w-full overflow-hidden last:mr-0">
-                  <motion.span
-                    className="inline-block max-w-full"
-                    initial={{ y: "110%", opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 1, ease, delay: 0.15 + i * 0.12 }}
-                  >
-                    <ShinyText>{word}</ShinyText>
-                  </motion.span>
-                </span>
-              ))}
-            </h1>
-
-            <motion.div
-              className="mt-5 font-serif italic leading-none"
-              style={{ fontSize: "clamp(1.25rem,2.2vw,2.1rem)", opacity: 0.72 }}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 0.72, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.85, ease }}
-            >
-              <RotatingText />
-            </motion.div>
-          </div>
-
-          <motion.p
-            className="max-w-xl text-[1.02rem] leading-[1.95] text-muted-ink"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, delay: 0.65, ease }}
-          >
-            {excerpt ??
-              "Handcrafted jewelry that bridges ancient Slavic mysticism and contemporary architectural avant-garde."}
-          </motion.p>
-
-          <motion.div
-            className="flex flex-wrap items-center gap-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, delay: 0.9, ease }}
-          >
-            <PrimaryCtaButton href={content?.ctaHref ?? "/shop"}>
-              {content?.ctaLabel ?? "All products"}
-            </PrimaryCtaButton>
-            <span className="label-mono hidden text-muted-ink/60 sm:inline">47 pieces crafted</span>
-          </motion.div>
-        </div>
-
-        {/* Corner accents */}
-        <motion.div
-          className="absolute bottom-24 right-8 h-10 w-10 border-b border-r border-couture-red/45 md:right-0"
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, delay: 1.4, ease }}
-        />
-        <motion.div
-          className="absolute bottom-24 left-8 h-10 w-10 border-b border-l border-couture-red/25 md:left-0"
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, delay: 1.55, ease }}
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(max-width: 768px) 100vw, 55vw"
+          className="h-full w-full object-cover grayscale brightness-[0.7] transition-[filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:grayscale-0 hover:brightness-95"
         />
       </motion.div>
-
-      {/* Folk ornament band — bottom decorative border */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-20 md:h-28">
-        <FolkOrnamentBand className="h-full w-full text-foreground/22" delay={1.4} />
-      </div>
-
-      {/* Scroll hint */}
-      <motion.div
-        className="absolute bottom-9 right-8 z-10 flex flex-col items-center gap-2.5 md:bottom-11 md:right-12"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.2, delay: 2 }}
-        aria-hidden="true"
-      >
-        <span className="label-mono text-[0.6rem] text-muted-ink/45 [writing-mode:vertical-rl]">Scroll</span>
-        <motion.div
-          className="h-9 w-px bg-couture-red/55"
-          animate={{ scaleY: [1, 0.25, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          style={{ transformOrigin: "top" }}
-        />
-      </motion.div>
-    </motion.header>
-  );
-}
-
-/* ─── Dual Marquee ───────────────────────────────────────────────── */
-function MarqueeStrip() {
-  const dA = [...MARQUEE_ROW_A, ...MARQUEE_ROW_A];
-
-  return (
-    <div className="overflow-hidden bg-foreground">
-      <div className="overflow-hidden border-b border-background/[0.06] py-[0.85rem]">
-        <motion.div
-          className="flex whitespace-nowrap"
-          animate={{ x: ["0%", "-50%"] }}
-          transition={{ duration: 36, repeat: Infinity, ease: "linear" }}
-        >
-          {dA.map((item, i) => (
-            <span
-              key={i}
-              className={`mx-7 font-mono text-[0.68rem] uppercase tracking-[0.28em] ${
-                item === "◆" ? "text-couture-red" : "text-background/55"
-              }`}
-            >
-              {item}
-            </span>
-          ))}
-        </motion.div>
-      </div>
     </div>
   );
 }
 
-/* ─── Manifesto ──────────────────────────────────────────────────── */
-function ManifestoSection({ content }: { content?: Record<string, string> }) {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-12%" });
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const bgScale = useTransform(scrollYProgress, [0, 1], [0.88, 1.06]);
+// 2. ASYMMETRIC HERO
+function HeroSection({
+  heroVideoSrc,
+}: Pick<HomePageProps, "heroVideoSrc">) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+  const reduceMotion = useReducedMotion();
+  const videoSources = heroVideoSrc
+    ? Array.isArray(heroVideoSrc)
+      ? heroVideoSrc
+      : [heroVideoSrc]
+    : HERO_VIDEOS;
+  const hasVideo = videoSources.length > 0;
+  const activeVideoSrc = hasVideo
+    ? videoSources[activeVideoIndex % videoSources.length]
+    : undefined;
 
-  const quote =
-    content?.quote ??
-    "We do not create accessories. We archive the soul of materials — wood that has witnessed centuries, stone that holds the earth's heat, and the silent rhythm of folk geometry.";
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"],
+  });
+  const smoothProgress = useSpring(scrollYProgress, SCROLL_SPRING);
+  const progress = reduceMotion ? scrollYProgress : smoothProgress;
+
+  const mediaTransform = useTransform(
+    progress,
+    [0, 1],
+    reduceMotion
+      ? ["translate3d(0,0,0) scale(1)", "translate3d(0,0,0) scale(1)"]
+      : ["translate3d(0,0,0) scale(1.035)", "translate3d(0,32px,0) scale(0.97)"],
+  );
+  const textOpacity = useTransform(progress, [0, 0.66], [1, 0]);
+  const textTransform = useTransform(
+    progress,
+    [0, 0.66],
+    reduceMotion
+      ? ["translate3d(0,0,0)", "translate3d(0,0,0)"]
+      : ["translate3d(0,0,0)", "translate3d(0,-24px,0)"],
+  );
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-background py-24 md:py-52">
-      {/* Background kinetic text */}
+    <section
+      ref={containerRef}
+      className="relative flex min-h-[108svh] w-full items-end overflow-hidden bg-transparent px-5 pb-40 pt-24 md:min-h-[112vh] md:px-[4vw]"
+      style={{
+        "--color-linen": "#f9f8f6",
+        "--color-stone-beige": "#d9d4cc",
+        "--color-couture-red": "#e44b61",
+      } as CSSProperties}
+    >
       <motion.div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        style={{ scale: bgScale }}
-      >
-        <span
-          className="select-none text-center font-serif leading-none text-foreground"
-          style={{ fontSize: "clamp(4rem,18vw,16rem)", opacity: 0.022, whiteSpace: "nowrap" }}
-        >
-          MANIFESTO
-        </span>
-      </motion.div>
-
-      {/* Ghost Kola */}
-      <div className="pointer-events-none absolute left-0 top-1/2 -translate-x-1/3 -translate-y-1/2 opacity-[0.038]">
-        <KolaStatic className="h-[55vw] w-[55vw] max-h-[560px] max-w-[560px] text-foreground" />
-      </div>
-
-      <div className="site-shell relative z-10 text-center md:text-left">
-        <motion.span
-          className="label-caps mb-10 block text-couture-red md:mb-14"
-          initial={{ opacity: 0, y: 16 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease }}
-        >
-          The Manifesto
-        </motion.span>
-
-        {/* Single block quote animation instead of per-word */}
-        <motion.blockquote
-          className="mx-auto max-w-5xl font-serif italic leading-[1.4] md:mx-0"
-          style={{ fontSize: "clamp(1.6rem,3.2vw,3rem)" }}
-          initial={{ opacity: 0, y: 24 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, ease, delay: 0.15 }}
-        >
-          {quote}
-        </motion.blockquote>
-
-        <motion.footer
-          className="mt-12 flex flex-col items-center justify-center gap-4 md:mt-16 md:items-start md:justify-start md:gap-5"
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.55 }}
-        >
-          <span className="label-mono text-muted-ink">
-            Synarava Studio, 2024
-          </span>
-          <div className="flex items-center justify-center gap-5">
-            <motion.div
-              className="h-px w-14 bg-stone-beige"
-              initial={{ scaleX: 0 }}
-              animate={isInView ? { scaleX: 1 } : {}}
-              transition={{ duration: 0.8, delay: 0.65 }}
-              style={{ transformOrigin: "left" }}
-            />
-            <div className="h-2 w-2 rotate-45 border border-couture-red" />
-            <motion.div
-              className="h-px w-14 bg-stone-beige"
-              initial={{ scaleX: 0 }}
-              animate={isInView ? { scaleX: 1 } : {}}
-              transition={{ duration: 0.8, delay: 0.75 }}
-              style={{ transformOrigin: "right" }}
-            />
-          </div>
-        </motion.footer>
-      </div>
-
-      <div className="site-shell relative z-10 mt-16 md:mt-24">
-        <FolkBorder className="w-full text-foreground/20" />
-      </div>
-    </section>
-  );
-}
-
-/* ─── Collections Grid ───────────────────────────────────────────── */
-function CollectionsSection({
-  collections,
-  content,
-}: Pick<HomePageProps, "collections" | "content">) {
-  const headerRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(headerRef, { once: true, margin: "-8%" });
-
-  return (
-    <section className="bg-surface py-20 md:py-36">
-      <div className="site-shell">
-        <div
-          ref={headerRef}
-          className="mb-14 flex flex-col gap-4 md:mb-20 md:flex-row md:items-end md:justify-between"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease }}
-          >
-            <p className="label-mono mb-3 text-muted-ink">
-              Collections 2024
-            </p>
-            <h3 className="font-serif" style={{ fontSize: "clamp(2rem,4vw,3rem)" }}>
-              {content?.secondaryTitle ?? "Current Archive"}
-            </h3>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.7, delay: 0.25 }}
-          >
-            <Link
-              href="/collections"
-              className="group inline-flex cursor-pointer items-center gap-2 label-caps border-b border-foreground/25 pb-1.5 transition-all hover:border-couture-red hover:text-couture-red"
-            >
-              View All Series
-              <svg
-                className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
-                viewBox="0 0 12 12"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M1 6h10M7 2l4 4-4 4"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
-          </motion.div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start md:gap-8">
-          {collections.map((item, i) => (
-            <CollectionCard key={item.href} item={item} index={i} isParentInView={isInView} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CollectionCard({
-  item,
-  index,
-  isParentInView,
-}: {
-  item: CollectionItem;
-  index: number;
-  isParentInView: boolean;
-}) {
-  const offsetClass = index === 1 ? "md:mt-14" : index === 2 ? "md:-mt-6" : "";
-
-  return (
-    <motion.div
-      className={offsetClass}
-      initial={{ opacity: 0, y: 52 }}
-      animate={isParentInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.9, ease, delay: 0.1 + index * 0.13 }}
-    >
-      <Link href={item.href} className="group block cursor-pointer">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <motion.div
-          className="relative mb-5 aspect-[3/4] overflow-hidden bg-stone-beige"
-          initial="rest"
-          whileHover="hover"
-          animate="rest"
-        >
-          <motion.img
-            alt={item.title}
-            className="h-full w-full object-cover will-change-transform"
-            src={item.image}
-            variants={{
-              rest: { scale: 1, filter: "grayscale(1) brightness(0.82)" },
-              hover: { scale: 1.07, filter: "grayscale(0) brightness(0.92)" },
-            }}
-            transition={{ type: "spring", stiffness: 260, damping: 32 }}
-          />
-
-          <motion.div
-            className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-foreground/75 via-foreground/30 to-transparent p-5"
-            variants={{
-              rest: { opacity: 0, y: "30%" },
-              hover: { opacity: 1, y: "0%" },
-            }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          >
-            <p className="label-mono mb-1 text-[0.65rem] text-white/80">{item.series}</p>
-            <div className="flex items-center justify-between">
-              <p
-                className="font-serif text-white"
-                style={{ fontSize: "clamp(1rem,1.5vw,1.25rem)" }}
-              >
-                {item.title}
-              </p>
-              <span className="label-mono text-[0.68rem] text-couture-red">{item.price}</span>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="absolute bottom-0 left-0 h-0.5 bg-couture-red"
-            variants={{
-              rest: { width: "0%" },
-              hover: { width: "100%" },
-            }}
-            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </motion.div>
-
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="label-mono mb-1 text-muted-ink">{item.series}</p>
-            <h4
-              className="font-serif transition-colors duration-300 group-hover:text-couture-red"
-              style={{ fontSize: "clamp(1.2rem,1.8vw,1.5rem)" }}
-            >
-              {item.title}
-            </h4>
-          </div>
-          <span className="label-mono text-muted-ink transition-colors duration-300 group-hover:text-couture-red">
-            {item.price}
-          </span>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
-
-/* ─── The Atelier ────────────────────────────────────────────────── */
-function AtelierSection() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const lineScaleX = useTransform(scrollYProgress, [0.05, 0.65], [0, 1]);
-
-  return (
-    <section ref={ref} className="relative overflow-hidden bg-background py-20 md:py-44">
-      {/* Ghost number */}
-      <div className="pointer-events-none absolute right-0 top-0 select-none overflow-hidden">
-        <span
-          className="font-serif text-foreground"
-          style={{ fontSize: "clamp(8rem,22vw,20rem)", opacity: 0.025, lineHeight: 0.85 }}
-        >
-          02
-        </span>
-      </div>
-
-      {/* Ziamla ghost */}
-      <div className="pointer-events-none absolute left-0 top-1/2 -translate-x-1/4 -translate-y-1/2 opacity-[0.04]">
-        <ZiamlaStatic className="h-[60vw] w-[60vw] max-h-[580px] max-w-[580px] text-foreground" />
-      </div>
-
-      <div className="site-shell">
-        <motion.div
-          className="mb-16 md:mb-24"
-          initial={{ opacity: 0, y: 28 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-        >
-          <p className="label-mono mb-4 text-couture-red">02 // The Atelier</p>
-          <h3 className="max-w-xl font-serif" style={{ fontSize: "clamp(2rem,4vw,3rem)" }}>
-            The Making
-          </h3>
-        </motion.div>
-
-        {/* Progress timeline bar */}
-        <div className="relative mb-0 hidden h-px bg-foreground/[0.08] md:block">
-          <motion.div
-            className="absolute left-0 top-0 h-full origin-left bg-couture-red"
-            style={{ scaleX: lineScaleX }}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-0">
-          {ATELIER_STEPS.map((step, i) => (
-            <motion.div
-              key={step.num}
-              className="relative border-t border-foreground/10 pt-8 md:pr-16"
-              initial={{ opacity: 0, y: 44 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: 0.1 + i * 0.18 }}
-            >
-              <motion.div
-                className="absolute -top-[5px] left-0 hidden h-2.5 w-2.5 rounded-full bg-couture-red md:block"
-                initial={{ scale: 0 }}
-                animate={isInView ? { scale: 1 } : {}}
-                transition={{
-                  duration: 0.4,
-                  delay: 0.45 + i * 0.2,
-                  type: "spring",
-                  stiffness: 400,
-                }}
-              />
-              <p className="label-mono mb-5 text-couture-red">{step.num}</p>
-              <h4 className="mb-4 font-serif" style={{ fontSize: "clamp(1.3rem,2vw,1.7rem)" }}>
-                {step.title}
-              </h4>
-              <p className="text-sm leading-[1.9] text-muted-ink md:text-base">
-                {step.body}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Folk Pattern Interlude ─────────────────────────────────────── */
-function PatternInterlude() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-8%" });
-
-  const patterns = [
-    {
-      Svg: KodRoda,
-      name: "Kod Roda",
-      sub: "Ancestral Cipher",
-      desc: "A diamond lattice encoding lineage and protection. Found on ceremonial linens for centuries.",
-    },
-    {
-      Svg: Kola,
-      name: "Kola",
-      sub: "Solar Wheel",
-      desc: "The ancient 8-spoked sun symbol — energy, life force, and the cyclical nature of time.",
-    },
-    {
-      Svg: Ziamla,
-      name: "Ziamla",
-      sub: "Earth Grid",
-      desc: "Nested squares anchoring the wearer — symbol of fertility, material origin, and permanence.",
-    },
-  ] as const;
-
-  return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground pb-32 pt-20 text-background md:pb-44 md:pt-32">
-      <div className="site-shell relative z-10">
-        <motion.div
-          className="mb-14 text-center md:mb-20"
-          initial={{ opacity: 0, y: 24 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-        >
-          <p className="label-mono mb-3 text-couture-red">Folk Geometry</p>
-          <h3 className="font-serif" style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)" }}>
-            The Symbols We Carry
-          </h3>
-        </motion.div>
-
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
-          {patterns.map(({ Svg, name, sub, desc }, i) => (
-            <motion.div
-              key={name}
-              className="group text-center"
-              initial={{ opacity: 0, y: 40 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: i * 0.16 }}
-            >
-              <div className="relative mb-8 flex items-center justify-center">
-                <Svg className="h-44 w-44 text-background/65 transition-colors duration-700 group-hover:text-couture-red md:h-48 md:w-48" />
-              </div>
-              <motion.div
-                className="mx-auto mb-6 h-px bg-background/15"
-                initial={{ scaleX: 0 }}
-                animate={isInView ? { scaleX: 1 } : {}}
-                transition={{ duration: 1, ease, delay: 0.4 + i * 0.16 }}
-                style={{ transformOrigin: "center" }}
-              />
-              <p className="label-caps mb-1 text-couture-red">{name}</p>
-              <p className="label-mono mb-4 text-background/40">{sub}</p>
-              <p className="text-sm leading-[1.9] text-background/55 md:text-base">
-                {desc}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-
-      </div>
-
-    </section>
-  );
-}
-
-/* ─── Materials ──────────────────────────────────────────────────── */
-function MaterialsSection() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-
-  return (
-    <section ref={ref} className="bg-foreground py-20 text-background md:py-40">
-      <div className="site-shell">
-        <motion.div
-          className="mb-14 md:mb-24"
-          initial={{ opacity: 0, y: 28 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-        >
-          <p className="label-mono mb-4 text-couture-red">03 // Materials</p>
-          <h3 className="max-w-lg font-serif" style={{ fontSize: "clamp(2rem,4vw,3rem)" }}>
-            From Earth to Form
-          </h3>
-        </motion.div>
-
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
-          {MATERIALS.map((mat, i) => (
-            <motion.div
-              key={mat.label}
-              className={`group${i === 1 ? " md:mt-16" : ""}`}
-              initial={{ opacity: 0, y: 44 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.85, ease, delay: i * 0.14 }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <div className="relative mb-6 aspect-[4/5] w-full overflow-hidden">
-                <motion.img
-                  alt={mat.label}
-                  className="h-full w-full object-cover will-change-transform"
-                  src={mat.image}
-                  initial={{ filter: "grayscale(1) brightness(0.72)" }}
-                  whileHover={{ filter: "grayscale(0) brightness(0.88)", scale: 1.04 }}
-                  transition={{ duration: 0.65 }}
-                />
-                <div
-                  className="pointer-events-none absolute bottom-0 left-0 right-0 h-1/2 opacity-0 transition-opacity duration-700 group-hover:opacity-100"
-                  style={{
-                    background: `linear-gradient(to top, ${mat.glowColor} 0%, transparent 100%)`,
-                  }}
-                />
-              </div>
-              <p className="label-caps mb-3 text-couture-red">{mat.label}</p>
-              <p className="text-sm leading-[1.9] text-background/60 md:text-base">
-                {mat.description}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Stats ──────────────────────────────────────────────────────── */
-function StatItem({
-  value,
-  suffix,
-  label,
-  index,
-}: {
-  value: number;
-  suffix: string;
-  label: string;
-  index: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-20%" });
-  const count = useCountUp(value, isInView);
-
-  return (
-    <motion.div
-      ref={ref}
-      className="flex flex-col items-center gap-3 text-center"
-      initial={{ opacity: 0, y: 24 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.8, ease, delay: index * 0.12 }}
-    >
-      <span
-        className="font-serif leading-none text-background"
+        className="absolute -right-[9%] top-[4.5rem] z-0 h-[75svh] w-[96%] overflow-hidden transform-gpu [backface-visibility:hidden] md:-right-[2%] md:top-[5.5rem] md:h-[86vh] md:w-[72%]"
         style={{
-          fontSize: "clamp(3.5rem,7vw,6rem)",
-          textShadow: isInView ? "0 0 48px rgba(166,25,46,0.55)" : "none",
-          transition: "text-shadow 1.2s ease",
+          clipPath: "polygon(13% 4%, 93% 0, 100% 84%, 78% 100%, 0 91%, 5% 23%)",
         }}
       >
-        {count}
-        {suffix}
-      </span>
-      <p className="label-mono text-background/45">{label}</p>
-    </motion.div>
+        <motion.div className="relative h-full w-full transform-gpu [backface-visibility:hidden]" style={{ transform: mediaTransform }}>
+          {activeVideoSrc ? (
+            <video
+              key={activeVideoSrc}
+              autoPlay
+              muted
+              loop={videoSources.length === 1}
+              playsInline
+              preload="metadata"
+              poster={HERO_POSTER}
+              src={activeVideoSrc}
+              className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]"
+              aria-hidden="true"
+              onEnded={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
+              onError={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
+            />
+          ) : (
+            <Image
+              src={HERO_IMAGE}
+              alt="Handcrafted Synarava jewelry"
+              fill
+              priority
+              loading="eager"
+              sizes="100vw"
+              className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]"
+            />
+          )}
+        </motion.div>
+
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(8,8,10,0.1)_20%,transparent_48%,rgba(8,8,10,0.65)_100%)]" />
+        <div className="pointer-events-none absolute inset-[5%] border border-linen/20 [clip-path:polygon(7%_0,100%_0,100%_82%,78%_100%,0_89%,0_21%)]" />
+        <div className="pointer-events-none absolute -bottom-[14%] left-[23%] h-[46%] w-[18%] -rotate-[18deg] border-x border-linen/15 bg-linen/[0.035] backdrop-blur-[2px]" aria-hidden="true" />
+      </motion.div>
+
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[58%]"
+        style={{ background: "linear-gradient(to top, transparent 0%, rgba(9,9,10,0.88) 34%, transparent 100%)" }}
+        aria-hidden="true"
+      />
+
+      <motion.div
+        className="relative z-10 w-full transform-gpu [backface-visibility:hidden] md:pl-[4vw]"
+        style={{ opacity: textOpacity, transform: textTransform }}
+      >
+        <div className="mb-5 flex items-center gap-4 md:mb-7">
+          <span className="h-px w-10 bg-couture-red" aria-hidden="true" />
+          <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-linen/75">
+            Synarava · Belarus
+          </p>
+        </div>
+
+        <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.4rem,9vw,6rem)] uppercase leading-[0.86] tracking-[-0.035em] text-linen">
+          Artifacts<br />of <span className="italic font-light text-couture-red">time</span>
+        </h1>
+
+        <p className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige/80 md:mt-8 md:text-base">
+          Hand-shaped couture where raw matter becomes a private relic.
+        </p>
+
+        <div className="mt-7 pl-8 sm:pl-14 md:mt-9">
+          <PrimaryCtaButton href="/shop">
+            Shop the collection
+          </PrimaryCtaButton>
+        </div>
+      </motion.div>
+
+      <p className="absolute bottom-7 right-5 z-10 hidden font-serif text-sm italic text-linen/70 sm:block md:right-[4vw]">
+        Matter, held in tension.
+      </p>
+    </section>
   );
 }
 
-function StatsSection() {
+// 3. CINEMATIC SCROLL PATHWAY (Transparent background, Parallax images + individual loading scroll reveal)
+function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const firstRecordRef = useRef<HTMLDivElement>(null);
+  const secondRecordRef = useRef<HTMLDivElement>(null);
+  const thirdRecordRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion() ?? false;
+
+  const { scrollYProgress: firstRecordProgress } = useScroll({
+    target: firstRecordRef,
+    offset: ["start 20vh", "start -12vh"],
+  });
+  const { scrollYProgress: secondRecordProgress } = useScroll({
+    target: secondRecordRef,
+    offset: ["start 20vh", "start -12vh"],
+  });
+  const { scrollYProgress: thirdRecordProgress } = useScroll({
+    target: thirdRecordRef,
+    offset: ["start 20vh", "start -12vh"],
+  });
+
+  const firstRecordFilter = useTransform(
+    firstRecordProgress,
+    [0, 1],
+    reduceMotion ? ["brightness(1)", "brightness(1)"] : ["brightness(1)", "brightness(0.42)"],
+  );
+  const secondRecordFilter = useTransform(
+    secondRecordProgress,
+    [0, 1],
+    reduceMotion ? ["brightness(1)", "brightness(1)"] : ["brightness(1)", "brightness(0.42)"],
+  );
+  const thirdRecordFilter = useTransform(
+    thirdRecordProgress,
+    [0, 1],
+    reduceMotion ? ["brightness(1)", "brightness(1)"] : ["brightness(1)", "brightness(0.42)"],
+  );
+
+  const items = useMemo(() => {
+    const list = [...collections];
+    if (list.length < 1) {
+      list.push({
+        series: "No. 001",
+        title: "The Lava Construct",
+        price: "Limited",
+        image: LAVA_CONSTRUCT_IMAGE,
+        href: "/shop",
+      });
+    }
+    if (list.length < 2) {
+      list.push({
+        series: "No. 002",
+        title: "Fractured Quartz",
+        price: "Limited",
+        image: FRACTURED_QUARTZ_IMAGE,
+        href: "/shop",
+      });
+    }
+    if (list.length < 3) {
+      list.push({
+        series: "No. 003",
+        title: "Petrified Oak",
+        price: "Limited",
+        image: HERO_IMAGE,
+        href: "/shop",
+      });
+    }
+    return list.slice(0, 3);
+  }, [collections]);
+
   return (
-    <section className="border-y border-foreground/10 bg-foreground py-16 md:py-24">
-      <div className="site-shell">
-        <div className="grid grid-cols-1 gap-14 md:grid-cols-3 md:gap-0">
-          {STATS.map((s, i) => (
-            <div key={s.label} className="relative">
-              {i > 0 && (
-                <div className="absolute inset-y-0 left-0 hidden w-px bg-background/[0.06] md:block" />
-              )}
-              <StatItem value={s.value} suffix={s.suffix} label={s.label} index={i} />
+    <section
+      ref={containerRef}
+      className="relative z-20 -mt-[18svh] bg-transparent px-6 pb-24 pt-[calc(6rem+18svh)] text-linen md:px-[4vw]"
+      id="archive-pathway"
+    >
+      {/* Giant background text */}
+      <div className="absolute -right-20 top-40 z-0 opacity-5 rotate-[270deg] clipped-text pointer-events-none select-none">
+        <h1 className="font-serif text-[15vw] text-linen leading-none uppercase">RECORDED</h1>
+      </div>
+
+      <div className="max-w-[90rem] mx-auto flex flex-col gap-32 md:gap-48 relative z-10">
+
+        {/* Item 001: Left text block overlapping Right image */}
+        <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-end">
+
+          {/* Overlapping Text Card with Scroll reveal (loading effect) */}
+          <motion.div
+            ref={firstRecordRef}
+            initial={{ opacity: 0, y: 50, x: -20 }}
+            whileInView={{ opacity: 1, y: 0, x: 0 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 0.85, ease }}
+            style={{ filter: firstRecordFilter }}
+            className="relative z-20 w-full self-start overflow-hidden p-8 will-change-[filter] md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
+          >
+            <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
+
+            <div className="relative z-10 w-full h-full">
+              <div className="flex justify-between items-start mb-6">
+                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">No. 001 // LAVA</span>
+                <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
+                  LOC:<br />53.90° N, 27.56° E
+                </span>
+              </div>
+              <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter">
+                The Lava<br />
+                <span className="italic font-light text-couture-red">Construct</span>
+              </h2>
+              <p className="font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold">
+                [OBSERVATION LOG]<br />
+                Porous obsidian captured in perfect spheres, contrasting with the smooth rigidity of aged oak. A tactile meditation on impermanence. Material stress tests indicate high durability alongside visual fragility.
+              </p>
+
+              {/* Technical Parameters Table */}
+              <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
+                <div>
+                  <span className="text-couture-red block mb-1 font-bold">TYPE</span>
+                  Igneous / Porous
+                </div>
+                <div>
+                  <span className="text-couture-red block mb-1 font-bold">ORIGIN</span>
+                  Dormant calderas
+                </div>
+              </div>
+
             </div>
+          </motion.div>
+
+          {/* Right Image with Scroll Reveal + Parallax scroll */}
+          <motion.div
+            initial={{ opacity: 0, y: 80 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 1.1, ease }}
+            className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
+          >
+            <Link
+              href={items[0].href}
+              aria-label={`View ${items[0].title} collection`}
+              className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+            >
+              <ParallaxImage src={items[0].image} alt={items[0].title} clipPath="polygon(15% 5%, 95% 0, 100% 90%, 0% 100%)" />
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-linen opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+                View collection
+                <ArrowRight className="size-3.5" aria-hidden="true" />
+              </span>
+            </Link>
+          </motion.div>
+
+        </div>
+
+        {/* Item 002: Right text block overlapping Left image */}
+        <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-start">
+
+          {/* Left Image with Scroll Reveal + Parallax scroll */}
+          <motion.div
+            initial={{ opacity: 0, y: 80 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 1.1, ease }}
+            className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10"
+          >
+            <Link
+              href={items[1].href}
+              aria-label={`View ${items[1].title} collection`}
+              className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+            >
+              <ParallaxImage src={items[1].image} alt={items[1].title} clipPath="polygon(0 20%, 100% 0, 85% 100%, 5% 80%)" />
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-linen opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+                View collection
+                <ArrowRight className="size-3.5" aria-hidden="true" />
+              </span>
+            </Link>
+          </motion.div>
+
+          {/* Overlapping Text Card with Scroll reveal (loading effect) */}
+          <motion.div
+            ref={secondRecordRef}
+            initial={{ opacity: 0, y: 50, x: 20 }}
+            whileInView={{ opacity: 1, y: 0, x: 0 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 0.85, ease }}
+            style={{ filter: secondRecordFilter }}
+            className="relative z-20 mt-6 w-full self-end overflow-hidden p-8 text-linen will-change-[filter] md:absolute md:right-10 md:top-[15%] md:mt-0 md:w-5/12 md:p-12"
+          >
+            <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
+
+            <div className="relative z-10 w-full h-full">
+              <div className="flex justify-between items-start mb-6">
+                <span className="font-sans text-[9px] text-stone-beige/65 uppercase">
+                  COORD:<br />53.90° N, 27.56° E
+                </span>
+                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold text-right">No. 002 // QUARTZ</span>
+              </div>
+              <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter text-right">
+                Fractured<br />
+                <span className="italic font-light text-stone-beige">Quartz</span>
+              </h2>
+              <p className="font-sans text-[10px] text-stone-beige/70 leading-relaxed mb-8 text-justify uppercase font-bold">
+                [STRUCTURAL ANALYSIS]<br />
+                Raw, uncut crystalline structures bound in heavy, unpolished silver. Architecture for the hand, rejecting traditional symmetry. The metal casing acts as an industrial vice, securing the volatile crystal formation.
+              </p>
+
+              {/* Technical Parameters Table */}
+              <table className="w-full font-sans text-[10px] text-left border-collapse font-bold">
+                <tbody>
+                  <tr className="border-b border-linen/10">
+                    <td className="py-2 text-couture-red w-1/3 font-bold">STATE</td>
+                    <td className="py-2 text-stone-beige uppercase">Raw / Uncut</td>
+                  </tr>
+                  <tr className="border-b border-linen/10">
+                    <td className="py-2 text-couture-red font-bold">CASING</td>
+                    <td className="py-2 text-stone-beige uppercase">Heavy Silver Binding</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+
+        </div>
+
+        {/* Item 003: Left text block overlapping Right image */}
+        <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-end mt-12 md:mt-0">
+
+          {/* Overlapping Text Card with Scroll reveal (loading effect) */}
+          <motion.div
+            ref={thirdRecordRef}
+            initial={{ opacity: 0, y: 50, x: -20 }}
+            whileInView={{ opacity: 1, y: 0, x: 0 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 0.85, ease }}
+            style={{ filter: thirdRecordFilter }}
+            className="relative z-20 w-full self-start overflow-hidden p-8 will-change-[filter] md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
+          >
+            <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
+
+            <div className="relative z-10 w-full h-full">
+              <div className="flex justify-between items-start mb-6">
+                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">No. 003 // OAK</span>
+                <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
+                  LOC:<br />53.90° N, 27.56° E
+                </span>
+              </div>
+              <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter">
+                Petrified<br />
+                <span className="italic font-light text-couture-red">Oak</span>
+              </h2>
+              <p className="font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold">
+                [CARBON ANALYSIS]<br />
+                Reclaimed bog oak submerged for centuries, yielding density approaching mineral stone. Hand-shaped to follow the natural grain stress contours. A marriage of organic decay and timeless permanence.
+              </p>
+
+              {/* Technical Parameters Table */}
+              <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
+                <div>
+                  <span className="text-couture-red block mb-1 font-bold">AGE</span>
+                  300+ Years
+                </div>
+                <div>
+                  <span className="text-couture-red block mb-1 font-bold">PROCESS</span>
+                  Carbonization
+                </div>
+              </div>
+
+            </div>
+          </motion.div>
+
+          {/* Right Image with Scroll Reveal + Parallax scroll */}
+          <motion.div
+            initial={{ opacity: 0, y: 80 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 1.1, ease }}
+            className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
+          >
+            <Link
+              href={items[2]?.href ?? "/shop"}
+              aria-label={`View ${items[2]?.title ?? "Petrified Oak"} collection`}
+              className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+            >
+              <ParallaxImage src={items[2] ? items[2].image : HERO_IMAGE} alt={items[2] ? items[2].title : "Petrified Oak"} clipPath="polygon(10% 0, 100% 10%, 90% 100%, 0% 90%)" />
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-linen opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+                View collection
+                <ArrowRight className="size-3.5" aria-hidden="true" />
+              </span>
+            </Link>
+          </motion.div>
+
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+type LexiconMaterial = (typeof LEXICON_MATERIALS)[number];
+
+function MaterialPlate({
+  material,
+  index,
+  progress,
+  reduceMotion,
+}: {
+  material: LexiconMaterial;
+  index: number;
+  progress: ReturnType<typeof useScroll>["scrollYProgress"];
+  reduceMotion: boolean;
+}) {
+  const ranges = [
+    [0, 0.24, 0.42],
+    [0.24, 0.42, 0.58, 0.76],
+    [0.58, 0.76, 1],
+  ];
+  const opacityValues = index === 0 ? [1, 1, 0] : index === 1 ? [0, 1, 1, 0] : [0, 1, 1];
+  const xValues = index === 0 ? ["0%", "0%", "-8%"] : index === 1 ? ["9%", "0%", "0%", "-8%"] : ["9%", "0%", "0%"];
+  const rotateValues = index === 0 ? [0, -0.5, -3.5] : index === 1 ? [3, 0.5, -0.5, -3.5] : [3, 0.5, 0];
+  const scaleValues = index === 0 ? [1, 1, 0.985] : index === 1 ? [0.985, 1, 1, 0.985] : [0.985, 1, 1];
+  const revealRanges = index === 0 ? [0, 1] : index === 1 ? [0, 0.24, 0.42, 1] : [0, 0.58, 0.76, 1];
+  const revealed = "polygon(0% 0%, 100% 0%, 100% 100%, -8% 100%)";
+  const concealed = "polygon(108% 0%, 108% 0%, 100% 100%, 100% 100%)";
+  const revealValues = index === 0 ? [revealed, revealed] : [concealed, concealed, revealed, revealed];
+
+  const opacity = useTransform(progress, ranges[index], reduceMotion ? opacityValues : opacityValues.map(() => 1));
+  const x = useTransform(progress, ranges[index], reduceMotion ? opacityValues.map(() => "0%") : xValues);
+  const rotate = useTransform(progress, ranges[index], reduceMotion ? opacityValues.map(() => 0) : rotateValues);
+  const scale = useTransform(progress, ranges[index], reduceMotion ? opacityValues.map(() => 1) : scaleValues);
+  const clipPath = useTransform(progress, revealRanges, reduceMotion ? revealValues.map(() => revealed) : revealValues);
+  const imageX = useTransform(progress, [0, 1], reduceMotion ? ["0%", "0%"] : [`${index * -3 - 4}%`, `${index * 3 + 5}%`]);
+
+  return (
+    <motion.article
+      style={{ opacity, x, rotate, scale, clipPath, zIndex: index + 1 }}
+      className="absolute inset-x-0 top-1/2 grid -translate-y-1/2 transform-gpu grid-cols-1 overflow-hidden border border-linen/15 bg-[#09090a]/94 shadow-[0_18px_48px_rgba(0,0,0,0.42)] [backface-visibility:hidden] md:grid-cols-[0.92fr_1.08fr]"
+      aria-label={`${String(index + 1).padStart(2, "0")}. ${material.name}`}
+    >
+      <div className="relative min-h-[31svh] overflow-hidden border-b border-linen/12 md:min-h-[64svh] md:border-b-0 md:border-r">
+        <motion.div style={{ x: imageX }} className="absolute -inset-x-[10%] inset-y-0">
+          <Image
+            src={material.image}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 45vw"
+            className="object-cover grayscale contrast-125 brightness-[0.62]"
+          />
+        </motion.div>
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(166,25,46,0.2),transparent_42%,rgba(0,0,0,0.65))]" />
+        <div className="absolute inset-[7%] border border-linen/18 [clip-path:polygon(0_0,88%_0,100%_18%,100%_100%,12%_100%,0_82%)]" />
+        <div className="absolute bottom-5 left-5 font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-linen/70 md:bottom-8 md:left-8">
+          Specimen / {material.symbol}
+        </div>
+        <span className="absolute -right-2 -top-8 font-serif text-[clamp(7rem,18vw,15rem)] leading-none text-linen/[0.08]" aria-hidden="true">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+      </div>
+
+      <div className="relative min-h-[45svh] overflow-hidden p-6 md:min-h-[64svh] md:p-10 lg:p-14">
+        <div className="home-glass-panel absolute inset-0" aria-hidden="true" />
+
+        <div className="relative z-10 flex h-full flex-col">
+          <div className="flex items-start justify-between gap-4 border-b border-linen/15 pb-4 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70">
+            <span>{material.category}</span>
+            <span className="text-couture-red">Archive verified</span>
+          </div>
+
+          <div className="flex flex-1 flex-col justify-center py-5 md:py-8">
+            <p className="mb-2 font-sans text-[0.65rem] font-bold uppercase tracking-[0.24em] text-couture-red">
+              Material {String(index + 1).padStart(2, "0")}
+            </p>
+            <h3 className="max-w-[9ch] text-balance font-serif text-[clamp(2.8rem,6vw,5.8rem)] font-bold uppercase leading-[0.84] tracking-[-0.035em] text-linen">
+              {material.name}
+            </h3>
+            <p className="mt-5 max-w-[64ch] text-pretty font-sans text-sm font-semibold leading-relaxed text-stone-beige/85 md:mt-7 md:text-base">
+              {material.description}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 border-t border-linen/15 pt-4">
+            {material.properties.map((property, propertyIndex) => (
+              <div key={property} className={propertyIndex > 0 ? "border-l border-linen/15 pl-3 md:pl-5" : ""}>
+                <span className="mb-1 block font-sans text-[0.52rem] font-bold text-couture-red">0{propertyIndex + 1}</span>
+                <span className="font-sans text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-linen/75 md:text-xs">
+                  {property}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
+// 4. MATERIAL EXPOSITION — scroll-controlled cubist specimen carousel
+function MaterialLab() {
+  const ref = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion() ?? false;
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end end"],
+  });
+  const smoothProgress = useSpring(scrollYProgress, MATERIAL_LAB_SPRING);
+  const progress = reduceMotion ? scrollYProgress : smoothProgress;
+  const progressScale = useTransform(progress, [0, 1], [0, 1]);
+
+  return (
+    <section
+      ref={ref}
+      className="relative h-[330svh] bg-transparent text-linen"
+      style={{
+        "--color-linen": "#f9f8f6",
+        "--color-stone-beige": "#d9d4cc",
+        "--color-couture-red": "#e44b61",
+      } as CSSProperties}
+      aria-labelledby="lexicon-title"
+    >
+      <div className="sticky top-0 h-svh overflow-hidden px-4 py-5 md:px-[4vw] md:py-8">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-50"
+          style={{ background: "radial-gradient(circle at 64% 42%, rgba(166,25,46,0.16), transparent 32%)" }}
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.045]" style={{
+          backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+          backgroundSize: "clamp(48px, 6vw, 88px) clamp(48px, 6vw, 88px)",
+        }} aria-hidden="true" />
+
+        <div className="relative mx-auto h-full max-w-[90rem]">
+          <header className="absolute inset-x-0 top-20 z-20 flex items-start justify-between gap-6 md:top-24">
+            <div>
+              <p className="mb-1 font-sans text-[0.58rem] font-bold uppercase tracking-[0.28em] text-couture-red">
+                Material glossary / scroll to turn
+              </p>
+              <h2 id="lexicon-title" className="font-serif text-[clamp(2rem,4.5vw,4.5rem)] font-bold uppercase leading-none tracking-[-0.035em] text-linen">
+                Lexicon
+              </h2>
+            </div>
+            <div className="hidden items-center gap-3 pt-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/60 sm:flex">
+              <span>01</span>
+              <div className="relative h-16 w-px bg-linen/15">
+                <motion.div style={{ scaleY: progressScale, transformOrigin: "top" }} className="absolute inset-0 bg-couture-red" />
+              </div>
+              <span>03</span>
+            </div>
+          </header>
+
+          <div className="absolute inset-x-0 bottom-0 top-[9.5rem] md:top-[11.5rem]">
+            {LEXICON_MATERIALS.map((material, index) => (
+              <MaterialPlate
+                key={material.name}
+                material={material}
+                index={index}
+                progress={progress}
+                reduceMotion={reduceMotion}
+              />
+            ))}
+          </div>
+
+          <p className="absolute bottom-2 right-2 z-20 hidden origin-bottom-right rotate-90 font-sans text-[0.5rem] font-bold uppercase tracking-[0.32em] text-linen/60 lg:block">
+            Synarava material archive · Vol. I
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// 5. MANIFESTO QUOTE (Archival directive, grid lines overlay)
+function ManifestoQuote() {
+  return (
+    <section className="py-32 px-6 flex items-center justify-center bg-transparent text-linen min-h-screen relative overflow-hidden">
+      {/* Grid overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none" style={{
+        backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+        backgroundSize: "50px 50px"
+      }} />
+
+      {/* Red ambient museum glow in background (no brown) */}
+      <div className="absolute inset-0 pointer-events-none select-none" style={{
+        background: "radial-gradient(circle at 50% 50%, rgba(166, 25, 46, 0.04) 0%, rgba(0,0,0,0) 70%)"
+      }} />
+
+      <div className="absolute left-10 top-10 font-sans text-[10px] text-couture-red tracking-[0.4em] rotate-90 origin-left select-none opacity-60">
+        DIRECTIVE // 099
+      </div>
+
+      <div className="max-w-6xl relative z-10 flex flex-col items-center">
+        {/* Red stamp */}
+        <div className={`${STAMP_CLASS} mb-12 -rotate-6 text-sm border-2 border-couture-red !text-couture-red`}>
+          CLASSIFIED DIRECTIVE
+        </div>
+
+        <h2 className="font-serif text-[clamp(2.4rem,7.5vw,7.5vw)] text-linen italic leading-[1.05] mb-12 font-light text-center relative max-w-5xl">
+          <span className="absolute -top-12 -left-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&ldquo;</span>
+          Adornment is not decoration.<br />It is <span className="font-bold text-couture-red not-italic uppercase tracking-tighter">structural intent</span><br />applied to the human form.
+          <span className="absolute -bottom-24 -right-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&rdquo;</span>
+        </h2>
+
+        <div className="flex items-center gap-4 mt-8">
+          <div className="w-12 h-px bg-couture-red" />
+          <span className="font-sans text-[10px] text-linen uppercase tracking-[0.25em] font-bold">
+            The Synarava Manifesto // Vol 1.
+          </span>
+          <div className="w-12 h-px bg-couture-red" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// 6. COLLECTIONS / MANIFESTO GRID (Transparent background)
+function ManifestoGrid() {
+  const lines = [
+    "Jewelry as a private relic.",
+    "Belarusian geometry, stripped of nostalgia.",
+    "Material first. Ornament only when it carries meaning.",
+  ];
+
+  return (
+    <section className="bg-transparent py-24 px-6 md:px-[4vw]">
+      <div className="max-w-[90rem] mx-auto">
+        <div className="grid gap-8 md:grid-cols-3">
+          {lines.map((line, index) => (
+            <motion.div
+              key={line}
+              className="border-t border-linen/10 pt-6"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-10%" }}
+              transition={{ duration: 0.65, delay: index * 0.1, ease }}
+            >
+              <p className="font-serif text-[clamp(1.5rem,2.8vw,2.2rem)] leading-tight text-linen font-bold">
+                {line}
+              </p>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -889,179 +803,271 @@ function StatsSection() {
   );
 }
 
-/* ─── Heritage ───────────────────────────────────────────────────── */
-function HeritageSection() {
+// 7. FINAL CTA — cubist shop portal
+function FinalCTA({ collections }: { collections: CollectionItem[] }) {
   const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const reduceMotion = useReducedMotion() ?? false;
+  const { t } = useTranslations();
+  const images = useMemo(() => {
+    const source = collections.length ? collections : [{ image: HERO_IMAGE } as CollectionItem];
+    return [...source, ...source].slice(0, 4);
+  }, [collections]);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end end"],
+  });
+  const smoothProgress = useSpring(scrollYProgress, FINAL_SCENE_SPRING);
+  const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
-  return (
-    <section ref={ref} className="bg-background py-20 md:py-40">
-      <div className="site-shell">
-        <div className="mb-14 md:mb-20">
-          <FolkBorder className="w-full text-foreground/22" />
-        </div>
-
-        <div className="flex flex-col items-start gap-0 md:flex-row">
-          {/* Image */}
-          <motion.div
-            className="w-full md:w-1/2"
-            initial={{ opacity: 0, x: -32 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease }}
-          >
-            <div className="artifact-hover-image-wrap relative">
-              <Image
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeoC4s0GytU2DJHgrs3Y0VtvzJzV8XnZqdlM-zu7Pj5SOSNmgf2fH0UUWquiyWXIKpNLyYe7uIZO3_8XVObSjX88ucZFaSmB7RmcgsRhsPnG7tPGc0n0_G6K7x3a5mstC1CRokMdByQ5QzcXX2nFedtwx42wOm2YsJwOSo6OzbspMc5J8qdpMsI2dZi4z_wUwpmA0QdXlFyhLvOkujl25D4nxEsU7IcGhDLxyZA3K6CO9_k9Sx1YFGtL1eqQjnZEl_HFLyG9-8uxkN"
-                alt="Traditional craft"
-                width={900}
-                height={900}
-                className="artifact-hover-image aspect-square w-full object-cover hover:scale-[1.03]"
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
-            </div>
-          </motion.div>
-
-          {/* Glass card */}
-          <motion.div
-            className="etched-glass relative z-10 w-full border border-charcoal/5 p-8 md:-ml-24 md:mt-36 md:w-1/2 md:p-14"
-            initial={{ opacity: 0, x: 32 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease, delay: 0.15 }}
-          >
-            <motion.div
-              className="absolute left-0 top-0 w-0.5 bg-couture-red"
-              initial={{ height: 0 }}
-              animate={isInView ? { height: "100%" } : {}}
-              transition={{ duration: 1.2, delay: 0.45, ease }}
-            />
-
-            <span className="label-caps mb-6 block text-couture-red md:mb-8">
-              04 // Symbolism
-            </span>
-            <h3
-              className="mb-6 font-serif md:mb-8"
-              style={{ fontSize: "clamp(1.7rem,3vw,2.4rem)" }}
-            >
-              The Geometry of Protection
-            </h3>
-            <p className="mb-8 text-base leading-[1.85] text-foreground/70 md:mb-10 md:text-[1.0625rem]">
-              Every pattern is a word. Every knot is a prayer. We integrate ancestral embroidery motifs into modern jewelry, transforming adornment into a talisman for the modern world.
-            </p>
-            <ul className="space-y-3.5 font-mono text-[0.76rem] uppercase tracking-[0.16em]">
-              {SYMBOLISM.map((pt, i) => (
-                <motion.li
-                  key={pt.label}
-                  className="flex items-center gap-3.5"
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.6, delay: 0.55 + i * 0.1, ease }}
-                >
-                  <span className={`h-2 w-2 shrink-0 rotate-45 ${pt.color}`} />
-                  <span>{pt.label}</span>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
-      </div>
-    </section>
+  const introY = useTransform(
+    progress,
+    reduceMotion ? [0, 1] : [0, 0.2, 0.5],
+    reduceMotion ? ["0vh", "0vh"] : ["0vh", "0vh", "-92vh"],
+    { ease: FINAL_SCENE_EASE },
   );
-}
-
-/* ─── Final CTA ──────────────────────────────────────────────────── */
-function FinalCTA() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
+  const introOpacity = useTransform(
+    progress,
+    reduceMotion ? [0, 0.48, 0.54, 1] : [0, 0.34, 0.5, 1],
+    [1, 1, 0, 0],
+    { ease: FINAL_SCENE_EASE },
+  );
+  const shardOpacity = useTransform(
+    progress,
+    reduceMotion ? [0, 0.48, 0.54, 1] : [0, 0.58, 0.92, 1],
+    reduceMotion ? [1, 1, 0, 0] : [1, 0.9, 0, 0],
+    { ease: FINAL_SCENE_EASE },
+  );
+  const shardRange = reduceMotion ? [0, 1] : [0.18, 0.84];
+  const mainX = useTransform(progress, shardRange, reduceMotion ? ["0vw", "0vw"] : ["0vw", "-70vw"], { ease: FINAL_SCENE_EASE });
+  const mainY = useTransform(progress, shardRange, reduceMotion ? ["0vh", "0vh"] : ["0vh", "8vh"], { ease: FINAL_SCENE_EASE });
+  const mainRotate = useTransform(progress, shardRange, reduceMotion ? [0, 0] : [0, -12], { ease: FINAL_SCENE_EASE });
+  const rightX = useTransform(progress, shardRange, reduceMotion ? ["0vw", "0vw"] : ["0vw", "60vw"], { ease: FINAL_SCENE_EASE });
+  const rightY = useTransform(progress, shardRange, reduceMotion ? ["0vh", "0vh"] : ["0vh", "-6vh"], { ease: FINAL_SCENE_EASE });
+  const rightRotate = useTransform(progress, shardRange, reduceMotion ? [0, 0] : [0, 14], { ease: FINAL_SCENE_EASE });
+  const lowerLeftX = useTransform(progress, shardRange, reduceMotion ? ["0vw", "0vw"] : ["0vw", "-60vw"], { ease: FINAL_SCENE_EASE });
+  const lowerLeftY = useTransform(progress, shardRange, reduceMotion ? ["0vh", "0vh"] : ["0vh", "26vh"], { ease: FINAL_SCENE_EASE });
+  const lowerLeftRotate = useTransform(progress, shardRange, reduceMotion ? [0, 0] : [0, 18], { ease: FINAL_SCENE_EASE });
+  const lowerRightX = useTransform(progress, shardRange, reduceMotion ? ["0vw", "0vw"] : ["0vw", "60vw"], { ease: FINAL_SCENE_EASE });
+  const lowerRightY = useTransform(progress, shardRange, reduceMotion ? ["0vh", "0vh"] : ["0vh", "24vh"], { ease: FINAL_SCENE_EASE });
+  const lowerRightRotate = useTransform(progress, shardRange, reduceMotion ? [0, 0] : [0, -16], { ease: FINAL_SCENE_EASE });
+  const sigilScale = useTransform(
+    progress,
+    reduceMotion ? [0, 1] : [0, 0.2, 0.54, 0.68, 0.86, 0.94, 1],
+    reduceMotion ? [0.035, 0.035] : [0.035, 0.035, 1, 1, 0.18, 0.12, 0.12],
+    { ease: FINAL_SCENE_EASE },
+  );
+  const sigilY = useTransform(
+    progress,
+    reduceMotion ? [0, 1] : [0, 0.68, 0.92, 1],
+    reduceMotion ? ["0vh", "0vh"] : ["0vh", "0vh", "12vh", "12vh"],
+    { ease: FINAL_SCENE_EASE },
+  );
+  const sigilRotate = useTransform(
+    progress,
+    reduceMotion ? [0, 1] : [0.1, 0.54, 0.86, 1],
+    reduceMotion ? [0, 0] : [-5, 3, 0, 0],
+    { ease: FINAL_SCENE_EASE },
+  );
+  const footerY = useTransform(
+    progress,
+    reduceMotion ? [0, 1] : [0, 0.64, 0.94, 1],
+    reduceMotion ? ["0vh", "0vh"] : ["110vh", "110vh", "0vh", "0vh"],
+    { ease: FINAL_SCENE_EASE },
+  );
+  const footerOpacity = useTransform(
+    progress,
+    reduceMotion ? [0, 0.48, 0.54, 1] : [0, 0.66, 0.94, 1],
+    [0, 0, 1, 1],
+    { ease: FINAL_SCENE_EASE },
+  );
+  const progressScale = useTransform(progress, [0, 1], [0, 1]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-surface py-0">
-      {/* Parallax background */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <motion.div className="absolute inset-0 opacity-30" style={{ y: bgY }}>
-        <img
-          alt=""
-          className="h-full w-full scale-110 object-cover grayscale contrast-[0.9] brightness-[1.02]"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlRjmhQRA-wxjueCOYYPh4npb_AwMuPibdeIi2xBnyzR6aYtnPozn9EXkqQs10M5j72a9Atq1kDdq_5pSYtM-T0IB5fPIEHyJeAuFNam5J8DWrxnTvLIF7IBocQHDm2RM38UDGNVZkP5F-iaJ7Ak7cEckBiQiR5WlNdz2CQAOR_HNTAVMF6Ffgge-YsqtxlAnWX_NgFcmd9MEIUgbno4x7uc6zMgiJk8mH649KBJetEKbQkt75J8_hBuYsX8S7b7_cVJ0ytra6MdMc"
-        />
-        <div className="absolute inset-0 bg-surface/72" />
-      </motion.div>
+    <section
+      ref={ref}
+      className="relative h-[300svh] bg-transparent text-linen md:h-[280vh]"
+      style={{
+        "--color-linen": "#f9f8f6",
+        "--color-stone-beige": "#d9d4cc",
+        "--color-couture-red": "#e44b61",
+      } as CSSProperties}
+    >
+      <div className="sticky top-0 h-svh overflow-hidden px-5 py-20 md:px-[4vw] md:py-24">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.035]" style={{
+          backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+          backgroundSize: "clamp(52px, 7vw, 104px) clamp(52px, 7vw, 104px)",
+        }} aria-hidden="true" />
 
-      {/* Ghost Kola */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.04]">
-        <KolaStatic className="h-[65vw] w-[65vw] max-h-[600px] max-w-[600px] text-foreground" />
-      </div>
+        <div className="relative mx-auto h-full max-w-[90rem]">
+        <motion.div
+          data-final-intro
+          className="relative z-20 max-w-[48rem] pt-4 md:pt-0"
+          style={{ y: introY, opacity: introOpacity }}
+        >
+          <p className="mb-6 max-w-sm font-serif text-lg italic text-stone-beige/65 md:mb-8 md:text-xl">
+            The final choice is instinctive.
+          </p>
+          <h2 className="max-w-[10ch] text-balance font-serif text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-linen">
+            Choose the piece that <span className="font-light italic text-couture-red">remembers you.</span>
+          </h2>
 
-
-      <div className="relative z-10 flex min-h-[72vh] items-center justify-center py-24 md:py-40">
-        <div className="site-shell text-center text-foreground">
-          <FolkSpiderOrnament className="text-couture-red/68 dark:text-couture-red/78" />
-
-          <motion.p
-            className="label-mono mb-8 text-couture-red"
-            initial={{ opacity: 0, y: 16 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7, ease }}
-          >
-            Ready to begin
-          </motion.p>
-          <motion.h2
-            className="mx-auto mb-6 max-w-3xl font-serif leading-[1.05] text-foreground md:mb-8"
-            style={{ fontSize: "clamp(2.2rem,5.5vw,5rem)" }}
-            initial={{ opacity: 0, y: 28 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.9, ease, delay: 0.1 }}
-          >
-            Begin Your Collection
-          </motion.h2>
-          <motion.p
-            className="mx-auto mb-12 max-w-lg text-base leading-[1.85] text-foreground/72 md:mb-16 md:text-[1.0625rem]"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease, delay: 0.22 }}
-          >
-            Each piece is a singular artifact — handcrafted, numbered, and rooted in centuries of Belarusian heritage. Yours to carry forward.
-          </motion.p>
-          <motion.div
-            className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-5"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease, delay: 0.34 }}
-          >
-            <PrimaryCtaButton href="/shop">
-              Shop the Collection
-            </PrimaryCtaButton>
-
+          <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
+            <Link
+              href="/shop"
+              className="group relative inline-flex min-h-16 items-center gap-8 bg-couture-red px-8 py-4 font-sans text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white transition-[filter,transform] duration-200 ease-out hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-linen active:scale-[0.98] [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
+            >
+              Enter the collection
+              <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
+            </Link>
             <Link
               href="/about"
-              className="inline-flex cursor-pointer items-center gap-2 border-b border-foreground/24 pb-1 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/78 transition-colors duration-300 hover:border-foreground hover:text-foreground"
+              className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
             >
-              Learn Our Story
+              The studio
+              <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
+          </div>
+        </motion.div>
+
+        <div
+          className="pointer-events-none absolute inset-0 z-[7]"
+          aria-hidden="true"
+        >
+          <div className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-1/2">
+            <motion.div
+              className="final-sigil relative aspect-square h-[min(72vw,34rem)] md:h-[min(48vw,42rem)]"
+              style={{ y: sigilY, scale: sigilScale, rotate: sigilRotate }}
+            >
+              <div className="final-sigil__aura" />
+              <div className="final-sigil__mark" />
+              <div className="final-sigil__edge" />
+            </motion.div>
+          </div>
+        </div>
+
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-[-5%] z-10 h-[58%] md:-right-[3%] md:left-auto md:h-[78%] md:w-[64%]"
+          aria-hidden="true"
+        >
+          <motion.div
+            style={{ x: mainX, y: mainY, rotate: mainRotate, opacity: shardOpacity }}
+            className="absolute left-[8%] top-0 h-[74%] w-[58%] overflow-hidden bg-[#111] [clip-path:polygon(12%_0,100%_8%,88%_100%,0_82%)]"
+          >
+            <Image src={images[0].image} alt="" fill sizes="(max-width: 768px) 62vw, 38vw" className="object-cover grayscale contrast-125 brightness-[0.68]" />
+            <div className="absolute inset-[6%] border border-linen/20 [clip-path:polygon(8%_0,100%_8%,89%_100%,0_82%)]" />
           </motion.div>
+
+          <motion.div
+            style={{ x: rightX, y: rightY, rotate: rightRotate, opacity: shardOpacity }}
+            className="absolute right-0 top-[13%] h-[58%] w-[48%] overflow-hidden bg-[#111] [clip-path:polygon(18%_8%,100%_0,92%_88%,0_100%)]"
+          >
+            <Image src={images[1].image} alt="" fill sizes="(max-width: 768px) 52vw, 31vw" className="object-cover grayscale contrast-125 brightness-[0.58]" />
+            <div className="absolute inset-0 bg-[linear-gradient(145deg,transparent_35%,rgba(166,25,46,0.28))]" />
+          </motion.div>
+
+          <motion.div
+            style={{ x: lowerLeftX, y: lowerLeftY, rotate: lowerLeftRotate, opacity: shardOpacity }}
+            className="absolute bottom-0 left-0 h-[43%] w-[49%] overflow-hidden bg-[#111] [clip-path:polygon(0_18%,86%_0,100%_86%,14%_100%)]"
+          >
+            <Image src={images[2].image} alt="" fill sizes="(max-width: 768px) 54vw, 31vw" className="object-cover grayscale contrast-125 brightness-[0.62]" />
+          </motion.div>
+
+          <motion.div
+            style={{ x: lowerRightX, y: lowerRightY, rotate: lowerRightRotate, opacity: shardOpacity }}
+            className="absolute bottom-[2%] right-[7%] h-[39%] w-[43%] overflow-hidden bg-[#111] [clip-path:polygon(10%_0,100%_17%,82%_100%,0_76%)]"
+          >
+            <Image src={images[3].image} alt="" fill sizes="(max-width: 768px) 47vw, 27vw" className="object-cover grayscale contrast-125 brightness-[0.7]" />
+          </motion.div>
+
+        </div>
+
+        <motion.div
+          data-final-footer
+          className="absolute inset-0 z-[8] flex flex-col pt-10 md:pt-0"
+          style={{ y: footerY, opacity: footerOpacity }}
+        >
+          <div className="border-b border-linen/15 pb-5 md:pb-7">
+            <p className="font-serif text-[clamp(3.3rem,10vw,6rem)] font-bold uppercase leading-[0.8] tracking-[-0.035em] text-linen">
+              Synarava
+            </p>
+            <p className="mt-3 font-serif text-base italic text-stone-beige/65 md:text-xl">
+              {t("footer.tagline")}
+            </p>
+          </div>
+
+          <div className="grid flex-1 content-center gap-8 py-6 sm:grid-cols-[1.2fr_1fr_1fr] md:gap-14 md:py-9">
+            <div className="max-w-sm">
+              <p className="font-serif text-2xl leading-tight text-linen md:text-3xl">
+                Objects shaped slowly,<br />kept for a lifetime.
+              </p>
+              <a
+                href="mailto:studio@synarava.com"
+                className="mt-5 inline-block border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+              >
+                studio@synarava.com
+              </a>
+            </div>
+
+            <nav aria-label={t("footer.navigationHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
+              <Link href="/shop" className="font-sans text-sm font-semibold text-couture-red hover:text-linen">{t("footer.shop")}</Link>
+              <Link href="/collections" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.collections")}</Link>
+              <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.about")}</Link>
+              <Link href="/about/manifesto" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.manifesto")}</Link>
+            </nav>
+
+            <nav aria-label={t("footer.serviceHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
+              <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.careGuide")}</Link>
+              <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.shipping")}</Link>
+              <Link href="mailto:studio@synarava.com" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.contact")}</Link>
+            </nav>
+          </div>
+
+          <div className="flex flex-wrap items-end justify-between gap-4 border-t border-linen/15 pt-5 font-sans text-[0.62rem] uppercase tracking-[0.12em] text-stone-beige/65">
+            <p>{t("footer.copyright")}</p>
+            <div className="flex flex-wrap gap-5">
+              <Link href="/privacy" className="hover:text-linen">{t("footer.privacyPolicy")}</Link>
+              <Link href="/offer" className="hover:text-linen">{t("footer.publicOffer")}</Link>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="absolute bottom-0 right-0 h-20 w-px bg-linen/15" aria-hidden="true">
+          <motion.div className="absolute inset-0 bg-couture-red" style={{ scaleY: progressScale, transformOrigin: "top" }} />
+        </div>
         </div>
       </div>
     </section>
   );
 }
 
-/* ─── Root ───────────────────────────────────────────────────────── */
-export function HomePage({ title, excerpt, content, collections, heroVideoSrc }: HomePageProps) {
+export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) {
+  const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo ?? [...HERO_VIDEOS];
+
   return (
-    <main className="artifact-shell min-h-screen overflow-x-hidden">
-      <HeroSection title={title} excerpt={excerpt} content={content} heroVideoSrc={heroVideoSrc} />
-      <MarqueeStrip />
-      <ManifestoSection content={content} />
-      <CollectionsSection collections={collections} content={content} />
-      <AtelierSection />
-      <PatternInterlude />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/4321.png" alt="" aria-hidden="true" className="w-full" />
-      <MaterialsSection />
-      <StatsSection />
-      <HeritageSection />
-      <FinalCTA />
+    <main
+      className="home-experience min-h-screen overflow-x-clip bg-gradient-to-b from-[#0a0a0b] via-[#121214] to-[#070708] text-linen selection:bg-couture-red selection:text-white relative"
+      style={{
+        "--color-linen": "#f9f8f6",
+        "--color-stone-beige": "#ddd8d1",
+        "--color-couture-red": "#e44b61",
+      } as CSSProperties}
+    >
+      {/* Fixed Technical Serials in margins */}
+      <div className="fixed top-1/4 left-10 z-40 font-sans text-[10px] tracking-[0.2em] text-stone-beige/60 select-none pointer-events-none hidden xl:block" style={{ writingMode: "vertical-rl" }}>
+        REF_ID // 001-SYN ⧫ 53.90° N, 27.56° E
+      </div>
+      <div className="fixed bottom-20 right-10 z-40 font-sans text-[10px] tracking-[0.2em] text-couture-red select-none pointer-events-none hidden xl:block rotate-180" style={{ writingMode: "vertical-rl" }}>
+        ✧ DOC.VER 9.4.1 // SECURE_ARCHIVE
+      </div>
+
+      <HeroSection
+        heroVideoSrc={resolvedHeroVideoSrc}
+      />
+      <ArchivePathway collections={collections} />
+      <MaterialLab />
+      <ManifestoQuote />
+      <ManifestoGrid />
+      <FinalCTA collections={collections} />
     </main>
   );
 }

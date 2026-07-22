@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 type AuthShellProps = {
   eyebrow: string;
@@ -21,41 +22,40 @@ export function AuthShell({
   footer,
 }: AuthShellProps) {
   return (
-    <main className="artifact-shell min-h-screen pt-28">
-      <div className="site-shell grid gap-8 py-16 lg:grid-cols-[minmax(0,0.85fr)_minmax(22rem,0.65fr)]">
-        <section className="panel overflow-hidden">
-          <div className="grid gap-10 p-8 md:p-12">
-            <div className="space-y-4">
-              <p className="label-caps text-accent">{eyebrow}</p>
-              <h1 className="max-w-xl font-serif text-[3.4rem] leading-[0.94] md:text-[4.5rem]">
-                {title}
-              </h1>
-              <p className="max-w-2xl text-lg leading-8 text-foreground/70">{description}</p>
-            </div>
+    <main className="auth-experience artifact-shell min-h-[100svh] pt-24">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <Image
+          src="/uploads/home/wood-lava-hero.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[62%_50%] opacity-[0.18] grayscale"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,9,0.99)_0%,rgba(8,8,9,0.92)_48%,rgba(8,8,9,0.62)_100%)]" />
+      </div>
 
-            <div className="grid gap-8 border-t border-stroke pt-8 md:grid-cols-2">
-              <div>
-                <p className="label-caps text-muted">Access design</p>
-                <p className="mt-3 text-base leading-7 text-foreground/72">
-                  Internal auth screens follow the same editorial system as the storefront: serif
-                  hierarchy, mono labels, and restrained panels.
-                </p>
-              </div>
-              <div>
-                <p className="label-caps text-muted">{asideTitle}</p>
-                <p className="mt-3 text-base leading-7 text-foreground/72">{asideBody}</p>
-              </div>
-            </div>
+      <div className="site-shell relative z-10 grid min-h-[calc(100svh-6rem)] items-center gap-10 py-8 md:py-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,0.58fr)] lg:gap-16">
+        <section className="max-w-3xl self-center">
+          <p className="label-caps text-accent">{eyebrow}</p>
+          <h1 className="mt-5 max-w-[12ch] text-balance font-serif text-[clamp(3rem,7vw,6rem)] leading-[0.9] tracking-[-0.035em]">
+            {title}
+          </h1>
+          <p className="mt-6 max-w-xl text-pretty text-base leading-7 text-foreground/72 md:text-lg md:leading-8">
+            {description}
+          </p>
 
-            {footer ? (
-              <div className="border-t border-stroke pt-6 text-sm text-foreground/60">{footer}</div>
-            ) : null}
+          <div className="mt-8 max-w-lg border-t border-white/12 pt-5">
+            <p className="font-serif text-xl italic text-foreground/90">{asideTitle}</p>
+            <p className="mt-2 max-w-md text-sm leading-6 text-foreground/62">{asideBody}</p>
           </div>
+
+          {footer ? <div className="mt-6 text-sm text-foreground/62">{footer}</div> : null}
         </section>
 
-        <section className="panel p-8 md:p-10">
+        <section className="auth-form-surface self-center p-6 sm:p-8 md:p-10">
           {children}
-          <div className="mt-8 border-t border-stroke pt-6 text-sm text-foreground/60">
+          <div className="mt-7 border-t border-white/10 pt-5 text-sm text-foreground/62">
             <Link href="/" className="transition-colors hover:text-accent">
               Back to storefront
             </Link>

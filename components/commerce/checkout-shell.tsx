@@ -24,18 +24,18 @@ export function CheckoutShell({
   aside,
 }: CheckoutShellProps) {
   return (
-    <main className="artifact-shell min-h-screen pt-28">
-      <div className="site-shell grid gap-8 py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(20rem,0.7fr)]">
+    <main className="checkout-experience artifact-shell min-h-screen pt-24">
+      <div className="site-shell grid gap-10 py-10 md:py-14 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.42fr)] lg:gap-16">
         <section className="space-y-8">
           <header className="space-y-4">
             <p className="label-caps text-accent">{eyebrow}</p>
-            <h1 className="max-w-3xl font-serif text-[3.2rem] leading-[0.94] md:text-[4.6rem]">
+            <h1 className="max-w-3xl text-balance font-serif text-[clamp(3rem,6vw,5.4rem)] leading-[0.92] tracking-[-0.035em]">
               {title}
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-foreground/70">{description}</p>
           </header>
 
-          <div className="flex flex-wrap gap-3 border-b border-stroke pb-5">
+          <div className="flex items-center gap-2 border-y border-white/10 py-4" aria-label="Checkout progress">
             {steps.map((entry) => {
               const active = entry.key === step;
               const done =
@@ -45,7 +45,7 @@ export function CheckoutShell({
               return (
                 <span
                   key={entry.key}
-                  className={`border px-3 py-2 text-[11px] uppercase tracking-[0.16em] ${
+                  className={`inline-flex min-h-9 items-center border-b border-transparent px-2 text-[0.66rem] uppercase tracking-[0.14em] ${
                     active
                       ? "border-foreground text-foreground"
                       : done
@@ -62,7 +62,7 @@ export function CheckoutShell({
           {children}
         </section>
 
-        {aside ? <div>{aside}</div> : null}
+        {aside ? <div className="lg:sticky lg:top-32 lg:h-fit">{aside}</div> : null}
       </div>
     </main>
   );

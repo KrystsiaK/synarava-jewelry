@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import {
   motion,
   useScroll,
   useTransform,
+  useMotionValueEvent,
   useInView,
   useReducedMotion,
   AnimatePresence,
@@ -13,133 +14,58 @@ import {
 import Link from "next/link";
 
 import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
-import { PrimaryCtaButton, ShinyText } from "@/components/ui";
+import { PrimaryCtaButton } from "@/components/ui";
 import type { ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-/* ─── Inline SVG folk patterns ───────────────────────────────────── */
-function SvgKodRodaMini({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-5%" });
-  const reduce = useReducedMotion();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d = (delay: number): any => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: isInView ? { pathLength: 1, opacity: 1 } : {},
-    transition: { duration: reduce ? 0 : 1.4, ease: "easeInOut", delay },
-  });
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={reduce ? undefined : isInView ? { rotate: [0, 1.5, -1, 0] } : {}}
-      transition={{ duration: 14, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-    >
-      <motion.path d="M100 8 L192 100 L100 192 L8 100 Z" stroke="currentColor" strokeWidth="1.2" {...d(0)} />
-      <motion.path d="M100 42 L158 100 L100 158 L42 100 Z" stroke="currentColor" strokeWidth="1" {...d(0.2)} />
-      <motion.path d="M100 68 L132 100 L100 132 L68 100 Z" stroke="currentColor" strokeWidth="0.85" {...d(0.4)} />
-      <motion.path d="M100 8 L100 192" stroke="currentColor" strokeWidth="0.6" opacity={0.4} {...d(0.55)} />
-      <motion.path d="M8 100 L192 100" stroke="currentColor" strokeWidth="0.6" opacity={0.4} {...d(0.55)} />
-      <motion.circle cx="100" cy="100" r="4" fill="currentColor"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={isInView ? { scale: 1, opacity: 1 } : {}}
-        transition={{ duration: 0.5, delay: 1.2, type: "spring", stiffness: 400 }}
-      />
-    </motion.svg>
-  );
-}
-
-function SvgKolaMini({ className }: { className?: string }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-5%" });
-  const reduce = useReducedMotion();
-
-  return (
-    <motion.svg
-      ref={ref}
-      viewBox="0 0 200 200"
-      fill="none"
-      className={className}
-      animate={reduce ? undefined : isInView ? { rotate: 360 } : {}}
-      transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
-    >
-      {[88, 60, 28].map((r, i) => (
-        <motion.circle key={r} cx="100" cy="100" r={r} stroke="currentColor"
-          strokeWidth={i === 0 ? "1" : "0.8"} opacity={i === 1 ? 0.6 : 1}
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={isInView ? { pathLength: 1, opacity: i === 1 ? 0.6 : 1 } : {}}
-          transition={{ duration: 1.6 - i * 0.2, ease: "easeInOut", delay: i * 0.25 }}
-        />
-      ))}
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        return (
-          <motion.line key={angle}
-            x1={100 + 28 * Math.cos(rad)} y1={100 + 28 * Math.sin(rad)}
-            x2={100 + 88 * Math.cos(rad)} y2={100 + 88 * Math.sin(rad)}
-            stroke="currentColor" strokeWidth={i % 2 === 0 ? "1" : "0.55"} opacity={i % 2 === 0 ? 1 : 0.45}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={isInView ? { pathLength: 1, opacity: i % 2 === 0 ? 1 : 0.45 } : {}}
-            transition={{ duration: 1, ease: "easeInOut", delay: 0.8 + i * 0.07 }}
-          />
-        );
-      })}
-    </motion.svg>
-  );
-}
-
 /* ─── Hero ───────────────────────────────────────────────────────── */
 function ProductHero({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
-  const textY = useTransform(scrollYProgress, [0, 0.6], ["0%", "-8%"]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "12%"]);
+  const textY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-5%"]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.62], [1, 0.14]);
 
   const words = product.title.split(" ");
 
   return (
     <motion.header
       ref={ref}
-      className="relative min-h-screen overflow-hidden bg-background pt-24 md:pt-28"
+      className="relative flex min-h-[100svh] items-end overflow-hidden bg-background pt-24 text-foreground md:min-h-screen md:pt-28"
     >
-      {/* Grain */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0 mix-blend-multiply opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-          backgroundSize: "256px",
-        }}
-      />
+      <motion.div
+        className="absolute right-0 top-24 h-[48svh] w-full overflow-hidden md:right-0 md:top-28 md:h-[78vh] md:w-[68%] md:[clip-path:polygon(9%_0,100%_0,100%_100%,0_92%)]"
+        style={reduceMotion ? undefined : { y: imgY }}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.25, ease, delay: 0.1 }}
+      >
+        <Image
+          src={product.image}
+          alt={product.title}
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 68vw"
+          className="object-cover brightness-[0.88] contrast-[1.06] saturate-[1.08]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/5 via-transparent to-background/15" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
+      </motion.div>
 
-      {/* Ghost pattern */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden opacity-[0.035]">
-        <SvgKodRodaMini className="h-[85vw] w-[85vw] max-h-[720px] max-w-[720px] translate-x-1/4 text-foreground" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-background via-background/92 to-transparent" />
+      <div className="pointer-events-none absolute -right-6 bottom-[4%] hidden font-serif text-[16vw] leading-none text-foreground/[0.025] md:block [writing-mode:vertical-rl]">
+        ARTIFACT
       </div>
 
-      {/* Red ambient glow */}
-      <div
-        className="pointer-events-none absolute -left-32 top-20 h-[50vw] w-[50vw] max-w-[600px] rounded-full"
-        style={{
-          background: "radial-gradient(circle, #a6192e 0%, transparent 65%)",
-          opacity: 0.06,
-        }}
-      />
-
-      <div className="site-shell relative z-10 grid min-h-[calc(100vh-7rem)] grid-cols-1 items-center gap-12 pb-16 pt-8 lg:grid-cols-12">
-        {/* Left — text */}
+      <div className="site-shell relative z-10 w-full pb-6 pt-[38svh] md:grid md:grid-cols-12 md:pb-[6vh] md:pt-36">
         <motion.div
-          className="space-y-8 lg:col-span-5"
-          style={{ y: textY, opacity: textOpacity }}
+          className="md:col-span-7 lg:col-span-6 xl:col-span-7"
+          style={reduceMotion ? undefined : { y: textY, opacity: textOpacity }}
         >
-          {/* Breadcrumb */}
           <motion.nav
-            className="flex items-center gap-2 text-[0.72rem] font-mono uppercase tracking-[0.2em] text-foreground/40"
+            className="mb-2 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.2em] text-foreground/48 md:mb-5 md:text-[0.68rem]"
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease }}
@@ -150,25 +76,29 @@ function ProductHero({ product }: { product: ProductSummary }) {
           </motion.nav>
 
           <h1
-            className="font-serif leading-[0.88] tracking-tight"
-            style={{ fontSize: "clamp(2.6rem,5.5vw,5.2rem)" }}
+            className="max-w-[12ch] text-balance font-serif text-[clamp(2.65rem,6.3vw,6rem)] leading-[0.91] tracking-[-0.035em] md:leading-[0.94]"
           >
             {words.map((word, i) => (
-              <span key={i} className="mr-[0.18em] inline-block overflow-hidden last:mr-0">
+              <span
+                key={i}
+                className={`mr-[0.16em] inline-block overflow-hidden pb-[0.28em] align-bottom last:mr-0 ${
+                  i === words.length - 1 ? "font-serif italic text-couture-red" : ""
+                }`}
+              >
                 <motion.span
                   className="inline-block"
                   initial={{ y: "110%", opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.95, ease, delay: 0.1 + i * 0.1 }}
                 >
-                  <ShinyText>{word}</ShinyText>
+                  {word}
                 </motion.span>
               </span>
             ))}
           </h1>
 
           <motion.p
-            className="max-w-md text-base leading-[2] text-foreground/65 md:text-[1.0625rem]"
+            className="mt-3 max-w-lg text-pretty text-sm leading-[1.6] text-foreground/70 md:mt-7 md:text-[1.0625rem] md:leading-[1.8]"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease, delay: 0.55 }}
@@ -177,7 +107,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
           </motion.p>
 
           <motion.p
-            className="label-caps text-foreground/45"
+            className="mt-3 label-caps text-foreground/50 md:mt-5"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, ease, delay: 0.7 }}
@@ -185,29 +115,24 @@ function ProductHero({ product }: { product: ProductSummary }) {
             {product.materialLine}
           </motion.p>
 
-          {/* Price + CTA */}
           <motion.div
-            className="space-y-5 pt-2"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease, delay: 0.85 }}
+            className="mt-5 md:mt-8"
           >
             <div className="flex flex-wrap items-center gap-6">
               <AddToCartButton productSlug={product.slug} />
-              <span className="font-mono text-[0.85rem] uppercase tracking-[0.18em] text-foreground/70">
+              <span className="font-serif text-2xl text-foreground md:text-3xl">
                 {product.price}
               </span>
             </div>
 
-            {/* Trust strip */}
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5 border-t border-foreground/[0.07] pt-4">
+            <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-1.5 sm:flex sm:flex-wrap md:mt-6 md:gap-y-2">
               {[
-                { icon: "M5 12l5-5 5 5", label: "In stock" },
-                { icon: "M3 8h2l2-5 4 10 2-5h2", label: "Ships in 3–5 days" },
-                { icon: "M20 7H4a1 1 0 00-1 1v8a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z", label: "Gift packaging" },
-                { icon: "M4 4l16 16M4 20L20 4", label: "14-day returns" },
-              ].map(({ label }) => (
-                <span key={label} className="flex items-center gap-1.5 label-mono text-[0.65rem] text-foreground/40">
+                "In stock",
+                "Ships in 3–5 days",
+                "Gift packaging",
+                "14-day returns",
+              ].map((label) => (
+                <span key={label} className="flex items-center gap-1.5 label-mono text-[0.62rem] text-foreground/48">
                   <span className="inline-block h-1 w-1 rounded-full bg-couture-red/60" aria-hidden="true" />
                   {label}
                 </span>
@@ -215,115 +140,25 @@ function ProductHero({ product }: { product: ProductSummary }) {
             </div>
           </motion.div>
 
-          {/* Tags */}
           {product.tagNames.length > 0 && (
             <motion.div
-              className="flex flex-wrap gap-2 pt-1"
+              className="mt-6 hidden flex-wrap items-center gap-x-3 gap-y-2 sm:flex"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, ease, delay: 1 }}
             >
-              {product.tagNames.map((tag) => (
-                <span
-                  key={tag}
-                  className="border border-foreground/10 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-[0.18em] text-foreground/40 transition-colors duration-300 hover:border-couture-red/40 hover:text-couture-red"
-                >
-                  {tag}
+              {product.tagNames.map((tag, index) => (
+                <span key={tag} className="contents">
+                  {index > 0 && <span className="text-couture-red/55">◆</span>}
+                  <span className="font-sans text-[0.65rem] uppercase tracking-[0.18em] text-foreground/42">
+                    {tag}
+                  </span>
                 </span>
               ))}
             </motion.div>
           )}
         </motion.div>
-
-        {/* Right — image */}
-        <div className="relative lg:col-span-7">
-          <motion.div
-            className="relative mx-auto max-w-xl overflow-hidden lg:max-w-none"
-            initial={{ opacity: 0, scale: 0.93 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.4, ease, delay: 0.2 }}
-          >
-            <motion.div
-              className="relative aspect-[4/5] w-full"
-              style={{ y: imgY }}
-            >
-              <Image
-                src={product.image}
-                alt={product.title}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 58vw"
-                className="object-cover brightness-[0.9] contrast-[1.08]"
-              />
-            </motion.div>
-
-            {/* Mirror fragment */}
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-2/5 overflow-hidden">
-              <Image
-                aria-hidden="true"
-                src={product.image}
-                alt=""
-                fill
-                sizes="24vw"
-                className="!-right-full !left-auto !w-[200%] scale-x-[-1] object-cover opacity-40"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/10 to-background/40" />
-            </div>
-
-            {/* Red vignette bottom */}
-            <div
-              className="pointer-events-none absolute bottom-0 left-0 right-0 h-2/5"
-              style={{ background: "linear-gradient(to top, rgba(166,25,46,0.14) 0%, transparent 100%)" }}
-            />
-
-            {/* Corner accents */}
-            <motion.div
-              className="absolute left-4 top-4 h-10 w-10 border-l border-t border-couture-red/60"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 1.1, ease }}
-            />
-            <motion.div
-              className="absolute bottom-4 right-4 h-10 w-10 border-b border-r border-couture-red/60"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 1.25, ease }}
-            />
-
-            {/* Series badge */}
-            <motion.div
-              className="absolute -left-4 bottom-14 hidden lg:block"
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, ease, delay: 1.4 }}
-            >
-              <div className="border border-foreground/10 bg-background/90 px-4 py-3 backdrop-blur-sm">
-                <p className="label-mono text-[0.6rem] text-muted-ink">{product.collectionName}</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
       </div>
-
-      {/* Scroll indicator */}
-      <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 1.6 }}
-      >
-        <motion.div
-          className="flex h-10 w-6 items-start justify-center rounded-full border border-foreground/20 p-1.5"
-          animate={{ borderColor: ["rgba(255,255,255,0.12)", "rgba(166,25,46,0.5)", "rgba(255,255,255,0.12)"] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-        >
-          <motion.div
-            className="h-2 w-1 rounded-full bg-couture-red"
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </motion.div>
-      </motion.div>
     </motion.header>
   );
 }
@@ -331,70 +166,98 @@ function ProductHero({ product }: { product: ProductSummary }) {
 /* ─── Materials strip ────────────────────────────────────────────── */
 function MaterialsSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-8%" });
+  const [activeMaterial, setActiveMaterial] = useState(0);
+  const reduceMotion = useReducedMotion() ?? false;
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end end"],
+  });
+  const trackX = useTransform(scrollYProgress, [0, 1], ["0%", "-66.6667%"]);
+
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    const next = Math.min(
+      product.materials.length - 1,
+      Math.round(latest * (product.materials.length - 1)),
+    );
+    setActiveMaterial((current) => (current === next ? current : next));
+  });
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-surface py-20 md:py-36">
-      {/* Ghost Kola */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03]">
-        <SvgKolaMini className="h-[80vw] w-[80vw] max-h-[700px] max-w-[700px] text-foreground" />
-      </div>
+    <section
+      ref={ref}
+      className={
+        reduceMotion
+          ? "relative overflow-hidden bg-surface py-20"
+          : "relative h-[calc(100svh_+_164vw_+_48px)] overflow-clip bg-surface md:h-[calc(100svh_+_116vw_+_48px)] lg:h-[calc(100svh_+_88vw_+_48px)] xl:h-[calc(100svh_+_76vw_+_48px)]"
+      }
+    >
+      <div
+        className={
+          reduceMotion
+            ? "relative"
+            : "sticky top-0 flex h-screen flex-col justify-center overflow-hidden pb-8 pt-28"
+        }
+      >
+        <div className="site-shell mb-8 flex items-end justify-between gap-6 md:mb-10">
+          <div>
+            <p className="label-mono mb-3 text-couture-red">Material archive</p>
+            <h2 className="text-balance font-serif text-[clamp(2rem,4vw,3.4rem)] leading-none">
+              The honest material
+            </h2>
+          </div>
+          <p className="label-mono shrink-0 text-foreground/45">
+            {String(activeMaterial + 1).padStart(2, "0")} / {String(product.materials.length).padStart(2, "0")}
+          </p>
+        </div>
 
-      <div className="site-shell relative z-10">
-        <motion.div
-          className="mb-16 text-center md:mb-24"
-          initial={{ opacity: 0, y: 24 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease }}
-        >
-          <p className="label-mono mb-4 text-couture-red">Materials</p>
-          <h2 className="font-serif" style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)" }}>
-            The Honest Material
-          </h2>
-          {/* Animated separator */}
+        <div className="site-shell mb-7 h-px bg-foreground/10">
           <motion.div
-            className="mx-auto mt-6 h-px bg-couture-red/40"
-            initial={{ width: 0 }}
-            animate={isInView ? { width: 80 } : {}}
-            transition={{ duration: 0.8, ease, delay: 0.3 }}
+            className="h-full origin-left bg-couture-red"
+            style={reduceMotion ? undefined : { scaleX: scrollYProgress }}
           />
-        </motion.div>
+        </div>
 
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 md:gap-6">
-          {product.materials.map((item, i) => (
-            <motion.article
+        <motion.div
+          className={
+            reduceMotion
+              ? "site-shell grid gap-8"
+              : "flex w-max gap-6 pl-5 pr-5 md:pl-[4vw] md:pr-[4vw]"
+          }
+          style={reduceMotion ? undefined : { x: trackX }}
+        >
+          {product.materials.map((item, index) => (
+            <article
               key={item.title}
-              className="group space-y-5"
-              initial={{ opacity: 0, y: 36 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.8, ease, delay: i * 0.14 }}
+              className={
+                reduceMotion
+                  ? "grid gap-5 border-t border-foreground/10 pt-6 md:grid-cols-2"
+                  : "grid h-[62vh] min-h-[31rem] w-[82vw] shrink-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-background/35 md:h-[66vh] md:w-[58vw] lg:w-[44vw] xl:w-[38vw]"
+              }
             >
-              <div className="artifact-hover-image-wrap relative aspect-square bg-charcoal">
+              <div className="artifact-hover-image-wrap relative min-h-[18rem] overflow-hidden bg-charcoal">
                 <Image
                   src={item.image}
                   alt={item.title}
                   fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="artifact-hover-image object-cover opacity-80 contrast-[1.05] transition-all duration-700 group-hover:scale-110 group-hover:opacity-90"
+                  sizes="(max-width: 768px) 82vw, 58vw"
+                  className="artifact-hover-image object-cover grayscale contrast-[1.06] transition-[filter,transform] duration-700 hover:scale-[1.025] hover:grayscale-0"
                 />
-                {/* Hover red overlay */}
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                  style={{ background: "linear-gradient(to top, rgba(166,25,46,0.18) 0%, transparent 60%)" }} />
-                {/* Bottom sweep line */}
-                <motion.div
-                  className="absolute bottom-0 left-0 h-0.5 bg-couture-red"
-                  initial={{ width: 0 }}
-                  whileHover={{ width: "100%" }}
-                  transition={{ duration: 0.45, ease }}
-                />
+                <span className="absolute bottom-5 right-5 font-serif text-7xl leading-none text-white/15">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
               </div>
-              <div className="space-y-2">
-                <h3 className="label-caps">{item.title}</h3>
-                <p className="text-base leading-[1.85] text-foreground/65">{item.body}</p>
+              <div className="flex items-start justify-between gap-8 border-t border-foreground/10 px-6 py-6 md:px-8">
+                <div>
+                  <h3 className="label-caps text-foreground">{item.title}</h3>
+                  <p className="mt-3 max-w-md text-base leading-[1.75] text-foreground/65">
+                    {item.body}
+                  </p>
+                </div>
+                <span className="mt-1 h-2 w-2 shrink-0 rotate-45 border border-couture-red" />
               </div>
-            </motion.article>
+            </article>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
@@ -403,116 +266,116 @@ function MaterialsSection({ product }: { product: ProductSummary }) {
 /* ─── Symbolism ──────────────────────────────────────────────────── */
 function SymbolismSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const reduceMotion = useReducedMotion() ?? false;
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const imgScale = useTransform(scrollYProgress, [0, 1], [1.06, 0.98]);
+  const imgScale = useTransform(scrollYProgress, [0, 1], [1.035, 0.995]);
+  const materialTerms = product.symbolismTitle
+    .split(",")
+    .map((term) => term.trim())
+    .filter(Boolean);
+  const bodyLead = product.symbolismBody.charAt(0);
+  const bodyRemainder = product.symbolismBody.slice(1);
 
   return (
-    <section ref={ref} className="site-shell overflow-hidden py-20 md:py-40">
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center">
-        {/* Image */}
-        <motion.div
-          className="relative lg:col-span-7 lg:col-start-1"
-          initial={{ opacity: 0, x: -24 }}
-          animate={isInView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 1, ease }}
-        >
-          {/* Ghost "КОД РОДА" */}
-          <div
-            className="pointer-events-none absolute -left-2 -top-8 select-none font-serif leading-none text-couture-red/10"
-            style={{ fontSize: "clamp(2rem,6vw,6rem)", whiteSpace: "nowrap" }}
-          >
-            КОД РОДА
+    <section ref={ref} className="overflow-clip border-y border-foreground/10 bg-surface py-24 md:py-36">
+      <div className="site-shell">
+        <header className="grid gap-8 border-b border-foreground/15 pb-9 md:grid-cols-12 md:items-end md:pb-12">
+          <div className="md:col-span-9">
+            <p className="mb-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-couture-red">
+              <span className="h-2 w-2 rotate-45 border border-current" />
+              {product.symbolismLabel}
+            </p>
+            <h2 className="text-balance font-serif text-[clamp(3.6rem,9vw,6rem)] leading-[0.84] tracking-[-0.035em]">
+              КОД <span className="italic text-couture-red">РОДА</span>
+            </h2>
           </div>
+          <p className="max-w-xs text-pretty text-sm leading-7 text-foreground/55 md:col-span-3 md:pb-1">
+            An inherited language, translated from ceremonial memory into an object worn close.
+          </p>
+        </header>
 
-          <div className="relative aspect-video overflow-hidden">
-            <motion.div
-              className="relative h-full w-full"
-              style={{ scale: imgScale }}
-            >
-              <Image
-                src={product.lookbook[0]?.src || product.image}
-                alt="Symbolic Detail"
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
-            </motion.div>
+        <div className="grid border-b border-foreground/15 lg:grid-cols-[minmax(0,1fr)_15rem]">
+          <figure className="border-foreground/15 py-6 lg:border-r lg:py-9 lg:pr-9">
+            <div className="relative aspect-[4/3] overflow-hidden md:aspect-[16/9]">
+              <motion.div
+                className="relative h-full w-full will-change-transform"
+                style={reduceMotion ? undefined : { scale: imgScale }}
+              >
+                <Image
+                  src={product.lookbook[0]?.src || product.image}
+                  alt="Jewelry worn as a symbolic detail"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 75vw"
+                  className="object-cover grayscale contrast-[1.08]"
+                />
+              </motion.div>
+              <div className="pointer-events-none absolute inset-4 border border-white/25 md:inset-6" />
+            </div>
+            <figcaption className="mt-4 flex items-center justify-between gap-6 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-foreground/45">
+              <span>Worn archive / Belarus</span>
+              <span>Material carries memory</span>
+            </figcaption>
+          </figure>
+
+          <aside className="grid grid-cols-3 border-t border-foreground/15 lg:grid-cols-1 lg:border-t-0">
+            {materialTerms.map((term, index) => (
+              <div
+                key={term}
+                className="flex min-h-24 items-center border-foreground/15 px-3 py-5 not-last:border-r lg:min-h-0 lg:px-7 lg:not-last:border-b lg:not-last:border-r-0"
+              >
+                <span className="mr-3 text-[0.62rem] font-semibold text-couture-red">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-foreground/70 md:text-xs">
+                  {term}
+                </span>
+              </div>
+            ))}
+          </aside>
+        </div>
+
+        <div className="border-b border-foreground/15 py-10 md:py-14">
+          <div className="flex flex-col gap-2 md:gap-0">
+            {materialTerms.map((term, index) => (
+              <p
+                key={`${term}-display`}
+                className={
+                  index === 0
+                    ? "font-serif text-[clamp(2.8rem,7vw,5.6rem)] leading-[0.9] tracking-[-0.035em]"
+                    : index === 1
+                      ? "self-end font-serif text-[clamp(3.2rem,8vw,6rem)] italic leading-[0.86] tracking-[-0.035em] text-couture-red md:pr-[8vw]"
+                      : "max-w-full overflow-hidden text-[clamp(1.85rem,5vw,4.5rem)] font-light uppercase leading-none tracking-[0.08em] text-foreground/75"
+                }
+              >
+                {term}
+                <span className="text-couture-red">.</span>
+              </p>
+            ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Text panel */}
-        <motion.div
-          className="etched-glass relative border border-foreground/[0.07] p-8 md:p-10 lg:col-span-5 lg:col-start-8"
-          initial={{ opacity: 0, x: 24 }}
-          animate={isInView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 1, ease, delay: 0.15 }}
-        >
-          {/* Animated left accent */}
-          <motion.div
-            className="absolute left-0 top-0 w-0.5 bg-couture-red"
-            initial={{ height: 0 }}
-            animate={isInView ? { height: "100%" } : {}}
-            transition={{ duration: 1.2, delay: 0.4, ease }}
-          />
-
-          <motion.p
-            className="label-mono mb-4 text-couture-red"
-            initial={{ opacity: 0, y: 12 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, ease, delay: 0.3 }}
-          >
-            {product.symbolismLabel}
-          </motion.p>
-
-          <motion.h2
-            className="mb-6 font-serif italic leading-[1.15]"
-            style={{ fontSize: "clamp(1.5rem,2.8vw,2.4rem)" }}
-            initial={{ opacity: 0, y: 16 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease, delay: 0.4 }}
-          >
-            {product.symbolismTitle}
-          </motion.h2>
-
-          <motion.p
-            className="mb-4 text-base leading-[1.9] text-foreground/72 md:text-[1.0625rem]"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.8, ease, delay: 0.55 }}
-          >
-            {product.symbolismBody}
-          </motion.p>
-
-          <motion.p
-            className="text-base leading-[1.9] text-foreground/60"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.8, ease, delay: 0.68 }}
-          >
-            {product.symbolismBody2}
-          </motion.p>
-
-          {/* Ornament */}
-          <motion.div
-            className="mt-8 flex items-center gap-4"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.7, delay: 0.8 }}
-          >
-            <motion.div className="h-px bg-foreground/15"
-              initial={{ width: 0 }}
-              animate={isInView ? { width: 40 } : {}}
-              transition={{ duration: 0.7, delay: 0.9 }}
-            />
-            <div className="h-2 w-2 rotate-45 border border-couture-red/60" />
-            <motion.div className="h-px bg-foreground/15"
-              initial={{ width: 0 }}
-              animate={isInView ? { width: 40 } : {}}
-              transition={{ duration: 0.7, delay: 1.0 }}
-            />
-          </motion.div>
-        </motion.div>
+        <div className="grid gap-12 pt-12 md:grid-cols-12 md:gap-8 md:pt-16">
+          <div className="md:col-span-5">
+            <p className="max-w-md text-pretty font-serif text-[clamp(1.75rem,3.5vw,3rem)] italic leading-[1.18] text-foreground/92">
+              {product.symbolismBody2}
+            </p>
+          </div>
+          <div className="md:col-span-6 md:col-start-7">
+            <p className="max-w-2xl text-pretty text-base leading-[1.85] text-foreground/68 md:text-lg">
+              {bodyLead && (
+                <span className="float-left mr-3 mt-1 font-serif text-6xl leading-[0.72] text-couture-red">
+                  {bodyLead}
+                </span>
+              )}
+              {bodyRemainder}
+            </p>
+            <div className="mt-10 flex items-center gap-4" aria-hidden="true">
+              <span className="h-px w-14 bg-foreground/20" />
+              <span className="h-2 w-2 rotate-45 border border-couture-red" />
+              <span className="h-px flex-1 bg-foreground/10" />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -520,103 +383,108 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
 
 /* ─── Craftsmanship / Stats dark section ─────────────────────────── */
 function CraftSection({ product }: { product: ProductSummary }) {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1.08, 0.96]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const reduceMotion = useReducedMotion() ?? false;
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  async function toggleVideo() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      await video.play();
+    } else {
+      video.pause();
+    }
+  }
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 text-background md:py-36">
-      {/* Parallax ghost KodRoda */}
-      <motion.div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        style={{ scale: bgScale }}
-      >
-        <SvgKodRodaMini className="h-[75vw] w-[75vw] max-h-[650px] max-w-[650px] text-background opacity-[0.025]" />
-      </motion.div>
+    <section className="relative overflow-clip border-y border-foreground/10 bg-[#09090a] py-24 text-foreground md:py-36">
+      <div className="site-shell">
+        <header className="grid gap-8 pb-10 md:grid-cols-12 md:items-end md:pb-14">
+          <div className="md:col-span-8">
+            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-couture-red">
+              On the body
+            </p>
+            <h2 className="text-balance font-serif text-[clamp(3.3rem,7.5vw,6rem)] leading-[0.9] tracking-[-0.035em]">
+              Made to be <span className="italic text-couture-red">worn.</span>
+              <br />
+              Not displayed.
+            </h2>
+          </div>
+          <p className="max-w-sm text-pretty text-base leading-8 text-foreground/62 md:col-span-4 md:pb-1">
+            Jewelry is understood differently once it meets the body. This film studies the piece in motion—its scale, weight, and changing silhouette against the hand.
+          </p>
+        </header>
 
-      <div className="site-shell relative z-10">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
-          {/* Video/image block */}
-          <motion.div
-            className="group relative overflow-hidden"
-            initial={{ opacity: 0, x: -24 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease }}
-          >
-            <div className="relative aspect-video cursor-pointer overflow-hidden">
-              <Image
-                className="artifact-hover-image object-cover opacity-50 group-hover:scale-105"
-                src={product.process.mediaImage}
-                alt="Craftsmanship"
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-              {/* Play button */}
-              <motion.div
-                className="absolute inset-0 flex items-center justify-center"
-                whileHover={{ scale: 1.05 }}
-              >
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/30 bg-white/10 backdrop-blur-sm transition-all duration-300 group-hover:border-couture-red/60 group-hover:bg-couture-red/20 md:h-20 md:w-20">
-                  <svg className="ml-1 h-6 w-6 md:h-7 md:w-7" viewBox="0 0 24 24" fill="currentColor">
+        <figure className="border-y border-foreground/12 py-5 md:py-8">
+          <div className="relative aspect-[4/5] overflow-hidden bg-charcoal md:aspect-[16/9]">
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover grayscale contrast-[1.08]"
+              src="/videos/Man_bracelet_hero_web.mp4"
+              poster={product.process.mediaImage}
+              autoPlay={!reduceMotion}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              onPlay={() => setIsVideoPlaying(true)}
+              onPause={() => setIsVideoPlaying(false)}
+              aria-label={`${product.title} worn on the body`}
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
+            <div className="pointer-events-none absolute inset-4 border border-white/20 md:inset-7" />
+            <p className="absolute left-7 top-7 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-white/72 md:left-11 md:top-11">
+              Fit film / {product.series}
+            </p>
+            <button
+              type="button"
+              onClick={toggleVideo}
+              aria-pressed={isVideoPlaying}
+              aria-label={isVideoPlaying ? "Pause fit film" : "Play fit film"}
+              className="absolute bottom-7 right-7 flex min-h-12 items-center gap-3 border border-white/30 bg-black/35 px-5 text-xs font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm transition-[background-color,border-color,transform] duration-200 hover:border-white/55 hover:bg-black/55 active:scale-[0.97] md:bottom-11 md:right-11"
+            >
+              <span className="flex h-5 w-5 items-center justify-center" aria-hidden="true">
+                {isVideoPlaying ? (
+                  <span className="flex gap-1">
+                    <span className="h-3.5 w-0.5 bg-current" />
+                    <span className="h-3.5 w-0.5 bg-current" />
+                  </span>
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z" />
                   </svg>
-                </div>
-              </motion.div>
+                )}
+              </span>
+              {isVideoPlaying ? "Pause" : "Play"}
+            </button>
+          </div>
+          <figcaption className="grid gap-6 pt-5 md:grid-cols-12 md:items-start md:pt-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/42 md:col-span-3">
+              Movement study
+            </p>
+            <p className="max-w-2xl text-pretty font-serif text-[clamp(1.45rem,2.6vw,2.25rem)] italic leading-[1.25] text-foreground/86 md:col-span-6">
+              The layered construction changes with every gesture—graphic at rest, tactile in motion.
+            </p>
+            <p className="text-sm leading-7 text-foreground/52 md:col-span-3">
+              {product.materialLine}
+            </p>
+          </figcaption>
+        </figure>
 
-              {/* Corner accents */}
-              <motion.div
-                className="absolute left-3 top-3 h-8 w-8 border-l border-t border-couture-red/40"
-                initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.5, delay: 0.6 }}
-              />
-              <motion.div
-                className="absolute bottom-3 right-3 h-8 w-8 border-b border-r border-couture-red/40"
-                initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.5, delay: 0.75 }}
-              />
-            </div>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            className="flex flex-col justify-center space-y-10"
-            initial={{ opacity: 0, x: 24 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease, delay: 0.15 }}
-          >
-            <div>
-              <p className="label-mono mb-4 text-couture-red">{product.process.eyebrow}</p>
-              <h2 className="font-serif leading-[1.05]" style={{ fontSize: "clamp(1.8rem,3.5vw,3rem)" }}>
-                {product.process.title}
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              {product.process.stats.map(({ value, label }, i) => (
-                <motion.div
-                  key={label}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={isInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.7, ease, delay: 0.3 + i * 0.1 }}
-                >
-                  <p
-                    className="mb-1 font-serif text-background"
-                    style={{
-                      fontSize: "clamp(1.8rem,3vw,2.8rem)",
-                      textShadow: isInView ? "0 0 30px rgba(166,25,46,0.5)" : "none",
-                      transition: "text-shadow 0.8s ease",
-                    }}
-                  >
-                    {value}
-                  </p>
-                  <p className="label-mono text-background/40">{label}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+        <div className="grid gap-8 pt-10 md:grid-cols-12 md:items-center md:pt-14">
+          <div className="md:col-span-7">
+            <p className="max-w-2xl text-pretty text-base leading-8 text-foreground/65">
+              {product.shortDescription}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-6 md:col-span-5 md:justify-end">
+            <span className="font-serif text-2xl text-foreground md:text-3xl">
+              {product.price}
+            </span>
+            <AddToCartButton productSlug={product.slug} />
+          </div>
         </div>
       </div>
     </section>
@@ -624,13 +492,17 @@ function CraftSection({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Lookbook ───────────────────────────────────────────────────── */
-function lookbookClasses(index: number, item: ProductSummary["lookbook"][number]) {
+function lookbookClasses(index: number, item: ProductSummary["lookbook"][number], total: number) {
   if (item.featured || index === 0) {
     return "md:col-span-2 md:row-span-2";
   }
 
   if (index === 1) {
     return "md:col-span-2";
+  }
+
+  if (total === 3 && index === 2) {
+    return "col-span-2 md:col-span-2";
   }
 
   return "";
@@ -664,7 +536,7 @@ function LookbookSection({ product }: { product: ProductSummary }) {
         {product.lookbook.map((item, i) => (
           <motion.div
             key={i}
-            className={`relative overflow-hidden bg-black/5 aspect-square md:aspect-auto ${lookbookClasses(i, item)}`}
+            className={`relative overflow-hidden bg-black/5 aspect-square md:aspect-auto ${lookbookClasses(i, item, product.lookbook.length)}`}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.85, ease, delay: i * 0.1 }}
@@ -794,8 +666,22 @@ function ProductFooter({ product }: { product: ProductSummary }) {
 
 /* ─── Root ───────────────────────────────────────────────────────── */
 export function ProductDetail({ product }: { product: ProductSummary }) {
+  const pageStyle = {
+    "--color-background": "#09090a",
+    "--color-foreground": "#eeeae4",
+    "--color-muted": "#aaa49d",
+    "--color-muted-ink": "#aaa49d",
+    "--color-primary": "#d65a7d",
+    "--color-surface": "#111114",
+    "--color-stroke": "rgba(238,234,228,0.15)",
+    backgroundColor: "#09090a",
+  } as CSSProperties;
+
   return (
-    <main className="artifact-shell min-h-screen overflow-x-hidden">
+    <main
+      className="product-detail-experience artifact-shell min-h-screen overflow-x-clip text-foreground"
+      style={pageStyle}
+    >
       <ProductHero product={product} />
       <MaterialsSection product={product} />
       <SymbolismSection product={product} />

@@ -41,7 +41,7 @@ export function PaymentConfirmPanel({ order, clientSecret }: PaymentConfirmPanel
                 <p className="font-serif text-[1.35rem]">{item.title}</p>
                 <p className="text-sm text-foreground/60">Qty {item.quantity}</p>
               </div>
-              <span className="font-mono text-sm uppercase tracking-[0.14em]">
+              <span className="font-sans text-sm uppercase tracking-[0.14em]">
                 {formatMoney(item.totalCents, order.currency)}
               </span>
             </div>
@@ -67,7 +67,7 @@ export function PaymentConfirmPanel({ order, clientSecret }: PaymentConfirmPanel
       <section className="panel p-6 md:p-8">
         <div className="flex items-center justify-between border-b border-stroke pb-4 mb-8">
           <span className="label-caps text-muted">Order total</span>
-          <span className="font-mono text-sm uppercase tracking-[0.14em]">
+          <span className="font-sans text-sm uppercase tracking-[0.14em]">
             {formatMoney(order.totalCents, order.currency)}
           </span>
         </div>
@@ -76,7 +76,7 @@ export function PaymentConfirmPanel({ order, clientSecret }: PaymentConfirmPanel
 
         <div className="mt-4">
           <form action={resetCheckoutAction}>
-            <SubmitButton className="inline-flex items-center justify-center border border-stroke px-6 py-4 label-caps transition-colors hover:border-accent hover:text-accent disabled:opacity-60 disabled:cursor-not-allowed">
+            <SubmitButton variant="secondary">
               Back to cart
             </SubmitButton>
           </form>

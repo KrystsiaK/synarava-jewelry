@@ -30,8 +30,8 @@ export function LoginForm({
     <AuthForm action={formAction}>
       <input type="hidden" name="redirectTo" value={redirectTo ?? ""} />
       <div className="space-y-2">
-        <p className="label-caps text-accent">{t("auth.login.eyebrow")}</p>
-        <h2 className="font-serif text-[2.4rem] leading-none">{t("auth.login.title")}</h2>
+        <p className="text-sm text-foreground/58">Secure account access</p>
+        <h2 className="font-serif text-[2.6rem] leading-none">{t("auth.login.title")}</h2>
       </div>
 
       <AuthMessage error={state.error ?? error} />
@@ -46,14 +46,14 @@ export function LoginForm({
 
       <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
         <AuthSubmitButton label={t("auth.login.submit")} pendingLabel={t("auth.login.submitting")} />
-        <Link href="/reset-password" className="label-caps text-muted transition-colors hover:text-accent">
+        <Link href="/reset-password" className="text-sm text-foreground/68 underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
           {t("auth.login.forgotPassword")}
         </Link>
       </div>
 
-      <p className="text-sm text-foreground/60">
+      <p className="text-sm text-foreground/62">
         {t("auth.login.noAccount")}{" "}
-        <Link href="/register" className="transition-colors hover:text-accent">
+        <Link href="/register" className="text-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
           {t("auth.login.createOne")}
         </Link>
       </p>

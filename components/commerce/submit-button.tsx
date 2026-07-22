@@ -2,23 +2,42 @@
 
 import { useFormStatus } from "react-dom";
 
-import { artifactButtonClasses } from "@/components/ui";
+import { artifactButtonClasses, PrimaryCtaButton } from "@/components/ui";
 
 type SubmitButtonProps = {
   children: React.ReactNode;
   pendingLabel?: string;
   className?: string;
+  variant?: "primary" | "secondary";
 };
 
-export function SubmitButton({ children, pendingLabel, className }: SubmitButtonProps) {
+export function SubmitButton({
+  children,
+  pendingLabel,
+  className,
+  variant = "primary",
+}: SubmitButtonProps) {
   const { pending } = useFormStatus();
+
+  if (variant === "secondary") {
+    return (
+      <button
+        type="submit"
+        disabled={pending}
+        className={artifactButtonClasses({ variant: "secondary", size: "md", className })}
+      >
+        {pending && pendingLabel ? pendingLabel : children}
+      </button>
+    );
+  }
+
   return (
-    <button
+    <PrimaryCtaButton
       type="submit"
       disabled={pending}
-      className={artifactButtonClasses({ className })}
+      className={className}
     >
       {pending && pendingLabel ? pendingLabel : children}
-    </button>
+    </PrimaryCtaButton>
   );
 }

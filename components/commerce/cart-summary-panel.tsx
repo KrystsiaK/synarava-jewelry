@@ -1,4 +1,4 @@
-import { ArtifactLink } from "@/components/ui";
+import { PrimaryCtaButton } from "@/components/ui";
 
 type CartSummaryPanelProps = {
   itemCount: number;
@@ -16,26 +16,32 @@ export function CartSummaryPanel({
   note,
 }: CartSummaryPanelProps) {
   return (
-    <aside className="panel h-fit p-6">
-      <p className="label-caps text-accent">Summary</p>
-      <div className="mt-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-stroke pb-4">
-          <span className="text-foreground/70">Items</span>
-          <span className="font-mono text-sm uppercase tracking-[0.14em]">{itemCount}</span>
+    <aside className="cart-summary-panel h-fit border border-white/10 bg-white/[0.035] p-6 text-foreground backdrop-blur-md md:p-7">
+      <div className="flex items-start justify-between gap-4">
+        <p className="font-serif text-[1.65rem] leading-none">Order summary</p>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/50">
+          {String(itemCount).padStart(2, "0")} {itemCount === 1 ? "piece" : "pieces"}
+        </span>
+      </div>
+
+      <div className="mt-7 border-y border-white/10">
+        <div className="flex items-center justify-between py-4 text-sm">
+          <span className="text-foreground/62">Selected pieces</span>
+          <span className="font-semibold text-foreground">{itemCount}</span>
         </div>
-        <div className="flex items-center justify-between border-b border-stroke pb-4">
-          <span className="text-foreground/70">Subtotal</span>
-          <span className="font-mono text-sm uppercase tracking-[0.14em]">{subtotal}</span>
+        <div className="flex items-end justify-between gap-4 border-t border-white/10 py-5">
+          <span className="text-sm text-foreground/62">Subtotal</span>
+          <span className="font-serif text-[1.75rem] leading-none text-foreground">{subtotal}</span>
         </div>
       </div>
 
       {ctaHref && ctaLabel ? (
-        <ArtifactLink href={ctaHref} className="mt-8 w-full" showArrow>
+        <PrimaryCtaButton href={ctaHref} className="mt-7 w-full">
           {ctaLabel}
-        </ArtifactLink>
+        </PrimaryCtaButton>
       ) : null}
 
-      {note ? <p className="mt-6 text-sm leading-6 text-foreground/60">{note}</p> : null}
+      {note ? <p className="mt-5 max-w-[32rem] text-sm leading-6 text-foreground/58">{note}</p> : null}
     </aside>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView } from "motion/react";
+import { type CSSProperties } from "react";
+import { motion } from "motion/react";
 import Link from "next/link";
 
 import { PrimaryCtaButton } from "@/components/ui";
@@ -28,57 +28,42 @@ type CartShellProps = {
 };
 
 function EmptyCart() {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true });
-
   return (
     <motion.div
-      ref={ref}
-      className="relative overflow-hidden border border-foreground/[0.07] p-10 md:p-16"
+      className="relative max-w-3xl py-8 md:py-16"
       initial={{ opacity: 0, y: 24 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease }}
     >
       <motion.div
-        className="absolute left-0 top-0 w-0.5 bg-couture-red"
-        initial={{ height: 0 }}
-        animate={isInView ? { height: "100%" } : {}}
-        transition={{ duration: 1.2, delay: 0.3, ease }}
+        className="mb-8 h-px w-full max-w-48 bg-foreground/18"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
       />
 
-      <motion.div
-        className="mb-10 flex items-center gap-5"
-        initial={{ opacity: 0 }}
-        animate={isInView ? { opacity: 1 } : {}}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <div className="h-px w-10 bg-foreground/15" />
-        <div className="h-2 w-2 rotate-45 border border-couture-red/50" />
-        <div className="h-px w-10 bg-foreground/15" />
-      </motion.div>
-
       <motion.h2
-        className="mb-4 font-serif"
-        style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)" }}
+        className="mb-5 max-w-[12ch] text-balance font-serif leading-[0.98]"
+        style={{ fontSize: "clamp(2.4rem,5vw,4.8rem)" }}
         initial={{ opacity: 0, y: 16 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease, delay: 0.3 }}
       >
-        The cart is empty.
+        Nothing selected <span className="italic text-couture-red">yet.</span>
       </motion.h2>
 
       <motion.p
-        className="mb-10 max-w-md text-base leading-[2] text-foreground/60"
+        className="mb-8 max-w-xl text-pretty text-base leading-[1.8] text-foreground/65 md:text-lg"
         initial={{ opacity: 0, y: 12 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.42 }}
       >
-        Start from the product pages or the shop archive. Once a piece is added, it stays available for guest checkout or account-based checkout.
+        Explore the archive and choose the piece that feels personal. You can return here and continue as a guest—no account required.
       </motion.p>
 
       <motion.div
         initial={{ opacity: 0, y: 12 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.55 }}
       >
         <PrimaryCtaButton href="/shop">Browse archive</PrimaryCtaButton>
@@ -88,31 +73,47 @@ function EmptyCart() {
 }
 
 export function CartShell({ items, itemCount, subtotal }: CartShellProps) {
+  const pageStyle = {
+    "--color-background": "#09090a",
+    "--color-foreground": "#eeeae4",
+    "--color-muted": "#aaa49d",
+    "--color-muted-ink": "#aaa49d",
+    "--color-panel": "#111114",
+    "--color-surface": "#111114",
+    "--color-stone-beige": "#201f20",
+    "--color-stroke": "rgba(238,234,228,0.14)",
+    backgroundColor: "#09090a",
+  } as CSSProperties;
+
   return (
-    <main className="artifact-shell min-h-screen overflow-x-hidden">
+    <main
+      className="cart-experience artifact-shell min-h-screen overflow-x-hidden text-foreground"
+      style={pageStyle}
+    >
       <div className="relative z-10 pt-28">
-        {/* Header */}
-        <div className="border-b border-foreground/[0.06] pb-12 pt-10">
-          <div className="site-shell">
+        <div className="border-b border-foreground/10 pb-10 pt-8 md:pb-14 md:pt-12">
+          <div className="site-shell grid gap-6 md:grid-cols-12 md:items-end">
+            <div className="md:col-span-7">
+              <motion.p
+                className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-couture-red"
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, ease }}
+              >
+                Selection
+              </motion.p>
+              <motion.h1
+                className="font-serif leading-[0.92] tracking-[-0.035em]"
+                style={{ fontSize: "clamp(2.4rem,5vw,5rem)" }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, ease, delay: 0.1 }}
+              >
+                Your <span className="italic text-couture-red">Cart</span>
+              </motion.h1>
+            </div>
             <motion.p
-              className="label-mono mb-4 text-couture-red"
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, ease }}
-            >
-              Selection
-            </motion.p>
-            <motion.h1
-              className="font-serif leading-[0.9]"
-              style={{ fontSize: "clamp(2.4rem,5vw,5rem)" }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease, delay: 0.1 }}
-            >
-              Your Cart
-            </motion.h1>
-            <motion.p
-              className="mt-5 max-w-xl text-base leading-[2] text-foreground/55"
+              className="max-w-xl text-pretty text-base leading-[1.8] text-foreground/62 md:col-span-5 md:pb-1"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.22 }}
@@ -122,13 +123,14 @@ export function CartShell({ items, itemCount, subtotal }: CartShellProps) {
           </div>
         </div>
 
-        {/* Body */}
-        <div className="site-shell py-14">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="site-shell py-10 md:py-14">
+          {items.length === 0 ? (
             <section>
-              {items.length === 0 ? (
-                <EmptyCart />
-              ) : (
+              <EmptyCart />
+            </section>
+          ) : (
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+              <section>
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -145,23 +147,22 @@ export function CartShell({ items, itemCount, subtotal }: CartShellProps) {
                     </motion.div>
                   ))}
                 </motion.div>
-              )}
-            </section>
+              </section>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, ease, delay: 0.2 }}
-            >
-              <CartSummaryPanel
-                itemCount={itemCount}
-                subtotal={subtotal}
-                ctaHref={items.length > 0 ? "/checkout/shipping" : undefined}
-                ctaLabel={items.length > 0 ? "Continue to shipping" : undefined}
-                note="Shipping details come first. At checkout you can either sign in or continue as guest."
-              />
+              <motion.div
+                className="lg:sticky lg:top-28 lg:self-start"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, ease, delay: 0.2 }}
+              >
+                <CartSummaryPanel
+                  itemCount={itemCount}
+                  subtotal={subtotal}
+                  ctaHref="/checkout/shipping"
+                  ctaLabel="Continue to shipping"
+                  note="Shipping details come first. At checkout you can either sign in or continue as guest."
+                />
 
-              {items.length > 0 && (
                 <motion.div
                   className="mt-5 text-center"
                   initial={{ opacity: 0 }}
@@ -175,9 +176,9 @@ export function CartShell({ items, itemCount, subtotal }: CartShellProps) {
                     Continue shopping
                   </Link>
                 </motion.div>
-              )}
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
+          )}
         </div>
       </div>
     </main>

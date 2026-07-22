@@ -77,7 +77,7 @@ export function ProductCard({
 
           {/* Overlay slide-up */}
           <motion.div
-            className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-foreground/75 via-foreground/25 to-transparent p-5"
+            className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/25 to-transparent p-5"
             variants={{
               rest: { opacity: 0, y: "30%" },
               hover: { opacity: 1, y: "0%" },
@@ -136,14 +136,14 @@ export function ProductCard({
         {/* Tags */}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {product.categoryName && (
-            <span className="border border-foreground/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70">
+            <span className="border border-foreground/[0.08] px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70">
               {product.categoryName}
             </span>
           )}
           {product.tagNames.slice(0, 2).map((tag) => (
             <span
               key={tag}
-              className="border border-foreground/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70"
+              className="border border-foreground/[0.08] px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70"
             >
               {tag}
             </span>

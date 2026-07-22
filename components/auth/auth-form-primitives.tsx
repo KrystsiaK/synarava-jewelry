@@ -37,8 +37,8 @@ export function AuthField({
   children: ReactNode;
 }) {
   return (
-    <label className="grid gap-2">
-      <span className="label-caps text-muted">{label}</span>
+    <label className="grid gap-2.5">
+      <span className="label-caps text-foreground/68">{label}</span>
       {children}
     </label>
   );
@@ -49,7 +49,7 @@ export function AuthInput(props: InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cn(
-        "border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent",
+        "storefront-field",
         props.className,
       )}
     />
@@ -134,7 +134,7 @@ export function PasswordInput({
             props.onChange?.(e);
           }}
           className={cn(
-            "w-full border border-stroke bg-transparent px-4 py-3 pr-11 outline-none transition-colors focus:border-accent",
+            "storefront-field w-full pr-12",
             props.className,
           )}
         />
@@ -142,8 +142,7 @@ export function PasswordInput({
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? t("auth.hidePassword") : t("auth.showPassword")}
-          tabIndex={-1}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40 transition-colors hover:text-foreground"
+          className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center text-foreground/55 transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent"
         >
           {visible ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
@@ -208,7 +207,7 @@ export function AuthTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>)
     <textarea
       {...props}
       className={cn(
-        "border border-stroke bg-transparent px-4 py-3 outline-none transition-colors focus:border-accent",
+        "storefront-field",
         props.className,
       )}
     />
@@ -251,11 +250,12 @@ export function AuthMessage({
   return (
     <div
       className={cn(
-        "border px-4 py-3 text-sm leading-6",
+        "px-4 py-3 text-sm leading-6",
         error
-          ? "border-[color:rgba(166,25,46,0.35)] text-[color:#7e1a29]"
-          : "border-[color:rgba(25,21,18,0.16)] text-foreground/70",
+          ? "border border-[rgba(255,117,135,0.34)] bg-[rgba(166,25,46,0.14)] text-[#ffd6db]"
+          : "bg-white/[0.06] text-foreground/76",
       )}
+      role={error ? "alert" : "status"}
     >
       {error ?? success}
     </div>

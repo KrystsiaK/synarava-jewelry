@@ -23,7 +23,7 @@ export function RegisterForm() {
   return (
     <AuthForm action={formAction}>
       <div className="space-y-2">
-        <p className="label-caps text-accent">{t("auth.register.eyebrow")}</p>
+        <p className="text-sm text-foreground/58">Create your account</p>
         <h2 className="font-serif text-[2.4rem] leading-none">{t("auth.register.title")}</h2>
       </div>
 
@@ -47,9 +47,9 @@ export function RegisterForm() {
 
       <AuthSubmitButton label={t("auth.register.submit")} pendingLabel={t("auth.register.submitting")} className="mt-2" />
 
-      <p className="text-sm text-foreground/60">
+      <p className="text-sm text-foreground/62">
         {t("auth.register.alreadyRegistered")}{" "}
-        <Link href="/login" className="transition-colors hover:text-accent">
+        <Link href="/login" className="text-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
           {t("auth.register.signIn")}
         </Link>
       </p>

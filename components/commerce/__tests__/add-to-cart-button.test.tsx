@@ -93,6 +93,6 @@ describe("AddToCartButton", () => {
     const user = userEvent.setup();
     render(<AddToCartButton productSlug="birch-bracelet" />);
     await user.click(screen.getByRole("button"));
-    await waitFor(() => expect(screen.getByRole("button")).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add to cart" })).not.toBeDisabled());
   });
 });

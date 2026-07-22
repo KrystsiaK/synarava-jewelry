@@ -21,11 +21,11 @@ export default async function LoginPage({ searchParams }: Props) {
 
   return (
     <AuthShell
-      eyebrow="SYNARAVA | Login (Identify)"
-      title="A quiet entrance into the archive."
-      description="Sign in to access your storefront account, saved details, and checkout history."
-      asideTitle="Private archive"
-      asideBody="Your account keeps order details and saved contact information in one calm, protected place."
+      eyebrow="Private access"
+      title="Return to your collection."
+      description="Sign in to continue your selection, revisit orders, and keep delivery details close at hand."
+      asideTitle="Your pieces, remembered."
+      asideBody="Account details are used only to support your orders and make future acquisitions easier."
     >
       <LoginForm redirectTo={params.redirectTo} error={error} />
     </AuthShell>

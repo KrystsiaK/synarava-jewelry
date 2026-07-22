@@ -2,7 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 
-import { ArtifactButton } from "@/components/ui/artifact-button";
+import { PrimaryCtaButton } from "@/components/ui/primary-cta-button";
 
 type AuthSubmitButtonProps = {
   label: string;
@@ -21,8 +21,8 @@ export function AuthSubmitButton({
   const isDisabled = pending || disabled;
 
   return (
-    <ArtifactButton type="submit" className={className} disabled={isDisabled}>
+    <PrimaryCtaButton type="submit" className={className} disabled={isDisabled}>
       {pending ? pendingLabel : label}
-    </ArtifactButton>
+    </PrimaryCtaButton>
   );
 }

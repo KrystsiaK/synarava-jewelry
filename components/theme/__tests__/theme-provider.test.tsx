@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { usePathname } from "next/navigation";
 import { ThemeProvider, useTheme } from "../theme-provider";
+
+const mockUsePathname = usePathname as ReturnType<typeof vi.fn>;
 
 function ThemeConsumer() {
   const { preference, resolvedTheme, setPreference } = useTheme();
@@ -16,6 +19,10 @@ function ThemeConsumer() {
 }
 
 describe("ThemeProvider", () => {
+  beforeEach(() => {
+    mockUsePathname.mockReturnValue("/shop");
+  });
+
   it("provides initial preference to consumers", () => {
     render(
       <ThemeProvider initialPreference="light">
@@ -70,6 +77,16 @@ describe("ThemeProvider", () => {
     });
     render(
       <ThemeProvider initialPreference="system">
+        <ThemeConsumer />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId("resolved")).toHaveTextContent("dark");
+  });
+
+  it("keeps the home experience dark regardless of preference", () => {
+    mockUsePathname.mockReturnValue("/");
+    render(
+      <ThemeProvider initialPreference="light">
         <ThemeConsumer />
       </ThemeProvider>,
     );

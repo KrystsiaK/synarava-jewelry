@@ -24,7 +24,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
 
   return (
     <div
-      className={`inline-flex items-center border border-foreground/10 bg-background/80 backdrop-blur ${
+      className={`inline-flex items-center bg-background/80 backdrop-blur ${
         compact ? "gap-1 p-1" : "gap-1 p-1.5"
       }`}
       aria-label="Theme switcher"

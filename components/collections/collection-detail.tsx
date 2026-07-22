@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type CSSProperties } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -9,7 +9,7 @@ import {
   useInView,
 } from "motion/react";
 import Link from "next/link";
-import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
+import { PrimaryCtaButton } from "@/components/ui";
 import type { CollectionSummary, ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -36,7 +36,7 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
   return (
     <motion.header
       ref={ref}
-      className="relative flex h-[90vh] min-h-[600px] w-full items-end overflow-hidden pb-16 pt-28 md:h-screen md:pb-20 md:pt-32"
+      className="relative flex h-[94svh] min-h-[600px] w-full items-end overflow-hidden bg-background pb-14 pt-28 md:h-screen md:pb-[8vh] md:pt-32"
     >
       {/* Parallax image */}
       <motion.div className="absolute inset-0 scale-110" style={{ y: imgY }}>
@@ -46,27 +46,34 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
           fill
           priority
           sizes="100vw"
-          className="object-cover brightness-90"
+          className="object-cover grayscale brightness-[0.72] contrast-[1.04]"
         />
       </motion.div>
 
       {/* Gradient overlay */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-t from-foreground via-foreground/30 to-transparent"
+        className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-background/10"
         style={{ opacity: overlayOpacity }}
       />
 
-      {/* Red side accent */}
-      <div className="pointer-events-none absolute right-0 top-0 h-full w-1 bg-couture-red/40" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px)",
+          backgroundSize: "72px 72px",
+        }}
+      />
 
       {/* Breadcrumb */}
       <motion.div
-        className="absolute left-0 right-0 top-32 z-20 px-5 md:top-36 md:px-16"
+        className="absolute left-0 right-0 top-32 z-20 px-5 md:top-36 md:px-[4vw]"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.3 }}
       >
-        <div className="flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.18em] text-white/50">
+        <div className="flex items-center gap-2 font-sans text-[0.68rem] uppercase tracking-[0.18em] text-white/50">
           <Link href="/" className="transition-colors hover:text-white/80">Home</Link>
           <span>/</span>
           <Link href="/collections" className="transition-colors hover:text-white/80">Collections</Link>
@@ -76,7 +83,7 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
       </motion.div>
 
       <motion.div
-        className="relative z-20 px-5 md:px-16"
+        className="relative z-20 mx-auto w-full max-w-[90rem] px-5 md:px-[4vw]"
         style={{ y: textY, opacity: textOpacity }}
       >
         <motion.span
@@ -89,8 +96,8 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
         </motion.span>
 
         <h1
-          className="max-w-3xl font-serif leading-[0.9] tracking-tight text-background"
-          style={{ fontSize: "clamp(3rem,8vw,7rem)" }}
+          className="max-w-3xl text-balance font-serif leading-[0.88] tracking-[-0.04em] text-foreground"
+          style={{ fontSize: "clamp(3rem,8vw,6rem)" }}
         >
           {words.map((word, i) => (
             <span key={i} className="mr-[0.2em] inline-block overflow-hidden last:mr-0">
@@ -107,7 +114,7 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
         </h1>
 
         <motion.p
-          className="mt-8 max-w-lg text-base leading-[1.9] text-background/65 md:text-lg"
+          className="mt-8 max-w-lg text-pretty text-base leading-[1.8] text-foreground/72 md:text-lg"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, delay: 0.6, ease }}
@@ -122,12 +129,10 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.85, ease }}
         >
-          <ArtifactLink href="/shop" showArrow>
-            Shop products
-          </ArtifactLink>
+          <PrimaryCtaButton href="/shop">Shop products</PrimaryCtaButton>
           <Link
             href="/collections"
-            className="label-mono border-b border-background/30 pb-1 text-background/60 transition-colors hover:border-background/60 hover:text-background/90"
+            className="label-mono border-b border-foreground/30 pb-1 text-foreground/60 transition-colors hover:border-foreground/60 hover:text-foreground"
           >
             All collections
           </Link>
@@ -141,14 +146,14 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
         animate={{ opacity: 1 }}
         transition={{ delay: 1.6, duration: 0.9 }}
       >
-        <div className="relative h-20 w-px overflow-hidden bg-background/20">
+        <div className="relative h-20 w-px overflow-hidden bg-foreground/20">
           <motion.div
             className="absolute top-0 h-1/2 w-full bg-couture-red"
             animate={{ y: ["0%", "200%"] }}
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
           />
         </div>
-        <span className="label-mono text-[0.62rem] text-background/35 [writing-mode:vertical-rl]">Scroll</span>
+        <span className="label-mono text-[0.62rem] text-foreground/35 [writing-mode:vertical-rl]">Scroll</span>
       </motion.div>
     </motion.header>
   );
@@ -162,14 +167,14 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
   const bgScale = useTransform(scrollYProgress, [0, 1], [0.88, 1.06]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-20 md:py-40">
+    <section ref={ref} className="relative overflow-hidden border-t border-foreground/10 bg-background py-20 text-foreground md:py-40">
       {/* Ghost text background */}
       <motion.div
         className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         style={{ scale: bgScale }}
       >
         <span
-          className="select-none text-center font-serif leading-none text-background"
+          className="select-none text-center font-serif leading-none text-foreground"
           style={{ fontSize: "clamp(4rem,15vw,13rem)", opacity: 0.03, whiteSpace: "nowrap" }}
         >
           MANIFESTO
@@ -187,7 +192,7 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
         </motion.p>
 
         <motion.blockquote
-          className="max-w-5xl font-serif italic leading-[1.4] text-background"
+          className="max-w-5xl text-balance font-serif italic leading-[1.4] text-foreground"
           style={{ fontSize: "clamp(1.5rem,3vw,2.8rem)" }}
           initial={{ opacity: 0, y: 24 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -203,7 +208,7 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
           transition={{ duration: 0.8, delay: 0.9 }}
         >
           <motion.div
-            className="h-px w-14 bg-background/20"
+            className="h-px w-14 bg-foreground/20"
             initial={{ scaleX: 0 }}
             animate={isInView ? { scaleX: 1 } : {}}
             transition={{ duration: 0.8, delay: 1 }}
@@ -211,7 +216,7 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
           />
           <div className="h-2 w-2 rotate-45 border border-couture-red" />
           <motion.div
-            className="h-px w-14 bg-background/20"
+            className="h-px w-14 bg-foreground/20"
             initial={{ scaleX: 0 }}
             animate={isInView ? { scaleX: 1 } : {}}
             transition={{ duration: 0.8, delay: 1.1 }}
@@ -229,8 +234,8 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
   const isInView = useInView(ref, { once: true, margin: "-14%" });
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-16 text-background md:py-16 lg:py-28">
-      <div className="pointer-events-none absolute right-[-7vw] top-[-4rem] hidden font-serif text-[18vw] leading-none text-background/[0.035] md:block">
+    <section ref={ref} className="relative overflow-hidden bg-background py-16 text-foreground md:py-16 lg:py-28">
+      <div className="pointer-events-none absolute right-[-7vw] top-[-4rem] hidden font-serif text-[18vw] leading-none text-foreground/[0.035] md:block">
         {collection.accent}
       </div>
       <div className="site-shell relative">
@@ -258,9 +263,9 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
               </motion.div>
             </div>
 
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-foreground/22 via-transparent to-foreground/18" />
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-background/20" />
-            <figcaption className="absolute bottom-5 left-5 flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-background/72 md:bottom-7 md:left-7">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/22 via-transparent to-background/18" />
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-foreground/20" />
+            <figcaption className="absolute bottom-5 left-5 flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-foreground/72 md:bottom-7 md:left-7">
               <span>{collection.accent}</span>
               <span className="h-px w-12 bg-couture-red" />
               <span className="text-couture-red">Accent code</span>
@@ -273,7 +278,7 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
             animate={isInView ? { opacity: 1, transform: "translate3d(0, 0, 0)" } : {}}
             transition={{ duration: 0.8, ease, delay: 0.08 }}
           >
-            <div className="border-y border-background/14 py-7 lg:py-8">
+            <div className="border-y border-foreground/14 py-7 lg:py-8">
               <div className="mb-6 flex items-center gap-4 text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-couture-red">
                 <span>Collection Story</span>
                 <span className="h-px flex-1 bg-current/35" />
@@ -281,21 +286,21 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
               <h2 className="max-w-[10.5ch] text-balance font-serif leading-[0.93] tracking-[-0.02em]" style={{ fontSize: "clamp(2.45rem,4.4vw,4.45rem)" }}>
                 A world with a clear visual logic
               </h2>
-              <p className="mt-7 max-w-xl text-base leading-[1.85] text-background/68 md:text-[1.04rem]">
+              <p className="mt-7 max-w-xl text-base leading-[1.85] text-foreground/68 md:text-[1.04rem]">
                 {collection.summary}
               </p>
             </div>
 
-            <div className="mt-7 border-t border-background/14 pt-6 lg:mt-9 lg:pt-8">
+            <div className="mt-7 border-t border-foreground/14 pt-6 lg:mt-9 lg:pt-8">
               <p className="mb-4 text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-couture-red">{collection.symbolismLabel}</p>
               <p className="mb-4 max-w-[18rem] font-serif leading-tight tracking-[-0.015em]" style={{ fontSize: "clamp(1.35rem,2.1vw,1.85rem)" }}>
                 {collection.symbolismTitle}
               </p>
-              <p className="max-w-md text-sm leading-[1.85] text-background/62 md:text-[0.98rem]">
+              <p className="max-w-md text-sm leading-[1.85] text-foreground/62 md:text-[0.98rem]">
                 {collection.symbolismBody}
               </p>
               {collection.symbolismBody2 ? (
-                <p className="mt-4 max-w-md text-sm leading-[1.85] text-background/52 md:text-[0.98rem]">
+                <p className="mt-4 max-w-md text-sm leading-[1.85] text-foreground/52 md:text-[0.98rem]">
                   {collection.symbolismBody2}
                 </p>
               ) : null}
@@ -430,15 +435,7 @@ function ProductsSection({
             animate={isInView ? { opacity: 1 } : {}}
             transition={{ duration: 0.7, delay: 0.2 }}
           >
-            <Link
-              href="/shop"
-              className="group inline-flex cursor-pointer items-center gap-2 label-caps border-b border-foreground/25 pb-1.5 transition-all hover:border-couture-red hover:text-couture-red"
-            >
-              View all products
-              <svg className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 12 12" fill="none">
-                <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
+            <PrimaryCtaButton href="/shop">View all products</PrimaryCtaButton>
           </motion.div>
         </div>
 
@@ -449,9 +446,7 @@ function ProductsSection({
             animate={isInView ? { opacity: 1 } : {}}
           >
             <p className="text-muted-ink">No products in this collection yet.</p>
-            <Link href="/shop" className="label-caps border-b border-foreground/25 pb-1 hover:border-couture-red hover:text-couture-red">
-              Browse all products
-            </Link>
+            <PrimaryCtaButton href="/shop">Browse all products</PrimaryCtaButton>
           </motion.div>
         ) : (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:items-start md:gap-8">
@@ -478,7 +473,7 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
   const bgY = useTransform(scrollYProgress, [0, 1], ["-6%", "6%"]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-foreground py-0">
+    <section ref={ref} className="relative overflow-hidden bg-background py-0 text-foreground">
       {/* Parallax background */}
       <motion.div className="absolute inset-0 opacity-25" style={{ y: bgY }}>
         <Image
@@ -488,21 +483,11 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
           sizes="100vw"
           className="scale-110 object-cover grayscale"
         />
-        <div className="absolute inset-0 bg-foreground/75" />
+        <div className="absolute inset-0 bg-background/75" />
       </motion.div>
 
-      {/* Pulsing orb */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute left-1/2 top-1/2 h-[50vw] w-[50vw] max-w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(166,25,46,0.14) 0%, transparent 70%)" }}
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-
       <div className="relative z-10 flex min-h-[50vh] items-center justify-center py-20 md:py-32">
-        <div className="site-shell text-center text-background">
+        <div className="site-shell text-center text-foreground">
           <motion.p
             className="label-mono mb-8 text-couture-red"
             initial={{ opacity: 0, y: 16 }}
@@ -526,14 +511,12 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.22 }}
           >
-            <ArtifactLink
+            <Link
               href="/collections"
-              variant="secondary"
-              showArrow
-              className="border-background/25 text-background hover:border-couture-red hover:text-couture-red"
+              className="label-mono border-b border-foreground/30 pb-1 text-foreground/65 transition-colors hover:border-foreground/60 hover:text-foreground"
             >
               All collections
-            </ArtifactLink>
+            </Link>
             <PrimaryCtaButton href="/shop">Shop all products</PrimaryCtaButton>
           </motion.div>
         </div>
@@ -550,8 +533,22 @@ export function CollectionDetail({
   collection: CollectionDetail;
   products: ProductSummary[];
 }) {
+  const pageStyle = {
+    "--color-background": "#09090a",
+    "--color-foreground": "#eeeae4",
+    "--color-muted": "#aaa49d",
+    "--color-muted-ink": "#aaa49d",
+    "--color-primary": "#d65a7d",
+    "--color-surface": "#111114",
+    "--color-stroke": "rgba(238,234,228,0.15)",
+    backgroundColor: "#09090a",
+  } as CSSProperties;
+
   return (
-    <main className="artifact-shell overflow-x-hidden">
+    <main
+      className="collection-detail-experience artifact-shell overflow-x-hidden text-foreground"
+      style={pageStyle}
+    >
       <DetailHero collection={collection} />
       {collection.manifesto && <ManifestoStrip manifesto={collection.manifesto} />}
       <CollectionStory collection={collection} />

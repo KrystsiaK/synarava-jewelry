@@ -11,11 +11,15 @@ export function MagneticButton({
   className,
   href,
   onClick,
+  disabled,
+  type = "button",
 }: {
   children: React.ReactNode;
   className?: string;
   href?: string;
   onClick?: () => void;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
 }) {
   const ref = useRef<HTMLElement>(null);
   const x = useMotionValue(0);
@@ -56,7 +60,7 @@ export function MagneticButton({
   }
 
   return (
-    <motion.button type="button" onClick={onClick} {...shared}>
+    <motion.button type={type} onClick={onClick} disabled={disabled} {...shared}>
       {children}
     </motion.button>
   );

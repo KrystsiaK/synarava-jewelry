@@ -4,8 +4,8 @@ type ThemeScriptProps = {
   initialPreference: ThemePreference;
 };
 
-export function ThemeScript({ initialPreference }: ThemeScriptProps) {
-  const script = `
+export function getThemeScript(initialPreference: ThemePreference): string {
+  return `
     (() => {
       const storageKey = ${JSON.stringify(THEME_COOKIE_NAME)};
       const root = document.documentElement;
@@ -28,7 +28,14 @@ export function ThemeScript({ initialPreference }: ThemeScriptProps) {
       root.style.colorScheme = resolved;
     })();
   `;
+}
 
-  return <script dangerouslySetInnerHTML={{ __html: script }} />;
+export function ThemeScript({ initialPreference }: ThemeScriptProps) {
+  return (
+    <script
+      id="theme-initializer-script"
+      dangerouslySetInnerHTML={{ __html: getThemeScript(initialPreference) }}
+    />
+  );
 }
 
