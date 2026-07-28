@@ -17,6 +17,7 @@ import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { PageDeleteButton } from "@/components/admin/page-delete-button";
 import { useAdminToast } from "@/components/admin/admin-toast";
 import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
+import { ImageFileField } from "@/components/admin/image-file-field";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 type PageRowAction = {
@@ -73,6 +74,8 @@ export function PageEditor({
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const content = (page.content ?? {}) as Record<string, string | undefined>;
+  const isHomePage = page.slug === "home";
+  const isAboutPage = page.slug === "about";
   const { pushToast } = useAdminToast();
 
   function formAction(formData: FormData) {
@@ -117,7 +120,7 @@ export function PageEditor({
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
-            <span className="adm-label">Title</span>
+            <span className="adm-label">{isHomePage ? "Hero headline" : "Title"}</span>
             <input name="title" defaultValue={page.title} className="adm-field" />
           </label>
           <label className="grid gap-2">
@@ -127,12 +130,27 @@ export function PageEditor({
         </div>
 
         <label className="grid gap-2">
-          <span className="adm-label">Excerpt</span>
+          <span className="adm-label">{isHomePage ? "Search summary" : "Excerpt"}</span>
           <textarea name="excerpt" defaultValue={page.excerpt ?? ""} rows={3} className="adm-field" />
         </label>
 
+        <div className="grid gap-2">
+          <div className="flex items-center gap-2">
+            <span className="adm-label">Hero image</span>
+            <AdminHelp>Optional page-specific hero. It takes priority over the default visual or video, and is converted to optimized WebP on upload.</AdminHelp>
+          </div>
+          <ImageFileField
+            name="heroImageFile"
+            currentImageUrl={content.heroImage}
+            currentImageAlt={`${page.title} hero`}
+            currentImageLabel="Current hero image"
+            previewAspect="video"
+            removeFieldName="removeHeroImage"
+          />
+        </div>
+
         <label className="grid gap-2">
-          <span className="adm-label">Body</span>
+          <span className="adm-label">{isHomePage ? "Hero description" : isAboutPage ? "Studio introduction" : "Body"}</span>
           <textarea name="body" defaultValue={content.body ?? ""} rows={5} className="adm-field" />
         </label>
 
@@ -148,13 +166,13 @@ export function PageEditor({
         </div>
 
         <label className="grid gap-2">
-          <span className="adm-label">Quote</span>
+          <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
           <textarea name="quote" defaultValue={content.quote ?? ""} rows={4} className="adm-field" />
         </label>
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
-            <span className="adm-label">Secondary title</span>
+            <span className="adm-label">{isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : "Secondary title"}</span>
             <input
               name="secondaryTitle"
               defaultValue={content.secondaryTitle ?? ""}
@@ -162,7 +180,7 @@ export function PageEditor({
             />
           </label>
           <label className="grid gap-2">
-            <span className="adm-label">Secondary body</span>
+            <span className="adm-label">{isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : "Secondary body"}</span>
             <textarea
               name="secondaryBody"
               defaultValue={content.secondaryBody ?? ""}

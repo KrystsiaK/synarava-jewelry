@@ -31,6 +31,7 @@ export default async function Page() {
   const collections = collectionData.slice(0, 3).map((c, i) => ({
     series: c.eyebrow,
     title: c.name,
+    description: c.summary,
     price: i === 0 ? "€240" : i === 1 ? "€185" : "€310",
     image: c.heroImage,
     href: `/collections/${c.slug}`,
@@ -42,7 +43,7 @@ export default async function Page() {
     <HomePage
       title={page?.title}
       excerpt={page?.excerpt}
-      content={content}
+      content={{ ...content, heroTitle: page?.title ?? "", heroBody: content.body ?? page?.excerpt ?? "" }}
       collections={collections}
       heroVideoSrc={[videos.homeBeads, videos.homeModel, videos.braceletFilm, videos.materialsFilm]}
     />

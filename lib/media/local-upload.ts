@@ -5,9 +5,8 @@ import sharp from "sharp";
 
 import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 
-const MAX_IMAGE_DIMENSION = 3200;
-const LARGE_IMAGE_BYTES = 4 * 1024 * 1024;
-const WEBP_QUALITY = 94;
+const MAX_IMAGE_DIMENSION = 2560;
+const WEBP_QUALITY = 85;
 
 function sanitizeBaseName(filename: string) {
   return filename
@@ -63,22 +62,6 @@ async function prepareImageForStorage(file: File) {
     const metadata = await image.metadata();
     const width = metadata.width ?? 0;
     const height = metadata.height ?? 0;
-    const isLarge =
-      originalBuffer.byteLength > LARGE_IMAGE_BYTES ||
-      width > MAX_IMAGE_DIMENSION ||
-      height > MAX_IMAGE_DIMENSION;
-
-    if (!isLarge) {
-      return {
-        buffer: originalBuffer,
-        extension: originalExtension,
-        mimeType: originalMimeType,
-        sizeBytes: originalBuffer.byteLength,
-        width: width || null,
-        height: height || null,
-      };
-    }
-
     const processedBuffer = await image
       .resize({
         width: MAX_IMAGE_DIMENSION,
@@ -162,4 +145,8 @@ export async function saveProductImageUpload(file: File) {
 
 export async function saveCollectionImageUpload(file: File) {
   return saveImageUpload(file, "collections", "collection-image");
+}
+
+export async function savePageImageUpload(file: File, pageSlug: string) {
+  return saveImageUpload(file, "pages", `${pageSlug || "page"}-image`);
 }

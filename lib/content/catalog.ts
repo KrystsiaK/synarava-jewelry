@@ -93,6 +93,7 @@ export type PageContent = {
   quote?: string;
   secondaryTitle?: string;
   secondaryBody?: string;
+  heroImage?: string;
 };
 
 const defaultCollections = [

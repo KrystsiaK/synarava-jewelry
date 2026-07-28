@@ -70,33 +70,56 @@ test.describe("Admin auth", () => {
     await expect(page).toHaveURL(/\/admin\/login\?redirectTo=%2Fadmin/);
   });
 
-  test("keeps sidebar footer reachable while page scrolls", async ({ page }) => {
+  test("keeps the desktop sidebar autonomous from page content", async ({ page }) => {
     const username = readEnvValue("ADMIN_USERNAME") || readEnvValue("ADMIN_EMAIL");
     const password = readEnvValue("ADMIN_PASSWORD");
 
     test.skip(!username || !password, "Local legacy admin credentials are not configured.");
 
-    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.setViewportSize({ width: 1280, height: 640 });
     await page.goto("/admin/login");
     await page.getByLabel("Username or email").fill(username);
     await page.locator('input[name="password"]').fill(password);
     await page.getByRole("button", { name: "Enter admin" }).click();
     await expect(page).toHaveURL(/\/admin$/);
+    await page.goto("/admin/home");
 
+    const sidebar = page.locator(".admin-sidebar-shell");
+    const sidebarScroll = page.locator(".admin-sidebar-scroll");
+    const content = page.locator(".admin-content");
     const footer = page.locator(".admin-sidebar-footer");
+    const topbar = page.locator(".adm-topbar");
+
+    await expect(sidebar).toBeVisible();
     await expect(footer).toBeVisible();
 
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(100);
+    const sidebarBox = await sidebar.boundingBox();
+    const contentBox = await content.boundingBox();
+    const topbarBox = await topbar.boundingBox();
 
-    const afterFooter = await footer.boundingBox();
+    expect(sidebarBox).not.toBeNull();
+    expect(contentBox).not.toBeNull();
+    expect(topbarBox).not.toBeNull();
+    expect(Math.round(sidebarBox!.width)).toBe(256);
+    expect(Math.round(sidebarBox!.y)).toBe(Math.round(topbarBox!.height));
+    expect(Math.round(contentBox!.x)).toBe(Math.round(sidebarBox!.width));
 
-    expect(afterFooter).not.toBeNull();
+    await content.evaluate((element) => {
+      element.scrollTop = 240;
+    });
 
-    const afterFooterBottom = afterFooter!.y + afterFooter!.height;
+    expect(await sidebarScroll.evaluate((element) => element.scrollTop)).toBe(0);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-    expect(afterFooter!.y).toBeGreaterThanOrEqual(0);
-    expect(afterFooterBottom).toBeLessThanOrEqual(900);
+    await sidebarScroll.evaluate((element) => {
+      element.scrollTop = 120;
+    });
+
+    expect(await content.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+
+    const footerBox = await footer.boundingBox();
+    expect(footerBox).not.toBeNull();
+    expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(640);
   });
 
   test("keeps admin topbar fixed while page scrolls", async ({ page }) => {

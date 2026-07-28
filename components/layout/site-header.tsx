@@ -198,17 +198,21 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             className="site-nav-brand absolute left-1/2 flex -translate-x-1/2 items-center justify-center md:static md:translate-x-0 md:gap-4"
             aria-label="SYNARAVA"
           >
-            <span className="site-nav-mark flex shrink-0 items-center justify-center overflow-hidden">
+            <span className="site-nav-mark flex shrink-0 items-center justify-center overflow-hidden min-[920px]:hidden">
               <BrandMark
                 alt=""
                 priority
-                size={160}
+                size={40}
                 tone={usesImmersiveTheme ? "light" : "auto"}
-                className="h-full w-full object-contain object-center p-0.5 md:p-0.75 xl:p-1.5"
+                className="brand-mark--mobile"
               />
             </span>
-            <span className="site-nav-wordmark hidden font-serif text-[0.98rem] tracking-[0.2em] text-foreground md:inline md:text-[1.45rem] md:tracking-[0.25em]">
-              SYNARAVA
+            <span className="site-nav-mark site-nav-mark--desktop hidden shrink-0 items-center justify-center min-[920px]:flex">
+              <BrandMark alt="" size={38} tone={usesImmersiveTheme ? "light" : "dark"} className="brand-mark--header" />
+            </span>
+            <span className="site-nav-wordmark-text hidden min-[920px]:grid" aria-hidden="true">
+              <span>SYNARAVA</span>
+              <span>JEWELRY</span>
             </span>
           </Link>
         </div>

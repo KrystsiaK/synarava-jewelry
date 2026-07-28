@@ -30,17 +30,20 @@ export default async function Page() {
     <AboutPage
       title={page?.title ?? "A jewelry studio shaped like an exhibition."}
       excerpt={
-        page?.excerpt ??
+        content.body ?? page?.excerpt ??
         "Synarava makes collectible jewelry with a calm, editorial point of view. The brand sits between store and archive, pairing accessible product browsing with a deeper world of material stories, folk geometry, and atelier process."
       }
       eyebrow={content.eyebrow ?? "About the studio"}
       ctaHref={content.ctaHref ?? "/shop"}
       ctaLabel={content.ctaLabel ?? "Shop all products"}
+      secondaryTitle={content.secondaryTitle}
       secondaryBody={
         content.secondaryBody ??
         "The idea is simple: if someone wants to buy, they should go to Shop. If they want the broader aesthetic context, they should go to Collections. If they want to understand the studio itself, they should come here. The manifesto remains available, but it no longer replaces the About page."
       }
+      quote={content.quote}
       heroVideoSrc={videos.braceletFilm}
+      heroImage={content.heroImage}
       materialVideoSrc={videos.materialsFilm}
     />
   );

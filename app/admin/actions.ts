@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/client";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
-import { saveCollectionImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
+import { saveCollectionImageUpload, savePageImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
 
 function slugify(value: string) {
   return value
@@ -565,6 +565,15 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
 
   const isPublished = workflowState === "PUBLISHED";
   const before = await getSavedPagePayload(pageId || slug).catch(() => null);
+  const existingContent = asRecord(before?.content);
+  const heroImage = await uploadOptionalPageAsset({
+    formData,
+    fieldName: "heroImageFile",
+    existingValue: typeof existingContent.heroImage === "string" ? existingContent.heroImage : "",
+    removeFieldName: "removeHeroImage",
+    pageSlug: slug,
+    currentUserId: currentUser?.id,
+  });
   const pageData = {
     slug,
     title,
@@ -577,6 +586,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       quote,
       secondaryTitle,
       secondaryBody,
+      heroImage,
     },
     status: isPublished ? PageStatus.PUBLISHED : PageStatus.DRAFT,
     visibility: isPublished ? ContentVisibility.PUBLIC : ContentVisibility.PRIVATE,
@@ -642,6 +652,46 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages?updated=${slug}`);
   return { success: before ? "Page updated." : "Page created.", page };
+}
+
+async function uploadOptionalPageAsset(input: {
+  formData: FormData;
+  fieldName: string;
+  existingValue: string;
+  removeFieldName?: string;
+  pageSlug: string;
+  currentUserId?: string | null;
+}) {
+  const file = input.formData.get(input.fieldName);
+  const shouldRemoveExisting = input.removeFieldName
+    ? String(input.formData.get(input.removeFieldName) ?? "").trim() === "1"
+    : false;
+
+  if (!(file instanceof File) || file.size === 0) {
+    return shouldRemoveExisting ? "" : input.existingValue.trim();
+  }
+
+  const uploaded = await savePageImageUpload(file, input.pageSlug);
+  if (!uploaded) return input.existingValue.trim();
+
+  await db.mediaAsset.create({
+    data: {
+      key: uploaded.storageKey,
+      filename: uploaded.filename,
+      mimeType: uploaded.mimeType,
+      extension: uploaded.extension.replace(/^\./, ""),
+      sizeBytes: uploaded.sizeBytes,
+      width: uploaded.width,
+      height: uploaded.height,
+      bucket: process.env.S3_BUCKET ?? null,
+      source: "UPLOAD",
+      status: "READY",
+      uploadedById: input.currentUserId ?? null,
+    },
+    select: { id: true },
+  });
+
+  return uploaded.publicPath;
 }
 
 export async function autosavePageDraftAction(formData: FormData): Promise<DraftAutosaveResult> {

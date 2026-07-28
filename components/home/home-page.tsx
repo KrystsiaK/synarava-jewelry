@@ -25,6 +25,7 @@ import { PerformanceVideo } from "@/components/media/performance-video";
 export interface CollectionItem {
   series: string;
   title: string;
+  description: string;
   price: string;
   image: string;
   href: string;
@@ -289,7 +290,13 @@ function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipP
 // 2. ASYMMETRIC HERO
 function HeroSection({
   heroVideoSrc,
-}: Pick<HomePageProps, "heroVideoSrc">) {
+  heroImage,
+  eyebrow = "Synarava · Belarus",
+  title = "Artifacts of time",
+  excerpt = "Hand-shaped couture where raw matter becomes a private relic.",
+  ctaLabel = "Shop the collection",
+  ctaHref = "/shop",
+}: Pick<HomePageProps, "heroVideoSrc" | "title" | "excerpt"> & { heroImage?: string; eyebrow?: string; ctaLabel?: string; ctaHref?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const reduceMotion = useReducedMotion();
@@ -340,7 +347,9 @@ function HeroSection({
         }}
       >
         <motion.div className="relative h-full w-full transform-gpu [backface-visibility:hidden]" style={{ transform: mediaTransform }}>
-          {activeVideoSrc ? (
+          {heroImage ? (
+            <Image src={heroImage} alt="" fill preload quality={85} sizes="100vw" className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]" aria-hidden="true" />
+          ) : activeVideoSrc ? (
             <PerformanceVideo
               key={activeVideoSrc}
               eager
@@ -388,21 +397,21 @@ function HeroSection({
         <div className="mb-5 flex items-center gap-4 md:mb-7">
           <span className="h-px w-10 bg-couture-red" aria-hidden="true" />
           <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-linen/75">
-            Synarava · Belarus
+            {eyebrow}
           </p>
         </div>
 
         <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.4rem,9vw,6rem)] uppercase leading-[0.86] tracking-[-0.035em] text-linen">
-          Artifacts<br />of <span className="italic font-light text-couture-red">time</span>
+          {title}
         </h1>
 
         <p className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige/80 md:mt-8 md:text-base">
-          Hand-shaped couture where raw matter becomes a private relic.
+          {excerpt}
         </p>
 
         <div className="mt-7 pl-8 sm:pl-14 md:mt-9">
-          <PrimaryCtaButton href="/shop">
-            Shop the collection
+          <PrimaryCtaButton href={ctaHref}>
+            {ctaLabel}
           </PrimaryCtaButton>
         </div>
       </motion.div>
@@ -448,6 +457,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
       list.push({
         series: "No. 001",
         title: "The Lava Construct",
+        description: "A study in raw material, tactile contrast, and sculptural form.",
         price: "Limited",
         image: LAVA_CONSTRUCT_IMAGE,
         href: "/shop",
@@ -457,6 +467,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
       list.push({
         series: "No. 002",
         title: "Fractured Quartz",
+        description: "A limited collection shaped around mineral texture and deliberate irregularity.",
         price: "Limited",
         image: FRACTURED_QUARTZ_IMAGE,
         href: "/shop",
@@ -466,6 +477,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
       list.push({
         series: "No. 003",
         title: "Petrified Oak",
+        description: "A material-led edition that holds memory, weight, and time in balance.",
         price: "Limited",
         image: HERO_IMAGE,
         href: "/shop",
@@ -503,29 +515,28 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
 
             <div className="relative z-10 w-full h-full">
               <div className="flex justify-between items-start mb-6">
-                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">No. 001 // LAVA</span>
+                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">{items[0].series}</span>
                 <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
                   LOC:<br />53.90° N, 27.56° E
                 </span>
               </div>
               <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter">
-                The Lava<br />
-                <span className="italic font-light text-couture-red">Construct</span>
+                {items[0].title}
               </h2>
               <p className="font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold">
-                [OBSERVATION LOG]<br />
-                Porous obsidian captured in perfect spheres, contrasting with the smooth rigidity of aged oak. A tactile meditation on impermanence. Material stress tests indicate high durability alongside visual fragility.
+                [COLLECTION NOTE]<br />
+                {items[0].description}
               </p>
 
               {/* Technical Parameters Table */}
               <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
                 <div>
-                  <span className="text-couture-red block mb-1 font-bold">TYPE</span>
-                  Igneous / Porous
+                  <span className="text-couture-red block mb-1 font-bold">COLLECTION</span>
+                  {items[0].series}
                 </div>
                 <div>
-                  <span className="text-couture-red block mb-1 font-bold">ORIGIN</span>
-                  Dormant calderas
+                  <span className="text-couture-red block mb-1 font-bold">EDITION</span>
+                  {items[0].price}
                 </div>
               </div>
 
@@ -600,27 +611,26 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
                 <span className="font-sans text-[9px] text-stone-beige/65 uppercase">
                   COORD:<br />53.90° N, 27.56° E
                 </span>
-                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold text-right">No. 002 // QUARTZ</span>
+                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold text-right">{items[1].series}</span>
               </div>
               <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter text-right">
-                Fractured<br />
-                <span className="italic font-light text-stone-beige">Quartz</span>
+                {items[1].title}
               </h2>
               <p className="font-sans text-[10px] text-stone-beige/70 leading-relaxed mb-8 text-justify uppercase font-bold">
-                [STRUCTURAL ANALYSIS]<br />
-                Raw, uncut crystalline structures bound in heavy, unpolished silver. Architecture for the hand, rejecting traditional symmetry. The metal casing acts as an industrial vice, securing the volatile crystal formation.
+                [COLLECTION NOTE]<br />
+                {items[1].description}
               </p>
 
               {/* Technical Parameters Table */}
               <table className="w-full font-sans text-[10px] text-left border-collapse font-bold">
                 <tbody>
                   <tr className="border-b border-linen/10">
-                    <td className="py-2 text-couture-red w-1/3 font-bold">STATE</td>
-                    <td className="py-2 text-stone-beige uppercase">Raw / Uncut</td>
+                    <td className="py-2 text-couture-red w-1/3 font-bold">COLLECTION</td>
+                    <td className="py-2 text-stone-beige uppercase">{items[1].series}</td>
                   </tr>
                   <tr className="border-b border-linen/10">
-                    <td className="py-2 text-couture-red font-bold">CASING</td>
-                    <td className="py-2 text-stone-beige uppercase">Heavy Silver Binding</td>
+                    <td className="py-2 text-couture-red font-bold">EDITION</td>
+                    <td className="py-2 text-stone-beige uppercase">{items[1].price}</td>
                   </tr>
                 </tbody>
               </table>
@@ -650,29 +660,28 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
 
             <div className="relative z-10 w-full h-full">
               <div className="flex justify-between items-start mb-6">
-                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">No. 003 // OAK</span>
+                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">{items[2].series}</span>
                 <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
                   LOC:<br />53.90° N, 27.56° E
                 </span>
               </div>
               <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter">
-                Petrified<br />
-                <span className="italic font-light text-couture-red">Oak</span>
+                {items[2].title}
               </h2>
               <p className="font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold">
-                [CARBON ANALYSIS]<br />
-                Reclaimed bog oak submerged for centuries, yielding density approaching mineral stone. Hand-shaped to follow the natural grain stress contours. A marriage of organic decay and timeless permanence.
+                [COLLECTION NOTE]<br />
+                {items[2].description}
               </p>
 
               {/* Technical Parameters Table */}
               <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
                 <div>
-                  <span className="text-couture-red block mb-1 font-bold">AGE</span>
-                  300+ Years
+                  <span className="text-couture-red block mb-1 font-bold">COLLECTION</span>
+                  {items[2].series}
                 </div>
                 <div>
-                  <span className="text-couture-red block mb-1 font-bold">PROCESS</span>
-                  Carbonization
+                  <span className="text-couture-red block mb-1 font-bold">EDITION</span>
+                  {items[2].price}
                 </div>
               </div>
 
@@ -957,7 +966,7 @@ function MaterialLab() {
 }
 
 // 5. MANIFESTO QUOTE (Archival directive, grid lines overlay)
-function ManifestoQuote() {
+function ManifestoQuote({ quote }: { quote?: string }) {
   return (
     <section className="py-32 px-6 flex items-center justify-center bg-transparent text-linen min-h-screen relative overflow-hidden">
       {/* Grid overlay */}
@@ -983,7 +992,7 @@ function ManifestoQuote() {
 
         <h2 className="font-serif text-[clamp(2.4rem,7.5vw,7.5vw)] text-linen italic leading-[1.05] mb-12 font-light text-center relative max-w-5xl">
           <span className="absolute -top-12 -left-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&ldquo;</span>
-          Adornment is not decoration.<br />It is <span className="font-bold text-couture-red not-italic uppercase tracking-tighter">structural intent</span><br />applied to the human form.
+          {quote || <>Adornment is not decoration.<br />It is <span className="font-bold text-couture-red not-italic uppercase tracking-tighter">structural intent</span><br />applied to the human form.</>}
           <span className="absolute -bottom-24 -right-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&rdquo;</span>
         </h2>
 
@@ -1083,7 +1092,7 @@ function FinalFooter() {
   );
 }
 
-function CompactFinalCTA() {
+function CompactFinalCTA({ title, body, ctaLabel, ctaHref }: { title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.22 });
   const reduceMotion = useReducedMotion() ?? false;
@@ -1112,6 +1121,21 @@ function CompactFinalCTA() {
           animate={inView && !reduceMotion ? { y: [28, 0], opacity: [0.72, 1] } : { y: 0, opacity: 1 }}
           transition={{ duration: 0.58, ease: FINAL_SCENE_EASE }}
         >
+          <div className="max-w-sm pb-14">
+            <p className="font-serif text-lg italic text-stone-beige/65">
+              {body || "The final choice is instinctive."}
+            </p>
+            <h2 className="mt-5 text-balance font-serif text-5xl font-bold leading-[0.9] tracking-[-0.035em] text-linen">
+              {title || "Choose the piece that remembers you."}
+            </h2>
+            <Link
+              href={ctaHref || "/shop"}
+              className="mt-8 inline-flex min-h-14 items-center gap-4 bg-couture-red px-6 py-3 font-sans text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white"
+            >
+              {ctaLabel || "Enter the collection"}
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
           <FinalFooter />
         </motion.div>
       </div>
@@ -1120,7 +1144,7 @@ function CompactFinalCTA() {
 }
 
 // 7. FINAL CTA — cubist shop portal
-function DesktopFinalCTA({ collections }: { collections: CollectionItem[] }) {
+function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const images = useMemo(() => {
@@ -1217,18 +1241,18 @@ function DesktopFinalCTA({ collections }: { collections: CollectionItem[] }) {
           style={{ y: introY, opacity: introOpacity }}
         >
           <p className="mb-6 max-w-sm font-serif text-lg italic text-stone-beige/65 md:mb-8 md:text-xl">
-            The final choice is instinctive.
+            {body || "The final choice is instinctive."}
           </p>
           <h2 className="max-w-[10ch] text-balance font-serif text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-linen">
-            Choose the piece that <span className="font-light italic text-couture-red">remembers you.</span>
+            {title || <>Choose the piece that <span className="font-light italic text-couture-red">remembers you.</span></>}
           </h2>
 
           <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
             <Link
-              href="/shop"
+              href={ctaHref || "/shop"}
               className="group relative inline-flex min-h-16 items-center gap-8 bg-couture-red px-8 py-4 font-sans text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white transition-[filter,transform] duration-200 ease-out hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-linen active:scale-[0.98] [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
             >
-              Enter the collection
+              {ctaLabel || "Enter the collection"}
               <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link
@@ -1310,14 +1334,14 @@ function DesktopFinalCTA({ collections }: { collections: CollectionItem[] }) {
   );
 }
 
-function FinalCTA({ collections }: { collections: CollectionItem[] }) {
+function FinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
   const isDesktop = useDesktopViewport();
   const scrollContext = useContext(HomeScrollContext);
   const isIOSWebKit = scrollContext?.isIOSWebKit ?? false;
 
   return isDesktop && !isIOSWebKit
-    ? <DesktopFinalCTA collections={collections} />
-    : <CompactFinalCTA />;
+    ? <DesktopFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
+    : <CompactFinalCTA title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />;
 }
 
 export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) {
@@ -1343,12 +1367,24 @@ export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) 
 
       <HeroSection
         heroVideoSrc={resolvedHeroVideoSrc}
+        heroImage={content?.heroImage}
+        eyebrow={content?.eyebrow}
+        title={content?.heroTitle}
+        excerpt={content?.heroBody}
+        ctaLabel={content?.ctaLabel}
+        ctaHref={content?.ctaHref}
       />
       <ArchivePathway collections={collections} />
       <MaterialLab />
-      <ManifestoQuote />
+      <ManifestoQuote quote={content?.quote} />
       <ManifestoGrid />
-      <FinalCTA collections={collections} />
+      <FinalCTA
+        collections={collections}
+        title={content?.secondaryTitle}
+        body={content?.secondaryBody}
+        ctaLabel={content?.ctaLabel}
+        ctaHref={content?.ctaHref}
+      />
     </main>
     </HomeScrollProvider>
   );

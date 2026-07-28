@@ -69,6 +69,7 @@ function AboutHero({
   ctaHref,
   ctaLabel,
   heroVideoSrc,
+  heroImage,
 }: {
   title: string;
   excerpt: string;
@@ -76,6 +77,7 @@ function AboutHero({
   ctaHref: string;
   ctaLabel: string;
   heroVideoSrc?: string;
+  heroImage?: string;
 }) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
@@ -97,7 +99,9 @@ function AboutHero({
         className="absolute inset-0"
         style={{ scale: reduceMotion ? 1 : imageScale }}
       >
-        {heroVideoSrc ? (
+        {heroImage ? (
+          <Image src={heroImage} alt="" fill preload sizes="100vw" quality={85} className="object-cover object-[58%_center]" aria-hidden="true" />
+        ) : heroVideoSrc ? (
           <PerformanceVideo
             src={heroVideoSrc}
             eager
@@ -164,7 +168,7 @@ function AboutHero({
   );
 }
 
-function Manifesto({ secondaryBody }: { secondaryBody: string }) {
+function Manifesto({ title, secondaryBody }: { title?: string; secondaryBody: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-12%" });
 
@@ -178,11 +182,7 @@ function Manifesto({ secondaryBody }: { secondaryBody: string }) {
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 1, ease }}
           >
-            Not nostalgia.
-            <br />
-            Not decoration.
-            <br />
-            <em className="font-normal text-[#d45c7b]">A material memory.</em>
+            {title || <>Not nostalgia.<br />Not decoration.<br /><em className="font-normal text-[#d45c7b]">A material memory.</em></>}
           </motion.p>
         </div>
 
@@ -296,7 +296,7 @@ function ScrollChapters() {
   );
 }
 
-function OnTheBody({ materialVideoSrc }: { materialVideoSrc?: string }) {
+function OnTheBody({ title, materialVideoSrc }: { title?: string; materialVideoSrc?: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10%" });
   const reduceMotion = useReducedMotion();
@@ -335,9 +335,7 @@ function OnTheBody({ materialVideoSrc }: { materialVideoSrc?: string }) {
           transition={{ duration: 1, delay: 0.16, ease }}
         >
           <h2 className="font-serif text-[clamp(3rem,7vw,7rem)] leading-[0.88] tracking-[-0.04em]">
-            Jewelry is not still.
-            <br />
-            <em className="font-normal text-[#d45c7b]">It remembers touch.</em>
+            {title || <>Jewelry is not still.<br /><em className="font-normal text-[#d45c7b]">It remembers touch.</em></>}
           </h2>
           <p className="mt-8 max-w-lg text-sm leading-[1.85] text-white/68 md:text-base">
             Every decision is tested against the body: how the piece catches light, how it settles, and how its materials change through wear.
@@ -348,7 +346,7 @@ function OnTheBody({ materialVideoSrc }: { materialVideoSrc?: string }) {
   );
 }
 
-function FinalInvitation() {
+function FinalInvitation({ ctaLabel, ctaHref }: { ctaLabel?: string; ctaHref?: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10%" });
 
@@ -382,7 +380,7 @@ function FinalInvitation() {
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.24, ease }}
         >
-          <PrimaryCtaButton href="/shop">Enter the collection</PrimaryCtaButton>
+          <PrimaryCtaButton href={ctaHref || "/shop"}>{ctaLabel || "Enter the collection"}</PrimaryCtaButton>
           <Link
             href="/collections"
             className="inline-flex items-center gap-3 border-b border-white/20 px-1 pb-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white hover:border-[#d45c7b] hover:text-[#d45c7b]"
@@ -401,8 +399,11 @@ export function AboutPage({
   eyebrow,
   ctaHref,
   ctaLabel,
+  secondaryTitle,
   secondaryBody,
+  quote,
   heroVideoSrc,
+  heroImage,
   materialVideoSrc,
 }: {
   title: string;
@@ -410,8 +411,11 @@ export function AboutPage({
   eyebrow: string;
   ctaHref: string;
   ctaLabel: string;
+  secondaryTitle?: string;
   secondaryBody: string;
+  quote?: string;
   heroVideoSrc?: string;
+  heroImage?: string;
   materialVideoSrc?: string;
 }) {
   return (
@@ -423,11 +427,12 @@ export function AboutPage({
         ctaHref={ctaHref}
         ctaLabel={ctaLabel}
         heroVideoSrc={heroVideoSrc}
+        heroImage={heroImage}
       />
-      <Manifesto secondaryBody={secondaryBody} />
+      <Manifesto title={secondaryTitle} secondaryBody={secondaryBody} />
       <ScrollChapters />
-      <OnTheBody materialVideoSrc={materialVideoSrc} />
-      <FinalInvitation />
+      <OnTheBody title={quote} materialVideoSrc={materialVideoSrc} />
+      <FinalInvitation ctaLabel={ctaLabel} ctaHref={ctaHref} />
     </main>
   );
 }

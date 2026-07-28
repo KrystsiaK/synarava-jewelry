@@ -407,6 +407,7 @@ html:has(.checkout-experience) .artifact-nav {
 }
 
 .site-nav-brand {
+  min-width: 0;
   transition: opacity 180ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -419,12 +420,57 @@ html:has(.checkout-experience) .artifact-nav {
 }
 
 .site-nav-mark {
-  width: 3rem;
-  height: 3rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+}
+
+.brand-mark--mobile {
+  --brand-mark-size: 2.5rem;
+  -webkit-mask-size: 112%;
+  mask-size: 112%;
+  -webkit-mask-position: 50% 49%;
+  mask-position: 50% 49%;
+  filter: drop-shadow(0 1px 1px rgba(255, 244, 208, 0.16));
 }
 
 .site-nav-wordmark {
+  --brand-wordmark-height: 2rem;
+  max-width: min(9.7rem, calc(100vw - 18rem));
   text-wrap: nowrap;
+}
+
+.site-nav-mark--desktop {
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.brand-mark--header {
+  --brand-mark-size: 2.35rem;
+  -webkit-mask-size: 132%;
+  mask-size: 132%;
+  -webkit-mask-position: 50% 48%;
+  mask-position: 50% 48%;
+  filter: drop-shadow(0 1px 1px rgba(255, 244, 208, 0.18));
+}
+
+.site-nav-wordmark-text {
+  grid-template-rows: auto auto;
+  gap: 0.1rem;
+  color: var(--color-foreground);
+  font-family: var(--font-sans), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.22em;
+  line-height: 0.9;
+  text-align: left;
+}
+
+.site-nav-wordmark-text > span:last-child {
+  color: color-mix(in srgb, var(--color-foreground) 56%, transparent);
+  font-size: 0.43rem;
+  font-weight: 700;
+  letter-spacing: 0.48em;
 }
 
 .t-badge {
@@ -688,7 +734,7 @@ select.storefront-field option {
 
 .final-sigil__aura {
   inset: 14%;
-  background: radial-gradient(circle, rgba(214, 47, 68, 0.3) 0%, rgba(144, 178, 186, 0.12) 34%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, color-mix(in srgb, var(--color-accent-soft) 22%, transparent) 34%, transparent 70%);
   filter: blur(24px);
   animation: final-sigil-breathe 4.8s ease-in-out infinite alternate;
   will-change: transform, opacity;
@@ -696,8 +742,8 @@ select.storefront-field option {
 
 .final-sigil__mark,
 .final-sigil__edge {
-  -webkit-mask-image: url("/brand/synarava-mark-light.svg");
-  mask-image: url("/brand/synarava-mark-light.svg");
+  -webkit-mask-image: url("/brand/synarava-S-logo.svg");
+  mask-image: url("/brand/synarava-S-logo.svg");
   -webkit-mask-position: center;
   mask-position: center;
   -webkit-mask-repeat: no-repeat;
@@ -706,25 +752,112 @@ select.storefront-field option {
   mask-size: contain;
 }
 
+.brand-mark {
+  --brand-mark-size: 6rem;
+  position: relative;
+  display: inline-block;
+  width: var(--brand-mark-size);
+  height: var(--brand-mark-size);
+  flex: none;
+  isolation: isolate;
+  overflow: hidden;
+  vertical-align: middle;
+  -webkit-mask: url("/brand/synarava-S-logo.svg") center / contain no-repeat;
+  mask: url("/brand/synarava-S-logo.svg") center / contain no-repeat;
+  background:
+    radial-gradient(circle at 76% 16%, #fffdf8 0 2%, #f1d59a 11%, transparent 31%),
+    radial-gradient(circle at 18% 88%, #a6192e 0 8%, transparent 34%),
+    conic-gradient(from 224deg at 48% 48%, #f9f8f6 0deg, #d8b66a 72deg, #c78f73 146deg, #fffdf8 210deg, #c78f73 274deg, #a6192e 322deg, #f9f8f6 360deg),
+    linear-gradient(132deg, #f9f8f6, #d8b66a 48%, #c78f73 72%, #f9f8f6 100%);
+  background-size: 140% 140%, 135% 135%, 100% 100%, 100% 100%;
+  background-position: 55% 45%, 48% 56%, center, center;
+  filter: drop-shadow(0 1px 1px rgba(255, 253, 248, 0.28)) drop-shadow(0 7px 13px rgba(166, 25, 46, 0.3));
+  transition: background-position 220ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.brand-mark::before {
+  position: absolute;
+  inset: -24%;
+  z-index: 1;
+  content: "";
+  background: linear-gradient(118deg, transparent 37%, rgba(255, 255, 255, 0.78) 48%, transparent 59%);
+  opacity: 0.38;
+  transform: translate3d(-8%, 2%, 0) rotate(-9deg);
+  mix-blend-mode: screen;
+}
+
+.brand-mark[data-tone="dark"] {
+  background:
+    radial-gradient(circle at 74% 14%, #f3d8a0 0 2%, #d8b66a 12%, transparent 32%),
+    radial-gradient(circle at 17% 88%, #a6192e 0 10%, transparent 36%),
+    conic-gradient(from 224deg at 48% 48%, #f4efe7 0deg, #a6192e 86deg, #c78f73 162deg, #d9d4cc 230deg, #a6192e 302deg, #f4efe7 360deg),
+    linear-gradient(132deg, #f4efe7, #a6192e 49%, #c78f73 72%, #f4efe7 100%);
+}
+
+.brand-mark:hover {
+  background-position: 44% 53%, 56% 43%, center, center;
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-linen) 34%, transparent)) drop-shadow(0 9px 16px color-mix(in srgb, var(--color-accent) 34%, transparent));
+  transform: translateY(-1px);
+}
+
+.brand-mark:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.brand-wordmark {
+  --brand-wordmark-height: 2.625rem;
+  position: relative;
+  display: inline-block;
+  width: calc(var(--brand-wordmark-height) * 4.834);
+  height: var(--brand-wordmark-height);
+  flex: none;
+  vertical-align: middle;
+  -webkit-mask: url("/brand/synarava-logo.svg") center / contain no-repeat;
+  mask: url("/brand/synarava-logo.svg") center / contain no-repeat;
+  background:
+    radial-gradient(circle at 23% 22%, var(--color-linen) 0 3%, color-mix(in srgb, var(--color-accent-soft) 75%, var(--color-linen)) 12%, transparent 30%),
+    radial-gradient(circle at 6% 90%, color-mix(in srgb, var(--color-accent) 82%, var(--color-foreground)) 0 10%, transparent 34%),
+    conic-gradient(from 222deg at 28% 50%, var(--color-foreground) 0deg, var(--color-accent) 82deg, var(--color-accent-soft) 158deg, var(--color-linen) 228deg, var(--color-accent) 302deg, var(--color-foreground) 360deg),
+    linear-gradient(110deg, var(--color-foreground), var(--color-accent) 42%, var(--color-accent-soft) 64%, var(--color-foreground) 100%);
+  background-size: 145% 145%, 130% 130%, 100% 100%, 100% 100%;
+  background-position: 48% 48%, 48% 56%, center, center;
+  filter: drop-shadow(0 1px 1px rgba(255, 244, 217, 0.22)) drop-shadow(0 6px 12px rgba(70, 16, 40, 0.26));
+  transition: background-position 220ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.brand-wordmark[data-tone="dark"] {
+  background:
+    radial-gradient(circle at 23% 22%, var(--color-foreground) 0 3%, color-mix(in srgb, var(--color-accent) 48%, transparent) 12%, transparent 30%),
+    radial-gradient(circle at 8% 90%, color-mix(in srgb, var(--color-accent-soft) 72%, var(--color-accent)) 0 9%, transparent 34%),
+    conic-gradient(from 222deg at 28% 50%, var(--color-foreground) 0deg, var(--color-accent) 82deg, var(--color-accent-soft) 166deg, var(--color-stone-beige) 228deg, var(--color-accent) 302deg, var(--color-foreground) 360deg),
+    linear-gradient(110deg, var(--color-foreground), var(--color-accent) 42%, var(--color-accent-soft) 64%, var(--color-foreground) 100%);
+}
+
+.site-nav-brand:hover .brand-wordmark {
+  background-position: 58% 42%, 42% 50%, center, center;
+  filter: drop-shadow(0 1px 1px rgba(255, 244, 217, 0.32)) drop-shadow(0 8px 15px rgba(193, 66, 92, 0.3));
+  transform: translateY(-1px);
+}
+
 .final-sigil__mark {
   background: linear-gradient(
     112deg,
-    #641521 0%,
-    #b32335 18%,
-    #e94c62 31%,
-    #f3dfc9 43%,
-    #9bc1c5 52%,
-    #f9f8f6 61%,
-    #bd3348 75%,
-    #56131e 100%
+    #f9f8f6 0%,
+    #d8b66a 22%,
+    #c78f73 42%,
+    #fffdf8 57%,
+    #c78f73 74%,
+    #a6192e 86%,
+    #f9f8f6 100%
   );
   background-size: 280% 100%;
   background-position: 52% 50%;
-  filter: drop-shadow(0 0 8px rgba(214, 47, 68, 0.3)) drop-shadow(0 0 18px rgba(185, 210, 211, 0.12));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-accent) 32%, transparent)) drop-shadow(0 0 18px color-mix(in srgb, var(--color-accent-soft) 22%, transparent));
 }
 
 .final-sigil__edge {
-  background: linear-gradient(105deg, transparent 34%, rgba(255, 255, 255, 0.9) 48%, rgba(189, 224, 225, 0.72) 51%, transparent 64%);
+  background: linear-gradient(105deg, transparent 34%, color-mix(in srgb, var(--color-linen) 92%, transparent) 48%, color-mix(in srgb, var(--color-accent-soft) 80%, var(--color-linen)) 51%, transparent 64%);
   background-position: 48% 0;
   background-size: 320% 100%;
   mix-blend-mode: screen;
@@ -910,8 +1043,17 @@ html[data-theme="dark"] .etched-glass {
   }
 
   .site-nav-mark {
-    width: 3.4rem;
-    height: 3.4rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .site-nav-wordmark {
+    --brand-wordmark-height: 2rem;
+    max-width: 9.7rem;
+  }
+
+  .site-nav-wordmark-text {
+    font-size: 1.08rem;
   }
 
   .artifact-footer {
@@ -1018,16 +1160,37 @@ body.admin-mode .artifact-footer {
     linear-gradient(135deg, var(--adm-bg) 0%, #100e0d 52%, #070706 100%);
   color: var(--adm-text);
   font-family: var(--font-sans), sans-serif;
-  padding-top: var(--adm-topbar-height);
+  display: grid;
+  grid-template-rows: var(--adm-topbar-height) minmax(0, 1fr);
+  min-height: 100dvh;
+  height: 100dvh;
+  padding-top: 0;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .admin-shell,
 .admin-content {
   min-width: 0;
   max-width: 100%;
+}
+
+.admin-shell {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .adm-topbar,
@@ -1038,10 +1201,10 @@ body.admin-mode .artifact-footer {
 }
 
 .adm-topbar {
-  position: fixed;
-  inset-inline: 0;
-  top: 0;
+  position: relative;
   z-index: 120;
+  box-sizing: border-box;
+  height: var(--adm-topbar-height);
   min-height: var(--adm-topbar-height);
   backdrop-filter: blur(18px) saturate(1.12);
   transition:
@@ -1057,14 +1220,21 @@ body.admin-mode .artifact-footer {
 }
 
 .admin-sidebar-shell {
-  position: sticky;
-  top: var(--adm-topbar-height);
-  height: calc(100dvh - var(--adm-topbar-height));
-  max-height: calc(100dvh - var(--adm-topbar-height));
+  display: none;
+  flex: 0 0 16rem;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+  width: 16rem;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
   overflow: hidden;
 }
 
 .admin-sidebar-scroll {
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   flex: 1 1 auto;
   overflow-y: auto;
@@ -1078,7 +1248,14 @@ body.admin-mode .artifact-footer {
   flex: 0 0 auto;
   margin-top: 1rem;
   padding-top: 1.25rem;
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
   border-top: 1px solid var(--adm-border);
+}
+
+@media (min-width: 1024px) {
+  .admin-sidebar-shell {
+    display: flex;
+  }
 }
 
 .adm-menu-btn {
@@ -1171,10 +1348,12 @@ body.admin-mode .artifact-footer {
 }
 
 .adm-brand-mark {
-  color: var(--adm-accent);
-  font-size: 0.68rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  --brand-mark-size: 1.65rem;
+  margin: -0.2rem 0;
+  background:
+    radial-gradient(circle at 74% 14%, #f4efe7 0 2%, #d8b66a 14%, transparent 32%),
+    conic-gradient(from 224deg at 48% 48%, #8b8175 0deg, #d8b66a 38%, #f4efe7 56%, #b8aea1 74%, #d8b66a 88%, #8b8175 100%);
+  filter: drop-shadow(0 1px 1px rgba(244, 239, 231, 0.18)) drop-shadow(0 5px 10px rgba(216, 182, 106, 0.18));
 }
 
 .adm-topbar-issue-link {
