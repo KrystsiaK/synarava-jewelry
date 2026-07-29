@@ -3,12 +3,7 @@ import path from "node:path";
 
 import { Prisma } from "@prisma/client";
 
-import {
-  fallbackProductLookbook,
-  fallbackProductMaterials,
-  fallbackProductProcess,
-  parseProductDetails,
-} from "@/lib/content/catalog";
+import { parseProductDetails } from "@/lib/content/catalog";
 import { db } from "@/lib/db";
 
 type IssueDraft = {
@@ -244,15 +239,9 @@ export async function scanAdminIssues() {
     });
 
     const details = parseProductDetails(product.details);
-    const materials =
-      details.materials && details.materials.length > 0
-        ? details.materials
-        : fallbackProductMaterials;
-    const processMediaImage = details.process?.mediaImage || fallbackProductProcess.mediaImage;
-    const lookbook =
-      details.lookbook && details.lookbook.length > 0
-        ? details.lookbook
-        : fallbackProductLookbook;
+    const materials = details.materials ?? [];
+    const processMediaImage = details.process?.mediaImage;
+    const lookbook = details.lookbook ?? [];
 
     materials.forEach((material, index) => {
       mediaChecks.push({

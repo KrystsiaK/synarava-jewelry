@@ -3,23 +3,22 @@ import { getPageBySlug, listCollections } from "@/lib/content/catalog";
 import { getSiteVideos } from "@/lib/site-videos";
 import { HomePage } from "@/components/home/home-page";
 
-export const metadata: Metadata = {
-  title: { absolute: "Synarava — Handcrafted Belarusian Couture Jewelry" },
-  description:
-    "Handcrafted jewelry that bridges ancient Slavic mysticism and contemporary architectural avant-garde. Explore our couture collections.",
-  alternates: { canonical: "/" },
-  openGraph: {
-    url: "/",
-    images: [
-      {
-        url: "https://lh3.googleusercontent.com/aida-public/AB6AXuDnsVq-0rj6MUqa5fbd7AAEe7cTiEGdTbjaX0-QqyRfQDJrorZweFoBNZ9jrp4c5G9YxZY1YWEUDZj3h6LEwB8covlq0TcBcRfzSY4jFtqnYKLYse3lFNPVEc424F0tMy1wYDp092U7vCp5UzzIntBvw7JQ59n6WrUHpbCWeChOdTgF_4v06jNFD2JXKrfMDAkHrNMfBf0IPjfNxpQZ6r8uZbhg3XInDox3KcDlWb6Aph9_5uCM04fmHM8cLz5jVaCrlmvjRqx1YyIr",
-        width: 1200,
-        height: 630,
-        alt: "Synarava — Belarusian Couture Jewelry",
-      },
-    ],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPageBySlug("home");
+  const content = page?.content ?? {};
+
+  return {
+    title: page?.title ? { absolute: page.title } : "Synarava",
+    description: page?.excerpt || undefined,
+    alternates: { canonical: "/" },
+    openGraph: {
+      url: "/",
+      images: content.heroImage
+        ? [{ url: content.heroImage, width: 1200, height: 630, alt: page?.title || "Synarava" }]
+        : [],
+    },
+  };
+}
 
 export default async function Page() {
   const [page, collectionData, videos] = await Promise.all([
@@ -28,14 +27,17 @@ export default async function Page() {
     getSiteVideos(),
   ]);
 
-  const collections = collectionData.slice(0, 3).map((c, i) => ({
-    series: c.eyebrow,
-    title: c.name,
-    description: c.summary,
-    price: i === 0 ? "€240" : i === 1 ? "€185" : "€310",
-    image: c.heroImage,
-    href: `/collections/${c.slug}`,
-  }));
+  const collections = collectionData
+    .filter((collection) => collection.heroImage)
+    .slice(0, 3)
+    .map((c) => ({
+      series: c.eyebrow,
+      title: c.name,
+      description: c.summary,
+      price: "",
+      image: c.heroImage,
+      href: `/collections/${c.slug}`,
+    }));
 
   const content = (page?.content ?? {}) as Record<string, string>;
 

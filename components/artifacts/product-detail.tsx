@@ -43,15 +43,17 @@ function ProductHero({ product }: { product: ProductSummary }) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.25, ease, delay: 0.1 }}
       >
-        <Image
-          src={product.image}
-          alt={product.title}
-          fill
-          preload
-          quality={90}
-          sizes="(max-width: 768px) 100vw, 68vw"
-          className="object-cover brightness-[0.88] contrast-[1.06] saturate-[1.08]"
-        />
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.title}
+            fill
+            preload
+            quality={90}
+            sizes="(max-width: 768px) 100vw, 68vw"
+            className="object-cover brightness-[0.88] contrast-[1.06] saturate-[1.08]"
+          />
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-r from-background/5 via-transparent to-background/15" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
       </motion.div>
@@ -127,19 +129,6 @@ function ProductHero({ product }: { product: ProductSummary }) {
               </span>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-1.5 sm:flex sm:flex-wrap md:mt-6 md:gap-y-2">
-              {[
-                "In stock",
-                "Ships in 3–5 days",
-                "Gift packaging",
-                "14-day returns",
-              ].map((label) => (
-                <span key={label} className="flex items-center gap-1.5 label-mono text-[0.62rem] text-foreground/48">
-                  <span className="inline-block h-1 w-1 rounded-full bg-couture-red/60" aria-hidden="true" />
-                  {label}
-                </span>
-              ))}
-            </div>
           </motion.div>
 
           {product.tagNames.length > 0 && (
@@ -184,6 +173,14 @@ function MaterialsSection({ product }: { product: ProductSummary }) {
     setActiveMaterial((current) => (current === next ? current : next));
   });
 
+  if (
+    product.materials.length === 0 ||
+    !product.materialsEyebrow ||
+    !product.materialsTitle
+  ) {
+    return null;
+  }
+
   return (
     <section
       ref={ref}
@@ -202,9 +199,9 @@ function MaterialsSection({ product }: { product: ProductSummary }) {
       >
         <div className="site-shell mb-8 flex items-end justify-between gap-6 md:mb-10">
           <div>
-            <p className="label-mono mb-3 text-couture-red">Material archive</p>
+            <p className="label-mono mb-3 text-couture-red">{product.materialsEyebrow}</p>
             <h2 className="text-balance font-serif text-[clamp(2rem,4vw,3.4rem)] leading-none">
-              The honest material
+              {product.materialsTitle}
             </h2>
           </div>
           <p className="label-mono shrink-0 text-foreground/45">
@@ -277,23 +274,27 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
     .filter(Boolean);
   const bodyLead = product.symbolismBody.charAt(0);
   const bodyRemainder = product.symbolismBody.slice(1);
+  const symbolismImage = product.lookbook[0]?.src || product.image;
+
+  if (
+    !product.symbolismLabel ||
+    materialTerms.length === 0 ||
+    !product.symbolismBody ||
+    !product.symbolismBody2 ||
+    !symbolismImage
+  ) {
+    return null;
+  }
 
   return (
     <section ref={ref} className="overflow-clip border-y border-foreground/10 bg-surface py-24 md:py-36">
       <div className="site-shell">
         <header className="grid gap-8 border-b border-foreground/15 pb-9 md:grid-cols-12 md:items-end md:pb-12">
           <div className="md:col-span-9">
-            <p className="mb-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-couture-red">
-              <span className="h-2 w-2 rotate-45 border border-current" />
-              {product.symbolismLabel}
-            </p>
             <h2 className="text-balance font-serif text-[clamp(3.6rem,9vw,6rem)] leading-[0.84] tracking-[-0.035em]">
-              КОД <span className="italic text-couture-red">РОДА</span>
+              {product.symbolismLabel}
             </h2>
           </div>
-          <p className="max-w-xs text-pretty text-sm leading-7 text-foreground/55 md:col-span-3 md:pb-1">
-            An inherited language, translated from ceremonial memory into an object worn close.
-          </p>
         </header>
 
         <div className="grid border-b border-foreground/15 lg:grid-cols-[minmax(0,1fr)_15rem]">
@@ -304,7 +305,7 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
                 style={reduceMotion ? undefined : { scale: imgScale }}
               >
                 <Image
-                  src={product.lookbook[0]?.src || product.image}
+                  src={symbolismImage}
                   alt="Jewelry worn as a symbolic detail"
                   fill
                   sizes="(max-width: 1024px) 100vw, 75vw"
@@ -313,10 +314,11 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
               </motion.div>
               <div className="pointer-events-none absolute inset-4 border border-white/25 md:inset-6" />
             </div>
-            <figcaption className="mt-4 flex items-center justify-between gap-6 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-foreground/45">
-              <span>Worn archive / Belarus</span>
-              <span>Material carries memory</span>
-            </figcaption>
+            {product.collectionName ? (
+              <figcaption className="mt-4 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-foreground/45">
+                {product.collectionName}
+              </figcaption>
+            ) : null}
           </figure>
 
           <aside className="grid grid-cols-3 border-t border-foreground/15 lg:grid-cols-1 lg:border-t-0">
@@ -400,23 +402,28 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
     }
   }
 
+  const processMedia = fitVideoSrc || product.process.mediaImage;
+  if (!product.process.eyebrow || !product.process.title || !processMedia) {
+    return null;
+  }
+
   return (
     <section className="relative overflow-clip border-y border-foreground/10 bg-[#09090a] py-24 text-foreground md:py-36">
       <div className="site-shell">
         <header className="grid gap-8 pb-10 md:grid-cols-12 md:items-end md:pb-14">
           <div className="md:col-span-8">
             <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-couture-red">
-              On the body
+              {product.process.eyebrow}
             </p>
             <h2 className="text-balance font-serif text-[clamp(3.3rem,7.5vw,6rem)] leading-[0.9] tracking-[-0.035em]">
-              Made to be <span className="italic text-couture-red">worn.</span>
-              <br />
-              Not displayed.
+              {product.process.title}
             </h2>
           </div>
-          <p className="max-w-sm text-pretty text-base leading-8 text-foreground/62 md:col-span-4 md:pb-1">
-            Jewelry is understood differently once it meets the body. This film studies the piece in motion—its scale, weight, and changing silhouette against the hand.
-          </p>
+          {product.shortDescription ? (
+            <p className="max-w-sm text-pretty text-base leading-8 text-foreground/62 md:col-span-4 md:pb-1">
+              {product.shortDescription}
+            </p>
+          ) : null}
         </header>
 
         <figure className="border-y border-foreground/12 py-5 md:py-8">
@@ -426,7 +433,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
                 ref={videoRef}
                 className="h-full w-full object-cover grayscale contrast-[1.08]"
                 src={fitVideoSrc}
-                poster={product.process.mediaImage}
+                poster={product.process.mediaImage || undefined}
                 autoPlay={!reduceMotion}
                 muted
                 loop
@@ -436,9 +443,9 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
                 onPause={() => setIsVideoPlaying(false)}
                 aria-label={`${product.title} worn on the body`}
               />
-            ) : (
+            ) : product.process.mediaImage ? (
               <Image src={product.process.mediaImage} alt={`${product.title} worn on the body`} fill sizes="100vw" className="object-cover grayscale contrast-[1.08]" />
-            )}
+            ) : null}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
             <div className="pointer-events-none absolute inset-4 border border-white/20 md:inset-7" />
             <p className="absolute left-7 top-7 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-white/72 md:left-11 md:top-11">
@@ -466,17 +473,18 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
               {isVideoPlaying ? "Pause" : "Play"}
             </button> : null}
           </div>
-          <figcaption className="grid gap-6 pt-5 md:grid-cols-12 md:items-start md:pt-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/42 md:col-span-3">
-              Movement study
-            </p>
-            <p className="max-w-2xl text-pretty font-serif text-[clamp(1.45rem,2.6vw,2.25rem)] italic leading-[1.25] text-foreground/86 md:col-span-6">
-              The layered construction changes with every gesture—graphic at rest, tactile in motion.
-            </p>
-            <p className="text-sm leading-7 text-foreground/52 md:col-span-3">
-              {product.materialLine}
-            </p>
-          </figcaption>
+          {product.process.stats.length > 0 ? (
+            <figcaption className="grid gap-5 pt-5 sm:grid-cols-2 lg:grid-cols-4 md:pt-7">
+              {product.process.stats.map((stat) => (
+                <div key={`${stat.value}-${stat.label}`} className="border-t border-foreground/15 pt-4">
+                  <p className="font-serif text-3xl text-foreground">{stat.value}</p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/48">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </figcaption>
+          ) : null}
         </figure>
 
         <div className="grid gap-8 pt-10 md:grid-cols-12 md:items-center md:pt-14">
@@ -519,6 +527,14 @@ function LookbookSection({ product }: { product: ProductSummary }) {
   const isInView = useInView(ref, { once: true, margin: "-8%" });
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
+  if (
+    product.lookbook.length === 0 ||
+    !product.lookbookEyebrow ||
+    !product.lookbookTitle
+  ) {
+    return null;
+  }
+
   return (
     <section ref={ref} className="site-shell py-20 md:py-32">
       <motion.div
@@ -528,9 +544,9 @@ function LookbookSection({ product }: { product: ProductSummary }) {
         transition={{ duration: 0.7, ease }}
       >
         <div>
-          <p className="label-mono mb-2 text-couture-red">Pairing Guide</p>
+          <p className="label-mono mb-2 text-couture-red">{product.lookbookEyebrow}</p>
           <h2 className="font-serif" style={{ fontSize: "clamp(1.6rem,3vw,2.4rem)" }}>
-            The Lookbook
+            {product.lookbookTitle}
           </h2>
         </div>
         <p className="hidden label-mono text-foreground/35 md:block">
@@ -604,6 +620,10 @@ function LookbookSection({ product }: { product: ProductSummary }) {
 function ProductFooter({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
+
+  if (!product.collectionSlug || !product.collectionName) {
+    return null;
+  }
 
   return (
     <div ref={ref} className="relative overflow-hidden border-t border-foreground/[0.06] bg-surface py-20 md:py-28">

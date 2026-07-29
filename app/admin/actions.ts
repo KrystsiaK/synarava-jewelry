@@ -1473,6 +1473,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   );
 
   const details = {
+    materialsEyebrow: formValue(formData, "materialsEyebrow"),
+    materialsTitle: formValue(formData, "materialsTitle"),
     materials: materialEntries.filter((item) => item.title && item.body && item.image),
     process: {
       eyebrow: formValue(formData, "processEyebrow"),
@@ -1480,6 +1482,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       mediaImage: processMediaImage,
       stats: processStats,
     },
+    lookbookEyebrow: formValue(formData, "lookbookEyebrow"),
+    lookbookTitle: formValue(formData, "lookbookTitle"),
     lookbook: lookbookEntries.filter((item) => item.src),
   };
 
@@ -1497,6 +1501,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     : null;
 
   const isPublished = workflowState === "PUBLISHED";
+  if (isPublished && !imageUrl) {
+    return { error: "Product image is required before publishing." };
+  }
 
   const wasCreate = !productId;
   const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
@@ -1710,6 +1717,9 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
   }
 
   const before = await getSavedProductPayload(productId).catch(() => null);
+  if (action === "publish" && !before?.imageUrl) {
+    return { error: "Product image is required before publishing." };
+  }
 
   const product = await db.product.update({
     where: { id: productId },

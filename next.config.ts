@@ -52,7 +52,6 @@ const s3SignedBucketHostname =
     : null;
 
 const imageOrigins = [
-  "https://lh3.googleusercontent.com",
   originFromUrl(process.env.S3_PUBLIC_URL),
   originFromUrl(process.env.S3_ENDPOINT),
   process.env.S3_BUCKET && process.env.S3_REGION
@@ -84,10 +83,6 @@ const nextConfig: NextConfig = {
     maximumRedirects: 2,
     contentDispositionType: "inline",
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
       ...(s3PublicHostname
         ? [
             {

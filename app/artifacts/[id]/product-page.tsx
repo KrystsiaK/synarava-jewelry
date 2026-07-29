@@ -29,14 +29,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: { canonical: `/products/${key}` },
     openGraph: {
       url: `/products/${key}`,
-      images: [
-        {
-          url: product.image,
-          width: 1200,
-          height: 630,
-          alt: product.title,
-        },
-      ],
+      images: product.image
+        ? [{ url: product.image, width: 1200, height: 630, alt: product.title }]
+        : [],
     },
   };
 }
@@ -55,14 +50,13 @@ export default async function ProductDetailPage({ params }: Props) {
     "@type": "Product",
     name: product.title,
     description: product.shortDescription,
-    image: product.image,
+    ...(product.image ? { image: product.image } : {}),
     sku: product.slug,
     brand: { "@type": "Brand", name: "Synarava" },
     offers: {
       "@type": "Offer",
       priceCurrency: "EUR",
       price: isNaN(priceCents) ? undefined : priceCents,
-      availability: "https://schema.org/InStock",
       seller: { "@type": "Organization", name: "Synarava" },
     },
   };

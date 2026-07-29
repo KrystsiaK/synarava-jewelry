@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 type AuthShellProps = {
   eyebrow: string;
@@ -24,16 +23,7 @@ export function AuthShell({
   return (
     <main className="auth-experience artifact-shell min-h-[100svh] pt-24">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <Image
-          src="/uploads/home/wood-lava-hero.jpg"
-          alt=""
-          fill
-          preload
-          quality={85}
-          sizes="100vw"
-          className="object-cover object-[62%_50%] opacity-[0.18] grayscale"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,9,0.99)_0%,rgba(8,8,9,0.92)_48%,rgba(8,8,9,0.62)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(166,25,46,.16),transparent_32%),linear-gradient(90deg,#080809_0%,#0d0d10_58%,#111116_100%)]" />
       </div>
 
       <div className="site-shell relative z-10 grid min-h-[calc(100svh-6rem)] items-center gap-10 py-8 md:py-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,0.58fr)] lg:gap-16">

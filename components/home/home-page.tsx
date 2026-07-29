@@ -21,6 +21,7 @@ import { ease } from "@/lib/animation";
 import { useTranslations } from "@/lib/i18n/context";
 import { PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
+import { buildFinalCtaImages } from "@/lib/content/home-media";
 
 export interface CollectionItem {
   series: string;
@@ -39,37 +40,14 @@ export interface HomePageProps {
   heroVideoSrc?: string | string[];
 }
 
-const HERO_IMAGE = "https://lh3.googleusercontent.com/aida/AP1WRLv3TGm4IeeKlLUiQxW8Hc3nSncMdMHyfmCzU9wpUE4H6DZ2__vML46WGDGCpf_R3lcpvCQiTRGvLXUF72WHO40QXtyITJqlFUXF42Q0ZuzCsAnsWC58PasoEcf9X6NnNz6m7Q5HwKljf6J9CwLDdNGADnKbaeLw3oBsfyBLFxuVOlns79WfDTYP7_JMzXnpBxNSiz1lGPIE0IZJd63qtBQT0-0TohGViEDXlnUdhoYktnLq3ii4UwcQck8";
-const HERO_POSTER = "/videos/model-hero-section.webp";
-const LAVA_CONSTRUCT_IMAGE = "https://lh3.googleusercontent.com/aida/AP1WRLvg_bkn6bvxAkNEsIJ5_yzxXX6ldISFGygqcEk3uncUMoan5A52LxZ4eGlil6FLlWw9sVu8RRFFF841LexUxAHrcbNkv3_ukNq0Iee8cDZS1iRCuh1tNVzLW7Tjx6LqWy9uGeWeBi9kTJck5aon69PCAQDX2wMZfpl36XxA0K5u92ZVEXAA6HgwCF4ioCIqBRtDNsoFdUq7qD8mpU76aYNOb4c-LmDOYw_fy0NYMf9LS53FM1RER28T_Ww";
-const FRACTURED_QUARTZ_IMAGE = "https://lh3.googleusercontent.com/aida-public/AB6AXuChB26VkIkJfAS3suudP3zDdmZoI0ZbrsARVGw6isbyHNWuyApo5Z0x9Jd8gAWIJbUnjblDLmLwSsQc-TTeAgpKirYU7FiWgEHg1gprSFl-1XSsQCCOYpzhtXBZNT_UUmNcC8gmjNVdCkLXrvzY7ITzxE0pxjuv8hfnnni6al-gOWHc9n98SpVBkAy3MY1-zmS7Pa-g92ROigpPArvsBAgZ4ErsYKcE_PoEY_yrJXrFGI2cNQ2Ur7U-h1APrD8MLZJCnN6t_RD0E30";
-
-const LEXICON_MATERIALS = [
-  {
-    name: "White Ceramic",
-    category: "Kiln Fired / Matte",
-    description: "Unglazed porcelain, hand-shaped to retain subtle human imperfections before high-heat vitrification. Analyzed for structural integrity and tactile response. The matte surface absorbs light, providing a stark contrast to highly polished metals.",
-    image: FRACTURED_QUARTZ_IMAGE,
-    symbol: "CER / 01",
-    properties: ["Vitrified", "Light-absorbing", "Hand-shaped"],
-  },
-  {
-    name: "Ancient Oak",
-    category: "Petrified / Dense",
-    description: "Reclaimed timber submerged for centuries, yielding a density approaching stone. Carbon dating confirmed. The natural grain is preserved, yet the material behaves with the unyielding strength of mineral composites.",
-    image: HERO_IMAGE,
-    symbol: "OAK / 02",
-    properties: ["300+ years", "Carbon-rich", "Grain intact"],
-  },
-  {
-    name: "Raw Obsidian",
-    category: "Volcanic / Porous",
-    description: "Rapidly cooled volcanic glass, resulting in a vesicular texture. Extremely lightweight yet structurally sound. The porous nature creates a micro-landscape on the surface of each bead, absorbing ambient sound and reflecting a deep, matte blackness.",
-    image: LAVA_CONSTRUCT_IMAGE,
-    symbol: "OBS / 03",
-    properties: ["Volcanic glass", "Micro-porous", "Sound-softening"],
-  }
-];
+type LexiconMaterial = {
+  name: string;
+  category: string;
+  description: string;
+  image: string;
+  symbol: string;
+  properties: string[];
+};
 
 const STAMP_CLASS = "border-[3px] border-couture-red text-couture-red px-4 py-2 inline-block uppercase font-bold tracking-[0.2em] bg-[#0a0a0b] select-none shadow-sm";
 
@@ -291,11 +269,11 @@ function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipP
 function HeroSection({
   heroVideoSrc,
   heroImage,
-  eyebrow = "Synarava · Belarus",
-  title = "Artifacts of time",
-  excerpt = "Hand-shaped couture where raw matter becomes a private relic.",
-  ctaLabel = "Shop the collection",
-  ctaHref = "/shop",
+  eyebrow,
+  title,
+  excerpt,
+  ctaLabel,
+  ctaHref,
 }: Pick<HomePageProps, "heroVideoSrc" | "title" | "excerpt"> & { heroImage?: string; eyebrow?: string; ctaLabel?: string; ctaHref?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
@@ -358,25 +336,13 @@ function HeroSection({
               loop={videoSources.length === 1}
               playsInline
               preload="metadata"
-              poster={HERO_POSTER}
               src={activeVideoSrc}
               className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]"
               aria-hidden="true"
               onEnded={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
               onError={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
             />
-          ) : (
-            <Image
-              src={HERO_IMAGE}
-              alt="Handcrafted Synarava jewelry"
-              fill
-              preload
-              quality={90}
-              loading="eager"
-              sizes="100vw"
-              className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]"
-            />
-          )}
+          ) : null}
         </motion.div>
 
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(8,8,10,0.1)_20%,transparent_48%,rgba(8,8,10,0.65)_100%)]" />
@@ -396,29 +362,33 @@ function HeroSection({
       >
         <div className="mb-5 flex items-center gap-4 md:mb-7">
           <span className="h-px w-10 bg-couture-red" aria-hidden="true" />
-          <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-linen/75">
-            {eyebrow}
+          {eyebrow ? (
+            <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-linen/75">
+              {eyebrow}
+            </p>
+          ) : null}
+        </div>
+
+        {title ? (
+          <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.4rem,9vw,6rem)] uppercase leading-[0.86] tracking-[-0.035em] text-linen">
+            {title}
+          </h1>
+        ) : null}
+
+        {excerpt ? (
+          <p className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige/80 md:mt-8 md:text-base">
+            {excerpt}
           </p>
-        </div>
+        ) : null}
 
-        <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.4rem,9vw,6rem)] uppercase leading-[0.86] tracking-[-0.035em] text-linen">
-          {title}
-        </h1>
-
-        <p className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige/80 md:mt-8 md:text-base">
-          {excerpt}
-        </p>
-
-        <div className="mt-7 pl-8 sm:pl-14 md:mt-9">
-          <PrimaryCtaButton href={ctaHref}>
-            {ctaLabel}
-          </PrimaryCtaButton>
-        </div>
+        {ctaHref && ctaLabel ? (
+          <div className="mt-7 pl-8 sm:pl-14 md:mt-9">
+            <PrimaryCtaButton href={ctaHref}>
+              {ctaLabel}
+            </PrimaryCtaButton>
+          </div>
+        ) : null}
       </motion.div>
-
-      <p className="absolute bottom-7 right-5 z-10 hidden font-serif text-sm italic text-linen/70 sm:block md:right-[4vw]">
-        Matter, held in tension.
-      </p>
     </section>
   );
 }
@@ -452,39 +422,12 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
   );
 
   const items = useMemo(() => {
-    const list = [...collections];
-    if (list.length < 1) {
-      list.push({
-        series: "No. 001",
-        title: "The Lava Construct",
-        description: "A study in raw material, tactile contrast, and sculptural form.",
-        price: "Limited",
-        image: LAVA_CONSTRUCT_IMAGE,
-        href: "/shop",
-      });
-    }
-    if (list.length < 2) {
-      list.push({
-        series: "No. 002",
-        title: "Fractured Quartz",
-        description: "A limited collection shaped around mineral texture and deliberate irregularity.",
-        price: "Limited",
-        image: FRACTURED_QUARTZ_IMAGE,
-        href: "/shop",
-      });
-    }
-    if (list.length < 3) {
-      list.push({
-        series: "No. 003",
-        title: "Petrified Oak",
-        description: "A material-led edition that holds memory, weight, and time in balance.",
-        price: "Limited",
-        image: HERO_IMAGE,
-        href: "/shop",
-      });
-    }
-    return list.slice(0, 3);
+    return collections.filter((item) => item.image).slice(0, 3);
   }, [collections]);
+
+  if (items.length < 3) {
+    return null;
+  }
 
   return (
     <section
@@ -702,11 +645,11 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
             className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
           >
             <Link
-              href={items[2]?.href ?? "/shop"}
-              aria-label={`View ${items[2]?.title ?? "Petrified Oak"} collection`}
+              href={items[2].href}
+              aria-label={`View ${items[2].title} collection`}
               className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
             >
-              <ParallaxImage src={items[2] ? items[2].image : HERO_IMAGE} alt={items[2] ? items[2].title : "Petrified Oak"} clipPath="polygon(10% 0, 100% 10%, 90% 100%, 0% 90%)" />
+              <ParallaxImage src={items[2].image} alt={items[2].title} clipPath="polygon(10% 0, 100% 10%, 90% 100%, 0% 90%)" />
               <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-linen opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
                 View collection
                 <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -720,8 +663,6 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
     </section>
   );
 }
-
-type LexiconMaterial = (typeof LEXICON_MATERIALS)[number];
 
 function MaterialPlate({
   material,
@@ -844,7 +785,7 @@ function MaterialPlate({
 }
 
 // 4. MATERIAL EXPOSITION — scroll-controlled cubist specimen carousel
-function MaterialLab() {
+function MaterialLab({ collections }: { collections: CollectionItem[] }) {
   const ref = useRef<HTMLElement>(null);
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
   const scrollContext = useContext(HomeScrollContext);
@@ -855,6 +796,21 @@ function MaterialLab() {
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
   const progressScale = useTransform(progress, [0, 1], [0, 1]);
   const usesDiscreteIOSSteps = scrollContext?.isIOSWebKit ?? false;
+  const materials = useMemo<LexiconMaterial[]>(
+    () =>
+      collections
+        .filter((item) => item.image)
+        .slice(0, 3)
+        .map((item, index) => ({
+          name: item.title,
+          category: item.series,
+          description: item.description,
+          image: item.image,
+          symbol: String(index + 1).padStart(2, "0"),
+          properties: [],
+        })),
+    [collections],
+  );
 
   useEffect(() => {
     if (!usesDiscreteIOSSteps) return;
@@ -891,6 +847,10 @@ function MaterialLab() {
     return () => observer.disconnect();
   }, [usesDiscreteIOSSteps]);
 
+  if (materials.length === 0) {
+    return null;
+  }
+
   return (
     <section
       ref={ref}
@@ -904,7 +864,7 @@ function MaterialLab() {
     >
       {usesDiscreteIOSSteps ? (
         <div className="pointer-events-none absolute inset-0 flex flex-col" aria-hidden="true">
-          {LEXICON_MATERIALS.map((material, index) => (
+          {materials.map((material, index) => (
             <div
               key={material.name}
               ref={(element) => { stepRefs.current[index] = element; }}
@@ -944,7 +904,7 @@ function MaterialLab() {
           </header>
 
           <div className="absolute inset-x-0 bottom-0 top-[9.5rem] md:top-[11.5rem]">
-            {LEXICON_MATERIALS.map((material, index) => (
+            {materials.map((material, index) => (
               <MaterialPlate
                 key={material.name}
                 material={material}
@@ -967,6 +927,10 @@ function MaterialLab() {
 
 // 5. MANIFESTO QUOTE (Archival directive, grid lines overlay)
 function ManifestoQuote({ quote }: { quote?: string }) {
+  if (!quote) {
+    return null;
+  }
+
   return (
     <section className="py-32 px-6 flex items-center justify-center bg-transparent text-linen min-h-screen relative overflow-hidden">
       {/* Grid overlay */}
@@ -992,7 +956,7 @@ function ManifestoQuote({ quote }: { quote?: string }) {
 
         <h2 className="font-serif text-[clamp(2.4rem,7.5vw,7.5vw)] text-linen italic leading-[1.05] mb-12 font-light text-center relative max-w-5xl">
           <span className="absolute -top-12 -left-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&ldquo;</span>
-          {quote || <>Adornment is not decoration.<br />It is <span className="font-bold text-couture-red not-italic uppercase tracking-tighter">structural intent</span><br />applied to the human form.</>}
+          {quote}
           <span className="absolute -bottom-24 -right-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&rdquo;</span>
         </h2>
 
@@ -1002,38 +966,6 @@ function ManifestoQuote({ quote }: { quote?: string }) {
             The Synarava Manifesto // Vol 1.
           </span>
           <div className="w-12 h-px bg-couture-red" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// 6. COLLECTIONS / MANIFESTO GRID (Transparent background)
-function ManifestoGrid() {
-  const lines = [
-    "Jewelry as a private relic.",
-    "Belarusian geometry, stripped of nostalgia.",
-    "Material first. Ornament only when it carries meaning.",
-  ];
-
-  return (
-    <section className="bg-transparent py-24 px-6 md:px-[4vw]">
-      <div className="max-w-[90rem] mx-auto">
-        <div className="grid gap-8 md:grid-cols-3">
-          {lines.map((line, index) => (
-            <motion.div
-              key={line}
-              className="border-t border-linen/10 pt-6"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-10%" }}
-              transition={{ duration: 0.65, delay: index * 0.1, ease }}
-            >
-              <p className="font-serif text-[clamp(1.5rem,2.8vw,2.2rem)] leading-tight text-linen font-bold">
-                {line}
-              </p>
-            </motion.div>
-          ))}
         </div>
       </div>
     </section>
@@ -1123,16 +1055,16 @@ function CompactFinalCTA({ title, body, ctaLabel, ctaHref }: { title?: string; b
         >
           <div className="max-w-sm pb-14">
             <p className="font-serif text-lg italic text-stone-beige/65">
-              {body || "The final choice is instinctive."}
+              {body}
             </p>
             <h2 className="mt-5 text-balance font-serif text-5xl font-bold leading-[0.9] tracking-[-0.035em] text-linen">
-              {title || "Choose the piece that remembers you."}
+              {title}
             </h2>
             <Link
-              href={ctaHref || "/shop"}
+              href={ctaHref!}
               className="mt-8 inline-flex min-h-14 items-center gap-4 bg-couture-red px-6 py-3 font-sans text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white"
             >
-              {ctaLabel || "Enter the collection"}
+              {ctaLabel}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
@@ -1147,10 +1079,7 @@ function CompactFinalCTA({ title, body, ctaLabel, ctaHref }: { title?: string; b
 function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
-  const images = useMemo(() => {
-    const source = collections.length ? collections : [{ image: HERO_IMAGE } as CollectionItem];
-    return [...source, ...source].slice(0, 4);
-  }, [collections]);
+  const images = useMemo(() => buildFinalCtaImages(collections), [collections]);
   const scrollYProgress = useElementScrollProgress(ref, "sticky");
   const smoothProgress = useSpring(scrollYProgress, FINAL_SCENE_SPRING);
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
@@ -1218,6 +1147,17 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   );
   const progressScale = useTransform(progress, [0, 1], [0, 1]);
 
+  if (images.length !== 4) {
+    return (
+      <CompactFinalCTA
+        title={title}
+        body={body}
+        ctaLabel={ctaLabel}
+        ctaHref={ctaHref}
+      />
+    );
+  }
+
   return (
     <section
       ref={ref}
@@ -1241,18 +1181,18 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
           style={{ y: introY, opacity: introOpacity }}
         >
           <p className="mb-6 max-w-sm font-serif text-lg italic text-stone-beige/65 md:mb-8 md:text-xl">
-            {body || "The final choice is instinctive."}
+            {body}
           </p>
           <h2 className="max-w-[10ch] text-balance font-serif text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-linen">
-            {title || <>Choose the piece that <span className="font-light italic text-couture-red">remembers you.</span></>}
+            {title}
           </h2>
 
           <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
             <Link
-              href={ctaHref || "/shop"}
+              href={ctaHref!}
               className="group relative inline-flex min-h-16 items-center gap-8 bg-couture-red px-8 py-4 font-sans text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white transition-[filter,transform] duration-200 ease-out hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-linen active:scale-[0.98] [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
             >
-              {ctaLabel || "Enter the collection"}
+              {ctaLabel}
               <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link
@@ -1339,8 +1279,14 @@ function FinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections
   const scrollContext = useContext(HomeScrollContext);
   const isIOSWebKit = scrollContext?.isIOSWebKit ?? false;
 
+  if (!title || !body || !ctaLabel || !ctaHref) {
+    return null;
+  }
+
   return isDesktop && !isIOSWebKit
-    ? <DesktopFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
+    ? collections.length > 0
+      ? <DesktopFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
+      : <CompactFinalCTA title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
     : <CompactFinalCTA title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />;
 }
 
@@ -1375,9 +1321,8 @@ export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) 
         ctaHref={content?.ctaHref}
       />
       <ArchivePathway collections={collections} />
-      <MaterialLab />
+      <MaterialLab collections={collections} />
       <ManifestoQuote quote={content?.quote} />
-      <ManifestoGrid />
       <FinalCTA
         collections={collections}
         title={content?.secondaryTitle}

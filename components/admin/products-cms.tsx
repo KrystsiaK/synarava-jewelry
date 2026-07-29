@@ -24,12 +24,7 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
-import {
-  fallbackProductLookbook,
-  fallbackProductMaterials,
-  fallbackProductProcess,
-  parseProductDetails,
-} from "@/lib/content/catalog";
+import { parseProductDetails } from "@/lib/content/catalog";
 
 type CategoryOption = SavedCategoryPayload;
 type TagOption = SavedTagPayload;
@@ -71,8 +66,10 @@ function centsToPrice(cents: number) {
 function getProductEditorDetails(details: unknown) {
   const parsed = parseProductDetails(details);
 
+  const materialsEyebrow = parsed.materialsEyebrow ?? "";
+  const materialsTitle = parsed.materialsTitle ?? "";
   const materials = Array.from({ length: 3 }, (_, index) => {
-    const source = parsed.materials?.[index] ?? fallbackProductMaterials[index];
+    const source = parsed.materials?.[index];
     return {
       title: source?.title ?? "",
       body: source?.body ?? "",
@@ -81,17 +78,19 @@ function getProductEditorDetails(details: unknown) {
   });
 
   const process = {
-    eyebrow: parsed.process?.eyebrow ?? fallbackProductProcess.eyebrow,
-    title: parsed.process?.title ?? fallbackProductProcess.title,
-    mediaImage: parsed.process?.mediaImage ?? fallbackProductProcess.mediaImage,
+    eyebrow: parsed.process?.eyebrow ?? "",
+    title: parsed.process?.title ?? "",
+    mediaImage: parsed.process?.mediaImage ?? "",
     stats: Array.from({ length: 4 }, (_, index) => {
-      const source = parsed.process?.stats?.[index] ?? fallbackProductProcess.stats[index];
+      const source = parsed.process?.stats?.[index];
       return { value: source?.value ?? "", label: source?.label ?? "" };
     }),
   };
 
+  const lookbookEyebrow = parsed.lookbookEyebrow ?? "";
+  const lookbookTitle = parsed.lookbookTitle ?? "";
   const lookbook = Array.from({ length: 4 }, (_, index) => {
-    const source = parsed.lookbook?.[index] ?? fallbackProductLookbook[index];
+    const source = parsed.lookbook?.[index];
     return {
       src: source?.src ?? "",
       label: source?.label ?? "",
@@ -99,7 +98,15 @@ function getProductEditorDetails(details: unknown) {
     };
   });
 
-  return { materials, process, lookbook };
+  return {
+    materialsEyebrow,
+    materialsTitle,
+    materials,
+    process,
+    lookbookEyebrow,
+    lookbookTitle,
+    lookbook,
+  };
 }
 
 function emptyDraft(): ProductDraft {
@@ -259,6 +266,20 @@ function ProductDetailFields({
             <AdminHelp>Three material cards shown on the storefront product detail page.</AdminHelp>
           </p>
         </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <input
+            name="materialsEyebrow"
+            defaultValue={details.materialsEyebrow}
+            placeholder="Section eyebrow"
+            className="adm-field"
+          />
+          <input
+            name="materialsTitle"
+            defaultValue={details.materialsTitle}
+            placeholder="Section title"
+            className="adm-field"
+          />
+        </div>
         <div className="grid gap-4 xl:grid-cols-3">
           {details.materials.map((material, index) => (
             <div
@@ -375,6 +396,20 @@ function ProductDetailFields({
             <span className="adm-label">Lookbook</span>
             <AdminHelp>Gallery blocks used in the pairing guide and lookbook section.</AdminHelp>
           </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <input
+            name="lookbookEyebrow"
+            defaultValue={details.lookbookEyebrow}
+            placeholder="Section eyebrow"
+            className="adm-field"
+          />
+          <input
+            name="lookbookTitle"
+            defaultValue={details.lookbookTitle}
+            placeholder="Section title"
+            className="adm-field"
+          />
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {details.lookbook.map((item, index) => (
@@ -554,7 +589,7 @@ function ProductFormFields({
         <div>
           <p className="adm-label-row">
             <span className="adm-section-tag">[ PRODUCT SYMBOLISM OVERRIDE ]</span>
-            <AdminHelp>If empty, the product page falls back to the selected collection defaults.</AdminHelp>
+            <AdminHelp>If empty, the symbolism section stays hidden on the product page.</AdminHelp>
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
