@@ -43,6 +43,13 @@ const s3PublicProtocol =
   "https";
 const s3EndpointHostname = hostnameFromUrl(process.env.S3_ENDPOINT);
 const s3EndpointProtocol = protocolFromUrl(process.env.S3_ENDPOINT) ?? "https";
+// Private Railway Buckets redirect signed requests from the base S3 endpoint
+// to a virtual-hosted URL: `${bucket}.${endpoint}`. Next's image optimizer
+// validates that redirect target separately, so allow the exact bucket host.
+const s3SignedBucketHostname =
+  process.env.S3_BUCKET && s3EndpointHostname
+    ? `${process.env.S3_BUCKET}.${s3EndpointHostname}`
+    : null;
 
 const imageOrigins = [
   "https://lh3.googleusercontent.com",
@@ -86,6 +93,14 @@ const nextConfig: NextConfig = {
             {
               protocol: s3PublicProtocol,
               hostname: s3PublicHostname,
+            },
+          ]
+        : []),
+      ...(s3SignedBucketHostname
+        ? [
+            {
+              protocol: s3EndpointProtocol,
+              hostname: s3SignedBucketHostname,
             },
           ]
         : []),
