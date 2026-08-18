@@ -10,6 +10,8 @@ import { ThemeScript } from "@/components/theme/theme-script";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isShopifyCommerceEnabled } from "@/lib/shopify/config";
+import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
 
 import "./globals.css";
@@ -84,9 +86,11 @@ export default async function RootLayout({
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
   const initialLocale = cookieStore.get("synarava-locale")?.value ?? "en";
-  const [cartCount, currentUser] = await Promise.all([
+  const [cartCount, isLoggedIn] = await Promise.all([
     getStorefrontCartCount(),
-    getCurrentUser(),
+    isShopifyCommerceEnabled()
+      ? hasShopifyCustomerSession()
+      : getCurrentUser().then(Boolean),
   ]);
 
   return (
@@ -136,7 +140,7 @@ export default async function RootLayout({
             </defs>
           </svg>
           <ThemeProvider initialPreference={themePreference}>
-            <SiteHeader initialCartCount={cartCount} isLoggedIn={!!currentUser} />
+            <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} />
             {children}
             <SiteFooter />
           </ThemeProvider>

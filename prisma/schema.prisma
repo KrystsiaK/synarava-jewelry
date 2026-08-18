@@ -99,6 +99,18 @@ model UserSession {
   @@index([expiresAt])
 }
 
+model ShopifyCustomerSession {
+  id           String   @id
+  accessToken  String
+  refreshToken String
+  idToken      String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
 model VerificationToken {
   id         String                  @id @default(cuid())
   identifier String
