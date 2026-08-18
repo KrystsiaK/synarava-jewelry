@@ -2,6 +2,9 @@
   "name": "synarava-jewelry",
   "version": "0.2.0",
   "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=1536' next dev",
     "postinstall": "prisma generate",
