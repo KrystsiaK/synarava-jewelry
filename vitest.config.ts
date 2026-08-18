@@ -38,6 +38,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "."),
+      "server-only": resolve(__dirname, "test/server-only.ts"),
     },
   },
 });

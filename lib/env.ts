@@ -10,6 +10,16 @@ const optionalUrl = z.preprocess(
   z.string().url().optional(),
 );
 
+const optionalShopDomain = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/^https?:\/\//, "").replace(/\/$/, ""))
+    .pipe(z.string().regex(/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i))
+    .optional(),
+);
+
 const envSchema = z.object({
   DATABASE_URL: optionalString,
   AUTH_SESSION_SECRET: optionalString,
@@ -22,6 +32,14 @@ const envSchema = z.object({
   NEXTAUTH_URL: optionalUrl,
   STRIPE_SECRET_KEY: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
+  COMMERCE_BACKEND: z.enum(["local", "shopify"]).optional(),
+  SHOPIFY_STORE_DOMAIN: optionalShopDomain,
+  SHOPIFY_STOREFRONT_PRIVATE_TOKEN: optionalString,
+  SHOPIFY_STOREFRONT_API_VERSION: z
+    .string()
+    .regex(/^20\d{2}-(01|04|07|10)$/)
+    .optional(),
+  SHOPIFY_WEBHOOK_SECRET: optionalString,
   S3_REGION: optionalString,
   S3_BUCKET: optionalString,
   S3_ACCESS_KEY_ID: optionalString,
@@ -45,6 +63,11 @@ export const env = envSchema.parse({
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+  COMMERCE_BACKEND: process.env.COMMERCE_BACKEND,
+  SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
+  SHOPIFY_STOREFRONT_PRIVATE_TOKEN: process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN,
+  SHOPIFY_STOREFRONT_API_VERSION: process.env.SHOPIFY_STOREFRONT_API_VERSION,
+  SHOPIFY_WEBHOOK_SECRET: process.env.SHOPIFY_WEBHOOK_SECRET,
   S3_REGION: process.env.S3_REGION,
   S3_BUCKET: process.env.S3_BUCKET,
   S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,

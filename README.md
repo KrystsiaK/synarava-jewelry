@@ -9,6 +9,7 @@ System rebuild of the Synarava storefront and lightweight CMS on:
 - Railway config-as-code deployment setup
 - S3-compatible storage scaffold
 - Stripe checkout scaffold
+- Optional Shopify Storefront API cart and hosted checkout
 - RBAC-ready admin/CMS foundation
 - Stitch-derived design system direction
 
@@ -59,6 +60,11 @@ Fill in local/production variables as needed:
 - `STRIPE_WEBHOOK_SECRET`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
+- `COMMERCE_BACKEND` — `local` by default; set to `shopify` only after Shopify is configured
+- `SHOPIFY_STORE_DOMAIN` — the permanent `your-store.myshopify.com` domain
+- `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` — private Storefront API token; server-only
+- `SHOPIFY_STOREFRONT_API_VERSION` — optional, defaults to `2026-07`
+- `SHOPIFY_WEBHOOK_SECRET` — reserved for the order-sync phase
 - `S3_REGION`
 - `S3_BUCKET`
 - `S3_ACCESS_KEY_ID`
@@ -67,6 +73,26 @@ Fill in local/production variables as needed:
 - `S3_PUBLIC_URL` public bucket/CDN origin used for optimized media URLs
 
 Storefront video is managed at `/admin/videos`: upload MP4 or WebM files there after S3 is configured. The same stored assets are used on the home page, About page, and product fit-film sections. Railway Bucket users should set `S3_USE_PROXY=true`, so private objects are served from `/media/uploads/*`.
+
+## Shopify commerce backend
+
+The storefront can switch between the existing local/Stripe flow and Shopify without changing UI code. Shopify mode currently provides a Shopify-backed cart and redirects `/checkout` to Shopify's hosted checkout. The site's editorial CMS, authentication, and page design stay local.
+
+1. In Shopify Admin, install/open the **Headless** sales channel and create a storefront.
+2. Create a **private Storefront API token** with product and cart access.
+3. Ensure every Shopify product handle matches the corresponding local product slug. Until a variant selector is added, the site chooses the first available Shopify variant.
+4. Add these values locally and to Railway variables. Never expose the private token through a `NEXT_PUBLIC_` variable:
+
+```dotenv
+COMMERCE_BACKEND=local
+SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
+SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpat_...
+SHOPIFY_STOREFRONT_API_VERSION=2026-07
+```
+
+5. Keep `COMMERCE_BACKEND=local` while products and credentials are being prepared. After testing the matching product handles in a preview deployment, change it to `shopify` and redeploy.
+
+To roll back, set `COMMERCE_BACKEND=local` and redeploy. Existing local checkout code remains intact during this migration phase.
 
 ## Railway
 

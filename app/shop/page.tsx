@@ -6,7 +6,7 @@ import { ShopPage } from "@/components/shop/shop-page";
 export const metadata: Metadata = {
   title: "Shop",
   description:
-    "Browse all Synarava handcrafted jewelry. Bracelets, symbolic editions, and earth pieces made from lava stone, oak wood, and white ceramic.",
+    "Browse Synarava jewelry, pet accessories, creative kits for kids, and jewelry-making supplies.",
   alternates: { canonical: "/shop" },
   openGraph: { url: "/shop" },
 };
@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 type Props = {
   searchParams?: Promise<{
     q?: string;
+    department?: string;
     category?: string;
     tag?: string;
     collection?: string;
@@ -22,7 +23,7 @@ type Props = {
 
 export default async function Page({ searchParams }: Props) {
   const filters = (await searchParams) ?? {};
-  const [{ categories, tags, collections }, products, archiveProducts] = await Promise.all([
+  const [{ departments, categories, tags, collections }, products, archiveProducts] = await Promise.all([
     getShopFilterData(),
     listShopProducts(filters),
     listShopProducts({}),
@@ -34,6 +35,10 @@ export default async function Page({ searchParams }: Props) {
       leadProduct={archiveProducts[0]}
       archiveCount={archiveProducts.length}
       filterProps={{
+        departments: departments.map((department) => ({
+          value: department.slug,
+          label: department.name,
+        })),
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
         collections: collections.map((c) => ({ value: c.slug, label: c.name })),
         tags: tags.map((t) => ({ value: t.slug, label: t.name })),

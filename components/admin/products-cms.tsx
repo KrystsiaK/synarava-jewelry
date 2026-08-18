@@ -25,6 +25,7 @@ import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
 import { parseProductDetails } from "@/lib/content/catalog";
+import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 
 type CategoryOption = SavedCategoryPayload;
 type TagOption = SavedTagPayload;
@@ -65,6 +66,10 @@ function centsToPrice(cents: number) {
 
 function getProductEditorDetails(details: unknown) {
   const parsed = parseProductDetails(details);
+  const attributes = Array.from({ length: 8 }, (_, index) => {
+    const source = parsed.attributes?.[index];
+    return { label: source?.label ?? "", value: source?.value ?? "" };
+  });
 
   const materialsEyebrow = parsed.materialsEyebrow ?? "";
   const materialsTitle = parsed.materialsTitle ?? "";
@@ -99,6 +104,8 @@ function getProductEditorDetails(details: unknown) {
   });
 
   return {
+    department: parsed.department ?? "",
+    attributes,
     materialsEyebrow,
     materialsTitle,
     materials,
@@ -254,6 +261,55 @@ function ProductDetailFields({
           </AdminHelp>
         </p>
       </div>
+
+      <section
+        className="grid gap-4 p-4"
+        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div>
+          <p className="adm-label-row">
+            <span className="adm-label">Department &amp; characteristics</span>
+            <AdminHelp>
+              Department drives the top-level shop navigation. Characteristics adapt the same
+              product page to jewelry, pet accessories, kids products, and jewelry-making supplies.
+            </AdminHelp>
+          </p>
+        </div>
+
+        <label className="grid gap-2 md:max-w-sm">
+          <span className="adm-label">Department</span>
+          <select name="department" defaultValue={details.department} className="adm-field">
+            <option value="">No department</option>
+            {SHOP_DEPARTMENTS.map((department) => (
+              <option key={department.slug} value={department.slug}>
+                {department.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {details.attributes.map((attribute, index) => (
+            <div
+              key={`attribute-${index}`}
+              className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3"
+            >
+              <input
+                name={`attributeLabel${index + 1}`}
+                defaultValue={attribute.label}
+                placeholder={index === 0 ? "Size / Age / Material" : "Characteristic"}
+                className="adm-field"
+              />
+              <input
+                name={`attributeValue${index + 1}`}
+                defaultValue={attribute.value}
+                placeholder={index === 0 ? "120 cm / 8+ / Cotton" : "Value"}
+                className="adm-field"
+              />
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Materials */}
       <section

@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { addProductToCart, removeCartItem, updateCartItemQuantity } from "@/lib/commerce/cart";
+import {
+  addStorefrontProductToCart,
+  removeStorefrontCartItem,
+  updateStorefrontCartItemQuantity,
+} from "@/lib/commerce/storefront-cart";
 
 function refreshCommerce() {
   revalidatePath("/cart");
@@ -18,7 +22,7 @@ export async function addToCartAction(formData: FormData) {
     return;
   }
 
-  await addProductToCart(productSlug, 1);
+  await addStorefrontProductToCart(productSlug, 1);
   refreshCommerce();
   redirect(redirectTo || "/cart");
 }
@@ -26,19 +30,19 @@ export async function addToCartAction(formData: FormData) {
 export async function increaseCartItemAction(formData: FormData) {
   const itemId = String(formData.get("itemId") ?? "").trim();
   const quantity = Number(formData.get("quantity") ?? 1);
-  await updateCartItemQuantity(itemId, quantity + 1);
+  await updateStorefrontCartItemQuantity(itemId, quantity + 1);
   refreshCommerce();
 }
 
 export async function decreaseCartItemAction(formData: FormData) {
   const itemId = String(formData.get("itemId") ?? "").trim();
   const quantity = Number(formData.get("quantity") ?? 1);
-  await updateCartItemQuantity(itemId, quantity - 1);
+  await updateStorefrontCartItemQuantity(itemId, quantity - 1);
   refreshCommerce();
 }
 
 export async function removeCartItemAction(formData: FormData) {
   const itemId = String(formData.get("itemId") ?? "").trim();
-  await removeCartItem(itemId);
+  await removeStorefrontCartItem(itemId);
   refreshCommerce();
 }

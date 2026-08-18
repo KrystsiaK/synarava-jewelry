@@ -1,5 +1,6 @@
 export type ShopFilters = {
   q?: string;
+  department?: string;
   category?: string;
   collection?: string;
   tag?: string;
@@ -15,6 +16,7 @@ export const FILTERS_STORAGE_KEY = "synarava:shop-filters";
 export function buildSearchParams(filters: ShopFilters): string {
   const params = new URLSearchParams();
   if (filters.q?.trim()) params.set("q", filters.q.trim());
+  if (filters.department) params.set("department", filters.department);
   if (filters.category) params.set("category", filters.category);
   if (filters.collection) params.set("collection", filters.collection);
   if (filters.tag) params.set("tag", filters.tag);
@@ -22,7 +24,7 @@ export function buildSearchParams(filters: ShopFilters): string {
 }
 
 export function countActiveFilters(filters: ShopFilters): number {
-  return [filters.q, filters.category, filters.collection, filters.tag].filter(Boolean).length;
+  return [filters.q, filters.department, filters.category, filters.collection, filters.tag].filter(Boolean).length;
 }
 
 export function saveFiltersToSession(filters: ShopFilters) {

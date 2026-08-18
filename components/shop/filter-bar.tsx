@@ -20,6 +20,7 @@ import {
 } from "./types";
 
 export type FilterBarProps = {
+  departments?: FilterOption[];
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
@@ -33,6 +34,7 @@ const labelOf = (value: string, opts: FilterOption[]) =>
 const SHOP_SCROLL_OPTIONS = { scroll: false };
 
 export function FilterBar({
+  departments = [],
   categories,
   collections,
   tags,
@@ -151,6 +153,11 @@ export function FilterBar({
 
           {/* Summary pills */}
           <div className="flex flex-wrap gap-1.5">
+            {pendingRestore.department && (
+              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
+                {labelOf(pendingRestore.department, departments)}
+              </span>
+            )}
             {pendingRestore.category && (
               <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 {labelOf(pendingRestore.category, categories)}
@@ -223,6 +230,13 @@ export function FilterBar({
         {/* Left: label + divider + dropdowns */}
         <div className="flex items-center justify-between gap-5 px-5 py-4 lg:px-6">
           <div className="flex min-w-0 items-center gap-2.5">
+            <FilterDropdown
+              label="Department"
+              options={departments}
+              value={filters.department ?? ""}
+              onChange={(v) => setFilter("department", v)}
+              allLabel="All departments"
+            />
             <FilterDropdown
               label="Category"
               options={categories}
@@ -333,6 +347,7 @@ export function FilterBar({
         <div className="mt-3">
           <FilterChips
             filters={filters}
+            departments={departments}
             categories={categories}
             collections={collections}
             tags={tags}
@@ -346,6 +361,7 @@ export function FilterBar({
       <MobileFilterSheet
         key={mobileSession}
         open={mobileOpen}
+        departments={departments}
         categories={categories}
         collections={collections}
         tags={tags}
@@ -365,6 +381,7 @@ export function FilterBar({
 
 type MobileFilterSheetProps = {
   open: boolean;
+  departments?: FilterOption[];
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
@@ -375,6 +392,7 @@ type MobileFilterSheetProps = {
 
 function MobileFilterSheet({
   open,
+  departments = [],
   categories,
   collections,
   tags,
@@ -387,6 +405,7 @@ function MobileFilterSheet({
   const localActiveCount = countActiveFilters(local);
 
   const sections: { key: keyof ShopFilters; label: string; options: FilterOption[] }[] = [
+    { key: "department", label: "Department", options: departments },
     { key: "category",   label: "Category",   options: categories },
     { key: "collection", label: "Collection", options: collections },
     { key: "tag",        label: "Tag",        options: tags },

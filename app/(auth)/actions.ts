@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { checkRateLimit } from "@/lib/auth/guard";
 import { clearUserSession, createUserSession } from "@/lib/auth/session";
-import { attachCurrentCartToUser } from "@/lib/commerce/cart";
+import { attachStorefrontCartToUser } from "@/lib/commerce/storefront-cart";
 import {
   authenticateUser,
   createPasswordResetToken,
@@ -46,7 +46,7 @@ export async function loginAction(
   }
 
   await createUserSession(user.id);
-  await attachCurrentCartToUser(user.id);
+  await attachStorefrontCartToUser(user.id);
 
   if (redirectTo) {
     redirect(redirectTo);
@@ -87,7 +87,7 @@ export async function registerAction(
   }
 
   await createUserSession(result.userId);
-  await attachCurrentCartToUser(result.userId);
+  await attachStorefrontCartToUser(result.userId);
 
   redirect("/shop");
 }

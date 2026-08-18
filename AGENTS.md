@@ -19,6 +19,13 @@ Rules:
 - Read-only inspection outside the project is allowed only when necessary for the task. All generated screenshots, traces, profiles, logs, and temporary artifacts must be written inside the project.
 - If completing a task would require any write or mutation outside the project, stop and ask the user instead of requesting or attempting elevated access.
 
+## Protected environment files
+
+- Never read, search, print, copy, modify, rename, delete, or enumerate any file whose name starts with `.env`.
+- Never use a wildcard or broad file-reading command that could include `.env*` files.
+- The repository `PreToolUse` hook in `.codex/hooks/protect-env-local.mjs` must deny such tool calls before execution. Do not disable, bypass, rewrite, or work around this hook.
+- Ask the user to enter secret values directly. Work only with variable names or redacted placeholders supplied by the user.
+
 ## Design and performance
 
 - Treat visual ambition and runtime performance as one requirement, never a trade-off: a design is successful only when it remains fast, and performance work is successful only when it preserves the intended visual experience.

@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { TranslationProvider } from "@/lib/i18n/context";
-import { getCartCount } from "@/lib/commerce/cart";
+import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isThemePreference } from "@/lib/theme/shared";
 
@@ -84,7 +84,10 @@ export default async function RootLayout({
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
   const initialLocale = cookieStore.get("synarava-locale")?.value ?? "en";
-  const [cartCount, currentUser] = await Promise.all([getCartCount(), getCurrentUser()]);
+  const [cartCount, currentUser] = await Promise.all([
+    getStorefrontCartCount(),
+    getCurrentUser(),
+  ]);
 
   return (
     <html

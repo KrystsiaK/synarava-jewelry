@@ -16,11 +16,13 @@ vi.mock("next/navigation", () => ({
 }));
 
 const categories = [{ value: "bracelets", label: "Bracelets" }];
+const departments = [{ value: "jewelry", label: "Jewelry" }];
 const collections = [{ value: "heritage", label: "Heritage" }];
 const tags = [{ value: "oak", label: "Oak Wood" }];
 const noScroll = { scroll: false };
 
 const defaultProps = {
+  departments,
   categories,
   collections,
   tags,
@@ -40,6 +42,7 @@ beforeEach(() => {
 describe("FilterBar", () => {
   it("renders filter dropdowns on desktop", () => {
     render(<FilterBar {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /^department$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^category$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^collection$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^tag$/i })).toBeInTheDocument();
@@ -213,9 +216,9 @@ describe("FilterBar", () => {
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog");
-    // Click "All" in the Category section to clear that filter
+    // Department is the first section; click "All" in the Category section.
     const allBtns = within(dialog).getAllByRole("button", { name: "All" });
-    await user.click(allBtns[0]);
+    await user.click(allBtns[1]);
     // Then confirm via CTA (localActiveCount=0 after deselecting, so "View all pieces")
     await user.click(within(dialog).getByRole("button", { name: /view all pieces/i }));
     await waitFor(() => expect(mockPush).toHaveBeenCalled());

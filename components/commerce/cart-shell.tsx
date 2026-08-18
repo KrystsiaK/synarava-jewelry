@@ -25,6 +25,7 @@ type CartShellProps = {
   items: CartItem[];
   itemCount: number;
   subtotal: string;
+  usesShopifyCheckout: boolean;
 };
 
 function EmptyCart() {
@@ -72,7 +73,12 @@ function EmptyCart() {
   );
 }
 
-export function CartShell({ items, itemCount, subtotal }: CartShellProps) {
+export function CartShell({
+  items,
+  itemCount,
+  subtotal,
+  usesShopifyCheckout,
+}: CartShellProps) {
   const pageStyle = {
     "--color-background": "#09090a",
     "--color-foreground": "#eeeae4",
@@ -158,9 +164,13 @@ export function CartShell({ items, itemCount, subtotal }: CartShellProps) {
                 <CartSummaryPanel
                   itemCount={itemCount}
                   subtotal={subtotal}
-                  ctaHref="/checkout/shipping"
-                  ctaLabel="Continue to shipping"
-                  note="Shipping details come first. At checkout you can either sign in or continue as guest."
+                  ctaHref="/checkout"
+                  ctaLabel={usesShopifyCheckout ? "Secure checkout" : "Continue to shipping"}
+                  note={
+                    usesShopifyCheckout
+                      ? "Shipping and payment are completed securely through Shopify. Guest checkout is available."
+                      : "Shipping details come first. At checkout you can either sign in or continue as guest."
+                  }
                 />
 
                 <motion.div

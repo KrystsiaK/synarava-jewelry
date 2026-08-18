@@ -28,8 +28,8 @@ export function SiteFooter() {
           <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden md:h-20 md:w-20">
             <BrandMark
               alt="Synarava"
-              size={160}
-              className="h-full w-full object-contain object-center p-1 md:p-1.5"
+              size={64}
+              className="artifact-footer__mark p-1 md:p-1.5"
             />
           </span>
           <p className="label-mono max-w-[15rem] text-[0.8rem] leading-[1.35] text-foreground uppercase md:max-w-sm md:text-inherit md:leading-inherit">

@@ -66,6 +66,8 @@ const signedStorageOrigins = [
   s3EndpointHostname ? `${s3EndpointProtocol}://*.${s3EndpointHostname}` : null,
 ].filter((origin): origin is string => Boolean(origin));
 
+const shopifyImageOrigins = ["https://cdn.shopify.com", "https://*.shopifycdn.com"];
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
@@ -83,6 +85,14 @@ const nextConfig: NextConfig = {
     maximumRedirects: 2,
     contentDispositionType: "inline",
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.shopify.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.shopifycdn.com",
+      },
       ...(s3PublicHostname
         ? [
             {
@@ -116,7 +126,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' data: blob: ${signedStorageOrigins.join(" ")}`,
+      `img-src 'self' data: blob: ${[...signedStorageOrigins, ...shopifyImageOrigins].join(" ")}`,
       `media-src 'self' ${signedStorageOrigins.join(" ")}`,
       `connect-src 'self' https://api.stripe.com ${signedStorageOrigins.join(" ")}`,
       "frame-src https://js.stripe.com",

@@ -1473,6 +1473,11 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   );
 
   const details = {
+    department: formValue(formData, "department"),
+    attributes: Array.from({ length: 8 }, (_, index) => ({
+      label: formValue(formData, `attributeLabel${index + 1}`),
+      value: formValue(formData, `attributeValue${index + 1}`),
+    })).filter((item) => item.label && item.value),
     materialsEyebrow: formValue(formData, "materialsEyebrow"),
     materialsTitle: formValue(formData, "materialsTitle"),
     materials: materialEntries.filter((item) => item.title && item.body && item.image),
@@ -1631,6 +1636,19 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
   const existingImageUrl = removeImage
     ? ""
     : String(formData.get("existingImageUrl") ?? "").trim();
+  const existingProduct = productId
+    ? await db.product.findUnique({ where: { id: productId }, select: { details: true } })
+    : null;
+  const department = formValue(formData, "department");
+  const attributes = Array.from({ length: 8 }, (_, index) => ({
+    label: formValue(formData, `attributeLabel${index + 1}`),
+    value: formValue(formData, `attributeValue${index + 1}`),
+  })).filter((item) => item.label && item.value);
+  const draftDetails = {
+    ...asRecord(existingProduct?.details),
+    department: department || null,
+    attributes,
+  } as Prisma.InputJsonValue;
 
   const productData = {
     slug,
@@ -1640,7 +1658,7 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     shortDescription: shortDescription || null,
     description: description || null,
     materialLine: materialLine || null,
-    details: {},
+    details: draftDetails,
     imageUrl: existingImageUrl || null,
     priceCents: Number.isFinite(price) ? Math.round(price * 100) : 0,
     status: "DRAFT" as const,

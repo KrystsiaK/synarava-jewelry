@@ -8,9 +8,10 @@ import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 
 type AddToCartButtonProps = {
   productSlug: string;
+  merchandiseId?: string;
 };
 
-export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
+export function AddToCartButton({ productSlug, merchandiseId }: AddToCartButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
@@ -24,7 +25,7 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
       const response = await fetch("/api/cart/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productSlug, quantity: 1 }),
+        body: JSON.stringify({ productSlug, merchandiseId, quantity: 1 }),
       });
 
       const payload = (await response.json()) as {
@@ -106,7 +107,7 @@ export function AddToCartButton({ productSlug }: AddToCartButtonProps) {
             <ArtifactLink href="/cart" variant="secondary" size="md" className="flex-1 border-white/24 text-white hover:border-white hover:text-white">
               View cart
             </ArtifactLink>
-            <PrimaryCtaButton href="/checkout/shipping" className="w-full flex-1">
+            <PrimaryCtaButton href="/checkout" className="w-full flex-1">
               Checkout
             </PrimaryCtaButton>
           </div>

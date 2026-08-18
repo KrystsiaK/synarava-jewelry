@@ -1,5 +1,15 @@
 import { redirect } from "next/navigation";
 
-export default function CheckoutPage() {
+import {
+  getStorefrontCheckoutUrl,
+  usesShopifyCart,
+} from "@/lib/commerce/storefront-cart";
+
+export default async function CheckoutPage() {
+  if (usesShopifyCart()) {
+    const checkoutUrl = await getStorefrontCheckoutUrl();
+    redirect(checkoutUrl ?? "/cart");
+  }
+
   redirect("/checkout/shipping");
 }

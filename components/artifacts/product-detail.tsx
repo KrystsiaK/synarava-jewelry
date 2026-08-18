@@ -60,7 +60,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-background via-background/92 to-transparent" />
       <div className="pointer-events-none absolute -right-6 bottom-[4%] hidden font-serif text-[16vw] leading-none text-foreground/[0.025] md:block [writing-mode:vertical-rl]">
-        ARTIFACT
+        {product.departmentName || "PRODUCT"}
       </div>
 
       <div className="site-shell relative z-10 w-full pb-6 pt-[38svh] md:grid md:grid-cols-12 md:pb-[6vh] md:pt-36">
@@ -76,7 +76,9 @@ function ProductHero({ product }: { product: ProductSummary }) {
           >
             <Link href="/shop" className="transition-colors hover:text-couture-red">Shop</Link>
             <span className="text-foreground/20">/</span>
-            <span className="text-foreground/60">{product.series}</span>
+            <span className="text-foreground/60">
+              {product.categoryName || product.departmentName || "Product"}
+            </span>
           </motion.nav>
 
           <h1
@@ -151,6 +153,45 @@ function ProductHero({ product }: { product: ProductSummary }) {
         </motion.div>
       </div>
     </motion.header>
+  );
+}
+
+function ProductSpecifications({ product }: { product: ProductSummary }) {
+  if (!product.departmentName && product.attributes.length === 0) return null;
+
+  return (
+    <section className="border-y border-foreground/10 bg-surface py-16 md:py-20">
+      <div className="site-shell grid gap-10 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <div>
+          <p className="label-mono text-couture-red">Product information</p>
+          <h2 className="mt-4 max-w-sm font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none">
+            Details that matter
+          </h2>
+          {product.departmentName ? (
+            <p className="mt-5 text-sm uppercase tracking-[0.16em] text-foreground/50">
+              {product.departmentName}
+              {product.categoryName ? ` / ${product.categoryName}` : ""}
+            </p>
+          ) : null}
+        </div>
+
+        {product.attributes.length > 0 ? (
+          <dl className="grid content-start gap-0 border-t border-foreground/12">
+            {product.attributes.map((attribute) => (
+              <div
+                key={`${attribute.label}-${attribute.value}`}
+                className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6 border-b border-foreground/12 py-4"
+              >
+                <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/45">
+                  {attribute.label}
+                </dt>
+                <dd className="text-sm leading-6 text-foreground/82">{attribute.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -709,6 +750,7 @@ export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummar
       style={pageStyle}
     >
       <ProductHero product={product} />
+      <ProductSpecifications product={product} />
       <MaterialsSection product={product} />
       <SymbolismSection product={product} />
       <CraftSection product={product} fitVideoSrc={fitVideoSrc} />

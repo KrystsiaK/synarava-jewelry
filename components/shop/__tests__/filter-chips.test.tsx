@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { FilterChips } from "../filter-chips";
 
 const categories = [{ value: "bracelets", label: "Bracelets" }];
+const departments = [{ value: "jewelry", label: "Jewelry" }];
 const collections = [{ value: "heritage", label: "Heritage" }];
 const tags = [{ value: "oak", label: "Oak Wood" }];
 
@@ -12,6 +13,7 @@ function setup(filters: Parameters<typeof FilterChips>[0]["filters"]) {
   render(
     <FilterChips
       filters={filters}
+      departments={departments}
       categories={categories}
       collections={collections}
       tags={tags}
@@ -38,6 +40,11 @@ describe("FilterChips", () => {
   it("renders a chip for a category filter using the option label", () => {
     setup({ category: "bracelets" });
     expect(screen.getByText("Bracelets")).toBeInTheDocument();
+  });
+
+  it("renders a chip for a department filter", () => {
+    setup({ department: "jewelry" });
+    expect(screen.getByText("Jewelry")).toBeInTheDocument();
   });
 
   it("renders a chip for a collection filter", () => {

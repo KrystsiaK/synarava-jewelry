@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { addProductToCart, getCartCount } from "@/lib/commerce/cart";
+import {
+  addStorefrontProductToCart,
+  getStorefrontCartCount,
+} from "@/lib/commerce/storefront-cart";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { productSlug?: string; quantity?: number };
+    const body = (await request.json()) as {
+      productSlug?: string;
+      quantity?: number;
+      merchandiseId?: string;
+    };
     const productSlug = body.productSlug?.trim();
     const quantity = Number(body.quantity ?? 1);
 
@@ -12,8 +19,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Missing product slug." }, { status: 400 });
     }
 
-    await addProductToCart(productSlug, Number.isFinite(quantity) && quantity > 0 ? quantity : 1);
-    const count = await getCartCount();
+    await addStorefrontProductToCart(
+      productSlug,
+      Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+      body.merchandiseId?.trim() || undefined,
+    );
+    const count = await getStorefrontCartCount();
 
     return NextResponse.json({ ok: true, count });
   } catch (error) {

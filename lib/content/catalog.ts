@@ -1,4 +1,16 @@
 import { db } from "@/lib/db";
+import { isShopifyCommerceEnabled } from "@/lib/shopify/config";
+import {
+  getShopifyProductByHandle,
+  getShopifyProductFilters,
+  listShopifyProducts,
+} from "@/lib/shopify/products";
+import {
+  SHOP_DEPARTMENTS,
+  isShopDepartmentSlug,
+  shopDepartmentName,
+  type ShopDepartmentSlug,
+} from "@/lib/catalog/taxonomy";
 
 export type CollectionSummary = {
   slug: string;
@@ -19,6 +31,9 @@ export type ProductSummary = {
   collectionSlug: string;
   collectionName: string;
   materialLine: string;
+  departmentSlug: ShopDepartmentSlug | null;
+  departmentName: string;
+  attributes: ProductAttribute[];
   categorySlug: string | null;
   categoryName: string | null;
   tagSlugs: string[];
@@ -34,6 +49,11 @@ export type ProductSummary = {
   lookbookEyebrow: string;
   lookbookTitle: string;
   lookbook: ProductLookbookStory[];
+};
+
+export type ProductAttribute = {
+  label: string;
+  value: string;
 };
 
 export type ProductMaterialStory = {
@@ -62,6 +82,7 @@ export type ProductLookbookStory = {
 
 export type ShopFilters = {
   q?: string;
+  department?: string;
   category?: string;
   tag?: string;
   collection?: string;
@@ -79,6 +100,8 @@ export type PageContent = {
 };
 
 export type ProductDetailsPayload = {
+  department?: ShopDepartmentSlug;
+  attributes?: ProductAttribute[];
   materialsEyebrow?: string;
   materialsTitle?: string;
   materials?: ProductMaterialStory[];
@@ -127,6 +150,14 @@ function normalizeProcessStat(value: unknown): ProductProcessStat | null {
   return { value: valueText, label };
 }
 
+function normalizeProductAttribute(value: unknown): ProductAttribute | null {
+  if (!isRecord(value)) return null;
+  const label = typeof value.label === "string" ? value.label.trim() : "";
+  const attributeValue = typeof value.value === "string" ? value.value.trim() : "";
+  if (!label || !attributeValue) return null;
+  return { label, value: attributeValue };
+}
+
 export function parseProductDetails(details: unknown): ProductDetailsPayload {
   if (!isRecord(details)) {
     return {};
@@ -136,6 +167,10 @@ export function parseProductDetails(details: unknown): ProductDetailsPayload {
     typeof details.materialsEyebrow === "string" ? details.materialsEyebrow.trim() : "";
   const materialsTitle =
     typeof details.materialsTitle === "string" ? details.materialsTitle.trim() : "";
+  const department = isShopDepartmentSlug(details.department) ? details.department : undefined;
+  const attributes = Array.isArray(details.attributes)
+    ? details.attributes.map(normalizeProductAttribute).filter(Boolean) as ProductAttribute[]
+    : [];
   const materials = Array.isArray(details.materials)
     ? details.materials.map(normalizeMaterialStory).filter(Boolean) as ProductMaterialStory[]
     : [];
@@ -165,6 +200,8 @@ export function parseProductDetails(details: unknown): ProductDetailsPayload {
     : undefined;
 
   return {
+    department,
+    attributes,
     materialsEyebrow,
     materialsTitle,
     materials,
@@ -229,6 +266,9 @@ function toSummary(product: {
     collectionSlug: leadCollection?.slug ?? "",
     collectionName: leadCollection?.name ?? "",
     materialLine: product.materialLine ?? "",
+    departmentSlug: details.department ?? null,
+    departmentName: shopDepartmentName(details.department),
+    attributes: details.attributes ?? [],
     categorySlug: product.category?.slug ?? null,
     categoryName: product.category?.name ?? null,
     tagSlugs: product.tags.map((item) => item.tag.slug),
@@ -248,6 +288,11 @@ function toSummary(product: {
 }
 
 export async function getShopFilterData() {
+  if (isShopifyCommerceEnabled()) {
+    const filters = await getShopifyProductFilters();
+    return { departments: SHOP_DEPARTMENTS, ...filters };
+  }
+
   const [categories, tags, collections] = await Promise.all([
     db.productCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -261,7 +306,7 @@ export async function getShopFilterData() {
     }),
   ]);
 
-  return { categories, tags, collections };
+  return { departments: SHOP_DEPARTMENTS, categories, tags, collections };
 }
 
 export async function listCollections() {
@@ -316,12 +361,24 @@ function formatCollectionEyebrow(sortOrder: number | null | undefined) {
 }
 
 export async function listShopProducts(filters: ShopFilters = {}) {
+  if (isShopifyCommerceEnabled()) {
+    return listShopifyProducts(filters);
+  }
+
   const q = filters.q?.trim();
 
   const products = await db.product.findMany({
     where: {
       status: "ACTIVE",
       visibility: "PUBLIC",
+      ...(filters.department && isShopDepartmentSlug(filters.department)
+        ? {
+            details: {
+              path: ["department"],
+              equals: filters.department,
+            },
+          }
+        : {}),
       ...(filters.category
         ? {
             category: {
@@ -425,7 +482,7 @@ export async function getProductBySlug(slug: string) {
   });
 
   if (!product || product.status !== "ACTIVE" || product.visibility !== "PUBLIC") {
-    return null;
+    return isShopifyCommerceEnabled() ? getShopifyProductByHandle(slug) : null;
   }
 
   return toSummary(product);

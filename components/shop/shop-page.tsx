@@ -85,7 +85,7 @@ function ShopHero({
           <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(9,9,10,0.04)_20%,transparent_48%,rgba(9,9,10,0.72)_100%)]" />
           <div className="absolute inset-[5%] border border-white/15 [clip-path:polygon(7%_0,100%_0,100%_82%,78%_100%,0_89%,0_21%)]" />
           <p className="absolute right-8 top-8 hidden font-sans text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65 md:block">
-            Featured object / {leadProduct.series}
+            Featured product / {leadProduct.departmentName || leadProduct.series}
           </p>
         </motion.div>
       ) : null}
@@ -110,21 +110,21 @@ function ShopHero({
         <div className="mb-5 flex items-center gap-4 md:mb-7">
           <span className="h-px w-10 bg-couture-red" aria-hidden="true" />
           <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white/70">
-            Synarava archive · Belarus
+            Synarava shop · Curated goods
           </p>
         </div>
 
         <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.5rem,9vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-[#f9f8f6]">
-          Curated <span className="font-light italic text-couture-red">archive</span>
+          Curated <span className="font-light italic text-couture-red">shop</span>
         </h1>
 
         <p className="mt-6 max-w-[40rem] text-pretty font-sans text-sm font-medium leading-relaxed text-[#d9d4cc]/80 md:mt-8 md:text-base">
-          Hand-shaped jewelry catalogued by material, origin, and the traces left by its maker.
+          Jewelry, pet accessories, creative products for kids, and tools for making by hand.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-x-10 gap-y-3 border-t border-white/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/55 md:mt-10">
-          <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong> objects available</span>
-          <span>Small-batch / numbered</span>
+          <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong> products available</span>
+          <span>Selected / useful / made to last</span>
         </div>
       </motion.div>
     </header>
@@ -154,6 +154,7 @@ function FilterSection({
 /* ─── Empty state ────────────────────────────────────────────────── */
 type EmptyStateProps = {
   filters: ShopFilters;
+  departments?: FilterOption[];
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
@@ -163,10 +164,10 @@ const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
 const DIM: Record<keyof ShopFilters, string> = {
-  q: "Search", category: "Category", collection: "Collection", tag: "Tag",
+  q: "Search", department: "Department", category: "Category", collection: "Collection", tag: "Tag",
 };
 
-function EmptyState({ filters, categories, collections, tags }: EmptyStateProps) {
+function EmptyState({ filters, departments = [], categories, collections, tags }: EmptyStateProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
 
@@ -175,6 +176,10 @@ function EmptyState({ filters, categories, collections, tags }: EmptyStateProps)
   if (filters.q) {
     const next = { ...filters, q: undefined };
     active.push({ key: "q", label: `"${filters.q}"`, removeHref: `/shop?${buildSearchParams(next)}` });
+  }
+  if (filters.department) {
+    const next = { ...filters, department: undefined };
+    active.push({ key: "department", label: labelOf(filters.department, departments), removeHref: `/shop?${buildSearchParams(next)}` });
   }
   if (filters.category) {
     const next = { ...filters, category: undefined };
@@ -205,9 +210,9 @@ function EmptyState({ filters, categories, collections, tags }: EmptyStateProps)
       </div>
 
       <div>
-        <p className="label-mono mb-3 text-couture-red">0 pieces found</p>
+        <p className="label-mono mb-3 text-couture-red">0 products found</p>
         <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">
-          No pieces matched.
+          No products matched.
         </h2>
         <p className="mt-3 max-w-xl text-base leading-[1.85] text-foreground/55">
           The combination you selected returned no results. Try removing one filter at a time,
@@ -430,6 +435,7 @@ export function ShopPage({ products, leadProduct, archiveCount, filterProps }: S
                 >
                   <EmptyState
                     filters={filterProps.initialFilters}
+                    departments={filterProps.departments}
                     categories={filterProps.categories}
                     collections={filterProps.collections}
                     tags={filterProps.tags}
