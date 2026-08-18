@@ -24,7 +24,7 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
-import { parseProductDetails } from "@/lib/content/catalog";
+import { parseProductDetails } from "@/lib/content/product-details";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 
 type CategoryOption = SavedCategoryPayload;

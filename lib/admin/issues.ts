@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { Prisma } from "@prisma/client";
 
-import { parseProductDetails } from "@/lib/content/catalog";
+import { parseProductDetails } from "@/lib/content/product-details";
 import { db } from "@/lib/db";
 
 type IssueDraft = {

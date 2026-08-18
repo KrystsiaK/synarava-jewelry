@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseProductDetails } from "@/lib/content/catalog";
+import { parseProductDetails } from "@/lib/content/product-details";
 
 const legacyImage =
   "https://lh3.googleusercontent.com/aida-public/demo-product-image";
