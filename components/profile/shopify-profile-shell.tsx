@@ -41,7 +41,7 @@ export function ShopifyProfileShell({
   customer: ShopifyCustomerProfile;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const email = customer.emailAddress?.emailAddress ?? "Email managed by Shopify";
+  const email = customer.emailAddress?.emailAddress ?? "No email address available";
   const totalSpent = customer.orders.nodes.reduce(
     (sum, order) => sum + Number(order.totalPrice.amount),
     0,
@@ -191,7 +191,6 @@ export function ShopifyProfileShell({
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
                   <h2 className="font-serif text-2xl">Saved addresses</h2>
-                  <span className="label-caps text-foreground/35">Managed by Shopify</span>
                 </div>
                 {customer.addresses.nodes.length === 0 ? (
                   <div className="border border-stroke p-8 text-foreground/50">No saved addresses yet. An address can be added during checkout.</div>
@@ -211,10 +210,10 @@ export function ShopifyProfileShell({
 
             {activeTab === "security" ? (
               <div className="max-w-3xl border border-stroke p-7 md:p-9">
-                <p className="label-caps mb-3 text-couture-red">Protected by Shopify</p>
+                <p className="label-caps mb-3 text-couture-red">Secure access</p>
                 <h2 className="font-serif text-2xl">Passwordless customer account</h2>
                 <p className="mt-4 max-w-2xl leading-7 text-foreground/55">
-                  Login codes, identity verification and account security are handled by Shopify. Synarava does not store your password.
+                  Sign-in codes are sent to your email. No customer password is created or stored by Synarava.
                 </p>
                 <Link href="/api/auth/shopify/logout" className="label-caps mt-7 inline-block border border-stroke px-6 py-4 hover:border-couture-red hover:text-couture-red">
                   Sign out on this device

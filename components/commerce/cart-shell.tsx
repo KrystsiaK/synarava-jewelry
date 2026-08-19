@@ -169,7 +169,7 @@ export function CartShell({
                   ctaLabel={usesShopifyCheckout ? "Secure checkout" : "Continue to shipping"}
                   note={
                     usesShopifyCheckout
-                      ? "Shipping and payment are completed securely through Shopify. Guest checkout is available."
+                      ? "Shipping and payment are completed securely at checkout. Guest checkout is available."
                       : "Shipping details come first. At checkout you can either sign in or continue as guest."
                   }
                 />

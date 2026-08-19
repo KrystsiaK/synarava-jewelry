@@ -179,7 +179,7 @@ export default function OfferPage() {
               </p>
               <div className="grid gap-4 sm:grid-cols-3">
                 {[
-                  { method: "Credit / Debit Card", note: "Visa, Mastercard, Amex. Processed securely by Stripe." },
+                  { method: "Credit / Debit Card", note: "Visa, Mastercard, Amex. Processed securely by the payment provider shown at checkout." },
                   { method: "Apple Pay / Google Pay", note: "Accepted at checkout where supported by your browser." },
                   { method: "Bank Transfer", note: "Available on request for orders above €500. Contact us before ordering." },
                 ].map((m) => (

@@ -29,7 +29,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-4 max-w-xl text-base leading-7 text-foreground/60 md:mt-5 md:text-lg md:leading-8">
-          Last updated: 1 June 2025
+          Last updated: 19 August 2026
         </p>
       </header>
 
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
                 {[
                   {
                     category: "Account data",
-                    items: "Name, email address, hashed password — provided when you register.",
+                    items: "Name, email address, account identifiers, order history, and saved addresses. Customer sign-in uses a one-time code; Synarava does not collect or store a customer password.",
                   },
                   {
                     category: "Order data",
@@ -93,11 +93,11 @@ export default function PrivacyPage() {
                   },
                   {
                     category: "Payment data",
-                    items: "We do not store card details. Payments are processed by Stripe, Inc., who acts as an independent data controller under their own privacy policy.",
+                    items: "Payment status and limited transaction details. Card details are entered directly with the checkout or payment provider and are not stored on Synarava servers.",
                   },
                   {
                     category: "Usage data",
-                    items: "Anonymous analytics (page visits, device type, browser) collected only with your cookie consent.",
+                    items: "Technical information needed to operate and secure the website, such as device, browser, IP address, and request logs. Optional analytics are used only when enabled and permitted by your consent choices.",
                   },
                   {
                     category: "Communication data",
@@ -171,8 +171,9 @@ export default function PrivacyPage() {
               </p>
               <div className="panel divide-y divide-stroke">
                 {[
-                  { name: "Stripe, Inc.", role: "Payment processing", note: "Stripe processes payment card data under their own PCI-DSS certified environment." },
-                  { name: "Amazon Web Services (S3)", role: "File and media storage", note: "Product images and uploaded assets are stored on AWS infrastructure." },
+                  { name: "Shopify", role: "Commerce and customer accounts", note: "Shopify group entities, including Shopify International Limited for customers in the EEA, support customer authentication, cart, checkout, order processing, and related commerce services when the Shopify storefront is enabled." },
+                  { name: "Stripe, Inc.", role: "Payment processing", note: "Stripe processes payment details when the local checkout is used." },
+                  { name: "Object storage provider", role: "File and media storage", note: "Product images and uploaded assets are stored using access-controlled object storage." },
                   { name: "Hosting provider", role: "Infrastructure", note: "Our server infrastructure provider processes operational data as a data processor." },
                 ].map((p) => (
                   <div key={p.name} className="p-5 md:p-6">
@@ -202,9 +203,9 @@ export default function PrivacyPage() {
                 for, or as required by law:
               </p>
               <ul className="space-y-2 pl-4">
-                <li className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" /><span><strong className="text-foreground">Account data</strong> — retained for the lifetime of your account, plus 30 days after deletion.</span></li>
-                <li className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" /><span><strong className="text-foreground">Order data</strong> — 7 years, as required for accounting and tax compliance.</span></li>
-                <li className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" /><span><strong className="text-foreground">Analytics data</strong> — aggregated and anonymised after 14 months.</span></li>
+                <li className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" /><span><strong className="text-foreground">Account data</strong> — retained while your account is active and afterward only as needed to close the account, resolve disputes, or meet legal obligations.</span></li>
+                <li className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" /><span><strong className="text-foreground">Order data</strong> — retained for the period required by applicable accounting, tax, consumer-protection, and warranty laws.</span></li>
+                <li className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" /><span><strong className="text-foreground">Technical and analytics data</strong> — retained only as long as needed for security, operation, and the applicable analytics settings.</span></li>
                 <li className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" /><span><strong className="text-foreground">Support communications</strong> — 2 years from last contact.</span></li>
               </ul>
             </div>
@@ -282,8 +283,9 @@ export default function PrivacyPage() {
               <ul className="space-y-2 pl-4">
                 {[
                   "Encrypted data transmission via HTTPS (TLS 1.2+)",
-                  "Bcrypt password hashing — we never store plain-text passwords",
-                  "Payment card data never touches our servers (handled by Stripe)",
+                  "Passwordless customer sign-in using one-time codes",
+                  "Customer passwords are not collected or stored by Synarava",
+                  "Payment card details are handled directly by the checkout or payment provider",
                   "Database access restricted to application layer only",
                   "Regular security reviews and dependency updates",
                 ].map((item) => (

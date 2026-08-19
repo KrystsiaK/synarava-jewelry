@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: Props) {
     <AuthShell
       eyebrow="Customer account"
       title="Return to your collection."
-      description="Shopify securely verifies your email with a one-time code. Synarava never receives or stores a customer password."
+      description="Sign in securely with a one-time code sent to your email. No password required."
       asideTitle="Your pieces, remembered."
       asideBody="Account details are used only to support your orders and make future acquisitions easier."
     >
@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: Props) {
         <div>
           <p className="label-caps text-couture-red">Secure access</p>
           <h2 className="mt-3 font-serif text-[2.4rem] leading-none">
-            Continue with Shopify
+            Access your account
           </h2>
         </div>
         {params.error === "shopify" ? (
