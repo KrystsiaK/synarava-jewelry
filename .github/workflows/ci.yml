@@ -14,7 +14,6 @@ concurrency:
 
 permissions:
   contents: read
-  packages: read
 
 jobs:
   quality:
@@ -39,13 +38,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          registry-url: https://npm.pkg.github.com
-          scope: "@synarava"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Check release version
         run: pnpm check:version

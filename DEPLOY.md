@@ -69,21 +69,9 @@
 
 Для PostgreSQL в Railway выставить `DATABASE_URL` как reference variable на Postgres service, например `${{Postgres.DATABASE_URL}}`.
 
-### Private GitHub Packages in Railpack
-
-The private `@synarava/liquid-glass` dependency is installed through
-`scripts/railway-install.sh`. Configure these Railway service variables:
-
-| Variable | Value |
-|----------|-------|
-| `NPM_TOKEN` | GitHub PAT with `read:packages` access to `@synarava/liquid-glass` |
-| `RAILPACK_INSTALL_CMD` | `sh scripts/railway-install.sh` |
-
-Use the `NPM_TOKEN` name intentionally: Railpack exposes `NPM_*` secrets to the
-Node install step. The script fails with a clear message when the secret is not
-mounted, configures pnpm authentication only for dependency installation, and
-removes the credential afterward. Do not commit a token or restore an auth token
-placeholder in the project `.npmrc`.
+Railpack должен использовать стандартную установку из `package.json` и
+`pnpm-lock.yaml`. Не задавайте кастомный `RAILPACK_INSTALL_CMD`: проект не
+зависит от приватных package registries и не требует npm/GitHub Packages токенов.
 
 ### Версионирование релиза
 

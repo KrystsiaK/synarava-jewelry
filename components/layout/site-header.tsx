@@ -10,7 +10,6 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { useTranslations } from "@/lib/i18n/context";
-import { LiquidGlassSurface } from "@synarava/liquid-glass";
 
 type SiteHeaderProps = {
   initialCartCount: number;
@@ -159,15 +158,9 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
         data-scrolled={hasScrolledHeader ? "true" : "false"}
         data-menu-open={isMenuOpen ? "true" : "false"}
       >
-        <LiquidGlassSurface
+        <div
           className="site-nav-liquid-glass absolute inset-0 z-0 h-full w-full"
-          variant="clear-glass"
-          tone="neutral"
-          effect="default"
-          refractive
-          transparency={0.95}
-          shineIntensity={1.8}
-          materialStyle={{
+          style={{
             border: "none",
             backgroundColor: "transparent",
             backdropFilter: "url(#lg-refract-strong)",
@@ -177,9 +170,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
               : "0 12px 40px rgba(0, 0, 0, 0.3)",
           }}
           aria-hidden="true"
-        >
-          <div className="hidden" aria-hidden="true" />
-        </LiquidGlassSurface>
+        />
         <div className="site-nav-mobile-glass absolute inset-0 z-0" aria-hidden="true" />
 
         <div className="z-10 flex items-center gap-2 md:gap-4">
