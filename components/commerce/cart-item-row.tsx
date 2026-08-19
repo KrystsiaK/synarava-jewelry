@@ -15,12 +15,17 @@ type CartItemRowProps = {
     imageUrl: string;
     materialLine: string;
     quantity: number;
+    maxQuantity?: number | null;
     price: string;
     total: string;
   };
 };
 
 export function CartItemRow({ item }: CartItemRowProps) {
+  const isAtStockLimit =
+    item.maxQuantity != null && item.quantity >= item.maxQuantity;
+  const stockTooltipId = `stock-limit-${item.id}`;
+
   return (
     <article className="grid gap-5 border-t border-stroke py-6 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
       <Link href={`/products/${item.slug}`} className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
@@ -43,20 +48,49 @@ export function CartItemRow({ item }: CartItemRowProps) {
           <form action={decreaseCartItemAction}>
             <input type="hidden" name="itemId" value={item.id} />
             <input type="hidden" name="quantity" value={item.quantity} />
-            <button type="submit" className="border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent">
-              -
+            <button
+              type="submit"
+              aria-label="Decrease quantity"
+              className="border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <span aria-hidden="true">−</span>
             </button>
           </form>
 
           <span className="label-caps min-w-8 text-center text-muted">{item.quantity}</span>
 
-          <form action={increaseCartItemAction}>
-            <input type="hidden" name="itemId" value={item.id} />
-            <input type="hidden" name="quantity" value={item.quantity} />
-            <button type="submit" className="border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent">
-              +
-            </button>
-          </form>
+          {isAtStockLimit ? (
+            <div className="group/stock relative">
+              <button
+                type="button"
+                aria-label="Increase quantity"
+                aria-disabled="true"
+                aria-describedby={stockTooltipId}
+                className="cursor-not-allowed border border-stroke px-3 py-2 text-sm text-foreground/35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <span aria-hidden="true">+</span>
+              </button>
+              <span
+                id={stockTooltipId}
+                role="tooltip"
+                className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-3 w-max max-w-52 -translate-x-1/2 bg-foreground px-3 py-2 text-center text-xs font-medium leading-5 text-background opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover/stock:-translate-y-1 group-hover/stock:opacity-100 group-focus-within/stock:-translate-y-1 group-focus-within/stock:opacity-100 motion-reduce:transition-none"
+              >
+                No more items available
+              </span>
+            </div>
+          ) : (
+            <form action={increaseCartItemAction}>
+              <input type="hidden" name="itemId" value={item.id} />
+              <input type="hidden" name="quantity" value={item.quantity} />
+              <button
+                type="submit"
+                aria-label="Increase quantity"
+                className="border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <span aria-hidden="true">+</span>
+              </button>
+            </form>
+          )}
 
           <form action={removeCartItemAction} className="ml-2">
             <input type="hidden" name="itemId" value={item.id} />

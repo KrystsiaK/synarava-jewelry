@@ -17,6 +17,7 @@ type CartItem = {
   imageUrl: string;
   materialLine: string;
   quantity: number;
+  maxQuantity?: number | null;
   price: string;
   total: string;
 };

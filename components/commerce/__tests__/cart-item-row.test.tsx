@@ -53,7 +53,17 @@ describe("CartItemRow", () => {
 
   it("renders increase and decrease buttons", () => {
     render(<CartItemRow item={item} />);
-    expect(screen.getByRole("button", { name: "+" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "-" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Increase quantity" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Decrease quantity" })).toBeInTheDocument();
+  });
+
+  it("explains when no more inventory is available", () => {
+    render(<CartItemRow item={{ ...item, maxQuantity: 2 }} />);
+
+    expect(screen.getByRole("button", { name: "Increase quantity" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("tooltip")).toHaveTextContent("No more items available");
   });
 });

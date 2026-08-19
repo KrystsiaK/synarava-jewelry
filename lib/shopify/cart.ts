@@ -27,6 +27,8 @@ type ShopifyCartLine = {
     title: string;
     price: Money;
     image: ShopifyImage | null;
+    quantityAvailable: number | null;
+    currentlyNotInStock: boolean;
     product: {
       handle: string;
       title: string;
@@ -74,6 +76,8 @@ const CART_FRAGMENT = `#graphql
             title
             price { amount currencyCode }
             image { url altText }
+            quantityAvailable
+            currentlyNotInStock
             product {
               handle
               title
@@ -226,6 +230,9 @@ export async function getShopifyCartViewModel() {
       title: line.merchandise.product.title,
       imageUrl: image?.url ?? "",
       materialLine: variantTitle,
+      maxQuantity: line.merchandise.currentlyNotInStock
+        ? null
+        : line.merchandise.quantityAvailable,
       unitCents: moneyToCents(line.merchandise.price),
       totalCents: moneyToCents(line.cost.totalAmount),
       price: formatMoney(line.merchandise.price),
