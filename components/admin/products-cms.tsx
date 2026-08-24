@@ -1619,7 +1619,7 @@ export function ProductsCms({
               <div>
                 <p className="adm-section-tag">[ SYNC PREVIEW — READY FOR REVIEW ]</p>
                 <p className="mt-2 text-xs text-[var(--adm-muted)]">
-                  Nothing has changed yet. Select individual products or synchronize every safe action.
+                  Shopify webhooks pull changes automatically. An action appears only while the local copy still differs.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1682,6 +1682,9 @@ export function ProductsCms({
                         <p className="font-semibold text-[var(--adm-ink)]">{item.title}</p>
                         <p className="mt-1 text-[var(--adm-muted)]">{item.sku} · {item.action.replaceAll("_", " ")}</p>
                         {item.localName ? <p className="mt-1 text-[var(--adm-subtle)]">Matches local: {item.localName}</p> : null}
+                        {item.changes.length > 0 ? (
+                          <p className="mt-1 text-[var(--adm-subtle)]">Shopify changed: {item.changes.join(", ")}</p>
+                        ) : null}
                         <button
                           type="button"
                           className="adm-btn-ghost mt-3 inline-flex min-h-8 items-center gap-2 px-2 py-1 text-[0.62rem]"
@@ -1689,7 +1692,7 @@ export function ProductsCms({
                           onClick={() => runSync([item.shopifyProductId], [])}
                         >
                           <ArrowDownToLine className="size-3.5" />
-                          {hasConflict ? "Resolve conflict first" : isUpToDate ? "Up to date" : item.action === "CREATE_LOCAL" ? "Import" : "Pull update"}
+                          {hasConflict ? "Resolve conflict first" : isUpToDate ? "Already synced" : item.action === "CREATE_LOCAL" ? "Import" : "Pull update"}
                         </button>
                       </div>
                     </div>

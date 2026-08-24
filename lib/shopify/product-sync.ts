@@ -5,6 +5,13 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { characteristicDisplayValue, PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
+import {
+  classifyRemoteReconciliationAction,
+  compareVariantCommerce,
+  type RemoteCommerceVariant,
+  variantCommerceChangeLabel,
+  variantCommerceChangeLabels,
+} from "@/lib/shopify/reconciliation";
 import { env } from "@/lib/env";
 
 type UserError = { field?: string[]; message: string };
@@ -60,6 +67,14 @@ type ShopifyProduct = {
     } | null;
   }> };
   metafields: { nodes: ShopifyMetafield[] };
+};
+
+type ShopifyReconciliationProduct = {
+  id: string;
+  title: string;
+  handle: string;
+  updatedAt: string;
+  variants: { nodes: RemoteCommerceVariant[] };
 };
 
 const PRODUCT_FIELDS = `
@@ -475,7 +490,6 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     const right = remoteValue == null ? "" : String(remoteValue).trim();
     if (left !== right) differences.push({ field, local: left || "—", shopify: right || "—" });
   };
-  const localVariant = local.variants[0] ?? null;
   const remoteVariant = remote.variants.nodes[0] ?? null;
 
   compare("Name", local.name, remote.title);
@@ -489,10 +503,14 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   const publishedToOnlineStore = publishedPublications.some((name) => /online store/i.test(name));
   compare("Online Store publication", local.visibility === "PUBLIC" ? "Published" : "Not published", publishedToOnlineStore ? "Published" : "Not published");
   compare("Primary image", local.imageUrl ?? "", remote.featuredMedia?.preview?.image?.url ?? "");
-  compare("SKU", localVariant?.sku ?? local.sku, remoteVariant?.sku ?? "");
-  compare("Price", localVariant?.priceCents ?? local.priceCents, cents(remoteVariant?.price));
-  compare("Compare-at price", localVariant?.compareAtCents ?? "", remoteVariant?.compareAtPrice ? cents(remoteVariant.compareAtPrice) : "");
-  compare("Available quantity", localVariant?.stockOnHand ?? 0, remoteVariant?.inventoryQuantity ?? 0);
+  for (const difference of compareVariantCommerce(local.variants, remote.variants.nodes)) {
+    const variantSuffix = remote.variants.nodes.length > 1 ? ` (${difference.variant})` : "";
+    compare(
+      `${variantCommerceChangeLabel(difference.field)}${variantSuffix}`,
+      difference.local,
+      difference.shopify,
+    );
+  }
   compare(
     "Tags",
     local.tags.map((item) => item.tag.slug).sort().join(", "),
@@ -523,7 +541,9 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     }
   }
 
-  const remoteChanged = !local.shopifyUpdatedAt || new Date(remote.updatedAt).getTime() > local.shopifyUpdatedAt.getTime();
+  const remoteChanged = differences.length > 0 ||
+    !local.shopifyUpdatedAt ||
+    new Date(remote.updatedAt).getTime() > local.shopifyUpdatedAt.getTime();
   const localChanged = local.syncStatus === "PENDING" || local.syncStatus === "FAILED" || local.syncStatus === "CONFLICT";
   const state = remoteChanged && localChanged
     ? "CONFLICT"
@@ -803,25 +823,31 @@ export type ShopifyReconciliationPreview = {
     action: "CREATE_LOCAL" | "UPDATE_LOCAL" | "LINK_AND_UPDATE_LOCAL" | "UP_TO_DATE" | "CONFLICT";
     localProductId: string | null;
     localName: string | null;
+    changes: string[];
   }>;
   pushToShopify: Array<{ productId: string; name: string; slug: string; sku: string }>;
   archiveLocal: Array<{ productId: string; name: string; shopifyProductId: string }>;
 };
 
 export async function previewShopifyReconciliation(): Promise<ShopifyReconciliationPreview> {
-  const remoteProducts: ShopifyProduct[] = [];
+  const remoteProducts: ShopifyReconciliationProduct[] = [];
   let cursor: string | null = null;
   do {
     const data: {
       products: {
         pageInfo: { hasNextPage: boolean; endCursor: string | null };
-        nodes: ShopifyProduct[];
+        nodes: ShopifyReconciliationProduct[];
       };
     } = await shopifyAdminRequest(
       `query SynaravaReconciliationPreview($after: String) {
         products(first: 100, after: $after, sortKey: UPDATED_AT) {
           pageInfo { hasNextPage endCursor }
-          nodes { id title handle updatedAt variants(first: 1) { nodes { id title sku price compareAtPrice } } }
+          nodes {
+            id title handle updatedAt
+            variants(first: 100) {
+              nodes { id title sku price compareAtPrice inventoryQuantity }
+            }
+          }
         }
       }`,
       { after: cursor },
@@ -839,6 +865,16 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
       shopifyProductId: true,
       shopifyUpdatedAt: true,
       syncStatus: true,
+      variants: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          shopifyVariantId: true,
+          sku: true,
+          priceCents: true,
+          compareAtCents: true,
+          stockOnHand: true,
+        },
+      },
     },
   });
   const byRemoteId = new Map(
@@ -858,18 +894,29 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
     if (existing) matchedLocalIds.add(existing.id);
 
     let action: ShopifyReconciliationPreview["remote"][number]["action"] = "CREATE_LOCAL";
-    const remoteIsNewer = Boolean(
+    const variantDifferences = existingById
+      ? compareVariantCommerce(existingById.variants, product.variants.nodes)
+      : [];
+    const productDetailsChanged = Boolean(
       existingById &&
-      (!existingById.shopifyUpdatedAt || new Date(product.updatedAt).getTime() > existingById.shopifyUpdatedAt.getTime()),
+      (!existingById.shopifyUpdatedAt ||
+        new Date(product.updatedAt).getTime() > existingById.shopifyUpdatedAt.getTime()),
     );
+    const changes = [
+      ...(productDetailsChanged ? ["Product details"] : []),
+      ...variantCommerceChangeLabels(variantDifferences),
+    ];
+    const remoteHasChanges = changes.length > 0;
     const localHasChanges = Boolean(
       existingById && ["PENDING", "FAILED", "CONFLICT"].includes(existingById.syncStatus),
     );
 
     if (existing?.shopifyProductId && existing.shopifyProductId !== product.id) action = "CONFLICT";
-    else if (existingById && localHasChanges && remoteIsNewer) action = "CONFLICT";
-    else if (existingById && remoteIsNewer) action = "UPDATE_LOCAL";
-    else if (existingById) action = "UP_TO_DATE";
+    else if (existingById) action = classifyRemoteReconciliationAction({
+      hasUnresolvedConflict: existingById.syncStatus === "CONFLICT",
+      localHasChanges,
+      remoteHasChanges,
+    });
     else if (existing) action = "LINK_AND_UPDATE_LOCAL";
 
     return {
@@ -880,8 +927,13 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
       action,
       localProductId: existing?.id ?? null,
       localName: existing?.name ?? null,
+      changes,
     };
   });
+
+  const remoteActionByLocalId = new Map(
+    remote.flatMap((item) => item.localProductId ? [[item.localProductId, item.action] as const] : []),
+  );
 
   const pushToShopify = localProducts
     .filter(
@@ -889,12 +941,8 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
         if (product.syncStatus === "CONFLICT") return false;
         if (!product.shopifyProductId) return !matchedLocalIds.has(product.id);
         if (!(["PENDING", "FAILED"] as string[]).includes(product.syncStatus)) return false;
-        const remoteProduct = remoteProducts.find((remote) => remote.id === product.shopifyProductId);
-        if (!remoteProduct) return false;
-        return Boolean(
-          product.shopifyUpdatedAt &&
-          product.shopifyUpdatedAt.getTime() >= new Date(remoteProduct.updatedAt).getTime(),
-        );
+        if (!seenRemoteIds.has(product.shopifyProductId)) return false;
+        return remoteActionByLocalId.get(product.id) === "UP_TO_DATE";
       },
     )
     .map(({ id: productId, name, slug, sku }) => ({ productId, name, slug, sku }));
