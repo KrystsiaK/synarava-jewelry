@@ -20,7 +20,7 @@ describe("parseProductDetails", () => {
     });
   });
 
-  it("removes legacy demo media that was previously persisted as fallback content", () => {
+  it("keeps editorial copy while replacing expired legacy media", () => {
     expect(
       parseProductDetails({
         materials: [{ title: "Demo", body: "Demo body", image: legacyImage }],
@@ -37,11 +37,16 @@ describe("parseProductDetails", () => {
       attributes: [],
       materialsEyebrow: "",
       materialsTitle: "",
-      materials: [],
-      process: undefined,
+      materials: [{ title: "Demo", body: "Demo body", image: "/materials/basalt-lava.svg" }],
+      process: {
+        eyebrow: "Process",
+        title: "Demo process",
+        mediaImage: undefined,
+        stats: [{ value: "12", label: "Hours" }],
+      },
       lookbookEyebrow: "",
       lookbookTitle: "",
-      lookbook: [],
+      lookbook: [{ src: "/materials/basalt-lava.svg", label: "Demo lookbook", featured: false }],
     });
   });
 

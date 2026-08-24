@@ -39,6 +39,11 @@
 
 ### Commerce
 
+The catalog ownership and synchronization contract is defined in
+[`product-data-ownership.md`](./product-data-ownership.md). Shopify owns the
+commerce projection; Synarava adds mirrored metafields and a protected
+editorial layer.
+
 - `Product`
   - canonical sellable artifact
   - stores editorial copy, SEO, search summary, status, visibility

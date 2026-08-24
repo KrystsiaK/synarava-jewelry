@@ -24,6 +24,9 @@ export type FilterBarProps = {
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
+  materials?: FilterOption[];
+  finishes?: FilterOption[];
+  origins?: FilterOption[];
   initialFilters: ShopFilters;
   totalCount: number;
 };
@@ -38,6 +41,9 @@ export function FilterBar({
   categories,
   collections,
   tags,
+  materials = [],
+  finishes = [],
+  origins = [],
   initialFilters,
   totalCount,
 }: FilterBarProps) {
@@ -229,7 +235,7 @@ export function FilterBar({
 
         {/* Left: label + divider + dropdowns */}
         <div className="flex items-center justify-between gap-5 px-5 py-4 lg:px-6">
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
             <FilterDropdown
               label="Department"
               options={departments}
@@ -258,6 +264,10 @@ export function FilterBar({
               onChange={(v) => setFilter("tag", v)}
               allLabel="All tags"
             />
+            <FilterDropdown label="Material" options={materials} value={filters.material ?? ""} onChange={(v) => setFilter("material", v)} allLabel="All materials" />
+            <FilterDropdown label="Finish" options={finishes} value={filters.finish ?? ""} onChange={(v) => setFilter("finish", v)} allLabel="All finishes" />
+            <FilterDropdown label="Origin" options={origins} value={filters.origin ?? ""} onChange={(v) => setFilter("origin", v)} allLabel="All origins" />
+            <FilterDropdown label="Compliance" options={[{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }]} value={filters.certified ?? ""} onChange={(v) => setFilter("certified", v)} allLabel="All compliance" />
           </div>
 
           <div className="relative flex w-[min(28vw,17rem)] items-center border-b border-foreground/[0.14] transition-colors focus-within:border-couture-red">
@@ -351,6 +361,9 @@ export function FilterBar({
             categories={categories}
             collections={collections}
             tags={tags}
+            materials={materials}
+            finishes={finishes}
+            origins={origins}
             onRemove={removeFilter}
             onClearAll={clearAll}
           />
@@ -365,6 +378,9 @@ export function FilterBar({
         categories={categories}
         collections={collections}
         tags={tags}
+        materials={materials}
+        finishes={finishes}
+        origins={origins}
         filters={filters}
         onApply={(next) => {
           setFilters(next);
@@ -385,6 +401,9 @@ type MobileFilterSheetProps = {
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
+  materials?: FilterOption[];
+  finishes?: FilterOption[];
+  origins?: FilterOption[];
   filters: ShopFilters;
   onApply: (f: ShopFilters) => void;
   onClose: () => void;
@@ -396,6 +415,9 @@ function MobileFilterSheet({
   categories,
   collections,
   tags,
+  materials = [],
+  finishes = [],
+  origins = [],
   filters,
   onApply,
   onClose,
@@ -409,6 +431,10 @@ function MobileFilterSheet({
     { key: "category",   label: "Category",   options: categories },
     { key: "collection", label: "Collection", options: collections },
     { key: "tag",        label: "Tag",        options: tags },
+    { key: "material",   label: "Material",   options: materials },
+    { key: "finish",     label: "Finish",     options: finishes },
+    { key: "origin",     label: "Origin",     options: origins },
+    { key: "certified",  label: "Compliance", options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] },
   ];
 
   return (

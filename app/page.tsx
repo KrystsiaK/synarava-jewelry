@@ -28,7 +28,6 @@ export default async function Page() {
   ]);
 
   const collections = collectionData
-    .filter((collection) => collection.heroImage)
     .slice(0, 3)
     .map((c) => ({
       series: c.eyebrow,
@@ -40,12 +39,13 @@ export default async function Page() {
     }));
 
   const content = (page?.content ?? {}) as Record<string, string>;
+  const heroImage = content.heroImage || collections[0]?.image || "";
 
   return (
     <HomePage
       title={page?.title}
       excerpt={page?.excerpt}
-      content={{ ...content, heroTitle: page?.title ?? "", heroBody: content.body ?? page?.excerpt ?? "" }}
+      content={{ ...content, heroImage, heroTitle: page?.title ?? "", heroBody: content.body ?? page?.excerpt ?? "" }}
       collections={collections}
       heroVideoSrc={[videos.homeBeads, videos.homeModel, videos.braceletFilm, videos.materialsFilm]}
     />

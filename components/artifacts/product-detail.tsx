@@ -30,6 +30,23 @@ function ProductHero({ product }: { product: ProductSummary }) {
   const textOpacity = useTransform(scrollYProgress, [0, 0.62], [1, 0.14]);
 
   const words = product.title.split(" ");
+  const heroDescription = product.shortDescription.trim() || product.description.trim();
+  const availability = product.stockOnHand > 0
+    ? `${product.stockOnHand} ${product.stockOnHand === 1 ? "piece" : "pieces"} ready`
+    : "Currently unavailable";
+  const quickFacts = [
+    ...(product.sku ? [{ label: "SKU", value: product.sku }] : []),
+    { label: "Availability", value: availability },
+    ...(product.variantCount > 1
+      ? [{ label: "Variants", value: String(product.variantCount) }]
+      : []),
+    ...(product.compareAtPrice
+      ? [{ label: "Original price", value: product.compareAtPrice }]
+      : []),
+    ...(product.materialLine
+      ? [{ label: "Composition", value: product.materialLine }]
+      : []),
+  ];
 
   return (
     <motion.header
@@ -103,23 +120,27 @@ function ProductHero({ product }: { product: ProductSummary }) {
             ))}
           </h1>
 
-          <motion.p
-            className="mt-3 max-w-lg text-pretty text-sm leading-[1.6] text-foreground/70 md:mt-7 md:text-[1.0625rem] md:leading-[1.8]"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease, delay: 0.55 }}
-          >
-            {product.shortDescription}
-          </motion.p>
+          {heroDescription ? (
+            <motion.p
+              className="mt-3 max-w-[60ch] text-pretty text-sm leading-[1.6] text-foreground/74 md:mt-6 md:text-base md:leading-[1.75]"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease, delay: 0.55 }}
+            >
+              {heroDescription}
+            </motion.p>
+          ) : null}
 
-          <motion.p
-            className="mt-3 label-caps text-foreground/50 md:mt-5"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, ease, delay: 0.7 }}
-          >
-            {product.materialLine}
-          </motion.p>
+          {product.materialLine ? (
+            <motion.p
+              className="mt-3 label-caps text-foreground/50 md:mt-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, ease, delay: 0.7 }}
+            >
+              {product.materialLine}
+            </motion.p>
+          ) : null}
 
           <motion.div
             className="mt-5 md:mt-8"
@@ -151,13 +172,79 @@ function ProductHero({ product }: { product: ProductSummary }) {
             </motion.div>
           )}
         </motion.div>
+
+        <motion.dl
+          className="mt-8 grid grid-cols-2 border-y border-foreground/18 md:col-span-5 md:col-start-8 md:mt-0 md:self-end"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.85, ease, delay: 0.78 }}
+        >
+          {quickFacts.map((fact) => (
+            <div
+              key={fact.label}
+              className="min-w-0 border-b border-foreground/12 py-3 pr-4 odd:border-r odd:pl-0 even:pl-4 last:border-b-0 [&:nth-last-child(2):nth-child(odd)]:border-b-0 md:py-4"
+            >
+              <dt className="font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-foreground/42">
+                {fact.label}
+              </dt>
+              <dd className="mt-1 break-words text-sm leading-5 text-foreground/82">
+                {fact.value}
+              </dd>
+            </div>
+          ))}
+        </motion.dl>
       </div>
     </motion.header>
   );
 }
 
 function ProductSpecifications({ product }: { product: ProductSummary }) {
-  if (!product.departmentName && product.attributes.length === 0) return null;
+  type SpecificationRow = {
+    label: string;
+    value: string;
+    characteristic?: ProductSummary["characteristics"][number];
+  };
+  const groups = new Map<string, SpecificationRow[]>();
+  const add = (group: string, row: SpecificationRow) => {
+    if (!row.value.trim()) return;
+    groups.set(group, [...(groups.get(group) ?? []), row]);
+  };
+
+  if (product.vendor && product.vendor.toLowerCase() !== "synarava") {
+    add("Product identity", { label: "Designer / vendor", value: product.vendor });
+  }
+  if (product.shopifyCategoryName) {
+    add("Product identity", { label: "Shopify category", value: product.shopifyCategoryName });
+  }
+  for (const option of product.options) {
+    add("Options", { label: option.name, value: option.values.join(", ") });
+  }
+  for (const variant of product.variantDetails) {
+    const variantLabel = variant.title && variant.title !== "Default Title" ? variant.title : "Primary variant";
+    if (variant.barcode) add("Variant details", { label: `${variantLabel} barcode`, value: variant.barcode });
+    if (variant.weightGrams != null) add("Variant details", { label: `${variantLabel} shipping weight`, value: `${variant.weightGrams} g` });
+    if (product.variantDetails.length > 1) {
+      add("Variant details", {
+        label: variantLabel,
+        value: `${variant.sku} · ${variant.price} · ${variant.stockOnHand} available`,
+      });
+    }
+  }
+
+  product.characteristics.forEach((characteristic, index) => {
+    const attribute = product.attributes[index];
+    if (!attribute?.value) return;
+    add(characteristic.group, { ...attribute, characteristic });
+  });
+  if (product.characteristics.length === 0) {
+    for (const attribute of product.attributes) add("Product details", attribute);
+    if (product.attributes.length === 0 && product.materialLine) {
+      add("Materials & construction", { label: "Material composition", value: product.materialLine });
+    }
+  }
+
+  const specificationGroups = [...groups.entries()];
+  if (!product.departmentName && specificationGroups.length === 0) return null;
 
   return (
     <section className="border-y border-foreground/10 bg-surface py-16 md:py-20">
@@ -175,28 +262,94 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
           ) : null}
         </div>
 
-        {product.attributes.length > 0 ? (
-          <dl className="grid content-start gap-0 border-t border-foreground/12">
-            {product.attributes.map((attribute) => (
-              <div
-                key={`${attribute.label}-${attribute.value}`}
-                className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6 border-b border-foreground/12 py-4"
-              >
-                <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/45">
-                  {attribute.label}
-                </dt>
-                <dd className="text-sm leading-6 text-foreground/82">{attribute.value}</dd>
-              </div>
+        {specificationGroups.length > 0 ? (
+          <div className="grid content-start gap-10">
+            {specificationGroups.map(([group, rows]) => (
+              <section key={group} aria-labelledby={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+                <h3 id={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`} className="mb-3 font-serif text-xl text-foreground/88">
+                  {group}
+                </h3>
+                <dl className="grid border-t border-foreground/12">
+                  {rows.map((row) => (
+                    <div key={`${row.label}-${row.value}`} className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6 border-b border-foreground/12 py-4">
+                      <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/45">{row.label}</dt>
+                      <dd className="flex items-start justify-between gap-4 text-sm leading-6 text-foreground/82">
+                        <span>{row.characteristic?.valueType === "BOOLEAN" && row.characteristic.booleanValue ? "✓ Yes" : row.value}</span>
+                        {row.characteristic?.certificateUrl ? (
+                          <a href={row.characteristic.certificateUrl} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-couture-red underline-offset-4 hover:underline">
+                            Certificate
+                          </a>
+                        ) : null}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
             ))}
-          </dl>
+          </div>
         ) : null}
       </div>
     </section>
   );
 }
 
+function CommerceMediaGallery({ product }: { product: ProductSummary }) {
+  const primary = product.image;
+  const media = product.commerceMedia.filter((item, index, all) =>
+    item.src !== primary && all.findIndex((candidate) => candidate.src === item.src) === index,
+  );
+  if (media.length === 0) return null;
+
+  return (
+    <section className="border-b border-foreground/10 bg-background py-10 md:py-16" aria-label="Product gallery">
+      <div className="site-shell flex snap-x gap-4 overflow-x-auto pb-3 md:grid md:grid-cols-2 md:overflow-visible lg:grid-cols-3">
+        {media.map((item) => (
+          <figure key={item.src} className="relative aspect-[4/5] min-w-[78vw] snap-center overflow-hidden bg-surface md:min-w-0">
+            <Image
+              src={item.src}
+              alt={item.alt || product.title}
+              fill
+              sizes="(max-width: 768px) 78vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover transition-transform duration-700 ease-out hover:scale-[1.015] motion-reduce:transition-none"
+            />
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ProductDescription({ product }: { product: ProductSummary }) {
+  const description = product.description.trim();
+  const shortDescription = product.shortDescription.trim();
+  if (!description || !shortDescription || description === shortDescription) return null;
+
+  return (
+    <section className="bg-background py-20 md:py-28">
+      <div className="site-shell grid gap-8 md:grid-cols-12 md:gap-12">
+        <div className="md:col-span-4">
+          <p className="label-mono text-couture-red">Object notes</p>
+          <h2 className="mt-4 max-w-xs text-balance font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none">
+            The piece, in full
+          </h2>
+        </div>
+        <div className="md:col-span-7 md:col-start-6">
+          <p className="max-w-[68ch] text-pretty text-base leading-[1.9] text-foreground/72 md:text-lg">
+            {description}
+          </p>
+          <div className="mt-10 flex items-center gap-4" aria-hidden="true">
+            <span className="h-px w-16 bg-couture-red/70" />
+            <span className="h-2 w-2 rotate-45 border border-couture-red" />
+            <span className="h-px flex-1 bg-foreground/10" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Materials strip ────────────────────────────────────────────── */
-function MaterialsSection({ product }: { product: ProductSummary }) {
+function MaterialsScrollSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
   const [activeMaterial, setActiveMaterial] = useState(0);
   const reduceMotion = useReducedMotion() ?? false;
@@ -213,14 +366,6 @@ function MaterialsSection({ product }: { product: ProductSummary }) {
     );
     setActiveMaterial((current) => (current === next ? current : next));
   });
-
-  if (
-    product.materials.length === 0 ||
-    !product.materialsEyebrow ||
-    !product.materialsTitle
-  ) {
-    return null;
-  }
 
   return (
     <section
@@ -303,29 +448,34 @@ function MaterialsSection({ product }: { product: ProductSummary }) {
   );
 }
 
+function MaterialsSection({ product }: { product: ProductSummary }) {
+  if (
+    product.materials.length === 0 ||
+    !product.materialsEyebrow ||
+    !product.materialsTitle
+  ) {
+    return null;
+  }
+
+  return <MaterialsScrollSection product={product} />;
+}
+
 /* ─── Symbolism ──────────────────────────────────────────────────── */
-function SymbolismSection({ product }: { product: ProductSummary }) {
+function SymbolismScrollSection({
+  product,
+  materialTerms,
+  symbolismImage,
+}: {
+  product: ProductSummary;
+  materialTerms: string[];
+  symbolismImage: string;
+}) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const imgScale = useTransform(scrollYProgress, [0, 1], [1.035, 0.995]);
-  const materialTerms = product.symbolismTitle
-    .split(",")
-    .map((term) => term.trim())
-    .filter(Boolean);
   const bodyLead = product.symbolismBody.charAt(0);
   const bodyRemainder = product.symbolismBody.slice(1);
-  const symbolismImage = product.lookbook[0]?.src || product.image;
-
-  if (
-    !product.symbolismLabel ||
-    materialTerms.length === 0 ||
-    !product.symbolismBody ||
-    !product.symbolismBody2 ||
-    !symbolismImage
-  ) {
-    return null;
-  }
 
   return (
     <section ref={ref} className="overflow-clip border-y border-foreground/10 bg-surface py-24 md:py-36">
@@ -426,6 +576,32 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
   );
 }
 
+function SymbolismSection({ product }: { product: ProductSummary }) {
+  const materialTerms = product.symbolismTitle
+    .split(",")
+    .map((term) => term.trim())
+    .filter(Boolean);
+  const symbolismImage = product.lookbook[0]?.src || product.image;
+
+  if (
+    !product.symbolismLabel ||
+    materialTerms.length === 0 ||
+    !product.symbolismBody ||
+    !product.symbolismBody2 ||
+    !symbolismImage
+  ) {
+    return null;
+  }
+
+  return (
+    <SymbolismScrollSection
+      product={product}
+      materialTerms={materialTerms}
+      symbolismImage={symbolismImage}
+    />
+  );
+}
+
 /* ─── Craftsmanship / Stats dark section ─────────────────────────── */
 function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -444,7 +620,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
   }
 
   const processMedia = fitVideoSrc || product.process.mediaImage;
-  if (!product.process.eyebrow || !product.process.title || !processMedia) {
+  if (!product.process.eyebrow || !product.process.title) {
     return null;
   }
 
@@ -468,7 +644,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
         </header>
 
         <figure className="border-y border-foreground/12 py-5 md:py-8">
-          <div className="relative aspect-[4/5] overflow-hidden bg-charcoal md:aspect-[16/9]">
+          {processMedia ? <div className="relative aspect-[4/5] overflow-hidden bg-charcoal md:aspect-[16/9]">
             {fitVideoSrc ? (
               <PerformanceVideo
                 ref={videoRef}
@@ -513,9 +689,9 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
               </span>
               {isVideoPlaying ? "Pause" : "Play"}
             </button> : null}
-          </div>
+          </div> : null}
           {product.process.stats.length > 0 ? (
-            <figcaption className="grid gap-5 pt-5 sm:grid-cols-2 lg:grid-cols-4 md:pt-7">
+            <figcaption className={`grid gap-5 sm:grid-cols-2 lg:grid-cols-4 ${processMedia ? "pt-5 md:pt-7" : "py-3"}`}>
               {product.process.stats.map((stat) => (
                 <div key={`${stat.value}-${stat.label}`} className="border-t border-foreground/15 pt-4">
                   <p className="font-serif text-3xl text-foreground">{stat.value}</p>
@@ -750,6 +926,8 @@ export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummar
       style={pageStyle}
     >
       <ProductHero product={product} />
+      <CommerceMediaGallery product={product} />
+      <ProductDescription product={product} />
       <ProductSpecifications product={product} />
       <MaterialsSection product={product} />
       <SymbolismSection product={product} />

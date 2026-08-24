@@ -4,6 +4,10 @@ export type ShopFilters = {
   category?: string;
   collection?: string;
   tag?: string;
+  material?: string;
+  finish?: string;
+  origin?: string;
+  certified?: string;
 };
 
 export type FilterOption = {
@@ -20,11 +24,15 @@ export function buildSearchParams(filters: ShopFilters): string {
   if (filters.category) params.set("category", filters.category);
   if (filters.collection) params.set("collection", filters.collection);
   if (filters.tag) params.set("tag", filters.tag);
+  if (filters.material) params.set("material", filters.material);
+  if (filters.finish) params.set("finish", filters.finish);
+  if (filters.origin) params.set("origin", filters.origin);
+  if (filters.certified) params.set("certified", filters.certified);
   return params.toString();
 }
 
 export function countActiveFilters(filters: ShopFilters): number {
-  return [filters.q, filters.department, filters.category, filters.collection, filters.tag].filter(Boolean).length;
+  return [filters.q, filters.department, filters.category, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
 }
 
 export function saveFiltersToSession(filters: ShopFilters) {

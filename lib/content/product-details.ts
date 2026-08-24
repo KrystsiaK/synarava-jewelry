@@ -2,6 +2,7 @@ import {
   isShopDepartmentSlug,
   type ShopDepartmentSlug,
 } from "@/lib/catalog/taxonomy";
+import { isLegacyDemoImage, storefrontMedia } from "@/lib/content/media-fallbacks";
 
 export type ProductAttribute = {
   label: string;
@@ -48,26 +49,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isLegacyDemoImage(value: string) {
-  return value.startsWith("https://lh3.googleusercontent.com/aida");
-}
-
-function normalizeMaterialStory(value: unknown): ProductMaterialStory | null {
+function normalizeMaterialStory(value: unknown, index: number): ProductMaterialStory | null {
   if (!isRecord(value)) return null;
   const title = typeof value.title === "string" ? value.title.trim() : "";
   const body = typeof value.body === "string" ? value.body.trim() : "";
   const image = typeof value.image === "string" ? value.image.trim() : "";
-  if (!title || !body || !image || isLegacyDemoImage(image)) return null;
-  return { title, body, image };
+  if (!title || !body) return null;
+  return { title, body, image: storefrontMedia(image, `${title}-${index}`) };
 }
 
-function normalizeLookbookStory(value: unknown): ProductLookbookStory | null {
+function normalizeLookbookStory(value: unknown, index: number): ProductLookbookStory | null {
   if (!isRecord(value)) return null;
   const src = typeof value.src === "string" ? value.src.trim() : "";
   const label = typeof value.label === "string" ? value.label.trim() : "";
   const featured = Boolean(value.featured);
-  if (!src || isLegacyDemoImage(src)) return null;
-  return { src, label, featured };
+  if (!src && !label) return null;
+  return { src: storefrontMedia(src, `${label}-${index}`), label, featured };
 }
 
 function normalizeProcessStat(value: unknown): ProductProcessStat | null {
@@ -116,11 +113,13 @@ export function parseProductDetails(details: unknown): ProductDetailsPayload {
     rawProcess && typeof rawProcess.mediaImage === "string"
       ? rawProcess.mediaImage.trim()
       : "";
-  const process = rawProcess && !isLegacyDemoImage(rawProcessMedia)
+  const process = rawProcess
     ? {
         eyebrow: typeof rawProcess.eyebrow === "string" ? rawProcess.eyebrow.trim() : undefined,
         title: typeof rawProcess.title === "string" ? rawProcess.title.trim() : undefined,
-        mediaImage: rawProcessMedia || undefined,
+        mediaImage: rawProcessMedia && !isLegacyDemoImage(rawProcessMedia)
+          ? rawProcessMedia
+          : undefined,
         stats: Array.isArray(rawProcess.stats)
           ? rawProcess.stats.map(normalizeProcessStat).filter(Boolean) as ProductProcessStat[]
           : undefined,

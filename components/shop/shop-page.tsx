@@ -165,6 +165,7 @@ const labelOf = (value: string, opts: FilterOption[]) =>
 
 const DIM: Record<keyof ShopFilters, string> = {
   q: "Search", department: "Department", category: "Category", collection: "Collection", tag: "Tag",
+  material: "Material", finish: "Finish", origin: "Origin", certified: "Certification",
 };
 
 function EmptyState({ filters, departments = [], categories, collections, tags }: EmptyStateProps) {

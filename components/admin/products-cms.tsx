@@ -2,11 +2,19 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   autosaveProductDraftAction,
+  archiveMissingShopifyProductsAction,
   deleteProductAction,
+  inspectProductSyncAction,
+  previewShopifyReconciliationAction,
+  pullSingleProductFromShopifyAction,
   saveProductAction,
+  pushSingleProductToShopifyAction,
+  syncShopifySelectionAction,
+  testShopifyConnectionAction,
   updateProductStatusAction,
   type ProductActionState,
   type SavedCategoryPayload,
@@ -26,6 +34,9 @@ import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
 import { parseProductDetails } from "@/lib/content/product-details";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
+import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
+import type { ProductSyncInspection, ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
+import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, Eye, RefreshCw, TriangleAlert } from "lucide-react";
 
 type CategoryOption = SavedCategoryPayload;
 type TagOption = SavedTagPayload;
@@ -58,13 +69,14 @@ type ProductDraft = {
   tags: string;
   workflowState: "DRAFT" | "PUBLISHED";
   imageUrl: string;
+  stockOnHand: string;
 };
 
 function centsToPrice(cents: number) {
   return (cents / 100).toFixed(2);
 }
 
-function getProductEditorDetails(details: unknown) {
+function getProductEditorDetails(details: unknown, characteristics: ProductRecord["characteristics"] = []) {
   const parsed = parseProductDetails(details);
   const attributes = Array.from({ length: 8 }, (_, index) => {
     const source = parsed.attributes?.[index];
@@ -106,6 +118,14 @@ function getProductEditorDetails(details: unknown) {
   return {
     department: parsed.department ?? "",
     attributes,
+    characteristics: Object.fromEntries(characteristics.map((item) => [item.key, {
+      value: item.valueType === "BOOLEAN"
+        ? Boolean(item.booleanValue)
+        : item.valueType === "NUMBER"
+          ? item.numberValue?.toString() ?? ""
+          : item.textValue ?? "",
+      certificateUrl: item.certificateUrl ?? "",
+    }])),
     materialsEyebrow,
     materialsTitle,
     materials,
@@ -122,7 +142,7 @@ function emptyDraft(): ProductDraft {
     shortDescription: "", description: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", categorySlug: "", collectionSlug: "",
-    tags: "", workflowState: "DRAFT", imageUrl: "",
+    tags: "", workflowState: "DRAFT", imageUrl: "", stockOnHand: "0",
   };
 }
 
@@ -148,6 +168,7 @@ function productToDraft(product: ProductRecord): ProductDraft {
         ? "PUBLISHED"
         : "DRAFT",
     imageUrl: product.imageUrl ?? "",
+    stockOnHand: String(product.variants[0]?.stockOnHand ?? 0),
   };
 }
 
@@ -165,6 +186,193 @@ function ProgressBar({ pending }: { pending: boolean }) {
         ].join(" ")}
       />
     </div>
+  );
+}
+
+function ProductSyncStrip({ product, dirty, inspection, pending, onCheck, onPull, onPush, onResolve }: {
+  product: ProductRecord;
+  dirty: boolean;
+  inspection: ProductSyncInspection | null;
+  pending: boolean;
+  onCheck: () => void;
+  onPull: () => void;
+  onPush: () => void;
+  onResolve: (resolution: "shopify" | "synarava") => void;
+}) {
+  const fallbackState: ProductSyncInspection["state"] = product.shopifyProductId
+    ? product.syncStatus === "PENDING" || product.syncStatus === "FAILED"
+      ? "LOCAL_CHANGES"
+      : product.syncStatus === "CONFLICT"
+        ? "CONFLICT"
+        : "SYNCED"
+    : "UNLINKED";
+  const syncState = dirty ? "UNSAVED" : inspection?.state ?? fallbackState;
+  const healthy = syncState === "SYNCED";
+  const failed = syncState === "CONFLICT" || syncState === "REMOTE_MISSING" || product.syncStatus === "FAILED";
+  const Icon = healthy ? Check : failed ? TriangleAlert : Clock3;
+  const totalStock = product.variants.reduce((sum, variant) => sum + variant.stockOnHand, 0);
+  const shopifyPublications = inspection?.publications ?? [];
+  const storefrontState = product.status === "ACTIVE" && product.visibility === "PUBLIC"
+    ? "Published"
+    : product.status === "ARCHIVED"
+      ? "Archived"
+      : "Draft / hidden";
+  const stateLabel = syncState === "UNSAVED"
+    ? "Unsaved changes"
+    : syncState === "LOCAL_CHANGES"
+      ? "Ready to push"
+      : syncState === "REMOTE_CHANGES"
+        ? "Shopify update available"
+        : syncState === "CONFLICT"
+          ? "Conflict needs a decision"
+          : syncState === "REMOTE_MISSING"
+            ? "Shopify product missing"
+            : syncState === "UNLINKED"
+              ? "Not connected to Shopify"
+              : "Shopify commerce core synced";
+  const stateDescription = syncState === "UNSAVED"
+    ? "Save locally before Push or Pull. Unsaved form values will never be overwritten."
+    : syncState === "LOCAL_CHANGES"
+      ? "Local commerce changes are saved and ready. Shopify has not been changed yet."
+      : syncState === "REMOTE_CHANGES"
+        ? "Shopify has newer commerce data. Pull applies it while preserving the Synarava CMS layer."
+        : syncState === "CONFLICT"
+          ? "Saved commerce changes exist on both sides. Choose which version should win."
+          : syncState === "REMOTE_MISSING"
+            ? "The linked Shopify product could not be found. No automatic action was taken."
+            : syncState === "UNLINKED"
+              ? "This local product has not been linked. Its first push creates the Shopify commerce record."
+              : "Shopify commerce data matches the last confirmed local state. Synarava CMS content remains local.";
+  const canPush = !dirty && product.variants.length > 0 && (syncState === "LOCAL_CHANGES" || syncState === "UNLINKED");
+  // A linked Shopify product can always be refreshed. Timestamp equality only
+  // means no remote edit was detected; it does not guarantee that a newer
+  // local projection (for example shopifySnapshot) has already been hydrated.
+  // The server action still blocks destructive pulls when saved local commerce
+  // changes or a conflict are present.
+  const canPull = !dirty && Boolean(product.shopifyProductId) && syncState !== "REMOTE_MISSING";
+  const pullLabel = syncState === "REMOTE_CHANGES" ? "Pull Shopify update" : "Refresh from Shopify";
+  return (
+    <section className="grid gap-4 border bg-[var(--adm-bg-soft)] p-4" style={{ borderColor: "var(--adm-border)" }} aria-label="Commerce synchronization">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full border border-[var(--adm-accent)] text-[var(--adm-accent)]"><Icon className="size-4" /></span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold">{stateLabel}</p>
+              <span className={healthy ? "adm-badge-published" : "adm-badge-draft"}>{syncState}</span>
+            </div>
+            <p className="mt-1 max-w-3xl text-xs text-[var(--adm-subtle)]">
+              {product.syncError ?? stateDescription}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          {product.shopifyProductId ? (
+            <button type="button" className="adm-btn-ghost inline-flex items-center justify-center gap-2" onClick={onCheck} disabled={pending || dirty}>
+              <RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} />
+              Check Shopify
+            </button>
+          ) : null}
+          <button type="button" className="adm-btn-ghost inline-flex items-center justify-center gap-2" onClick={onPull} disabled={pending || !canPull}>
+            <ArrowDownToLine className="size-4" />
+            {pending ? "Refreshing..." : pullLabel}
+          </button>
+          <button type="button" className="adm-btn-secondary inline-flex items-center justify-center gap-2" onClick={onPush} disabled={pending || !canPush}>
+            <ArrowUpFromLine className="size-4" />
+            {pending ? "Syncing..." : product.variants.length === 0 ? "Save core fields first" : product.shopifyProductId ? "Push to Shopify" : "Create in Shopify"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid border-y border-[var(--adm-border)] sm:grid-cols-2 xl:grid-cols-4">
+        <div className="py-3 sm:pr-4 xl:border-r xl:border-[var(--adm-border)]">
+          <p className="adm-section-tag">Shopify link</p>
+          <p className="mt-2 break-all text-xs font-semibold text-[var(--adm-ink)]">{product.shopifyProductId ?? "Not linked"}</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">{product.shopifyHandle ? `/${product.shopifyHandle}` : "A Shopify ID will appear after the first push."}</p>
+        </div>
+        <div className="border-t border-[var(--adm-border)] py-3 sm:border-l sm:border-t-0 sm:px-4 xl:border-l-0 xl:border-r">
+          <p className="adm-section-tag">Available quantity</p>
+          <p className="mt-2 text-lg font-semibold text-[var(--adm-ink)]">{totalStock}</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">Across {product.variants.length} variant{product.variants.length === 1 ? "" : "s"}</p>
+        </div>
+        <div className="border-t border-[var(--adm-border)] py-3 sm:pr-4 xl:border-r xl:border-t-0 xl:px-4">
+          <p className="adm-section-tag">Storefront state</p>
+          <p className="mt-2 text-sm font-semibold text-[var(--adm-ink)]">{storefrontState}</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">
+            {product.shopifyProductId
+              ? shopifyPublications.length > 0
+                ? `Shopify: ${shopifyPublications.join(", ")}`
+                : inspection ? "Shopify: no active publication" : "Checking Shopify publications…"
+              : "Not created in Shopify yet"}
+          </p>
+        </div>
+        <div className="border-t border-[var(--adm-border)] py-3 sm:border-l sm:pl-4 xl:border-l-0 xl:border-t-0">
+          <p className="adm-section-tag">Last confirmed sync</p>
+          <p className="mt-2 text-xs font-semibold text-[var(--adm-ink)]">{product.lastSyncedAt ? new Date(product.lastSyncedAt).toLocaleString() : "Never"}</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">{product.shopifyUpdatedAt ? `Shopify updated ${new Date(product.shopifyUpdatedAt).toLocaleString()}` : "No Shopify timestamp yet"}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <div>
+          <p className="adm-section-tag">Shopify-backed commerce core</p>
+          <p className="mt-2 text-xs leading-5 text-[var(--adm-muted)]">Name, handle, base description, primary image, status, publication, and primary SKU/price/inventory can be pushed. Shopify variant IDs, all variants, and their inventory are pulled back as the confirmed commerce state.</p>
+        </div>
+        <div>
+          <p className="adm-section-tag">Synarava CMS layer</p>
+          <p className="mt-2 text-xs leading-5 text-[var(--adm-muted)]">Additional photography, category and collection curation, symbolism, materials, process story, lookbook, and storefront search presentation stay local and survive every Shopify pull.</p>
+        </div>
+      </div>
+
+      {inspection && inspection.differences.length > 0 && (syncState === "REMOTE_CHANGES" || syncState === "CONFLICT") ? (
+        <div className="border-t border-[var(--adm-border)] pt-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="adm-section-tag">Changed commerce fields ({inspection.differences.length})</p>
+              <p className="mt-1 text-xs text-[var(--adm-muted)]">Only Shopify-backed fields are compared. Synarava CMS fields are excluded.</p>
+            </div>
+            {syncState === "CONFLICT" ? (
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className="adm-btn-ghost" disabled={pending} onClick={() => onResolve("shopify")}>Use Shopify version</button>
+                <button type="button" className="adm-btn-secondary" disabled={pending} onClick={() => onResolve("synarava")}>Keep Synarava and push</button>
+              </div>
+            ) : null}
+          </div>
+          <div className="mt-3 overflow-x-auto">
+            <div className="grid min-w-[34rem] grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)] gap-3 px-2 pb-2 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[var(--adm-subtle)]">
+              <span>Field</span><span>Synarava</span><span>Shopify</span>
+            </div>
+            {inspection.differences.map((difference) => (
+              <div key={difference.field} className="grid min-w-[34rem] grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)] gap-3 border-t border-[var(--adm-border)] px-2 py-2 text-xs text-[var(--adm-muted)]">
+                <span className="font-semibold text-[var(--adm-ink)]">{difference.field}</span>
+                <span className="break-words">{difference.local}</span>
+                <span className="break-words">{difference.shopify}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {product.variants.length > 0 ? (
+        <div className="overflow-x-auto border-t border-[var(--adm-border)] pt-3">
+          <div className="grid min-w-[46rem] grid-cols-[minmax(10rem,1fr)_8rem_7rem_7rem_7rem_8rem] gap-3 px-2 pb-2 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[var(--adm-subtle)]">
+            <span>Variant</span><span>SKU</span><span>Price</span><span>Compare at</span><span>Available</span><span>Shopify</span>
+          </div>
+          {product.variants.map((variant) => (
+            <div key={variant.id} className="grid min-w-[46rem] grid-cols-[minmax(10rem,1fr)_8rem_7rem_7rem_7rem_8rem] gap-3 border-t border-[var(--adm-border)] px-2 py-2 text-xs text-[var(--adm-muted)]">
+              <span className="font-semibold text-[var(--adm-ink)]">{variant.title}</span>
+              <span>{variant.sku}</span>
+              <span>{centsToPrice(variant.priceCents)} EUR</span>
+              <span>{variant.compareAtCents == null ? "—" : `${centsToPrice(variant.compareAtCents)} EUR`}</span>
+              <span>{variant.stockOnHand}</span>
+              <span>{variant.shopifyVariantId ? "Linked" : "Local only"}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-[var(--adm-danger)]">No commerce variant exists. Enter the available quantity and save the product to create its primary variant before synchronization.</p>
+      )}
+    </section>
   );
 }
 
@@ -192,6 +400,15 @@ function productStatusLabel(product: ProductRecord) {
   return product.status === "ACTIVE" && product.visibility === "PUBLIC" ? "PUBLISHED" : "DRAFT";
 }
 
+function OwnershipLabel({ children, owner }: { children: React.ReactNode; owner: "Shopify" | "Synarava" | "Shopify push" }) {
+  return (
+    <span className="adm-label flex items-center justify-between gap-2">
+      <span>{children}</span>
+      <span className={owner === "Shopify" ? "text-[var(--adm-accent)]" : "text-[var(--adm-subtle)]"}>{owner}</span>
+    </span>
+  );
+}
+
 function issuesForField(issues: AdminIssueSummary[], fieldPath: string) {
   return issues.filter((issue) => issue.fieldPath === fieldPath && issue.status === "OPEN");
 }
@@ -199,6 +416,16 @@ function issuesForField(issues: AdminIssueSummary[], fieldPath: string) {
 type ProductRowAction = {
   product: ProductRecord;
   action: "publish" | "draft" | "archive" | "delete";
+};
+
+type SyncConfirmation = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  remoteProductIds: string[];
+  localProductIds: string[];
+  archiveProductIds: string[];
+  tone?: "default" | "danger";
 };
 
 function productActionCopy(target: ProductRowAction) {
@@ -255,11 +482,12 @@ function ProductDetailFields({
     >
       <div>
         <p className="adm-label-row">
-          <span className="adm-section-tag">[ PRODUCT DETAIL PAGE ]</span>
+          <span className="adm-section-tag">[ SYNARAVA CMS LAYER ]</span>
           <AdminHelp>
-            Materials, process story, and lookbook blocks feed the public product detail page.
+            Extended content enriches the storefront without being erased by Shopify catalog pulls.
           </AdminHelp>
         </p>
+        <p className="mt-2 text-xs text-[var(--adm-muted)]">Characteristics are mirrored to Shopify metafields. Editorial photography, materials, process, and lookbook remain managed by Synarava.</p>
       </div>
 
       <section
@@ -288,27 +516,44 @@ function ProductDetailFields({
           </select>
         </label>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {details.attributes.map((attribute, index) => (
-            <div
-              key={`attribute-${index}`}
-              className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3"
-            >
-              <input
-                name={`attributeLabel${index + 1}`}
-                defaultValue={attribute.label}
-                placeholder={index === 0 ? "Size / Age / Material" : "Characteristic"}
-                className="adm-field"
-              />
-              <input
-                name={`attributeValue${index + 1}`}
-                defaultValue={attribute.value}
-                placeholder={index === 0 ? "120 cm / 8+ / Cotton" : "Value"}
-                className="adm-field"
-              />
+        {PRODUCT_CHARACTERISTIC_GROUPS.map((group) => (
+          <fieldset key={group} className="grid gap-3 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>
+            <legend className="adm-section-tag px-2">{group}</legend>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {PRODUCT_CHARACTERISTICS.filter((item) => item.group === group).map((definition) => {
+                const current = details.characteristics[definition.key] ?? { value: definition.type === "BOOLEAN" ? false : "", certificateUrl: "" };
+                const name = `characteristic_${definition.key}`;
+                if (definition.type === "BOOLEAN") {
+                  return (
+                    <div key={definition.key} className="grid content-start gap-2 border p-3" style={{ borderColor: "var(--adm-border)" }}>
+                      <label className="flex items-center gap-3 text-sm">
+                        <input type="checkbox" name={name} defaultChecked={Boolean(current.value)} />
+                        <span>{definition.label}</span>
+                      </label>
+                      {"certificate" in definition ? (
+                        <input name={`${name}_certificate`} defaultValue={current.certificateUrl} className="adm-field" placeholder="Certificate URL" type="url" />
+                      ) : null}
+                    </div>
+                  );
+                }
+                const input = (
+                  "multiline" in definition && definition.multiline
+                    ? <textarea name={name} defaultValue={String(current.value)} className="adm-field min-h-24" rows={3} />
+                    : <input name={name} defaultValue={String(current.value)} className="adm-field min-w-0 flex-1" type={definition.type === "NUMBER" ? "number" : "text"} step={definition.type === "NUMBER" ? "0.01" : undefined} />
+                );
+                return (
+                  <label key={definition.key} className="grid gap-2">
+                    <span className="adm-label">{definition.label}</span>
+                    <span className={"multiline" in definition && definition.multiline ? "grid" : "flex"}>
+                      {input}
+                      {"unit" in definition ? <span className="flex items-center border border-l-0 px-3 text-xs text-[var(--adm-muted)]" style={{ borderColor: "var(--adm-border)" }}>{definition.unit}</span> : null}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </fieldset>
+        ))}
       </section>
 
       {/* Materials */}
@@ -520,11 +765,13 @@ function ProductFormFields({
   draft,
   categories,
   collections,
+  variantExists = false,
   issues = [],
 }: {
   draft: ProductDraft;
   categories: CategoryOption[];
   collections: CollectionOption[];
+  variantExists?: boolean;
   issues?: AdminIssueSummary[];
 }) {
   const [nameValue, setNameValue] = useState(draft.name);
@@ -551,12 +798,20 @@ function ProductFormFields({
 
   return (
     <>
+      <div className="flex flex-col gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="adm-section-tag">[ SHOPIFY COMMERCE CORE ]</p>
+          <p className="mt-2 text-xs text-[var(--adm-muted)]">Every field is labelled by owner. Shopify fields form the sellable product; Synarava fields enrich it without being overwritten by catalog pulls.</p>
+        </div>
+        <span className="adm-badge-published w-fit">Shopify-backed</span>
+      </div>
+
       {/* i18n groundwork */}
       <LocaleTabStrip />
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
-          <span className="adm-label">Name</span>
+          <OwnershipLabel owner="Shopify">Name</OwnershipLabel>
           <input
             name="name"
             value={nameValue}
@@ -565,7 +820,7 @@ function ProductFormFields({
           />
         </label>
         <label className="grid gap-2">
-          <span className="adm-label">Slug</span>
+          <OwnershipLabel owner="Shopify">Slug</OwnershipLabel>
           <input
             name="slug"
             value={slugValue}
@@ -575,17 +830,17 @@ function ProductFormFields({
         </label>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <label className="grid gap-2">
-          <span className="adm-label">SKU</span>
+          <OwnershipLabel owner="Shopify">SKU</OwnershipLabel>
           <input name="sku" defaultValue={draft.sku} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="adm-label">Series label</span>
+          <OwnershipLabel owner="Synarava">Series label</OwnershipLabel>
           <input name="seriesLabel" defaultValue={draft.seriesLabel} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="adm-label">Price EUR</span>
+          <OwnershipLabel owner="Shopify">Price EUR</OwnershipLabel>
           <input
             name="price"
             type="number"
@@ -596,10 +851,15 @@ function ProductFormFields({
             className="adm-field"
           />
         </label>
+        <label className="grid gap-2">
+          <OwnershipLabel owner="Shopify">Available quantity</OwnershipLabel>
+          <input name="stockOnHand" type="number" min="0" step="1" inputMode="numeric" defaultValue={draft.stockOnHand} className="adm-field" />
+          <span className="text-xs text-[var(--adm-subtle)]">{variantExists ? "Primary variant inventory synced with Shopify." : "No variant record yet. Enter quantity and save to create the primary variant."}</span>
+        </label>
       </div>
 
       <label className="grid gap-2">
-        <span className="adm-label">Short description</span>
+        <OwnershipLabel owner="Synarava">Short description</OwnershipLabel>
         <textarea
           name="shortDescription"
           rows={3}
@@ -609,7 +869,7 @@ function ProductFormFields({
       </label>
 
       <label className="grid gap-2">
-        <span className="adm-label">Description</span>
+        <OwnershipLabel owner="Shopify">Description</OwnershipLabel>
         <textarea
           name="description"
           rows={4}
@@ -620,11 +880,11 @@ function ProductFormFields({
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
-          <span className="adm-label">Material line</span>
+          <OwnershipLabel owner="Synarava">Material line</OwnershipLabel>
           <input name="materialLine" defaultValue={draft.materialLine} className="adm-field" />
         </label>
         <label id="field-imageUrl" className="grid gap-2">
-          <span className="adm-label">Product image</span>
+          <OwnershipLabel owner="Shopify">Primary product image</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-imageUrl")} />
           <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
           <ImageFileField
@@ -634,6 +894,7 @@ function ProductFormFields({
             removeFieldName="removeImage"
             removeLabel="Remove"
           />
+          <span className="text-xs text-[var(--adm-subtle)]">The primary image is mirrored to Shopify when its URL is publicly reachable. Editorial gallery images remain in Synarava.</span>
         </label>
       </div>
 
@@ -679,6 +940,7 @@ function ProductFormFields({
       {/* Taxonomy + state */}
       <div className="grid gap-4 md:grid-cols-3">
         <div id="field-taxonomy-category" className="grid gap-2">
+          <OwnershipLabel owner="Synarava">Category</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-category")} />
           <select name="categorySlug" defaultValue={draft.categorySlug} className="adm-field">
             <option value="">No category</option>
@@ -690,6 +952,7 @@ function ProductFormFields({
           </select>
         </div>
         <div id="field-taxonomy-collection" className="grid gap-2">
+          <OwnershipLabel owner="Synarava">Collection</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-collection")} />
           <select name="collectionSlug" defaultValue={draft.collectionSlug} className="adm-field">
             <option value="">No collection</option>
@@ -701,6 +964,7 @@ function ProductFormFields({
           </select>
         </div>
         <div id="field-taxonomy-tags" className="grid gap-2">
+          <OwnershipLabel owner="Shopify push">Tags</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-tags")} />
           <input
             name="tags"
@@ -712,7 +976,7 @@ function ProductFormFields({
       </div>
 
       <label className="grid gap-2 md:max-w-xs">
-        <span className="adm-label">Storefront state</span>
+        <OwnershipLabel owner="Shopify">Storefront state</OwnershipLabel>
         <select name="workflowState" defaultValue={draft.workflowState} className="adm-field">
           <option value="DRAFT">Draft — hidden</option>
           <option value="PUBLISHED">Published — visible</option>
@@ -754,6 +1018,7 @@ export function CreateProductForm({
       setConfirmOpen(false);
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.syncWarning) pushToast({ message: `Saved locally. Sync failed: ${result.syncWarning}`, tone: "error" });
 
       if (result.product) {
         onCreated?.(result.product);
@@ -804,7 +1069,7 @@ export function CreateProductForm({
       <AdminConfirmModal
         open={confirmOpen}
         title="Create product"
-        description="This will save a new product record to the database. If the product is marked as Published, it can become visible on the storefront immediately after save."
+        description="This saves the product locally only. Shopify will not change. After save, review the commerce state and use Create in Shopify when ready."
         confirmLabel="Continue and save"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => formRef.current?.requestSubmit()}
@@ -835,15 +1100,29 @@ export function EditProductForm({
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
+  const [conflictResolution, setConflictResolution] = useState<"shopify" | "synarava" | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
-  const draft = productToDraft(product);
-  const details = getProductEditorDetails(product.details);
+  const currentProduct = state.product ?? product;
+  const draft = productToDraft(currentProduct);
+  const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
   const { pushToast } = useAdminToast();
+  const router = useRouter();
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) return;
     rowRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [highlighted]);
+
+  useEffect(() => {
+    if (!product.shopifyProductId) return;
+    let cancelled = false;
+    void inspectProductSyncAction(product.id).then((result) => {
+      if (!cancelled && result.inspection) setInspection(result.inspection);
+    });
+    return () => { cancelled = true; };
+  }, [product.id, product.shopifyProductId]);
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
@@ -853,7 +1132,58 @@ export function EditProductForm({
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.product) {
+        setIsDirty(false);
+        setInspection(result.product.shopifyProductId
+          ? {
+              state: result.product.syncStatus === "CONFLICT" ? "CONFLICT" : result.product.syncStatus === "PENDING" ? "LOCAL_CHANGES" : "SYNCED",
+              remoteUpdatedAt: result.product.shopifyUpdatedAt?.toISOString() ?? null,
+              publications: inspection?.publications ?? [],
+              differences: inspection?.differences ?? [],
+            }
+          : { state: "UNLINKED", remoteUpdatedAt: null, publications: [], differences: [] });
         onUpdated?.(result.product);
+      }
+    });
+  }
+
+  function handleCheckShopify() {
+    startTransition(async () => {
+      const result = await inspectProductSyncAction(currentProduct.id);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.inspection) {
+        setInspection(result.inspection);
+        pushToast({ message: result.inspection.state === "SYNCED" ? "Shopify is up to date." : "Shopify comparison refreshed.", tone: "success" });
+      }
+    });
+  }
+
+  function handlePushToShopify(force = false) {
+    setConflictResolution(null);
+    startTransition(async () => {
+      const result = await pushSingleProductToShopifyAction(currentProduct.id, force);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.inspection) setInspection(result.inspection);
+      if (result.product) {
+        setState({ success: result.success, product: result.product });
+        onUpdated?.(result.product);
+        router.refresh();
+      }
+    });
+  }
+
+  function handlePullFromShopify(force = false) {
+    setConflictResolution(null);
+    startTransition(async () => {
+      const result = await pullSingleProductFromShopifyAction(currentProduct.id, force);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.inspection) setInspection(result.inspection);
+      if (result.product) {
+        setState({ success: result.success, product: result.product });
+        setIsDirty(false);
+        onUpdated?.(result.product);
+        router.refresh();
       }
     });
   }
@@ -882,8 +1212,8 @@ export function EditProductForm({
             : {}),
         }}
       >
-        <form action={formAction} className="grid gap-4">
-          <input type="hidden" name="productId" value={product.id} />
+        <form action={formAction} className="grid gap-4" onChange={() => setIsDirty(true)}>
+          <input type="hidden" name="productId" value={currentProduct.id} />
 
           <div
             className="flex flex-wrap items-start justify-between gap-4 pb-4"
@@ -891,9 +1221,9 @@ export function EditProductForm({
           >
             <div>
               <p className="adm-section-tag">[ EDIT PRODUCT ]</p>
-              <h3 className="adm-title-sm mt-2">{product.name}</h3>
+              <h3 className="adm-title-sm mt-2">{currentProduct.name}</h3>
               <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
-                /{product.slug}
+                /{currentProduct.slug}
               </p>
               <AdminIssueInlineWarning issues={issues} className="mt-3" />
               {highlighted ? (
@@ -910,14 +1240,31 @@ export function EditProductForm({
 
           <ProgressBar pending={isPending} />
           <AuthMessage error={state.error} />
+          <ProductSyncStrip
+            product={currentProduct}
+            dirty={isDirty}
+            inspection={inspection}
+            pending={isPending}
+            onCheck={handleCheckShopify}
+            onPull={() => handlePullFromShopify(false)}
+            onPush={() => handlePushToShopify(false)}
+            onResolve={setConflictResolution}
+          />
 
           <ProductFormFields
+            key={`${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
             draft={draft}
             categories={categories}
             collections={collections}
+            variantExists={currentProduct.variants.length > 0}
             issues={issues}
           />
-          <ProductDetailFields details={details} mode="edit" issues={issues} />
+          <ProductDetailFields
+            key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
+            details={details}
+            mode="edit"
+            issues={issues}
+          />
 
           <div
             className="flex items-center justify-between gap-4 pt-4"
@@ -938,8 +1285,8 @@ export function EditProductForm({
 
       <AdminConfirmModal
         open={confirmOpen}
-        title={`Save ${product.name}`}
-        description="This will write changes to the database. If the product is in Published state, changes can immediately affect the storefront product page and listings."
+        title={`Save ${currentProduct.name}`}
+        description="This saves locally only. Shopify will not change. If Shopify-backed commerce fields changed, Push to Shopify becomes available after saving."
         confirmLabel="Yes, save changes"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
@@ -950,15 +1297,35 @@ export function EditProductForm({
       />
 
       <AdminConfirmModal
+        open={conflictResolution === "shopify"}
+        title="Use Shopify commerce version"
+        description="Shopify-backed fields saved in Synarava will be replaced by the current Shopify version. Synarava-only content and editorial media will be preserved."
+        confirmLabel="Use Shopify version"
+        onCancel={() => setConflictResolution(null)}
+        onConfirm={() => handlePullFromShopify(true)}
+        pending={isPending}
+      />
+
+      <AdminConfirmModal
+        open={conflictResolution === "synarava"}
+        title="Keep Synarava commerce version"
+        description="The saved Synarava commerce values will overwrite the corresponding Shopify fields. Synarava-only content will remain unchanged."
+        confirmLabel="Keep Synarava and push"
+        onCancel={() => setConflictResolution(null)}
+        onConfirm={() => handlePushToShopify(true)}
+        pending={isPending}
+      />
+
+      <AdminConfirmModal
         open={deleteOpen}
-        title={`Delete ${product.name}`}
+        title={`Delete ${currentProduct.name}`}
         description="This action removes the product record permanently. Public storefront pages for this item will stop working after deletion."
         confirmLabel="Yes, delete permanently"
         onCancel={() => setDeleteOpen(false)}
         onConfirm={() => {
           const formData = new FormData();
-          formData.set("productId", product.id);
-          formData.set("productSlug", product.slug);
+          formData.set("productId", currentProduct.id);
+          formData.set("productSlug", currentProduct.slug);
           void handleDelete(formData);
         }}
         pending={isPending}
@@ -985,8 +1352,17 @@ export function ProductsCms({
   const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [rowActionState, setRowActionState] = useState<ProductActionState>({});
+  const [syncPreview, setSyncPreview] = useState<ShopifyReconciliationPreview | null>(null);
+  const [selectedRemoteIds, setSelectedRemoteIds] = useState<string[]>([]);
+  const [selectedLocalIds, setSelectedLocalIds] = useState<string[]>([]);
+  const [selectedArchiveIds, setSelectedArchiveIds] = useState<string[]>([]);
+  const [syncConfirmation, setSyncConfirmation] = useState<SyncConfirmation | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
+  const [isConnectionPending, startConnectionTransition] = useTransition();
+  const [isPreviewPending, startPreviewTransition] = useTransition();
+  const [isSyncPending, startSyncTransition] = useTransition();
   const { pushToast } = useAdminToast();
+  const router = useRouter();
 
   function handleUpdated(product: ProductRecord) {
     setProducts((current) =>
@@ -1029,6 +1405,93 @@ export function ProductsCms({
     });
   }
 
+  function handleTestShopifyConnection() {
+    startConnectionTransition(async () => {
+      const result = await testShopifyConnectionAction();
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+    });
+  }
+
+  function handlePreviewShopifyReconciliation() {
+    startPreviewTransition(async () => {
+      const result = await previewShopifyReconciliationAction();
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.preview) {
+        setSyncPreview(result.preview);
+        setSelectedRemoteIds([]);
+        setSelectedLocalIds([]);
+        setSelectedArchiveIds([]);
+      }
+    });
+  }
+
+  function toggleSelection(id: string, selected: string[], setSelected: (ids: string[]) => void) {
+    setSelected(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
+  }
+
+  function runSync(remoteProductIds: string[], localProductIds: string[]) {
+    setSyncConfirmation(null);
+    startSyncTransition(async () => {
+      const result = await syncShopifySelectionAction({ remoteProductIds, localProductIds });
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.preview) setSyncPreview(result.preview);
+      if (result.products?.length) {
+        setProducts((current) => {
+          const changedIds = new Set(result.products.map((product) => product.id));
+          return normalizeProducts([...current.filter((product) => !changedIds.has(product.id)), ...result.products]);
+        });
+      }
+      setSelectedRemoteIds([]);
+      setSelectedLocalIds([]);
+      router.refresh();
+    });
+  }
+
+  function runArchive(productIds: string[]) {
+    setSyncConfirmation(null);
+    startSyncTransition(async () => {
+      const result = await archiveMissingShopifyProductsAction(productIds);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.preview) setSyncPreview(result.preview);
+      if (result.products?.length) {
+        setProducts((current) => {
+          const changedIds = new Set(result.products.map((product) => product.id));
+          return normalizeProducts([...current.filter((product) => !changedIds.has(product.id)), ...result.products]);
+        });
+      }
+      setSelectedArchiveIds([]);
+      router.refresh();
+    });
+  }
+
+  function confirmSync(remoteProductIds: string[], localProductIds: string[], title: string) {
+    const count = remoteProductIds.length + localProductIds.length;
+    setSyncConfirmation({
+      title,
+      description: `${remoteProductIds.length} product${remoteProductIds.length === 1 ? "" : "s"} will be imported from Shopify and ${localProductIds.length} product${localProductIds.length === 1 ? "" : "s"} will be pushed to Shopify. Archive candidates are not included.`,
+      confirmLabel: `Sync ${count} product${count === 1 ? "" : "s"}`,
+      remoteProductIds,
+      localProductIds,
+      archiveProductIds: [],
+    });
+  }
+
+  function confirmArchive(productIds: string[]) {
+    setSyncConfirmation({
+      title: "Archive missing local products",
+      description: `${productIds.length} local product${productIds.length === 1 ? "" : "s"} no longer found in Shopify will be hidden from the storefront. The records remain available in admin.`,
+      confirmLabel: `Archive ${productIds.length} product${productIds.length === 1 ? "" : "s"}`,
+      remoteProductIds: [],
+      localProductIds: [],
+      archiveProductIds: productIds,
+      tone: "danger",
+    });
+  }
+
   const modalCopy = rowAction ? productActionCopy(rowAction) : null;
   const normalizedQuery = query.trim().toLowerCase();
   const desktopTableGridClass =
@@ -1065,9 +1528,29 @@ export function ProductsCms({
               {categories.length} categories · {tags.length} tags · {collections.length} collections
             </p>
           </div>
-          <Link href="/admin/products/new" className="adm-btn-primary">
-            New product
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="adm-btn-secondary inline-flex items-center justify-center gap-2"
+              onClick={handleTestShopifyConnection}
+              disabled={isConnectionPending}
+            >
+              <RefreshCw className={`size-4 ${isConnectionPending ? "animate-spin" : ""}`} />
+              {isConnectionPending ? "Testing Shopify..." : "Test Shopify connection"}
+            </button>
+            <button
+              type="button"
+              className="adm-btn-secondary inline-flex items-center justify-center gap-2"
+              onClick={handlePreviewShopifyReconciliation}
+              disabled={isPreviewPending}
+            >
+              <Eye className="size-4" />
+              {isPreviewPending ? "Reading catalogs..." : "Preview sync"}
+            </button>
+            <Link href="/admin/products/new" className="adm-btn-primary">
+              New product
+            </Link>
+          </div>
         </div>
 
         <div
@@ -1129,6 +1612,175 @@ export function ProductsCms({
         </div>
 
         <AuthMessage error={rowActionState.error} />
+
+        {syncPreview ? (
+          <section className="mt-4 grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
+            <div className="flex flex-col gap-3 border-b border-[var(--adm-border)] pb-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="adm-section-tag">[ SYNC PREVIEW — READY FOR REVIEW ]</p>
+                <p className="mt-2 text-xs text-[var(--adm-muted)]">
+                  Nothing has changed yet. Select individual products or synchronize every safe action.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="adm-btn-secondary"
+                  disabled={isSyncPending || selectedRemoteIds.length + selectedLocalIds.length === 0}
+                  onClick={() => confirmSync(selectedRemoteIds, selectedLocalIds, "Sync selected products")}
+                >
+                  Sync selected ({selectedRemoteIds.length + selectedLocalIds.length})
+                </button>
+                <button
+                  type="button"
+                  className="adm-btn-primary"
+                  disabled={isSyncPending || syncPreview.remote.every((item) => item.action === "CONFLICT" || item.action === "UP_TO_DATE") && syncPreview.pushToShopify.length === 0}
+                  onClick={() => confirmSync(
+                    syncPreview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").map((item) => item.shopifyProductId),
+                    syncPreview.pushToShopify.map((item) => item.productId),
+                    "Sync all safe catalog changes",
+                  )}
+                >
+                  {isSyncPending ? "Syncing..." : "Sync all"}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="adm-label">From Shopify ({syncPreview.remote.length})</p>
+                  <button
+                    type="button"
+                    className="adm-btn-ghost min-h-8 px-2 py-1 text-[0.62rem]"
+                    disabled={isSyncPending || syncPreview.remote.every((item) => item.action === "CONFLICT" || item.action === "UP_TO_DATE")}
+                    onClick={() => confirmSync(
+                      syncPreview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").map((item) => item.shopifyProductId),
+                      [],
+                      "Import all Shopify changes",
+                    )}
+                  >
+                    Import all
+                  </button>
+                </div>
+                <div className="mt-2 grid gap-2">
+                  {syncPreview.remote.map((item) => {
+                    const hasConflict = item.action === "CONFLICT";
+                    const isUpToDate = item.action === "UP_TO_DATE";
+                    const isActionable = !hasConflict && !isUpToDate;
+                    const checked = selectedRemoteIds.includes(item.shopifyProductId);
+                    return (
+                    <div key={item.shopifyProductId} className="flex gap-3 border border-[var(--adm-border)] p-3 text-xs">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${item.title} for import`}
+                        checked={checked}
+                        disabled={!isActionable || isSyncPending}
+                        onChange={() => toggleSelection(item.shopifyProductId, selectedRemoteIds, setSelectedRemoteIds)}
+                        className="mt-0.5 size-4 shrink-0 !p-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-[var(--adm-ink)]">{item.title}</p>
+                        <p className="mt-1 text-[var(--adm-muted)]">{item.sku} · {item.action.replaceAll("_", " ")}</p>
+                        {item.localName ? <p className="mt-1 text-[var(--adm-subtle)]">Matches local: {item.localName}</p> : null}
+                        <button
+                          type="button"
+                          className="adm-btn-ghost mt-3 inline-flex min-h-8 items-center gap-2 px-2 py-1 text-[0.62rem]"
+                          disabled={!isActionable || isSyncPending}
+                          onClick={() => runSync([item.shopifyProductId], [])}
+                        >
+                          <ArrowDownToLine className="size-3.5" />
+                          {hasConflict ? "Resolve conflict first" : isUpToDate ? "Up to date" : item.action === "CREATE_LOCAL" ? "Import" : "Pull update"}
+                        </button>
+                      </div>
+                    </div>
+                  );})}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="adm-label">Push to Shopify ({syncPreview.pushToShopify.length})</p>
+                  <button
+                    type="button"
+                    className="adm-btn-ghost min-h-8 px-2 py-1 text-[0.62rem]"
+                    disabled={isSyncPending || syncPreview.pushToShopify.length === 0}
+                    onClick={() => confirmSync([], syncPreview.pushToShopify.map((item) => item.productId), "Push all local products")}
+                  >
+                    Push all
+                  </button>
+                </div>
+                <div className="mt-2 grid gap-2">
+                  {syncPreview.pushToShopify.map((item) => (
+                    <div key={item.productId} className="flex gap-3 border border-[var(--adm-border)] p-3 text-xs">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${item.name} to push to Shopify`}
+                        checked={selectedLocalIds.includes(item.productId)}
+                        disabled={isSyncPending}
+                        onChange={() => toggleSelection(item.productId, selectedLocalIds, setSelectedLocalIds)}
+                        className="mt-0.5 size-4 shrink-0 !p-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-[var(--adm-ink)]">{item.name}</p>
+                        <p className="mt-1 text-[var(--adm-muted)]">{item.sku} · /{item.slug}</p>
+                        <button
+                          type="button"
+                          className="adm-btn-ghost mt-3 inline-flex min-h-8 items-center gap-2 px-2 py-1 text-[0.62rem]"
+                          disabled={isSyncPending}
+                          onClick={() => runSync([], [item.productId])}
+                        >
+                          <ArrowUpFromLine className="size-3.5" />
+                          Push
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="adm-label">Archive locally ({syncPreview.archiveLocal.length})</p>
+                  <button
+                    type="button"
+                    className="adm-btn-danger min-h-8 px-2 py-1 text-[0.62rem]"
+                    disabled={isSyncPending || selectedArchiveIds.length === 0}
+                    onClick={() => confirmArchive(selectedArchiveIds)}
+                  >
+                    Archive selected
+                  </button>
+                </div>
+                <div className="mt-2 grid gap-2">
+                  {syncPreview.archiveLocal.length === 0 ? (
+                    <p className="text-xs text-[var(--adm-muted)]">Nothing would be archived.</p>
+                  ) : null}
+                  {syncPreview.archiveLocal.map((item) => (
+                    <div key={item.productId} className="flex gap-3 border border-[var(--adm-border)] p-3 text-xs">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${item.name} to archive locally`}
+                        checked={selectedArchiveIds.includes(item.productId)}
+                        disabled={isSyncPending}
+                        onChange={() => toggleSelection(item.productId, selectedArchiveIds, setSelectedArchiveIds)}
+                        className="mt-0.5 size-4 shrink-0 !p-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-[var(--adm-ink)]">{item.name}</p>
+                        <p className="mt-1 break-all text-[var(--adm-muted)]">{item.shopifyProductId}</p>
+                        <button
+                          type="button"
+                          className="adm-btn-danger mt-3 min-h-8 px-2 py-1 text-[0.62rem]"
+                          disabled={isSyncPending}
+                          onClick={() => confirmArchive([item.productId])}
+                        >
+                          Archive
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <div className="mt-4 min-w-0 overflow-hidden">
           <div className="grid min-w-0 gap-2">
@@ -1256,6 +1908,25 @@ export function ProductsCms({
           pending={isRowActionPending}
           onCancel={() => setRowAction(null)}
           onConfirm={runRowAction}
+        />
+      ) : null}
+
+      {syncConfirmation ? (
+        <AdminConfirmModal
+          open
+          title={syncConfirmation.title}
+          description={syncConfirmation.description}
+          confirmLabel={syncConfirmation.confirmLabel}
+          tone={syncConfirmation.tone}
+          pending={isSyncPending}
+          onCancel={() => setSyncConfirmation(null)}
+          onConfirm={() => {
+            if (syncConfirmation.archiveProductIds.length > 0) {
+              runArchive(syncConfirmation.archiveProductIds);
+              return;
+            }
+            runSync(syncConfirmation.remoteProductIds, syncConfirmation.localProductIds);
+          }}
         />
       ) : null}
 

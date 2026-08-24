@@ -64,7 +64,11 @@ Fill in local/production variables as needed:
 - `SHOPIFY_STORE_DOMAIN` — the permanent `your-store.myshopify.com` domain
 - `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` — private Storefront API token; server-only
 - `SHOPIFY_STOREFRONT_API_VERSION` — optional, defaults to `2026-07`
-- `SHOPIFY_WEBHOOK_SECRET` — reserved for the order-sync phase
+- `SHOPIFY_ADMIN_ACCESS_TOKEN` — Admin API token with product, inventory, and publication scopes
+- `SHOPIFY_ADMIN_API_VERSION` — optional, defaults to `2026-07`
+- `SHOPIFY_PUBLICATION_ID` — optional Online Store publication GID; auto-detected by name when omitted
+- `SHOPIFY_LOCATION_ID` — optional inventory location GID; the first active location is used when omitted
+- `SHOPIFY_WEBHOOK_SECRET` — secret used to verify product create/update/delete webhooks
 - `S3_REGION`
 - `S3_BUCKET`
 - `S3_ACCESS_KEY_ID`
@@ -88,7 +92,27 @@ COMMERCE_BACKEND=local
 SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
 SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpat_...
 SHOPIFY_STOREFRONT_API_VERSION=2026-07
+SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...
+SHOPIFY_ADMIN_API_VERSION=2026-07
+SHOPIFY_PUBLICATION_ID=gid://shopify/Publication/...
+SHOPIFY_LOCATION_ID=gid://shopify/Location/...
+SHOPIFY_WEBHOOK_SECRET=...
 ```
+
+### Product synchronization
+
+With `COMMERCE_BACKEND=shopify`, the local catalog is the storefront read model. Saving a product in
+the studio pushes title, handle, description, status, price, SKU, primary image, inventory, tags, and
+`synarava.*` characteristic metafields through the Shopify Admin GraphQL API. Shopify
+`products/create`, `products/update`, `products/delete`, and `inventory_levels/update` webhooks pull commerce changes back into
+the local database. The **Reconcile** action registers those webhook subscriptions (when
+`NEXT_PUBLIC_APP_URL` is set) and imports the full Shopify catalog, matching by Shopify product ID,
+then SKU, then handle. Ambiguous identities are recorded as conflicts instead of being overwritten.
+
+Run the Prisma migration before enabling the integration. The Admin API token needs
+`read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`, and
+`write_publications`; the public app URL must be
+HTTPS so Shopify can deliver signed webhooks.
 
 5. Keep `COMMERCE_BACKEND=local` while products and credentials are being prepared. After testing the matching product handles in a preview deployment, change it to `shopify` and redeploy.
 

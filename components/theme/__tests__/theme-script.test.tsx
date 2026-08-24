@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react";
-import { ThemeScript } from "../theme-script";
+import { getThemeScript, ThemeScript } from "../theme-script";
 
 describe("ThemeScript", () => {
   it("renders without crashing", () => {
@@ -7,21 +7,17 @@ describe("ThemeScript", () => {
     expect(() => render(<ThemeScript initialPreference="light" />)).not.toThrow();
   });
 
-  it("script innerHTML contains the initial preference", () => {
-    const { container } = render(<ThemeScript initialPreference="dark" />);
-    const script = container.querySelector("script");
-    // React renders dangerouslySetInnerHTML scripts in the DOM tree
-    expect(script).toBeTruthy();
+  it("generated script contains the initial preference", () => {
+    expect(getThemeScript("dark")).toContain('"dark"');
   });
 
-  it("script text contains cookie name constant", () => {
-    const { container } = render(<ThemeScript initialPreference="light" />);
-    // Check the container HTML rather than trying to query the script element
-    expect(container.innerHTML).toContain("synarava-theme");
+  it("generated script contains cookie name constant", () => {
+    expect(getThemeScript("light")).toContain("synarava-theme");
   });
 
-  it("script text contains the preference value", () => {
-    const { container } = render(<ThemeScript initialPreference="dark" />);
-    expect(container.innerHTML).toContain('"dark"');
+  it("generated script applies the resolved theme before hydration", () => {
+    const script = getThemeScript("system");
+    expect(script).toContain("root.dataset.themePreference = preference");
+    expect(script).toContain("root.dataset.theme = resolved");
   });
 });

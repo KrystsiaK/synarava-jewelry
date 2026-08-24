@@ -112,29 +112,29 @@ model ShopifyCustomerSession {
 }
 
 model VerificationToken {
-  id         String                  @id @default(cuid())
+  id         String                @id @default(cuid())
   identifier String
-  token      String                  @unique
+  token      String                @unique
   type       VerificationTokenType
   expiresAt  DateTime
   consumedAt DateTime?
-  createdAt  DateTime                @default(now())
+  createdAt  DateTime              @default(now())
 
   @@index([identifier, type])
 }
 
 model CustomerProfile {
-  id                String   @id @default(cuid())
-  phone             String?
-  marketingOptIn    Boolean  @default(false)
-  notes             String?
-  defaultAddressId  String?  @unique
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  addresses         Address[]
-  defaultAddress    Address? @relation("CustomerDefaultAddress", fields: [defaultAddressId], references: [id], onDelete: SetNull)
+  id               String    @id @default(cuid())
+  phone            String?
+  marketingOptIn   Boolean   @default(false)
+  notes            String?
+  defaultAddressId String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addresses        Address[]
+  defaultAddress   Address?  @relation("CustomerDefaultAddress", fields: [defaultAddressId], references: [id], onDelete: SetNull)
 }
 
 model Address {
@@ -158,55 +158,55 @@ model Address {
 }
 
 model Collection {
-  id              String               @id @default(cuid())
-  slug            String               @unique
-  code            String?              @unique
-  name            String
-  subtitle        String?
-  description     String?
-  manifesto       String?
-  symbolismLabel  String?
-  symbolismTitle  String?
-  symbolismBody   String?
-  symbolismBody2  String?
-  searchSummary   String?
-  seoTitle        String?
-  seoDescription  String?
-  heroImageUrl    String?
-  status          CollectionStatus     @default(DRAFT)
-  visibility      ContentVisibility    @default(PRIVATE)
-  heroAssetId     String?
-  coverAssetId    String?
-  sortOrder       Int                  @default(0)
-  publishedAt     DateTime?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  heroAsset       MediaAsset?          @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
-  coverAsset      MediaAsset?          @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
-  products        ProductCollection[]
-  sections        CollectionSection[]
+  id             String              @id @default(cuid())
+  slug           String              @unique
+  code           String?             @unique
+  name           String
+  subtitle       String?
+  description    String?
+  manifesto      String?
+  symbolismLabel String?
+  symbolismTitle String?
+  symbolismBody  String?
+  symbolismBody2 String?
+  searchSummary  String?
+  seoTitle       String?
+  seoDescription String?
+  heroImageUrl   String?
+  status         CollectionStatus    @default(DRAFT)
+  visibility     ContentVisibility   @default(PRIVATE)
+  heroAssetId    String?
+  coverAssetId   String?
+  sortOrder      Int                 @default(0)
+  publishedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  heroAsset      MediaAsset?         @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
+  coverAsset     MediaAsset?         @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  products       ProductCollection[]
+  sections       CollectionSection[]
 
   @@index([status, visibility, sortOrder])
 }
 
 model CollectionSection {
-  id           String               @id @default(cuid())
+  id           String                @id @default(cuid())
   type         CollectionSectionType
   title        String?
   eyebrow      String?
   body         String?
   content      Json?
-  sortOrder    Int                  @default(0)
+  sortOrder    Int                   @default(0)
   collectionId String
-  collection   Collection           @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collection   Collection            @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@index([collectionId, sortOrder])
 }
 
 model Product {
-  id               String             @id @default(cuid())
-  slug             String             @unique
-  sku              String             @unique
+  id               String                  @id @default(cuid())
+  slug             String                  @unique
+  sku              String                  @unique
   name             String
   seriesLabel      String?
   subtitle         String?
@@ -218,10 +218,10 @@ model Product {
   symbolismBody    String?
   symbolismBody2   String?
   details          Json?
-  currency         String             @default("EUR")
-  status           ProductStatus      @default(DRAFT)
-  visibility       ContentVisibility  @default(PRIVATE)
-  productType      ProductType        @default(ARTIFACT)
+  currency         String                  @default("EUR")
+  status           ProductStatus           @default(DRAFT)
+  visibility       ContentVisibility       @default(PRIVATE)
+  productType      ProductType             @default(ARTIFACT)
   priceCents       Int
   compareAtCents   Int?
   imageUrl         String?
@@ -230,11 +230,22 @@ model Product {
   searchSummary    String?
   seoTitle         String?
   seoDescription   String?
+  vendor           String?
+  shopifyCategoryId String?
+  shopifyCategoryName String?
+  shopifySnapshot  Json?
+  shopifyProductId String?                 @unique
+  shopifyHandle    String?
+  shopifyUpdatedAt DateTime?
+  lastSyncedAt     DateTime?
+  syncStatus       ProductSyncStatus       @default(UNLINKED)
+  syncError        String?
+  searchDocument   String?
   publishedAt      DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  primaryAsset     MediaAsset?        @relation("ProductPrimaryAsset", fields: [primaryAssetId], references: [id], onDelete: SetNull)
-  category         ProductCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  primaryAsset     MediaAsset?             @relation("ProductPrimaryAsset", fields: [primaryAssetId], references: [id], onDelete: SetNull)
+  category         ProductCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   media            ProductMedia[]
   variants         ProductVariant[]
   optionValues     ProductOptionValue[]
@@ -242,6 +253,8 @@ model Product {
   tags             ProductTag[]
   cartItems        CartItem[]
   orderItems       OrderItem[]
+  characteristics  ProductCharacteristic[]
+  syncEvents       ProductSyncEvent[]
 
   @@index([status, visibility, productType, publishedAt])
   @@index([status, visibility, publishedAt])
@@ -271,28 +284,28 @@ model Tag {
 }
 
 model ProductTag {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   productId String
   tagId     String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@unique([productId, tagId])
   @@index([tagId])
 }
 
 model ProductMedia {
-  id             String        @id @default(cuid())
-  kind           MediaRole     @default(GALLERY)
-  alt            String?
-  caption        String?
-  sortOrder      Int           @default(0)
-  productId      String
-  assetId        String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  product        Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  asset          MediaAsset    @relation("ProductMediaAsset", fields: [assetId], references: [id], onDelete: Cascade)
+  id        String     @id @default(cuid())
+  kind      MediaRole  @default(GALLERY)
+  alt       String?
+  caption   String?
+  sortOrder Int        @default(0)
+  productId String
+  assetId   String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  asset     MediaAsset @relation("ProductMediaAsset", fields: [assetId], references: [id], onDelete: Cascade)
 
   @@unique([productId, assetId])
   @@index([productId, sortOrder])
@@ -312,48 +325,104 @@ model ProductOption {
 }
 
 model ProductOptionValue {
-  id          String            @id @default(cuid())
-  value       String
-  label       String
-  hex         String?
-  sortOrder   Int               @default(0)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  optionId    String
-  productId   String?
-  option      ProductOption     @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  product     Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variants    ProductVariantOptionValue[]
+  id        String                      @id @default(cuid())
+  value     String
+  label     String
+  hex       String?
+  sortOrder Int                         @default(0)
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime                    @updatedAt
+  optionId  String
+  productId String?
+  option    ProductOption               @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  product   Product?                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variants  ProductVariantOptionValue[]
 
-  @@index([optionId, sortOrder])
   @@unique([optionId, productId, value])
+  @@index([optionId, sortOrder])
 }
 
 model ProductVariant {
-  id              String                      @id @default(cuid())
-  sku             String                      @unique
-  title           String
-  priceCents      Int
-  compareAtCents  Int?
-  inventoryPolicy InventoryPolicy             @default(DENY)
-  stockOnHand     Int                         @default(0)
-  status          ProductStatus               @default(DRAFT)
-  createdAt       DateTime                    @default(now())
-  updatedAt       DateTime                    @updatedAt
-  productId       String
-  product         Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  optionValues    ProductVariantOptionValue[]
-  orderItems      OrderItem[]
+  id                     String                      @id @default(cuid())
+  sku                    String                      @unique
+  title                  String
+  priceCents             Int
+  compareAtCents         Int?
+  inventoryPolicy        InventoryPolicy             @default(DENY)
+  stockOnHand            Int                         @default(0)
+  barcode                String?
+  taxable                Boolean                     @default(true)
+  requiresShipping       Boolean                     @default(true)
+  tracked                Boolean                     @default(true)
+  weightGrams            Decimal?                    @db.Decimal(14, 4)
+  imageUrl               String?
+  selectedOptions        Json?
+  status                 ProductStatus               @default(DRAFT)
+  shopifyVariantId       String?                     @unique
+  shopifyInventoryItemId String?                     @unique
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  productId              String
+  product                Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValues           ProductVariantOptionValue[]
+  orderItems             OrderItem[]
 
   @@index([productId, status])
 }
 
+model ProductCharacteristic {
+  id             String                  @id @default(cuid())
+  productId      String
+  key            String
+  label          String
+  group          String
+  valueType      CharacteristicValueType
+  textValue      String?
+  numberValue    Decimal?                @db.Decimal(14, 4)
+  booleanValue   Boolean?
+  unit           String?
+  certificateUrl String?
+  searchable     Boolean                 @default(true)
+  filterable     Boolean                 @default(true)
+  sortOrder      Int                     @default(0)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  product        Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, key])
+  @@index([key, textValue])
+  @@index([key, numberValue])
+  @@index([key, booleanValue])
+  @@index([productId, group, sortOrder])
+}
+
+model ProductSyncEvent {
+  id               String          @id @default(cuid())
+  productId        String?
+  shopifyProductId String?
+  shopifyWebhookId String?         @unique
+  direction        SyncDirection
+  status           SyncEventStatus @default(PENDING)
+  topic            String?
+  payload          Json?
+  error            String?
+  attemptCount     Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  completedAt      DateTime?
+  product          Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([status, createdAt])
+  @@index([shopifyProductId])
+}
+
 model ProductVariantOptionValue {
-  id              String             @id @default(cuid())
-  variantId       String
-  optionValueId   String
-  variant         ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  optionValue     ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+  id            String             @id @default(cuid())
+  variantId     String
+  optionValueId String
+  variant       ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValue   ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
 
   @@unique([variantId, optionValueId])
 }
@@ -371,8 +440,8 @@ model ProductCollection {
 }
 
 model MediaAsset {
-  id                 String       @id @default(cuid())
-  key                String       @unique
+  id                 String         @id @default(cuid())
+  key                String         @unique
   bucket             String?
   filename           String
   mimeType           String
@@ -383,16 +452,16 @@ model MediaAsset {
   alt                String?
   focalPointX        Float?
   focalPointY        Float?
-  status             AssetStatus  @default(READY)
-  source             AssetSource  @default(UPLOAD)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  status             AssetStatus    @default(READY)
+  source             AssetSource    @default(UPLOAD)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
   uploadedById       String?
-  uploadedBy         User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  productPrimaryFor  Product[]    @relation("ProductPrimaryAsset")
-  collectionHeroFor  Collection[] @relation("CollectionHeroAsset")
-  collectionCoverFor Collection[] @relation("CollectionCoverAsset")
-  userAvatars        User[]       @relation("UserAvatar")
+  uploadedBy         User?          @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  productPrimaryFor  Product[]      @relation("ProductPrimaryAsset")
+  collectionHeroFor  Collection[]   @relation("CollectionHeroAsset")
+  collectionCoverFor Collection[]   @relation("CollectionCoverAsset")
+  userAvatars        User[]         @relation("UserAvatar")
   productMedia       ProductMedia[] @relation("ProductMediaAsset")
 }
 
@@ -424,60 +493,60 @@ model SiteSetting {
 }
 
 model Cart {
-  id          String      @id @default(cuid())
-  sessionKey  String      @unique
-  status      CartStatus  @default(ACTIVE)
-  currency    String      @default("EUR")
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  userId      String?
-  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items       CartItem[]
+  id         String     @id @default(cuid())
+  sessionKey String     @unique
+  status     CartStatus @default(ACTIVE)
+  currency   String     @default("EUR")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  userId     String?
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items      CartItem[]
 
   @@index([userId, status])
 }
 
 model CartItem {
-  id          String    @id @default(cuid())
-  quantity    Int       @default(1)
-  unitCents   Int
-  title       String
-  sku         String?
-  snapshot    Json?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  cartId      String
-  productId   String?
-  cart        Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product     Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  id        String   @id @default(cuid())
+  quantity  Int      @default(1)
+  unitCents Int
+  title     String
+  sku       String?
+  snapshot  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cartId    String
+  productId String?
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@unique([cartId, productId])
   @@index([cartId, createdAt])
 }
 
 model Order {
-  id                      String        @id @default(cuid())
-  number                  Int           @unique @default(autoincrement())
-  status                  OrderStatus   @default(DRAFT)
-  paymentStatus           PaymentStatus @default(PENDING)
+  id                      String            @id @default(cuid())
+  number                  Int               @unique @default(autoincrement())
+  status                  OrderStatus       @default(DRAFT)
+  paymentStatus           PaymentStatus     @default(PENDING)
   fulfillmentStatus       FulfillmentStatus @default(UNFULFILLED)
-  stripeCheckoutSessionId String?       @unique
-  stripePaymentIntentId   String?       @unique
-  currency                String        @default("EUR")
-  subtotalCents           Int           @default(0)
-  shippingCents           Int           @default(0)
-  taxCents                Int           @default(0)
-  discountCents           Int           @default(0)
-  totalCents              Int           @default(0)
+  stripeCheckoutSessionId String?           @unique
+  stripePaymentIntentId   String?           @unique
+  currency                String            @default("EUR")
+  subtotalCents           Int               @default(0)
+  shippingCents           Int               @default(0)
+  taxCents                Int               @default(0)
+  discountCents           Int               @default(0)
+  totalCents              Int               @default(0)
   customerEmail           String
   customerName            String?
   notes                   String?
   shippingAddress         Json?
   billingAddress          Json?
-  createdAt               DateTime      @default(now())
-  updatedAt               DateTime      @updatedAt
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
   userId                  String?
-  user                    User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user                    User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   items                   OrderItem[]
 
   @@index([status, paymentStatus, fulfillmentStatus, createdAt])
@@ -486,36 +555,36 @@ model Order {
 }
 
 model OrderItem {
-  id              String          @id @default(cuid())
-  quantity        Int             @default(1)
-  unitCents       Int
-  totalCents      Int
-  title           String
-  sku             String?
-  snapshot        Json?
-  createdAt       DateTime        @default(now())
-  orderId         String
-  productId       String?
-  variantId       String?
-  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product         Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  id         String          @id @default(cuid())
+  quantity   Int             @default(1)
+  unitCents  Int
+  totalCents Int
+  title      String
+  sku        String?
+  snapshot   Json?
+  createdAt  DateTime        @default(now())
+  orderId    String
+  productId  String?
+  variantId  String?
+  order      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
   @@index([productId])
 }
 
 model AuditLog {
-  id          String      @id @default(cuid())
-  action      String
-  entityType  String
-  entityId    String
-  before      Json?
-  after       Json?
-  metadata    Json?
-  createdAt   DateTime    @default(now())
-  actorId     String?
-  actor       User?       @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actorId    String?
+  actor      User?    @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId, createdAt])
   @@index([actorId, createdAt])
@@ -589,6 +658,35 @@ enum ProductStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+}
+
+enum ProductSyncStatus {
+  UNLINKED
+  PENDING
+  SYNCED
+  CONFLICT
+  FAILED
+}
+
+enum CharacteristicValueType {
+  TEXT
+  NUMBER
+  BOOLEAN
+}
+
+enum SyncDirection {
+  PUSH
+  PULL
+  RECONCILE
+}
+
+enum SyncEventStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CONFLICT
+  IGNORED
 }
 
 enum ProductType {

@@ -9,6 +9,9 @@ type FilterChipsProps = {
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
+  materials?: FilterOption[];
+  finishes?: FilterOption[];
+  origins?: FilterOption[];
   onRemove: (key: keyof ShopFilters) => void;
   onClearAll: () => void;
 };
@@ -22,6 +25,10 @@ const DIM_LABELS: Record<keyof ShopFilters, string> = {
   category:   "Category",
   collection: "Collection",
   tag:        "Tag",
+  material:   "Material",
+  finish:     "Finish",
+  origin:     "Origin",
+  certified:  "Certification",
 };
 
 export function FilterChips({
@@ -30,6 +37,9 @@ export function FilterChips({
   categories,
   collections,
   tags,
+  materials = [],
+  finishes = [],
+  origins = [],
   onRemove,
   onClearAll,
 }: FilterChipsProps) {
@@ -40,6 +50,10 @@ export function FilterChips({
   if (filters.category)   chips.push({ key: "category",   value: labelOf(filters.category, categories) });
   if (filters.collection) chips.push({ key: "collection", value: labelOf(filters.collection, collections) });
   if (filters.tag)        chips.push({ key: "tag",        value: labelOf(filters.tag, tags) });
+  if (filters.material)   chips.push({ key: "material",   value: labelOf(filters.material, materials) });
+  if (filters.finish)     chips.push({ key: "finish",     value: labelOf(filters.finish, finishes) });
+  if (filters.origin)     chips.push({ key: "origin",     value: labelOf(filters.origin, origins) });
+  if (filters.certified)  chips.push({ key: "certified",  value: labelOf(filters.certified, [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }]) });
 
   if (chips.length === 0) return null;
 

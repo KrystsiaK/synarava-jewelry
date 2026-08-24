@@ -5,6 +5,11 @@ import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/cli
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { saveCollectionImageUpload, savePageImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
+import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
+import { isShopifyCommerceEnabled } from "@/lib/shopify/config";
+import { hasShopifyAdminConfig, testShopifyAdminConnection } from "@/lib/shopify/admin";
+import { deleteShopifyProduct, ensureProductWebhookSubscriptions, inspectProductSyncState, previewShopifyReconciliation, pullShopifyProduct, pushProductToShopify, reconcileShopifyProducts } from "@/lib/shopify/product-sync";
+import { env } from "@/lib/env";
 
 function slugify(value: string) {
   return value
@@ -232,6 +237,7 @@ export type ProductActionState = {
   product?: SavedProductPayload;
   deletedProductId?: string;
   created?: boolean;
+  syncWarning?: string;
 };
 
 export type SavedProductPayload = {
@@ -254,6 +260,42 @@ export type SavedProductPayload = {
   priceCents: number;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
+  shopifyProductId: string | null;
+  shopifyHandle: string | null;
+  shopifyUpdatedAt: Date | null;
+  lastSyncedAt: Date | null;
+  syncStatus: "UNLINKED" | "PENDING" | "SYNCED" | "CONFLICT" | "FAILED";
+  syncError: string | null;
+  characteristics: {
+    id: string;
+    key: string;
+    label: string;
+    group: string;
+    valueType: "TEXT" | "NUMBER" | "BOOLEAN";
+    textValue: string | null;
+    numberValue: number | null;
+    booleanValue: boolean | null;
+    unit: string | null;
+    certificateUrl: string | null;
+    sortOrder: number;
+  }[];
+  variants: {
+    id: string;
+    sku: string;
+    title: string;
+    priceCents: number;
+    compareAtCents: number | null;
+    stockOnHand: number;
+    barcode: string | null;
+    taxable: boolean;
+    requiresShipping: boolean;
+    tracked: boolean;
+    weightGrams: number | null;
+    imageUrl: string | null;
+    selectedOptions: unknown;
+    shopifyVariantId: string | null;
+    shopifyInventoryItemId: string | null;
+  }[];
   category: { id: string; slug: string; name: string } | null;
   collections: {
     id: string;
@@ -269,6 +311,35 @@ export type SavedProductPayload = {
     tag: { id: string; slug: string; name: string };
   }[];
 };
+
+function productCommerceSignature(product: SavedProductPayload) {
+  const primaryVariant = product.variants[0] ?? null;
+  return JSON.stringify({
+    name: product.name,
+    slug: product.slug,
+    description: product.description ?? "",
+    imageUrl: product.imageUrl ?? "",
+    status: product.status,
+    visibility: product.visibility,
+    sku: primaryVariant?.sku ?? product.sku,
+    priceCents: primaryVariant?.priceCents ?? product.priceCents,
+    compareAtCents: primaryVariant?.compareAtCents ?? null,
+    stockOnHand: primaryVariant?.stockOnHand ?? 0,
+    tags: product.tags.map((item) => item.tag.slug).sort(),
+    characteristics: product.characteristics
+      .map((item) => ({
+        key: item.key,
+        valueType: item.valueType,
+        value: item.valueType === "BOOLEAN"
+          ? Boolean(item.booleanValue)
+          : item.valueType === "NUMBER"
+            ? item.numberValue
+            : item.textValue ?? "",
+        certificateUrl: item.certificateUrl ?? "",
+      }))
+      .sort((left, right) => left.key.localeCompare(right.key)),
+  });
+}
 
 export type CategoryActionState = {
   error?: string;
@@ -369,6 +440,14 @@ async function getSavedProductPayload(productId: string): Promise<SavedProductPa
       priceCents: true,
       status: true,
       visibility: true,
+      shopifyProductId: true,
+      shopifyHandle: true,
+      shopifyUpdatedAt: true,
+      lastSyncedAt: true,
+      syncStatus: true,
+      syncError: true,
+      characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
+      variants: { orderBy: { createdAt: "asc" } },
       category: {
         select: {
           id: true,
@@ -408,7 +487,17 @@ async function getSavedProductPayload(productId: string): Promise<SavedProductPa
     throw new Error("Product not found.");
   }
 
-  return product;
+  return {
+    ...product,
+    characteristics: product.characteristics.map((item) => ({
+      ...item,
+      numberValue: item.numberValue == null ? null : Number(item.numberValue),
+    })),
+    variants: product.variants.map((variant) => ({
+      ...variant,
+      weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
+    })),
+  };
 }
 
 async function getSavedCollectionPayload(collectionId: string): Promise<SavedCollectionPayload> {
@@ -1388,11 +1477,14 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     ? ""
     : String(formData.get("existingImageUrl") ?? "").trim();
   const price = Number(String(formData.get("price") ?? "0").trim() || "0");
+  const stockOnHand = Math.max(0, Math.trunc(Number(String(formData.get("stockOnHand") ?? "0").trim() || "0")));
   const categorySlug = String(formData.get("categorySlug") ?? "").trim();
   const collectionSlug = String(formData.get("collectionSlug") ?? "").trim();
   const tagInput = String(formData.get("tags") ?? "").trim();
   const workflowState = String(formData.get("workflowState") ?? "DRAFT").trim();
   const imageFile = formData.get("imageFile");
+  const characteristics = parseCharacteristicsForm(formData);
+  const tagSlugs = parseTags(tagInput);
 
   let imageUrl = existingImageUrl || null;
   let uploadedAssetId: string | null = null;
@@ -1535,6 +1627,10 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       status: isPublished ? "ACTIVE" : "DRAFT",
       visibility: isPublished ? "PUBLIC" : "PRIVATE",
       publishedAt: isPublished ? new Date() : null,
+      searchDocument: buildProductSearchDocument({
+        name, sku, slug, description, shortDescription, materialLine,
+        tags: tagSlugs, characteristics,
+      }),
     },
     create: {
       slug,
@@ -1557,9 +1653,25 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       status: isPublished ? "ACTIVE" : "DRAFT",
       visibility: isPublished ? "PUBLIC" : "PRIVATE",
       publishedAt: isPublished ? new Date() : null,
+      searchDocument: buildProductSearchDocument({
+        name, sku, slug, description, shortDescription, materialLine,
+        tags: tagSlugs, characteristics,
+      }),
     },
     select: { id: true, slug: true },
   });
+
+  const existingVariant = await db.productVariant.findFirst({ where: { productId: product.id }, orderBy: { createdAt: "asc" } });
+  if (existingVariant) {
+    await db.productVariant.update({
+      where: { id: existingVariant.id },
+      data: { sku, priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : "DRAFT" },
+    });
+  } else {
+    await db.productVariant.create({
+      data: { productId: product.id, sku, title: "Default Title", priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : "DRAFT" },
+    });
+  }
 
   await db.productCollection.deleteMany({
     where: { productId: product.id },
@@ -1578,7 +1690,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     where: { productId: product.id },
   });
 
-  for (const tagSlug of parseTags(tagInput)) {
+  for (const tagSlug of tagSlugs) {
     const tag = await db.tag.upsert({
       where: { slug: tagSlug },
       update: { name: tagSlug.replace(/-/g, " ") },
@@ -1594,11 +1706,34 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
   }
 
+  await db.productCharacteristic.deleteMany({ where: { productId: product.id } });
+  if (characteristics.length) {
+    await db.productCharacteristic.createMany({
+      data: characteristics.map((item) => ({ ...item, productId: product.id })),
+    });
+  }
+
   revalidateStorefront();
   revalidatePath("/admin/products");
   revalidatePath(`/products/${product.slug}`);
 
-  const savedProduct = await getSavedProductPayload(product.id);
+  let savedProduct = await getSavedProductPayload(product.id);
+  const commerceChanged = !before || productCommerceSignature(before) !== productCommerceSignature(savedProduct);
+  const nextSyncStatus = savedProduct.shopifyProductId
+    ? before?.syncStatus === "CONFLICT"
+      ? "CONFLICT"
+      : commerceChanged
+        ? "PENDING"
+        : savedProduct.syncStatus
+    : "UNLINKED";
+
+  if (savedProduct.syncStatus !== nextSyncStatus || savedProduct.syncError) {
+    await db.product.update({
+      where: { id: savedProduct.id },
+      data: { syncStatus: nextSyncStatus, syncError: null },
+    });
+    savedProduct = await getSavedProductPayload(product.id);
+  }
 
   await writeAuditLog({
     action: wasCreate ? "CREATE" : "UPDATE",
@@ -1610,10 +1745,266 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   });
 
   return {
-    success: wasCreate ? "Product created." : "Product updated.",
+    success: commerceChanged
+      ? `${wasCreate ? "Product created" : "Product saved"} locally. Commerce changes are ready to push.`
+      : `${wasCreate ? "Product created" : "Product saved"} locally. Shopify commerce data is unchanged.`,
     created: wasCreate,
     product: savedProduct,
   };
+}
+
+export async function reconcileProductsAction() {
+  await requireAdminSession("/admin/products");
+  if (!isShopifyCommerceEnabled()) return { error: "Shopify commerce is not enabled." };
+  try {
+    if (env.NEXT_PUBLIC_APP_URL) {
+      await ensureProductWebhookSubscriptions(env.NEXT_PUBLIC_APP_URL);
+    }
+    const result = await reconcileShopifyProducts();
+    revalidateStorefront();
+    revalidatePath("/admin/products");
+    return { success: `Reconciliation complete: ${result.pulled} pulled, ${result.pushed} pushed, ${result.archived} archived, ${result.conflicts} conflicts, ${result.failed} failed.`, result };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Reconciliation failed." };
+  }
+}
+
+export async function testShopifyConnectionAction() {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) {
+    const missingVariables = [
+      !env.SHOPIFY_STORE_DOMAIN ? "SHOPIFY_STORE_DOMAIN" : null,
+      !env.SHOPIFY_CLIENT_ID && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_ID" : null,
+      !env.SHOPIFY_CLIENT_SECRET && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_SECRET" : null,
+    ].filter((value): value is string => Boolean(value));
+    return {
+      error: `Shopify Admin API is not configured. Missing: ${missingVariables.join(", ")}. Restart the dev server after changing environment variables.`,
+    };
+  }
+
+  try {
+    const connection = await testShopifyAdminConnection();
+    if (connection.missingScopes.length > 0) {
+      return {
+        error: `Connected to ${connection.shopName}, but required scopes are missing: ${connection.missingScopes.join(", ")}.`,
+        connection,
+      };
+    }
+
+    return {
+      success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.`,
+      connection,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Shopify connection test failed." };
+  }
+}
+
+export async function previewShopifyReconciliationAction() {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) {
+    return { error: "Shopify Admin API credentials are not configured." };
+  }
+
+  try {
+    const preview = await previewShopifyReconciliation();
+    return {
+      success: `Preview ready: ${preview.remote.length} Shopify products read, ${preview.pushToShopify.length} local products would be pushed, ${preview.archiveLocal.length} local products would be archived.`,
+      preview,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Shopify reconciliation preview failed." };
+  }
+}
+
+export async function inspectProductSyncAction(productId: string) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    return { inspection: await inspectProductSyncState(productId) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not inspect Shopify changes." };
+  }
+}
+
+export async function pushSingleProductToShopifyAction(productId: string, force = false) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    const before = await inspectProductSyncState(productId);
+    if (!force && (before.state === "REMOTE_CHANGES" || before.state === "CONFLICT")) {
+      return { error: "Shopify has newer changes. Review the conflict before pushing.", inspection: before };
+    }
+    if (before.state === "REMOTE_MISSING") {
+      return { error: "The linked Shopify product no longer exists.", inspection: before };
+    }
+    const result = await pushProductToShopify(productId);
+    if (!result.ok) return { error: result.error, inspection: before };
+    revalidateStorefront();
+    revalidatePath("/admin/products");
+    const product = await getSavedProductPayload(productId);
+    return {
+      success: "Commerce changes pushed to Shopify.",
+      product,
+      inspection: await inspectProductSyncState(productId),
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Shopify push failed." };
+  }
+}
+
+export async function pullSingleProductFromShopifyAction(productId: string, force = false) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    const product = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
+    if (!product?.shopifyProductId) return { error: "This product is not linked to Shopify." };
+    const before = await inspectProductSyncState(productId);
+    if (!force && (before.state === "LOCAL_CHANGES" || before.state === "CONFLICT")) {
+      return { error: "Saved local commerce changes would be replaced. Review the conflict before pulling.", inspection: before };
+    }
+    if (before.state === "REMOTE_MISSING") {
+      return { error: "The linked Shopify product no longer exists.", inspection: before };
+    }
+    await pullShopifyProduct(product.shopifyProductId, undefined, force);
+    revalidateStorefront();
+    revalidatePath("/admin/products");
+    const savedProduct = await getSavedProductPayload(productId);
+    return {
+      success: "Latest Shopify commerce data pulled. Synarava CMS content was preserved.",
+      product: savedProduct,
+      inspection: await inspectProductSyncState(productId),
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Shopify pull failed." };
+  }
+}
+
+export type ShopifySyncSelection = {
+  remoteProductIds: string[];
+  localProductIds: string[];
+};
+
+export async function syncShopifySelectionAction(selection: ShopifySyncSelection) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) {
+    return { error: "Shopify Admin API credentials are not configured." };
+  }
+
+  const remoteProductIds = Array.from(new Set(selection.remoteProductIds)).slice(0, 100);
+  const localProductIds = Array.from(new Set(selection.localProductIds)).slice(0, 100);
+  if (remoteProductIds.length === 0 && localProductIds.length === 0) {
+    return { error: "Select at least one product to synchronize." };
+  }
+
+  let pulled = 0;
+  let pushed = 0;
+  const failures: string[] = [];
+  const changedProductIds = new Set<string>();
+
+  for (const shopifyProductId of remoteProductIds) {
+    try {
+      const linkedLocal = await db.product.findUnique({
+        where: { shopifyProductId },
+        select: { id: true },
+      });
+      if (linkedLocal) {
+        const inspection = await inspectProductSyncState(linkedLocal.id);
+        if (inspection.state === "LOCAL_CHANGES" || inspection.state === "CONFLICT") {
+          failures.push(`${shopifyProductId}: local commerce changes need an explicit conflict decision`);
+          continue;
+        }
+      }
+      const result = await pullShopifyProduct(shopifyProductId);
+      if (result.status === "CONFLICT") failures.push(`${shopifyProductId}: commerce conflict needs an explicit decision`);
+      else if (result.status === "LOCAL_CHANGES") failures.push(`${shopifyProductId}: saved local commerce changes must be pushed or resolved first`);
+      else {
+        pulled += 1;
+        changedProductIds.add(result.productId);
+      }
+    } catch (error) {
+      failures.push(`${shopifyProductId}: ${error instanceof Error ? error.message : "pull failed"}`);
+    }
+  }
+
+  for (const productId of localProductIds) {
+    try {
+      const inspection = await inspectProductSyncState(productId);
+      if (inspection.state !== "UNLINKED" && inspection.state !== "LOCAL_CHANGES") {
+        failures.push(`${productId}: Shopify state changed; refresh the preview and resolve it explicitly`);
+        continue;
+      }
+      const result = await pushProductToShopify(productId);
+      if (result.ok) {
+        pushed += 1;
+        changedProductIds.add(productId);
+      }
+      else failures.push(`${productId}: ${result.error}`);
+    } catch (error) {
+      failures.push(`${productId}: ${error instanceof Error ? error.message : "push failed"}`);
+    }
+  }
+
+  revalidateStorefront();
+  revalidatePath("/admin/products");
+  const preview = await previewShopifyReconciliation();
+  const products = await Promise.all(Array.from(changedProductIds).map((id) => getSavedProductPayload(id)));
+  const summary = `${pulled} imported, ${pushed} pushed${failures.length ? `, ${failures.length} failed` : ""}.`;
+
+  return {
+    success: failures.length < remoteProductIds.length + localProductIds.length
+      ? `Synchronization complete: ${summary}`
+      : undefined,
+    error: failures.length ? `Some products could not be synchronized: ${failures.join("; ")}` : undefined,
+    preview,
+    products,
+    result: { pulled, pushed, failed: failures.length },
+  };
+}
+
+export async function archiveMissingShopifyProductsAction(productIds: string[]) {
+  const currentUser = await requireAdminSession("/admin/products");
+  const selectedIds = Array.from(new Set(productIds)).slice(0, 100);
+  if (selectedIds.length === 0) return { error: "Select at least one product to archive." };
+
+  try {
+    const beforePreview = await previewShopifyReconciliation();
+    const confirmedMissingIds = new Set(beforePreview.archiveLocal.map((item) => item.productId));
+    const safeIds = selectedIds.filter((id) => confirmedMissingIds.has(id));
+    if (safeIds.length !== selectedIds.length) {
+      return { error: "The catalog changed after preview. Run Preview sync again before archiving." };
+    }
+
+    for (const productId of safeIds) {
+      const before = await db.product.findUnique({ where: { id: productId } });
+      if (!before) continue;
+      const after = await db.product.update({
+        where: { id: productId },
+        data: {
+          status: "ARCHIVED",
+          visibility: "PRIVATE",
+          syncStatus: "UNLINKED",
+          syncError: "Product no longer exists in Shopify.",
+        },
+      });
+      await writeAuditLog({
+        action: "SHOPIFY_MISSING_ARCHIVE",
+        entityType: "PRODUCT",
+        entityId: productId,
+        before,
+        after,
+        actorId: currentUser?.id,
+      });
+    }
+
+    revalidateStorefront();
+    revalidatePath("/admin/products");
+    const preview = await previewShopifyReconciliation();
+    const products = await Promise.all(safeIds.map((id) => getSavedProductPayload(id)));
+    return { success: `${safeIds.length} missing product${safeIds.length === 1 ? "" : "s"} archived locally.`, preview, products };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Local archive failed." };
+  }
 }
 
 export async function autosaveProductDraftAction(formData: FormData): Promise<DraftAutosaveResult> {
@@ -1694,6 +2085,15 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
     };
   }
 
+  const existing = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
+  if (isShopifyCommerceEnabled() && existing?.shopifyProductId) {
+    try {
+      await deleteShopifyProduct(existing.shopifyProductId);
+    } catch (error) {
+      return { error: error instanceof Error ? `Shopify deletion failed: ${error.message}` : "Shopify deletion failed." };
+    }
+  }
+
   await db.product.delete({
     where: { id: productId },
   });
@@ -1741,7 +2141,13 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
 
   const product = await db.product.update({
     where: { id: productId },
-    data: state,
+    data: {
+      ...state,
+      syncStatus: before?.shopifyProductId
+        ? before.syncStatus === "CONFLICT" ? "CONFLICT" : "PENDING"
+        : "UNLINKED",
+      syncError: null,
+    },
     select: { id: true, slug: true, status: true },
   });
 
@@ -1761,7 +2167,7 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
   });
 
   return {
-    success: `Product moved to ${product.status.toLowerCase()}.`,
+    success: `Product moved to ${product.status.toLowerCase()} locally. Commerce status is ready to push.`,
     product: savedProduct,
   };
 }

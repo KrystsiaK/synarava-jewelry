@@ -18,12 +18,16 @@ type Props = {
     category?: string;
     tag?: string;
     collection?: string;
+    material?: string;
+    finish?: string;
+    origin?: string;
+    certified?: string;
   }>;
 };
 
 export default async function Page({ searchParams }: Props) {
   const filters = (await searchParams) ?? {};
-  const [{ departments, categories, tags, collections }, products, archiveProducts] = await Promise.all([
+  const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts] = await Promise.all([
     getShopFilterData(),
     listShopProducts(filters),
     listShopProducts({}),
@@ -42,6 +46,9 @@ export default async function Page({ searchParams }: Props) {
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
         collections: collections.map((c) => ({ value: c.slug, label: c.name })),
         tags: tags.map((t) => ({ value: t.slug, label: t.name })),
+        materials: materials.map((item) => ({ value: item.slug, label: item.name })),
+        finishes: finishes.map((item) => ({ value: item.slug, label: item.name })),
+        origins: origins.map((item) => ({ value: item.slug, label: item.name })),
         initialFilters: filters,
       }}
     />
