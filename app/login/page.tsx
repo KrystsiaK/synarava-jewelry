@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-
 import { AuthShell } from "@/components/auth/auth-shell";
 import { safeCustomerReturnPath } from "@/lib/shopify/customer-account/config";
 
@@ -19,7 +17,6 @@ type Props = {
 export default async function LoginPage({ searchParams }: Props) {
   const params = (await searchParams) ?? {};
   const returnTo = safeCustomerReturnPath(params.redirectTo);
-  const loginHref = `/api/auth/shopify?returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
     <AuthShell
@@ -41,12 +38,15 @@ export default async function LoginPage({ searchParams }: Props) {
             We could not complete the sign-in. Please try again.
           </p>
         ) : null}
-        <Link
-          href={loginHref}
-          className="label-caps inline-flex w-full items-center justify-center bg-couture-red px-6 py-4 text-linen transition-opacity hover:opacity-90"
-        >
-          Sign in or create account
-        </Link>
+        <form action="/api/auth/shopify" method="get">
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <button
+            type="submit"
+            className="label-caps inline-flex w-full items-center justify-center bg-couture-red px-6 py-4 text-linen transition-opacity hover:opacity-90"
+          >
+            Sign in or create account
+          </button>
+        </form>
         <p className="text-sm leading-6 text-foreground/45">
           New customers are created automatically after email verification.
         </p>

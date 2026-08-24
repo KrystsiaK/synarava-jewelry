@@ -78,12 +78,14 @@ export function ShopifyProfileShell({
               </h1>
               <p className="mt-2 truncate text-sm text-foreground/50">{email}</p>
             </div>
-            <Link
-              href="/api/auth/shopify/logout"
-              className="label-caps self-start border border-stroke px-5 py-3 transition-colors hover:border-couture-red hover:text-couture-red md:self-center"
-            >
-              Sign out
-            </Link>
+            <form action="/api/auth/shopify/logout" method="get" className="self-start md:self-center">
+              <button
+                type="submit"
+                className="label-caps border border-stroke px-5 py-3 transition-colors hover:border-couture-red hover:text-couture-red"
+              >
+                Sign out
+              </button>
+            </form>
           </div>
         </section>
 
@@ -215,9 +217,11 @@ export function ShopifyProfileShell({
                 <p className="mt-4 max-w-2xl leading-7 text-foreground/55">
                   Sign-in codes are sent to your email. No customer password is created or stored by Synarava.
                 </p>
-                <Link href="/api/auth/shopify/logout" className="label-caps mt-7 inline-block border border-stroke px-6 py-4 hover:border-couture-red hover:text-couture-red">
-                  Sign out on this device
-                </Link>
+                <form action="/api/auth/shopify/logout" method="get">
+                  <button type="submit" className="label-caps mt-7 inline-block border border-stroke px-6 py-4 hover:border-couture-red hover:text-couture-red">
+                    Sign out on this device
+                  </button>
+                </form>
               </div>
             ) : null}
           </motion.section>
