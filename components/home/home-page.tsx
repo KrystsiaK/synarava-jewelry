@@ -36,7 +36,15 @@ export interface HomePageProps {
   excerpt?: string;
   content?: Record<string, string>;
   collections: CollectionItem[];
+  departments: DepartmentItem[];
   heroVideoSrc?: string | string[];
+}
+
+export interface DepartmentItem {
+  slug: string;
+  name: string;
+  count: number;
+  image: string;
 }
 
 type LexiconMaterial = {
@@ -386,6 +394,108 @@ function HeroSection({
           </div>
         ) : null}
       </motion.div>
+    </section>
+  );
+}
+
+const DEPARTMENT_NOTES: Record<string, string> = {
+  jewelry: "Adornment, form, and personal symbolism",
+  pets: "Considered objects for everyday care",
+  kids: "Creative tools for curious hands",
+  "jewelry-making": "Materials and tools for makers",
+};
+
+function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
+  const leadDepartment = departments.find((department) => department.image);
+
+  return (
+    <section className="relative z-20 bg-[#0a0a0b] px-6 py-24 text-linen md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
+      <div className="mx-auto grid max-w-[90rem] gap-12 md:grid-cols-[minmax(0,0.82fr)_minmax(24rem,1.18fr)] md:items-stretch md:gap-[7vw]">
+        <motion.div
+          className="relative min-h-[24rem] overflow-hidden md:min-h-[42rem]"
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-10%" }}
+          transition={{ duration: 0.85, ease }}
+          style={{ clipPath: "polygon(9% 0, 100% 5%, 94% 100%, 0 91%)" }}
+        >
+          {leadDepartment ? (
+            <>
+              <Image
+                src={leadDepartment.image}
+                alt={`${leadDepartment.name} at Synarava`}
+                fill
+                sizes="(max-width: 768px) 100vw, 42vw"
+                className="object-cover grayscale brightness-[0.72] contrast-[1.08]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/62 via-black/5 to-transparent" aria-hidden="true" />
+              <p className="absolute bottom-9 left-9 max-w-[18rem] font-sans text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white/72">
+                One point of view, across every part of daily life
+              </p>
+            </>
+          ) : (
+            <div className="h-full w-full border border-linen/12 bg-linen/[0.035]" />
+          )}
+        </motion.div>
+
+        <motion.div
+          className="flex flex-col justify-center"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-10%" }}
+          transition={{ duration: 0.8, delay: 0.08, ease }}
+        >
+          <h2 id="department-pathway-title" className="max-w-[10ch] text-balance font-serif text-[clamp(2.8rem,6vw,5.4rem)] leading-[0.92] tracking-[-0.035em]">
+            Choose where to begin.
+          </h2>
+          <p className="mt-6 max-w-[34rem] text-pretty font-sans text-sm leading-7 text-stone-beige/72 md:text-base">
+            Adornment, companionship, play, and making — selected with the same eye for material, usefulness, and character.
+          </p>
+
+          <div className="mt-10 border-t border-linen/14 md:mt-14">
+            {departments.map((department) => {
+              const content = (
+                <>
+                  <span>
+                    <span className="block font-serif text-[clamp(1.65rem,3vw,2.65rem)] leading-none text-linen">
+                      {department.name}
+                    </span>
+                    <span className="mt-2 block text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-stone-beige/58">
+                      {DEPARTMENT_NOTES[department.slug] ?? "Curated goods"}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3 text-[0.64rem] font-semibold uppercase tracking-[0.16em]">
+                    {department.count > 0 ? (
+                      <>
+                        {department.count} {department.count === 1 ? "piece" : "pieces"}
+                        <ArrowRight className="size-4" aria-hidden="true" />
+                      </>
+                    ) : "Coming soon"}
+                  </span>
+                </>
+              );
+
+              return department.count > 0 ? (
+                <Link
+                  key={department.slug}
+                  href={`/shop?department=${department.slug}`}
+                  className="group flex min-h-28 items-center justify-between gap-6 border-b border-linen/14 py-5 text-stone-beige/70 transition-colors hover:text-couture-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div key={department.slug} className="flex min-h-28 items-center justify-between gap-6 border-b border-linen/10 py-5 text-stone-beige/40">
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-10">
+            <PrimaryCtaButton href="/shop">Explore the shop</PrimaryCtaButton>
+          </div>
+        </motion.div>
+      </div>
     </section>
   );
 }
@@ -1265,7 +1375,7 @@ function FinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections
     : <CompactFinalCTA title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />;
 }
 
-export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) {
+export function HomePage({ collections, departments, heroVideoSrc, content }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
 
   return (
@@ -1290,6 +1400,7 @@ export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) 
         ctaLabel={content?.ctaLabel}
         ctaHref={content?.ctaHref}
       />
+      <DepartmentPathway departments={departments} />
       <ArchivePathway collections={collections} />
       <MaterialLab collections={collections} />
       <ManifestoQuote quote={content?.quote} />

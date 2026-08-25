@@ -18,6 +18,16 @@
 - добавлены skip link, focus trap / Escape / focus restore для mobile drawer и общего modal primitive, reduced-motion для smooth scroll;
 - обновлены тесты и добавлены тесты variant purchase panel.
 
+Второй этап discovery и каталога также реализован:
+
+- Home теперь даёт ранний вход в Jewelry, Pets, Kids и Jewelry Making до ювелирного collection-flow;
+- направления строятся из общей taxonomy и реального каталога, а пустые отделы честно помечаются `Coming soon` вместо перехода в тупик;
+- пустая страница конкретного отдела получила отдельное объяснение и выход к доступным товарам;
+- Shop получил URL-driven сортировку: Featured, Newest, цена по возрастанию/убыванию и название A–Z;
+- очистка фильтров сохраняет выбранную сортировку, а сортировка не учитывается как активный фильтр;
+- мобильный Shop сокращён до `74svh`, товары подняты выше, поиск и основные действия собраны в устойчивую двухрядную панель;
+- сценарии проверены на mobile и desktop: сортировка меняет URL и порядок товаров, adaptive popover не обрезается, console errors отсутствуют.
+
 Остаётся внешним P0: заменить `My Store`, отключить `Test Payment Gateway`, проверить production payment methods, policies и branding в Shopify Admin. В коде это исправить нельзя.
 
 ## Итог

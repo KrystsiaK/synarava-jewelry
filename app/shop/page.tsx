@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { getShopFilterData, listShopProducts } from "@/lib/content/catalog";
 import { ShopPage } from "@/components/shop/shop-page";
+import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 
 export const metadata: Metadata = {
   title: "Shop",
@@ -22,11 +23,16 @@ type Props = {
     finish?: string;
     origin?: string;
     certified?: string;
+    sort?: string;
   }>;
 };
 
 export default async function Page({ searchParams }: Props) {
-  const filters = (await searchParams) ?? {};
+  const rawFilters = (await searchParams) ?? {};
+  const filters = {
+    ...rawFilters,
+    sort: normalizeShopSort(rawFilters.sort),
+  };
   const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts] = await Promise.all([
     getShopFilterData(),
     listShopProducts(filters),

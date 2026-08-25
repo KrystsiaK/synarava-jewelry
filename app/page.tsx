@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getPageBySlug, listCollections } from "@/lib/content/catalog";
+import { getPageBySlug, listCollections, listShopProducts } from "@/lib/content/catalog";
+import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 import { getSiteVideos } from "@/lib/site-videos";
 import { HomePage } from "@/components/home/home-page";
 
@@ -21,10 +22,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [page, collectionData, videos] = await Promise.all([
+  const [page, collectionData, videos, products] = await Promise.all([
     getPageBySlug("home"),
     listCollections(),
     getSiteVideos(),
+    listShopProducts({}),
   ]);
 
   const collections = collectionData
@@ -40,6 +42,15 @@ export default async function Page() {
 
   const content = (page?.content ?? {}) as Record<string, string>;
   const heroImage = content.heroImage || collections[0]?.image || "";
+  const departments = SHOP_DEPARTMENTS.map((department) => {
+    const departmentProducts = products.filter((product) => product.departmentSlug === department.slug);
+    return {
+      slug: department.slug,
+      name: department.name,
+      count: departmentProducts.length,
+      image: departmentProducts[0]?.image ?? "",
+    };
+  });
 
   return (
     <HomePage
@@ -47,6 +58,7 @@ export default async function Page() {
       excerpt={page?.excerpt}
       content={{ ...content, heroImage, heroTitle: page?.title ?? "", heroBody: content.body ?? page?.excerpt ?? "" }}
       collections={collections}
+      departments={departments}
       heroVideoSrc={[videos.homeBeads, videos.homeModel, videos.braceletFilm, videos.materialsFilm]}
     />
   );

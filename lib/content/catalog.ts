@@ -13,6 +13,7 @@ import {
 } from "@/lib/content/product-details";
 import { characteristicDisplayValue, type ProductCharacteristicValue } from "@/lib/products/characteristics";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
+import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 
 export type CollectionSummary = {
   slug: string;
@@ -84,6 +85,7 @@ export type ShopFilters = {
   finish?: string;
   origin?: string;
   certified?: string;
+  sort?: ShopSort | string;
 };
 
 export type PageContent = {
@@ -362,6 +364,16 @@ function formatCollectionEyebrow(sortOrder: number | null | undefined) {
 
 export async function listShopProducts(filters: ShopFilters = {}) {
   const q = filters.q?.trim();
+  const sort = normalizeShopSort(filters.sort);
+  const orderBy = sort === "newest"
+    ? [{ createdAt: "desc" as const }]
+    : sort === "price-asc"
+      ? [{ priceCents: "asc" as const }, { createdAt: "desc" as const }]
+      : sort === "price-desc"
+        ? [{ priceCents: "desc" as const }, { createdAt: "desc" as const }]
+        : sort === "name-asc"
+          ? [{ name: "asc" as const }]
+          : [{ publishedAt: "desc" as const }, { createdAt: "desc" as const }];
 
   const products = await db.product.findMany({
     where: {
@@ -440,7 +452,7 @@ export async function listShopProducts(filters: ShopFilters = {}) {
       characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
       variants: { orderBy: { createdAt: "asc" } },
     },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    orderBy,
   });
 
   return products

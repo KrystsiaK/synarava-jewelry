@@ -29,6 +29,7 @@ const DIM_LABELS: Record<keyof ShopFilters, string> = {
   finish:     "Finish",
   origin:     "Origin",
   certified:  "Certification",
+  sort:        "Sort",
 };
 
 export function FilterChips({

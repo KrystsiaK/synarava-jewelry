@@ -53,7 +53,7 @@ function ShopHero({
   return (
     <header
       ref={ref}
-      className="shop-hero relative flex min-h-[82svh] items-end overflow-hidden bg-background px-5 pb-14 pt-28 text-foreground md:min-h-[88svh] md:px-[4vw] md:pb-20"
+      className="shop-hero relative flex min-h-[74svh] items-end overflow-hidden bg-background px-5 pb-10 pt-24 text-foreground md:min-h-[88svh] md:px-[4vw] md:pb-20 md:pt-28"
     >
       <div
         className="shop-theme-grid pointer-events-none absolute inset-0"
@@ -62,7 +62,7 @@ function ShopHero({
 
       {leadProduct ? (
         <motion.div
-          className="absolute -right-[18%] top-[5.5rem] h-[62svh] w-[96%] transform-gpu overflow-hidden md:-right-[3%] md:top-[6.5rem] md:h-[78vh] md:w-[67%]"
+          className="absolute -right-[18%] top-[5rem] h-[54svh] w-[96%] transform-gpu overflow-hidden md:-right-[3%] md:top-[6.5rem] md:h-[78vh] md:w-[67%]"
           style={{
             y: mediaY,
             scale: mediaScale,
@@ -171,12 +171,23 @@ const labelOf = (value: string, opts: FilterOption[]) =>
 
 const DIM: Record<keyof ShopFilters, string> = {
   q: "Search", department: "Department", category: "Category", collection: "Collection", tag: "Tag",
-  material: "Material", finish: "Finish", origin: "Origin", certified: "Certification",
+  material: "Material", finish: "Finish", origin: "Origin", certified: "Certification", sort: "Sort",
 };
 
 function EmptyState({ filters, departments = [], categories, collections, tags }: EmptyStateProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
+  const isDepartmentLanding = Boolean(filters.department) && ![
+    filters.q,
+    filters.category,
+    filters.collection,
+    filters.tag,
+    filters.material,
+    filters.finish,
+    filters.origin,
+    filters.certified,
+  ].some(Boolean);
+  const departmentName = filters.department ? labelOf(filters.department, departments) : "This department";
 
   /* Active filter chips with remove-one URLs */
   const active: { key: keyof ShopFilters; label: string; removeHref: string }[] = [];
@@ -217,13 +228,14 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
       </div>
 
       <div>
-        <p className="label-mono mb-3 text-couture-red">0 products found</p>
+        <p className="label-mono mb-3 text-couture-red">{isDepartmentLanding ? "Department preview" : "0 products found"}</p>
         <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">
-          No products matched.
+          {isDepartmentLanding ? `${departmentName} is coming soon.` : "No products matched."}
         </h2>
         <p className="mt-3 max-w-xl text-base leading-[1.85] text-foreground/55">
-          The combination you selected returned no results. Try removing one filter at a time,
-          or clear everything to browse the full archive.
+          {isDepartmentLanding
+            ? "We are selecting the first objects for this department. Until then, explore the pieces already available in the shop."
+            : "The combination you selected returned no results. Try removing one filter at a time, or clear everything to browse the full archive."}
         </p>
       </div>
 
@@ -253,7 +265,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
 
       {/* Primary CTA */}
       <PrimaryCtaButton href="/shop">
-        Show all pieces
+        {isDepartmentLanding ? "Browse available pieces" : "Show all pieces"}
       </PrimaryCtaButton>
     </motion.div>
   );
@@ -404,7 +416,7 @@ export function ShopPage({ products, leadProduct, archiveCount, filterProps }: S
     >
       <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} />
 
-      <div className="relative bg-background pb-16 pt-10 md:pb-24 md:pt-14">
+      <div id="shop-results" className="relative scroll-mt-24 bg-background pb-16 pt-6 md:pb-24 md:pt-14">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.025]"
           style={{

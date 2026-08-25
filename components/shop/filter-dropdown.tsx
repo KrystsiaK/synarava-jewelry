@@ -13,6 +13,7 @@ export type FilterDropdownProps = {
   value: string;
   onChange: (value: string) => void;
   allLabel?: string;
+  inactiveLabel?: string;
   disabled?: boolean;
 };
 
@@ -22,6 +23,7 @@ export function FilterDropdown({
   value,
   onChange,
   allLabel = `All ${label.toLowerCase()}`,
+  inactiveLabel,
   disabled = false,
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -57,7 +59,7 @@ export function FilterDropdown({
               open && !isActive && "border-foreground/25 text-foreground",
             )}
           >
-            <span>{selectedLabel ?? label}</span>
+            <span>{selectedLabel ?? inactiveLabel ?? label}</span>
             <ChevronDown
               aria-hidden="true"
               className={cn("size-3 shrink-0 transition-transform duration-200", open && "rotate-180")}

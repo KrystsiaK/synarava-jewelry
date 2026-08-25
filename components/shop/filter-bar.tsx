@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
+import { SHOP_SORT_OPTIONS } from "@/lib/catalog/shop-sort";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
 import {
@@ -15,6 +16,7 @@ import {
   buildSearchParams,
   clearFiltersSession,
   countActiveFilters,
+  filtersWithoutSort,
   loadFiltersFromSession,
   saveFiltersToSession,
 } from "./types";
@@ -108,11 +110,15 @@ export function FilterBar({
   );
 
   const clearAll = useCallback(() => {
-    setFilters({});
+    const next = filtersWithoutSort(filters);
+    setFilters(next);
     setSearch("");
     clearFiltersSession();
-    startTransition(() => router.push("/shop", SHOP_SCROLL_OPTIONS));
-  }, [router]);
+    startTransition(() => {
+      const qs = buildSearchParams(next);
+      router.push(qs ? `/shop?${qs}` : "/shop", SHOP_SCROLL_OPTIONS);
+    });
+  }, [filters, router]);
 
   // ── Debounced search ───────────────────────────────────────────────────────
   const handleSearchChange = (value: string) => {
@@ -223,13 +229,23 @@ export function FilterBar({
             </p>
           </div>
 
-          <div className="shrink-0 text-right">
-            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-muted/55">
-              Showing
-            </p>
-            <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground">
-              {totalCount} <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{totalCount === 1 ? "piece" : "pieces"}</span>
-            </p>
+          <div className="flex shrink-0 items-end gap-5">
+            <FilterDropdown
+              label="Sort"
+              options={SHOP_SORT_OPTIONS.slice(1)}
+              value={filters.sort && filters.sort !== "featured" ? filters.sort : ""}
+              onChange={(value) => setFilter("sort", value)}
+              allLabel="Featured"
+              inactiveLabel="Featured"
+            />
+            <div className="text-right">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-muted/55">
+                Showing
+              </p>
+              <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground">
+                {totalCount} <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{totalCount === 1 ? "piece" : "pieces"}</span>
+              </p>
+            </div>
           </div>
         </div>
 
@@ -299,8 +315,8 @@ export function FilterBar({
       </div>
 
       {/* ── Mobile filter row ───────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 md:hidden">
-        <div className="relative flex flex-1 items-center border-b border-foreground/[0.14]">
+      <div className="grid grid-cols-[1fr_auto] items-end gap-3 md:hidden">
+        <div className="relative col-span-2 flex items-center border-b border-foreground/[0.14]">
           <Search className="absolute left-0 size-3.5 shrink-0 text-muted/60 pointer-events-none" aria-hidden="true" />
           <input
             type="search"
@@ -322,32 +338,42 @@ export function FilterBar({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setMobileSession((session) => session + 1);
-            setMobileOpen(true);
-          }}
-          aria-label={`Filters${activeCount > 0 ? `, ${activeCount} active` : ""}`}
-          className={cn(
-            "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
-            "transition-all duration-200 cursor-pointer active:scale-[0.97]",
-            activeCount > 0
-              ? "border-couture-red bg-couture-red/[0.06] text-couture-red"
-              : "border-foreground/[0.12] text-muted hover:border-foreground/25 hover:text-foreground",
-          )}
-        >
-          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
-          Filters
-          {activeCount > 0 && (
-            <span className="inline-flex h-4 w-4 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full shrink-0">
-              {activeCount}
-            </span>
-          )}
-        </button>
+        <div className="flex items-end gap-2">
+          <FilterDropdown
+            label="Sort"
+            options={SHOP_SORT_OPTIONS.slice(1)}
+            value={filters.sort && filters.sort !== "featured" ? filters.sort : ""}
+            onChange={(value) => setFilter("sort", value)}
+            allLabel="Featured"
+            inactiveLabel="Featured"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setMobileSession((session) => session + 1);
+              setMobileOpen(true);
+            }}
+            aria-label={`Filters${activeCount > 0 ? `, ${activeCount} active` : ""}`}
+            className={cn(
+              "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
+              "transition-all duration-200 cursor-pointer active:scale-[0.97]",
+              activeCount > 0
+                ? "border-couture-red bg-couture-red/[0.06] text-couture-red"
+                : "border-foreground/[0.12] text-muted hover:border-foreground/25 hover:text-foreground",
+            )}
+          >
+            <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+            Filters
+            {activeCount > 0 && (
+              <span className="inline-flex h-4 w-4 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full shrink-0">
+                {activeCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Labelled count */}
-        <span className="shrink-0 whitespace-nowrap text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted/55 tabular-nums">
+        <span className="shrink-0 whitespace-nowrap text-right text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted/55 tabular-nums">
           {totalCount} {totalCount === 1 ? "piece" : "pieces"}
         </span>
       </div>
@@ -459,7 +485,7 @@ function MobileFilterSheet({
             {localActiveCount > 0 && (
               <button
                 type="button"
-                onClick={() => setLocal({})}
+                onClick={() => setLocal(filtersWithoutSort(local))}
                 className="label-caps min-h-[44px] cursor-pointer px-2 text-[0.68rem] text-muted transition-colors hover:text-accent"
               >
                 Clear all

@@ -1,3 +1,5 @@
+import type { ShopSort } from "@/lib/catalog/shop-sort";
+
 export type ShopFilters = {
   q?: string;
   department?: string;
@@ -8,6 +10,7 @@ export type ShopFilters = {
   finish?: string;
   origin?: string;
   certified?: string;
+  sort?: ShopSort;
 };
 
 export type FilterOption = {
@@ -28,11 +31,16 @@ export function buildSearchParams(filters: ShopFilters): string {
   if (filters.finish) params.set("finish", filters.finish);
   if (filters.origin) params.set("origin", filters.origin);
   if (filters.certified) params.set("certified", filters.certified);
+  if (filters.sort && filters.sort !== "featured") params.set("sort", filters.sort);
   return params.toString();
 }
 
 export function countActiveFilters(filters: ShopFilters): number {
   return [filters.q, filters.department, filters.category, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
+}
+
+export function filtersWithoutSort(filters: ShopFilters): ShopFilters {
+  return filters.sort && filters.sort !== "featured" ? { sort: filters.sort } : {};
 }
 
 export function saveFiltersToSession(filters: ShopFilters) {
