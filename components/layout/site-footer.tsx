@@ -22,7 +22,7 @@ export function SiteFooter() {
       <div className="relative text-center md:col-span-2 md:text-left">
         <div className="artifact-footer__wordmark" aria-hidden="true">
           <span>SYNARAVA</span>
-          <span>JEWELRY</span>
+          <span>CURATED GOODS</span>
         </div>
         <div className="mt-16 flex flex-col items-center gap-4 md:mt-8 md:flex-row md:items-center md:gap-3">
           <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden md:h-20 md:w-20">
@@ -60,11 +60,17 @@ export function SiteFooter() {
       <div className="flex flex-col gap-4 text-center md:text-left">
         <p className="label-caps mb-3 text-[0.72rem] text-foreground md:mb-4 md:text-inherit">{t("footer.serviceHeading")}</p>
         <nav className="flex flex-col gap-3 items-center md:items-start md:gap-4">
-          <Link href="/about" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href="/care" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.careGuide")}
           </Link>
-          <Link href="/about" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href="/shipping" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.shipping")}
+          </Link>
+          <Link href="/returns" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+            {t("footer.returns")}
+          </Link>
+          <Link href="/faq" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+            {t("footer.faq")}
           </Link>
           <Link href="mailto:studio@synarava.com" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.contact")}

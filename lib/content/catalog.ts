@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import {
   SHOP_DEPARTMENTS,
-  isShopDepartmentSlug,
   shopDepartmentName,
   type ShopDepartmentSlug,
 } from "@/lib/catalog/taxonomy";
@@ -40,6 +39,7 @@ export type ProductSummary = {
   commerceMedia: Array<{ src: string; alt: string; width: number | null; height: number | null }>;
   options: Array<{ name: string; values: string[] }>;
   variantDetails: Array<{
+    merchandiseId: string | null;
     title: string;
     sku: string;
     barcode: string;
@@ -177,6 +177,7 @@ function toSummary(product: {
     unit: string | null; certificateUrl: string | null; sortOrder: number;
   }>;
   variants: Array<{
+    shopifyVariantId: string | null;
     title: string;
     sku: string;
     barcode: string | null;
@@ -199,6 +200,26 @@ function toSummary(product: {
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   const projection = shopifyProjection(product.shopifySnapshot);
+  const explicitDepartment = details.department ?? null;
+  const classificationText = [
+    product.shopifyCategoryName,
+    product.name,
+    product.seriesLabel,
+    product.category?.name,
+    ...product.tags.map((entry) => entry.tag.name),
+  ].filter(Boolean).join(" ").toLowerCase();
+  // The catalog started as jewelry-only. Preserve that legacy default while
+  // explicit CMS departments take precedence for every new product line.
+  const inferredDepartment: ShopDepartmentSlug | null = explicitDepartment
+    ?? (/\b(pet|pets|dog|dogs|cat|cats)\b/.test(classificationText)
+      ? "pets"
+      : /\b(kid|kids|child|children|toy|toys)\b/.test(classificationText)
+        ? "kids"
+        : /\b(bead|beads|findings|jewelry making|jewellery making|craft tools?)\b/.test(classificationText)
+          ? "jewelry-making"
+          : /\b(jewelry|jewellery|necklaces?|bracelets?|earrings?|rings?|pendants?|brooches?)\b/.test(classificationText)
+            ? "jewelry"
+            : "jewelry");
 
   return {
     slug: product.slug,
@@ -225,6 +246,7 @@ function toSummary(product: {
           })
         : [];
       return {
+        merchandiseId: variant.shopifyVariantId,
         title: variant.title,
         sku: variant.sku,
         barcode: variant.barcode ?? "",
@@ -239,8 +261,8 @@ function toSummary(product: {
     collectionSlug: leadCollection?.slug ?? "",
     collectionName: leadCollection?.name ?? "",
     materialLine: product.materialLine ?? "",
-    departmentSlug: details.department ?? null,
-    departmentName: shopDepartmentName(details.department),
+    departmentSlug: inferredDepartment,
+    departmentName: shopDepartmentName(inferredDepartment),
     attributes: product.characteristics.length
       ? product.characteristics.map((item) => ({ label: item.label, value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }) }))
       : details.attributes ?? [],
@@ -345,14 +367,6 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     where: {
       status: "ACTIVE",
       visibility: "PUBLIC",
-      ...(filters.department && isShopDepartmentSlug(filters.department)
-        ? {
-            details: {
-              path: ["department"],
-              equals: filters.department,
-            },
-          }
-        : {}),
       ...(filters.category
         ? {
             category: {
@@ -429,7 +443,10 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
   });
 
-  return products.map(toSummary).filter((product) => product.image);
+  return products
+    .map(toSummary)
+    .filter((product) => product.image)
+    .filter((product) => !filters.department || product.departmentSlug === filters.department);
 }
 
 export async function getProductBySlug(slug: string) {

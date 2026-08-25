@@ -15,7 +15,7 @@ type TranslationContextValue = {
 };
 
 const STORAGE_LOCALE_KEY = "synarava-locale";
-const STORAGE_CACHE_PREFIX = "synarava-t-v2-";
+const STORAGE_CACHE_PREFIX = "synarava-t-v3-";
 
 const enFlat = flattenMessages(en as Record<string, unknown>);
 

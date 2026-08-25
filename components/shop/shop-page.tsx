@@ -15,10 +15,11 @@ import {
 } from "motion/react";
 
 import { ProductCard } from "@/components/ui/product-card";
-import { PrimaryCtaButton } from "@/components/ui";
+import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
+import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -52,7 +53,7 @@ function ShopHero({
   return (
     <header
       ref={ref}
-      className="shop-hero relative flex min-h-[94svh] items-end overflow-hidden bg-background px-5 pb-20 pt-28 text-foreground md:min-h-[100svh] md:px-[4vw] md:pb-24"
+      className="shop-hero relative flex min-h-[82svh] items-end overflow-hidden bg-background px-5 pb-14 pt-28 text-foreground md:min-h-[88svh] md:px-[4vw] md:pb-20"
     >
       <div
         className="shop-theme-grid pointer-events-none absolute inset-0"
@@ -113,7 +114,21 @@ function ShopHero({
           Jewelry, pet accessories, creative products for kids, and tools for making by hand.
         </p>
 
-        <div className="mt-8 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/55 md:mt-10">
+        <nav className="mt-7 grid max-w-[42rem] grid-cols-2 gap-px border border-foreground/14 bg-foreground/14 sm:grid-cols-4" aria-label="Shop by department">
+          {SHOP_DEPARTMENTS.map((department) => (
+            <ArtifactLink
+              key={department.slug}
+              href={`/shop?department=${department.slug}`}
+              variant="inverse"
+              size="sm"
+              className="min-h-12 border-0 px-3 text-[0.66rem] tracking-[0.13em]"
+            >
+              {department.name}
+            </ArtifactLink>
+          ))}
+        </nav>
+
+        <div className="mt-6 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/55 md:mt-7">
           <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong> products available</span>
           <span>Selected / useful / made to last</span>
         </div>

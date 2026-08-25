@@ -36,30 +36,30 @@ describe("CheckoutShell", () => {
 
   it("renders all three step labels", () => {
     render(<CheckoutShell {...base} step="shipping"><p>Form</p></CheckoutShell>);
-    expect(screen.getByText("Acquisition Details")).toBeInTheDocument();
-    expect(screen.getByText("Secure Acquisition")).toBeInTheDocument();
-    expect(screen.getByText("Acquisition Confirmed")).toBeInTheDocument();
+    expect(screen.getByText("Delivery")).toBeInTheDocument();
+    expect(screen.getByText("Payment")).toBeInTheDocument();
+    expect(screen.getByText("Confirmed")).toBeInTheDocument();
   });
 
   it("marks shipping step as active when step=shipping", () => {
     render(<CheckoutShell {...base} step="shipping"><p>Form</p></CheckoutShell>);
-    const shippingBadge = screen.getByText("Acquisition Details");
+    const shippingBadge = screen.getByText("Delivery");
     expect(shippingBadge.className).toContain("border-foreground");
   });
 
   it("marks shipping as done and payment as active when step=payment", () => {
     render(<CheckoutShell {...base} step="payment"><p>Form</p></CheckoutShell>);
-    const shippingBadge = screen.getByText("Acquisition Details");
-    const paymentBadge = screen.getByText("Secure Acquisition");
+    const shippingBadge = screen.getByText("Delivery");
+    const paymentBadge = screen.getByText("Payment");
     expect(paymentBadge.className).toContain("border-foreground");
     expect(shippingBadge.className).toContain("text-accent");
   });
 
   it("marks shipping and payment as done when step=confirmed", () => {
     render(<CheckoutShell {...base} step="confirmed"><p>Form</p></CheckoutShell>);
-    const shippingBadge = screen.getByText("Acquisition Details");
-    const paymentBadge = screen.getByText("Secure Acquisition");
-    const confirmedBadge = screen.getByText("Acquisition Confirmed");
+    const shippingBadge = screen.getByText("Delivery");
+    const paymentBadge = screen.getByText("Payment");
+    const confirmedBadge = screen.getByText("Confirmed");
     expect(confirmedBadge.className).toContain("border-foreground");
     expect(shippingBadge.className).toContain("text-accent");
     expect(paymentBadge.className).toContain("text-accent");

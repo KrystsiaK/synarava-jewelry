@@ -6,7 +6,7 @@ const meta = {
   component: ArtifactButton,
   tags: ["autodocs"],
   argTypes: {
-    variant: { control: "select", options: ["primary", "secondary", "ghost"] },
+    variant: { control: "select", options: ["primary", "secondary", "ghost", "inverse", "choice"] },
   },
 } satisfies Meta<typeof ArtifactButton>;
 
@@ -30,6 +30,21 @@ export const Secondary: Story = {
 
 export const Ghost: Story = {
   args: { children: "View All", variant: "ghost" },
+};
+
+export const Inverse: Story = {
+  args: { children: "Jewelry", variant: "inverse" },
+  parameters: {
+    docs: {
+      description: {
+        story: "Theme-aware surface inversion. Background and text always switch as one state pair.",
+      },
+    },
+  },
+};
+
+export const Choice: StoryObj = {
+  render: () => <ArtifactButton variant="choice" data-selected="true">Large</ArtifactButton>,
 };
 
 export const LinkVariant: StoryObj = {

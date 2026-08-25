@@ -35,11 +35,16 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     template: "%s | Synarava",
-    default: "Synarava — Handcrafted Belarusian Couture Jewelry",
+    default: "Synarava — Curated Goods with Character",
   },
   description:
-    "Synarava crafts collectible jewelry rooted in Belarusian folk symbolism and contemporary couture. Handmade from lava stone, oak wood, and white ceramic.",
+    "A curated shop for jewelry, pet accessories, creative products for kids, and tools for making by hand.",
   keywords: [
+    "curated goods",
+    "handmade gifts",
+    "pet accessories",
+    "creative products for kids",
+    "jewelry making tools",
     "handcrafted jewelry",
     "Belarusian jewelry",
     "couture jewelry",
@@ -56,15 +61,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IE",
     siteName: "Synarava",
-    title: "Synarava — Handcrafted Belarusian Couture Jewelry",
+    title: "Synarava — Curated Goods with Character",
     description:
-      "Collectible jewelry rooted in Belarusian folk symbolism and contemporary couture. Handmade from lava stone, oak wood, and white ceramic.",
+      "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Synarava — Handcrafted Belarusian Couture Jewelry",
+    title: "Synarava — Curated Goods with Character",
     description:
-      "Collectible jewelry rooted in Belarusian folk symbolism and contemporary couture.",
+      "Selected, useful, and thoughtfully made goods for everyday life and creativity.",
   },
   robots: {
     index: true,
@@ -104,6 +109,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <Script
           id="organization-json-ld"
           nonce={nonce}
@@ -145,7 +151,7 @@ export default async function RootLayout({
           </svg>
           <ThemeProvider initialPreference={themePreference}>
             <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} />
-            {children}
+            <div id="main-content">{children}</div>
             <SiteFooter />
           </ThemeProvider>
         </TranslationProvider>

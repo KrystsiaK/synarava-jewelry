@@ -5,7 +5,7 @@ import { ArtifactLink } from "@/components/ui/artifact-button";
 
 export const metadata: Metadata = {
   title: "Checkout Error | Synarava",
-  description: "Error state for interrupted Synarava acquisition flow.",
+  description: "Help for an interrupted Synarava checkout.",
 };
 
 type Props = {
@@ -15,17 +15,17 @@ type Props = {
 };
 
 const reasonMap: Record<string, string> = {
-  shipping: "The shipping details were incomplete, so the acquisition could not continue.",
-  payment: "The payment step lost its draft order context and needs to be restarted.",
-  cart: "The cart is currently empty, so there is nothing to acquire.",
-  stripe: "Stripe payments are not configured for this environment yet. Add the Stripe keys and restart the app before taking payments.",
+  shipping: "The delivery details were incomplete, so checkout could not continue.",
+  payment: "The payment step lost the order context and needs to be restarted.",
+  cart: "The cart is currently empty, so there is nothing to check out.",
+  stripe: "Payment is temporarily unavailable. Your card has not been charged. Please return to the cart and try again later.",
 };
 
 export default async function CheckoutErrorPage({ searchParams }: Props) {
   const params = (await searchParams) ?? {};
   const message =
     reasonMap[params.reason ?? ""] ??
-    "The acquisition flow was interrupted before confirmation.";
+    "Checkout was interrupted before confirmation.";
 
   return (
     <CheckoutShell

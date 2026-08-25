@@ -9,9 +9,16 @@ import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 type AddToCartButtonProps = {
   productSlug: string;
   merchandiseId?: string;
+  disabled?: boolean;
+  unavailableLabel?: string;
 };
 
-export function AddToCartButton({ productSlug, merchandiseId }: AddToCartButtonProps) {
+export function AddToCartButton({
+  productSlug,
+  merchandiseId,
+  disabled = false,
+  unavailableLabel = "Currently unavailable",
+}: AddToCartButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
@@ -121,9 +128,9 @@ export function AddToCartButton({ productSlug, merchandiseId }: AddToCartButtonP
       <PrimaryCtaButton
         type="button"
         onClick={handleAdd}
-        disabled={isPending}
+        disabled={isPending || disabled}
       >
-        {isPending ? "Adding…" : "Add to cart"}
+        {disabled ? unavailableLabel : isPending ? "Adding…" : "Add to cart"}
       </PrimaryCtaButton>
 
       {confirmation && typeof document !== "undefined"

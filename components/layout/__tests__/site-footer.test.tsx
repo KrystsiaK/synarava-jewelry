@@ -13,7 +13,7 @@ function renderFooter() {
 describe("SiteFooter", () => {
   it("renders brand name", () => {
     renderFooter();
-    expect(screen.getByText(/Synarava Jewelry/)).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 Synarava/)).toBeInTheDocument();
   });
 
   it("renders Navigation section header", () => {

@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/ui";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "inverse" | "choice";
 type Size = "sm" | "md" | "lg";
 
 const variantClasses: Record<Variant, string> = {
@@ -14,6 +14,10 @@ const variantClasses: Record<Variant, string> = {
     "border border-foreground/28 bg-transparent text-foreground hover:border-couture-red hover:text-couture-red",
   ghost:
     "border-b border-foreground/30 px-0 py-0 text-foreground/72 hover:border-couture-red hover:text-couture-red",
+  inverse:
+    "border border-foreground/18 bg-background/88 !text-foreground backdrop-blur-sm hover:border-foreground hover:bg-foreground hover:!text-background focus-visible:border-foreground focus-visible:bg-foreground focus-visible:!text-background active:bg-foreground/85 active:!text-background",
+  choice:
+    "border border-stroke bg-transparent !text-foreground hover:border-foreground/45 data-[selected=true]:border-foreground data-[selected=true]:bg-foreground data-[selected=true]:!text-background disabled:cursor-not-allowed disabled:opacity-35",
 };
 
 const sizeClasses: Record<Size, string> = {
@@ -38,7 +42,7 @@ type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
 };
 
 const baseClasses =
-  "group inline-flex cursor-pointer items-center justify-center gap-3 text-center font-sans font-semibold uppercase tracking-[0.18em] transition-all duration-300 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red disabled:cursor-not-allowed disabled:opacity-55";
+  "group inline-flex cursor-pointer items-center justify-center gap-3 text-center font-sans font-semibold uppercase tracking-[0.18em] transition-[background-color,border-color,color,transform] duration-200 ease-out active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-55";
 
 export function artifactButtonClasses({
   variant = "primary",

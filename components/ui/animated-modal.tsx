@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/ui";
 
@@ -41,6 +41,8 @@ export function AnimatedModal({
 }: AnimatedModalProps) {
   const [mounted, setMounted] = useState(open);
   const [visuallyOpen, setVisuallyOpen] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -65,16 +67,45 @@ export function AnimatedModal({
   useEffect(() => {
     if (!mounted) return;
     const previousOverflow = document.body.style.overflow;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown);
+    const focusFrame = window.requestAnimationFrame(() => {
+      const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      (firstFocusable ?? dialogRef.current)?.focus();
+    });
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
+      window.cancelAnimationFrame(focusFrame);
+      previousFocusRef.current?.focus();
     };
   }, [mounted, onClose]);
 
@@ -82,6 +113,8 @@ export function AnimatedModal({
 
   const surface = (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}

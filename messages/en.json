@@ -12,7 +12,7 @@
     "closeMenu": "Close navigation menu"
   },
   "footer": {
-    "tagline": "The soul of Belarusian couture.",
+    "tagline": "Objects with character, chosen to last.",
     "navigationHeading": "Navigation",
     "serviceHeading": "Service",
     "shop": "Shop",
@@ -21,12 +21,25 @@
     "manifesto": "Manifesto",
     "careGuide": "Care Guide",
     "shipping": "Shipping",
+    "returns": "Returns",
+    "faq": "FAQ",
     "contact": "Contact",
     "privacyPolicy": "Privacy Policy",
     "publicOffer": "Public Offer Agreement",
     "offerGovernedBy": "All purchases are governed by our",
     "offerTerms": "offer terms",
-    "copyright": "© 2025 Synarava Jewelry."
+    "copyright": "© 2026 Synarava."
+  },
+  "shop": {
+    "departments": "Departments",
+    "allProducts": "All products",
+    "jewelry": "Jewelry",
+    "pets": "Pets",
+    "kids": "Kids",
+    "jewelryMaking": "Jewelry Making"
+  },
+  "theme": {
+    "appearance": "Appearance"
   },
   "auth": {
     "email": "Email",

@@ -28,6 +28,22 @@ describe("ArtifactButton", () => {
     expect(btn.className).not.toContain("bg-foreground");
   });
 
+  it("keeps inverse text paired with its inverse background in every state", () => {
+    render(<ArtifactButton variant="inverse">Department</ArtifactButton>);
+    const btn = screen.getByRole("button");
+    expect(btn).toHaveClass("bg-background/88");
+    expect(btn).toHaveClass("!text-foreground");
+    expect(btn).toHaveClass("hover:bg-foreground");
+    expect(btn).toHaveClass("hover:!text-background");
+  });
+
+  it("keeps selected choice colors in the shared module", () => {
+    render(<ArtifactButton variant="choice" data-selected="true">Large</ArtifactButton>);
+    const btn = screen.getByRole("button");
+    expect(btn).toHaveClass("data-[selected=true]:bg-foreground");
+    expect(btn).toHaveClass("data-[selected=true]:!text-background");
+  });
+
   it("fires onClick handler", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();

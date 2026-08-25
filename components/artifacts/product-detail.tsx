@@ -13,7 +13,7 @@ import {
 } from "motion/react";
 import Link from "next/link";
 
-import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
+import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { PrimaryCtaButton } from "@/components/ui";
 import type { ProductSummary } from "@/lib/content/catalog";
@@ -142,16 +142,8 @@ function ProductHero({ product }: { product: ProductSummary }) {
             </motion.p>
           ) : null}
 
-          <motion.div
-            className="mt-5 md:mt-8"
-          >
-            <div className="flex flex-wrap items-center gap-6">
-              <AddToCartButton productSlug={product.slug} />
-              <span className="font-serif text-2xl text-foreground md:text-3xl">
-                {product.price}
-              </span>
-            </div>
-
+          <motion.div className="mt-5 md:mt-8">
+            <ProductPurchasePanel product={product} />
           </motion.div>
 
           {product.tagNames.length > 0 && (
@@ -210,11 +202,11 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     groups.set(group, [...(groups.get(group) ?? []), row]);
   };
 
-  if (product.vendor && product.vendor.toLowerCase() !== "synarava") {
+  if (product.vendor && !["synarava", "my store"].includes(product.vendor.toLowerCase())) {
     add("Product identity", { label: "Designer / vendor", value: product.vendor });
   }
   if (product.shopifyCategoryName) {
-    add("Product identity", { label: "Shopify category", value: product.shopifyCategoryName });
+    add("Product identity", { label: "Category", value: product.shopifyCategoryName });
   }
   for (const option of product.options) {
     add("Options", { label: option.name, value: option.values.join(", ") });
@@ -710,11 +702,8 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
               {product.shortDescription}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-6 md:col-span-5 md:justify-end">
-            <span className="font-serif text-2xl text-foreground md:text-3xl">
-              {product.price}
-            </span>
-            <AddToCartButton productSlug={product.slug} />
+          <div className="md:col-span-5 md:justify-self-end">
+            <ProductPurchasePanel product={product} compact />
           </div>
         </div>
       </div>

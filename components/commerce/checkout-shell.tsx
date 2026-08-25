@@ -10,9 +10,9 @@ type CheckoutShellProps = {
 };
 
 const steps: { key: CheckoutShellProps["step"]; label: string }[] = [
-  { key: "shipping", label: "Acquisition Details" },
-  { key: "payment", label: "Secure Acquisition" },
-  { key: "confirmed", label: "Acquisition Confirmed" },
+  { key: "shipping", label: "Delivery" },
+  { key: "payment", label: "Payment" },
+  { key: "confirmed", label: "Confirmed" },
 ];
 
 export function CheckoutShell({

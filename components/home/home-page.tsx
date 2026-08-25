@@ -994,8 +994,9 @@ function FinalFooter() {
         </nav>
 
         <nav aria-label={t("footer.serviceHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
-          <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.careGuide")}</Link>
-          <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.shipping")}</Link>
+          <Link href="/care" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.careGuide")}</Link>
+          <Link href="/shipping" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.shipping")}</Link>
+          <Link href="/returns" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.returns")}</Link>
           <Link href="mailto:studio@synarava.com" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.contact")}</Link>
         </nav>
       </div>
