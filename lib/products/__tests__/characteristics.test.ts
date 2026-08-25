@@ -42,6 +42,9 @@ describe("product characteristics", () => {
     const values = parseCharacteristicsForm(form);
     expect(PRODUCT_CHARACTERISTIC_GROUPS).toEqual([
       "Dimensions & fit",
+      "Pet sizing & use",
+      "Age & activity",
+      "Maker compatibility",
       "Materials & construction",
       "Care & fulfilment",
       "Compliance & sales",
@@ -55,5 +58,19 @@ describe("product characteristics", () => {
       filterable: false,
     });
     expect(values.find((item) => item.key === "made_to_order")?.booleanValue).toBe(true);
+  });
+
+  it("parses department-specific safety and compatibility fields", () => {
+    const form = new FormData();
+    form.set("characteristic_neck_circumference", "32");
+    form.set("characteristic_recommended_age", "8+");
+    form.set("characteristic_adult_supervision", "on");
+    form.set("characteristic_tool_compatibility", "Fits 1.5–2 mm cord");
+
+    const values = parseCharacteristicsForm(form);
+    expect(values.find((item) => item.key === "neck_circumference")).toMatchObject({ numberValue: 32, unit: "cm" });
+    expect(values.find((item) => item.key === "recommended_age")?.textValue).toBe("8+");
+    expect(values.find((item) => item.key === "adult_supervision")?.booleanValue).toBe(true);
+    expect(values.find((item) => item.key === "tool_compatibility")?.textValue).toBe("Fits 1.5–2 mm cord");
   });
 });

@@ -16,6 +16,10 @@ import Link from "next/link";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { PrimaryCtaButton } from "@/components/ui";
+import {
+  getProductBreadcrumbs,
+  getProductPresentation,
+} from "@/lib/catalog/product-presentation";
 import type { ProductSummary } from "@/lib/content/catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -32,21 +36,20 @@ function ProductHero({ product }: { product: ProductSummary }) {
   const words = product.title.split(" ");
   const heroDescription = product.shortDescription.trim() || product.description.trim();
   const availability = product.stockOnHand > 0
-    ? `${product.stockOnHand} ${product.stockOnHand === 1 ? "piece" : "pieces"} ready`
+    ? `${product.stockOnHand} in stock`
     : "Currently unavailable";
   const quickFacts = [
-    ...(product.sku ? [{ label: "SKU", value: product.sku }] : []),
+    ...(product.departmentName ? [{ label: "Department", value: product.departmentName }] : []),
+    ...(product.categoryName ? [{ label: "Category", value: product.categoryName }] : []),
     { label: "Availability", value: availability },
     ...(product.variantCount > 1
       ? [{ label: "Variants", value: String(product.variantCount) }]
-      : []),
-    ...(product.compareAtPrice
-      ? [{ label: "Original price", value: product.compareAtPrice }]
       : []),
     ...(product.materialLine
       ? [{ label: "Composition", value: product.materialLine }]
       : []),
   ];
+  const breadcrumbs = getProductBreadcrumbs(product);
 
   return (
     <motion.header
@@ -86,16 +89,28 @@ function ProductHero({ product }: { product: ProductSummary }) {
           style={reduceMotion ? undefined : { y: textY, opacity: textOpacity }}
         >
           <motion.nav
+            aria-label="Breadcrumb"
             className="mb-2 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.2em] text-foreground/48 md:mb-5 md:text-[0.68rem]"
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease }}
           >
-            <Link href="/shop" className="transition-colors hover:text-couture-red">Shop</Link>
-            <span className="text-foreground/20">/</span>
-            <span className="text-foreground/60">
-              {product.categoryName || product.departmentName || "Product"}
-            </span>
+            <ol className="flex min-w-0 flex-wrap items-center gap-2">
+              {breadcrumbs.map((item, index) => (
+                <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-2">
+                  {index > 0 ? <span className="text-foreground/20" aria-hidden="true">/</span> : null}
+                  {item.href ? (
+                    <Link href={item.href} className="transition-colors hover:text-couture-red">
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <span className="max-w-48 truncate text-foreground/60" aria-current="page">
+                      {item.label}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
           </motion.nav>
 
           <h1
@@ -191,9 +206,11 @@ function ProductHero({ product }: { product: ProductSummary }) {
 }
 
 function ProductSpecifications({ product }: { product: ProductSummary }) {
+  const presentation = getProductPresentation(product.departmentSlug);
   type SpecificationRow = {
     label: string;
     value: string;
+    key?: string;
     characteristic?: ProductSummary["characteristics"][number];
   };
   const groups = new Map<string, SpecificationRow[]>();
@@ -202,31 +219,10 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     groups.set(group, [...(groups.get(group) ?? []), row]);
   };
 
-  if (product.vendor && !["synarava", "my store"].includes(product.vendor.toLowerCase())) {
-    add("Product identity", { label: "Designer / vendor", value: product.vendor });
-  }
-  if (product.shopifyCategoryName) {
-    add("Product identity", { label: "Category", value: product.shopifyCategoryName });
-  }
-  for (const option of product.options) {
-    add("Options", { label: option.name, value: option.values.join(", ") });
-  }
-  for (const variant of product.variantDetails) {
-    const variantLabel = variant.title && variant.title !== "Default Title" ? variant.title : "Primary variant";
-    if (variant.barcode) add("Variant details", { label: `${variantLabel} barcode`, value: variant.barcode });
-    if (variant.weightGrams != null) add("Variant details", { label: `${variantLabel} shipping weight`, value: `${variant.weightGrams} g` });
-    if (product.variantDetails.length > 1) {
-      add("Variant details", {
-        label: variantLabel,
-        value: `${variant.sku} · ${variant.price} · ${variant.stockOnHand} available`,
-      });
-    }
-  }
-
   product.characteristics.forEach((characteristic, index) => {
     const attribute = product.attributes[index];
     if (!attribute?.value) return;
-    add(characteristic.group, { ...attribute, characteristic });
+    add(characteristic.group, { ...attribute, key: characteristic.key, characteristic });
   });
   if (product.characteristics.length === 0) {
     for (const attribute of product.attributes) add("Product details", attribute);
@@ -235,7 +231,15 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     }
   }
 
-  const specificationGroups = [...groups.entries()];
+  const priorityIndex = new Map(
+    presentation.priorityCharacteristicKeys.map((key, index) => [key, index]),
+  );
+  const specificationGroups = [...groups.entries()].sort(([, rowsA], [, rowsB]) => {
+    const rank = (rows: SpecificationRow[]) => Math.min(
+      ...rows.map((row) => row.key == null ? Number.POSITIVE_INFINITY : priorityIndex.get(row.key) ?? Number.POSITIVE_INFINITY),
+    );
+    return rank(rowsA) - rank(rowsB);
+  });
   if (!product.departmentName && specificationGroups.length === 0) return null;
 
   return (
@@ -312,6 +316,7 @@ function CommerceMediaGallery({ product }: { product: ProductSummary }) {
 }
 
 function ProductDescription({ product }: { product: ProductSummary }) {
+  const presentation = getProductPresentation(product.departmentSlug);
   const description = product.description.trim();
   const shortDescription = product.shortDescription.trim();
   if (!description || !shortDescription || description === shortDescription) return null;
@@ -320,9 +325,9 @@ function ProductDescription({ product }: { product: ProductSummary }) {
     <section className="bg-background py-20 md:py-28">
       <div className="site-shell grid gap-8 md:grid-cols-12 md:gap-12">
         <div className="md:col-span-4">
-          <p className="label-mono text-couture-red">Object notes</p>
+          <p className="label-mono text-couture-red">{presentation.descriptionLabel}</p>
           <h2 className="mt-4 max-w-xs text-balance font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none">
-            The piece, in full
+            {presentation.descriptionTitle}
           </h2>
         </div>
         <div className="md:col-span-7 md:col-start-6">
@@ -489,7 +494,7 @@ function SymbolismScrollSection({
               >
                 <Image
                   src={symbolismImage}
-                  alt="Jewelry worn as a symbolic detail"
+                  alt={`${product.title} shown as an editorial detail`}
                   fill
                   sizes="(max-width: 1024px) 100vw, 75vw"
                   className="object-cover grayscale contrast-[1.08]"
@@ -612,6 +617,10 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
   }
 
   const processMedia = fitVideoSrc || product.process.mediaImage;
+  const processMediaLabel = product.departmentSlug === "jewelry" ? "Fit film" : "Process film";
+  const processMediaAlt = product.departmentSlug === "jewelry"
+    ? `${product.title} worn on the body`
+    : `${product.title} in use`;
   if (!product.process.eyebrow || !product.process.title) {
     return null;
   }
@@ -650,15 +659,15 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
                 preload="metadata"
                 onPlay={() => setIsVideoPlaying(true)}
                 onPause={() => setIsVideoPlaying(false)}
-                aria-label={`${product.title} worn on the body`}
+                aria-label={processMediaAlt}
               />
             ) : product.process.mediaImage ? (
-              <Image src={product.process.mediaImage} alt={`${product.title} worn on the body`} fill sizes="100vw" className="object-cover grayscale contrast-[1.08]" />
+              <Image src={product.process.mediaImage} alt={processMediaAlt} fill sizes="100vw" className="object-cover grayscale contrast-[1.08]" />
             ) : null}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
             <div className="pointer-events-none absolute inset-4 border border-white/20 md:inset-7" />
             <p className="absolute left-7 top-7 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-white/72 md:left-11 md:top-11">
-              Fit film / {product.series}
+              {processMediaLabel}{product.series ? ` / ${product.series}` : ""}
             </p>
             {fitVideoSrc ? <button
               type="button"

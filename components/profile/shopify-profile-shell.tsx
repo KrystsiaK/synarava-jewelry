@@ -2,13 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import type { KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { ShopifyCustomerProfile } from "@/lib/shopify/customer-account/api";
 
 const tabs = ["overview", "orders", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
+
+function tabHref(tab: Tab) {
+  return tab === "overview" ? "/profile" : `/profile?section=${tab}`;
+}
 
 function money(amount: string, currency: string) {
   return new Intl.NumberFormat("en-IE", {
@@ -37,16 +42,30 @@ function initials(name: string) {
 
 export function ShopifyProfileShell({
   customer,
+  activeTab,
 }: {
   customer: ShopifyCustomerProfile;
+  activeTab: Tab;
 }) {
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const router = useRouter();
   const email = customer.emailAddress?.emailAddress ?? "No email address available";
   const totalSpent = customer.orders.nodes.reduce(
     (sum, order) => sum + Number(order.totalPrice.amount),
     0,
   );
   const currency = customer.orders.nodes[0]?.totalPrice.currencyCode ?? "EUR";
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLAnchorElement>, tab: Tab) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const currentIndex = tabs.indexOf(tab);
+    const nextTab = event.key === "Home"
+      ? tabs[0]
+      : event.key === "End"
+        ? tabs.at(-1)!
+        : tabs[(currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+    router.push(tabHref(nextTab), { scroll: false });
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -90,12 +109,17 @@ export function ShopifyProfileShell({
         </section>
 
         <nav aria-label="Account sections" className="mb-10 overflow-x-auto border-b border-stroke">
-          <div className="flex min-w-max">
+          <div className="flex min-w-max" role="tablist" aria-label="Account sections">
             {tabs.map((tab) => (
-              <button
+              <Link
                 key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
+                id={`account-tab-${tab}`}
+                href={tabHref(tab)}
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`account-panel-${tab}`}
+                tabIndex={activeTab === tab ? 0 : -1}
+                onKeyDown={(event) => handleTabKeyDown(event, tab)}
                 className={`relative px-4 py-4 md:px-7 ${activeTab === tab ? "text-foreground" : "text-foreground/40"}`}
               >
                 <span className="label-caps capitalize">{tab}</span>
@@ -105,7 +129,7 @@ export function ShopifyProfileShell({
                     className="absolute inset-x-0 bottom-0 h-0.5 bg-couture-red"
                   />
                 ) : null}
-              </button>
+              </Link>
             ))}
           </div>
         </nav>
@@ -113,6 +137,10 @@ export function ShopifyProfileShell({
         <AnimatePresence mode="wait">
           <motion.section
             key={activeTab}
+            id={`account-panel-${activeTab}`}
+            role="tabpanel"
+            aria-labelledby={`account-tab-${activeTab}`}
+            tabIndex={0}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -133,9 +161,9 @@ export function ShopifyProfileShell({
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={() => setActiveTab("orders")} className="label-caps bg-couture-red px-6 py-4 text-linen">
+                  <Link href={tabHref("orders")} className="label-caps bg-couture-red px-6 py-4 text-linen">
                     View orders
-                  </button>
+                  </Link>
                   <Link href="/cart" className="label-caps border border-stroke px-6 py-4 hover:border-foreground/50">
                     Current cart
                   </Link>

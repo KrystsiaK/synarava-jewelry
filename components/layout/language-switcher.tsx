@@ -45,8 +45,8 @@ export function LanguageSwitcher({
               fullWidth
                 ? "w-full justify-between gap-3 px-3 py-2.5"
                 : showCode
-                  ? "h-9 gap-2 px-3"
-                  : "size-9"
+                  ? "h-11 gap-2 px-3"
+                  : "size-11"
             }`}
           >
             {loading ? (
@@ -69,7 +69,7 @@ export function LanguageSwitcher({
               role="option"
               aria-selected={locale === lang.code}
               onClick={() => handleSelect(lang.code)}
-              className="flex w-full items-center justify-between px-4 py-2.5 text-left font-sans text-[0.72rem] uppercase tracking-[0.1em] transition-colors hover:bg-foreground/5"
+              className="flex min-h-11 w-full items-center justify-between px-4 py-2.5 text-left font-sans text-[0.72rem] uppercase tracking-[0.1em] transition-colors hover:bg-foreground/5"
             >
               <span className={locale === lang.code ? "text-foreground" : "text-muted"}>
                 {lang.name}

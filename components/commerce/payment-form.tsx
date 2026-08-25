@@ -182,7 +182,9 @@ function CheckoutForm() {
       />
 
       {(error || providerError) && (
-        <p className="text-sm text-couture-red leading-5">{error ?? providerError}</p>
+        <p role="alert" aria-live="assertive" className="text-sm text-couture-red leading-5">
+          {error ?? providerError}
+        </p>
       )}
 
       <PrimaryCtaButton

@@ -83,9 +83,9 @@ export function FilterChips({
             type="button"
             aria-label={`Remove filter ${chip.value}`}
             onClick={() => onRemove(chip.key)}
-            className="px-2 py-1.5 text-muted transition-colors hover:text-accent hover:bg-accent/10 cursor-pointer"
+            className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center px-2 py-1.5 text-muted transition-colors hover:bg-accent/10 hover:text-accent"
           >
-            <X className="size-3" />
+            <X className="size-3" aria-hidden="true" />
           </button>
         </span>
       ))}
@@ -94,7 +94,7 @@ export function FilterChips({
         <button
           type="button"
           onClick={onClearAll}
-          className="cursor-pointer border-b border-muted/20 pb-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted/60 transition-colors hover:border-foreground/40 hover:text-foreground"
+          className="min-h-11 cursor-pointer border-b border-muted/20 px-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted/60 transition-colors hover:border-foreground/40 hover:text-foreground"
         >
           Clear all
         </button>

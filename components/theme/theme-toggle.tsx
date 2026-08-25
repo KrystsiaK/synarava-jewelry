@@ -41,7 +41,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
             onClick={() => setPreference(option.value)}
             aria-pressed={active}
             aria-label={option.label}
-            className={`inline-flex items-center gap-2 px-2.5 py-2 transition-all ${
+            className={`inline-flex min-h-11 min-w-11 items-center gap-2 px-2.5 py-2 transition-[background-color,color,transform] ${
               active
                 ? "bg-foreground text-background"
                 : "text-muted hover:bg-foreground/5 hover:text-foreground"
@@ -50,7 +50,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
               option.value === "system" ? `System (${resolvedTheme})` : option.label
             }
           >
-            <Icon className="size-4" />
+            <Icon className="size-4" aria-hidden="true" />
             {!compact ? <span className="label-caps">{option.label}</span> : null}
           </button>
         );

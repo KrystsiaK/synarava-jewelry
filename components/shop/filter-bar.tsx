@@ -242,7 +242,7 @@ export function FilterBar({
               <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-muted/55">
                 Showing
               </p>
-              <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground">
+              <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground" aria-live="polite" aria-atomic="true">
                 {totalCount} <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{totalCount === 1 ? "piece" : "pieces"}</span>
               </p>
             </div>
@@ -297,7 +297,7 @@ export function FilterBar({
               aria-label="Search products"
               className={cn(
                 "w-full bg-transparent py-2 pl-6 pr-6 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
-                "placeholder:text-muted/42 outline-none transition-all duration-200",
+                "placeholder:text-muted/42 outline-none transition-[color,border-color] duration-200",
               )}
             />
             {search && (
@@ -305,7 +305,7 @@ export function FilterBar({
                 type="button"
                 onClick={handleSearchClear}
                 aria-label="Clear search"
-                className="absolute right-0 text-muted hover:text-accent transition-colors cursor-pointer"
+                className="absolute right-0 inline-flex size-11 cursor-pointer items-center justify-center text-muted transition-colors hover:text-accent"
               >
                 <X className="size-3.5" />
               </button>
@@ -331,7 +331,7 @@ export function FilterBar({
               type="button"
               onClick={handleSearchClear}
               aria-label="Clear search"
-              className="absolute right-0 text-muted hover:text-accent transition-colors cursor-pointer"
+              className="absolute right-0 inline-flex size-11 cursor-pointer items-center justify-center text-muted transition-colors hover:text-accent"
             >
               <X className="size-3.5" />
             </button>
@@ -356,7 +356,7 @@ export function FilterBar({
             aria-label={`Filters${activeCount > 0 ? `, ${activeCount} active` : ""}`}
             className={cn(
               "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
-              "transition-all duration-200 cursor-pointer active:scale-[0.97]",
+              "cursor-pointer transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97]",
               activeCount > 0
                 ? "border-couture-red bg-couture-red/[0.06] text-couture-red"
                 : "border-foreground/[0.12] text-muted hover:border-foreground/25 hover:text-foreground",
@@ -373,7 +373,7 @@ export function FilterBar({
         </div>
 
         {/* Labelled count */}
-        <span className="shrink-0 whitespace-nowrap text-right text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted/55 tabular-nums">
+        <span className="shrink-0 whitespace-nowrap text-right text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted/55 tabular-nums" aria-live="polite" aria-atomic="true">
           {totalCount} {totalCount === 1 ? "piece" : "pieces"}
         </span>
       </div>
@@ -516,7 +516,7 @@ function MobileFilterSheet({
                     type="button"
                     onClick={() => setLocal((p) => ({ ...p, [key]: undefined }))}
                     className={cn(
-                      "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
+                      "min-h-[44px] cursor-pointer border px-4 py-2 label-mono transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97]",
                       !selectedValue
                         ? "border-foreground bg-foreground text-background"
                         : "border-stroke text-muted hover:border-foreground/35 hover:text-foreground",
@@ -530,7 +530,7 @@ function MobileFilterSheet({
                       type="button"
                       onClick={() => setLocal((p) => ({ ...p, [key]: opt.value }))}
                       className={cn(
-                        "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
+                        "min-h-[44px] cursor-pointer border px-4 py-2 label-mono transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97]",
                         selectedValue === opt.value
                           ? "border-accent bg-accent/10 text-accent"
                           : "border-stroke text-muted hover:border-foreground/35 hover:text-foreground",

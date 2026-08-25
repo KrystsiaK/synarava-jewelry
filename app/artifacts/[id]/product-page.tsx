@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getProductBySlug } from "@/lib/content/catalog";
 import { getSiteVideos } from "@/lib/site-videos";
 import { ProductDetail } from "@/components/artifacts/product-detail";
+import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
 
 function safeJsonLd(obj: unknown): string {
   return JSON.stringify(obj)
@@ -61,14 +62,16 @@ export default async function ProductDetailPage({ params }: Props) {
     },
   };
 
+  const breadcrumbs = getProductBreadcrumbs(product);
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
-      { "@type": "ListItem", position: 2, name: "Shop", item: "/shop" },
-      { "@type": "ListItem", position: 3, name: product.title, item: `/products/${key}` },
-    ],
+    itemListElement: breadcrumbs.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.label,
+      item: item.href ?? `/products/${key}`,
+    })),
   };
 
   return (
@@ -81,7 +84,10 @@ export default async function ProductDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
-      <ProductDetail product={product} fitVideoSrc={videos.braceletFilm} />
+      <ProductDetail
+        product={product}
+        fitVideoSrc={product.departmentSlug === "jewelry" ? videos.braceletFilm : undefined}
+      />
     </>
   );
 }

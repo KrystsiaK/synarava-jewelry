@@ -49,7 +49,7 @@ export function FilterDropdown({
             aria-haspopup="listbox"
             disabled={disabled}
             className={cn(
-              "inline-flex min-h-10 cursor-pointer items-center gap-2 border px-3.5 py-2 transition-all duration-200",
+              "inline-flex min-h-11 cursor-pointer items-center gap-2 border px-3.5 py-2 transition-[background-color,border-color,color,transform] duration-200",
               "text-[0.7rem] font-semibold uppercase tracking-[0.16em] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
               "disabled:cursor-not-allowed disabled:opacity-40",
               "active:scale-[0.97]",

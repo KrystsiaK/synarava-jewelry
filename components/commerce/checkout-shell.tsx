@@ -35,7 +35,7 @@ export function CheckoutShell({
             <p className="max-w-2xl text-lg leading-8 text-foreground/70">{description}</p>
           </header>
 
-          <div className="flex items-center gap-2 border-y border-stroke py-4" aria-label="Checkout progress">
+          <ol className="flex items-center gap-2 border-y border-stroke py-4" aria-label="Checkout progress">
             {steps.map((entry) => {
               const active = entry.key === step;
               const done =
@@ -43,8 +43,9 @@ export function CheckoutShell({
                 (step === "confirmed" && (entry.key === "shipping" || entry.key === "payment"));
 
               return (
-                <span
+                <li
                   key={entry.key}
+                  aria-current={active ? "step" : undefined}
                   className={`inline-flex min-h-9 items-center border-b border-transparent px-2 text-[0.66rem] uppercase tracking-[0.14em] ${
                     active
                       ? "border-foreground text-foreground"
@@ -54,10 +55,10 @@ export function CheckoutShell({
                   }`}
                 >
                   {entry.label}
-                </span>
+                </li>
               );
             })}
-          </div>
+          </ol>
 
           {children}
         </section>

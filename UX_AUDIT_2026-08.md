@@ -28,6 +28,31 @@
 - мобильный Shop сокращён до `74svh`, товары подняты выше, поиск и основные действия собраны в устойчивую двухрядную панель;
 - сценарии проверены на mobile и desktop: сортировка меняет URL и порядок товаров, adaptive popover не обрезается, console errors отсутствуют.
 
+Третий этап — универсальная PDP-система — реализован:
+
+- цена, остаток, варианты и основной CTA собраны в общий purchase header; смена варианта синхронно обновляет merchandise ID, цену и доступность;
+- многомерный variant selector переводит пользователя к доступной комбинации и не блокирует выбор из-за несовместимого предыдущего значения;
+- breadcrumb теперь ведёт по цепочке Shop → Department → Category → Product и сохраняет соответствующие catalog filters;
+- рядом с CTA добавлены department-specific guidance и прямые ссылки на Delivery, Returns и Care & Safety;
+- характеристики Pets, Kids и Jewelry Making расширены sizing, age/supervision, safety, contents и compatibility полями; важные для отдела группы поднимаются первыми;
+- Shopify vendor/category, barcode, shipping weight и другие внутренние поля удалены из публичной спецификации;
+- editorial-модули остаются опциональными, а jewelry-only fit film не подмешивается в другие departments;
+- unit, lint, production build и browser checks пройдены; отдельный mobile pass подтвердил отсутствие горизонтального overflow.
+
+Четвёртый этап — accessibility и resilience — реализован в storefront-коде:
+
+- mobile drawer и общий modal primitive получили focus trap, Escape, focus restore и `inert`-изоляцию фонового контента; modal вынесен в portal и больше не наследует ограничения страницы;
+- skip link переводит keyboard focus на main content, active navigation использует `aria-current`, checkout progress размечен как ordered steps с `aria-current="step"`;
+- account sections получили URL-backed состояние, `tablist` / `tab` / `tabpanel` semantics и навигацию стрелками, Home и End;
+- product result counts, payment errors и profile action feedback объявляются через подходящие live regions;
+- shipping validation остаётся inline, сохраняет введённые значения, фокусирует первое ошибочное поле и не уводит пользователя на отдельную error page;
+- общий focus-visible стиль, `touch-action: manipulation` и 44 px targets применены к shared controls; `transition-all` удалён из storefront;
+- светлая и тёмная темы задают корректный `color-scheme`, `themeColor` перенесён в Next.js viewport API;
+- central reduced-motion policy отключает smooth scroll и сокращает CSS motion, сохраняя статичное содержимое;
+- unit, lint, production build и browser checks пройдены; отдельно проверены keyboard skip path, modal focus restore, reduced motion и 200% text size без horizontal overflow.
+
+После production-настройки Shopify остаётся провести отдельный keyboard/screen-reader smoke test внешней платёжной страницы: её DOM, branding и payment controls не управляются storefront-кодом.
+
 Остаётся внешним P0: заменить `My Store`, отключить `Test Payment Gateway`, проверить production payment methods, policies и branding в Shopify Admin. В коде это исправить нельзя.
 
 ## Итог

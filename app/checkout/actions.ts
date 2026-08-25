@@ -10,7 +10,23 @@ import {
   setConfirmedOrderCookie,
 } from "@/lib/commerce/checkout";
 
-export async function submitShippingAction(formData: FormData) {
+export type ShippingField =
+  | "email"
+  | "name"
+  | "line1"
+  | "city"
+  | "postalCode"
+  | "countryCode";
+
+export type ShippingActionState = {
+  fieldErrors?: Partial<Record<ShippingField, string>>;
+  formError?: string;
+};
+
+export async function submitShippingAction(
+  _previousState: ShippingActionState,
+  formData: FormData,
+): Promise<ShippingActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const line1 = String(formData.get("line1") ?? "").trim();
@@ -21,24 +37,42 @@ export async function submitShippingAction(formData: FormData) {
   const countryCode = String(formData.get("countryCode") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
-  if (!email || !name || !line1 || !city || !postalCode || !countryCode) {
-    redirect("/checkout/error?reason=shipping");
+  const fieldErrors: ShippingActionState["fieldErrors"] = {};
+  if (!email) fieldErrors.email = "Enter the email address for delivery updates.";
+  else if (!/^\S+@\S+\.\S+$/.test(email)) fieldErrors.email = "Enter a valid email address.";
+  if (!name) fieldErrors.name = "Enter the recipient’s full name.";
+  if (!line1) fieldErrors.line1 = "Enter the delivery address.";
+  if (!city) fieldErrors.city = "Enter the delivery city.";
+  if (!postalCode) fieldErrors.postalCode = "Enter the postal code.";
+  if (!countryCode) fieldErrors.countryCode = "Choose the delivery country.";
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
   }
 
-  const orderId = await createOrUpdateDraftOrderFromCart({
-    email,
-    name,
-    line1,
-    line2,
-    city,
-    region,
-    postalCode,
-    countryCode,
-    notes,
-  });
+  let orderId: string | null;
+  try {
+    orderId = await createOrUpdateDraftOrderFromCart({
+      email,
+      name,
+      line1,
+      line2,
+      city,
+      region,
+      postalCode,
+      countryCode,
+      notes,
+    });
+  } catch {
+    return {
+      formError: "Delivery details could not be saved. Check your connection and try again.",
+    };
+  }
 
   if (!orderId) {
-    redirect("/checkout/error?reason=cart");
+    return {
+      formError: "Your cart is no longer available. Return to the cart before continuing.",
+    };
   }
 
   revalidatePath("/checkout/shipping");

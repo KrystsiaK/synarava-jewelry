@@ -1,12 +1,21 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+
+const { mockSubmitShippingAction } = vi.hoisted(() => ({
+  mockSubmitShippingAction: vi.fn(),
+}));
 
 vi.mock("@/app/checkout/actions", () => ({
-  submitShippingAction: vi.fn(),
+  submitShippingAction: mockSubmitShippingAction,
 }));
 
 import { ShippingForm } from "../shipping-form";
 
 describe("ShippingForm", () => {
+  beforeEach(() => {
+    mockSubmitShippingAction.mockReset();
+    mockSubmitShippingAction.mockResolvedValue({});
+  });
+
   it("renders Continue to payment submit button", () => {
     render(<ShippingForm />);
     expect(screen.getByRole("button", { name: "Continue to payment" })).toBeInTheDocument();
@@ -49,5 +58,21 @@ describe("ShippingForm", () => {
   it("renders notes textarea", () => {
     render(<ShippingForm />);
     expect(screen.getByPlaceholderText("Leave at door, gift message, etc.")).toBeInTheDocument();
+  });
+
+  it("keeps the form in place, announces errors, and focuses the first invalid field", async () => {
+    mockSubmitShippingAction.mockResolvedValue({
+      fieldErrors: {
+        email: "Enter a valid email address.",
+        name: "Enter the recipient’s full name.",
+      },
+    });
+    const { container } = render(<ShippingForm />);
+
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() => expect(screen.getByText("Enter a valid email address.")).toBeInTheDocument());
+    expect(screen.getByPlaceholderText("Email")).toHaveFocus();
+    expect(screen.getByPlaceholderText("Email")).toHaveAttribute("aria-invalid", "true");
   });
 });

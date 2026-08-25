@@ -47,7 +47,7 @@ describe("ProductPurchasePanel", () => {
       "data-merchandise-id",
       "gid://shopify/ProductVariant/small",
     );
-    expect(screen.getByText("2 pieces available")).toBeInTheDocument();
+    expect(screen.getByText("2 in stock")).toBeInTheDocument();
   });
 
   it("updates the merchandise id, price, and stock when an option changes", () => {
@@ -58,7 +58,7 @@ describe("ProductPurchasePanel", () => {
       "gid://shopify/ProductVariant/large",
     );
     expect(screen.getByText("€34.00")).toBeInTheDocument();
-    expect(screen.getByText("1 piece available")).toBeInTheDocument();
+    expect(screen.getByText("1 in stock")).toBeInTheDocument();
   });
 
   it("disables an option that has no available linked variant", () => {
@@ -70,5 +70,57 @@ describe("ProductPurchasePanel", () => {
     };
     render(<ProductPurchasePanel product={unavailable} />);
     expect(screen.getByRole("button", { name: "Large" })).toBeDisabled();
+  });
+
+  it("moves to an available combination instead of trapping multi-option selection", () => {
+    const multiOptionProduct = {
+      ...product,
+      options: [
+        { name: "Color", values: ["Red", "Blue"] },
+        { name: "Size", values: ["Small", "Large"] },
+      ],
+      variantDetails: [
+        {
+          ...product.variantDetails[0],
+          merchandiseId: "gid://shopify/ProductVariant/red-small",
+          selectedOptions: [
+            { name: "Color", value: "Red" },
+            { name: "Size", value: "Small" },
+          ],
+        },
+        {
+          ...product.variantDetails[1],
+          merchandiseId: "gid://shopify/ProductVariant/blue-large",
+          selectedOptions: [
+            { name: "Color", value: "Blue" },
+            { name: "Size", value: "Large" },
+          ],
+        },
+      ],
+    } as ProductSummary;
+
+    render(<ProductPurchasePanel product={multiOptionProduct} />);
+    fireEvent.click(screen.getByRole("button", { name: "Blue" }));
+
+    expect(screen.getByRole("button", { name: "Blue" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Large" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Add" })).toHaveAttribute(
+      "data-merchandise-id",
+      "gid://shopify/ProductVariant/blue-large",
+    );
+  });
+
+  it("keeps delivery, returns, and category guidance beside the primary purchase action", () => {
+    render(<ProductPurchasePanel product={{ ...product, departmentSlug: "pets" }} />);
+
+    expect(screen.getByText("Choose the right fit")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Delivery/ })).toHaveAttribute("href", "/shipping");
+    expect(screen.getByRole("link", { name: /Returns/ })).toHaveAttribute("href", "/returns");
+    expect(screen.getByRole("link", { name: /Care & safety/ })).toHaveAttribute("href", "/care");
+  });
+
+  it("keeps the repeated compact purchase action free of duplicate service navigation", () => {
+    render(<ProductPurchasePanel product={product} compact />);
+    expect(screen.queryByRole("navigation", { name: "Purchase information" })).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { normalizeLocale } from "@/lib/i18n/locales";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
@@ -83,6 +83,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d0d0d" },
+  ],
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -151,7 +158,7 @@ export default async function RootLayout({
           </svg>
           <ThemeProvider initialPreference={themePreference}>
             <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} />
-            <div id="main-content">{children}</div>
+            <div id="main-content" tabIndex={-1}>{children}</div>
             <SiteFooter />
           </ThemeProvider>
         </TranslationProvider>

@@ -71,6 +71,8 @@ function ActionFeedback({ state }: { state: ProfileActionState }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3, ease }}
+          role={state.error ? "alert" : "status"}
+          aria-live={state.error ? "assertive" : "polite"}
           className={`text-sm ${state.error ? "text-couture-red" : "text-foreground/60"}`}
         >
           {state.error ?? state.success}

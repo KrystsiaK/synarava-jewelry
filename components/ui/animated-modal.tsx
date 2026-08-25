@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/ui";
 
@@ -42,6 +43,7 @@ export function AnimatedModal({
   const [mounted, setMounted] = useState(open);
   const [visuallyOpen, setVisuallyOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const modalRootRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -67,8 +69,14 @@ export function AnimatedModal({
   useEffect(() => {
     if (!mounted) return;
     const previousOverflow = document.body.style.overflow;
+    const background = Array.from(document.body.children).filter(
+      (element): element is HTMLElement =>
+        element instanceof HTMLElement && element !== modalRootRef.current,
+    );
+    const previousInert = background.map((element) => element.inert);
     previousFocusRef.current = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
+    background.forEach((element) => { element.inert = true; });
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -103,6 +111,7 @@ export function AnimatedModal({
     });
     return () => {
       document.body.style.overflow = previousOverflow;
+      background.forEach((element, index) => { element.inert = previousInert[index]; });
       window.removeEventListener("keydown", handleKeyDown);
       window.cancelAnimationFrame(focusFrame);
       previousFocusRef.current?.focus();
@@ -131,8 +140,8 @@ export function AnimatedModal({
     </div>
   );
 
-  return (
-    <>
+  return createPortal(
+    <div ref={modalRootRef} className="contents" data-animated-modal-root="true">
       <button
         type="button"
         className={cn("modal-backdrop fixed inset-0 cursor-default", backdropZIndexClassName, visuallyOpen && "is-open")}
@@ -147,6 +156,7 @@ export function AnimatedModal({
       ) : (
         <div className={zIndexClassName}>{surface}</div>
       )}
-    </>
+    </div>,
+    document.body,
   );
 }

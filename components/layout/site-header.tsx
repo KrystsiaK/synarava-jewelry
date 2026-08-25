@@ -210,7 +210,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isMenuOpen}
           >
-            {isMenuOpen ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
+            {isMenuOpen ? <X className="size-4.5" aria-hidden="true" /> : <Menu className="size-4.5" aria-hidden="true" />}
           </button>
 
           <Link
@@ -259,7 +259,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                     type="button"
                     aria-haspopup="menu"
                     aria-label="Open shop departments"
-                    className="inline-flex size-8 items-center justify-center text-muted transition-colors hover:text-accent"
+                    className="inline-flex size-11 items-center justify-center text-muted transition-colors hover:text-accent"
                   >
                     <ChevronDown className={`size-3.5 transition-transform motion-reduce:transition-none ${isShopMenuOpen ? "rotate-180" : ""}`} aria-hidden="true" />
                   </button>
@@ -298,7 +298,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           <Link
             href="/cart"
             aria-label={`${t("nav.cart")}${cartCount > 0 ? `, ${cartCount} items` : ""}`}
-            className={`relative inline-flex items-center gap-2 px-3 py-2 transition-all hover:text-accent ${
+            className={`relative inline-flex min-h-11 items-center gap-2 px-3 py-2 transition-[background-color,color,transform] hover:text-accent ${
               /* c8 ignore next 4 */
               isActive("/cart")
                 ? "bg-foreground/[0.03] text-foreground font-bold"
@@ -308,7 +308,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             }`}
           >
             <span className="relative inline-flex items-center justify-center">
-              <ShoppingBag className="size-5" />
+              <ShoppingBag className="size-5" aria-hidden="true" />
               <span className="t-badge" aria-hidden="true">
                 <AnimatePresence initial={false} mode="popLayout">
                   {hasCartItems ? (

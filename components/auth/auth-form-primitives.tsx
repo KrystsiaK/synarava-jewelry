@@ -157,7 +157,7 @@ export function PasswordInput({
                 <div
                   key={bar}
                   className={cn(
-                    "h-0.5 flex-1 transition-all duration-300",
+                    "h-0.5 flex-1 transition-[background-color,width] duration-300",
                     meta && bar <= meta.bars ? meta.color : "bg-foreground/12",
                   )}
                 />

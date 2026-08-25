@@ -45,6 +45,8 @@ describe("CheckoutShell", () => {
     render(<CheckoutShell {...base} step="shipping"><p>Form</p></CheckoutShell>);
     const shippingBadge = screen.getByText("Delivery");
     expect(shippingBadge.className).toContain("border-foreground");
+    expect(shippingBadge).toHaveAttribute("aria-current", "step");
+    expect(shippingBadge.closest("ol")).toHaveAccessibleName("Checkout progress");
   });
 
   it("marks shipping as done and payment as active when step=payment", () => {
