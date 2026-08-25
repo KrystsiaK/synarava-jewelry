@@ -6,6 +6,7 @@ import { THEME_COOKIE_NAME, type ThemePreference } from "@/lib/theme/shared";
 
 type ThemeScriptProps = {
   initialPreference: ThemePreference;
+  nonce?: string;
 };
 
 export function getThemeScript(initialPreference: ThemePreference): string {
@@ -34,10 +35,12 @@ export function getThemeScript(initialPreference: ThemePreference): string {
   `;
 }
 
-export function ThemeScript({ initialPreference }: ThemeScriptProps) {
+export function ThemeScript({ initialPreference, nonce }: ThemeScriptProps) {
   return (
     <Script
       id="theme-initializer-script"
+      nonce={nonce}
+      suppressHydrationWarning
       strategy="beforeInteractive"
       dangerouslySetInnerHTML={{ __html: getThemeScript(initialPreference) }}
     />

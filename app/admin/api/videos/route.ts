@@ -59,7 +59,7 @@ function isPreparedUpload(value: unknown): value is PreparedUpload {
 }
 
 function revalidateStorefront() {
-  for (const route of ["/", "/shop", "/collections", "/about", "/about/manifesto", "/admin/videos"]) {
+  for (const route of ["/", "/shop", "/collections", "/about", "/admin/videos"]) {
     revalidatePath(route);
   }
   revalidatePath("/collections/[slug]", "page");

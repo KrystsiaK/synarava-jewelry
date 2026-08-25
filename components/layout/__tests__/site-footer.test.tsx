@@ -38,9 +38,9 @@ describe("SiteFooter", () => {
     expect(links[0]).toHaveAttribute("href", "/collections");
   });
 
-  it("renders Manifesto link", () => {
+  it("does not render a separate Manifesto navigation link", () => {
     renderFooter();
-    expect(screen.getByRole("link", { name: "Manifesto" })).toHaveAttribute("href", "/about/manifesto");
+    expect(screen.queryByRole("link", { name: "Manifesto" })).not.toBeInTheDocument();
   });
 
   it("renders contact email link", () => {

@@ -7,6 +7,11 @@ describe("ThemeScript", () => {
     expect(() => render(<ThemeScript initialPreference="light" />)).not.toThrow();
   });
 
+  it("forwards the CSP nonce to the inline script", () => {
+    const element = ThemeScript({ initialPreference: "light", nonce: "test-nonce" });
+    expect(element.props).toMatchObject({ nonce: "test-nonce", suppressHydrationWarning: true });
+  });
+
   it("generated script contains the initial preference", () => {
     expect(getThemeScript("dark")).toContain('"dark"');
   });

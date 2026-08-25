@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { normalizeLocale } from "@/lib/i18n/locales";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
 import Script from "next/script";
@@ -83,7 +83,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
+  const [cookieStore, requestHeaders] = await Promise.all([cookies(), headers()]);
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
   const initialLocale = normalizeLocale(cookieStore.get("synarava-locale")?.value);
@@ -105,6 +106,8 @@ export default async function RootLayout({
       <body>
         <Script
           id="organization-json-ld"
+          nonce={nonce}
+          suppressHydrationWarning
           type="application/ld+json"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
@@ -119,7 +122,7 @@ export default async function RootLayout({
             }),
           }}
         />
-        <ThemeScript initialPreference={themePreference} />
+        <ThemeScript initialPreference={themePreference} nonce={nonce} />
         <TranslationProvider initialLocale={initialLocale}>
           <svg
             id="lg-filter-svg"

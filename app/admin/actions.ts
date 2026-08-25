@@ -82,7 +82,6 @@ function revalidateStorefront() {
   revalidatePath("/collections/[slug]", "page");
   revalidatePath("/products/[slug]", "page");
   revalidatePath("/about");
-  revalidatePath("/about/manifesto");
 }
 
 export type AdminAuditEntityType = "PRODUCT" | "COLLECTION" | "PAGE" | "CATEGORY" | "TAG";

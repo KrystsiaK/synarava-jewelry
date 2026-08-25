@@ -1,2 +1,5 @@
-export { generateMetadata } from "../manifesto-page";
-export { default } from "../manifesto-page";
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/about");
+}

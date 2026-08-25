@@ -52,9 +52,6 @@ export function SiteFooter() {
           <Link href="/about" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.about")}
           </Link>
-          <Link href="/about/manifesto" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
-            {t("footer.manifesto")}
-          </Link>
         </nav>
       </div>
 

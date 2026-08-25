@@ -991,7 +991,6 @@ function FinalFooter() {
           <Link href="/shop" className="font-sans text-sm font-semibold text-couture-red hover:text-linen">{t("footer.shop")}</Link>
           <Link href="/collections" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.collections")}</Link>
           <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.about")}</Link>
-          <Link href="/about/manifesto" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.manifesto")}</Link>
         </nav>
 
         <nav aria-label={t("footer.serviceHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">

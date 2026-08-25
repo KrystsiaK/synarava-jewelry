@@ -397,15 +397,6 @@ select {
 
 .site-nav-brand {
   min-width: 0;
-  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.site-nav-brand:hover {
-  opacity: 0.82;
-}
-
-.site-nav-brand:active {
-  transform: scale(0.985);
 }
 
 .site-nav-mark {
@@ -940,7 +931,6 @@ html[data-theme="dark"] .archive-record-surface {
   background-size: 140% 140%, 135% 135%, 100% 100%, 100% 100%;
   background-position: 55% 45%, 48% 56%, center, center;
   filter: drop-shadow(0 1px 1px rgba(255, 253, 248, 0.28)) drop-shadow(0 7px 13px rgba(166, 25, 46, 0.3));
-  transition: background-position 220ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .brand-mark::before {
@@ -962,10 +952,17 @@ html[data-theme="dark"] .archive-record-surface {
     linear-gradient(132deg, #f4efe7, #a6192e 49%, #c78f73 72%, #f4efe7 100%);
 }
 
-.brand-mark:hover {
-  background-position: 44% 53%, 56% 43%, center, center;
-  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-linen) 34%, transparent)) drop-shadow(0 9px 16px color-mix(in srgb, var(--color-accent) 34%, transparent));
-  transform: translateY(-1px);
+html[data-theme="light"] .site-nav-brand .brand-mark {
+  background:
+    radial-gradient(circle at 72% 15%, #f1c45a 0 7%, transparent 27%),
+    linear-gradient(155deg, #d69e2f 0 18%, #b31d36 42%, #d7334d 68%, #760c20 100%);
+  background-position: center, center;
+  background-size: 115% 115%, 100% 100%;
+  filter: drop-shadow(0 1px 1px rgba(90, 14, 34, 0.22)) drop-shadow(0 3px 6px rgba(141, 18, 40, 0.22));
+}
+
+html[data-theme="light"] .site-nav-brand .brand-mark::before {
+  opacity: 0.12;
 }
 
 .brand-mark:focus-visible {
