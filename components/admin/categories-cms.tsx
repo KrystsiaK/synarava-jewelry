@@ -39,7 +39,7 @@ export function CategoriesTable({
     <section className="adm-panel p-5">
       <div
         className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderBottom: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-section-tag">[ TAXONOMY // CATEGORIES ]</p>
@@ -66,7 +66,7 @@ export function CategoriesTable({
             <div
               key={category.id}
               className="grid grid-cols-[minmax(0,1fr)_4rem_auto] items-center gap-3 p-3"
-              style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ border: "1px solid var(--adm-border)" }}
             >
               <div>
                 <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
@@ -177,7 +177,7 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
         {category ? <input type="hidden" name="categoryId" value={category.id} /> : null}
         <div
           className="flex flex-wrap items-start justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">
@@ -240,7 +240,7 @@ export function CategoryEditor({ category }: { category?: SavedCategoryPayload }
 
         <div
           className="flex flex-wrap items-center justify-between gap-3 pt-4"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderTop: "1px solid var(--adm-border)" }}
         >
           {category ? (
             <button type="button" className="adm-btn-danger" onClick={() => setDeleteOpen(true)}>

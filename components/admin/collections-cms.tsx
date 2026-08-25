@@ -390,7 +390,7 @@ function CollectionFields({
 
       <div
         className="grid gap-4 pt-4"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderTop: "1px solid var(--adm-border)" }}
       >
         <WorkflowStateField
           value={draft.workflowState}
@@ -402,7 +402,7 @@ function CollectionFields({
       {/* Default symbolism */}
       <div
         className="grid gap-4 pt-4"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderTop: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-label-row">
@@ -529,7 +529,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
         <input type="hidden" name="collectionId" value={draftId} />
         <div
           className="flex items-center justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ NEW COLLECTION ]</p>
@@ -694,7 +694,7 @@ export function EditCollectionForm({
       <div className="adm-panel grid gap-4 p-5">
         <div
           className="flex flex-wrap items-start justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ EDIT COLLECTION ]</p>
@@ -743,8 +743,8 @@ export function EditCollectionForm({
           <div
             className="flex flex-wrap items-center justify-between gap-4 py-5"
             style={{
-              borderTop: "1px solid rgba(255,255,255,0.06)",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderTop: "1px solid var(--adm-border)",
+              borderBottom: "1px solid var(--adm-border)",
             }}
           >
             <div className="flex items-center">
@@ -849,7 +849,7 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
       <section className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 mb-1 md:flex-row md:items-end md:justify-between"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ CURRENT COLLECTIONS ]</p>
@@ -876,7 +876,7 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
                   key={collection.id}
                   className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_auto_auto_minmax(19rem,auto)] xl:items-center"
                   style={{
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    border: "1px solid var(--adm-border)",
                   }}
                 >
                   <div>

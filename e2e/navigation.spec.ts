@@ -31,9 +31,23 @@ test.describe("Navigation", () => {
     await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeVisible();
   });
 
-  test("theme toggle is present on non-immersive pages", async ({ page }) => {
+  test("theme toggle is present on editorial pages", async ({ page }) => {
     await page.goto("/about");
     await expect(page.getByRole("banner").getByLabel("Theme switcher")).toBeVisible();
+  });
+
+  test("theme selection applies globally and survives reload", async ({ page }) => {
+    await page.goto("/shop");
+    const switcher = page.getByRole("banner").getByRole("group", { name: "Theme switcher" });
+
+    await switcher.getByRole("button", { name: "Dark" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await switcher.getByRole("button", { name: "Light" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
 
   test("/about/manifesto loads", async ({ page }) => {

@@ -77,7 +77,7 @@ export function AdminIssuesCms({ issues }: { issues: AdminIssueSummary[] }) {
     <section className="adm-panel grid gap-5 p-5">
       <div
         className="flex flex-col gap-4 pb-4 md:flex-row md:items-end md:justify-between"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderBottom: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-section-tag">[ QA // PROBLEMS ]</p>
@@ -106,7 +106,7 @@ export function AdminIssuesCms({ issues }: { issues: AdminIssueSummary[] }) {
               key={issue.id}
               className="grid gap-3 p-3 lg:grid-cols-[8rem_minmax(0,1fr)_12rem_12rem] lg:items-center"
               style={{
-                border: "1px solid rgba(255,255,255,0.06)",
+                border: "1px solid var(--adm-border)",
                 background:
                   issue.status === "OPEN" ? "rgba(255, 93, 93, 0.055)" : "transparent",
               }}

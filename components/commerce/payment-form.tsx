@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe, type Appearance, type StripeCheckoutElementsSdkOptions } from "@stripe/stripe-js";
 import {
@@ -10,10 +10,11 @@ import {
 } from "@stripe/react-stripe-js/checkout";
 
 import { PrimaryCtaButton } from "@/components/ui";
+import { useTheme } from "@/components/theme/theme-provider";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-const elementsAppearance: Appearance = {
+const darkElementsAppearance: Appearance = {
   theme: "night",
   variables: {
     colorPrimary: "#d62f44",
@@ -72,6 +73,65 @@ const elementsAppearance: Appearance = {
       borderColor: "#d62f44",
       color: "#f1efec",
       boxShadow: "0 0 0 1px #d62f44",
+    },
+  },
+};
+
+const lightElementsAppearance: Appearance = {
+  theme: "stripe",
+  variables: {
+    colorPrimary: "#a6192e",
+    colorBackground: "#ffffff",
+    colorText: "#191817",
+    colorTextSecondary: "#625f5a",
+    colorDanger: "#a6192e",
+    fontFamily: "inherit",
+    borderRadius: "0px",
+    spacingUnit: "4px",
+  },
+  rules: {
+    ".AccordionItem": {
+      border: "1px solid rgba(25,24,23,0.16)",
+      boxShadow: "none",
+      backgroundColor: "rgba(255,255,255,0.82)",
+    },
+    ".AccordionItem:hover": { borderColor: "rgba(25,24,23,0.34)" },
+    ".AccordionItem--selected": {
+      borderColor: "#a6192e",
+      boxShadow: "0 0 0 1px #a6192e",
+    },
+    ".Block": {
+      border: "1px solid rgba(25,24,23,0.14)",
+      boxShadow: "none",
+      backgroundColor: "rgba(255,255,255,0.82)",
+    },
+    ".Input": {
+      border: "1px solid rgba(25,24,23,0.18)",
+      backgroundColor: "#ffffff",
+      color: "#191817",
+      padding: "12px 14px",
+    },
+    ".Input:focus": {
+      border: "1px solid #a6192e",
+      outline: "none",
+      boxShadow: "none",
+    },
+    ".Label": {
+      fontSize: "10px",
+      letterSpacing: "0.12em",
+      textTransform: "uppercase",
+      color: "#625f5a",
+    },
+    ".Tab": {
+      border: "1px solid rgba(25,24,23,0.16)",
+      boxShadow: "none",
+      backgroundColor: "rgba(255,255,255,0.82)",
+    },
+    ".Tab:hover": { borderColor: "rgba(25,24,23,0.34)" },
+    ".Tab--selected": {
+      borderColor: "#a6192e",
+      color: "#191817",
+      boxShadow: "0 0 0 1px #a6192e",
     },
   },
 };
@@ -141,12 +201,13 @@ type PaymentFormProps = {
 };
 
 export function PaymentForm({ clientSecret }: PaymentFormProps) {
-  const options: StripeCheckoutElementsSdkOptions = {
+  const { resolvedTheme } = useTheme();
+  const options = useMemo<StripeCheckoutElementsSdkOptions>(() => ({
     clientSecret,
     elementsOptions: {
-      appearance: elementsAppearance,
+      appearance: resolvedTheme === "dark" ? darkElementsAppearance : lightElementsAppearance,
     },
-  };
+  }), [clientSecret, resolvedTheme]);
 
   return (
     <CheckoutElementsProvider stripe={stripePromise} options={options}>

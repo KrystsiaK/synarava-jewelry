@@ -84,13 +84,13 @@ export default async function AdminDashboardPage() {
       {/* Lists */}
       <div
         className="grid gap-px md:grid-cols-2"
-        style={{ background: "rgba(255,255,255,0.04)" }}
+        style={{ background: "color-mix(in srgb, var(--adm-ink) 4%, transparent)" }}
       >
         {/* Pages list */}
         <div className="adm-panel p-5">
           <div
             className="flex items-center justify-between mb-4 pb-3"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+            style={{ borderBottom: "1px solid var(--adm-border)" }}
           >
             <p className="adm-section-tag">[ PAGES LIST ]</p>
             <Link href="/admin/pages" className="adm-btn-ghost py-1 px-2 text-[0.58rem]">
@@ -129,7 +129,7 @@ export default async function AdminDashboardPage() {
         <div className="adm-panel p-5">
           <div
             className="flex items-center justify-between mb-4 pb-3"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+            style={{ borderBottom: "1px solid var(--adm-border)" }}
           >
             <p className="adm-section-tag">[ CATALOG LIST ]</p>
             <Link href="/admin/products" className="adm-btn-ghost py-1 px-2 text-[0.58rem]">

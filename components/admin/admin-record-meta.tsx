@@ -124,8 +124,8 @@ export function AdminRecordMetaModal({
         <div
           className="mt-5 grid gap-3 py-4"
           style={{
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            borderTop: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid var(--adm-border)",
+            borderTop: "1px solid var(--adm-border)",
           }}
         >
           <div className="flex items-center justify-between gap-4">
@@ -161,7 +161,7 @@ export function AdminRecordMetaModal({
                 <div
                   key={item.id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3"
-                  style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+                  style={{ border: "1px solid var(--adm-border)" }}
                 >
                   <div>
                     <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>

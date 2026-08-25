@@ -36,7 +36,7 @@ export function AdminConfirmModal({
       <p className="adm-copy mt-4">{description}</p>
       <div
         className="mt-6 flex flex-wrap justify-end gap-3 pt-4"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderTop: "1px solid var(--adm-border)" }}
       >
         <button type="button" onClick={onCancel} className="adm-btn-ghost">
           Cancel

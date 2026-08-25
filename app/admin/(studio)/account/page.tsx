@@ -40,7 +40,7 @@ export default async function AdminAccountPage() {
 
           <div
             className="pb-5 space-y-2"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+            style={{ borderBottom: "1px solid var(--adm-border)" }}
           >
             <p className="adm-title-sm">
               Synarava Admin

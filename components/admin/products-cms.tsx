@@ -478,7 +478,7 @@ function ProductDetailFields({
   return (
     <div
       className="grid gap-6 pt-5"
-      style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      style={{ borderTop: "1px solid var(--adm-border)" }}
     >
       <div>
         <p className="adm-label-row">
@@ -492,7 +492,7 @@ function ProductDetailFields({
 
       <section
         className="grid gap-4 p-4"
-        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ border: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-label-row">
@@ -559,7 +559,7 @@ function ProductDetailFields({
       {/* Materials */}
       <section
         className="grid gap-4 p-4"
-        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ border: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-label-row">
@@ -587,7 +587,7 @@ function ProductDetailFields({
               key={`material-${index}`}
               id={`field-details-materials-${index}-image`}
               className="grid gap-3 p-4"
-              style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+              style={{ border: "1px solid var(--adm-border)" }}
             >
               <p className="adm-section-tag">MATERIAL {index + 1}</p>
               <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-materials-${index}-image`)} />
@@ -624,7 +624,7 @@ function ProductDetailFields({
       {/* Process */}
       <section
         className="grid gap-4 p-4"
-        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ border: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-label-row">
@@ -667,7 +667,7 @@ function ProductDetailFields({
             <div
               key={`process-stat-${index}`}
               className="grid gap-3 p-3"
-              style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+              style={{ border: "1px solid var(--adm-border)" }}
             >
               <p className="adm-section-tag">STAT {index + 1}</p>
               <input
@@ -690,7 +690,7 @@ function ProductDetailFields({
       {/* Lookbook */}
       <section
         className="grid gap-4 p-4"
-        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ border: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-label-row">
@@ -718,7 +718,7 @@ function ProductDetailFields({
               key={`lookbook-${index}`}
               id={`field-details-lookbook-${index}-src`}
               className="grid gap-3 p-4"
-              style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+              style={{ border: "1px solid var(--adm-border)" }}
             >
               <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-lookbook-${index}-src`)} />
               <div className="flex items-center justify-between gap-3">
@@ -901,7 +901,7 @@ function ProductFormFields({
       {/* Symbolism */}
       <div
         className="grid gap-4 pt-4"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderTop: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-label-row">
@@ -1036,7 +1036,7 @@ export function CreateProductForm({
         <input type="hidden" name="productId" value={draftId} />
         <div
           className="flex items-center justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ NEW UNIT ]</p>
@@ -1060,7 +1060,7 @@ export function CreateProductForm({
 
         <div
           className="flex items-center justify-end pt-4"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderTop: "1px solid var(--adm-border)" }}
         >
           <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
         </div>
@@ -1217,7 +1217,7 @@ export function EditProductForm({
 
           <div
             className="flex flex-wrap items-start justify-between gap-4 pb-4"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ borderBottom: "1px solid var(--adm-border)" }}
           >
             <div>
               <p className="adm-section-tag">[ EDIT PRODUCT ]</p>
@@ -1268,7 +1268,7 @@ export function EditProductForm({
 
           <div
             className="flex items-center justify-between gap-4 pt-4"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ borderTop: "1px solid var(--adm-border)" }}
           >
             <button
               type="button"
@@ -1519,7 +1519,7 @@ export function ProductsCms({
       <div className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ CURRENT CATALOG ]</p>
@@ -1555,7 +1555,7 @@ export function ProductsCms({
 
         <div
           className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_10rem_12rem_12rem]"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <label className="grid gap-2">
             <span className="adm-label">Search</span>
@@ -1810,7 +1810,7 @@ export function ProductsCms({
                     key={product.id}
                     className={`grid min-w-0 gap-3 p-3 xl:items-center ${desktopTableGridClass}`}
                     style={{
-                      border: "1px solid rgba(255,255,255,0.06)",
+                      border: "1px solid var(--adm-border)",
                     }}
                   >
                     <div className="min-w-0">

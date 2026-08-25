@@ -6,6 +6,7 @@ import {
   AdminNav,
   AdminSmartTopbar,
   AdminThemeShell,
+  AdminThemeToggle,
   AdminTopbarIssueLink,
 } from "@/components/admin/admin-primitives";
 import { AdminToastProvider } from "@/components/admin/admin-toast";
@@ -47,7 +48,12 @@ export default async function AdminLayout({
           <AdminMobileMenu
             issueCount={openIssueCount}
             issueNavHrefs={issueNavHrefs}
-            footer={<LogoutForm />}
+            footer={
+              <div className="grid gap-3">
+                <AdminThemeToggle />
+                <LogoutForm />
+              </div>
+            }
           />
           <BrandMark alt="" size={32} tone="dark" className="adm-brand-mark" />
           <span className="adm-brand-kicker truncate">
@@ -56,6 +62,9 @@ export default async function AdminLayout({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden sm:block">
+            <AdminThemeToggle />
+          </div>
           <AdminTopbarIssueLink issues={openIssues} />
           <span className="adm-online-dot" />
           <span className="adm-brand-kicker hidden sm:inline">

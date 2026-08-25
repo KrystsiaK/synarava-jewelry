@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, type CSSProperties } from "react";
+import { useRef } from "react";
 import {
   motion,
   useInView,
@@ -46,12 +46,7 @@ function CollectionsHero({ collections }: { collections: CollectionSummary[] }) 
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.14]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-        }}
+        className="storefront-theme-grid pointer-events-none absolute inset-0"
       />
 
       {leadCollection ? (
@@ -66,7 +61,7 @@ function CollectionsHero({ collections }: { collections: CollectionSummary[] }) 
             preload
             quality={90}
             sizes="(min-width: 768px) 64vw, 96vw"
-            className="object-cover grayscale"
+            className="collections-hero-media object-cover"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,4,5,.08),rgba(4,4,5,.28)_70%,rgba(4,4,5,.75))]" />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,4,5,.08),rgba(4,4,5,.16)_56%,rgba(4,4,5,.82))]" />
@@ -272,32 +267,15 @@ export function CollectionsPage({
 }: {
   collections: CollectionSummary[];
 }) {
-  const pageStyle = {
-    "--color-background": "#09090a",
-    "--color-foreground": "#eeeae4",
-    "--color-muted": "#aaa49d",
-    "--color-muted-ink": "#aaa49d",
-    "--color-primary": "#d65a7d",
-    "--color-surface": "#111114",
-    "--color-stroke": "rgba(238,234,228,0.15)",
-    backgroundColor: "#09090a",
-  } as CSSProperties;
-
   return (
     <main
-      className="collections-experience artifact-shell min-h-screen overflow-x-hidden text-foreground"
-      style={pageStyle}
+      className="collections-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
     >
       <CollectionsHero collections={collections} />
       <div className="relative bg-background py-4 md:py-12">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.1]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px)",
-            backgroundSize: "72px 72px",
-          }}
+          className="storefront-theme-grid pointer-events-none absolute inset-0"
         />
         <div className="relative z-10">
           {collections.map((col, i) => (

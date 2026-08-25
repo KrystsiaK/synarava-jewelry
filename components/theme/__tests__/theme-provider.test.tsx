@@ -83,14 +83,14 @@ describe("ThemeProvider", () => {
     expect(screen.getByTestId("resolved")).toHaveTextContent("dark");
   });
 
-  it("keeps the home experience dark regardless of preference", () => {
+  it("honors the light preference on the home experience", () => {
     mockUsePathname.mockReturnValue("/");
     render(
       <ThemeProvider initialPreference="light">
         <ThemeConsumer />
       </ThemeProvider>,
     );
-    expect(screen.getByTestId("resolved")).toHaveTextContent("dark");
+    expect(screen.getByTestId("resolved")).toHaveTextContent("light");
   });
 
   it("sets data-theme on documentElement when preference changes", async () => {

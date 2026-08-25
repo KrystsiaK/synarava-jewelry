@@ -96,7 +96,7 @@ export function PageEditor({
 
         <div
           className="flex flex-wrap items-start justify-between gap-4 pb-5"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ EDIT PAGE ]</p>
@@ -204,7 +204,7 @@ export function PageEditor({
 
         <div
           className="flex justify-end pt-4"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderTop: "1px solid var(--adm-border)" }}
         >
           <button
             type="button"
@@ -263,7 +263,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
       <input type="hidden" name="pageId" value={draftId} />
       <div
         className="flex flex-wrap items-start justify-between gap-4 pb-5"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderBottom: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-section-tag">[ PAGE // NEW ]</p>
@@ -403,7 +403,7 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
       <section className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ PAGES TABLE ]</p>
@@ -430,7 +430,7 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
                 key={page.id}
                 className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_7rem_minmax(16rem,auto)] lg:items-center"
                 style={{
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  border: "1px solid var(--adm-border)",
                 }}
               >
                 <div>

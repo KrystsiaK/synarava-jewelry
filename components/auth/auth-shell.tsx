@@ -23,7 +23,7 @@ export function AuthShell({
   return (
     <main className="auth-experience artifact-shell min-h-[100svh] pt-24">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(166,25,46,.16),transparent_32%),linear-gradient(90deg,#080809_0%,#0d0d10_58%,#111116_100%)]" />
+        <div className="auth-art-direction absolute inset-0" />
       </div>
 
       <div className="site-shell relative z-10 grid min-h-[calc(100svh-6rem)] items-center gap-10 py-8 md:py-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,0.58fr)] lg:gap-16">
@@ -36,7 +36,7 @@ export function AuthShell({
             {description}
           </p>
 
-          <div className="mt-8 max-w-lg border-t border-white/12 pt-5">
+          <div className="mt-8 max-w-lg border-t border-stroke pt-5">
             <p className="font-serif text-xl italic text-foreground/90">{asideTitle}</p>
             <p className="mt-2 max-w-md text-sm leading-6 text-foreground/62">{asideBody}</p>
           </div>
@@ -46,7 +46,7 @@ export function AuthShell({
 
         <section className="auth-form-surface self-center p-6 sm:p-8 md:p-10">
           {children}
-          <div className="mt-7 border-t border-white/10 pt-5 text-sm text-foreground/62">
+          <div className="mt-7 border-t border-stroke pt-5 text-sm text-foreground/62">
             <Link href="/" className="transition-colors hover:text-accent">
               Back to storefront
             </Link>

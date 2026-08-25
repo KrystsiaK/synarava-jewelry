@@ -136,7 +136,7 @@ export function ImageFileField({
             src={previewUrl}
             alt={selectedFile.name}
             className={previewClass}
-            style={{ background: "rgba(255,255,255,0.035)", opacity: 0.92 }}
+            style={{ background: "color-mix(in srgb, var(--adm-ink) 3.5%, transparent)", opacity: 0.92 }}
           />
           <p
             className="break-all text-xs leading-5"
@@ -164,7 +164,7 @@ export function ImageFileField({
               ? "1px solid rgba(216, 182, 106, 0.34)"
               : currentImageBroken
               ? "1px solid rgba(255, 93, 93, 0.42)"
-              : "1px solid rgba(255,255,255,0.08)",
+              : "1px solid var(--adm-border)",
             borderRadius: "8px",
             opacity: removeCurrentImage ? 0.72 : 1,
           }}
@@ -235,7 +235,7 @@ export function ImageFileField({
               alt={currentImageAlt}
               className={previewClass}
               style={{
-                background: "rgba(255,255,255,0.035)",
+                background: "color-mix(in srgb, var(--adm-ink) 3.5%, transparent)",
                 opacity: selectedFile ? 0.42 : 0.7,
               }}
               onLoad={(event) => {

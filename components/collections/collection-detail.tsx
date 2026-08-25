@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type CSSProperties } from "react";
+import { useRef } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -47,7 +47,7 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
           preload
           quality={90}
           sizes="100vw"
-          className="object-cover grayscale brightness-[0.72] contrast-[1.04]"
+          className="collection-detail-hero-media object-cover"
         />
       </motion.div>
 
@@ -534,21 +534,9 @@ export function CollectionDetail({
   collection: CollectionDetail;
   products: ProductSummary[];
 }) {
-  const pageStyle = {
-    "--color-background": "#09090a",
-    "--color-foreground": "#eeeae4",
-    "--color-muted": "#aaa49d",
-    "--color-muted-ink": "#aaa49d",
-    "--color-primary": "#d65a7d",
-    "--color-surface": "#111114",
-    "--color-stroke": "rgba(238,234,228,0.15)",
-    backgroundColor: "#09090a",
-  } as CSSProperties;
-
   return (
     <main
-      className="collection-detail-experience artifact-shell overflow-x-hidden text-foreground"
-      style={pageStyle}
+      className="collection-detail-experience artifact-shell overflow-x-hidden bg-background text-foreground"
     >
       <DetailHero collection={collection} />
       {collection.manifesto && <ManifestoStrip manifesto={collection.manifesto} />}

@@ -27,6 +27,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
       className={`inline-flex items-center bg-background/80 backdrop-blur ${
         compact ? "gap-1 p-1" : "gap-1 p-1.5"
       }`}
+      role="group"
       aria-label="Theme switcher"
     >
       {options.map((option) => {

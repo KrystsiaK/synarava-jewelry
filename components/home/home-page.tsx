@@ -8,14 +8,13 @@ import {
   motion,
   useInView,
   useMotionValue,
-  useScroll,
   useSpring,
   useTransform,
   useReducedMotion,
 } from "motion/react";
 import type { MotionValue } from "motion/react";
-import type { CSSProperties, ReactNode, RefObject } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ease } from "@/lib/animation";
 import { useTranslations } from "@/lib/i18n/context";
@@ -49,7 +48,7 @@ type LexiconMaterial = {
   properties: string[];
 };
 
-const STAMP_CLASS = "border-[3px] border-couture-red text-couture-red px-4 py-2 inline-block uppercase font-bold tracking-[0.2em] bg-[#0a0a0b] select-none shadow-sm";
+const STAMP_CLASS = "border-[3px] border-couture-red text-couture-red px-4 py-2 inline-block uppercase font-bold tracking-[0.2em] bg-background select-none shadow-sm";
 
 const SCROLL_SPRING = {
   stiffness: 92,
@@ -87,22 +86,6 @@ interface HomeScrollContextValue {
 
 const HomeScrollContext = createContext<HomeScrollContextValue | null>(null);
 
-function ActiveHomeScrollProvider({ children }: { children: ReactNode }) {
-  const { scrollY } = useScroll();
-  const value = useMemo(() => ({ scrollY, isIOSWebKit: false }), [scrollY]);
-
-  return <HomeScrollContext.Provider value={value}>{children}</HomeScrollContext.Provider>;
-}
-
-function IOSHomeScrollProvider({ children }: { children: ReactNode }) {
-  // iOS WebKit keeps page scrolling on its compositor thread only while JS
-  // isn't scrubbing a graph of MotionValues on every touch-scroll frame.
-  const scrollY = useMotionValue(0);
-  const value = useMemo(() => ({ scrollY, isIOSWebKit: true }), [scrollY]);
-
-  return <HomeScrollContext.Provider value={value}>{children}</HomeScrollContext.Provider>;
-}
-
 function isIOSWebKitBrowser() {
   if (typeof navigator === "undefined") return false;
 
@@ -111,12 +94,36 @@ function isIOSWebKitBrowser() {
   return appleMobileDevice || touchEnabledIPad;
 }
 
-function HomeScrollProvider({ children }: { children: ReactNode }) {
-  const [isIOSWebKit] = useState(isIOSWebKitBrowser);
+function subscribeToBrowserCapability() {
+  return () => undefined;
+}
 
-  return isIOSWebKit
-    ? <IOSHomeScrollProvider>{children}</IOSHomeScrollProvider>
-    : <ActiveHomeScrollProvider>{children}</ActiveHomeScrollProvider>;
+function HomeScrollProvider({ children }: { children: ReactNode }) {
+  const scrollY = useMotionValue(0);
+  const isIOSWebKit = useSyncExternalStore(
+    subscribeToBrowserCapability,
+    isIOSWebKitBrowser,
+    () => false,
+  );
+
+  useEffect(() => {
+    const isIOS = isIOSWebKitBrowser();
+
+    // Keep iOS scrolling entirely on WebKit's compositor thread. Other
+    // browsers only need the scroll position; reading it directly avoids the
+    // layout measurements performed by a generic scroll observer.
+    if (isIOS) return;
+
+    const update = () => scrollY.set(window.scrollY);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+
+    return () => window.removeEventListener("scroll", update);
+  }, [scrollY]);
+
+  const value = useMemo(() => ({ scrollY, isIOSWebKit }), [isIOSWebKit, scrollY]);
+
+  return <HomeScrollContext.Provider value={value}>{children}</HomeScrollContext.Provider>;
 }
 
 function resolveScrollRange(
@@ -195,7 +202,6 @@ function useElementScrollProgress<T extends HTMLElement>(
 
     const resizeObserver = new ResizeObserver(scheduleMeasure);
     resizeObserver.observe(element);
-    resizeObserver.observe(document.body);
     window.addEventListener("resize", handleResize, { passive: true });
     window.addEventListener("orientationchange", scheduleMeasure, { passive: true });
     document.fonts?.ready.then(scheduleMeasure).catch(() => undefined);
@@ -311,12 +317,7 @@ function HeroSection({
   return (
     <section
       ref={containerRef}
-      className="relative flex min-h-[108svh] w-full items-end overflow-hidden bg-transparent px-5 pb-40 pt-24 md:min-h-[112vh] md:px-[4vw]"
-      style={{
-        "--color-linen": "#f9f8f6",
-        "--color-stone-beige": "#d9d4cc",
-        "--color-couture-red": "#e44b61",
-      } as CSSProperties}
+      className="home-hero relative flex min-h-[108svh] w-full items-end overflow-hidden bg-transparent px-5 pb-40 pt-24 md:min-h-[112vh] md:px-[4vw]"
     >
       <motion.div
         className="absolute -right-[9%] top-[4.5rem] z-0 h-[75svh] w-[96%] overflow-hidden transform-gpu [backface-visibility:hidden] md:-right-[2%] md:top-[5.5rem] md:h-[86vh] md:w-[72%]"
@@ -326,7 +327,7 @@ function HeroSection({
       >
         <motion.div className="relative h-full w-full transform-gpu [backface-visibility:hidden]" style={{ transform: mediaTransform }}>
           {heroImage ? (
-            <Image src={heroImage} alt="" fill preload quality={85} sizes="100vw" className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]" aria-hidden="true" />
+            <Image src={heroImage} alt="" fill preload quality={85} sizes="100vw" className="home-hero-media h-full w-full object-cover" aria-hidden="true" />
           ) : activeVideoSrc ? (
             <PerformanceVideo
               key={activeVideoSrc}
@@ -337,7 +338,7 @@ function HeroSection({
               playsInline
               preload="metadata"
               src={activeVideoSrc}
-              className="h-full w-full object-cover grayscale contrast-[1.08] brightness-[0.68]"
+              className="home-hero-media h-full w-full object-cover"
               aria-hidden="true"
               onEnded={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
               onError={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
@@ -350,11 +351,7 @@ function HeroSection({
         <div className="pointer-events-none absolute -bottom-[14%] left-[23%] h-[46%] w-[18%] -rotate-[18deg] border-x border-linen/15 bg-linen/[0.035] backdrop-blur-[2px]" aria-hidden="true" />
       </motion.div>
 
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[58%]"
-        style={{ background: "linear-gradient(to top, transparent 0%, rgba(9,9,10,0.88) 34%, transparent 100%)" }}
-        aria-hidden="true"
-      />
+      <div className="home-hero-fade pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[58%]" aria-hidden="true" />
 
       <motion.div
         className="relative z-10 w-full transform-gpu [backface-visibility:hidden] md:pl-[4vw]"
@@ -505,7 +502,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
               className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
             >
               <ParallaxImage src={items[0].image} alt={items[0].title} clipPath="polygon(15% 5%, 95% 0, 100% 90%, 0% 100%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-linen opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
                 View collection
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </span>
@@ -531,7 +528,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
               className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
             >
               <ParallaxImage src={items[1].image} alt={items[1].title} clipPath="polygon(0 20%, 100% 0, 85% 100%, 5% 80%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-linen opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
                 View collection
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </span>
@@ -650,7 +647,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
               className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
             >
               <ParallaxImage src={items[2].image} alt={items[2].title} clipPath="polygon(10% 0, 100% 10%, 90% 100%, 0% 90%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-linen opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
                 View collection
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </span>
@@ -718,13 +715,14 @@ function MaterialPlate({
 
   return (
     <motion.article
+      key={usesDiscreteIOSSteps ? "discrete" : "continuous"}
       initial={usesDiscreteIOSSteps ? false : undefined}
       animate={usesDiscreteIOSSteps ? discreteState : undefined}
       transition={usesDiscreteIOSSteps ? { duration: reduceMotion ? 0.16 : 0.48, ease } : undefined}
       style={usesDiscreteIOSSteps
         ? { zIndex: index + 1 }
         : { opacity, x, rotate, scale, clipPath, zIndex: index + 1 }}
-      className="absolute inset-x-0 top-1/2 grid -translate-y-1/2 transform-gpu grid-cols-1 overflow-hidden border border-linen/15 bg-[#09090a]/94 shadow-[0_18px_48px_rgba(0,0,0,0.42)] [backface-visibility:hidden] md:grid-cols-[0.92fr_1.08fr]"
+      className="home-material-plate absolute inset-x-0 top-1/2 grid -translate-y-1/2 transform-gpu grid-cols-1 overflow-hidden border border-linen/15 bg-panel/94 [backface-visibility:hidden] md:grid-cols-[0.92fr_1.08fr]"
       aria-label={`${String(index + 1).padStart(2, "0")}. ${material.name}`}
     >
       <div className="relative min-h-[31svh] overflow-hidden border-b border-linen/12 md:min-h-[64svh] md:border-b-0 md:border-r">
@@ -855,11 +853,6 @@ function MaterialLab({ collections }: { collections: CollectionItem[] }) {
     <section
       ref={ref}
       className="relative h-[330svh] bg-transparent text-linen"
-      style={{
-        "--color-linen": "#f9f8f6",
-        "--color-stone-beige": "#d9d4cc",
-        "--color-couture-red": "#e44b61",
-      } as CSSProperties}
       aria-labelledby="lexicon-title"
     >
       {usesDiscreteIOSSteps ? (
@@ -934,15 +927,10 @@ function ManifestoQuote({ quote }: { quote?: string }) {
   return (
     <section className="py-32 px-6 flex items-center justify-center bg-transparent text-linen min-h-screen relative overflow-hidden">
       {/* Grid overlay */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none" style={{
-        backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-        backgroundSize: "50px 50px"
-      }} />
+      <div className="home-theme-grid absolute inset-0 pointer-events-none select-none" />
 
       {/* Red ambient museum glow in background (no brown) */}
-      <div className="absolute inset-0 pointer-events-none select-none" style={{
-        background: "radial-gradient(circle at 50% 50%, rgba(166, 25, 46, 0.04) 0%, rgba(0,0,0,0) 70%)"
-      }} />
+      <div className="home-manifesto-glow absolute inset-0 pointer-events-none select-none" />
 
       <div className="absolute left-10 top-10 font-sans text-[10px] text-couture-red tracking-[0.4em] rotate-90 origin-left select-none opacity-60">
         DIRECTIVE // 099
@@ -1032,14 +1020,9 @@ function CompactFinalCTA({ title, body, ctaLabel, ctaHref }: { title?: string; b
   return (
     <section
       ref={ref}
-      className="relative overflow-hidden bg-[#09090a] px-5 py-16 text-linen"
-      style={{
-        "--color-linen": "#f9f8f6",
-        "--color-stone-beige": "#d9d4cc",
-        "--color-couture-red": "#e44b61",
-      } as CSSProperties}
+      className="home-final-scene relative overflow-hidden bg-background px-5 py-16 text-linen"
     >
-      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:52px_52px]" aria-hidden="true" />
+      <div className="home-theme-grid pointer-events-none absolute inset-0" aria-hidden="true" />
       <motion.div
         className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-couture-red/20 blur-3xl"
         initial={false}
@@ -1161,18 +1144,10 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   return (
     <section
       ref={ref}
-      className="relative h-[300svh] bg-transparent text-linen md:h-[280vh]"
-      style={{
-        "--color-linen": "#f9f8f6",
-        "--color-stone-beige": "#d9d4cc",
-        "--color-couture-red": "#e44b61",
-      } as CSSProperties}
+      className="home-final-scene relative h-[300svh] bg-transparent text-linen md:h-[280vh]"
     >
       <div className="sticky top-0 h-svh overflow-hidden px-5 py-20 md:px-[4vw] md:py-24">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.035]" style={{
-          backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-          backgroundSize: "clamp(52px, 7vw, 104px) clamp(52px, 7vw, 104px)",
-        }} aria-hidden="true" />
+        <div className="home-theme-grid pointer-events-none absolute inset-0" aria-hidden="true" />
 
         <div className="relative mx-auto h-full max-w-[90rem]">
         <motion.div
@@ -1296,12 +1271,7 @@ export function HomePage({ collections, heroVideoSrc, content }: HomePageProps) 
   return (
     <HomeScrollProvider>
     <main
-      className="home-experience min-h-screen overflow-x-clip bg-gradient-to-b from-[#0a0a0b] via-[#121214] to-[#070708] text-linen selection:bg-couture-red selection:text-white relative"
-      style={{
-        "--color-linen": "#f9f8f6",
-        "--color-stone-beige": "#ddd8d1",
-        "--color-couture-red": "#e44b61",
-      } as CSSProperties}
+      className="home-experience relative min-h-screen overflow-x-clip text-linen selection:bg-couture-red selection:text-white"
     >
       {/* Fixed Technical Serials in margins */}
       <div className="fixed top-1/4 left-10 z-40 font-sans text-[10px] tracking-[0.2em] text-stone-beige/60 select-none pointer-events-none hidden xl:block" style={{ writingMode: "vertical-rl" }}>

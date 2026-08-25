@@ -443,12 +443,12 @@ function MobileFilterSheet({
       onClose={onClose}
       variant="sheet"
       ariaLabel="Filter products"
-      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col border-t border-white/10 bg-[#090a0c] text-[#f2efe9] shadow-[0_-12px_40px_rgba(0,0,0,0.28)]"
+      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col border-t border-stroke bg-background text-foreground shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
     >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-stroke px-5 py-4">
           <div className="flex items-center gap-3">
-            <p className="label-caps text-[#f2efe9]">Refine by</p>
+            <p className="label-caps text-foreground">Refine by</p>
             {localActiveCount > 0 && (
               <span className="inline-flex h-5 px-1.5 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full">
                 {localActiveCount}
@@ -460,7 +460,7 @@ function MobileFilterSheet({
               <button
                 type="button"
                 onClick={() => setLocal({})}
-                className="label-caps min-h-[44px] cursor-pointer px-2 text-[0.68rem] text-white/55 transition-colors hover:text-[#d45c7b]"
+                className="label-caps min-h-[44px] cursor-pointer px-2 text-[0.68rem] text-muted transition-colors hover:text-accent"
               >
                 Clear all
               </button>
@@ -469,7 +469,7 @@ function MobileFilterSheet({
               type="button"
               onClick={onClose}
               aria-label="Close filters"
-              className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-white/55 transition-colors hover:text-white"
+              className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-muted transition-colors hover:text-foreground"
             >
               <X className="size-4" />
             </button>
@@ -483,8 +483,8 @@ function MobileFilterSheet({
             const selectedValue = local[key as keyof ShopFilters];
 
             return (
-              <div key={key} className="border-b border-white/10 px-5 py-5">
-                <p className="label-caps mb-4 text-white/45">{label}</p>
+              <div key={key} className="border-b border-stroke px-5 py-5">
+                <p className="label-caps mb-4 text-muted">{label}</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -492,8 +492,8 @@ function MobileFilterSheet({
                     className={cn(
                       "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
                       !selectedValue
-                        ? "border-[#f2efe9] bg-[#f2efe9] text-[#090a0c]"
-                        : "border-white/14 text-white/62 hover:border-white/35 hover:text-white",
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-stroke text-muted hover:border-foreground/35 hover:text-foreground",
                     )}
                   >
                     All
@@ -506,8 +506,8 @@ function MobileFilterSheet({
                       className={cn(
                         "border px-4 py-2 label-mono transition-all duration-150 cursor-pointer active:scale-[0.97] min-h-[44px]",
                         selectedValue === opt.value
-                          ? "border-[#d45c7b] bg-[#d45c7b]/10 text-[#e87592]"
-                          : "border-white/14 text-white/62 hover:border-white/35 hover:text-white",
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-stroke text-muted hover:border-foreground/35 hover:text-foreground",
                       )}
                     >
                       {opt.label}
@@ -520,7 +520,7 @@ function MobileFilterSheet({
         </div>
 
         {/* Footer CTA */}
-        <div className="shrink-0 border-t border-white/10 bg-[#090a0c] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-stroke bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <ArtifactButton
             type="button"
             onClick={() => onApply(local)}

@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
 
 import {
   THEME_COOKIE_NAME,
@@ -30,8 +29,6 @@ function resolveTheme(preference: ThemePreference) {
 }
 
 export function ThemeProvider({ children, initialPreference }: ThemeProviderProps) {
-  const pathname = usePathname();
-  const usesDarkArtDirection = pathname === "/" || pathname.startsWith("/about");
   const [preference, setPreferenceState] = useState<ThemePreference>(initialPreference);
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(
     initialPreference === "dark" ? "dark" : "light",
@@ -41,12 +38,11 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
     const media = window.matchMedia("(prefers-color-scheme: dark)");
 
     function applyTheme(nextPreference: ThemePreference) {
-      const preferredTheme = resolveTheme(nextPreference);
-      const nextResolved = usesDarkArtDirection ? "dark" : preferredTheme;
+      const nextResolved = resolveTheme(nextPreference);
       const root = document.documentElement;
       root.dataset.themePreference = nextPreference;
       root.dataset.theme = nextResolved;
-      root.dataset.themeScope = usesDarkArtDirection ? "immersive-dark" : "preference";
+      root.dataset.themeScope = "preference";
       root.style.colorScheme = nextResolved;
       document.cookie = `${THEME_COOKIE_NAME}=${nextPreference}; path=/; max-age=31536000; samesite=lax`;
       setResolvedTheme(nextResolved);
@@ -65,7 +61,7 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
     return () => {
       media.removeEventListener("change", handleSystemThemeChange);
     };
-  }, [usesDarkArtDirection, preference]);
+  }, [preference]);
 
   const value = useMemo(
     () => ({

@@ -32,7 +32,7 @@ export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {
     <section className="adm-panel p-5">
       <div
         className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderBottom: "1px solid var(--adm-border)" }}
       >
         <div>
           <p className="adm-section-tag">[ TAXONOMY // TAGS ]</p>
@@ -59,7 +59,7 @@ export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {
             <div
               key={tag.id}
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3"
-              style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ border: "1px solid var(--adm-border)" }}
             >
               <div>
                 <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
@@ -167,7 +167,7 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
         {tag ? <input type="hidden" name="tagId" value={tag.id} /> : null}
         <div
           className="flex flex-wrap items-start justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">{tag ? "[ EDIT TAG ]" : "[ NEW TAG ]"}</p>
@@ -208,7 +208,7 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
 
         <div
           className="flex flex-wrap items-center justify-between gap-3 pt-4"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderTop: "1px solid var(--adm-border)" }}
         >
           {tag ? (
             <button type="button" className="adm-btn-danger" onClick={() => setDeleteOpen(true)}>

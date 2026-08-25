@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { CSSProperties } from "react";
 import { useRef } from "react";
 import {
   AnimatePresence,
@@ -53,14 +52,10 @@ function ShopHero({
   return (
     <header
       ref={ref}
-      className="relative flex min-h-[94svh] items-end overflow-hidden bg-[#09090a] px-5 pb-20 pt-28 text-[#f9f8f6] md:min-h-[100svh] md:px-[4vw] md:pb-24"
+      className="shop-hero relative flex min-h-[94svh] items-end overflow-hidden bg-background px-5 pb-20 pt-28 text-foreground md:min-h-[100svh] md:px-[4vw] md:pb-24"
     >
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.035]"
-        style={{
-          backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-          backgroundSize: "clamp(52px, 7vw, 104px) clamp(52px, 7vw, 104px)",
-        }}
+        className="shop-theme-grid pointer-events-none absolute inset-0"
         aria-hidden="true"
       />
 
@@ -80,9 +75,9 @@ function ShopHero({
             preload
             quality={90}
             sizes="(max-width: 768px) 110vw, 68vw"
-            className="object-cover grayscale contrast-125 brightness-[0.58]"
+            className="shop-hero-image object-cover"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(9,9,10,0.04)_20%,transparent_48%,rgba(9,9,10,0.72)_100%)]" />
+          <div className="shop-hero-image-overlay absolute inset-0" />
           <div className="absolute inset-[5%] border border-white/15 [clip-path:polygon(7%_0,100%_0,100%_82%,78%_100%,0_89%,0_21%)]" />
           <p className="absolute right-8 top-8 hidden font-sans text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65 md:block">
             Featured product / {leadProduct.departmentName || leadProduct.series}
@@ -90,14 +85,10 @@ function ShopHero({
         </motion.div>
       ) : null}
 
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%]"
-        style={{ background: "linear-gradient(to top, #09090a 8%, rgba(9,9,10,0.88) 38%, transparent 100%)" }}
-        aria-hidden="true"
-      />
+      <div className="shop-hero-fade pointer-events-none absolute inset-x-0 bottom-0 h-[58%]" aria-hidden="true" />
 
       <span
-        className="pointer-events-none absolute -bottom-10 right-[2%] hidden select-none font-serif text-[clamp(7rem,16vw,13rem)] uppercase leading-none text-white/[0.035] md:block"
+        className="pointer-events-none absolute -bottom-10 right-[2%] hidden select-none font-serif text-[clamp(7rem,16vw,13rem)] uppercase leading-none text-foreground/[0.035] md:block"
         aria-hidden="true"
       >
         Archive
@@ -109,20 +100,20 @@ function ShopHero({
       >
         <div className="mb-5 flex items-center gap-4 md:mb-7">
           <span className="h-px w-10 bg-couture-red" aria-hidden="true" />
-          <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white/70">
+          <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-foreground/70">
             Synarava shop · Curated goods
           </p>
         </div>
 
-        <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.5rem,9vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-[#f9f8f6]">
+        <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.5rem,9vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-foreground">
           Curated <span className="font-light italic text-couture-red">shop</span>
         </h1>
 
-        <p className="mt-6 max-w-[40rem] text-pretty font-sans text-sm font-medium leading-relaxed text-[#d9d4cc]/80 md:mt-8 md:text-base">
+        <p className="mt-6 max-w-[40rem] text-pretty font-sans text-sm font-medium leading-relaxed text-muted md:mt-8 md:text-base">
           Jewelry, pet accessories, creative products for kids, and tools for making by hand.
         </p>
 
-        <div className="mt-8 flex flex-wrap gap-x-10 gap-y-3 border-t border-white/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/55 md:mt-10">
+        <div className="mt-8 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/55 md:mt-10">
           <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong> products available</span>
           <span>Selected / useful / made to last</span>
         </div>
@@ -394,21 +385,7 @@ export type ShopPageProps = {
 export function ShopPage({ products, leadProduct, archiveCount, filterProps }: ShopPageProps) {
   return (
     <main
-      className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-[#09090a] text-foreground selection:bg-couture-red selection:text-white"
-      style={{
-        backgroundColor: "#09090a",
-        "--color-background": "#09090a",
-        "--color-foreground": "#f1f1ef",
-        "--color-muted": "#aaa8a5",
-        "--color-muted-ink": "#aaa8a5",
-        "--color-stone-beige": "#242428",
-        "--color-surface": "#131315",
-        "--color-panel": "#18181b",
-        "--color-couture-red": "#e44b61",
-        "--color-accent": "#e44b61",
-        "--color-stroke": "rgba(255,255,255,0.1)",
-        "--color-glass": "rgba(18,18,20,0.86)",
-      } as CSSProperties}
+      className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
       <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} />
 

@@ -37,7 +37,7 @@ function AboutHero({
   const reduceMotion = useReducedMotion();
 
   return (
-    <header className="relative flex min-h-[100svh] items-end overflow-hidden bg-[#08090b] text-[#f2efe9]">
+    <header className="about-hero relative flex min-h-[100svh] items-end overflow-hidden bg-background text-foreground">
       <motion.div
         className="absolute inset-0"
         initial={false}
@@ -69,8 +69,7 @@ function AboutHero({
         ) : null}
       </motion.div>
 
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,10,.18),rgba(7,8,10,.96))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,10,.58),transparent_68%)]" />
+      <div className="about-hero-overlay absolute inset-0" />
 
       <div className="site-shell relative z-10 grid w-full gap-8 pb-14 pt-40 md:grid-cols-12 md:pb-20">
         <motion.div
@@ -97,7 +96,7 @@ function AboutHero({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.18, ease }}
         >
-          {excerpt ? <p className="text-base leading-8 text-white/70">{excerpt}</p> : null}
+          {excerpt ? <p className="text-base leading-8 text-foreground/70">{excerpt}</p> : null}
           {ctaHref && ctaLabel ? (
             <div className="mt-8">
               <PrimaryCtaButton href={ctaHref}>{ctaLabel}</PrimaryCtaButton>
@@ -119,7 +118,7 @@ function StudioCopy({
   if (!title && !body) return null;
 
   return (
-    <section className="bg-[#f0ede7] py-24 text-[#111114] md:py-40">
+    <section className="bg-surface py-24 text-foreground md:py-40">
       <div className="site-shell grid gap-10 md:grid-cols-12">
         {title ? (
           <h2 className="text-balance font-serif text-[clamp(3rem,7vw,6.5rem)] leading-[0.9] tracking-[-0.035em] md:col-span-7">
@@ -127,7 +126,7 @@ function StudioCopy({
           </h2>
         ) : null}
         {body ? (
-          <p className="max-w-xl text-pretty text-base leading-8 text-black/68 md:col-span-5 md:pt-4 md:text-lg">
+          <p className="max-w-xl text-pretty text-base leading-8 text-foreground/68 md:col-span-5 md:pt-4 md:text-lg">
             {body}
           </p>
         ) : null}
@@ -147,7 +146,7 @@ function MovementStory({
   if (!title || !videoSrc) return null;
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden bg-[#0a0a0b] text-white">
+    <section className="about-movement relative min-h-[100svh] overflow-hidden bg-background text-foreground">
       <PerformanceVideo
         src={videoSrc}
         className="absolute inset-0 h-full w-full object-cover"
@@ -157,7 +156,7 @@ function MovementStory({
         playsInline
         aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,9,11,.22),rgba(8,9,11,.92))]" />
+      <div className="about-movement-overlay absolute inset-0" />
       <div className="site-shell relative z-10 flex min-h-[100svh] items-end py-28 md:py-36">
         <h2 className="max-w-4xl font-serif text-[clamp(3rem,7vw,7rem)] leading-[0.88] tracking-[-0.04em]">
           {title}
@@ -169,7 +168,7 @@ function MovementStory({
 
 export function AboutPage(props: AboutPageProps) {
   return (
-    <main className="about-experience min-h-screen overflow-x-clip bg-[#08090b]">
+    <main className="about-experience min-h-screen overflow-x-clip bg-background text-foreground">
       <AboutHero
         title={props.title}
         excerpt={props.excerpt}

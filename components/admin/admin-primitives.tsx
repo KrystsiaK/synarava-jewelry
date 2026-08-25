@@ -5,21 +5,25 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export function AdminThemeShell() {
   useEffect(() => {
-    const html = document.documentElement;
     const body = document.body;
-    const prevTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "dark");
     body.classList.add("admin-mode");
     return () => {
-      if (prevTheme) html.setAttribute("data-theme", prevTheme);
-      else html.removeAttribute("data-theme");
       body.classList.remove("admin-mode");
     };
   }, []);
   return null;
+}
+
+export function AdminThemeToggle() {
+  return (
+    <div className="admin-theme-toggle">
+      <ThemeToggle compact />
+    </div>
+  );
 }
 
 export function AdminSmartTopbar({ children }: { children: ReactNode }) {
@@ -105,7 +109,7 @@ export function LocaleTabStrip() {
   const [active, setActive] = useState<string>("EN");
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-white/[0.05] pb-4">
+    <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--adm-border)] pb-4">
       <span className="adm-section-tag mr-1">LOCALE /</span>
       {LOCALES.map((locale) => (
         <button

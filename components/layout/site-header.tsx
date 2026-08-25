@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { useTheme } from "@/components/theme/theme-provider";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { useTranslations } from "@/lib/i18n/context";
@@ -18,6 +19,7 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderProps) {
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
   const { t } = useTranslations();
   const reduceMotion = useReducedMotion() ?? false;
   const [cartCountOverride, setCartCountOverride] = useState<{
@@ -31,9 +33,8 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       ? cartCountOverride.count
       : initialCartCount;
   const hasCartItems = cartCount > 0;
-  const isHome = pathname === "/";
-  const usesImmersiveTheme =
-    isHome ||
+  const hasDarkHero =
+    pathname === "/" ||
     pathname === "/shop" ||
     pathname === "/cart" ||
     pathname === "/login" ||
@@ -43,6 +44,11 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
     pathname.startsWith("/products") ||
     pathname.startsWith("/artifacts") ||
     pathname.startsWith("/about");
+  const isOverDarkHero =
+    hasDarkHero &&
+    !hasScrolledHeader &&
+    !isMenuOpen &&
+    resolvedTheme === "dark";
 
   const navItems = [
     { href: "/", label: t("nav.home"), match: "/" },
@@ -93,8 +99,6 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
 
   useEffect(() => {
     let frame = 0;
-    let isListening = false;
-    const desktopQuery = window.matchMedia("(min-width: 920px)");
 
     function updateHeader() {
       const currentY = window.scrollY;
@@ -107,31 +111,12 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       frame = window.requestAnimationFrame(updateHeader);
     }
 
-    function syncScrollListener() {
-      if (desktopQuery.matches && !isListening) {
-        isListening = true;
-        handleScroll();
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        return;
-      }
-
-      if (!desktopQuery.matches && isListening) {
-        isListening = false;
-        window.removeEventListener("scroll", handleScroll);
-        if (frame) window.cancelAnimationFrame(frame);
-        frame = 0;
-      }
-
-      if (!desktopQuery.matches) setHasScrolledHeader(false);
-    }
-
-    syncScrollListener();
-    desktopQuery.addEventListener("change", syncScrollListener);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
-      if (isListening) window.removeEventListener("scroll", handleScroll);
-      desktopQuery.removeEventListener("change", syncScrollListener);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -157,6 +142,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
         className="artifact-nav relative"
         data-scrolled={hasScrolledHeader ? "true" : "false"}
         data-menu-open={isMenuOpen ? "true" : "false"}
+        data-over-dark={isOverDarkHero ? "true" : "false"}
       >
         <div
           className="site-nav-liquid-glass absolute inset-0 z-0 h-full w-full"
@@ -165,9 +151,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             backgroundColor: "transparent",
             backdropFilter: "url(#lg-refract-strong)",
             WebkitBackdropFilter: "url(#lg-refract-strong)",
-            boxShadow: hasScrolledHeader
-              ? "0 16px 48px rgba(0, 0, 0, 0.4)"
-              : "0 12px 40px rgba(0, 0, 0, 0.3)",
+            boxShadow: "var(--site-nav-shadow)",
           }}
           aria-hidden="true"
         />
@@ -194,12 +178,12 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                 alt=""
                 priority
                 size={40}
-                tone={usesImmersiveTheme ? "light" : "auto"}
+                tone={isOverDarkHero || resolvedTheme === "dark" ? "light" : "dark"}
                 className="brand-mark--mobile"
               />
             </span>
             <span className="site-nav-mark site-nav-mark--desktop hidden shrink-0 items-center justify-center min-[920px]:flex">
-              <BrandMark alt="" size={38} tone={usesImmersiveTheme ? "light" : "dark"} className="brand-mark--header" />
+              <BrandMark alt="" size={38} tone={isOverDarkHero || resolvedTheme === "dark" ? "light" : "dark"} className="brand-mark--header" />
             </span>
             <span className="site-nav-wordmark-text hidden min-[920px]:grid" aria-hidden="true">
               <span>SYNARAVA</span>
@@ -225,11 +209,9 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
         </nav>
 
         <div className="relative z-10 flex items-center gap-2 md:gap-3">
-          {!usesImmersiveTheme ? (
-            <div className="hidden lg:block">
-              <ThemeToggle compact />
-            </div>
-          ) : null}
+          <div className="hidden lg:block">
+            <ThemeToggle compact />
+          </div>
 
           <LanguageSwitcher />
 
@@ -300,7 +282,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       />
 
       <aside
-        className={`site-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-white/10 bg-[#0b0b0d] px-4 pb-7 pt-20 text-[#f3efe9] shadow-[0_20px_50px_rgba(0,0,0,0.36)] transition-transform duration-300 min-[920px]:hidden ${
+        className={`site-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-stroke bg-background px-4 pb-7 pt-20 text-foreground shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-transform duration-300 min-[920px]:hidden ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-hidden={!isMenuOpen}
@@ -312,8 +294,8 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsMenuOpen(false)}
-                className={`border-b border-white/8 py-4 font-serif text-[1.38rem] leading-none transition-colors hover:text-white ${
-                  isActive(item.match) ? "text-[#f3efe9]" : "text-[#bdb7b0]"
+                className={`border-b border-stroke py-4 font-serif text-[1.38rem] leading-none transition-colors hover:text-foreground ${
+                  isActive(item.match) ? "text-foreground" : "text-muted"
                 }`}
               >
                 {item.label}
@@ -322,22 +304,20 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           </nav>
 
           <div className="mt-7 flex flex-col gap-3">
-            <Link href={isLoggedIn ? "/profile" : "/login"} onClick={() => setIsMenuOpen(false)} className="label-caps text-[#bdb7b0] transition-colors hover:text-white">
+            <Link href={isLoggedIn ? "/profile" : "/login"} onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-foreground">
               {isLoggedIn ? t("nav.account") : t("nav.loginRegister")}
             </Link>
           </div>
 
-          <div className="mt-auto border-t border-white/12 pt-4">
-            {!usesImmersiveTheme ? (
-              <div className="mb-4 border-b border-white/8 pb-4">
-                <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/42">
-                  Appearance
-                </p>
-                <ThemeToggle compact />
-              </div>
-            ) : null}
+          <div className="mt-auto border-t border-stroke pt-4">
+            <div className="mb-4 border-b border-stroke pb-4">
+              <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">
+                Appearance
+              </p>
+              <ThemeToggle compact />
+            </div>
             <div className="flex min-h-11 items-center justify-end">
-              <div className="[&>div>button]:!text-[#d0cac2] [&>div>button:hover]:!text-white">
+              <div className="[&>div>button]:!text-muted [&>div>button:hover]:!text-foreground">
                 <LanguageSwitcher showCode align="left" />
               </div>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -602,7 +602,7 @@ function SymbolismSection({ product }: { product: ProductSummary }) {
   );
 }
 
-/* ─── Craftsmanship / Stats dark section ─────────────────────────── */
+/* ─── Craftsmanship / Stats editorial section ───────────────────── */
 function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
@@ -625,7 +625,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
   }
 
   return (
-    <section className="relative overflow-clip border-y border-foreground/10 bg-[#09090a] py-24 text-foreground md:py-36">
+    <section className="product-craft-section relative overflow-clip border-y border-stroke bg-surface py-24 text-foreground md:py-36">
       <div className="site-shell">
         <header className="grid gap-8 pb-10 md:grid-cols-12 md:items-end md:pb-14">
           <div className="md:col-span-8">
@@ -909,21 +909,9 @@ function ProductFooter({ product }: { product: ProductSummary }) {
 
 /* ─── Root ───────────────────────────────────────────────────────── */
 export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc?: string }) {
-  const pageStyle = {
-    "--color-background": "#09090a",
-    "--color-foreground": "#eeeae4",
-    "--color-muted": "#aaa49d",
-    "--color-muted-ink": "#aaa49d",
-    "--color-primary": "#d65a7d",
-    "--color-surface": "#111114",
-    "--color-stroke": "rgba(238,234,228,0.15)",
-    backgroundColor: "#09090a",
-  } as CSSProperties;
-
   return (
     <main
-      className="product-detail-experience artifact-shell min-h-screen overflow-x-clip text-foreground"
-      style={pageStyle}
+      className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
       <ProductHero product={product} />
       <CommerceMediaGallery product={product} />

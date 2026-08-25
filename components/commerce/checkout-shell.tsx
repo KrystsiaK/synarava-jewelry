@@ -35,7 +35,7 @@ export function CheckoutShell({
             <p className="max-w-2xl text-lg leading-8 text-foreground/70">{description}</p>
           </header>
 
-          <div className="flex items-center gap-2 border-y border-white/10 py-4" aria-label="Checkout progress">
+          <div className="flex items-center gap-2 border-y border-stroke py-4" aria-label="Checkout progress">
             {steps.map((entry) => {
               const active = entry.key === step;
               const done =

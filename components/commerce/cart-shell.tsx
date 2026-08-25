@@ -1,6 +1,5 @@
 "use client";
 
-import { type CSSProperties } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
 
@@ -80,22 +79,9 @@ export function CartShell({
   subtotal,
   usesShopifyCheckout,
 }: CartShellProps) {
-  const pageStyle = {
-    "--color-background": "#09090a",
-    "--color-foreground": "#eeeae4",
-    "--color-muted": "#aaa49d",
-    "--color-muted-ink": "#aaa49d",
-    "--color-panel": "#111114",
-    "--color-surface": "#111114",
-    "--color-stone-beige": "#201f20",
-    "--color-stroke": "rgba(238,234,228,0.14)",
-    backgroundColor: "#09090a",
-  } as CSSProperties;
-
   return (
     <main
-      className="cart-experience artifact-shell min-h-screen overflow-x-hidden text-foreground"
-      style={pageStyle}
+      className="cart-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
     >
       <div className="relative z-10 pt-28">
         <div className="border-b border-foreground/10 pb-10 pt-8 md:pb-14 md:pt-12">

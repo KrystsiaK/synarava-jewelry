@@ -10,13 +10,13 @@ test.describe("Home page", () => {
     });
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Artifacts of time" })).toBeVisible();
+    await expect(page.locator(".home-hero h1")).toBeVisible();
     expect(scriptErrors).toEqual([]);
   });
 
   test("loads and shows hero heading", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Artifacts of time" })).toBeVisible();
+    await expect(page.locator(".home-hero h1")).toBeVisible();
   });
 
   test("shows SYNARAVA wordmark in header", async ({ page }) => {
@@ -46,9 +46,9 @@ test.describe("Home page", () => {
     await page.goto("/");
 
     const lexicon = page.locator('section[aria-labelledby="lexicon-title"]');
-    const whiteCeramic = page.getByLabel("01. White Ceramic");
-    const ancientOak = page.getByLabel("02. Ancient Oak");
-    const rawObsidian = page.getByLabel("03. Raw Obsidian");
+    const whiteCeramic = lexicon.getByRole("article").nth(0);
+    const ancientOak = lexicon.getByRole("article").nth(1);
+    const rawObsidian = lexicon.getByRole("article").nth(2);
 
     const scrollLexiconTo = async (progress: number) => {
       await lexicon.evaluate((element, value) => {
@@ -76,6 +76,10 @@ test.describe("Home page", () => {
   test("does not remeasure Home targets on every scroll frame", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    ));
 
     await page.evaluate(() => {
       const state = window as Window & { __homeRectReads?: number };
@@ -134,9 +138,9 @@ test.describe("Home page", () => {
     expect(scrollListenerCount).toBe(0);
 
     const lexicon = page.locator('section[aria-labelledby="lexicon-title"]');
-    const whiteCeramic = page.getByLabel("01. White Ceramic");
-    const ancientOak = page.getByLabel("02. Ancient Oak");
-    const rawObsidian = page.getByLabel("03. Raw Obsidian");
+    const whiteCeramic = lexicon.getByRole("article").nth(0);
+    const ancientOak = lexicon.getByRole("article").nth(1);
+    const rawObsidian = lexicon.getByRole("article").nth(2);
 
     const scrollLexiconTo = async (progress: number) => {
       await lexicon.evaluate((element, value) => {
