@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 
-const CART_COOKIE = "synarava-cart";
+export const CART_COOKIE = "synarava-cart";
 
 function formatMoney(cents: number, currency = "EUR") {
   return new Intl.NumberFormat("en-IE", {
@@ -109,8 +109,8 @@ export async function getOrCreateCart(options?: { createIfMissing?: boolean }) {
       },
     });
 
-    if (cart && cart.userId && cart.userId !== currentUser.id && userCart) {
-      cart = userCart;
+    if (cart && cart.userId && cart.userId !== currentUser.id) {
+      cart = userCart ?? null;
     } else if (cart && !cart.userId) {
       if (userCart && userCart.id !== cart.id) {
         await mergeCartItems(userCart.id, cart);
@@ -252,11 +252,6 @@ export async function getCartCount() {
 }
 
 export async function addProductToCart(productSlug: string, quantity = 1) {
-  const cart = await getOrCreateCart();
-  if (!cart) {
-    throw new Error("Unable to create cart.");
-  }
-
   const product = await db.product.findUnique({
     where: { slug: productSlug },
   });
@@ -264,6 +259,9 @@ export async function addProductToCart(productSlug: string, quantity = 1) {
   if (!product || product.status !== "ACTIVE" || product.visibility !== "PUBLIC") {
     throw new Error("Product not available.");
   }
+
+  const cart = await getOrCreateCart();
+  if (!cart) throw new Error("Unable to create cart.");
 
   const existing = await db.cartItem.findFirst({
     where: {

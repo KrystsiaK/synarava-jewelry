@@ -99,6 +99,29 @@ model UserSession {
   @@index([expiresAt])
 }
 
+model AdminSession {
+  id         String   @id @default(uuid())
+  tokenHash  String   @unique
+  username   String
+  ipAddress  String?
+  userAgent  String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([username])
+  @@index([expiresAt])
+}
+
+model RateLimitBucket {
+  keyHash   String   @id
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
 model ShopifyCustomerSession {
   id           String   @id
   accessToken  String
@@ -204,57 +227,57 @@ model CollectionSection {
 }
 
 model Product {
-  id               String                  @id @default(cuid())
-  slug             String                  @unique
-  sku              String                  @unique
-  name             String
-  seriesLabel      String?
-  subtitle         String?
-  shortDescription String?
-  description      String?
-  materialLine     String?
-  symbolismLabel   String?
-  symbolismTitle   String?
-  symbolismBody    String?
-  symbolismBody2   String?
-  details          Json?
-  currency         String                  @default("EUR")
-  status           ProductStatus           @default(DRAFT)
-  visibility       ContentVisibility       @default(PRIVATE)
-  productType      ProductType             @default(ARTIFACT)
-  priceCents       Int
-  compareAtCents   Int?
-  imageUrl         String?
-  primaryAssetId   String?
-  categoryId       String?
-  searchSummary    String?
-  seoTitle         String?
-  seoDescription   String?
-  vendor           String?
-  shopifyCategoryId String?
+  id                  String                  @id @default(cuid())
+  slug                String                  @unique
+  sku                 String                  @unique
+  name                String
+  seriesLabel         String?
+  subtitle            String?
+  shortDescription    String?
+  description         String?
+  materialLine        String?
+  symbolismLabel      String?
+  symbolismTitle      String?
+  symbolismBody       String?
+  symbolismBody2      String?
+  details             Json?
+  currency            String                  @default("EUR")
+  status              ProductStatus           @default(DRAFT)
+  visibility          ContentVisibility       @default(PRIVATE)
+  productType         ProductType             @default(ARTIFACT)
+  priceCents          Int
+  compareAtCents      Int?
+  imageUrl            String?
+  primaryAssetId      String?
+  categoryId          String?
+  searchSummary       String?
+  seoTitle            String?
+  seoDescription      String?
+  vendor              String?
+  shopifyCategoryId   String?
   shopifyCategoryName String?
-  shopifySnapshot  Json?
-  shopifyProductId String?                 @unique
-  shopifyHandle    String?
-  shopifyUpdatedAt DateTime?
-  lastSyncedAt     DateTime?
-  syncStatus       ProductSyncStatus       @default(UNLINKED)
-  syncError        String?
-  searchDocument   String?
-  publishedAt      DateTime?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  primaryAsset     MediaAsset?             @relation("ProductPrimaryAsset", fields: [primaryAssetId], references: [id], onDelete: SetNull)
-  category         ProductCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  media            ProductMedia[]
-  variants         ProductVariant[]
-  optionValues     ProductOptionValue[]
-  collections      ProductCollection[]
-  tags             ProductTag[]
-  cartItems        CartItem[]
-  orderItems       OrderItem[]
-  characteristics  ProductCharacteristic[]
-  syncEvents       ProductSyncEvent[]
+  shopifySnapshot     Json?
+  shopifyProductId    String?                 @unique
+  shopifyHandle       String?
+  shopifyUpdatedAt    DateTime?
+  lastSyncedAt        DateTime?
+  syncStatus          ProductSyncStatus       @default(UNLINKED)
+  syncError           String?
+  searchDocument      String?
+  publishedAt         DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  primaryAsset        MediaAsset?             @relation("ProductPrimaryAsset", fields: [primaryAssetId], references: [id], onDelete: SetNull)
+  category            ProductCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  media               ProductMedia[]
+  variants            ProductVariant[]
+  optionValues        ProductOptionValue[]
+  collections         ProductCollection[]
+  tags                ProductTag[]
+  cartItems           CartItem[]
+  orderItems          OrderItem[]
+  characteristics     ProductCharacteristic[]
+  syncEvents          ProductSyncEvent[]
 
   @@index([status, visibility, productType, publishedAt])
   @@index([status, visibility, publishedAt])
@@ -525,7 +548,8 @@ model CartItem {
 }
 
 model Order {
-  id                      String            @id @default(cuid())
+  id                      String            @id @default(uuid())
+  checkoutAccessTokenHash String?           @unique
   number                  Int               @unique @default(autoincrement())
   status                  OrderStatus       @default(DRAFT)
   paymentStatus           PaymentStatus     @default(PENDING)
@@ -575,19 +599,22 @@ model OrderItem {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  action     String
-  entityType String
-  entityId   String
-  before     Json?
-  after      Json?
-  metadata   Json?
-  createdAt  DateTime @default(now())
-  actorId    String?
-  actor      User?    @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  id             String   @id @default(cuid())
+  action         String
+  entityType     String
+  entityId       String
+  before         Json?
+  after          Json?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  actorId        String?
+  adminSessionId String?
+  adminUsername  String?
+  actor          User?    @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId, createdAt])
   @@index([actorId, createdAt])
+  @@index([adminSessionId, createdAt])
 }
 
 model AdminIssue {

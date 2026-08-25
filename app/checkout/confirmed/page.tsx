@@ -41,18 +41,16 @@ export default async function ConfirmedPage({ searchParams }: Props) {
           session.status === "complete" ||
           session.payment_status === "paid";
 
-        if (!isComplete) {
-          redirect("/checkout/error?reason=payment");
-        }
-
+        const checkoutOrderId = await getCheckoutOrderIdFromCookie();
         const orderId = session.metadata?.orderId;
-        if (orderId) {
+        if (isComplete && orderId && checkoutOrderId === orderId) {
           confirmedOrderId = orderId;
           order = await db.order.findUnique({ where: { id: orderId } });
         }
       } catch {
-        // fall through — show generic success if session retrieval fails
+        // The response below remains generic and never exposes another order.
       }
+      if (!order) redirect("/checkout/error?reason=payment");
     } else {
       // Sync payment succeeded: order is still in checkout cookie
       const orderId = await getCheckoutOrderIdFromCookie();

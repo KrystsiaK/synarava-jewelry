@@ -609,11 +609,23 @@ export async function pushProductToShopify(productId: string) {
         ? { measurement: { weight: { value: unitWeight.toNumber(), unit: "GRAMS" as const } } }
         : {}),
     };
-    const shopifyImageUrl = product.imageUrl?.startsWith("http")
-      ? product.imageUrl
-      : product.imageUrl && env.NEXT_PUBLIC_APP_URL
-        ? new URL(product.imageUrl, env.NEXT_PUBLIC_APP_URL).toString()
-        : null;
+    const shopifyImageUrl = (() => {
+      if (!product.imageUrl) return null;
+      try {
+        const url = new URL(product.imageUrl, env.NEXT_PUBLIC_APP_URL);
+        const allowedOrigins = new Set(
+          [env.NEXT_PUBLIC_APP_URL, env.S3_PUBLIC_URL, env.S3_ENDPOINT]
+            .filter(Boolean)
+            .map((value) => new URL(value!).origin),
+        );
+        const isShopifyCdn =
+          url.protocol === "https:" &&
+          (url.hostname === "cdn.shopify.com" || url.hostname.endsWith(".shopifycdn.com"));
+        return allowedOrigins.has(url.origin) || isShopifyCdn ? url.toString() : null;
+      } catch {
+        return null;
+      }
+    })();
     const currentRemote = product.shopifyProductId ? await fetchShopifyProduct(product.shopifyProductId) : null;
     const files = shopifyImageUrl
       ? currentRemote?.featuredMedia?.preview?.image?.url === shopifyImageUrl

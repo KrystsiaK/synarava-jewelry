@@ -35,7 +35,19 @@ export async function addStorefrontProductToCart(
 ) {
   if (isShopifyCommerceEnabled()) {
     if (merchandiseId) {
-      return addShopifyProductToCart(productSlug, quantity, merchandiseId);
+      const product = await db.product.findFirst({
+        where: {
+          slug: productSlug,
+          status: "ACTIVE",
+          visibility: "PUBLIC",
+          variants: {
+            some: { shopifyVariantId: merchandiseId, status: "ACTIVE" },
+          },
+        },
+        select: { shopifyHandle: true },
+      });
+      if (!product) throw new Error("Product not available.");
+      return addShopifyProductToCart(product.shopifyHandle || productSlug, quantity, merchandiseId);
     }
 
     const product = await db.product.findUnique({

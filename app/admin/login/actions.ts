@@ -10,6 +10,7 @@ import {
   isAdminAuthConfigured,
   verifyAdminCredentials,
 } from "@/lib/auth/admin-session";
+import { getTrustedClientIp } from "@/lib/security/request-ip";
 
 export type AdminLoginActionState = {
   error?: string;
@@ -18,7 +19,7 @@ export type AdminLoginActionState = {
 
 async function getClientIp(): Promise<string> {
   const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  return getTrustedClientIp(h);
 }
 
 function getSafeAdminRedirect(value: string) {
@@ -45,7 +46,7 @@ export async function adminLoginAction(
   }
 
   const ip = await getClientIp();
-  const byIp = checkRateLimit("admin-login-ip", ip, { max: 10, windowMs: 15 * 60 * 1000 });
+  const byIp = await checkRateLimit("admin-login-ip", ip, { max: 10, windowMs: 15 * 60 * 1000 });
   if (!byIp.ok) {
     return {
       error: byIp.error,
@@ -53,24 +54,13 @@ export async function adminLoginAction(
     };
   }
 
-  const byUsername = checkRateLimit("admin-login-username", username || "missing", {
-    max: 5,
-    windowMs: 15 * 60 * 1000,
-  });
-  if (!byUsername.ok) {
-    return {
-      error: byUsername.error,
-      retryAfterSeconds: byUsername.retryAfterSeconds,
-    };
-  }
-
   if (!verifyAdminCredentials(username, password)) {
     return { error: "Incorrect admin credentials." };
   }
 
-  clearRateLimit("admin-login-ip", ip);
-  clearRateLimit("admin-login-username", username || "missing");
-  await createAdminSession();
+  await clearRateLimit("admin-login-ip", ip);
+  const h = await headers();
+  await createAdminSession({ ipAddress: ip, userAgent: h.get("user-agent") ?? undefined });
   redirect(redirectTo);
 }
 

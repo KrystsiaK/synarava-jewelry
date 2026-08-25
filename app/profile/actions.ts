@@ -33,7 +33,7 @@ export async function updatePasswordAction(
 ): Promise<ProfileActionState> {
   const user = await requireAuthenticatedUser();
 
-  const limit = checkRateLimit("change-password", user.id, {
+  const limit = await checkRateLimit("change-password", user.id, {
     max: 5,
     windowMs: 15 * 60 * 1000,
   });

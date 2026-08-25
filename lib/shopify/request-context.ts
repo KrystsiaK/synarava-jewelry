@@ -1,12 +1,10 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { getTrustedClientIp } from "@/lib/security/request-ip";
 
 export async function getShopifyBuyerIp() {
   const requestHeaders = await headers();
-  return (
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    requestHeaders.get("x-real-ip")?.trim() ||
-    null
-  );
+  const ip = getTrustedClientIp(requestHeaders);
+  return ip === "unknown" ? null : ip;
 }

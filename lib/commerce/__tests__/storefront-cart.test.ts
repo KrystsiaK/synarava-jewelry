@@ -1,5 +1,6 @@
 const mocks = vi.hoisted(() => ({
   addShopifyProductToCart: vi.fn(),
+  findFirst: vi.fn(),
   findUnique: vi.fn(),
   isShopifyCommerceEnabled: vi.fn(() => true),
 }));
@@ -7,6 +8,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({
   db: {
     product: {
+      findFirst: mocks.findFirst,
       findUnique: mocks.findUnique,
     },
   },
@@ -39,6 +41,7 @@ import { addStorefrontProductToCart } from "@/lib/commerce/storefront-cart";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.isShopifyCommerceEnabled.mockReturnValue(true);
+  mocks.findFirst.mockResolvedValue({ shopifyHandle: "local-slug" });
 });
 
 describe("addStorefrontProductToCart", () => {
@@ -79,7 +82,12 @@ describe("addStorefrontProductToCart", () => {
       "gid://shopify/ProductVariant/selected",
     );
 
-    expect(mocks.findUnique).not.toHaveBeenCalled();
+    expect(mocks.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        slug: "local-slug",
+        variants: { some: { shopifyVariantId: "gid://shopify/ProductVariant/selected", status: "ACTIVE" } },
+      }),
+    }));
     expect(mocks.addShopifyProductToCart).toHaveBeenCalledWith(
       "local-slug",
       1,

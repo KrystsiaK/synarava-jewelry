@@ -18,7 +18,7 @@ export default async function PaymentPage() {
     redirect("/checkout/error?reason=payment");
   }
 
-  const clientSecret = await createOrGetStripeCheckoutSession(order.id);
+  const clientSecret = await createOrGetStripeCheckoutSession();
 
   if (!clientSecret) {
     redirect("/checkout/error?reason=stripe");

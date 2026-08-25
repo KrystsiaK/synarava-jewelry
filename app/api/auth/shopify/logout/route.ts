@@ -7,6 +7,8 @@ import {
 import { getCustomerAuthorizationDiscovery } from "@/lib/shopify/customer-account/discovery";
 import { getShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { deleteStoredCustomerSession } from "@/lib/shopify/customer-account/session-store";
+import { CART_COOKIE } from "@/lib/commerce/cart";
+import { SHOPIFY_CART_COOKIE } from "@/lib/shopify/cart";
 
 export const runtime = "nodejs";
 
@@ -31,5 +33,7 @@ export async function GET() {
 
   const response = NextResponse.redirect(logoutUrl);
   response.cookies.delete(SHOPIFY_CUSTOMER_SESSION_COOKIE);
+  response.cookies.delete(CART_COOKIE);
+  response.cookies.delete(SHOPIFY_CART_COOKIE);
   return response;
 }

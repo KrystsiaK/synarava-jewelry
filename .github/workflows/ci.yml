@@ -51,6 +51,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Dependency security audit
+        run: pnpm audit --audit-level high --prod
+
       - name: Unit tests
         run: pnpm test:run
 

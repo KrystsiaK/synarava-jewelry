@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import path from "node:path";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 
@@ -7,6 +6,8 @@ import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 
 const MAX_IMAGE_DIMENSION = 2560;
 const WEBP_QUALITY = 85;
+const MAX_INPUT_PIXELS = 50_000_000;
+const ALLOWED_INPUT_FORMATS = new Set(["jpeg", "png", "webp", "avif"]);
 
 function sanitizeBaseName(filename: string) {
   return filename
@@ -17,52 +18,19 @@ function sanitizeBaseName(filename: string) {
     .slice(0, 48) || "product-image";
 }
 
-function extensionFromFile(file: File) {
-  const fromName = path.extname(file.name || "").toLowerCase();
-  if (fromName) {
-    return fromName;
-  }
-
-  const map: Record<string, string> = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-    "image/svg+xml": ".svg",
-    "image/gif": ".gif",
-    "image/avif": ".avif",
-    "video/mp4": ".mp4",
-    "video/webm": ".webm",
-  };
-
-  return map[file.type] ?? ".bin";
-}
-
-function shouldSkipImageProcessing(file: File) {
-  return file.type === "image/svg+xml" || file.type === "image/gif";
-}
-
 async function prepareImageForStorage(file: File) {
   const originalBuffer = Buffer.from(await file.arrayBuffer());
-  const originalExtension = extensionFromFile(file);
-  const originalMimeType = file.type || "application/octet-stream";
-
-  if (shouldSkipImageProcessing(file)) {
-    return {
-      buffer: originalBuffer,
-      extension: originalExtension,
-      mimeType: originalMimeType,
-      sizeBytes: originalBuffer.byteLength,
-      width: null,
-      height: null,
-    };
-  }
-
   try {
-    const image = sharp(originalBuffer, { failOn: "none" }).rotate();
+    const image = sharp(originalBuffer, {
+      failOn: "error",
+      limitInputPixels: MAX_INPUT_PIXELS,
+      sequentialRead: true,
+    }).rotate();
     const metadata = await image.metadata();
-    const width = metadata.width ?? 0;
-    const height = metadata.height ?? 0;
-    const processedBuffer = await image
+    if (!metadata.format || !ALLOWED_INPUT_FORMATS.has(metadata.format)) {
+      throw new Error("Unsupported image encoding.");
+    }
+    const processed = await image
       .resize({
         width: MAX_IMAGE_DIMENSION,
         height: MAX_IMAGE_DIMENSION,
@@ -70,25 +38,18 @@ async function prepareImageForStorage(file: File) {
         withoutEnlargement: true,
       })
       .webp({ quality: WEBP_QUALITY, effort: 5, smartSubsample: true })
-      .toBuffer();
+      .toBuffer({ resolveWithObject: true });
 
     return {
-      buffer: processedBuffer,
+      buffer: processed.data,
       extension: ".webp",
       mimeType: "image/webp",
-      sizeBytes: processedBuffer.byteLength,
-      width: width || null,
-      height: height || null,
+      sizeBytes: processed.data.byteLength,
+      width: processed.info.width || null,
+      height: processed.info.height || null,
     };
   } catch {
-    return {
-      buffer: originalBuffer,
-      extension: originalExtension,
-      mimeType: originalMimeType,
-      sizeBytes: originalBuffer.byteLength,
-      width: null,
-      height: null,
-    };
+    throw new Error("The uploaded file is not a valid JPEG, PNG, WebP, or AVIF image.");
   }
 }
 
@@ -99,12 +60,6 @@ async function saveImageUpload(file: File, folder: string, fallbackBaseName: str
 
   if (!file.type.startsWith("image/")) {
     throw new Error("Only image uploads are supported.");
-  }
-
-  // SVG is rejected: it can contain <script> tags and would be served on the same
-  // origin, creating a stored XSS vector. Use a raster format instead.
-  if (file.type === "image/svg+xml") {
-    throw new Error("SVG uploads are not supported. Please use JPEG, PNG, or WebP.");
   }
 
   if (file.size > 10 * 1024 * 1024) {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/client";
-import { requireAdminSession } from "@/lib/auth/admin-session";
+import { getCurrentAdminSession, requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { saveCollectionImageUpload, savePageImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
@@ -152,6 +152,7 @@ async function writeAuditLog(input: {
   metadata?: unknown;
   actorId?: string | null;
 }) {
+  const adminSession = await getCurrentAdminSession();
   await db.auditLog.create({
     data: {
       action: input.action,
@@ -161,6 +162,8 @@ async function writeAuditLog(input: {
       after: toAuditJson(input.after),
       metadata: toAuditJson(input.metadata),
       actorId: input.actorId ?? null,
+      adminSessionId: adminSession?.sessionId ?? null,
+      adminUsername: adminSession?.username ?? null,
     },
   });
 }

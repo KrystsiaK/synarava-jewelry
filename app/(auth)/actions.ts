@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { checkRateLimit } from "@/lib/auth/guard";
@@ -13,6 +13,9 @@ import {
   resetPasswordFromToken,
 } from "@/lib/auth/users";
 import { validatePasswordPolicy } from "@/lib/auth/password-policy";
+import { getTrustedClientIp } from "@/lib/security/request-ip";
+import { CART_COOKIE } from "@/lib/commerce/cart";
+import { SHOPIFY_CART_COOKIE } from "@/lib/shopify/cart";
 
 export type AuthActionState = {
   error?: string;
@@ -21,7 +24,7 @@ export type AuthActionState = {
 
 async function getClientIp(): Promise<string> {
   const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  return getTrustedClientIp(h);
 }
 
 export async function loginAction(
@@ -33,10 +36,10 @@ export async function loginAction(
   const redirectTo = String(formData.get("redirectTo") ?? "").trim();
 
   const ip = await getClientIp();
-  const byIp = checkRateLimit("login-ip", ip, { max: 20, windowMs: 15 * 60 * 1000 });
+  const byIp = await checkRateLimit("login-ip", ip, { max: 20, windowMs: 15 * 60 * 1000 });
   if (!byIp.ok) return { error: byIp.error };
 
-  const byEmail = checkRateLimit("login-email", email, { max: 5, windowMs: 15 * 60 * 1000 });
+  const byEmail = await checkRateLimit("login-email", email, { max: 5, windowMs: 15 * 60 * 1000 });
   if (!byEmail.ok) return { error: byEmail.error };
 
   const user = await authenticateUser(email, password);
@@ -48,7 +51,7 @@ export async function loginAction(
   await createUserSession(user.id);
   await attachStorefrontCartToUser(user.id);
 
-  if (redirectTo) {
+  if (redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
     redirect(redirectTo);
   }
 
@@ -69,7 +72,7 @@ export async function registerAction(
   }
 
   const ip = await getClientIp();
-  const byIp = checkRateLimit("register-ip", ip, { max: 10, windowMs: 60 * 60 * 1000 });
+  const byIp = await checkRateLimit("register-ip", ip, { max: 10, windowMs: 60 * 60 * 1000 });
   if (!byIp.ok) return { error: byIp.error };
 
   const policy = validatePasswordPolicy(password);
@@ -106,10 +109,10 @@ export async function requestPasswordResetAction(
   }
 
   const ip = await getClientIp();
-  const byIp = checkRateLimit("reset-ip", ip, { max: 5, windowMs: 15 * 60 * 1000 });
+  const byIp = await checkRateLimit("reset-ip", ip, { max: 5, windowMs: 15 * 60 * 1000 });
   if (!byIp.ok) return { error: byIp.error };
 
-  const byEmail = checkRateLimit("reset-email", email, { max: 3, windowMs: 60 * 60 * 1000 });
+  const byEmail = await checkRateLimit("reset-email", email, { max: 3, windowMs: 60 * 60 * 1000 });
   if (!byEmail.ok) return { error: byEmail.error };
 
   await createPasswordResetToken(email);
@@ -128,7 +131,7 @@ export async function resetPasswordAction(
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
   const ip = await getClientIp();
-  const byIp = checkRateLimit("reset-confirm-ip", ip, { max: 10, windowMs: 15 * 60 * 1000 });
+  const byIp = await checkRateLimit("reset-confirm-ip", ip, { max: 10, windowMs: 15 * 60 * 1000 });
   if (!byIp.ok) return { error: byIp.error };
 
   const policy = validatePasswordPolicy(password);
@@ -151,5 +154,8 @@ export async function resetPasswordAction(
 
 export async function logoutAction() {
   await clearUserSession();
+  const cookieStore = await cookies();
+  cookieStore.delete(CART_COOKIE);
+  cookieStore.delete(SHOPIFY_CART_COOKIE);
   redirect("/login");
 }

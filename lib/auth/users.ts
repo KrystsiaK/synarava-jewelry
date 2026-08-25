@@ -1,8 +1,12 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 import { ensureAuthSeed } from "@/lib/auth/bootstrap";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
+
+function hashOneTimeToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 async function getRoleId(key: string) {
   const role = await db.role.findUnique({
@@ -100,21 +104,26 @@ export async function createPasswordResetToken(email: string) {
   const token = randomBytes(24).toString("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
 
-  await db.verificationToken.create({
-    data: {
-      identifier: normalizedEmail,
-      token,
-      type: "PASSWORD_RESET",
-      expiresAt,
-    },
-  });
+  await db.$transaction([
+    db.verificationToken.deleteMany({
+      where: { identifier: normalizedEmail, type: "PASSWORD_RESET" },
+    }),
+    db.verificationToken.create({
+      data: {
+        identifier: normalizedEmail,
+        token: hashOneTimeToken(token),
+        type: "PASSWORD_RESET",
+        expiresAt,
+      },
+    }),
+  ]);
 
   return { token, expiresAt, email: normalizedEmail };
 }
 
 export async function getValidPasswordResetToken(token: string) {
   const record = await db.verificationToken.findUnique({
-    where: { token },
+    where: { token: hashOneTimeToken(token) },
   });
 
   if (!record || record.type !== "PASSWORD_RESET" || record.consumedAt || record.expiresAt.getTime() <= Date.now()) {
@@ -131,21 +140,30 @@ export async function resetPasswordFromToken(token: string, password: string) {
     return { ok: false as const, error: "This reset link is invalid or has expired." };
   }
 
-  await db.user.update({
+  const user = await db.user.findUnique({
     where: { email: record.identifier },
-    data: {
-      passwordHash: hashPassword(password),
-      // Intentionally do NOT set status: "ACTIVE" — a SUSPENDED account must not
-      // regain access through password reset.
-    },
+    select: { id: true },
+  });
+  if (!user) return { ok: false as const, error: "This reset link is invalid or has expired." };
+
+  const updated = await db.$transaction(async (tx) => {
+    const claimed = await tx.verificationToken.updateMany({
+      where: { id: record.id, consumedAt: null, expiresAt: { gt: new Date() } },
+      data: { consumedAt: new Date() },
+    });
+    if (claimed.count !== 1) return false;
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: { passwordHash: hashPassword(password) },
+    });
+    await tx.userSession.deleteMany({ where: { userId: user.id } });
+    return true;
   });
 
-  await db.verificationToken.update({
-    where: { id: record.id },
-    data: {
-      consumedAt: new Date(),
-    },
-  });
+  if (!updated) {
+    return { ok: false as const, error: "This reset link is invalid or has expired." };
+  }
 
   return { ok: true as const };
 }

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { clearActiveCart, getCartViewModel, getOrCreateCart } from "@/lib/commerce/cart";
@@ -7,6 +8,40 @@ import { getStripe, isStripePaymentConfigured } from "@/lib/stripe";
 
 const CHECKOUT_ORDER_COOKIE = "synarava-checkout-order";
 const CONFIRMED_ORDER_COOKIE = "synarava-confirmed-order";
+
+function hashCheckoutToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function safeDigestEqual(left: string, right: string) {
+  const a = Buffer.from(left, "hex");
+  const b = Buffer.from(right, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function parseOrderAccessCookie(raw: string | undefined) {
+  const [orderId, token, ...rest] = raw?.split(".") ?? [];
+  if (rest.length || !orderId || !token || !/^[0-9a-f]{64}$/i.test(token)) return null;
+  return { orderId, token };
+}
+
+async function getAuthorizedOrderAccess(cookieName: string) {
+  const cookieStore = await cookies();
+  const access = parseOrderAccessCookie(cookieStore.get(cookieName)?.value);
+  if (!access) return null;
+
+  const order = await db.order.findUnique({
+    where: { id: access.orderId },
+    select: { id: true, userId: true, checkoutAccessTokenHash: true },
+  });
+  if (!order?.checkoutAccessTokenHash) return null;
+  if (!safeDigestEqual(order.checkoutAccessTokenHash, hashCheckoutToken(access.token))) return null;
+
+  const currentUser = await getCurrentUser();
+  if (order.userId && order.userId !== currentUser?.id) return null;
+  if (!order.userId && currentUser) return null;
+  return access;
+}
 
 export type ShippingPayload = {
   email: string;
@@ -28,12 +63,10 @@ function normalizeStripeClientSecret(clientSecret: string) {
   }
 }
 
-export async function createOrGetStripeCheckoutSession(orderId: string): Promise<string | null> {
-  const order = await db.order.findUnique({
-    where: { id: orderId },
-    include: { items: true },
-  });
-
+export async function createOrGetStripeCheckoutSession(): Promise<string | null> {
+  // Resolve through the protected cookie on every call so future callers cannot
+  // accidentally turn this helper into another order-ID oracle.
+  const order = await getCheckoutOrder();
   if (!order || order.status !== "DRAFT") return null;
   if (!isStripePaymentConfigured()) return null;
 
@@ -79,13 +112,12 @@ export async function createOrGetStripeCheckoutSession(orderId: string): Promise
 }
 
 export async function getCheckoutOrderIdFromCookie() {
-  const cookieStore = await cookies();
-  return cookieStore.get(CHECKOUT_ORDER_COOKIE)?.value ?? null;
+  return (await getAuthorizedOrderAccess(CHECKOUT_ORDER_COOKIE))?.orderId ?? null;
 }
 
-export async function setCheckoutOrderCookie(orderId: string) {
+async function setCheckoutOrderCookie(orderId: string, token: string) {
   const cookieStore = await cookies();
-  cookieStore.set(CHECKOUT_ORDER_COOKIE, orderId, {
+  cookieStore.set(CHECKOUT_ORDER_COOKIE, `${orderId}.${token}`, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -100,19 +132,21 @@ export async function clearCheckoutOrderCookie() {
 }
 
 export async function setConfirmedOrderCookie(orderId: string) {
+  const access = await getAuthorizedOrderAccess(CHECKOUT_ORDER_COOKIE);
+  if (!access || access.orderId !== orderId) return false;
   const cookieStore = await cookies();
-  cookieStore.set(CONFIRMED_ORDER_COOKIE, orderId, {
+  cookieStore.set(CONFIRMED_ORDER_COOKIE, `${access.orderId}.${access.token}`, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 5,
   });
+  return true;
 }
 
 export async function getConfirmedOrderIdFromCookie() {
-  const cookieStore = await cookies();
-  return cookieStore.get(CONFIRMED_ORDER_COOKIE)?.value ?? null;
+  return (await getAuthorizedOrderAccess(CONFIRMED_ORDER_COOKIE))?.orderId ?? null;
 }
 
 export async function clearConfirmedOrderCookie() {
@@ -122,8 +156,8 @@ export async function clearConfirmedOrderCookie() {
 
 export async function consumeConfirmedOrderCookie() {
   const cookieStore = await cookies();
-  const value = cookieStore.get(CONFIRMED_ORDER_COOKIE)?.value ?? null;
-  if (value) cookieStore.delete(CONFIRMED_ORDER_COOKIE);
+  const value = await getConfirmedOrderIdFromCookie();
+  cookieStore.delete(CONFIRMED_ORDER_COOKIE);
   return value;
 }
 
@@ -136,11 +170,11 @@ export async function createOrUpdateDraftOrderFromCart(shipping: ShippingPayload
     return null;
   }
 
-  const orderId = await getCheckoutOrderIdFromCookie();
+  const existingAccess = await getAuthorizedOrderAccess(CHECKOUT_ORDER_COOKIE);
   const existingOrder =
-    orderId
+    existingAccess
       ? await db.order.findUnique({
-          where: { id: orderId },
+          where: { id: existingAccess.orderId },
           include: { items: true },
         })
       : null;
@@ -154,8 +188,10 @@ export async function createOrUpdateDraftOrderFromCart(shipping: ShippingPayload
     countryCode: shipping.countryCode,
   };
 
+  const canReuseOrder = existingOrder?.status === "DRAFT";
+  const checkoutToken = canReuseOrder ? existingAccess?.token : randomBytes(32).toString("hex");
   const order =
-    existingOrder && existingOrder.status === "DRAFT"
+    canReuseOrder
       ? await db.order.update({
           where: { id: existingOrder.id },
           data: {
@@ -182,6 +218,7 @@ export async function createOrUpdateDraftOrderFromCart(shipping: ShippingPayload
             status: "DRAFT",
             paymentStatus: "PENDING",
             fulfillmentStatus: "UNFULFILLED",
+            checkoutAccessTokenHash: hashCheckoutToken(checkoutToken!),
           },
         });
 
@@ -204,25 +241,24 @@ export async function createOrUpdateDraftOrderFromCart(shipping: ShippingPayload
     });
   }
 
-  await setCheckoutOrderCookie(order.id);
+  await setCheckoutOrderCookie(order.id, checkoutToken!);
   return order.id;
 }
 
 export async function getCheckoutOrder() {
-  const orderId = await getCheckoutOrderIdFromCookie();
-  if (!orderId) {
+  const access = await getAuthorizedOrderAccess(CHECKOUT_ORDER_COOKIE);
+  if (!access) {
     return null;
   }
 
   return db.order.findUnique({
-    where: { id: orderId },
+    where: { id: access.orderId },
     include: {
       items: {
         orderBy: {
           createdAt: "asc",
         },
       },
-      user: true,
     },
   });
 }

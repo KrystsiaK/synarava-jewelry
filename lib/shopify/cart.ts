@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { getShopifyBuyerIp } from "@/lib/shopify/request-context";
 import { shopifyStorefrontRequest } from "@/lib/shopify/storefront";
 
-const SHOPIFY_CART_COOKIE = "synarava-shopify-cart";
+export const SHOPIFY_CART_COOKIE = "synarava-shopify-cart";
 const CART_MAX_AGE = 60 * 60 * 24 * 30;
 
 type Money = {

@@ -115,7 +115,6 @@ describe("admin login actions", () => {
 
     expect(createAdminSessionMock).toHaveBeenCalledOnce();
     expect(clearRateLimitMock).toHaveBeenCalledWith("admin-login-ip", "127.0.0.1");
-    expect(clearRateLimitMock).toHaveBeenCalledWith("admin-login-username", "studio");
     expect(redirectMock).toHaveBeenCalledWith("/admin/products");
     expect(error.url).toBe("/admin/products");
   });
