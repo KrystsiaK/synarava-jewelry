@@ -1,6 +1,7 @@
 import "server-only";
 
 import * as localCart from "@/lib/commerce/cart";
+import { db } from "@/lib/db";
 import { isShopifyCommerceEnabled } from "@/lib/shopify/config";
 import {
   addShopifyProductToCart,
@@ -33,7 +34,34 @@ export async function addStorefrontProductToCart(
   merchandiseId?: string,
 ) {
   if (isShopifyCommerceEnabled()) {
-    return addShopifyProductToCart(productSlug, quantity, merchandiseId);
+    if (merchandiseId) {
+      return addShopifyProductToCart(productSlug, quantity, merchandiseId);
+    }
+
+    const product = await db.product.findUnique({
+      where: { slug: productSlug },
+      select: {
+        shopifyHandle: true,
+        variants: {
+          where: {
+            shopifyVariantId: { not: null },
+            status: "ACTIVE",
+          },
+          orderBy: [
+            { stockOnHand: "desc" },
+            { createdAt: "asc" },
+          ],
+          take: 1,
+          select: { shopifyVariantId: true },
+        },
+      },
+    });
+
+    return addShopifyProductToCart(
+      product?.shopifyHandle || productSlug,
+      quantity,
+      product?.variants[0]?.shopifyVariantId ?? undefined,
+    );
   }
   return localCart.addProductToCart(productSlug, quantity);
 }
