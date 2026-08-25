@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
-import { SHOP_SORT_OPTIONS } from "@/lib/catalog/shop-sort";
+import { useTranslations } from "@/lib/i18n/context";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
 import {
@@ -50,12 +50,17 @@ export function FilterBar({
   totalCount,
 }: FilterBarProps) {
   const router = useRouter();
+  const { t, plural } = useTranslations();
   const [isPending, startTransition] = useTransition();
 
   const [filters, setFilters] = useState<ShopFilters>(initialFilters);
   const [search, setSearch] = useState(initialFilters.q ?? "");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(0);
+  const [advancedOpen, setAdvancedOpen] = useState(() => Boolean(
+    initialFilters.collection || initialFilters.tag || initialFilters.material
+      || initialFilters.finish || initialFilters.origin || initialFilters.certified,
+  ));
   // Saved filters pending opt-in restore (not yet applied)
   const [pendingRestore, setPendingRestore] = useState<ShopFilters | null>(null);
 
@@ -142,6 +147,18 @@ export function FilterBar({
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   const activeCount = countActiveFilters(filters);
+  const sortOptions: FilterOption[] = [
+    { value: "newest", label: t("shop.filters.newest") },
+    { value: "price-asc", label: t("shop.filters.priceAsc") },
+    { value: "price-desc", label: t("shop.filters.priceDesc") },
+    { value: "name-asc", label: t("shop.filters.nameAsc") },
+  ];
+  const availabilityOptions: FilterOption[] = [
+    { value: "in-stock", label: t("shop.filters.inStock") },
+  ];
+  const isJewelryContext = !filters.department || filters.department === "jewelry";
+  const showFinish = isJewelryContext;
+  const showCompliance = filters.department !== "jewelry-making";
 
   return (
     <div className={cn("relative", isPending && "pointer-events-none")} aria-busy={isPending}>
@@ -161,7 +178,7 @@ export function FilterBar({
       {/* ── Session restore banner ───────────────────────────────────────────── */}
       {pendingRestore && (
         <div className="mb-4 flex flex-wrap items-center gap-3 border border-foreground/[0.08] bg-surface/80 px-4 py-3">
-          <span className="shrink-0 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted/70">Last viewing:</span>
+          <span className="shrink-0 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted/70">{t("shop.filters.lastViewing")}</span>
 
           {/* Summary pills */}
           <div className="flex flex-wrap gap-1.5">
@@ -203,13 +220,13 @@ export function FilterBar({
               }}
               size="sm"
             >
-              Apply filters
+              {t("shop.filters.applySaved")}
             </ArtifactButton>
             <button
               type="button"
               onClick={() => { clearFiltersSession(); setPendingRestore(null); }}
               className="text-muted hover:text-foreground transition-colors cursor-pointer"
-              aria-label="Dismiss filter restore"
+              aria-label={t("shop.filters.dismissSaved")}
             >
               <X className="size-3.5" />
             </button>
@@ -222,28 +239,28 @@ export function FilterBar({
         <div className="flex items-end justify-between gap-8 border-b border-foreground/[0.06] px-5 py-4 lg:px-6">
           <div>
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-couture-red">
-              Curate the archive
+              {t("shop.filters.eyebrow")}
             </p>
             <p className="mt-1 max-w-xl text-sm leading-6 text-foreground/58">
-              Refine by form, collection, material language, or a quiet search term.
+              {t("shop.filters.description")}
             </p>
           </div>
 
           <div className="flex shrink-0 items-end gap-5">
             <FilterDropdown
-              label="Sort"
-              options={SHOP_SORT_OPTIONS.slice(1)}
+              label={t("shop.filters.sort")}
+              options={sortOptions}
               value={filters.sort && filters.sort !== "featured" ? filters.sort : ""}
               onChange={(value) => setFilter("sort", value)}
-              allLabel="Featured"
-              inactiveLabel="Featured"
+              allLabel={t("shop.filters.featured")}
+              inactiveLabel={t("shop.filters.featured")}
             />
             <div className="text-right">
               <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-muted/55">
-                Showing
+                {t("shop.filters.showing")}
               </p>
               <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground" aria-live="polite" aria-atomic="true">
-                {totalCount} <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{totalCount === 1 ? "piece" : "pieces"}</span>
+                <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{plural("shop.filters.productCount", totalCount)}</span>
               </p>
             </div>
           </div>
@@ -253,37 +270,35 @@ export function FilterBar({
         <div className="flex items-center justify-between gap-5 px-5 py-4 lg:px-6">
           <div className="flex min-w-0 flex-wrap items-center gap-2.5">
             <FilterDropdown
-              label="Department"
+              label={t("shop.filters.department")}
               options={departments}
               value={filters.department ?? ""}
               onChange={(v) => setFilter("department", v)}
-              allLabel="All departments"
+              allLabel={t("shop.filters.allDepartments")}
             />
             <FilterDropdown
-              label="Category"
+              label={t("shop.filters.category")}
               options={categories}
               value={filters.category ?? ""}
               onChange={(v) => setFilter("category", v)}
-              allLabel="All categories"
+              allLabel={t("shop.filters.allCategories")}
             />
             <FilterDropdown
-              label="Collection"
-              options={collections}
-              value={filters.collection ?? ""}
-              onChange={(v) => setFilter("collection", v)}
-              allLabel="All collections"
+              label={t("shop.filters.availability")}
+              options={availabilityOptions}
+              value={filters.availability ?? ""}
+              onChange={(v) => setFilter("availability", v)}
+              allLabel={t("shop.filters.allAvailability")}
             />
-            <FilterDropdown
-              label="Tag"
-              options={tags}
-              value={filters.tag ?? ""}
-              onChange={(v) => setFilter("tag", v)}
-              allLabel="All tags"
-            />
-            <FilterDropdown label="Material" options={materials} value={filters.material ?? ""} onChange={(v) => setFilter("material", v)} allLabel="All materials" />
-            <FilterDropdown label="Finish" options={finishes} value={filters.finish ?? ""} onChange={(v) => setFilter("finish", v)} allLabel="All finishes" />
-            <FilterDropdown label="Origin" options={origins} value={filters.origin ?? ""} onChange={(v) => setFilter("origin", v)} allLabel="All origins" />
-            <FilterDropdown label="Compliance" options={[{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }]} value={filters.certified ?? ""} onChange={(v) => setFilter("certified", v)} allLabel="All compliance" />
+            <button
+              type="button"
+              aria-expanded={advancedOpen}
+              onClick={() => setAdvancedOpen((open) => !open)}
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-foreground/10 bg-surface/45 px-3.5 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted transition-[background-color,border-color,color] hover:border-foreground/24 hover:bg-surface hover:text-foreground"
+            >
+              {advancedOpen ? t("shop.filters.less") : t("shop.filters.more")}
+              <ChevronDown className={cn("size-3 transition-transform", advancedOpen && "rotate-180")} aria-hidden="true" />
+            </button>
           </div>
 
           <div className="relative flex w-[min(28vw,17rem)] items-center border-b border-foreground/[0.14] transition-colors focus-within:border-couture-red">
@@ -293,8 +308,8 @@ export function FilterBar({
               type="search"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search archive…"
-              aria-label="Search products"
+              placeholder={t("shop.filters.searchPlaceholder")}
+              aria-label={t("shop.filters.searchLabel")}
               className={cn(
                 "w-full bg-transparent py-2 pl-6 pr-6 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
                 "placeholder:text-muted/42 outline-none transition-[color,border-color] duration-200",
@@ -304,7 +319,7 @@ export function FilterBar({
               <button
                 type="button"
                 onClick={handleSearchClear}
-                aria-label="Clear search"
+                aria-label={t("shop.filters.clearSearch")}
                 className="absolute right-0 inline-flex size-11 cursor-pointer items-center justify-center text-muted transition-colors hover:text-accent"
               >
                 <X className="size-3.5" />
@@ -312,6 +327,16 @@ export function FilterBar({
             )}
           </div>
         </div>
+        {advancedOpen ? (
+          <div className="flex flex-wrap items-center gap-2.5 border-t border-foreground/[0.06] px-5 py-4 lg:px-6">
+            {isJewelryContext ? <FilterDropdown label={t("shop.filters.collection")} options={collections} value={filters.collection ?? ""} onChange={(v) => setFilter("collection", v)} allLabel={t("shop.filters.allCollections")} /> : null}
+            <FilterDropdown label={t("shop.filters.tag")} options={tags} value={filters.tag ?? ""} onChange={(v) => setFilter("tag", v)} allLabel={t("shop.filters.allTags")} />
+            <FilterDropdown label={t("shop.filters.material")} options={materials} value={filters.material ?? ""} onChange={(v) => setFilter("material", v)} allLabel={t("shop.filters.allMaterials")} />
+            {showFinish ? <FilterDropdown label={t("shop.filters.finish")} options={finishes} value={filters.finish ?? ""} onChange={(v) => setFilter("finish", v)} allLabel={t("shop.filters.allFinishes")} /> : null}
+            <FilterDropdown label={t("shop.filters.origin")} options={origins} value={filters.origin ?? ""} onChange={(v) => setFilter("origin", v)} allLabel={t("shop.filters.allOrigins")} />
+            {showCompliance ? <FilterDropdown label={t("shop.filters.compliance")} options={[{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }]} value={filters.certified ?? ""} onChange={(v) => setFilter("certified", v)} allLabel={t("shop.filters.allCompliance")} /> : null}
+          </div>
+        ) : null}
       </div>
 
       {/* ── Mobile filter row ───────────────────────────────────────────────── */}
@@ -322,15 +347,15 @@ export function FilterBar({
             type="search"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search…"
-            aria-label="Search products"
+            placeholder={t("shop.filters.searchPlaceholder")}
+            aria-label={t("shop.filters.searchLabel")}
             className="w-full bg-transparent py-3 pl-6 pr-6 text-[0.78rem] font-semibold uppercase tracking-[0.13em] placeholder:text-muted/42 outline-none"
           />
           {search && (
             <button
               type="button"
               onClick={handleSearchClear}
-              aria-label="Clear search"
+              aria-label={t("shop.filters.clearSearch")}
               className="absolute right-0 inline-flex size-11 cursor-pointer items-center justify-center text-muted transition-colors hover:text-accent"
             >
               <X className="size-3.5" />
@@ -340,12 +365,12 @@ export function FilterBar({
 
         <div className="flex items-end gap-2">
           <FilterDropdown
-            label="Sort"
-            options={SHOP_SORT_OPTIONS.slice(1)}
+            label={t("shop.filters.sort")}
+            options={sortOptions}
             value={filters.sort && filters.sort !== "featured" ? filters.sort : ""}
             onChange={(value) => setFilter("sort", value)}
-            allLabel="Featured"
-            inactiveLabel="Featured"
+            allLabel={t("shop.filters.featured")}
+            inactiveLabel={t("shop.filters.featured")}
           />
           <button
             type="button"
@@ -353,7 +378,7 @@ export function FilterBar({
               setMobileSession((session) => session + 1);
               setMobileOpen(true);
             }}
-            aria-label={`Filters${activeCount > 0 ? `, ${activeCount} active` : ""}`}
+            aria-label={`${t("shop.filters.filters")}${activeCount > 0 ? `, ${t("shop.filters.activeCount", { count: activeCount })}` : ""}`}
             className={cn(
               "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
               "cursor-pointer transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97]",
@@ -363,7 +388,7 @@ export function FilterBar({
             )}
           >
             <SlidersHorizontal className="size-3.5" aria-hidden="true" />
-            Filters
+            {t("shop.filters.filters")}
             {activeCount > 0 && (
               <span className="inline-flex h-4 w-4 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full shrink-0">
                 {activeCount}
@@ -374,7 +399,7 @@ export function FilterBar({
 
         {/* Labelled count */}
         <span className="shrink-0 whitespace-nowrap text-right text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted/55 tabular-nums" aria-live="polite" aria-atomic="true">
-          {totalCount} {totalCount === 1 ? "piece" : "pieces"}
+          {plural("shop.filters.productCount", totalCount)}
         </span>
       </div>
 
@@ -448,19 +473,27 @@ function MobileFilterSheet({
   onApply,
   onClose,
 }: MobileFilterSheetProps) {
+  const { t, plural } = useTranslations();
   const [local, setLocal] = useState<ShopFilters>(filters);
 
   const localActiveCount = countActiveFilters(local);
 
   const sections: { key: keyof ShopFilters; label: string; options: FilterOption[] }[] = [
-    { key: "department", label: "Department", options: departments },
-    { key: "category",   label: "Category",   options: categories },
-    { key: "collection", label: "Collection", options: collections },
-    { key: "tag",        label: "Tag",        options: tags },
-    { key: "material",   label: "Material",   options: materials },
-    { key: "finish",     label: "Finish",     options: finishes },
-    { key: "origin",     label: "Origin",     options: origins },
-    { key: "certified",  label: "Compliance", options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] },
+    { key: "department", label: t("shop.filters.department"), options: departments },
+    { key: "category", label: t("shop.filters.category"), options: categories },
+    { key: "availability", label: t("shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
+    ...(!local.department || local.department === "jewelry"
+      ? [{ key: "collection" as const, label: t("shop.filters.collection"), options: collections }]
+      : []),
+    { key: "tag", label: t("shop.filters.tag"), options: tags },
+    { key: "material", label: t("shop.filters.material"), options: materials },
+    ...(!local.department || local.department === "jewelry"
+      ? [{ key: "finish" as const, label: t("shop.filters.finish"), options: finishes }]
+      : []),
+    { key: "origin", label: t("shop.filters.origin"), options: origins },
+    ...(local.department === "jewelry-making"
+      ? []
+      : [{ key: "certified" as const, label: t("shop.filters.compliance"), options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] }]),
   ];
 
   return (
@@ -468,13 +501,13 @@ function MobileFilterSheet({
       open={open}
       onClose={onClose}
       variant="sheet"
-      ariaLabel="Filter products"
+      ariaLabel={t("shop.filters.refine")}
       className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col border-t border-stroke bg-background text-foreground shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
     >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-stroke px-5 py-4">
           <div className="flex items-center gap-3">
-            <p className="label-caps text-foreground">Refine by</p>
+            <p className="label-caps text-foreground">{t("shop.filters.refine")}</p>
             {localActiveCount > 0 && (
               <span className="inline-flex h-5 px-1.5 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full">
                 {localActiveCount}
@@ -488,13 +521,13 @@ function MobileFilterSheet({
                 onClick={() => setLocal(filtersWithoutSort(local))}
                 className="label-caps min-h-[44px] cursor-pointer px-2 text-[0.68rem] text-muted transition-colors hover:text-accent"
               >
-                Clear all
+                {t("shop.filters.clearAll")}
               </button>
             )}
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close filters"
+              aria-label={t("shop.filters.close")}
               className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-muted transition-colors hover:text-foreground"
             >
               <X className="size-4" />
@@ -522,7 +555,7 @@ function MobileFilterSheet({
                         : "border-stroke text-muted hover:border-foreground/35 hover:text-foreground",
                     )}
                   >
-                    All
+                    {t("shop.filters.all")}
                   </button>
                   {options.map((opt) => (
                     <button
@@ -553,8 +586,8 @@ function MobileFilterSheet({
             className="w-full"
           >
             {localActiveCount > 0
-              ? `View pieces · ${localActiveCount} filter${localActiveCount > 1 ? "s" : ""} active`
-              : "View all pieces"}
+              ? plural("shop.filters.view", localActiveCount)
+              : t("shop.filters.viewAll")}
           </ArtifactButton>
         </div>
     </AnimatedModal>

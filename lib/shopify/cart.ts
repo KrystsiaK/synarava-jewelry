@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 
 import { getShopifyBuyerIp } from "@/lib/shopify/request-context";
 import { shopifyStorefrontRequest } from "@/lib/shopify/storefront";
+import { formatCurrency, shopifyLanguage } from "@/lib/i18n/format";
+import { getRequestLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/locales";
 
 export const SHOPIFY_CART_COOKIE = "synarava-shopify-cart";
 const CART_MAX_AGE = 60 * 60 * 24 * 30;
@@ -95,25 +98,17 @@ function moneyToCents(money: Money) {
   return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
 }
 
-function formatMoney(money: Money) {
-  return new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency: money.currencyCode,
-    minimumFractionDigits: 2,
-  }).format(Number.parseFloat(money.amount));
+function formatMoney(money: Money, locale: Locale) {
+  return formatCurrency(Number.parseFloat(money.amount), money.currencyCode, locale);
 }
 
-function emptyCartViewModel() {
+function emptyCartViewModel(locale: Locale) {
   return {
     id: null,
     items: [],
     itemCount: 0,
     subtotalCents: 0,
-    subtotal: new Intl.NumberFormat("en-IE", {
-      style: "currency",
-      currency: "EUR",
-      minimumFractionDigits: 2,
-    }).format(0),
+    subtotal: formatCurrency(0, "EUR", locale),
     currency: "EUR",
     checkoutUrl: null,
   };
@@ -209,12 +204,13 @@ async function createShopifyCart(
 }
 
 export async function getShopifyCartViewModel() {
+  const locale = await getRequestLocale();
   const cartId = await getCartId();
-  if (!cartId) return emptyCartViewModel();
+  if (!cartId) return emptyCartViewModel(locale);
 
   const buyerIp = await getShopifyBuyerIp();
   const cart = await loadShopifyCart(cartId, buyerIp);
-  if (!cart) return emptyCartViewModel();
+  if (!cart) return emptyCartViewModel(locale);
 
   const items = cart.lines.nodes.map((line) => {
     const variantTitle =
@@ -235,8 +231,8 @@ export async function getShopifyCartViewModel() {
         : line.merchandise.quantityAvailable,
       unitCents: moneyToCents(line.merchandise.price),
       totalCents: moneyToCents(line.cost.totalAmount),
-      price: formatMoney(line.merchandise.price),
-      total: formatMoney(line.cost.totalAmount),
+      price: formatMoney(line.merchandise.price, locale),
+      total: formatMoney(line.cost.totalAmount, locale),
     };
   });
 
@@ -245,7 +241,7 @@ export async function getShopifyCartViewModel() {
     items,
     itemCount: cart.totalQuantity,
     subtotalCents: moneyToCents(cart.cost.subtotalAmount),
-    subtotal: formatMoney(cart.cost.subtotalAmount),
+    subtotal: formatMoney(cart.cost.subtotalAmount, locale),
     currency: cart.cost.subtotalAmount.currencyCode,
     checkoutUrl: cart.checkoutUrl,
   };
@@ -348,16 +344,18 @@ export async function removeShopifyCartItem(lineId: string) {
 export async function getShopifyCheckoutUrl() {
   const cartId = await getCartId();
   if (!cartId) return null;
+  const locale = await getRequestLocale();
+  const language = shopifyLanguage(locale);
 
   const data = await shopifyStorefrontRequest<{
     cart: { checkoutUrl: string } | null;
   }>(
     `#graphql
-      query SynaravaCartCheckout($cartId: ID!) {
+      query SynaravaCartCheckout($cartId: ID!, $language: LanguageCode!) @inContext(language: $language) {
         cart(id: $cartId) { checkoutUrl }
       }
     `,
-    { cartId },
+    { cartId, language },
     { buyerIp: await getShopifyBuyerIp() },
   );
   return data.cart?.checkoutUrl ?? null;

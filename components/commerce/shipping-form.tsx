@@ -1,44 +1,19 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useMemo, useRef } from "react";
 
 import { submitShippingAction } from "@/app/checkout/actions";
 import type { ShippingActionState, ShippingField } from "@/app/checkout/actions";
 import { SubmitButton } from "./submit-button";
+import { useTranslations } from "@/lib/i18n/context";
+import { localeTag } from "@/lib/i18n/format";
 
 /* Common countries ordered by likelihood for a European luxury brand */
-const COUNTRIES: { code: string; name: string }[] = [
-  { code: "LT", name: "Lithuania" },
-  { code: "LV", name: "Latvia" },
-  { code: "EE", name: "Estonia" },
-  { code: "PL", name: "Poland" },
-  { code: "DE", name: "Germany" },
-  { code: "FR", name: "France" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "NL", name: "Netherlands" },
-  { code: "BE", name: "Belgium" },
-  { code: "AT", name: "Austria" },
-  { code: "CH", name: "Switzerland" },
-  { code: "SE", name: "Sweden" },
-  { code: "NO", name: "Norway" },
-  { code: "DK", name: "Denmark" },
-  { code: "FI", name: "Finland" },
-  { code: "CZ", name: "Czech Republic" },
-  { code: "SK", name: "Slovakia" },
-  { code: "HU", name: "Hungary" },
-  { code: "RO", name: "Romania" },
-  { code: "IT", name: "Italy" },
-  { code: "ES", name: "Spain" },
-  { code: "PT", name: "Portugal" },
-  { code: "IE", name: "Ireland" },
-  { code: "GR", name: "Greece" },
-  { code: "US", name: "United States" },
-  { code: "CA", name: "Canada" },
-  { code: "AU", name: "Australia" },
-  { code: "JP", name: "Japan" },
-  { code: "SG", name: "Singapore" },
-  { code: "AE", name: "United Arab Emirates" },
-];
+const COUNTRY_CODES = [
+  "LT", "LV", "EE", "PL", "DE", "FR", "GB", "NL", "BE", "AT", "CH",
+  "SE", "NO", "DK", "FI", "CZ", "SK", "HU", "RO", "IT", "ES", "PT",
+  "IE", "GR", "US", "CA", "AU", "JP", "SG", "AE",
+] as const;
 
 const inputClass =
   "storefront-field";
@@ -49,6 +24,11 @@ type ShippingFormProps = {
 };
 
 export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
+  const { locale, t } = useTranslations();
+  const countryNames = useMemo(
+    () => new Intl.DisplayNames([localeTag(locale)], { type: "region" }),
+    [locale],
+  );
   const [state, formAction] = useActionState<ShippingActionState, FormData>(
     submitShippingAction,
     {},
@@ -75,14 +55,14 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
       ) : null}
 
       <label className="grid gap-2.5">
-        <span className="storefront-field-label">Contact email</span>
+        <span className="storefront-field-label">{t("checkout.shipping.contactEmail")}</span>
         <input
           id="email"
           type="email"
           name="email"
           required
           defaultValue={defaultEmail ?? ""}
-          placeholder="Email"
+          placeholder={t("checkout.shipping.email")}
           autoComplete="email"
           spellCheck={false}
           className={inputClass}
@@ -92,14 +72,14 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
       </label>
 
       <label className="grid gap-2.5">
-        <span className="storefront-field-label">Recipient</span>
+        <span className="storefront-field-label">{t("checkout.shipping.recipient")}</span>
         <input
           id="name"
           type="text"
           name="name"
           required
           defaultValue={defaultName ?? ""}
-          placeholder="Full name"
+          placeholder={t("checkout.shipping.fullName")}
           autoComplete="name"
           className={inputClass}
           {...fieldA11y("name")}
@@ -109,26 +89,26 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2.5">
-          <span className="storefront-field-label">Address</span>
-          <input id="line1" type="text" name="line1" required placeholder="Address line 1" autoComplete="address-line1" className={inputClass} {...fieldA11y("line1")} />
+          <span className="storefront-field-label">{t("checkout.shipping.address")}</span>
+          <input id="line1" type="text" name="line1" required placeholder={t("checkout.shipping.address1")} autoComplete="address-line1" className={inputClass} {...fieldA11y("line1")} />
           {errorFor("line1") ? <span id="line1-error" className="text-sm text-couture-red">{errorFor("line1")}</span> : null}
         </label>
         <label className="grid gap-2.5">
-          <span className="storefront-field-label">Apartment or suite</span>
-          <input type="text" name="line2" placeholder="Address line 2 (optional)" autoComplete="address-line2" className={inputClass} />
+          <span className="storefront-field-label">{t("checkout.shipping.apartment")}</span>
+          <input type="text" name="line2" placeholder={t("checkout.shipping.address2")} autoComplete="address-line2" className={inputClass} />
         </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-2.5"><span className="storefront-field-label">City</span><input id="city" type="text" name="city" required placeholder="City" autoComplete="address-level2" className={inputClass} {...fieldA11y("city")} />{errorFor("city") ? <span id="city-error" className="text-sm text-couture-red">{errorFor("city")}</span> : null}</label>
-        <label className="grid gap-2.5"><span className="storefront-field-label">Region</span><input type="text" name="region" placeholder="Region / State" autoComplete="address-level1" className={inputClass} /></label>
-        <label className="grid gap-2.5"><span className="storefront-field-label">Postal code</span><input id="postalCode" type="text" name="postalCode" required placeholder="Postal code" autoComplete="postal-code" className={inputClass} {...fieldA11y("postalCode")} />{errorFor("postalCode") ? <span id="postalCode-error" className="text-sm text-couture-red">{errorFor("postalCode")}</span> : null}</label>
+        <label className="grid gap-2.5"><span className="storefront-field-label">{t("checkout.shipping.city")}</span><input id="city" type="text" name="city" required placeholder={t("checkout.shipping.city")} autoComplete="address-level2" className={inputClass} {...fieldA11y("city")} />{errorFor("city") ? <span id="city-error" className="text-sm text-couture-red">{errorFor("city")}</span> : null}</label>
+        <label className="grid gap-2.5"><span className="storefront-field-label">{t("checkout.shipping.region")}</span><input type="text" name="region" placeholder={t("checkout.shipping.regionPlaceholder")} autoComplete="address-level1" className={inputClass} /></label>
+        <label className="grid gap-2.5"><span className="storefront-field-label">{t("checkout.shipping.postalCode")}</span><input id="postalCode" type="text" name="postalCode" required placeholder={t("checkout.shipping.postalCode")} autoComplete="postal-code" className={inputClass} {...fieldA11y("postalCode")} />{errorFor("postalCode") ? <span id="postalCode-error" className="text-sm text-couture-red">{errorFor("postalCode")}</span> : null}</label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Country select — name kept as countryCode so server action needs no changes */}
         <label className="grid gap-2.5">
-          <span className="storefront-field-label">Country</span>
+          <span className="storefront-field-label">{t("checkout.shipping.country")}</span>
           <select
             id="countryCode"
             name="countryCode"
@@ -138,9 +118,9 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
             className={`${inputClass} cursor-pointer appearance-none`}
             {...fieldA11y("countryCode")}
           >
-            {COUNTRIES.map(({ code, name }) => (
+            {COUNTRY_CODES.map((code) => (
               <option key={code} value={code}>
-                {name}
+                {countryNames.of(code) ?? code}
               </option>
             ))}
           </select>
@@ -148,11 +128,11 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
         </label>
 
         <label className="grid gap-2.5">
-          <span className="storefront-field-label">Delivery notes</span>
+          <span className="storefront-field-label">{t("checkout.shipping.notes")}</span>
           <textarea
             name="notes"
             rows={3}
-            placeholder="Leave at door, gift message, etc."
+            placeholder={t("checkout.shipping.notesPlaceholder")}
             autoComplete="off"
             className={inputClass}
           />
@@ -160,10 +140,10 @@ export function ShippingForm({ defaultEmail, defaultName }: ShippingFormProps) {
       </div>
 
       <SubmitButton
-        pendingLabel="Processing…"
+        pendingLabel={t("checkout.shipping.processing")}
         className="mt-2 w-full"
       >
-        Continue to payment
+        {t("checkout.shipping.continue")}
       </SubmitButton>
     </form>
   );

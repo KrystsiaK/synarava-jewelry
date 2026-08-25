@@ -51,6 +51,19 @@
 - central reduced-motion policy отключает smooth scroll и сокращает CSS motion, сохраняя статичное содержимое;
 - unit, lint, production build и browser checks пройдены; отдельно проверены keyboard skip path, modal focus restore, reduced motion и 200% text size без horizontal overflow.
 
+Пятый выполненный блок закрывает основную часть этапа локализации и эффективности:
+
+- i18n-слой поддерживает подстановки и pluralization, синхронизирует `html[lang]` и обновляет server-rendered данные после смены языка;
+- Shop, поиск, сортировка, сохранённые фильтры, mobile filter sheet, Cart, delivery form, payment controls и ключевые purchase-состояния переведены на общий EN/PT-словарь;
+- названия стран в delivery form выводятся через locale-aware `Intl.DisplayNames`, а валидационные ошибки server action возвращаются на выбранном языке;
+- цены локального каталога, Shopify-каталога и корзины форматируются как `en-IE` или `pt-PT`; Stripe Elements получает выбранную локаль;
+- Shopify product queries и checkout URL запрашиваются с `@inContext(language: ...)`, чтобы поддерживаемые Shopify-переводы продолжались во внешнем checkout;
+- Availability добавлен в URL-driven catalog filters и учитывает реальный остаток варианта;
+- desktop Shop показывает Department, Category и Availability как первичный набор, а остальные параметры раскрывает через More filters; набор Collection, Finish и Compliance меняется в зависимости от department;
+- targeted TypeScript и 74 unit/component checks для Shop и checkout пройдены.
+
+До полного закрытия этапа 4 остаётся вынести в словарь длинный editorial copy второстепенных страниц и локализовать CMS-контент там, где для него появятся отдельные EN/PT-поля. Основной commerce flow уже не должен смешивать языки.
+
 После production-настройки Shopify остаётся провести отдельный keyboard/screen-reader smoke test внешней платёжной страницы: её DOM, branding и payment controls не управляются storefront-кодом.
 
 Остаётся внешним P0: заменить `My Store`, отключить `Test Payment Gateway`, проверить production payment methods, policies и branding в Shopify Admin. В коде это исправить нельзя.

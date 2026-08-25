@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/context";
 import type { FilterOption, ShopFilters } from "./types";
 
 type FilterChipsProps = {
@@ -19,19 +20,6 @@ type FilterChipsProps = {
 const labelOf = (value: string, options: FilterOption[]) =>
   options.find((o) => o.value === value)?.label ?? value;
 
-const DIM_LABELS: Record<keyof ShopFilters, string> = {
-  q:          "Search",
-  department: "Department",
-  category:   "Category",
-  collection: "Collection",
-  tag:        "Tag",
-  material:   "Material",
-  finish:     "Finish",
-  origin:     "Origin",
-  certified:  "Certification",
-  sort:        "Sort",
-};
-
 export function FilterChips({
   filters,
   departments = [],
@@ -44,10 +32,25 @@ export function FilterChips({
   onRemove,
   onClearAll,
 }: FilterChipsProps) {
+  const { t } = useTranslations();
+  const dimLabels: Record<keyof ShopFilters, string> = {
+    q: t("shop.filters.searchLabel"),
+    department: t("shop.filters.department"),
+    availability: t("shop.filters.availability"),
+    category: t("shop.filters.category"),
+    collection: t("shop.filters.collection"),
+    tag: t("shop.filters.tag"),
+    material: t("shop.filters.material"),
+    finish: t("shop.filters.finish"),
+    origin: t("shop.filters.origin"),
+    certified: t("shop.filters.certification"),
+    sort: t("shop.filters.sort"),
+  };
   const chips: { key: keyof ShopFilters; value: string }[] = [];
 
   if (filters.q)          chips.push({ key: "q",          value: `"${filters.q}"` });
   if (filters.department) chips.push({ key: "department", value: labelOf(filters.department, departments) });
+  if (filters.availability) chips.push({ key: "availability", value: t("shop.filters.inStock") });
   if (filters.category)   chips.push({ key: "category",   value: labelOf(filters.category, categories) });
   if (filters.collection) chips.push({ key: "collection", value: labelOf(filters.collection, collections) });
   if (filters.tag)        chips.push({ key: "tag",        value: labelOf(filters.tag, tags) });
@@ -62,7 +65,7 @@ export function FilterChips({
     <div
       className="flex flex-wrap items-center gap-2.5"
       role="group"
-      aria-label="Active filters"
+      aria-label={t("shop.filters.activeFilters")}
       data-testid="filter-chips"
     >
       {chips.map((chip) => (
@@ -72,7 +75,7 @@ export function FilterChips({
         >
           {/* Dimension label — dim prefix */}
           <span className="select-none border-r border-couture-red/14 px-2.5 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.15em] text-muted/70">
-            {DIM_LABELS[chip.key]}
+            {dimLabels[chip.key]}
           </span>
           {/* Value */}
           <span className="px-2.5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-couture-red">
@@ -81,7 +84,7 @@ export function FilterChips({
           {/* Remove */}
           <button
             type="button"
-            aria-label={`Remove filter ${chip.value}`}
+            aria-label={t("shop.filters.remove", { value: chip.value })}
             onClick={() => onRemove(chip.key)}
             className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center px-2 py-1.5 text-muted transition-colors hover:bg-accent/10 hover:text-accent"
           >
@@ -96,7 +99,7 @@ export function FilterChips({
           onClick={onClearAll}
           className="min-h-11 cursor-pointer border-b border-muted/20 px-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted/60 transition-colors hover:border-foreground/40 hover:text-foreground"
         >
-          Clear all
+          {t("shop.filters.clearAll")}
         </button>
       )}
     </div>

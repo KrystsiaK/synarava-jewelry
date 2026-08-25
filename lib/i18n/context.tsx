@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import en from "@/messages/en.json";
 import { flattenMessages } from "./utils";
 import { normalizeLocale, type Locale } from "./locales";
@@ -10,19 +11,23 @@ export type { Locale } from "./locales";
 type TranslationContextValue = {
   locale: Locale;
   setLocale: (locale: Locale) => Promise<void>;
-  t: (key: string) => string;
+  t: (key: string, values?: TranslationValues) => string;
+  plural: (key: string, count: number, values?: TranslationValues) => string;
   loading: boolean;
 };
 
+type TranslationValues = Record<string, string | number>;
+
 const STORAGE_LOCALE_KEY = "synarava-locale";
-const STORAGE_CACHE_PREFIX = "synarava-t-v3-";
+const STORAGE_CACHE_PREFIX = "synarava-t-v4-";
 
 const enFlat = flattenMessages(en as Record<string, unknown>);
 
 const TranslationContext = createContext<TranslationContextValue>({
   locale: "en",
   setLocale: async () => {},
-  t: (key) => enFlat[key] ?? key,
+  t: (key, values) => interpolate(enFlat[key] ?? key, values),
+  plural: (key, count, values) => interpolate(enFlat[`${key}.${count === 1 ? "one" : "other"}`] ?? key, { ...values, count }),
   loading: false,
 });
 
@@ -33,6 +38,7 @@ export function TranslationProvider({
   initialLocale?: string;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(() => normalizeLocale(initialLocale));
   const [messages, setMessages] = useState<Record<string, string>>(enFlat);
   const [loading, setLoading] = useState(false);
@@ -50,6 +56,8 @@ export function TranslationProvider({
       setLocaleState("en");
       setMessages(enFlat);
       persist("en");
+      document.documentElement.lang = "en";
+      router.refresh();
       return;
     }
 
@@ -58,6 +66,8 @@ export function TranslationProvider({
       setLocaleState(newLocale);
       setMessages(cached);
       persist(newLocale);
+      document.documentElement.lang = newLocale;
+      router.refresh();
       return;
     }
 
@@ -70,6 +80,8 @@ export function TranslationProvider({
       setMessages(data);
       setLocaleState(newLocale);
       persist(newLocale);
+      document.documentElement.lang = newLocale;
+      router.refresh();
     } catch (err) {
       console.error("[i18n] Failed to load translations:", err);
     } finally {
@@ -78,15 +90,33 @@ export function TranslationProvider({
   }
 
   const t = useCallback(
-    (key: string) => messages[key] ?? enFlat[key] ?? key,
+    (key: string, values?: TranslationValues) => interpolate(messages[key] ?? enFlat[key] ?? key, values),
     [messages],
   );
 
+  const plural = useCallback(
+    (key: string, count: number, values?: TranslationValues) => {
+      const category = new Intl.PluralRules(locale).select(count);
+      return interpolate(
+        messages[`${key}.${category}`] ?? messages[`${key}.other`] ?? enFlat[`${key}.${category}`] ?? enFlat[`${key}.other`] ?? key,
+        { ...values, count },
+      );
+    },
+    [locale, messages],
+  );
+
   return (
-    <TranslationContext.Provider value={{ locale, setLocale: loadLocale, t, loading }}>
+    <TranslationContext.Provider value={{ locale, setLocale: loadLocale, t, plural, loading }}>
       {children}
     </TranslationContext.Provider>
   );
+}
+
+function interpolate(message: string, values?: TranslationValues) {
+  if (!values) return message;
+  return message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
+    Object.hasOwn(values, key) ? String(values[key]) : match
+  ));
 }
 
 export function useTranslations() {

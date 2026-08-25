@@ -11,6 +11,7 @@ import {
 
 import { PrimaryCtaButton } from "@/components/ui";
 import { useTheme } from "@/components/theme/theme-provider";
+import { useTranslations } from "@/lib/i18n/context";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -137,6 +138,7 @@ const lightElementsAppearance: Appearance = {
 };
 
 function CheckoutForm() {
+  const { t } = useTranslations();
   const checkoutResult = useCheckoutElements();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -155,13 +157,13 @@ function CheckoutForm() {
         redirect: "if_required",
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed. Please try again.");
+      setError(err instanceof Error ? err.message : t("checkout.paymentFailed"));
       setLoading(false);
       return;
     }
 
     if (result.type === "error") {
-      setError(result.error.message ?? "Payment failed. Please try again.");
+      setError(result.error.message ?? t("checkout.paymentFailed"));
       setLoading(false);
       return;
     }
@@ -192,7 +194,7 @@ function CheckoutForm() {
         disabled={!isReady || loading}
         className="w-full"
       >
-        {loading ? "Processing…" : isReady ? "Pay now" : "Loading payment…"}
+        {loading ? t("checkout.processing") : isReady ? t("checkout.payNow") : t("checkout.loadingPayment")}
       </PrimaryCtaButton>
     </form>
   );
@@ -204,12 +206,14 @@ type PaymentFormProps = {
 
 export function PaymentForm({ clientSecret }: PaymentFormProps) {
   const { resolvedTheme } = useTheme();
+  const { locale } = useTranslations();
   const options = useMemo<StripeCheckoutElementsSdkOptions>(() => ({
     clientSecret,
     elementsOptions: {
       appearance: resolvedTheme === "dark" ? darkElementsAppearance : lightElementsAppearance,
+      locale,
     },
-  }), [clientSecret, resolvedTheme]);
+  }), [clientSecret, locale, resolvedTheme]);
 
   return (
     <CheckoutElementsProvider stripe={stripePromise} options={options}>

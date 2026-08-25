@@ -16,6 +16,7 @@ type Props = {
   searchParams?: Promise<{
     q?: string;
     department?: string;
+    availability?: string;
     category?: string;
     tag?: string;
     collection?: string;
@@ -31,6 +32,7 @@ export default async function Page({ searchParams }: Props) {
   const rawFilters = (await searchParams) ?? {};
   const filters = {
     ...rawFilters,
+    availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
     sort: normalizeShopSort(rawFilters.sort),
   };
   const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts] = await Promise.all([

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
+import { useTranslations } from "@/lib/i18n/context";
 
 type AddToCartButtonProps = {
   productSlug: string;
@@ -17,8 +18,9 @@ export function AddToCartButton({
   productSlug,
   merchandiseId,
   disabled = false,
-  unavailableLabel = "Currently unavailable",
+  unavailableLabel,
 }: AddToCartButtonProps) {
+  const { t, plural } = useTranslations();
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
@@ -42,7 +44,7 @@ export function AddToCartButton({
       };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Could not add the piece to the cart.");
+        throw new Error(payload.error || t("product.addFailed"));
       }
 
       window.dispatchEvent(
@@ -52,10 +54,10 @@ export function AddToCartButton({
       );
 
       setRecentCount(payload.count ?? 0);
-      setMessage("Added to cart");
+      setMessage(t("product.added"));
     } catch (error) {
       setIsError(true);
-      setMessage(error instanceof Error ? error.message : "Could not add the piece to the cart.");
+      setMessage(error instanceof Error ? error.message : t("product.addFailed"));
     } finally {
       setIsPending(false);
     }
@@ -81,17 +83,17 @@ export function AddToCartButton({
         type="button"
         onClick={dismissPanel}
         className="absolute right-2 top-2 flex size-11 items-center justify-center text-white/58 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-couture-red"
-        aria-label="Close cart confirmation"
+        aria-label={t("product.closeConfirmation")}
       >
         <X className="size-4" aria-hidden="true" />
       </button>
 
       {isError ? (
         <div className="pr-10">
-          <p className="font-serif text-xl text-white">Couldn’t add this piece.</p>
+          <p className="font-serif text-xl text-white">{t("product.addFailedTitle")}</p>
           <p className="mt-2 text-sm leading-6 text-white/68">
             <span>{message}</span>
-            <span> Please try again.</span>
+            <span> {t("product.tryAgain")}</span>
           </p>
         </div>
       ) : (
@@ -101,10 +103,10 @@ export function AddToCartButton({
               <Check className="size-4" strokeWidth={1.8} aria-hidden="true" />
             </span>
             <div>
-              <p className="font-serif text-[1.45rem] leading-none text-white">Piece added to cart</p>
+              <p className="font-serif text-[1.45rem] leading-none text-white">{t("product.addedTitle")}</p>
               {recentCount !== null ? (
                 <p className="mt-2 text-sm text-white/58">
-                  {recentCount} {recentCount === 1 ? "piece" : "pieces"} in cart
+                  {plural("product.cartCount", recentCount)}
                 </p>
               ) : null}
             </div>
@@ -112,10 +114,10 @@ export function AddToCartButton({
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <ArtifactLink href="/cart" variant="secondary" size="md" className="flex-1 border-white/24 text-white hover:border-white hover:text-white">
-              View cart
+              {t("product.viewCart")}
             </ArtifactLink>
             <PrimaryCtaButton href="/checkout" className="w-full flex-1">
-              Checkout
+              {t("product.checkout")}
             </PrimaryCtaButton>
           </div>
         </>
@@ -130,7 +132,7 @@ export function AddToCartButton({
         onClick={handleAdd}
         disabled={isPending || disabled}
       >
-        {disabled ? unavailableLabel : isPending ? "Adding…" : "Add to cart"}
+        {disabled ? (unavailableLabel ?? t("product.currentlyUnavailable")) : isPending ? t("product.adding") : t("product.add")}
       </PrimaryCtaButton>
 
       {confirmation && typeof document !== "undefined"

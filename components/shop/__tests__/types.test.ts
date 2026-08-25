@@ -9,6 +9,11 @@ describe("shop query state", () => {
       .toBe("department=jewelry&sort=price-desc");
   });
 
+  it("serializes and counts availability", () => {
+    expect(buildSearchParams({ availability: "in-stock" })).toBe("availability=in-stock");
+    expect(countActiveFilters({ availability: "in-stock" })).toBe(1);
+  });
+
   it("omits the default sort from the URL", () => {
     expect(buildSearchParams({ sort: "featured" })).toBe("");
   });

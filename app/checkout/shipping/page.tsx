@@ -7,6 +7,7 @@ import { CheckoutShell } from "@/components/commerce/checkout-shell";
 import { ShippingForm } from "@/components/commerce/shipping-form";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCartViewModel } from "@/lib/commerce/cart";
+import { getServerTranslations } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Shipping | Synarava",
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ShippingPage() {
-  const cart = await getCartViewModel();
+  const [cart, { t }] = await Promise.all([getCartViewModel(), getServerTranslations()]);
 
   if (cart.itemCount === 0) redirect("/cart");
 
@@ -22,45 +23,44 @@ export default async function ShippingPage() {
 
   return (
     <CheckoutShell
-      eyebrow="SYNARAVA | Acquisition Details (Shipping)"
-      title="Where should the artifact travel next?"
-      description="This step prepares the delivery record. You can keep going as a guest or sign in first if you want the order tied to an account."
+      eyebrow={t("checkout.shipping.eyebrow")}
+      title={t("checkout.shipping.title")}
+      description={t("checkout.shipping.description")}
       step="shipping"
       aside={
         <div className="space-y-6">
           <CartSummaryPanel
             itemCount={cart.itemCount}
             subtotal={cart.subtotal}
-            note="If you sign in or register now, the same cart is preserved and attached to your account."
+            note={t("checkout.shipping.accountNote")}
           />
 
           {!user ? (
             <section className="panel p-6">
-              <p className="label-caps text-accent">Account options</p>
+              <p className="label-caps text-accent">{t("checkout.shipping.accountOptions")}</p>
               <p className="mt-4 text-sm leading-6 text-foreground/65">
-                Continue as guest now, or connect the order to an account for easier history and
-                later admin support.
+                {t("checkout.shipping.accountBody")}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/login?redirectTo=/checkout/shipping"
                   className="border border-stroke px-4 py-3 label-caps transition-colors hover:border-accent hover:text-accent"
                 >
-                  Login
+                  {t("checkout.shipping.login")}
                 </Link>
                 <Link
                   href="/register"
                   className="border border-stroke px-4 py-3 label-caps transition-colors hover:border-accent hover:text-accent"
                 >
-                  Register
+                  {t("checkout.shipping.register")}
                 </Link>
               </div>
             </section>
           ) : (
             <section className="panel p-6">
-              <p className="label-caps text-accent">Signed in</p>
+              <p className="label-caps text-accent">{t("checkout.shipping.signedIn")}</p>
               <p className="mt-4 text-sm leading-6 text-foreground/65">
-                This order will be linked to <strong>{user.email}</strong>.
+                {t("checkout.shipping.linkedTo", { email: user.email })}
               </p>
             </section>
           )}

@@ -20,6 +20,7 @@ import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
+import { useTranslations } from "@/lib/i18n/context";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -37,6 +38,7 @@ function ShopHero({
   leadProduct?: ProductSummary;
   archiveCount: number;
 }) {
+  const { t, plural } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const { scrollYProgress } = useScroll({
@@ -81,7 +83,7 @@ function ShopHero({
           <div className="shop-hero-image-overlay absolute inset-0" />
           <div className="absolute inset-[5%] border border-white/15 [clip-path:polygon(7%_0,100%_0,100%_82%,78%_100%,0_89%,0_21%)]" />
           <p className="absolute right-8 top-8 hidden font-sans text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65 md:block">
-            Featured product / {leadProduct.departmentName || leadProduct.series}
+            {t("shop.featuredProduct", { department: leadProduct.departmentName || leadProduct.series })}
           </p>
         </motion.div>
       ) : null}
@@ -102,19 +104,19 @@ function ShopHero({
         <div className="mb-5 flex items-center gap-4 md:mb-7">
           <span className="h-px w-10 bg-couture-red" aria-hidden="true" />
           <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-foreground/70">
-            Synarava shop · Curated goods
+            {t("shop.heroEyebrow")}
           </p>
         </div>
 
         <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.5rem,9vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-foreground">
-          Curated <span className="font-light italic text-couture-red">shop</span>
+          {t("shop.heroTitleLead")} <span className="font-light italic text-couture-red">{t("shop.heroTitleAccent")}</span>
         </h1>
 
         <p className="mt-6 max-w-[40rem] text-pretty font-sans text-sm font-medium leading-relaxed text-muted md:mt-8 md:text-base">
-          Jewelry, pet accessories, creative products for kids, and tools for making by hand.
+          {t("shop.heroDescription")}
         </p>
 
-        <nav className="mt-7 grid max-w-[42rem] grid-cols-2 gap-px border border-foreground/14 bg-foreground/14 sm:grid-cols-4" aria-label="Shop by department">
+        <nav className="mt-7 grid max-w-[42rem] grid-cols-2 gap-px border border-foreground/14 bg-foreground/14 sm:grid-cols-4" aria-label={t("shop.departmentNav")}>
           {SHOP_DEPARTMENTS.map((department) => (
             <ArtifactLink
               key={department.slug}
@@ -123,14 +125,14 @@ function ShopHero({
               size="sm"
               className="min-h-12 border-0 px-3 text-[0.66rem] tracking-[0.13em]"
             >
-              {department.name}
+              {t(`shop.${department.slug === "jewelry-making" ? "jewelryMaking" : department.slug}`)}
             </ArtifactLink>
           ))}
         </nav>
 
         <div className="mt-6 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/55 md:mt-7">
-          <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong> products available</span>
-          <span>Selected / useful / made to last</span>
+          <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong>{plural("shop.availableCount", archiveCount)}</span>
+          <span>{t("shop.selectionPromise")}</span>
         </div>
       </motion.div>
     </header>
@@ -169,16 +171,13 @@ type EmptyStateProps = {
 const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
-const DIM: Record<keyof ShopFilters, string> = {
-  q: "Search", department: "Department", category: "Category", collection: "Collection", tag: "Tag",
-  material: "Material", finish: "Finish", origin: "Origin", certified: "Certification", sort: "Sort",
-};
-
 function EmptyState({ filters, departments = [], categories, collections, tags }: EmptyStateProps) {
+  const { t } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
   const isDepartmentLanding = Boolean(filters.department) && ![
     filters.q,
+    filters.availability,
     filters.category,
     filters.collection,
     filters.tag,
@@ -187,7 +186,11 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
     filters.origin,
     filters.certified,
   ].some(Boolean);
-  const departmentName = filters.department ? labelOf(filters.department, departments) : "This department";
+  const departmentName = filters.department ? labelOf(filters.department, departments) : t("shop.empty.thisDepartment");
+  const dim: Record<keyof ShopFilters, string> = {
+    q: t("shop.filters.searchLabel"), department: t("shop.filters.department"), availability: t("shop.filters.availability"), category: t("shop.filters.category"), collection: t("shop.filters.collection"), tag: t("shop.filters.tag"),
+    material: t("shop.filters.material"), finish: t("shop.filters.finish"), origin: t("shop.filters.origin"), certified: t("shop.filters.certification"), sort: t("shop.filters.sort"),
+  };
 
   /* Active filter chips with remove-one URLs */
   const active: { key: keyof ShopFilters; label: string; removeHref: string }[] = [];
@@ -198,6 +201,10 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
   if (filters.department) {
     const next = { ...filters, department: undefined };
     active.push({ key: "department", label: labelOf(filters.department, departments), removeHref: `/shop?${buildSearchParams(next)}` });
+  }
+  if (filters.availability) {
+    const next = { ...filters, availability: undefined };
+    active.push({ key: "availability", label: t("shop.filters.inStock"), removeHref: `/shop?${buildSearchParams(next)}` });
   }
   if (filters.category) {
     const next = { ...filters, category: undefined };
@@ -228,21 +235,21 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
       </div>
 
       <div>
-        <p className="label-mono mb-3 text-couture-red">{isDepartmentLanding ? "Department preview" : "0 products found"}</p>
+        <p className="label-mono mb-3 text-couture-red">{isDepartmentLanding ? t("shop.empty.preview") : t("shop.empty.count")}</p>
         <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">
-          {isDepartmentLanding ? `${departmentName} is coming soon.` : "No products matched."}
+          {isDepartmentLanding ? t("shop.empty.comingSoon", { department: departmentName }) : t("shop.empty.noMatch")}
         </h2>
         <p className="mt-3 max-w-xl text-base leading-[1.85] text-foreground/55">
           {isDepartmentLanding
-            ? "We are selecting the first objects for this department. Until then, explore the pieces already available in the shop."
-            : "The combination you selected returned no results. Try removing one filter at a time, or clear everything to browse the full archive."}
+            ? t("shop.empty.comingSoonBody")
+            : t("shop.empty.noMatchBody")}
         </p>
       </div>
 
       {/* Active filter pills with individual remove */}
       {active.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="label-mono text-[0.7rem] text-muted/60 mr-1">Active:</span>
+          <span className="label-mono text-[0.7rem] text-muted/60 mr-1">{t("shop.empty.active")}</span>
           {active.map((f) => (
             <Link
               key={f.key}
@@ -250,7 +257,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
               className="inline-flex items-center gap-0 border border-stroke overflow-hidden transition-colors hover:border-foreground/30 group"
             >
               <span className="label-mono text-[0.65rem] text-muted/50 px-2 py-1.5 border-r border-stroke">
-                {DIM[f.key]}
+                {dim[f.key]}
               </span>
               <span className="label-mono text-foreground/70 px-2.5 py-1.5 group-hover:text-foreground transition-colors">
                 {f.label}
@@ -265,7 +272,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
 
       {/* Primary CTA */}
       <PrimaryCtaButton href="/shop">
-        {isDepartmentLanding ? "Browse available pieces" : "Show all pieces"}
+        {isDepartmentLanding ? t("shop.empty.browseAvailable") : t("shop.empty.showAll")}
       </PrimaryCtaButton>
     </motion.div>
   );
@@ -330,6 +337,7 @@ function ProductGrid({ products }: { products: ProductSummary[] }) {
 
 /* ─── Shop CTA footer ────────────────────────────────────────────── */
 function ShopFooter() {
+  const { t } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
 
@@ -366,7 +374,7 @@ function ShopFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, ease, delay: 0.1 }}
         >
-          Explore the world behind the pieces
+          {t("shop.footerCta.eyebrow")}
         </motion.p>
 
         <motion.h2
@@ -376,7 +384,7 @@ function ShopFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.18 }}
         >
-          Browse the Collections
+          {t("shop.footerCta.title")}
         </motion.h2>
 
         <motion.div
@@ -386,14 +394,14 @@ function ShopFooter() {
           transition={{ duration: 0.8, ease, delay: 0.28 }}
         >
           <PrimaryCtaButton href="/collections">
-            View collections
+            {t("shop.footerCta.collections")}
           </PrimaryCtaButton>
 
           <Link
             href="/about"
             className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
           >
-            Our story
+            {t("shop.footerCta.story")}
           </Link>
         </motion.div>
       </div>

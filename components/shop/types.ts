@@ -3,6 +3,7 @@ import type { ShopSort } from "@/lib/catalog/shop-sort";
 export type ShopFilters = {
   q?: string;
   department?: string;
+  availability?: "in-stock";
   category?: string;
   collection?: string;
   tag?: string;
@@ -24,6 +25,7 @@ export function buildSearchParams(filters: ShopFilters): string {
   const params = new URLSearchParams();
   if (filters.q?.trim()) params.set("q", filters.q.trim());
   if (filters.department) params.set("department", filters.department);
+  if (filters.availability) params.set("availability", filters.availability);
   if (filters.category) params.set("category", filters.category);
   if (filters.collection) params.set("collection", filters.collection);
   if (filters.tag) params.set("tag", filters.tag);
@@ -36,7 +38,7 @@ export function buildSearchParams(filters: ShopFilters): string {
 }
 
 export function countActiveFilters(filters: ShopFilters): number {
-  return [filters.q, filters.department, filters.category, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
+  return [filters.q, filters.department, filters.availability, filters.category, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
 }
 
 export function filtersWithoutSort(filters: ShopFilters): ShopFilters {

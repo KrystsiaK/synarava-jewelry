@@ -7,6 +7,7 @@ import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
 import { ArtifactButton } from "@/components/ui";
 import { getProductPresentation } from "@/lib/catalog/product-presentation";
 import type { ProductSummary } from "@/lib/content/catalog";
+import { useTranslations } from "@/lib/i18n/context";
 
 type ProductPurchasePanelProps = {
   product: ProductSummary;
@@ -29,6 +30,7 @@ function selectionForVariant(variant: ProductSummary["variantDetails"][number]) 
 }
 
 export function ProductPurchasePanel({ product, compact = false }: ProductPurchasePanelProps) {
+  const { t, plural } = useTranslations();
   const presentation = getProductPresentation(product.departmentSlug);
   const purchasableVariants = useMemo(
     () => product.variantDetails.filter((variant) => variant.merchandiseId),
@@ -77,11 +79,11 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
           <span className={`h-2 w-2 rounded-full ${isAvailable ? "bg-emerald-600" : "bg-couture-red"}`} aria-hidden="true" />
           {selectedVariant
             ? isAvailable
-              ? `${selectedVariant.stockOnHand} in stock`
-              : "This option is unavailable"
+              ? plural("product.stock", selectedVariant.stockOnHand)
+              : t("product.optionUnavailable")
             : purchasableVariants.length === 0
-              ? "Unavailable in Shopify"
-              : "Select an option"}
+              ? t("product.shopifyUnavailable")
+              : t("product.selectOption")}
         </p>
       </div>
 
@@ -125,7 +127,7 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
             productSlug={product.slug}
             merchandiseId={selectedVariant?.merchandiseId ?? undefined}
             disabled={!isAvailable}
-            unavailableLabel={purchasableVariants.length === 0 ? "Unavailable in Shopify" : "Currently unavailable"}
+            unavailableLabel={purchasableVariants.length === 0 ? t("product.shopifyUnavailable") : t("product.currentlyUnavailable")}
           />
         </div>
       </div>
@@ -141,11 +143,11 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
             </p>
           </div>
 
-          <nav className="mt-5 grid border-y border-foreground/12 sm:grid-cols-3" aria-label="Purchase information">
+          <nav className="mt-5 grid border-y border-foreground/12 sm:grid-cols-3" aria-label={t("product.purchaseInformation")}>
             {[
-              { href: "/shipping", label: "Delivery", detail: "Calculated at checkout" },
-              { href: "/returns", label: "Returns", detail: "Review the return window" },
-              { href: "/care", label: "Care & safety", detail: "Use and care guidance" },
+              { href: "/shipping", label: t("product.delivery"), detail: t("product.deliveryDetail") },
+              { href: "/returns", label: t("product.returns"), detail: t("product.returnsDetail") },
+              { href: "/care", label: t("product.care"), detail: t("product.careDetail") },
             ].map((item) => (
               <Link
                 key={item.href}

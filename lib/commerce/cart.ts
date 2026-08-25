@@ -3,15 +3,14 @@ import { cookies } from "next/headers";
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { formatCurrency } from "@/lib/i18n/format";
+import { getRequestLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/locales";
 
 export const CART_COOKIE = "synarava-cart";
 
-function formatMoney(cents: number, currency = "EUR") {
-  return new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(cents / 100);
+function formatMoney(cents: number, currency: string, locale: Locale) {
+  return formatCurrency(cents / 100, currency, locale);
 }
 
 function buildCartSessionKey() {
@@ -207,6 +206,7 @@ export async function attachCurrentCartToUser(userId: string) {
 }
 
 export async function getCartViewModel() {
+  const locale = await getRequestLocale();
   const cart = await getOrCreateCart({ createIfMissing: false });
 
   if (!cart) {
@@ -215,7 +215,7 @@ export async function getCartViewModel() {
       items: [],
       itemCount: 0,
       subtotalCents: 0,
-      subtotal: formatMoney(0),
+      subtotal: formatMoney(0, "EUR", locale),
       currency: "EUR",
     };
   }
@@ -229,8 +229,8 @@ export async function getCartViewModel() {
     materialLine: item.product?.materialLine ?? "",
     unitCents: item.unitCents,
     totalCents: item.unitCents * item.quantity,
-    price: formatMoney(item.unitCents, cart.currency),
-    total: formatMoney(item.unitCents * item.quantity, cart.currency),
+    price: formatMoney(item.unitCents, cart.currency, locale),
+    total: formatMoney(item.unitCents * item.quantity, cart.currency, locale),
   }));
 
   const subtotalCents = items.reduce((sum, item) => sum + item.totalCents, 0);
@@ -241,7 +241,7 @@ export async function getCartViewModel() {
     items,
     itemCount,
     subtotalCents,
-    subtotal: formatMoney(subtotalCents, cart.currency),
+    subtotal: formatMoney(subtotalCents, cart.currency, locale),
     currency: cart.currency,
   };
 }

@@ -14,6 +14,9 @@ import {
 import { characteristicDisplayValue, type ProductCharacteristicValue } from "@/lib/products/characteristics";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
+import { formatCurrency } from "@/lib/i18n/format";
+import { getRequestLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/locales";
 
 export type CollectionSummary = {
   slug: string;
@@ -78,6 +81,7 @@ export type ProductSummary = {
 export type ShopFilters = {
   q?: string;
   department?: string;
+  availability?: "in-stock" | string;
   category?: string;
   tag?: string;
   collection?: string;
@@ -99,12 +103,8 @@ export type PageContent = {
   heroImage?: string;
 };
 
-function priceFromCents(priceCents: number, currency = "EUR") {
-  return new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(priceCents / 100);
+function priceFromCents(priceCents: number, currency: string, locale: Locale) {
+  return formatCurrency(priceCents / 100, currency, locale);
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -189,7 +189,7 @@ function toSummary(product: {
     weightGrams: { toString(): string } | null;
     selectedOptions: unknown;
   }>;
-}): ProductSummary {
+}, locale: Locale): ProductSummary {
   const leadCollection = product.collections[0]?.collection;
   const details = parseProductDetails(product.details);
   const process = {
@@ -230,8 +230,8 @@ function toSummary(product: {
     title: product.name,
     shortDescription: product.shortDescription ?? "",
     description: product.description ?? "",
-    price: priceFromCents(product.priceCents, product.currency),
-    compareAtPrice: compareAtCents == null ? "" : priceFromCents(compareAtCents, product.currency),
+    price: priceFromCents(product.priceCents, product.currency, locale),
+    compareAtPrice: compareAtCents == null ? "" : priceFromCents(compareAtCents, product.currency, locale),
     stockOnHand,
     variantCount: product.variants.length,
     vendor: product.vendor ?? "",
@@ -252,8 +252,8 @@ function toSummary(product: {
         title: variant.title,
         sku: variant.sku,
         barcode: variant.barcode ?? "",
-        price: priceFromCents(variant.priceCents, product.currency),
-        compareAtPrice: variant.compareAtCents == null ? "" : priceFromCents(variant.compareAtCents, product.currency),
+        price: priceFromCents(variant.priceCents, product.currency, locale),
+        compareAtPrice: variant.compareAtCents == null ? "" : priceFromCents(variant.compareAtCents, product.currency, locale),
         stockOnHand: variant.stockOnHand,
         weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
         selectedOptions,
@@ -363,6 +363,7 @@ function formatCollectionEyebrow(sortOrder: number | null | undefined) {
 }
 
 export async function listShopProducts(filters: ShopFilters = {}) {
+  const locale = await getRequestLocale();
   const q = filters.q?.trim();
   const sort = normalizeShopSort(filters.sort);
   const orderBy = sort === "newest"
@@ -385,6 +386,9 @@ export async function listShopProducts(filters: ShopFilters = {}) {
               slug: filters.category,
             },
           }
+        : {}),
+      ...(filters.availability === "in-stock"
+        ? { variants: { some: { status: "ACTIVE", stockOnHand: { gt: 0 } } } }
         : {}),
       ...(filters.tag
         ? {
@@ -456,12 +460,13 @@ export async function listShopProducts(filters: ShopFilters = {}) {
   });
 
   return products
-    .map(toSummary)
+    .map((product) => toSummary(product, locale))
     .filter((product) => product.image)
     .filter((product) => !filters.department || product.departmentSlug === filters.department);
 }
 
 export async function getProductBySlug(slug: string) {
+  const locale = await getRequestLocale();
   const product = await db.product.findUnique({
     where: { slug },
     include: {
@@ -497,7 +502,7 @@ export async function getProductBySlug(slug: string) {
     return null;
   }
 
-  return toSummary(product);
+  return toSummary(product, locale);
 }
 
 export async function getProductsByCollection(slug: string) {

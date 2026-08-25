@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useTranslations } from "@/lib/i18n/context";
 
 type CheckoutShellProps = {
   eyebrow: string;
@@ -9,12 +12,6 @@ type CheckoutShellProps = {
   aside?: ReactNode;
 };
 
-const steps: { key: CheckoutShellProps["step"]; label: string }[] = [
-  { key: "shipping", label: "Delivery" },
-  { key: "payment", label: "Payment" },
-  { key: "confirmed", label: "Confirmed" },
-];
-
 export function CheckoutShell({
   eyebrow,
   title,
@@ -23,6 +20,12 @@ export function CheckoutShell({
   children,
   aside,
 }: CheckoutShellProps) {
+  const { t } = useTranslations();
+  const steps: { key: CheckoutShellProps["step"]; label: string }[] = [
+    { key: "shipping", label: t("checkout.delivery") },
+    { key: "payment", label: t("checkout.payment") },
+    { key: "confirmed", label: t("checkout.confirmed") },
+  ];
   return (
     <main className="checkout-experience artifact-shell min-h-screen pt-24">
       <div className="site-shell grid gap-10 py-10 md:py-14 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.42fr)] lg:gap-16">
@@ -35,7 +38,7 @@ export function CheckoutShell({
             <p className="max-w-2xl text-lg leading-8 text-foreground/70">{description}</p>
           </header>
 
-          <ol className="flex items-center gap-2 border-y border-stroke py-4" aria-label="Checkout progress">
+          <ol className="flex items-center gap-2 border-y border-stroke py-4" aria-label={t("checkout.progress")}>
             {steps.map((entry) => {
               const active = entry.key === step;
               const done =

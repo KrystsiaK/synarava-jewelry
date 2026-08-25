@@ -40,22 +40,26 @@ beforeEach(() => {
 // ── Rendering ────────────────────────────────────────────────────────────────
 
 describe("FilterBar", () => {
-  it("renders filter dropdowns on desktop", () => {
+  it("keeps primary filters visible and progressively reveals contextual filters", async () => {
+    const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     expect(screen.getByRole("button", { name: /^department$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^category$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^availability$/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^collection$/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /more filters/i }));
     expect(screen.getByRole("button", { name: /^collection$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^tag$/i })).toBeInTheDocument();
   });
 
   it("renders result count", () => {
     render(<FilterBar {...defaultProps} totalCount={7} />);
-    expect(screen.getByText(/7 pieces/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/7 products/i).length).toBeGreaterThan(0);
   });
 
-  it("shows '1 piece' for count of 1", () => {
+  it("shows '1 product' for count of 1", () => {
     render(<FilterBar {...defaultProps} totalCount={1} />);
-    expect(screen.getByText(/1 piece/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/1 product/i).length).toBeGreaterThan(0);
   });
 
   it("renders search input", () => {
@@ -169,7 +173,7 @@ describe("FilterBar", () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
-    const dialog = screen.getByRole("dialog", { name: /filter products/i });
+    const dialog = screen.getByRole("dialog", { name: /refine products/i });
     expect(dialog).toBeInTheDocument();
     await waitFor(() => expect(dialog).toHaveAttribute("data-open", "true"));
   });
@@ -193,8 +197,7 @@ describe("FilterBar", () => {
     const allBtns = Array.from(sheet.querySelectorAll("button"));
     const braceletOpt = allBtns.find((b) => b.textContent?.includes("Bracelets"));
     if (braceletOpt) await user.click(braceletOpt);
-    // Click the CTA (shows "View pieces · 1 filter active" after selecting Bracelets)
-    await user.click(screen.getByRole("button", { name: /view pieces/i }));
+    await user.click(screen.getByRole("button", { name: /view products/i }));
     await waitFor(() =>
       expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("bracelets"), noScroll),
     );
@@ -205,9 +208,9 @@ describe("FilterBar", () => {
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog");
-    // Clear all in the sheet header, then confirm via CTA ("View all pieces")
+    // Clear all in the sheet header, then confirm via CTA.
     await user.click(within(dialog).getByRole("button", { name: /^clear all$/i }));
-    await user.click(within(dialog).getByRole("button", { name: /view all pieces/i }));
+    await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop", noScroll));
   });
 
@@ -219,8 +222,7 @@ describe("FilterBar", () => {
     // Department is the first section; click "All" in the Category section.
     const allBtns = within(dialog).getAllByRole("button", { name: "All" });
     await user.click(allBtns[1]);
-    // Then confirm via CTA (localActiveCount=0 after deselecting, so "View all pieces")
-    await user.click(within(dialog).getByRole("button", { name: /view all pieces/i }));
+    await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
     await waitFor(() => expect(mockPush).toHaveBeenCalled());
   });
 

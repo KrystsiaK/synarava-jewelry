@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/ui";
 import type { FilterOption } from "./types";
 
@@ -26,6 +27,7 @@ export function FilterDropdown({
   inactiveLabel,
   disabled = false,
 }: FilterDropdownProps) {
+  const { t } = useTranslations();
   const [open, setOpen] = useState(false);
   const isActive = Boolean(value);
 
@@ -86,7 +88,7 @@ export function FilterDropdown({
       <div className="mx-4 my-1 h-px bg-foreground/[0.08]" />
 
       {options.length === 0 ? (
-        <p className="px-4 py-3 text-[0.74rem] font-semibold uppercase tracking-[0.14em] text-muted/60">No options</p>
+        <p className="px-4 py-3 text-[0.74rem] font-semibold uppercase tracking-[0.14em] text-muted/60">{t("shop.filters.noOptions")}</p>
       ) : (
         options.map((option) => (
           <button

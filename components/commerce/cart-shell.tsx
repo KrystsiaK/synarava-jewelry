@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PrimaryCtaButton } from "@/components/ui";
 import { CartItemRow } from "./cart-item-row";
 import { CartSummaryPanel } from "./cart-summary-panel";
+import { useTranslations } from "@/lib/i18n/context";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -29,6 +30,7 @@ type CartShellProps = {
 };
 
 function EmptyCart() {
+  const { t } = useTranslations();
   return (
     <motion.div
       className="relative max-w-3xl py-8 md:py-16"
@@ -50,7 +52,7 @@ function EmptyCart() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease, delay: 0.3 }}
       >
-        Nothing selected <span className="italic text-couture-red">yet.</span>
+        {t("cart.emptyTitleLead")} <span className="italic text-couture-red">{t("cart.emptyTitleAccent")}</span>
       </motion.h2>
 
       <motion.p
@@ -59,7 +61,7 @@ function EmptyCart() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.42 }}
       >
-        Explore the archive and choose the piece that feels personal. You can return here and continue as a guest—no account required.
+        {t("cart.emptyBody")}
       </motion.p>
 
       <motion.div
@@ -67,7 +69,7 @@ function EmptyCart() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.55 }}
       >
-        <PrimaryCtaButton href="/shop">Browse archive</PrimaryCtaButton>
+        <PrimaryCtaButton href="/shop">{t("cart.browse")}</PrimaryCtaButton>
       </motion.div>
     </motion.div>
   );
@@ -79,6 +81,7 @@ export function CartShell({
   subtotal,
   usesShopifyCheckout,
 }: CartShellProps) {
+  const { t } = useTranslations();
   return (
     <main
       className="cart-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
@@ -93,7 +96,7 @@ export function CartShell({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.7, ease }}
               >
-                Selection
+                {t("cart.eyebrow")}
               </motion.p>
               <motion.h1
                 className="font-serif leading-[0.92] tracking-[-0.035em]"
@@ -102,7 +105,7 @@ export function CartShell({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.9, ease, delay: 0.1 }}
               >
-                Your <span className="italic text-couture-red">Cart</span>
+                {t("cart.titleLead")} <span className="italic text-couture-red">{t("cart.titleAccent")}</span>
               </motion.h1>
             </div>
             <motion.p
@@ -111,7 +114,7 @@ export function CartShell({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.22 }}
             >
-              Guests can continue to shipping without registering, and signed-in users keep the same cart after login.
+              {t("cart.description")}
             </motion.p>
           </div>
         </div>
@@ -152,11 +155,11 @@ export function CartShell({
                   itemCount={itemCount}
                   subtotal={subtotal}
                   ctaHref="/checkout"
-                  ctaLabel={usesShopifyCheckout ? "Secure checkout" : "Continue to shipping"}
+                  ctaLabel={usesShopifyCheckout ? t("cart.secureCheckout") : t("cart.continueDelivery")}
                   note={
                     usesShopifyCheckout
-                      ? "Shipping and payment are completed securely at checkout. Guest checkout is available."
-                      : "Shipping details come first. At checkout you can either sign in or continue as guest."
+                      ? t("cart.shopifyNote")
+                      : t("cart.localNote")
                   }
                 />
 
@@ -170,7 +173,7 @@ export function CartShell({
                     href="/shop"
                     className="label-mono border-b border-foreground/15 pb-1 text-foreground/45 transition-colors hover:border-couture-red hover:text-couture-red"
                   >
-                    Continue shopping
+                    {t("cart.continueShopping")}
                   </Link>
                 </motion.div>
               </motion.div>

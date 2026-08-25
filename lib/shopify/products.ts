@@ -8,6 +8,9 @@ import {
   type ShopDepartmentSlug,
 } from "@/lib/catalog/taxonomy";
 import { shopifyStorefrontRequest } from "@/lib/shopify/storefront";
+import { formatCurrency, shopifyLanguage } from "@/lib/i18n/format";
+import { getRequestLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/locales";
 
 type ShopifyProduct = {
   handle: string;
@@ -32,14 +35,6 @@ type ShopifyProductConnection = {
   products: { nodes: ShopifyProduct[] };
 };
 
-function formatMoney(amount: string, currency: string) {
-  return new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(Number.parseFloat(amount));
-}
-
 function inferDepartment(product: ShopifyProduct): ShopDepartmentSlug {
   const explicitType = product.productType.trim().toLowerCase();
   if (isShopDepartmentSlug(explicitType)) return explicitType;
@@ -59,7 +54,7 @@ function slugify(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-function toProductSummary(product: ShopifyProduct): ProductSummary {
+function toProductSummary(product: ShopifyProduct, locale: Locale): ProductSummary {
   const department = inferDepartment(product);
   const leadCollection = product.collections.nodes[0];
   const firstAvailableVariant = product.variants.nodes.find((variant) => variant.availableForSale);
@@ -74,12 +69,9 @@ function toProductSummary(product: ShopifyProduct): ProductSummary {
     title: product.title,
     shortDescription: product.description,
     description: product.description,
-    price: formatMoney(
-      product.priceRange.minVariantPrice.amount,
-      product.priceRange.minVariantPrice.currencyCode,
-    ),
+    price: formatCurrency(Number.parseFloat(product.priceRange.minVariantPrice.amount), product.priceRange.minVariantPrice.currencyCode, locale),
     compareAtPrice: "",
-    stockOnHand: 0,
+    stockOnHand: product.variants.nodes.some((variant) => variant.availableForSale) ? 1 : 0,
     variantCount: product.variants.nodes.length,
     vendor: product.vendor,
     shopifyCategoryName: product.productType,
@@ -141,45 +133,51 @@ const PRODUCT_FIELDS = `#graphql
 `;
 
 export async function getShopifyProductByHandle(handle: string): Promise<ProductSummary | null> {
+  const locale = await getRequestLocale();
+  const language = shopifyLanguage(locale);
   const data = await shopifyStorefrontRequest<{ product: ShopifyProduct | null }>(
     `#graphql
       ${PRODUCT_FIELDS}
-      query SynaravaStorefrontProduct($handle: String!) {
+      query SynaravaStorefrontProduct($handle: String!, $language: LanguageCode!) @inContext(language: $language) {
         product(handle: $handle) {
           ...SynaravaStorefrontProductFields
         }
       }
     `,
-    { handle },
+    { handle, language },
   );
 
   const product = data.product;
   if (!product) return null;
 
-  return toProductSummary(product);
+  return toProductSummary(product, locale);
 }
 
-async function loadShopifyProducts() {
+async function loadShopifyProducts(locale: Locale) {
+  const language = shopifyLanguage(locale);
   const data = await shopifyStorefrontRequest<ShopifyProductConnection>(
     `#graphql
       ${PRODUCT_FIELDS}
-      query SynaravaStorefrontProducts {
+      query SynaravaStorefrontProducts($language: LanguageCode!) @inContext(language: $language) {
         products(first: 100, sortKey: CREATED_AT, reverse: true) {
           nodes { ...SynaravaStorefrontProductFields }
         }
       }
     `,
+    { language },
   );
 
   return data.products.nodes;
 }
 
 export async function listShopifyProducts(filters: ShopFilters = {}) {
-  const products = (await loadShopifyProducts()).map(toProductSummary).filter((product) => product.image);
+  const locale = await getRequestLocale();
+  const products = (await loadShopifyProducts(locale)).map((product) => toProductSummary(product, locale)).filter((product) => product.image);
   const query = filters.q?.trim().toLowerCase();
 
   return products.filter((product) => {
     if (filters.department && product.departmentSlug !== filters.department) return false;
+    if (filters.availability === "in-stock" && product.stockOnHand < 1) return false;
     if (filters.category && product.categorySlug !== filters.category) return false;
     if (filters.collection && product.collectionSlug !== filters.collection) return false;
     if (filters.tag) return false;
@@ -198,7 +196,8 @@ export async function listShopifyProducts(filters: ShopFilters = {}) {
 }
 
 export async function getShopifyProductFilters() {
-  const products = (await loadShopifyProducts()).map(toProductSummary);
+  const locale = await getRequestLocale();
+  const products = (await loadShopifyProducts(locale)).map((product) => toProductSummary(product, locale));
   const categoryMap = new Map<string, string>();
   const collectionMap = new Map<string, string>();
 

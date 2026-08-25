@@ -116,7 +116,9 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <a href="#main-content" className="skip-link">Skip to main content</a>
+        <a href="#main-content" className="skip-link">
+          {initialLocale === "pt" ? "Saltar para o conteúdo principal" : "Skip to main content"}
+        </a>
         <Script
           id="organization-json-ld"
           nonce={nonce}

@@ -9,6 +9,7 @@ import {
   createOrUpdateDraftOrderFromCart,
   setConfirmedOrderCookie,
 } from "@/lib/commerce/checkout";
+import { getServerTranslations } from "@/lib/i18n/server";
 
 export type ShippingField =
   | "email"
@@ -27,6 +28,7 @@ export async function submitShippingAction(
   _previousState: ShippingActionState,
   formData: FormData,
 ): Promise<ShippingActionState> {
+  const { t } = await getServerTranslations();
   const email = String(formData.get("email") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const line1 = String(formData.get("line1") ?? "").trim();
@@ -38,13 +40,13 @@ export async function submitShippingAction(
   const notes = String(formData.get("notes") ?? "").trim();
 
   const fieldErrors: ShippingActionState["fieldErrors"] = {};
-  if (!email) fieldErrors.email = "Enter the email address for delivery updates.";
-  else if (!/^\S+@\S+\.\S+$/.test(email)) fieldErrors.email = "Enter a valid email address.";
-  if (!name) fieldErrors.name = "Enter the recipient’s full name.";
-  if (!line1) fieldErrors.line1 = "Enter the delivery address.";
-  if (!city) fieldErrors.city = "Enter the delivery city.";
-  if (!postalCode) fieldErrors.postalCode = "Enter the postal code.";
-  if (!countryCode) fieldErrors.countryCode = "Choose the delivery country.";
+  if (!email) fieldErrors.email = t("checkout.validation.emailRequired");
+  else if (!/^\S+@\S+\.\S+$/.test(email)) fieldErrors.email = t("checkout.validation.emailInvalid");
+  if (!name) fieldErrors.name = t("checkout.validation.name");
+  if (!line1) fieldErrors.line1 = t("checkout.validation.address");
+  if (!city) fieldErrors.city = t("checkout.validation.city");
+  if (!postalCode) fieldErrors.postalCode = t("checkout.validation.postalCode");
+  if (!countryCode) fieldErrors.countryCode = t("checkout.validation.country");
 
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors };
@@ -65,13 +67,13 @@ export async function submitShippingAction(
     });
   } catch {
     return {
-      formError: "Delivery details could not be saved. Check your connection and try again.",
+      formError: t("checkout.validation.save"),
     };
   }
 
   if (!orderId) {
     return {
-      formError: "Your cart is no longer available. Return to the cart before continuing.",
+      formError: t("checkout.validation.cart"),
     };
   }
 

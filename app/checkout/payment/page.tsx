@@ -5,6 +5,8 @@ import { CartSummaryPanel } from "@/components/commerce/cart-summary-panel";
 import { CheckoutShell } from "@/components/commerce/checkout-shell";
 import { PaymentConfirmPanel } from "@/components/commerce/payment-confirm-panel";
 import { createOrGetStripeCheckoutSession, getCheckoutOrder } from "@/lib/commerce/checkout";
+import { formatCurrency } from "@/lib/i18n/format";
+import { getServerTranslations } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Payment | Synarava",
@@ -12,7 +14,8 @@ export const metadata: Metadata = {
 };
 
 export default async function PaymentPage() {
-  const order = await getCheckoutOrder();
+  const [order, translations] = await Promise.all([getCheckoutOrder(), getServerTranslations()]);
+  const { locale, t } = translations;
 
   if (!order || order.status !== "DRAFT") {
     redirect("/checkout/error?reason=payment");
@@ -24,17 +27,13 @@ export default async function PaymentPage() {
     redirect("/checkout/error?reason=stripe");
   }
 
-  const total = new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency: order.currency,
-    minimumFractionDigits: 2,
-  }).format(order.totalCents / 100);
+  const total = formatCurrency(order.totalCents / 100, order.currency, locale);
 
   return (
     <CheckoutShell
-      eyebrow="SYNARAVA | Secure Acquisition (Payment)"
-      title="A final quiet checkpoint before confirmation."
-      description="Enter your payment details to complete the acquisition."
+      eyebrow={t("checkout.paymentPage.eyebrow")}
+      title={t("checkout.paymentPage.title")}
+      description={t("checkout.paymentPage.description")}
       step="payment"
       aside={
         <CartSummaryPanel
