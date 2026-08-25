@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Início",
+    "shop": "Loja",
+    "collections": "Coleções",
+    "about": "Sobre",
+    "cart": "Carrinho",
+    "login": "Entrar",
+    "account": "A minha conta",
+    "loginRegister": "Entrar / Criar conta",
+    "openMenu": "Abrir menu de navegação",
+    "closeMenu": "Fechar menu de navegação"
+  },
+  "footer": {
+    "tagline": "A alma da alta-costura bielorrussa.",
+    "navigationHeading": "Navegação",
+    "serviceHeading": "Serviço",
+    "shop": "Loja",
+    "collections": "Coleções",
+    "about": "Sobre",
+    "manifesto": "Manifesto",
+    "careGuide": "Guia de cuidados",
+    "shipping": "Envios",
+    "contact": "Contacto",
+    "privacyPolicy": "Política de privacidade",
+    "publicOffer": "Condições gerais de venda",
+    "offerGovernedBy": "Todas as compras são regidas pelas nossas",
+    "offerTerms": "condições de venda",
+    "copyright": "© 2025 Synarava Jewelry."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Palavra-passe",
+    "passwordHint": "Pelo menos 8 caracteres",
+    "showPassword": "Mostrar palavra-passe",
+    "hidePassword": "Ocultar palavra-passe",
+    "login": {
+      "eyebrow": "Identificação",
+      "title": "Entrar",
+      "submit": "Iniciar sessão",
+      "submitting": "A iniciar sessão…",
+      "forgotPassword": "Esqueceu-se da palavra-passe",
+      "noAccount": "Ainda não tem conta?",
+      "createOne": "Criar conta"
+    },
+    "register": {
+      "eyebrow": "Adesão",
+      "title": "Criar conta",
+      "name": "Nome",
+      "confirmPassword": "Confirmar palavra-passe",
+      "submit": "Criar conta",
+      "submitting": "A criar conta…",
+      "alreadyRegistered": "Já tem conta?",
+      "signIn": "Entrar"
+    },
+    "resetRequest": {
+      "eyebrow": "Recuperação",
+      "title": "Repor palavra-passe",
+      "accountEmail": "Email da conta",
+      "submit": "Gerar ligação de recuperação",
+      "submitting": "A preparar ligação…",
+      "previewLink": "Ligação de pré-visualização local",
+      "returnTo": "Voltar para",
+      "loginLink": "iniciar sessão"
+    },
+    "resetConfirm": {
+      "eyebrow": "Recuperação",
+      "title": "Definir uma nova palavra-passe",
+      "newPassword": "Nova palavra-passe",
+      "confirmNewPassword": "Confirmar nova palavra-passe",
+      "submit": "Atualizar palavra-passe",
+      "submitting": "A atualizar…",
+      "backTo": "Voltar para",
+      "loginLink": "iniciar sessão"
+    },
+    "adminCredentials": {
+      "eyebrow": "Credenciais",
+      "title": "Login e palavra-passe",
+      "emailLogin": "Email de acesso",
+      "currentPassword": "Palavra-passe atual",
+      "newPassword": "Nova palavra-passe",
+      "confirmNewPassword": "Confirmar nova palavra-passe",
+      "passwordNote": "Deixe os campos da nova palavra-passe vazios se pretender alterar apenas o email de acesso.",
+      "submit": "Atualizar credenciais",
+      "submitting": "A atualizar…"
+    }
+  },
+  "password": {
+    "strength": {
+      "weak": "Fraca",
+      "fair": "Razoável",
+      "good": "Boa",
+      "strong": "Forte"
+    },
+    "req": {
+      "length": "Pelo menos 8 caracteres",
+      "uppercase": "Letra maiúscula (A–Z)",
+      "lowercase": "Letra minúscula (a–z)",
+      "number": "Número (0–9)",
+      "special": "Carácter especial (!@#…)"
+    }
+  },
+  "language": {
+    "select": "Selecionar idioma"
+  }
+}

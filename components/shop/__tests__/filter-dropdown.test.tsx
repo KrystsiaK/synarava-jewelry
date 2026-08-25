@@ -112,13 +112,13 @@ describe("FilterDropdown", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("closes when a scroll event is dispatched", async () => {
+  it("stays open and repositions when a scroll event is dispatched", async () => {
     const user = userEvent.setup();
     setup();
     await user.click(screen.getByRole("button", { name: /category/i }));
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     window.dispatchEvent(new Event("scroll", { bubbles: true }));
-    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
   });
 
   it("button is disabled when disabled prop is true", () => {

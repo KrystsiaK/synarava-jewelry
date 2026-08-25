@@ -318,7 +318,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             </div>
             <div className="flex min-h-11 items-center justify-end">
               <div className="[&>div>button]:!text-muted [&>div>button:hover]:!text-foreground">
-                <LanguageSwitcher showCode align="left" />
+                <LanguageSwitcher showCode align="right" />
               </div>
             </div>
           </div>

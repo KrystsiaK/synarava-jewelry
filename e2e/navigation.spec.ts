@@ -31,6 +31,29 @@ test.describe("Navigation", () => {
     await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeVisible();
   });
 
+  test("mobile language menu stays inside the viewport and only offers English and Portuguese", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open navigation menu" }).click();
+
+    const drawer = page.locator(".site-nav-drawer");
+    await drawer.getByRole("button", { name: "Select language" }).click();
+
+    const languageMenu = page.getByRole("listbox", { name: "Select language" });
+    await expect(languageMenu).toBeVisible();
+    await expect(languageMenu).toHaveAttribute("data-side", "top");
+    await expect(languageMenu.getByRole("option")).toHaveCount(2);
+    await expect(languageMenu.getByRole("option", { name: "English" })).toBeVisible();
+    await expect(languageMenu.getByRole("option", { name: "Português" })).toBeVisible();
+
+    const bounds = await languageMenu.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(375);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(812);
+  });
+
   test("theme toggle is present on editorial pages", async ({ page }) => {
     await page.goto("/about");
     await expect(page.getByRole("banner").getByLabel("Theme switcher")).toBeVisible();

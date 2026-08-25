@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { normalizeLocale } from "@/lib/i18n/locales";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 
@@ -85,7 +86,7 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
-  const initialLocale = cookieStore.get("synarava-locale")?.value ?? "en";
+  const initialLocale = normalizeLocale(cookieStore.get("synarava-locale")?.value);
   const [cartCount, isLoggedIn] = await Promise.all([
     getStorefrontCartCount(),
     isShopifyCommerceEnabled()
@@ -95,7 +96,7 @@ export default async function RootLayout({
 
   return (
     <html
-      lang="en"
+      lang={initialLocale}
       className={`${sans.variable} ${serif.variable}`}
       data-theme-preference={themePreference}
       data-theme="light"

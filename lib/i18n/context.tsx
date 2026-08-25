@@ -3,8 +3,9 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import en from "@/messages/en.json";
 import { flattenMessages } from "./utils";
+import { normalizeLocale, type Locale } from "./locales";
 
-export type Locale = string;
+export type { Locale } from "./locales";
 
 type TranslationContextValue = {
   locale: Locale;
@@ -14,7 +15,7 @@ type TranslationContextValue = {
 };
 
 const STORAGE_LOCALE_KEY = "synarava-locale";
-const STORAGE_CACHE_PREFIX = "synarava-t-";
+const STORAGE_CACHE_PREFIX = "synarava-t-v2-";
 
 const enFlat = flattenMessages(en as Record<string, unknown>);
 
@@ -32,13 +33,14 @@ export function TranslationProvider({
   initialLocale?: string;
   children: React.ReactNode;
 }) {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [locale, setLocaleState] = useState<Locale>(() => normalizeLocale(initialLocale));
   const [messages, setMessages] = useState<Record<string, string>>(enFlat);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (initialLocale && initialLocale !== "en") {
-      loadLocale(initialLocale);
+    const normalizedLocale = normalizeLocale(initialLocale);
+    if (normalizedLocale !== "en") {
+      loadLocale(normalizedLocale);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
