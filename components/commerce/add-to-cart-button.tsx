@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
+import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 
 type AddToCartButtonProps = {
@@ -52,6 +53,13 @@ export function AddToCartButton({
           detail: { count: payload.count ?? 0 },
         }),
       );
+
+      trackCommerceEvent("add_to_cart", {
+        productSlug,
+        merchandiseId,
+        quantity: 1,
+        cartCount: payload.count ?? 0,
+      });
 
       setRecentCount(payload.count ?? 0);
       setMessage(t("product.added"));
@@ -116,7 +124,14 @@ export function AddToCartButton({
             <ArtifactLink href="/cart" variant="secondary" size="md" className="flex-1 border-white/24 text-white hover:border-white hover:text-white">
               {t("product.viewCart")}
             </ArtifactLink>
-            <PrimaryCtaButton href="/checkout" className="w-full flex-1">
+            <PrimaryCtaButton
+              href="/checkout"
+              className="w-full flex-1"
+              onClick={() => trackCommerceEvent("checkout_started", {
+                source: "add_to_cart_confirmation",
+                cartCount: recentCount,
+              })}
+            >
               {t("product.checkout")}
             </PrimaryCtaButton>
           </div>

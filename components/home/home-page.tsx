@@ -17,6 +17,7 @@ import type { ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ease } from "@/lib/animation";
+import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 import { PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
@@ -479,6 +480,10 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
                 <Link
                   key={department.slug}
                   href={`/shop?department=${department.slug}`}
+                  onClick={() => trackCommerceEvent("department_entry", {
+                    department: department.slug,
+                    source: "home",
+                  })}
                   className="group flex min-h-28 items-center justify-between gap-6 border-b border-linen/14 py-5 text-stone-beige/70 transition-colors hover:text-couture-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
                 >
                   {content}

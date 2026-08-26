@@ -20,6 +20,7 @@ import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
+import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -121,6 +122,10 @@ function ShopHero({
             <ArtifactLink
               key={department.slug}
               href={`/shop?department=${department.slug}`}
+              onClick={() => trackCommerceEvent("department_entry", {
+                department: department.slug,
+                source: "shop_hero",
+              })}
               variant="inverse"
               size="sm"
               className="min-h-12 border-0 px-3 text-[0.66rem] tracking-[0.13em]"

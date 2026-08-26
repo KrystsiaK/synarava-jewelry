@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
+import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { PrimaryCtaButton } from "@/components/ui";
 import {
@@ -907,6 +908,19 @@ function ProductFooter({ product }: { product: ProductSummary }) {
 
 /* ─── Root ───────────────────────────────────────────────────────── */
 export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc?: string }) {
+  const trackedProduct = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (trackedProduct.current === product.slug) return;
+    trackedProduct.current = product.slug;
+    trackCommerceEvent("view_item", {
+      productSlug: product.slug,
+      department: product.departmentSlug,
+      category: product.categorySlug,
+      available: product.stockOnHand > 0,
+    });
+  }, [product.categorySlug, product.departmentSlug, product.slug, product.stockOnHand]);
+
   return (
     <main
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"

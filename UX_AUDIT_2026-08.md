@@ -69,15 +69,16 @@
 - страницы из CMS получили отдельные PT-поля для title, excerpt, eyebrow, body, CTA, quote и secondary copy внутри существующего JSON content — без миграции базы;
 - при пустом PT-поле storefront безопасно использует английский источник, а заполненный перевод выбирается на сервере по locale cookie;
 - locale-aware currency formatting покрыт отдельными unit checks; browser route matrix подтвердила корректный `html[lang]` и отсутствие English content flash на Portuguese Shipping/FAQ;
-- полный unit/component suite: 53 файла, 336 тестов; production build собрал 53 маршрута. Локальная БД во время build была выключена, но предусмотренные fallback-пути позволили сборке завершиться успешно.
+- полный unit/component suite: 54 файла, 337 тестов; production build собрал 53 маршрута. Локальная БД во время build была выключена, но предусмотренные fallback-пути позволили сборке завершиться успешно.
 
 Этап 4 закрыт для управляемого storefront copy. Legal pages Privacy/Offer намеренно не переводились автоматически: юридический PT-текст требует утверждённой редакции. Названия и editorial-тексты товаров/коллекций остаются языком источника до заполнения переводов в Shopify/CMS.
 
 Первый проход этапа 5 также завершён:
 
 - публичная Chromium-матрица покрыла Home, navigation, mobile menu, themes, EN/PT service routes, product detail, skip link, modal isolation/focus restore, reduced motion и 200% text size;
-- 25 из 25 публичных браузерных сценариев прошли на fallback-данных;
+- 26 из 26 публичных браузерных сценариев прошли на fallback-данных, включая отдельный contract test событий commerce-воронки;
 - два устаревших ожидания синхронизированы с актуальным UX: filter dialog называется `Refine products`, а Home использует общий service footer;
+- добавлен vendor-neutral commerce event contract для `department_entry`, `view_item`, `add_to_cart`, `checkout_started` и `checkout_completed`; он пока только выпускает first-party browser events без cookies, хранения и внешней отправки, поэтому consent-aware analytics adapter можно подключить позже без повторной переделки воронки;
 - admin authentication E2E не ослаблялся и остаётся отдельной проверкой с запущенной PostgreSQL; текущая локальная база на `127.0.0.1:55432` выключена;
 - реальный screen-reader smoke test, production checkout и юридически утверждённый PT-текст Privacy/Offer остаются ручными/внешними задачами перед запуском.
 
