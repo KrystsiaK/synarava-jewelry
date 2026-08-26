@@ -18,7 +18,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyn
 
 import { ease } from "@/lib/animation";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
-import { useTranslations } from "@/lib/i18n/context";
 import { PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { buildFinalCtaImages } from "@/lib/content/home-media";
@@ -1076,54 +1075,18 @@ function ManifestoQuote({ quote }: { quote?: string }) {
 }
 
 function FinalFooter() {
-  const { t } = useTranslations();
-
   return (
-    <>
-      <div className="border-b border-linen/15 pb-5 md:pb-7">
-        <p className="font-serif text-[clamp(3.3rem,10vw,6rem)] font-bold uppercase leading-[0.8] tracking-[-0.035em] text-linen">
-          Synarava
-        </p>
-        <p className="mt-3 font-serif text-base italic text-stone-beige/65 md:text-xl">
-          {t("footer.tagline")}
-        </p>
-      </div>
-
-      <div className="grid flex-1 content-center gap-8 py-6 sm:grid-cols-[1.2fr_1fr_1fr] md:gap-14 md:py-9">
-        <div className="max-w-sm">
-          <p className="font-serif text-2xl leading-tight text-linen md:text-3xl">
-            Objects shaped slowly,<br />kept for a lifetime.
-          </p>
-          <a
-            href="mailto:studio@synarava.com"
-            className="mt-5 inline-block border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
-          >
-            studio@synarava.com
-          </a>
-        </div>
-
-        <nav aria-label={t("footer.navigationHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
-          <Link href="/shop" className="font-sans text-sm font-semibold text-couture-red hover:text-linen">{t("footer.shop")}</Link>
-          <Link href="/collections" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.collections")}</Link>
-          <Link href="/about" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.about")}</Link>
-        </nav>
-
-        <nav aria-label={t("footer.serviceHeading")} className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-col">
-          <Link href="/care" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.careGuide")}</Link>
-          <Link href="/shipping" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.shipping")}</Link>
-          <Link href="/returns" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.returns")}</Link>
-          <Link href="mailto:studio@synarava.com" className="font-sans text-sm text-stone-beige hover:text-linen">{t("footer.contact")}</Link>
-        </nav>
-      </div>
-
-      <div className="flex flex-wrap items-end justify-between gap-4 border-t border-linen/15 pt-5 font-sans text-[0.62rem] uppercase tracking-[0.12em] text-stone-beige/65">
-        <p>{t("footer.copyright")}</p>
-        <div className="flex flex-wrap gap-5">
-          <Link href="/privacy" className="hover:text-linen">{t("footer.privacyPolicy")}</Link>
-          <Link href="/offer" className="hover:text-linen">{t("footer.publicOffer")}</Link>
-        </div>
-      </div>
-    </>
+    <div className="mt-auto flex flex-1 flex-col justify-end gap-6 border-t border-linen/15 pb-1 pt-8 sm:flex-row sm:items-end sm:justify-between md:pt-10">
+      <p className="max-w-sm font-serif text-2xl leading-tight text-linen md:text-3xl">
+        Objects shaped slowly,<br />kept for a lifetime.
+      </p>
+      <a
+        href="mailto:studio@synarava.com"
+        className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+      >
+        studio@synarava.com
+      </a>
+    </div>
   );
 }
 

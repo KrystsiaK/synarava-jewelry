@@ -37,6 +37,8 @@ test.describe("Home page", () => {
     await expect(footer).toBeVisible();
     await expect(footer.getByRole("link", { name: "Shipping" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "Returns" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Contact: studio@synarava.com" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Shipping" })).toHaveCount(1);
   });
 
   test("keeps the fixed dark department surface legible in light theme", async ({ page }) => {
