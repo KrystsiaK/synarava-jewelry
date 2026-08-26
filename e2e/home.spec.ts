@@ -63,11 +63,11 @@ test.describe("Home page", () => {
 
     expect(colors).toMatchObject({
       background: "rgb(10, 10, 11)",
-      linen: "#f9f8f6",
-      stoneBeige: "#ddd8d1",
-      heading: "rgb(249, 248, 246)",
+      linen: "#ffffff",
+      stoneBeige: "#ffffff",
+      heading: "rgb(255, 255, 255)",
     });
-    expect(colors.body).toContain("/ 0.72)");
+    expect(colors.body).toContain("/ 0.8)");
   });
 
   test("cart link is present in header", async ({ page }) => {

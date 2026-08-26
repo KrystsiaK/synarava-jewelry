@@ -620,8 +620,8 @@ html[data-theme="dark"] .home-experience {
 /* Fixed dark editorial surfaces must not inherit the light theme's dark ink tokens. */
 .home-dark-surface {
   color-scheme: dark;
-  --color-linen: #f9f8f6;
-  --color-stone-beige: #ddd8d1;
+  --color-linen: #ffffff;
+  --color-stone-beige: #ffffff;
   --color-couture-red: #e44b61;
 }
 

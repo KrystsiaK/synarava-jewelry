@@ -410,7 +410,7 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
   const leadDepartment = departments.find((department) => department.image);
 
   return (
-    <section className="home-dark-surface relative z-20 bg-[#0a0a0b] px-6 py-24 text-linen md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
+    <section className="home-dark-surface relative z-20 bg-[#0a0a0b] px-6 py-24 text-white md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
       <div className="mx-auto grid max-w-[90rem] gap-12 md:grid-cols-[minmax(0,0.82fr)_minmax(24rem,1.18fr)] md:items-stretch md:gap-[7vw]">
         <motion.div
           className="relative min-h-[24rem] overflow-hidden md:min-h-[42rem]"
@@ -449,7 +449,7 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
           <h2 id="department-pathway-title" className="max-w-[10ch] text-balance font-serif text-[clamp(2.8rem,6vw,5.4rem)] leading-[0.92] tracking-[-0.035em]">
             Choose where to begin.
           </h2>
-          <p className="mt-6 max-w-[34rem] text-pretty font-sans text-sm leading-7 text-stone-beige/72 md:text-base">
+          <p className="mt-6 max-w-[34rem] text-pretty font-sans text-sm leading-7 text-white/80 md:text-base">
             Adornment, companionship, play, and making — selected with the same eye for material, usefulness, and character.
           </p>
 
@@ -458,10 +458,10 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
               const content = (
                 <>
                   <span>
-                    <span className="block font-serif text-[clamp(1.65rem,3vw,2.65rem)] leading-none text-linen">
+                    <span className="block font-serif text-[clamp(1.65rem,3vw,2.65rem)] leading-none text-white">
                       {department.name}
                     </span>
-                    <span className="mt-2 block text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-stone-beige/58">
+                    <span className="mt-2 block text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-white/70">
                       {DEPARTMENT_NOTES[department.slug] ?? "Curated goods"}
                     </span>
                   </span>
@@ -484,12 +484,12 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
                     department: department.slug,
                     source: "home",
                   })}
-                  className="group flex min-h-28 items-center justify-between gap-6 border-b border-linen/14 py-5 text-stone-beige/70 transition-colors hover:text-couture-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+                  className="group flex min-h-28 items-center justify-between gap-6 border-b border-white/20 py-5 text-white/80 transition-colors hover:text-couture-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
                 >
                   {content}
                 </Link>
               ) : (
-                <div key={department.slug} className="flex min-h-28 items-center justify-between gap-6 border-b border-linen/10 py-5 text-stone-beige/40">
+                <div key={department.slug} className="flex min-h-28 items-center justify-between gap-6 border-b border-white/15 py-5 text-white/55">
                   {content}
                 </div>
               );
