@@ -125,7 +125,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
   }, [isMenuOpen]);
 
   useEffect(() => {
-    const desktopQuery = window.matchMedia("(min-width: 920px)");
+    const desktopQuery = window.matchMedia("(min-width: 1200px)");
 
     function closeMenuOnDesktop(event: MediaQueryListEvent | MediaQueryList) {
       if (event.matches) {
@@ -206,7 +206,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             ref={menuButtonRef}
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
-            className="site-nav-icon-button min-[920px]:hidden"
+            className="site-nav-icon-button min-[1200px]:hidden"
             aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isMenuOpen}
           >
@@ -218,7 +218,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             className="site-nav-brand absolute left-1/2 flex -translate-x-1/2 items-center justify-center md:static md:translate-x-0 md:gap-4"
             aria-label="SYNARAVA"
           >
-            <span className="site-nav-mark flex shrink-0 items-center justify-center overflow-hidden min-[920px]:hidden">
+            <span className="site-nav-mark flex shrink-0 items-center justify-center overflow-hidden min-[1200px]:hidden">
               <BrandMark
                 alt=""
                 priority
@@ -227,17 +227,17 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                 className="brand-mark--mobile"
               />
             </span>
-            <span className="site-nav-mark site-nav-mark--desktop hidden shrink-0 items-center justify-center min-[920px]:flex">
+            <span className="site-nav-mark site-nav-mark--desktop hidden shrink-0 items-center justify-center min-[1200px]:flex">
               <BrandMark alt="" size={38} tone={isOverDarkHero || resolvedTheme === "dark" ? "light" : "dark"} className="brand-mark--header" />
             </span>
-            <span className="site-nav-wordmark-text hidden min-[920px]:grid" aria-hidden="true">
+            <span className="site-nav-wordmark-text hidden min-[1200px]:grid" aria-hidden="true">
               <span>SYNARAVA</span>
               <span>CURATED GOODS</span>
             </span>
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-5 min-[920px]:flex xl:gap-12 relative z-10">
+        <nav className="relative z-10 hidden items-center gap-5 min-[1200px]:flex xl:gap-12">
           {navItems.map((item) => item.match === "/shop" ? (
             <span key={item.href} className="flex items-center gap-1">
               <Link
@@ -289,7 +289,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
         </nav>
 
         <div className="relative z-10 flex items-center gap-2 md:gap-3">
-          <div className="hidden lg:block">
+          <div className="hidden min-[1200px]:block">
             <ThemeToggle compact />
           </div>
 
@@ -354,7 +354,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       </header>
 
       <div
-        className={`site-nav-drawer-backdrop fixed inset-0 z-40 bg-black/55 backdrop-blur-sm transition-opacity duration-300 min-[920px]:hidden ${
+        className={`site-nav-drawer-backdrop fixed inset-0 z-40 bg-black/55 backdrop-blur-sm transition-opacity duration-300 min-[1200px]:hidden ${
           isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setIsMenuOpen(false)}
@@ -363,7 +363,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
 
       <aside
         ref={drawerRef}
-        className={`site-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-stroke bg-background px-4 pb-7 pt-20 text-foreground shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-transform duration-300 min-[920px]:hidden ${
+        className={`site-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-stroke bg-background px-4 pb-7 pt-20 text-foreground shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-transform duration-300 min-[1200px]:hidden ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-hidden={!isMenuOpen}

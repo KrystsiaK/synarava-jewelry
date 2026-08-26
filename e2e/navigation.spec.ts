@@ -31,6 +31,28 @@ test.describe("Navigation", () => {
     await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeVisible();
   });
 
+  test("switches to the compact header before desktop controls crowd", async ({ page }) => {
+    await page.setViewportSize({ width: 1199, height: 900 });
+    await page.goto("/");
+
+    const banner = page.getByRole("banner");
+    const menuButton = banner.getByRole("button", { name: "Open navigation menu" });
+    await expect(menuButton).toBeVisible();
+    await expect(banner.getByRole("navigation")).toBeHidden();
+    await expect(banner.getByRole("group", { name: "Theme switcher" })).toBeHidden();
+
+    await menuButton.click();
+    const drawer = page.locator(".site-nav-drawer");
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole("group", { name: "Theme switcher" })).toBeVisible();
+
+    await page.setViewportSize({ width: 1200, height: 900 });
+    await expect(menuButton).toBeHidden();
+    await expect(drawer).toBeHidden();
+    await expect(banner.getByRole("navigation")).toBeVisible();
+    await expect(banner.getByRole("group", { name: "Theme switcher" })).toBeVisible();
+  });
+
   test("mobile language menu stays inside the viewport and only offers English and Portuguese", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");

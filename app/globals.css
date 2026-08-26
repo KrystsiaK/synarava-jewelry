@@ -380,7 +380,7 @@ select {
   display: none;
 }
 
-@media (max-width: 919px) {
+@media (max-width: 1199px) {
   /*
    * WebKit repaints a fixed SVG displacement backdrop on every touch-scroll
    * frame. The mobile material keeps the same clear-glass read using only
@@ -1361,7 +1361,7 @@ html[data-theme="dark"] .etched-glass {
   }
 }
 
-@media (min-width: 920px) {
+@media (min-width: 1200px) {
   .site-nav-icon-button,
   .site-nav-drawer-backdrop,
   .site-nav-drawer {
