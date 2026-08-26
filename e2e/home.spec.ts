@@ -41,7 +41,7 @@ test.describe("Home page", () => {
     await expect(page.getByRole("link", { name: "Shipping" })).toHaveCount(1);
   });
 
-  test("keeps the fixed dark department surface legible in light theme", async ({ page }) => {
+  test("gives editorial sections a legible light-theme surface", async ({ page }) => {
     await page.goto("/");
     const switcher = page.getByRole("banner").getByRole("group", { name: "Theme switcher" });
     await switcher.getByRole("button", { name: "Light" }).click();
@@ -64,18 +64,18 @@ test.describe("Home page", () => {
     });
 
     expect(colors).toMatchObject({
-      background: "rgb(10, 10, 11)",
-      linen: "#fff",
-      stoneBeige: "#fff",
-      heading: "rgb(255, 255, 255)",
+      linen: "#211e1b",
+      stoneBeige: "#6b645d",
+      heading: "rgb(33, 30, 27)",
+      body: "rgb(107, 100, 93)",
     });
-    expect(colors.body).toContain("/ 0.8)");
+    expect(colors.background).not.toBe("rgb(10, 10, 11)");
 
     await section.scrollIntoViewIfNeeded();
     await expect(page.getByRole("banner")).toHaveAttribute("data-scrolled", "true");
     await expect(page.locator(".site-nav-liquid-glass")).toHaveCSS(
       "background-color",
-      "rgba(249, 248, 246, 0.97)",
+      "rgba(0, 0, 0, 0)",
     );
 
     const headerSurface = await page.evaluate(() => ({
@@ -84,9 +84,17 @@ test.describe("Home page", () => {
     expect(headerSurface).toEqual({
       navColor: "rgb(25, 24, 23)",
     });
+
+    await switcher.getByRole("button", { name: "Dark" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(section).toHaveCSS("background-color", "rgb(10, 10, 11)");
+    await expect(section.getByRole("heading", { name: "Choose where to begin." })).toHaveCSS(
+      "color",
+      "rgb(249, 248, 246)",
+    );
   });
 
-  test("keeps the mobile light header readable over the dark finale", async ({ page }) => {
+  test("keeps the mobile header glass over the light-theme finale", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.context().addCookies([
       { name: "synarava-theme", value: "light", url: "http://localhost:3000" },
@@ -96,10 +104,15 @@ test.describe("Home page", () => {
 
     await page.locator(".home-final-scene").last().scrollIntoViewIfNeeded();
     await expect(page.getByRole("banner")).toHaveAttribute("data-scrolled", "true");
-    await expect(page.locator(".site-nav-mobile-glass")).toHaveCSS(
-      "background-color",
-      "rgba(249, 248, 246, 0.97)",
-    );
+    const mobileGlass = await page.locator(".site-nav-mobile-glass").evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+      };
+    });
+    expect(mobileGlass.backgroundColor).not.toBe("rgba(249, 248, 246, 0.97)");
+    expect(mobileGlass.backgroundImage).toContain("linear-gradient");
     await expect(page.locator(".site-nav-icon-button")).toHaveCSS(
       "color",
       "rgb(25, 24, 23)",

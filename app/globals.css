@@ -380,25 +380,6 @@ select {
   display: none;
 }
 
-/*
- * In the light theme the navigation keeps dark ink, so its material must
- * remain light enough over fixed dark editorial sections. The refractive
- * layer still supplies movement; this backing layer guarantees contrast.
- */
-html[data-theme="light"] .site-nav-liquid-glass {
-  border: 1px solid rgba(25, 24, 23, 0.08) !important;
-  background-color: rgba(249, 248, 246, 0.92);
-  background-image: linear-gradient(112deg, rgba(255, 255, 255, 0.74), transparent 38%);
-  transition: background-color 180ms ease, box-shadow 180ms ease;
-}
-
-html[data-theme="light"] .artifact-nav[data-scrolled="true"] .site-nav-liquid-glass {
-  background-color: rgba(249, 248, 246, 0.97);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    var(--site-nav-shadow) !important;
-}
-
 @media (max-width: 919px) {
   /*
    * WebKit repaints a fixed SVG displacement backdrop on every touch-scroll
@@ -421,21 +402,6 @@ html[data-theme="light"] .artifact-nav[data-scrolled="true"] .site-nav-liquid-gl
       var(--site-nav-shadow);
     backdrop-filter: blur(16px) saturate(1.18) brightness(1.05);
     -webkit-backdrop-filter: blur(16px) saturate(1.18) brightness(1.05);
-  }
-
-  html[data-theme="light"] .site-nav-mobile-glass {
-    border-color: rgba(25, 24, 23, 0.1);
-    background-color: rgba(249, 248, 246, 0.92);
-    background-image: linear-gradient(112deg, rgba(255, 255, 255, 0.78), transparent 38%);
-    transition: background-color 180ms ease, box-shadow 180ms ease;
-  }
-
-  html[data-theme="light"] .artifact-nav[data-scrolled="true"] .site-nav-mobile-glass {
-    background-color: rgba(249, 248, 246, 0.97);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.86),
-      inset 0 -1px 0 rgba(25, 24, 23, 0.08),
-      0 12px 32px rgba(25, 24, 23, 0.14);
   }
 
   html[data-theme="dark"] .site-nav-mobile-glass {
@@ -637,6 +603,7 @@ html[data-theme="light"] .artifact-nav[data-scrolled="true"] .site-nav-liquid-gl
   --color-linen: #211e1b;
   --color-stone-beige: #6b645d;
   --color-couture-red: #a6192e;
+  --home-final-surface: #eee8df;
   background:
     radial-gradient(circle at 78% 7%, rgba(166, 25, 46, 0.09), transparent 27rem),
     linear-gradient(180deg, #f7f5f0 0%, #efebe4 52%, #f9f8f5 100%);
@@ -646,17 +613,34 @@ html[data-theme="dark"] .home-experience {
   --color-linen: #f9f8f6;
   --color-stone-beige: #ddd8d1;
   --color-couture-red: #e44b61;
+  --home-final-surface: #08090a;
   background:
     radial-gradient(circle at 74% 10%, rgba(166, 25, 46, 0.12), transparent 28rem),
     linear-gradient(180deg, #0a0a0b 0%, #121214 52%, #070708 100%);
 }
 
-/* Fixed dark editorial surfaces must not inherit the light theme's dark ink tokens. */
-.home-dark-surface {
-  color-scheme: dark;
-  --color-linen: #ffffff;
-  --color-stone-beige: #ffffff;
-  --color-couture-red: #e44b61;
+.home-department-surface {
+  background:
+    radial-gradient(circle at 78% 16%, rgba(166, 25, 46, 0.08), transparent 27rem),
+    linear-gradient(135deg, #e8e1d7 0%, #f5f1ea 58%, #ded5c8 100%);
+}
+
+.home-final-surface {
+  background:
+    radial-gradient(circle at 52% 45%, rgba(166, 25, 46, 0.11), transparent 28rem),
+    linear-gradient(180deg, #eee8df 0%, #f7f3ed 54%, #e7dfd4 100%);
+}
+
+html[data-theme="dark"] .home-department-surface {
+  background:
+    radial-gradient(circle at 78% 16%, rgba(228, 75, 97, 0.08), transparent 27rem),
+    #0a0a0b;
+}
+
+html[data-theme="dark"] .home-final-surface {
+  background:
+    radial-gradient(circle at 52% 45%, rgba(228, 75, 97, 0.12), transparent 28rem),
+    #08090a;
 }
 
 .home-hero-fade {
@@ -694,7 +678,7 @@ html[data-theme="dark"] .home-theme-grid {
   height: clamp(5rem, 14vw, 11rem);
   pointer-events: none;
   content: "";
-  background: linear-gradient(to bottom, transparent, #08090a);
+  background: linear-gradient(to bottom, transparent, var(--home-final-surface));
 }
 
 .home-material-plate {
@@ -1116,16 +1100,14 @@ html[data-theme="light"] .site-nav-brand .brand-mark::before {
   display: none;
 }
 
-html[data-theme="dark"] .final-sigil__aura,
-.home-dark-surface .final-sigil__aura {
+html[data-theme="dark"] .final-sigil__aura {
   inset: 14%;
   background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, color-mix(in srgb, var(--color-accent-soft) 22%, transparent) 34%, transparent 70%);
   filter: blur(24px);
   animation: final-sigil-breathe 4.8s ease-in-out infinite alternate;
 }
 
-html[data-theme="dark"] .final-sigil__mark,
-.home-dark-surface .final-sigil__mark {
+html[data-theme="dark"] .final-sigil__mark {
   background: linear-gradient(
     112deg,
     #f9f8f6 0%,
@@ -1143,8 +1125,7 @@ html[data-theme="dark"] .final-sigil__mark,
   opacity: 1;
 }
 
-html[data-theme="dark"] .final-sigil__edge,
-.home-dark-surface .final-sigil__edge {
+html[data-theme="dark"] .final-sigil__edge {
   display: block;
   background: linear-gradient(105deg, transparent 34%, color-mix(in srgb, var(--color-linen) 92%, transparent) 48%, color-mix(in srgb, var(--color-accent-soft) 80%, var(--color-linen)) 51%, transparent 64%);
   background-position: 48% 0;
