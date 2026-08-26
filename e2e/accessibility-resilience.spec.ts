@@ -19,7 +19,7 @@ test.describe("Accessibility and resilience", () => {
     const trigger = page.getByRole("button", { name: /^Filters/ });
     await trigger.click();
 
-    await expect(page.getByRole("dialog", { name: "Filter products" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Refine products" })).toBeVisible();
     await expect(page.locator("#main-content")).toHaveAttribute("inert", "");
 
     await page.keyboard.press("Escape");

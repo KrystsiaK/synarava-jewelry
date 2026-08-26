@@ -31,9 +31,12 @@ test.describe("Home page", () => {
     await expect(page.getByRole("link", { name: "About" }).first()).toBeVisible();
   });
 
-  test("uses the home-owned ending instead of the global footer", async ({ page }) => {
+  test("uses the shared service footer", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("footer")).toBeHidden();
+    const footer = page.locator("footer");
+    await expect(footer).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Shipping" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Returns" })).toBeVisible();
   });
 
   test("cart link is present in header", async ({ page }) => {

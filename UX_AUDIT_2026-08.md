@@ -73,6 +73,14 @@
 
 Этап 4 закрыт для управляемого storefront copy. Legal pages Privacy/Offer намеренно не переводились автоматически: юридический PT-текст требует утверждённой редакции. Названия и editorial-тексты товаров/коллекций остаются языком источника до заполнения переводов в Shopify/CMS.
 
+Первый проход этапа 5 также завершён:
+
+- публичная Chromium-матрица покрыла Home, navigation, mobile menu, themes, EN/PT service routes, product detail, skip link, modal isolation/focus restore, reduced motion и 200% text size;
+- 25 из 25 публичных браузерных сценариев прошли на fallback-данных;
+- два устаревших ожидания синхронизированы с актуальным UX: filter dialog называется `Refine products`, а Home использует общий service footer;
+- admin authentication E2E не ослаблялся и остаётся отдельной проверкой с запущенной PostgreSQL; текущая локальная база на `127.0.0.1:55432` выключена;
+- реальный screen-reader smoke test, production checkout и юридически утверждённый PT-текст Privacy/Offer остаются ручными/внешними задачами перед запуском.
+
 После production-настройки Shopify остаётся провести отдельный keyboard/screen-reader smoke test внешней платёжной страницы: её DOM, branding и payment controls не управляются storefront-кодом.
 
 Остаётся внешним P0: заменить `My Store`, отключить `Test Payment Gateway`, проверить production payment methods, policies и branding в Shopify Admin. В коде это исправить нельзя.
