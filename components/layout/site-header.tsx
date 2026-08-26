@@ -192,7 +192,6 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           className="site-nav-liquid-glass absolute inset-0 z-0 h-full w-full"
           style={{
             border: "none",
-            backgroundColor: "transparent",
             backdropFilter: "url(#lg-refract-strong)",
             WebkitBackdropFilter: "url(#lg-refract-strong)",
             boxShadow: "var(--site-nav-shadow)",

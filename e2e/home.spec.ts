@@ -70,6 +70,40 @@ test.describe("Home page", () => {
       heading: "rgb(255, 255, 255)",
     });
     expect(colors.body).toContain("/ 0.8)");
+
+    await section.scrollIntoViewIfNeeded();
+    await expect(page.getByRole("banner")).toHaveAttribute("data-scrolled", "true");
+    await expect(page.locator(".site-nav-liquid-glass")).toHaveCSS(
+      "background-color",
+      "rgba(249, 248, 246, 0.97)",
+    );
+
+    const headerSurface = await page.evaluate(() => ({
+      navColor: getComputedStyle(document.querySelector('header a[href="/"]')!).color,
+    }));
+    expect(headerSurface).toEqual({
+      navColor: "rgb(25, 24, 23)",
+    });
+  });
+
+  test("keeps the mobile light header readable over the dark finale", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.context().addCookies([
+      { name: "synarava-theme", value: "light", url: "http://localhost:3000" },
+    ]);
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.locator(".home-final-scene").last().scrollIntoViewIfNeeded();
+    await expect(page.getByRole("banner")).toHaveAttribute("data-scrolled", "true");
+    await expect(page.locator(".site-nav-mobile-glass")).toHaveCSS(
+      "background-color",
+      "rgba(249, 248, 246, 0.97)",
+    );
+    await expect(page.locator(".site-nav-icon-button")).toHaveCSS(
+      "color",
+      "rgb(25, 24, 23)",
+    );
   });
 
   test("cart link is present in header", async ({ page }) => {
