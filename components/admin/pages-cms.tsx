@@ -13,7 +13,6 @@ import {
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
-import { LocaleTabStrip } from "@/components/admin/admin-primitives";
 import { PageDeleteButton } from "@/components/admin/page-delete-button";
 import { useAdminToast } from "@/components/admin/admin-toast";
 import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
@@ -23,6 +22,23 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 type PageRowAction = {
   page: SavedPagePayload;
   action: "publish" | "draft" | "archive";
+};
+
+type EditablePageCopy = {
+  title?: string;
+  excerpt?: string;
+  eyebrow?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  quote?: string;
+  secondaryTitle?: string;
+  secondaryBody?: string;
+};
+
+type EditablePageContent = EditablePageCopy & {
+  heroImage?: string;
+  translations?: { pt?: EditablePageCopy };
 };
 
 function pageStatusLabel(page: SavedPagePayload) {
@@ -73,7 +89,8 @@ export function PageEditor({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
-  const content = (page.content ?? {}) as Record<string, string | undefined>;
+  const content = (page.content ?? {}) as EditablePageContent;
+  const ptContent = content.translations?.pt ?? {};
   const isHomePage = page.slug === "home";
   const isAboutPage = page.slug === "about";
   const { pushToast } = useAdminToast();
@@ -115,7 +132,7 @@ export function PageEditor({
           </button>
         </div>
 
-        <LocaleTabStrip />
+        <p className="adm-section-tag border-b border-[var(--adm-border)] pb-4">LOCALE / EN — SOURCE</p>
         <AuthMessage error={state.error} />
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -164,6 +181,27 @@ export function PageEditor({
             <input name="ctaHref" defaultValue={content.ctaHref ?? ""} className="adm-field" />
           </label>
         </div>
+
+        <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="pt-copy-heading">
+          <div>
+            <p id="pt-copy-heading" className="adm-section-tag">LOCALE / PT — PORTUGUÊS</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>
+              Empty fields fall back to the English source on the storefront.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2"><span className="adm-label">Title (PT)</span><input name="ptTitle" defaultValue={ptContent.title ?? ""} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Eyebrow (PT)</span><input name="ptEyebrow" defaultValue={ptContent.eyebrow ?? ""} className="adm-field" /></label>
+          </div>
+          <label className="grid gap-2"><span className="adm-label">Excerpt (PT)</span><textarea name="ptExcerpt" defaultValue={ptContent.excerpt ?? ""} rows={3} className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">Body (PT)</span><textarea name="ptBody" defaultValue={ptContent.body ?? ""} rows={5} className="adm-field" /></label>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2"><span className="adm-label">CTA label (PT)</span><input name="ptCtaLabel" defaultValue={ptContent.ctaLabel ?? ""} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Quote (PT)</span><textarea name="ptQuote" defaultValue={ptContent.quote ?? ""} rows={3} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Secondary title (PT)</span><input name="ptSecondaryTitle" defaultValue={ptContent.secondaryTitle ?? ""} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Secondary body (PT)</span><textarea name="ptSecondaryBody" defaultValue={ptContent.secondaryBody ?? ""} rows={3} className="adm-field" /></label>
+          </div>
+        </section>
 
         <label className="grid gap-2">
           <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
@@ -278,7 +316,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </button>
       </div>
 
-      <LocaleTabStrip />
+      <p className="adm-section-tag border-b border-[var(--adm-border)] pb-4">LOCALE / EN + PT</p>
       <AuthMessage error={state.error} />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -302,6 +340,25 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
           </select>
         </label>
       </div>
+
+      <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="new-pt-copy-heading">
+        <div>
+          <p id="new-pt-copy-heading" className="adm-section-tag">LOCALE / PT — PORTUGUÊS</p>
+          <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>Optional. Empty fields use the English source.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2"><span className="adm-label">Title (PT)</span><input name="ptTitle" className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">Eyebrow (PT)</span><input name="ptEyebrow" className="adm-field" /></label>
+        </div>
+        <label className="grid gap-2"><span className="adm-label">Excerpt (PT)</span><textarea name="ptExcerpt" rows={3} className="adm-field" /></label>
+        <label className="grid gap-2"><span className="adm-label">Body (PT)</span><textarea name="ptBody" rows={5} className="adm-field" /></label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2"><span className="adm-label">CTA label (PT)</span><input name="ptCtaLabel" className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">Quote (PT)</span><textarea name="ptQuote" rows={3} className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">Secondary title (PT)</span><input name="ptSecondaryTitle" className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">Secondary body (PT)</span><textarea name="ptSecondaryBody" rows={3} className="adm-field" /></label>
+        </div>
+      </section>
 
       <label className="grid gap-2">
         <span className="adm-label">Excerpt</span>

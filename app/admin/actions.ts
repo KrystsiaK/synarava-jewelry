@@ -649,6 +649,14 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   const quote = String(formData.get("quote") ?? "").trim();
   const secondaryTitle = String(formData.get("secondaryTitle") ?? "").trim();
   const secondaryBody = String(formData.get("secondaryBody") ?? "").trim();
+  const ptTitle = String(formData.get("ptTitle") ?? "").trim();
+  const ptExcerpt = String(formData.get("ptExcerpt") ?? "").trim();
+  const ptEyebrow = String(formData.get("ptEyebrow") ?? "").trim();
+  const ptBody = String(formData.get("ptBody") ?? "").trim();
+  const ptCtaLabel = String(formData.get("ptCtaLabel") ?? "").trim();
+  const ptQuote = String(formData.get("ptQuote") ?? "").trim();
+  const ptSecondaryTitle = String(formData.get("ptSecondaryTitle") ?? "").trim();
+  const ptSecondaryBody = String(formData.get("ptSecondaryBody") ?? "").trim();
 
   if (!slug || !title) {
     return { error: "Page slug and title are required." };
@@ -678,6 +686,19 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       secondaryTitle,
       secondaryBody,
       heroImage,
+      translations: {
+        pt: {
+          title: ptTitle,
+          excerpt: ptExcerpt,
+          eyebrow: ptEyebrow,
+          body: ptBody,
+          ctaLabel: ptCtaLabel,
+          ctaHref,
+          quote: ptQuote,
+          secondaryTitle: ptSecondaryTitle,
+          secondaryBody: ptSecondaryBody,
+        },
+      },
     },
     status: isPublished ? PageStatus.PUBLISHED : PageStatus.DRAFT,
     visibility: isPublished ? ContentVisibility.PUBLIC : ContentVisibility.PRIVATE,
@@ -803,6 +824,14 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   const quote = String(formData.get("quote") ?? "").trim();
   const secondaryTitle = String(formData.get("secondaryTitle") ?? "").trim();
   const secondaryBody = String(formData.get("secondaryBody") ?? "").trim();
+  const ptTitle = String(formData.get("ptTitle") ?? "").trim();
+  const ptExcerpt = String(formData.get("ptExcerpt") ?? "").trim();
+  const ptEyebrow = String(formData.get("ptEyebrow") ?? "").trim();
+  const ptBody = String(formData.get("ptBody") ?? "").trim();
+  const ptCtaLabel = String(formData.get("ptCtaLabel") ?? "").trim();
+  const ptQuote = String(formData.get("ptQuote") ?? "").trim();
+  const ptSecondaryTitle = String(formData.get("ptSecondaryTitle") ?? "").trim();
+  const ptSecondaryBody = String(formData.get("ptSecondaryBody") ?? "").trim();
   const slug = slugify(rawSlug || title) || createDraftToken("draft-page");
 
   const pageData = {
@@ -818,6 +847,19 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       quote,
       secondaryTitle,
       secondaryBody,
+      translations: {
+        pt: {
+          title: ptTitle,
+          excerpt: ptExcerpt,
+          eyebrow: ptEyebrow,
+          body: ptBody,
+          ctaLabel: ptCtaLabel,
+          ctaHref,
+          quote: ptQuote,
+          secondaryTitle: ptSecondaryTitle,
+          secondaryBody: ptSecondaryBody,
+        },
+      },
     },
     status: "DRAFT" as const,
     visibility: "PRIVATE" as const,

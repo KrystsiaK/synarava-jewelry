@@ -101,6 +101,12 @@ export type PageContent = {
   secondaryTitle?: string;
   secondaryBody?: string;
   heroImage?: string;
+  translations?: {
+    pt?: Omit<PageContent, "translations" | "heroImage"> & {
+      title?: string;
+      excerpt?: string;
+    };
+  };
 };
 
 function priceFromCents(priceCents: number, currency: string, locale: Locale) {
@@ -510,6 +516,7 @@ export async function getProductsByCollection(slug: string) {
 }
 
 export async function getPageBySlug(slug: string) {
+  const locale = await getRequestLocale();
   const page = await db.page.findUnique({
     where: { slug },
   });
@@ -518,11 +525,14 @@ export async function getPageBySlug(slug: string) {
     return null;
   }
 
+  const content = (page.content ?? {}) as PageContent;
+  const translation = locale === "pt" ? content.translations?.pt : undefined;
+
   return {
     slug: page.slug,
-    title: page.title,
-    excerpt: page.excerpt ?? "",
-    content: (page.content ?? {}) as PageContent,
+    title: translation?.title || page.title,
+    excerpt: translation?.excerpt || page.excerpt || "",
+    content: translation ? { ...content, ...translation, translations: content.translations } : content,
   };
 }
 

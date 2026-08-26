@@ -62,7 +62,16 @@
 - desktop Shop показывает Department, Category и Availability как первичный набор, а остальные параметры раскрывает через More filters; набор Collection, Finish и Compliance меняется в зависимости от department;
 - targeted TypeScript и 74 unit/component checks для Shop и checkout пройдены.
 
-До полного закрытия этапа 4 остаётся вынести в словарь длинный editorial copy второстепенных страниц и локализовать CMS-контент там, где для него появятся отдельные EN/PT-поля. Основной commerce flow уже не должен смешивать языки.
+Дополнительный localization pass завершил сервисный и CMS-контур:
+
+- Shipping, Returns, Care & Safety и FAQ вместе с metadata и общим contact CTA переведены на server-side EN/PT-словарь без клиентской вспышки английского текста;
+- EN/PT-словари имеют автоматическую проверку полного совпадения ключей и отсутствия пустых PT-значений;
+- страницы из CMS получили отдельные PT-поля для title, excerpt, eyebrow, body, CTA, quote и secondary copy внутри существующего JSON content — без миграции базы;
+- при пустом PT-поле storefront безопасно использует английский источник, а заполненный перевод выбирается на сервере по locale cookie;
+- locale-aware currency formatting покрыт отдельными unit checks; browser route matrix подтвердила корректный `html[lang]` и отсутствие English content flash на Portuguese Shipping/FAQ;
+- полный unit/component suite: 53 файла, 336 тестов; production build собрал 53 маршрута. Локальная БД во время build была выключена, но предусмотренные fallback-пути позволили сборке завершиться успешно.
+
+Этап 4 закрыт для управляемого storefront copy. Legal pages Privacy/Offer намеренно не переводились автоматически: юридический PT-текст требует утверждённой редакции. Названия и editorial-тексты товаров/коллекций остаются языком источника до заполнения переводов в Shopify/CMS.
 
 После production-настройки Shopify остаётся провести отдельный keyboard/screen-reader smoke test внешней платёжной страницы: её DOM, branding и payment controls не управляются storefront-кодом.
 

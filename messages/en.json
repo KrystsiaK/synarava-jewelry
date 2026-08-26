@@ -317,5 +317,78 @@
     },
     "viewCart": "View cart",
     "checkout": "Checkout"
+  },
+  "service": {
+    "contactTitle": "Need a specific answer?",
+    "contactBody": "Tell us which product and destination you are considering.",
+    "contactCta": "Contact the studio",
+    "shipping": {
+      "metaTitle": "Shipping",
+      "metaDescription": "Shipping information for Synarava orders.",
+      "eyebrow": "Service / Shipping",
+      "title": "From the studio to you",
+      "intro": "Available delivery methods, costs, and the final estimate are shown at checkout for your destination.",
+      "sections": {
+        "optionsTitle": "Delivery options",
+        "optionsBody": "Enter your delivery address at checkout to see the methods currently available for your order. The final price is confirmed before payment.",
+        "preparingTitle": "Preparing your order",
+        "preparingBody": "Ready-to-ship and made-to-order products may require different preparation times. Check the product page and order confirmation for the status of each item.",
+        "trackingTitle": "Tracking",
+        "trackingBody": "When tracking is available, the carrier link is sent to the email used at checkout after the parcel has been handed over.",
+        "dutiesTitle": "Duties and taxes",
+        "dutiesBody": "International orders may be subject to local duties or import taxes. Any amount not collected at checkout is determined by the destination country."
+      }
+    },
+    "returns": {
+      "metaTitle": "Returns",
+      "metaDescription": "Return and order issue guidance for Synarava purchases.",
+      "eyebrow": "Service / Returns",
+      "title": "A considered return",
+      "intro": "If something is not right, contact the studio before sending an item back so we can confirm the correct route for your order.",
+      "sections": {
+        "startTitle": "Start a request",
+        "startBody": "Email studio@synarava.com with your order number, the product name, and the reason for the request. We will reply with the applicable return instructions.",
+        "conditionTitle": "Condition",
+        "conditionBody": "Keep the product unused, complete, and in its original packaging while the request is reviewed. Items showing wear or missing components may not be eligible.",
+        "personalisedTitle": "Personalised goods",
+        "personalisedBody": "Custom, personalised, and made-to-order products may have different return conditions. These are confirmed before the order is produced.",
+        "damageTitle": "Damage or an incorrect item",
+        "damageBody": "Contact us promptly with clear photos of the product and packaging. Do not discard the parcel until the studio confirms the next step."
+      }
+    },
+    "care": {
+      "metaTitle": "Care & Safety",
+      "metaDescription": "Care and safety guidance for goods selected by Synarava.",
+      "eyebrow": "Service / Care & Safety",
+      "title": "Keep it well",
+      "intro": "Care depends on material and intended use. Always follow the product-specific details first; the guidance below is a general starting point.",
+      "sections": {
+        "jewelryTitle": "Jewelry",
+        "jewelryBody": "Keep away from perfume, household chemicals, and prolonged moisture. Store products separately and wipe gently with a soft, dry cloth after wear.",
+        "petsTitle": "Pet accessories",
+        "petsBody": "Inspect fittings and surfaces regularly. Stop use if any part becomes loose, cracked, or damaged. Choose products appropriate for the animal’s size and supervise where stated.",
+        "kidsTitle": "Kids’ products",
+        "kidsBody": "Follow the age guidance and adult-supervision notes on the product page and packaging. Keep small parts away from children below the stated age.",
+        "toolsTitle": "Tools and materials",
+        "toolsBody": "Use protective equipment where appropriate and follow the manufacturer’s instructions. Store sharp tools, small parts, and consumables out of children’s reach."
+      }
+    },
+    "faq": {
+      "metaTitle": "FAQ",
+      "metaDescription": "Answers to common questions about the Synarava shop.",
+      "eyebrow": "Service / FAQ",
+      "title": "Before you choose",
+      "intro": "Short answers to the practical questions that tend to come up before and after an order.",
+      "sections": {
+        "makerTitle": "Is everything made by Synarava?",
+        "makerBody": "No. Synarava is a curated shop across several departments. Product pages identify the maker or vendor and describe the materials and origin when that information is available.",
+        "availabilityTitle": "How do I know an option is available?",
+        "availabilityBody": "Choose the required size, colour, or other option on the product page. Only combinations currently connected to Shopify and in stock can be added to the cart.",
+        "paymentTitle": "Where do I pay?",
+        "paymentBody": "The final payment step is handled by the secure checkout connected to the shop. Review the store name, items, total, and delivery address before completing payment.",
+        "questionTitle": "Can I ask about a product first?",
+        "questionBody": "Yes. Email studio@synarava.com with the product name or link. For fit, materials, compatibility, or safety questions, ask before ordering."
+      }
+    }
   }
 }

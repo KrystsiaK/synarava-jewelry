@@ -1,4 +1,7 @@
+"use client";
+
 import { ArtifactLink } from "@/components/ui";
+import { useTranslations } from "@/lib/i18n/context";
 
 type ServiceSection = {
   title: string;
@@ -13,6 +16,7 @@ type ServicePageProps = {
 };
 
 export function ServicePage({ eyebrow, title, intro, sections }: ServicePageProps) {
+  const { t } = useTranslations();
   return (
     <main className="artifact-shell min-h-screen bg-background pb-24 pt-32 text-foreground md:pt-40">
       <div className="site-shell">
@@ -40,11 +44,11 @@ export function ServicePage({ eyebrow, title, intro, sections }: ServicePageProp
 
         <aside className="mt-12 flex flex-col gap-5 border border-stroke bg-panel p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
           <div>
-            <p className="label-caps text-accent">Need a specific answer?</p>
-            <p className="mt-2 text-sm text-muted">Tell us which product and destination you are considering.</p>
+            <p className="label-caps text-accent">{t("service.contactTitle")}</p>
+            <p className="mt-2 text-sm text-muted">{t("service.contactBody")}</p>
           </div>
           <ArtifactLink href="mailto:studio@synarava.com" variant="inverse" size="md">
-            Contact the studio
+            {t("service.contactCta")}
           </ArtifactLink>
         </aside>
       </div>

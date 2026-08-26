@@ -124,6 +124,9 @@
       "viewAll": "Ver todos os produtos"
     }
   },
+  "theme": {
+    "appearance": "Aparência"
+  },
   "auth": {
     "email": "Email",
     "password": "Palavra-passe",
@@ -314,5 +317,78 @@
     },
     "viewCart": "Ver carrinho",
     "checkout": "Checkout"
+  },
+  "service": {
+    "contactTitle": "Precisa de uma resposta específica?",
+    "contactBody": "Indique-nos o produto e o destino que está a considerar.",
+    "contactCta": "Contactar o estúdio",
+    "shipping": {
+      "metaTitle": "Envios",
+      "metaDescription": "Informações de envio para encomendas Synarava.",
+      "eyebrow": "Serviço / Envios",
+      "title": "Do estúdio até si",
+      "intro": "Os métodos disponíveis, os custos e a estimativa final são apresentados no checkout para o seu destino.",
+      "sections": {
+        "optionsTitle": "Opções de entrega",
+        "optionsBody": "Introduza a morada no checkout para ver os métodos disponíveis para a encomenda. O preço final é confirmado antes do pagamento.",
+        "preparingTitle": "Preparação da encomenda",
+        "preparingBody": "Produtos disponíveis para envio e produtos feitos por encomenda podem ter prazos de preparação diferentes. Consulte a página do produto e a confirmação da encomenda.",
+        "trackingTitle": "Rastreio",
+        "trackingBody": "Quando existir rastreio, a ligação da transportadora é enviada para o email usado no checkout depois de a encomenda ser expedida.",
+        "dutiesTitle": "Direitos e impostos",
+        "dutiesBody": "Encomendas internacionais podem estar sujeitas a direitos ou impostos de importação locais. Qualquer valor não cobrado no checkout é determinado pelo país de destino."
+      }
+    },
+    "returns": {
+      "metaTitle": "Devoluções",
+      "metaDescription": "Orientações sobre devoluções e problemas com encomendas Synarava.",
+      "eyebrow": "Serviço / Devoluções",
+      "title": "Uma devolução ponderada",
+      "intro": "Se algo não estiver correto, contacte o estúdio antes de devolver o produto para confirmarmos o procedimento adequado.",
+      "sections": {
+        "startTitle": "Iniciar um pedido",
+        "startBody": "Envie um email para studio@synarava.com com o número da encomenda, o nome do produto e o motivo. Responderemos com as instruções aplicáveis.",
+        "conditionTitle": "Estado do produto",
+        "conditionBody": "Mantenha o produto sem uso, completo e na embalagem original enquanto o pedido é analisado. Produtos com sinais de uso ou componentes em falta podem não ser elegíveis.",
+        "personalisedTitle": "Produtos personalizados",
+        "personalisedBody": "Produtos personalizados e feitos por encomenda podem ter condições de devolução diferentes, confirmadas antes da produção.",
+        "damageTitle": "Produto danificado ou incorreto",
+        "damageBody": "Contacte-nos rapidamente com fotografias nítidas do produto e da embalagem. Não elimine a encomenda até o estúdio confirmar o próximo passo."
+      }
+    },
+    "care": {
+      "metaTitle": "Cuidados e segurança",
+      "metaDescription": "Orientações de cuidados e segurança para produtos selecionados pela Synarava.",
+      "eyebrow": "Serviço / Cuidados e segurança",
+      "title": "Cuide bem",
+      "intro": "Os cuidados dependem do material e da utilização. Siga primeiro os detalhes específicos do produto; as orientações abaixo são um ponto de partida geral.",
+      "sections": {
+        "jewelryTitle": "Joalharia",
+        "jewelryBody": "Evite perfume, produtos químicos domésticos e humidade prolongada. Guarde os produtos separadamente e limpe-os suavemente com um pano macio e seco.",
+        "petsTitle": "Acessórios para animais",
+        "petsBody": "Inspecione regularmente encaixes e superfícies. Interrompa a utilização se alguma peça ficar solta, rachada ou danificada. Escolha produtos adequados ao tamanho do animal e supervisione quando indicado.",
+        "kidsTitle": "Produtos para crianças",
+        "kidsBody": "Siga as indicações de idade e supervisão de adultos na página e embalagem do produto. Mantenha peças pequenas longe de crianças abaixo da idade indicada.",
+        "toolsTitle": "Ferramentas e materiais",
+        "toolsBody": "Use equipamento de proteção quando adequado e siga as instruções do fabricante. Guarde ferramentas afiadas, peças pequenas e consumíveis fora do alcance das crianças."
+      }
+    },
+    "faq": {
+      "metaTitle": "Perguntas frequentes",
+      "metaDescription": "Respostas a perguntas comuns sobre a loja Synarava.",
+      "eyebrow": "Serviço / Perguntas frequentes",
+      "title": "Antes de escolher",
+      "intro": "Respostas breves às questões práticas que surgem antes e depois de uma encomenda.",
+      "sections": {
+        "makerTitle": "Tudo é produzido pela Synarava?",
+        "makerBody": "Não. A Synarava é uma loja com uma seleção cuidada em vários departamentos. As páginas identificam o fabricante ou fornecedor e descrevem materiais e origem quando disponíveis.",
+        "availabilityTitle": "Como sei se uma opção está disponível?",
+        "availabilityBody": "Escolha o tamanho, cor ou outra opção na página do produto. Apenas combinações ligadas à Shopify e com stock podem ser adicionadas ao carrinho.",
+        "paymentTitle": "Onde é feito o pagamento?",
+        "paymentBody": "O pagamento final é processado pelo checkout seguro da loja. Confirme o nome da loja, os produtos, o total e a morada antes de pagar.",
+        "questionTitle": "Posso esclarecer dúvidas antes de comprar?",
+        "questionBody": "Sim. Envie um email para studio@synarava.com com o nome ou ligação do produto. Para questões de tamanho, materiais, compatibilidade ou segurança, contacte-nos antes de encomendar."
+      }
+    }
   }
 }
