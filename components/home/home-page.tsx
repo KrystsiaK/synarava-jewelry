@@ -410,7 +410,7 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
   const leadDepartment = departments.find((department) => department.image);
 
   return (
-    <section className="relative z-20 bg-[#0a0a0b] px-6 py-24 text-linen md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
+    <section className="home-dark-surface relative z-20 bg-[#0a0a0b] px-6 py-24 text-linen md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
       <div className="mx-auto grid max-w-[90rem] gap-12 md:grid-cols-[minmax(0,0.82fr)_minmax(24rem,1.18fr)] md:items-stretch md:gap-[7vw]">
         <motion.div
           className="relative min-h-[24rem] overflow-hidden md:min-h-[42rem]"

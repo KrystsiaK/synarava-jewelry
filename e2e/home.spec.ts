@@ -39,6 +39,37 @@ test.describe("Home page", () => {
     await expect(footer.getByRole("link", { name: "Returns" })).toBeVisible();
   });
 
+  test("keeps the fixed dark department surface legible in light theme", async ({ page }) => {
+    await page.goto("/");
+    const switcher = page.getByRole("banner").getByRole("group", { name: "Theme switcher" });
+    await switcher.getByRole("button", { name: "Light" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    const section = page.locator('section[aria-labelledby="department-pathway-title"]');
+    await expect(section.getByRole("heading", { name: "Choose where to begin." })).toBeVisible();
+
+    const colors = await section.evaluate((element) => {
+      const sectionStyle = getComputedStyle(element);
+      const heading = element.querySelector("h2");
+      const body = element.querySelector("h2 + p");
+      return {
+        background: sectionStyle.backgroundColor,
+        linen: sectionStyle.getPropertyValue("--color-linen").trim(),
+        stoneBeige: sectionStyle.getPropertyValue("--color-stone-beige").trim(),
+        heading: heading ? getComputedStyle(heading).color : "",
+        body: body ? getComputedStyle(body).color : "",
+      };
+    });
+
+    expect(colors).toMatchObject({
+      background: "rgb(10, 10, 11)",
+      linen: "#f9f8f6",
+      stoneBeige: "#ddd8d1",
+      heading: "rgb(249, 248, 246)",
+    });
+    expect(colors.body).toContain("/ 0.72)");
+  });
+
   test("cart link is present in header", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("link", { name: /Cart/ })).toBeVisible();

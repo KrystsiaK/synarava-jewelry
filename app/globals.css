@@ -617,6 +617,14 @@ html[data-theme="dark"] .home-experience {
     linear-gradient(180deg, #0a0a0b 0%, #121214 52%, #070708 100%);
 }
 
+/* Fixed dark editorial surfaces must not inherit the light theme's dark ink tokens. */
+.home-dark-surface {
+  color-scheme: dark;
+  --color-linen: #f9f8f6;
+  --color-stone-beige: #ddd8d1;
+  --color-couture-red: #e44b61;
+}
+
 .home-hero-fade {
   background: linear-gradient(
     to top,
