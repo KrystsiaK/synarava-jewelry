@@ -1090,10 +1090,11 @@ function FinalFooter() {
   );
 }
 
-function CompactFinalCTA({ title, body, ctaLabel, ctaHref }: { title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
+function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections?: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.22 });
   const reduceMotion = useReducedMotion() ?? false;
+  const images = useMemo(() => buildFinalCtaImages(collections ?? []).slice(0, 2), [collections]);
 
   return (
     <section
@@ -1108,8 +1109,9 @@ function CompactFinalCTA({ title, body, ctaLabel, ctaHref }: { title?: string; b
         transition={{ duration: 0.8, ease: FINAL_SCENE_EASE }}
         aria-hidden="true"
       />
-      <div className="relative mx-auto flex min-h-[min(42rem,100svh)] max-w-[90rem] flex-col">
+      <div className="relative mx-auto flex min-h-[min(54rem,112svh)] max-w-[90rem] flex-col">
         <motion.div
+          className="flex flex-1 flex-col"
           initial={false}
           animate={inView && !reduceMotion ? { y: [28, 0], opacity: [0.72, 1] } : { y: 0, opacity: 1 }}
           transition={{ duration: 0.58, ease: FINAL_SCENE_EASE }}
@@ -1129,6 +1131,62 @@ function CompactFinalCTA({ title, body, ctaLabel, ctaHref }: { title?: string; b
               <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
+
+          {images.length > 0 ? (
+            <div className="relative mb-12 h-[40svh] min-h-80 overflow-hidden" aria-hidden="true">
+              <motion.div
+                data-mobile-final-shard
+                className="absolute left-[-8%] top-[4%] h-[82%] w-[68%] overflow-hidden bg-[#111] [clip-path:polygon(10%_0,100%_8%,88%_100%,0_84%)]"
+                initial={false}
+                animate={inView && !reduceMotion
+                  ? { x: 0, y: 0, rotate: -4, opacity: 1 }
+                  : { x: "-14vw", y: "4vh", rotate: -9, opacity: reduceMotion ? 1 : 0.35 }}
+                transition={{ duration: 0.78, ease: FINAL_SCENE_EASE }}
+              >
+                <Image
+                  src={images[0].image}
+                  alt=""
+                  fill
+                  sizes="72vw"
+                  className="object-cover grayscale contrast-125 brightness-[0.68]"
+                />
+                <div className="absolute inset-[6%] border border-linen/25 [clip-path:polygon(8%_0,100%_8%,89%_100%,0_82%)]" />
+              </motion.div>
+
+              {images[1] ? (
+                <motion.div
+                  data-mobile-final-shard
+                  className="absolute bottom-[3%] right-[-7%] h-[68%] w-[58%] overflow-hidden bg-[#111] [clip-path:polygon(18%_8%,100%_0,91%_90%,0_100%)]"
+                  initial={false}
+                  animate={inView && !reduceMotion
+                    ? { x: 0, y: 0, rotate: 5, opacity: 0.92 }
+                    : { x: "16vw", y: "6vh", rotate: 11, opacity: reduceMotion ? 0.92 : 0.25 }}
+                  transition={{ duration: 0.82, delay: 0.06, ease: FINAL_SCENE_EASE }}
+                >
+                  <Image
+                    src={images[1].image}
+                    alt=""
+                    fill
+                    sizes="62vw"
+                    className="object-cover grayscale contrast-125 brightness-[0.58]"
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(145deg,transparent_35%,rgba(166,25,46,0.28))]" />
+                </motion.div>
+              ) : null}
+
+              <motion.div
+                className="final-sigil absolute left-1/2 top-1/2 z-10 size-36 -translate-x-1/2 -translate-y-1/2"
+                initial={false}
+                animate={inView && !reduceMotion ? { scale: 1, rotate: 3, opacity: 1 } : { scale: reduceMotion ? 1 : 0.2, rotate: -6, opacity: reduceMotion ? 1 : 0 }}
+                transition={{ duration: 0.72, delay: 0.12, ease: FINAL_SCENE_EASE }}
+              >
+                <div className="final-sigil__aura" />
+                <div className="final-sigil__mark" />
+                <div className="final-sigil__edge" />
+              </motion.div>
+            </div>
+          ) : null}
+
           <FinalFooter />
         </motion.div>
       </div>
@@ -1211,6 +1269,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   if (images.length !== 4) {
     return (
       <CompactFinalCTA
+        collections={collections}
         title={title}
         body={body}
         ctaLabel={ctaLabel}
@@ -1339,8 +1398,8 @@ function FinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections
   return isDesktop && !isIOSWebKit
     ? collections.length > 0
       ? <DesktopFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
-      : <CompactFinalCTA title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
-    : <CompactFinalCTA title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />;
+      : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
+    : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />;
 }
 
 export function HomePage({ collections, departments, heroVideoSrc, content }: HomePageProps) {

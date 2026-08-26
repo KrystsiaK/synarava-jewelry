@@ -109,6 +109,18 @@ test.describe("Home page", () => {
     await expect.poll(() => clipPath(rawObsidian)).toContain("0% 0%");
   });
 
+  test("keeps a lightweight two-shard final animation on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const finalScene = page.locator(".home-final-scene").last();
+    await finalScene.scrollIntoViewIfNeeded();
+    await expect(finalScene.locator("[data-mobile-final-shard]")).toHaveCount(2);
+    await expect(finalScene.locator("[data-mobile-final-shard]").first()).toBeVisible();
+    await expect(finalScene.getByText("Objects shaped slowly,")).toBeVisible();
+    await expect(finalScene.getByRole("link", { name: "studio@synarava.com" })).toBeVisible();
+  });
+
   test("does not remeasure Home targets on every scroll frame", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
