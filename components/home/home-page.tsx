@@ -56,8 +56,6 @@ type LexiconMaterial = {
   properties: string[];
 };
 
-const STAMP_CLASS = "border-[3px] border-couture-red text-couture-red px-4 py-2 inline-block uppercase font-bold tracking-[0.2em] bg-background select-none shadow-sm";
-
 const SCROLL_SPRING = {
   stiffness: 92,
   damping: 26,
@@ -1039,35 +1037,32 @@ function ManifestoQuote({ quote }: { quote?: string }) {
   }
 
   return (
-    <section className="py-32 px-6 flex items-center justify-center bg-transparent text-linen min-h-screen relative overflow-hidden">
-      {/* Grid overlay */}
-      <div className="home-theme-grid absolute inset-0 pointer-events-none select-none" />
+    <section className="home-manifesto relative overflow-hidden bg-transparent px-5 py-24 text-linen md:flex md:min-h-screen md:items-center md:justify-center md:px-[4vw] md:py-32">
+      <div className="home-theme-grid pointer-events-none absolute inset-0 select-none opacity-50" />
+      <div className="home-manifesto-glow pointer-events-none absolute inset-0 select-none" />
 
-      {/* Red ambient museum glow in background (no brown) */}
-      <div className="home-manifesto-glow absolute inset-0 pointer-events-none select-none" />
-
-      <div className="absolute left-10 top-10 font-sans text-[10px] text-couture-red tracking-[0.4em] rotate-90 origin-left select-none opacity-60">
+      <div className="absolute left-10 top-10 hidden origin-left rotate-90 select-none font-sans text-[10px] tracking-[0.4em] text-couture-red opacity-60 md:block">
         DIRECTIVE // 099
       </div>
 
-      <div className="max-w-6xl relative z-10 flex flex-col items-center">
-        {/* Red stamp */}
-        <div className={`${STAMP_CLASS} mb-12 -rotate-6 text-sm border-2 border-couture-red !text-couture-red`}>
-          CLASSIFIED DIRECTIVE
+      <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-start md:items-center">
+        <div className="mb-8 flex items-center gap-3 font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-couture-red md:mb-12">
+          <span className="h-px w-8 bg-couture-red" aria-hidden="true" />
+          06 / A principle to keep
         </div>
 
-        <h2 className="font-serif text-[clamp(2.4rem,7.5vw,7.5vw)] text-linen italic leading-[1.05] mb-12 font-light text-center relative max-w-5xl">
-          <span className="absolute -top-12 -left-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&ldquo;</span>
+        <h2 className="relative max-w-5xl text-balance text-left font-serif text-[clamp(2.35rem,10.5vw,7rem)] font-light italic leading-[1.02] text-linen md:text-center">
+          <span className="absolute -left-12 -top-16 hidden select-none font-serif text-[15vw] leading-none text-stone-beige opacity-10 md:block">&ldquo;</span>
           {quote}
-          <span className="absolute -bottom-24 -right-12 text-[15vw] text-stone-beige opacity-10 font-serif leading-none select-none">&rdquo;</span>
+          <span className="absolute -bottom-24 -right-12 hidden select-none font-serif text-[15vw] leading-none text-stone-beige opacity-10 md:block">&rdquo;</span>
         </h2>
 
-        <div className="flex items-center gap-4 mt-8">
-          <div className="w-12 h-px bg-couture-red" />
-          <span className="font-sans text-[10px] text-linen uppercase tracking-[0.25em] font-bold">
+        <div className="mt-10 flex items-center gap-4 md:mt-14">
+          <div className="h-px w-10 bg-couture-red md:w-12" />
+          <span className="font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-linen md:text-[10px] md:tracking-[0.25em]">
             The Synarava Manifesto // Vol 1.
           </span>
-          <div className="w-12 h-px bg-couture-red" />
+          <div className="hidden h-px w-12 bg-couture-red md:block" />
         </div>
       </div>
     </section>
@@ -1099,11 +1094,11 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   return (
     <section
       ref={ref}
-      className="home-final-scene relative overflow-hidden bg-background px-5 py-16 text-linen"
+      className="home-dark-surface home-final-scene relative overflow-hidden bg-[#08090a] px-5 pb-10 pt-20 text-white"
     >
-      <div className="home-theme-grid pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="home-theme-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden="true" />
       <motion.div
-        className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-couture-red/20 blur-3xl"
+        className="pointer-events-none absolute left-1/2 top-[48%] h-80 w-80 -translate-x-1/2 rounded-full bg-couture-red/20 blur-3xl"
         initial={false}
         animate={inView && !reduceMotion ? { scale: [0.72, 1], opacity: [0.18, 0.48] } : { scale: 1, opacity: 0.28 }}
         transition={{ duration: 0.8, ease: FINAL_SCENE_EASE }}
@@ -1116,11 +1111,15 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
           animate={inView && !reduceMotion ? { y: [28, 0], opacity: [0.72, 1] } : { y: 0, opacity: 1 }}
           transition={{ duration: 0.58, ease: FINAL_SCENE_EASE }}
         >
-          <div className="max-w-sm pb-14">
-            <p className="font-serif text-lg italic text-stone-beige/65">
+          <div className="relative z-20 max-w-sm pb-10">
+            <p className="mb-5 flex items-center gap-3 font-sans text-[0.6rem] font-bold uppercase tracking-[0.2em] text-couture-red">
+              <span className="h-px w-8 bg-couture-red" aria-hidden="true" />
+              07 / Continue the story
+            </p>
+            <p className="font-serif text-base italic leading-7 text-white/68">
               {body}
             </p>
-            <h2 className="mt-5 text-balance font-serif text-5xl font-bold leading-[0.9] tracking-[-0.035em] text-linen">
+            <h2 className="mt-5 max-w-[10ch] text-balance font-serif text-[clamp(3rem,14vw,4.5rem)] font-bold leading-[0.88] tracking-[-0.04em] text-white">
               {title}
             </h2>
             <Link
@@ -1133,14 +1132,16 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
           </div>
 
           {images.length > 0 ? (
-            <div className="relative mb-12 h-[40svh] min-h-80 overflow-hidden" aria-hidden="true">
+            <div className="relative mb-14 h-[42svh] min-h-80 overflow-visible" aria-hidden="true">
               <motion.div
                 data-mobile-final-shard
-                className="absolute left-[-8%] top-[4%] h-[82%] w-[68%] overflow-hidden bg-[#111] [clip-path:polygon(10%_0,100%_8%,88%_100%,0_84%)]"
+                className="absolute left-[-13%] top-[6%] h-[78%] w-[70%] overflow-hidden bg-[#111] shadow-[0_28px_70px_rgba(0,0,0,0.45)] [clip-path:polygon(10%_0,100%_8%,88%_100%,0_84%)]"
                 initial={false}
-                animate={inView && !reduceMotion
+                animate={reduceMotion
                   ? { x: 0, y: 0, rotate: -4, opacity: 1 }
-                  : { x: "-14vw", y: "4vh", rotate: -9, opacity: reduceMotion ? 1 : 0.35 }}
+                  : inView
+                    ? { x: 0, y: 0, rotate: -4, opacity: 1 }
+                    : { x: "-14vw", y: "4vh", rotate: -9, opacity: 0.35 }}
                 transition={{ duration: 0.78, ease: FINAL_SCENE_EASE }}
               >
                 <Image
@@ -1156,11 +1157,13 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
               {images[1] ? (
                 <motion.div
                   data-mobile-final-shard
-                  className="absolute bottom-[3%] right-[-7%] h-[68%] w-[58%] overflow-hidden bg-[#111] [clip-path:polygon(18%_8%,100%_0,91%_90%,0_100%)]"
+                  className="absolute bottom-[1%] right-[-12%] h-[66%] w-[60%] overflow-hidden bg-[#111] shadow-[0_28px_70px_rgba(0,0,0,0.5)] [clip-path:polygon(18%_8%,100%_0,91%_90%,0_100%)]"
                   initial={false}
-                  animate={inView && !reduceMotion
+                  animate={reduceMotion
                     ? { x: 0, y: 0, rotate: 5, opacity: 0.92 }
-                    : { x: "16vw", y: "6vh", rotate: 11, opacity: reduceMotion ? 0.92 : 0.25 }}
+                    : inView
+                      ? { x: 0, y: 0, rotate: 5, opacity: 0.92 }
+                      : { x: "16vw", y: "6vh", rotate: 11, opacity: 0.25 }}
                   transition={{ duration: 0.82, delay: 0.06, ease: FINAL_SCENE_EASE }}
                 >
                   <Image
@@ -1175,9 +1178,13 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
               ) : null}
 
               <motion.div
-                className="final-sigil absolute left-1/2 top-1/2 z-10 size-36 -translate-x-1/2 -translate-y-1/2"
+                className="final-sigil absolute left-1/2 top-1/2 z-10 size-[clamp(10rem,48vw,13rem)] -translate-x-1/2 -translate-y-1/2"
                 initial={false}
-                animate={inView && !reduceMotion ? { scale: 1, rotate: 3, opacity: 1 } : { scale: reduceMotion ? 1 : 0.2, rotate: -6, opacity: reduceMotion ? 1 : 0 }}
+                animate={reduceMotion
+                  ? { scale: 1, rotate: 3, opacity: 1 }
+                  : inView
+                    ? { scale: 1, rotate: 3, opacity: 1 }
+                    : { scale: 0.2, rotate: -6, opacity: 0 }}
                 transition={{ duration: 0.72, delay: 0.12, ease: FINAL_SCENE_EASE }}
               >
                 <div className="final-sigil__aura" />
@@ -1281,7 +1288,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   return (
     <section
       ref={ref}
-      className="home-final-scene relative h-[300svh] bg-transparent text-linen md:h-[280vh]"
+      className="home-dark-surface home-final-scene relative h-[300svh] bg-[#08090a] text-white md:h-[280vh]"
     >
       <div className="sticky top-0 h-svh overflow-hidden px-5 py-20 md:px-[4vw] md:py-24">
         <div className="home-theme-grid pointer-events-none absolute inset-0" aria-hidden="true" />
@@ -1292,10 +1299,10 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
           className="relative z-20 max-w-[48rem] pt-4 md:pt-0"
           style={{ y: introY, opacity: introOpacity }}
         >
-          <p className="mb-6 max-w-sm font-serif text-lg italic text-stone-beige/65 md:mb-8 md:text-xl">
+          <p className="mb-6 max-w-sm font-serif text-lg italic text-white/68 md:mb-8 md:text-xl">
             {body}
           </p>
-          <h2 className="max-w-[10ch] text-balance font-serif text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-linen">
+          <h2 className="max-w-[10ch] text-balance font-serif text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-white">
             {title}
           </h2>
 
@@ -1309,7 +1316,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
             </Link>
             <Link
               href="/about"
-              className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
+              className="group inline-flex items-center gap-2 border-b border-white/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/70 transition-colors hover:border-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
             >
               The studio
               <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />

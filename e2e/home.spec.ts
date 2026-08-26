@@ -65,8 +65,8 @@ test.describe("Home page", () => {
 
     expect(colors).toMatchObject({
       background: "rgb(10, 10, 11)",
-      linen: "#ffffff",
-      stoneBeige: "#ffffff",
+      linen: "#fff",
+      stoneBeige: "#fff",
       heading: "rgb(255, 255, 255)",
     });
     expect(colors.body).toContain("/ 0.8)");
@@ -119,6 +119,9 @@ test.describe("Home page", () => {
     await expect(finalScene.locator("[data-mobile-final-shard]").first()).toBeVisible();
     await expect(finalScene.getByText("Objects shaped slowly,")).toBeVisible();
     await expect(finalScene.getByRole("link", { name: "studio@synarava.com" })).toBeVisible();
+    expect(await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )).toBe(false);
   });
 
   test("does not remeasure Home targets on every scroll frame", async ({ page }) => {

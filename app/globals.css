@@ -654,6 +654,15 @@ html[data-theme="dark"] .home-theme-grid {
   background: radial-gradient(circle at 50% 50%, rgba(166, 25, 46, 0.09), transparent 68%);
 }
 
+.home-manifesto::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: clamp(5rem, 14vw, 11rem);
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(to bottom, transparent, #08090a);
+}
+
 .home-material-plate {
   box-shadow: 0 18px 48px rgba(48, 41, 34, 0.14);
 }
@@ -1073,14 +1082,16 @@ html[data-theme="light"] .site-nav-brand .brand-mark::before {
   display: none;
 }
 
-html[data-theme="dark"] .final-sigil__aura {
+html[data-theme="dark"] .final-sigil__aura,
+.home-dark-surface .final-sigil__aura {
   inset: 14%;
   background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, color-mix(in srgb, var(--color-accent-soft) 22%, transparent) 34%, transparent 70%);
   filter: blur(24px);
   animation: final-sigil-breathe 4.8s ease-in-out infinite alternate;
 }
 
-html[data-theme="dark"] .final-sigil__mark {
+html[data-theme="dark"] .final-sigil__mark,
+.home-dark-surface .final-sigil__mark {
   background: linear-gradient(
     112deg,
     #f9f8f6 0%,
@@ -1098,7 +1109,8 @@ html[data-theme="dark"] .final-sigil__mark {
   opacity: 1;
 }
 
-html[data-theme="dark"] .final-sigil__edge {
+html[data-theme="dark"] .final-sigil__edge,
+.home-dark-surface .final-sigil__edge {
   display: block;
   background: linear-gradient(105deg, transparent 34%, color-mix(in srgb, var(--color-linen) 92%, transparent) 48%, color-mix(in srgb, var(--color-accent-soft) 80%, var(--color-linen)) 51%, transparent 64%);
   background-position: 48% 0;
