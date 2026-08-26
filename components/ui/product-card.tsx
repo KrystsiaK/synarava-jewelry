@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ProductSummary } from "@/lib/content/catalog";
+import { useTranslations } from "@/lib/i18n/context";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -23,6 +24,7 @@ export function ProductCard({
   isParentInView,
   offsetClass,
 }: ProductCardProps) {
+  const { t } = useTranslations();
   const [imgError, setImgError] = useState(false);
   const aspectClass = isFeatured ? "aspect-[16/9]" : "aspect-[3/4]";
 
@@ -42,7 +44,11 @@ export function ProductCard({
         >
           {imgError ? (
             /* ── Broken image fallback ─────────────────────────────── */
-            <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-stone-beige/60">
+            <div
+              className="flex h-full w-full flex-col items-center justify-center gap-3 bg-stone-beige/60"
+              role="img"
+              aria-label={t("product.imageUnavailable")}
+            >
               <svg
                 viewBox="0 0 48 48"
                 fill="none"
@@ -53,7 +59,7 @@ export function ProductCard({
                 <circle cx="18" cy="20" r="4" stroke="currentColor" strokeWidth="1.5" />
                 <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
               </svg>
-              <span className="label-mono text-[0.65rem] text-foreground/25">Image unavailable</span>
+              <span className="label-mono text-[0.65rem] text-foreground/55">{t("product.imageUnavailable")}</span>
             </div>
           ) : (
             <motion.div

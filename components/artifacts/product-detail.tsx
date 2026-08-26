@@ -22,12 +22,15 @@ import {
   getProductPresentation,
 } from "@/lib/catalog/product-presentation";
 import type { ProductSummary } from "@/lib/content/catalog";
+import { useTranslations } from "@/lib/i18n/context";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
 function ProductHero({ product }: { product: ProductSummary }) {
+  const { t } = useTranslations();
   const ref = useRef<HTMLElement>(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "12%"]);
@@ -64,7 +67,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.25, ease, delay: 0.1 }}
       >
-        {product.image ? (
+        {product.image && !imageFailed ? (
           <Image
             src={product.image}
             alt={product.title}
@@ -73,8 +76,18 @@ function ProductHero({ product }: { product: ProductSummary }) {
             quality={90}
             sizes="(max-width: 768px) 100vw, 68vw"
             className="object-cover brightness-[0.88] contrast-[1.06] saturate-[1.08]"
+            onError={() => setImageFailed(true)}
           />
-        ) : null}
+        ) : (
+          <div
+            className="flex h-full w-full flex-col items-center justify-center gap-5 bg-surface text-foreground/55"
+            role="img"
+            aria-label={t("product.imageUnavailable")}
+          >
+            <span className="size-20 rotate-45 border border-current" aria-hidden="true" />
+            <span className="label-mono text-[0.68rem]">{t("product.imageUnavailable")}</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-background/5 via-transparent to-background/15" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
       </motion.div>

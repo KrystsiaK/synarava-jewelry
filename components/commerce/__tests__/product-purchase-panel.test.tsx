@@ -72,6 +72,18 @@ describe("ProductPurchasePanel", () => {
     expect(screen.getByRole("button", { name: "Large" })).toBeDisabled();
   });
 
+  it("blocks purchase when every variant is out of stock", () => {
+    const unavailable = {
+      ...product,
+      variantDetails: product.variantDetails.map((variant) => ({ ...variant, stockOnHand: 0 })),
+    };
+
+    render(<ProductPurchasePanel product={unavailable} />);
+
+    expect(screen.getByText("This option is unavailable")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+  });
+
   it("moves to an available combination instead of trapping multi-option selection", () => {
     const multiOptionProduct = {
       ...product,

@@ -296,6 +296,7 @@
     "shopifyUnavailable": "Unavailable in Shopify",
     "selectOption": "Select an option",
     "currentlyUnavailable": "Currently unavailable",
+    "imageUnavailable": "Image unavailable",
     "purchaseInformation": "Purchase information",
     "delivery": "Delivery",
     "deliveryDetail": "Calculated at checkout",
