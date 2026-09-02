@@ -126,6 +126,10 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
           <AddToCartButton
             productSlug={product.slug}
             merchandiseId={selectedVariant?.merchandiseId ?? undefined}
+            sku={selectedVariant?.sku || product.sku}
+            itemName={product.title}
+            value={selectedVariant?.priceAmount ?? product.priceAmount}
+            currency={product.currency}
             disabled={!isAvailable}
             unavailableLabel={purchasableVariants.length === 0 ? t("product.shopifyUnavailable") : t("product.currentlyUnavailable")}
           />

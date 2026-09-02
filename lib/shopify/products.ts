@@ -13,7 +13,9 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 
 type ShopifyProduct = {
+  id: string;
   handle: string;
+  updatedAt: string;
   title: string;
   description: string;
   productType: string;
@@ -25,7 +27,11 @@ type ShopifyProduct = {
   collections: { nodes: Array<{ handle: string; title: string }> };
   variants: {
     nodes: Array<{
+      id: string;
       availableForSale: boolean;
+      sku: string | null;
+      price: { amount: string; currencyCode: string };
+      compareAtPrice: { amount: string; currencyCode: string } | null;
       selectedOptions: Array<{ name: string; value: string }>;
     }>;
   };
@@ -58,19 +64,24 @@ function toProductSummary(product: ShopifyProduct, locale: Locale): ProductSumma
   const department = inferDepartment(product);
   const leadCollection = product.collections.nodes[0];
   const firstAvailableVariant = product.variants.nodes.find((variant) => variant.availableForSale);
+  const primaryVariant = firstAvailableVariant ?? product.variants.nodes[0];
+  const priceAmount = Number.parseFloat(product.priceRange.minVariantPrice.amount);
   const attributes = (firstAvailableVariant?.selectedOptions ?? [])
     .filter((option) => option.value !== "Default Title")
     .map((option) => ({ label: option.name, value: option.value }));
 
   return {
     slug: product.handle,
-    sku: "",
+    sku: primaryVariant?.sku ?? "",
     series: product.vendor === "Synarava" ? "" : product.vendor,
     title: product.title,
     shortDescription: product.description,
     description: product.description,
     price: formatCurrency(Number.parseFloat(product.priceRange.minVariantPrice.amount), product.priceRange.minVariantPrice.currencyCode, locale),
+    priceAmount,
+    currency: product.priceRange.minVariantPrice.currencyCode,
     compareAtPrice: "",
+    compareAtAmount: null,
     stockOnHand: product.variants.nodes.some((variant) => variant.availableForSale) ? 1 : 0,
     variantCount: product.variants.nodes.length,
     vendor: product.vendor,
@@ -82,7 +93,21 @@ function toProductSummary(product: ShopifyProduct, locale: Locale): ProductSumma
       height: null,
     }] : [],
     options: [],
-    variantDetails: [],
+    variantDetails: product.variants.nodes.map((variant) => ({
+      merchandiseId: variant.id,
+      title: variant.selectedOptions.map((option) => option.value).join(" / ") || "Default",
+      sku: variant.sku ?? "",
+      barcode: "",
+      price: formatCurrency(Number.parseFloat(variant.price.amount), variant.price.currencyCode, locale),
+      priceAmount: Number.parseFloat(variant.price.amount),
+      compareAtPrice: variant.compareAtPrice
+        ? formatCurrency(Number.parseFloat(variant.compareAtPrice.amount), variant.compareAtPrice.currencyCode, locale)
+        : "",
+      compareAtAmount: variant.compareAtPrice ? Number.parseFloat(variant.compareAtPrice.amount) : null,
+      stockOnHand: variant.availableForSale ? 1 : 0,
+      weightGrams: null,
+      selectedOptions: variant.selectedOptions,
+    })),
     image: product.featuredImage?.url ?? "",
     collectionSlug: leadCollection?.handle ?? "",
     collectionName: leadCollection?.title ?? "",
@@ -106,12 +131,15 @@ function toProductSummary(product: ShopifyProduct, locale: Locale): ProductSumma
     lookbookEyebrow: "",
     lookbookTitle: "",
     lookbook: [],
+    updatedAt: new Date(product.updatedAt),
   };
 }
 
 const PRODUCT_FIELDS = `#graphql
   fragment SynaravaStorefrontProductFields on Product {
+    id
     handle
+    updatedAt
     title
     description
     productType
@@ -125,7 +153,11 @@ const PRODUCT_FIELDS = `#graphql
     }
     variants(first: 20) {
       nodes {
+        id
         availableForSale
+        sku
+        price { amount currencyCode }
+        compareAtPrice { amount currencyCode }
         selectedOptions { name value }
       }
     }

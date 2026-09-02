@@ -8,6 +8,8 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeScript } from "@/components/theme/theme-script";
+import { WebVitalsReporter } from "@/components/telemetry/web-vitals-reporter";
+import { ShopifyPrivacyBanner } from "@/components/privacy/shopify-privacy-banner";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -100,6 +102,12 @@ export default async function RootLayout({
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
   const initialLocale = normalizeLocale(cookieStore.get("synarava-locale")?.value);
+  const privacyBannerConfig = {
+    storefrontAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+    checkoutRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_CHECKOUT_ROOT_DOMAIN,
+    storefrontRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ROOT_DOMAIN,
+  };
+  const privacyBannerEnabled = Object.values(privacyBannerConfig).every(Boolean);
   const [cartCount, isLoggedIn] = await Promise.all([
     getStorefrontCartCount(),
     isShopifyCommerceEnabled()
@@ -116,6 +124,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
+        <WebVitalsReporter />
         <a href="#main-content" className="skip-link">
           {initialLocale === "pt" ? "Saltar para o conteúdo principal" : "Skip to main content"}
         </a>
@@ -139,6 +148,14 @@ export default async function RootLayout({
         />
         <ThemeScript initialPreference={themePreference} nonce={nonce} />
         <TranslationProvider initialLocale={initialLocale}>
+          {privacyBannerEnabled ? (
+            <ShopifyPrivacyBanner
+              storefrontAccessToken={privacyBannerConfig.storefrontAccessToken!}
+              checkoutRootDomain={privacyBannerConfig.checkoutRootDomain!}
+              storefrontRootDomain={privacyBannerConfig.storefrontRootDomain!}
+              locale={initialLocale}
+            />
+          ) : null}
           <svg
             id="lg-filter-svg"
             style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}

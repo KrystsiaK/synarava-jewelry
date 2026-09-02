@@ -25,6 +25,7 @@ export type CollectionSummary = {
   summary: string;
   heroImage: string;
   accent: string;
+  updatedAt: Date;
 };
 
 export type ProductSummary = {
@@ -35,7 +36,10 @@ export type ProductSummary = {
   shortDescription: string;
   description: string;
   price: string;
+  priceAmount: number;
+  currency: string;
   compareAtPrice: string;
+  compareAtAmount: number | null;
   stockOnHand: number;
   variantCount: number;
   vendor: string;
@@ -48,7 +52,9 @@ export type ProductSummary = {
     sku: string;
     barcode: string;
     price: string;
+    priceAmount: number;
     compareAtPrice: string;
+    compareAtAmount: number | null;
     stockOnHand: number;
     weightGrams: number | null;
     selectedOptions: Array<{ name: string; value: string }>;
@@ -76,6 +82,7 @@ export type ProductSummary = {
   lookbookEyebrow: string;
   lookbookTitle: string;
   lookbook: ProductLookbookStory[];
+  updatedAt: Date;
 };
 
 export type ShopFilters = {
@@ -157,6 +164,7 @@ function toSummary(product: {
   description: string | null;
   priceCents: number;
   currency: string;
+  updatedAt: Date;
   vendor: string | null;
   shopifyCategoryName: string | null;
   shopifySnapshot: unknown;
@@ -237,7 +245,10 @@ function toSummary(product: {
     shortDescription: product.shortDescription ?? "",
     description: product.description ?? "",
     price: priceFromCents(product.priceCents, product.currency, locale),
+    priceAmount: product.priceCents / 100,
+    currency: product.currency,
     compareAtPrice: compareAtCents == null ? "" : priceFromCents(compareAtCents, product.currency, locale),
+    compareAtAmount: compareAtCents == null ? null : compareAtCents / 100,
     stockOnHand,
     variantCount: product.variants.length,
     vendor: product.vendor ?? "",
@@ -259,7 +270,9 @@ function toSummary(product: {
         sku: variant.sku,
         barcode: variant.barcode ?? "",
         price: priceFromCents(variant.priceCents, product.currency, locale),
+        priceAmount: variant.priceCents / 100,
         compareAtPrice: variant.compareAtCents == null ? "" : priceFromCents(variant.compareAtCents, product.currency, locale),
+        compareAtAmount: variant.compareAtCents == null ? null : variant.compareAtCents / 100,
         stockOnHand: variant.stockOnHand,
         weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
         selectedOptions,
@@ -290,6 +303,7 @@ function toSummary(product: {
     lookbookEyebrow: details.lookbookEyebrow ?? "",
     lookbookTitle: details.lookbookTitle ?? "",
     lookbook: details.lookbook ?? [],
+    updatedAt: product.updatedAt,
   };
 }
 
@@ -333,6 +347,7 @@ export async function listCollections() {
     summary: collection.description ?? "",
     heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
     accent: collection.code ?? "",
+    updatedAt: collection.updatedAt,
   }));
 }
 
@@ -357,6 +372,7 @@ export async function getCollectionBySlug(slug: string) {
     symbolismTitle: collection.symbolismTitle ?? "",
     symbolismBody: collection.symbolismBody ?? "",
     symbolismBody2: collection.symbolismBody2 ?? "",
+    updatedAt: collection.updatedAt,
   };
 }
 

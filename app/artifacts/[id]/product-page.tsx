@@ -5,6 +5,7 @@ import { getProductBySlug } from "@/lib/content/catalog";
 import { getSiteVideos } from "@/lib/site-videos";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
+import { buildProductJsonLd } from "@/lib/seo/product-json-ld";
 
 function safeJsonLd(obj: unknown): string {
   return JSON.stringify(obj)
@@ -27,9 +28,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: product.title,
     description: product.shortDescription,
-    alternates: { canonical: `/products/${key}` },
+    alternates: { canonical: `/products/${product.slug}` },
     openGraph: {
-      url: `/products/${key}`,
+      url: `/products/${product.slug}`,
       images: product.image
         ? [{ url: product.image, width: 1200, height: 630, alt: product.title }]
         : [],
@@ -44,23 +45,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
-  const priceCents = parseFloat(product.price.replace(/[^0-9.]/g, ""));
-
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.title,
-    description: product.shortDescription,
-    ...(product.image ? { image: product.image } : {}),
-    sku: product.slug,
-    brand: { "@type": "Brand", name: "Synarava" },
-    offers: {
-      "@type": "Offer",
-      priceCurrency: "EUR",
-      price: isNaN(priceCents) ? undefined : priceCents,
-      seller: { "@type": "Organization", name: "Synarava" },
-    },
-  };
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const productJsonLd = buildProductJsonLd(product, siteUrl);
 
   const breadcrumbs = getProductBreadcrumbs(product);
   const breadcrumbJsonLd = {
@@ -70,7 +56,7 @@ export default async function ProductDetailPage({ params }: Props) {
       "@type": "ListItem",
       position: index + 1,
       name: item.label,
-      item: item.href ?? `/products/${key}`,
+      item: new URL(item.href ?? `/products/${product.slug}`, siteUrl).toString(),
     })),
   };
 

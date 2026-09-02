@@ -11,6 +11,10 @@ import { useTranslations } from "@/lib/i18n/context";
 type AddToCartButtonProps = {
   productSlug: string;
   merchandiseId?: string;
+  sku?: string;
+  itemName?: string;
+  value?: number;
+  currency?: string;
   disabled?: boolean;
   unavailableLabel?: string;
 };
@@ -18,6 +22,10 @@ type AddToCartButtonProps = {
 export function AddToCartButton({
   productSlug,
   merchandiseId,
+  sku,
+  itemName,
+  value,
+  currency,
   disabled = false,
   unavailableLabel,
 }: AddToCartButtonProps) {
@@ -57,6 +65,10 @@ export function AddToCartButton({
       trackCommerceEvent("add_to_cart", {
         productSlug,
         merchandiseId,
+        sku,
+        itemName,
+        value,
+        currency,
         quantity: 1,
         cartCount: payload.count ?? 0,
       });

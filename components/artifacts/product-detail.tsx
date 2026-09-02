@@ -928,11 +928,16 @@ export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummar
     trackedProduct.current = product.slug;
     trackCommerceEvent("view_item", {
       productSlug: product.slug,
+      sku: product.sku,
+      itemName: product.title,
+      value: product.priceAmount,
+      currency: product.currency,
+      collection: product.collectionSlug,
       department: product.departmentSlug,
       category: product.categorySlug,
       available: product.stockOnHand > 0,
     });
-  }, [product.categorySlug, product.departmentSlug, product.slug, product.stockOnHand]);
+  }, [product.categorySlug, product.collectionSlug, product.currency, product.departmentSlug, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
 
   return (
     <main
