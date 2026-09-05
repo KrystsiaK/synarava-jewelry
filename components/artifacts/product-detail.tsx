@@ -92,84 +92,83 @@ function ProductHero({ product }: { product: ProductSummary }) {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
       </motion.div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-background via-background/92 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[44%] bg-gradient-to-t from-background via-background/82 to-transparent" />
       <div className="pointer-events-none absolute -right-6 bottom-[4%] hidden font-serif text-[16vw] leading-none text-foreground/[0.025] md:block [writing-mode:vertical-rl]">
         {product.departmentName || "PRODUCT"}
       </div>
 
       <div className="site-shell relative z-10 w-full pb-6 pt-[38svh] md:grid md:grid-cols-12 md:pb-[6vh] md:pt-36">
-        <motion.div
-          className="md:col-span-7 lg:col-span-6 xl:col-span-7"
-          style={reduceMotion ? undefined : { y: textY, opacity: textOpacity }}
-        >
-          <motion.nav
-            aria-label="Breadcrumb"
-            className="mb-2 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.2em] text-foreground/48 md:mb-5 md:text-[0.68rem]"
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease }}
-          >
-            <ol className="flex min-w-0 flex-wrap items-center gap-2">
-              {breadcrumbs.map((item, index) => (
-                <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-2">
-                  {index > 0 ? <span className="text-foreground/20" aria-hidden="true">/</span> : null}
-                  {item.href ? (
-                    <Link href={item.href} className="transition-colors hover:text-couture-red">
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <span className="max-w-48 truncate text-foreground/60" aria-current="page">
-                      {item.label}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </motion.nav>
+        <motion.div className="md:col-span-7 lg:col-span-6 xl:col-span-7">
+          <motion.div style={reduceMotion ? undefined : { y: textY, opacity: textOpacity }}>
+            <motion.nav
+              aria-label="Breadcrumb"
+              className="mb-2 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.2em] text-foreground/48 md:mb-5 md:text-[0.68rem]"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease }}
+            >
+              <ol className="flex min-w-0 flex-wrap items-center gap-2">
+                {breadcrumbs.map((item, index) => (
+                  <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-2">
+                    {index > 0 ? <span className="text-foreground/20" aria-hidden="true">/</span> : null}
+                    {item.href ? (
+                      <Link href={item.href} className="transition-colors hover:text-couture-red">
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className="max-w-48 truncate text-foreground/60" aria-current="page">
+                        {item.label}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </motion.nav>
 
-          <h1
-            className="max-w-[12ch] text-balance font-serif text-[clamp(2.65rem,6.3vw,6rem)] leading-[0.91] tracking-[-0.035em] md:leading-[0.94]"
-          >
-            {words.map((word, i) => (
-              <span
-                key={i}
-                className={`mr-[0.16em] inline-block overflow-hidden pb-[0.28em] align-bottom last:mr-0 ${
-                  i === words.length - 1 ? "font-serif italic text-couture-red" : ""
-                }`}
-              >
-                <motion.span
-                  className="inline-block"
-                  initial={{ y: "110%", opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.95, ease, delay: 0.1 + i * 0.1 }}
+            <h1
+              className="max-w-[12ch] text-balance font-serif text-[clamp(2.65rem,6.3vw,6rem)] leading-[0.91] tracking-[-0.035em] md:leading-[0.94]"
+            >
+              {words.map((word, i) => (
+                <span
+                  key={i}
+                  className={`mr-[0.16em] inline-block overflow-hidden pb-[0.28em] align-bottom last:mr-0 ${
+                    i === words.length - 1 ? "font-serif italic text-couture-red" : ""
+                  }`}
                 >
-                  {word}
-                </motion.span>
-              </span>
-            ))}
-          </h1>
+                  <motion.span
+                    className="inline-block"
+                    initial={{ y: "110%", opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.95, ease, delay: 0.1 + i * 0.1 }}
+                  >
+                    {word}
+                  </motion.span>
+                </span>
+              ))}
+            </h1>
 
-          {heroDescription ? (
-            <motion.p
-              className="mt-3 max-w-[60ch] text-pretty text-sm leading-[1.6] text-foreground/74 md:mt-6 md:text-base md:leading-[1.75]"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease, delay: 0.55 }}
-            >
-              {heroDescription}
-            </motion.p>
-          ) : null}
+            {heroDescription ? (
+              <motion.p
+                className="mt-3 max-w-[60ch] text-pretty text-sm leading-[1.6] text-foreground/74 md:mt-6 md:text-base md:leading-[1.75]"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease, delay: 0.55 }}
+              >
+                {heroDescription}
+              </motion.p>
+            ) : null}
 
-          {product.materialLine ? (
-            <motion.p
-              className="mt-3 label-caps text-foreground/50 md:mt-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.7, ease, delay: 0.7 }}
-            >
-              {product.materialLine}
-            </motion.p>
-          ) : null}
+            {product.materialLine ? (
+              <motion.p
+                className="mt-3 label-caps text-foreground/50 md:mt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.7, ease, delay: 0.7 }}
+              >
+                {product.materialLine}
+              </motion.p>
+            ) : null}
+          </motion.div>
 
           <motion.div className="mt-5 md:mt-8">
             <ProductPurchasePanel product={product} />
