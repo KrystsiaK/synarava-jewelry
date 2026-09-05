@@ -9,14 +9,16 @@ export async function generateMetadata(): Promise<Metadata> {
   const content = page?.content ?? {};
 
   return {
-    title: page?.title ? { absolute: page.title } : "Synarava",
+    title: { absolute: page?.title || "Synarava — Curated Goods with Character" },
     description: page?.excerpt || undefined,
     alternates: { canonical: "/" },
     openGraph: {
       url: "/",
-      images: content.heroImage
-        ? [{ url: content.heroImage, width: 1200, height: 630, alt: page?.title || "Synarava" }]
-        : [],
+      images: [
+        content.heroImage
+          ? { url: content.heroImage, width: 1200, height: 630, alt: page?.title || "Synarava" }
+          : { url: "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Curated Goods with Character" },
+      ],
     },
   };
 }

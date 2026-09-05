@@ -545,8 +545,11 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
       id="archive-pathway"
     >
       {/* Giant background text */}
-      <div className="absolute -right-20 top-40 z-0 opacity-5 rotate-[270deg] clipped-text pointer-events-none select-none">
-        <h1 className="font-serif text-[15vw] text-linen leading-none uppercase">RECORDED</h1>
+      <div
+        className="absolute -right-20 top-40 z-0 opacity-5 rotate-[270deg] clipped-text pointer-events-none select-none"
+        aria-hidden="true"
+      >
+        <div className="font-serif text-[15vw] text-linen leading-none uppercase">RECORDED</div>
       </div>
 
       <div className="max-w-[90rem] mx-auto flex flex-col gap-32 md:gap-48 relative z-10">

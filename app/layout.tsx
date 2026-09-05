@@ -67,12 +67,14 @@ export const metadata: Metadata = {
     title: "Synarava — Curated Goods with Character",
     description:
       "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
+    images: [{ url: "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Curated Goods with Character" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Synarava — Curated Goods with Character",
     description:
       "Selected, useful, and thoughtfully made goods for everyday life and creativity.",
+    images: ["/og-default.jpg"],
   },
   robots: {
     index: true,

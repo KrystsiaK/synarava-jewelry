@@ -31,9 +31,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: { canonical: `/products/${product.slug}` },
     openGraph: {
       url: `/products/${product.slug}`,
-      images: product.image
-        ? [{ url: product.image, width: 1200, height: 630, alt: product.title }]
-        : [],
+      images: [
+        product.image
+          ? { url: product.image, width: 1200, height: 630, alt: product.title }
+          : { url: "/og-default.jpg", width: 1200, height: 630, alt: product.title },
+      ],
     },
   };
 }

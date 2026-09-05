@@ -9,7 +9,10 @@ export const metadata: Metadata = {
   description:
     "Browse Synarava jewelry, pet accessories, creative kits for kids, and jewelry-making supplies.",
   alternates: { canonical: "/shop" },
-  openGraph: { url: "/shop" },
+  openGraph: {
+    url: "/shop",
+    images: [{ url: "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Shop" }],
+  },
 };
 
 type Props = {

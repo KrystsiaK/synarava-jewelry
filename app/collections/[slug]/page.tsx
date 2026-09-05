@@ -50,13 +50,14 @@ export default async function Page({ params }: Props) {
 
   if (!collection) notFound();
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
-      { "@type": "ListItem", position: 2, name: "Collections", item: "/collections" },
-      { "@type": "ListItem", position: 3, name: collection.name, item: `/collections/${slug}` },
+      { "@type": "ListItem", position: 1, name: "Home", item: new URL("/", siteUrl).toString() },
+      { "@type": "ListItem", position: 2, name: "Collections", item: new URL("/collections", siteUrl).toString() },
+      { "@type": "ListItem", position: 3, name: collection.name, item: new URL(`/collections/${slug}`, siteUrl).toString() },
     ],
   };
 

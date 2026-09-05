@@ -14,9 +14,11 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: "/about" },
     openGraph: {
       url: "/about",
-      images: content.heroImage
-        ? [{ url: content.heroImage, width: 1200, height: 630, alt: page?.title || "About" }]
-        : [],
+      images: [
+        content.heroImage
+          ? { url: content.heroImage, width: 1200, height: 630, alt: page?.title || "About" }
+          : { url: "/og-default.jpg", width: 1200, height: 630, alt: page?.title || "About" },
+      ],
     },
   };
 }

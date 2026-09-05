@@ -5,7 +5,19 @@ import { getServerTranslations } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getServerTranslations();
-  return { title: t("service.shipping.metaTitle"), description: t("service.shipping.metaDescription") };
+  const title = t("service.shipping.metaTitle");
+  const description = t("service.shipping.metaDescription");
+  return {
+    title,
+    description,
+    alternates: { canonical: "/shipping" },
+    openGraph: {
+      url: "/shipping",
+      title,
+      description,
+      images: [{ url: "/og-default.jpg", width: 1200, height: 630, alt: title }],
+    },
+  };
 }
 
 export default async function ShippingPage() {
