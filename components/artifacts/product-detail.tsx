@@ -97,8 +97,8 @@ function ProductHero({ product }: { product: ProductSummary }) {
         {product.departmentName || "PRODUCT"}
       </div>
 
-      <div className="site-shell relative z-10 w-full pb-6 pt-[38svh] md:grid md:grid-cols-12 md:pb-[6vh] md:pt-36">
-        <motion.div className="md:col-span-7 lg:col-span-6 xl:col-span-7">
+      <div className="site-shell relative z-10 w-full pb-6 pt-[38svh] md:grid md:grid-cols-12 md:gap-x-10 md:pb-[6vh] md:pt-36 xl:gap-x-16">
+        <motion.div className="md:col-span-7 lg:col-span-6">
           <motion.div style={reduceMotion ? undefined : { y: textY, opacity: textOpacity }}>
             <motion.nav
               aria-label="Breadcrumb"
@@ -170,7 +170,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
             ) : null}
           </motion.div>
 
-          <motion.div className="mt-5 md:mt-8">
+          <motion.div className="mt-7 md:mt-10 lg:mt-12">
             <ProductPurchasePanel product={product} />
           </motion.div>
 
@@ -194,7 +194,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
         </motion.div>
 
         <motion.dl
-          className="mt-8 grid grid-cols-2 border-y border-foreground/18 md:col-span-5 md:col-start-8 md:mt-0 md:self-end"
+          className="mt-10 grid grid-cols-2 border-y border-foreground/18 md:col-span-5 md:col-start-8 md:mt-0 md:self-end xl:col-span-4 xl:col-start-9"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, ease, delay: 0.78 }}
