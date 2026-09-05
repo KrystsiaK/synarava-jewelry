@@ -1416,7 +1416,8 @@ body.admin-mode .artifact-footer {
   display: none;
 }
 
-.admin-terminal {
+.admin-terminal,
+.admin-modal-root {
   --adm-topbar-height: 4.25rem;
   --adm-bg: #090807;
   --adm-bg-soft: #0f0d0c;
@@ -1435,11 +1436,14 @@ body.admin-mode .artifact-footer {
   --adm-danger: #b94a48;
   --adm-danger-soft: rgba(185, 74, 72, 0.13);
   --adm-shadow: 0 18px 50px rgba(0, 0, 0, 0.26);
+  color: var(--adm-text);
+  font-family: var(--font-sans), sans-serif;
+}
+
+.admin-terminal {
   background:
     radial-gradient(circle at 16% 0%, rgba(216, 182, 106, 0.1), transparent 32rem),
     linear-gradient(135deg, var(--adm-bg) 0%, #100e0d 52%, #070706 100%);
-  color: var(--adm-text);
-  font-family: var(--font-sans), sans-serif;
   display: grid;
   grid-template-rows: var(--adm-topbar-height) minmax(0, 1fr);
   min-height: 100dvh;
@@ -1449,7 +1453,8 @@ body.admin-mode .artifact-footer {
   overflow: hidden;
 }
 
-html[data-theme="light"] .admin-terminal {
+html[data-theme="light"] .admin-terminal,
+html[data-theme="light"] .admin-modal-root {
   --adm-bg: #f2f1ee;
   --adm-bg-soft: #e9e7e2;
   --adm-panel: #ffffff;
@@ -1467,6 +1472,9 @@ html[data-theme="light"] .admin-terminal {
   --adm-danger: #9d3836;
   --adm-danger-soft: rgba(157, 56, 54, 0.09);
   --adm-shadow: 0 6px 8px rgba(49, 41, 31, 0.08);
+}
+
+html[data-theme="light"] .admin-terminal {
   background:
     radial-gradient(circle at 16% 0%, rgba(138, 102, 31, 0.08), transparent 32rem),
     linear-gradient(135deg, #f2f1ee 0%, #f7f6f3 52%, #eceae5 100%);

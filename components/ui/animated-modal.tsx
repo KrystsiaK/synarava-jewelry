@@ -11,6 +11,7 @@ type AnimatedModalProps = {
   children: React.ReactNode;
   variant?: "modal" | "sheet";
   className?: string;
+  portalClassName?: string;
   ariaLabel?: string;
   ariaLabelledBy?: string;
   zIndexClassName?: string;
@@ -35,6 +36,7 @@ export function AnimatedModal({
   children,
   variant = "modal",
   className,
+  portalClassName,
   ariaLabel,
   ariaLabelledBy,
   zIndexClassName = "z-50",
@@ -141,7 +143,7 @@ export function AnimatedModal({
   );
 
   return createPortal(
-    <div ref={modalRootRef} className="fixed inset-0 isolate" data-animated-modal-root="true">
+    <div ref={modalRootRef} className={cn("fixed inset-0 isolate", portalClassName)} data-animated-modal-root="true">
       <button
         type="button"
         className={cn("modal-backdrop fixed inset-0 cursor-default", backdropZIndexClassName, visuallyOpen && "is-open")}

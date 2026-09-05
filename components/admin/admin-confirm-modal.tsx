@@ -28,6 +28,7 @@ export function AdminConfirmModal({
       open={open}
       onClose={onCancel}
       className="adm-panel pointer-events-auto w-full max-w-md p-6"
+      portalClassName="admin-modal-root"
       zIndexClassName="z-[200]"
       backdropZIndexClassName="z-[190]"
     >

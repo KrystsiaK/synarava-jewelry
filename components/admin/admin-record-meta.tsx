@@ -108,6 +108,7 @@ export function AdminRecordMetaModal({
       open={open && Boolean(record)}
       onClose={onClose}
       className="adm-panel pointer-events-auto w-full max-w-lg p-6"
+      portalClassName="admin-modal-root"
       zIndexClassName="z-[200]"
       backdropZIndexClassName="z-[190]"
     >
