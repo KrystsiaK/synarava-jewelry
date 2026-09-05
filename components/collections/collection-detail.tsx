@@ -11,6 +11,8 @@ import {
 import Link from "next/link";
 import { PrimaryCtaButton } from "@/components/ui";
 import type { CollectionSummary, ProductSummary } from "@/lib/content/catalog";
+import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -24,6 +26,7 @@ type CollectionDetail = CollectionSummary & {
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
 function DetailHero({ collection }: { collection: CollectionDetail }) {
+  const { locale } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
@@ -75,9 +78,9 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
         transition={{ duration: 0.7, ease, delay: 0.3 }}
       >
         <div className="flex items-center gap-2 font-sans text-[0.68rem] uppercase tracking-[0.18em] text-white/50">
-          <Link href="/" className="transition-colors hover:text-white/80">Home</Link>
+          <Link href={localePath(locale, "/")} className="transition-colors hover:text-white/80">Home</Link>
           <span>/</span>
-          <Link href="/collections" className="transition-colors hover:text-white/80">Collections</Link>
+          <Link href={localePath(locale, "/collections")} className="transition-colors hover:text-white/80">Collections</Link>
           <span>/</span>
           <span className="text-white/80">{collection.name}</span>
         </div>
@@ -130,9 +133,9 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.85, ease }}
         >
-          <PrimaryCtaButton href="/shop">Shop products</PrimaryCtaButton>
+          <PrimaryCtaButton href={localePath(locale, "/shop")}>Shop products</PrimaryCtaButton>
           <Link
-            href="/collections"
+            href={localePath(locale, "/collections")}
             className="label-mono border-b border-foreground/30 pb-1 text-foreground/60 transition-colors hover:border-foreground/60 hover:text-foreground"
           >
             All collections
@@ -323,6 +326,7 @@ function ProductCard({
   index: number;
   isParentInView: boolean;
 }) {
+  const { locale } = useTranslations();
   const isOffset = index === 1;
 
   return (
@@ -332,7 +336,7 @@ function ProductCard({
       animate={isParentInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.9, ease, delay: 0.08 + index * 0.12 }}
     >
-      <Link href={`/products/${product.slug}`} className="group block cursor-pointer">
+      <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
         <motion.div
           className={`relative mb-5 overflow-hidden bg-stone-beige ${isOffset ? "aspect-[4/5]" : "aspect-square"}`}
           initial="rest"
@@ -411,6 +415,7 @@ function ProductsSection({
   products: ProductSummary[];
   collectionName: string;
 }) {
+  const { locale } = useTranslations();
   const headerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(headerRef, { once: true, margin: "-8%" });
 
@@ -436,7 +441,7 @@ function ProductsSection({
             animate={isInView ? { opacity: 1 } : {}}
             transition={{ duration: 0.7, delay: 0.2 }}
           >
-            <PrimaryCtaButton href="/shop">View all products</PrimaryCtaButton>
+            <PrimaryCtaButton href={localePath(locale, "/shop")}>View all products</PrimaryCtaButton>
           </motion.div>
         </div>
 
@@ -447,7 +452,7 @@ function ProductsSection({
             animate={isInView ? { opacity: 1 } : {}}
           >
             <p className="text-muted-ink">No products in this collection yet.</p>
-            <PrimaryCtaButton href="/shop">Browse all products</PrimaryCtaButton>
+            <PrimaryCtaButton href={localePath(locale, "/shop")}>Browse all products</PrimaryCtaButton>
           </motion.div>
         ) : (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:items-start md:gap-8">
@@ -468,6 +473,7 @@ function ProductsSection({
 
 /* ─── Next Collection Teaser ─────────────────────────────────────── */
 function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) {
+  const { locale } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -513,12 +519,12 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
             transition={{ duration: 0.8, ease, delay: 0.22 }}
           >
             <Link
-              href="/collections"
+              href={localePath(locale, "/collections")}
               className="label-mono border-b border-foreground/30 pb-1 text-foreground/65 transition-colors hover:border-foreground/60 hover:text-foreground"
             >
               All collections
             </Link>
-            <PrimaryCtaButton href="/shop">Shop all products</PrimaryCtaButton>
+            <PrimaryCtaButton href={localePath(locale, "/shop")}>Shop all products</PrimaryCtaButton>
           </motion.div>
         </div>
       </div>

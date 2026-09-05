@@ -27,6 +27,6 @@ describe("RegisterForm", () => {
 
   it("renders Sign in link", () => {
     render(<RegisterForm />);
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/en/login");
   });
 });

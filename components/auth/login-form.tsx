@@ -13,6 +13,7 @@ import {
 } from "@/components/auth/auth-form-primitives";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const initialState: AuthActionState = {};
 
@@ -24,7 +25,7 @@ export function LoginForm({
   error?: string;
 }) {
   const [state, formAction] = useActionState(loginAction, initialState);
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
 
   return (
     <AuthForm action={formAction}>
@@ -46,14 +47,14 @@ export function LoginForm({
 
       <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
         <AuthSubmitButton label={t("auth.login.submit")} pendingLabel={t("auth.login.submitting")} />
-        <Link href="/reset-password" className="text-sm text-foreground/68 underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
+        <Link href={localePath(locale, "/reset-password")} className="text-sm text-foreground/68 underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
           {t("auth.login.forgotPassword")}
         </Link>
       </div>
 
       <p className="text-sm text-foreground/62">
         {t("auth.login.noAccount")}{" "}
-        <Link href="/register" className="text-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
+        <Link href={localePath(locale, "/register")} className="text-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
           {t("auth.login.createOne")}
         </Link>
       </p>

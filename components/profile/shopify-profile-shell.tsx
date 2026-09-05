@@ -7,12 +7,15 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { ShopifyCustomerProfile } from "@/lib/shopify/customer-account/api";
+import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
+import type { Locale } from "@/lib/i18n/locales";
 
 const tabs = ["overview", "orders", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
 
-function tabHref(tab: Tab) {
-  return tab === "overview" ? "/profile" : `/profile?section=${tab}`;
+function tabHref(tab: Tab, locale: Locale) {
+  return tab === "overview" ? localePath(locale, "/profile") : localePath(locale, `/profile?section=${tab}`);
 }
 
 function money(amount: string, currency: string) {
@@ -48,6 +51,7 @@ export function ShopifyProfileShell({
   activeTab: Tab;
 }) {
   const router = useRouter();
+  const { locale } = useTranslations();
   const email = customer.emailAddress?.emailAddress ?? "No email address available";
   const totalSpent = customer.orders.nodes.reduce(
     (sum, order) => sum + Number(order.totalPrice.amount),
@@ -64,7 +68,7 @@ export function ShopifyProfileShell({
       : event.key === "End"
         ? tabs.at(-1)!
         : tabs[(currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
-    router.push(tabHref(nextTab), { scroll: false });
+    router.push(tabHref(nextTab, locale), { scroll: false });
   }
 
   return (
@@ -114,7 +118,7 @@ export function ShopifyProfileShell({
               <Link
                 key={tab}
                 id={`account-tab-${tab}`}
-                href={tabHref(tab)}
+                href={tabHref(tab, locale)}
                 role="tab"
                 aria-selected={activeTab === tab}
                 aria-controls={`account-panel-${tab}`}
@@ -161,10 +165,10 @@ export function ShopifyProfileShell({
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Link href={tabHref("orders")} className="label-caps bg-couture-red px-6 py-4 text-linen">
+                  <Link href={tabHref("orders", locale)} className="label-caps bg-couture-red px-6 py-4 text-linen">
                     View orders
                   </Link>
-                  <Link href="/cart" className="label-caps border border-stroke px-6 py-4 hover:border-foreground/50">
+                  <Link href={localePath(locale, "/cart")} className="label-caps border border-stroke px-6 py-4 hover:border-foreground/50">
                     Current cart
                   </Link>
                 </div>
@@ -180,7 +184,7 @@ export function ShopifyProfileShell({
                 {customer.orders.nodes.length === 0 ? (
                   <div className="border border-stroke p-8">
                     <p className="font-serif text-xl">No purchases yet.</p>
-                    <Link href="/shop" className="label-caps mt-5 inline-block text-couture-red">Explore the shop →</Link>
+                    <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">Explore the shop →</Link>
                   </div>
                 ) : (
                   customer.orders.nodes.map((order) => (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { PrivacySettingsButton } from "@/components/privacy/privacy-settings-button";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 function FooterOrnamentDivider() {
   return (
@@ -16,7 +17,7 @@ function FooterOrnamentDivider() {
 }
 
 export function SiteFooter() {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
 
   return (
     <footer className="artifact-footer">
@@ -44,13 +45,13 @@ export function SiteFooter() {
       <div className="flex flex-col gap-4 text-center md:text-left">
         <p className="label-caps mb-3 text-[0.72rem] text-foreground md:mb-4 md:text-inherit">{t("footer.navigationHeading")}</p>
         <nav className="flex flex-col gap-3 items-center md:items-start md:gap-4">
-          <Link href="/shop" className="label-mono text-[0.9rem] font-bold text-accent md:text-inherit">
+          <Link href={localePath(locale, "/shop")} className="label-mono text-[0.9rem] font-bold text-accent md:text-inherit">
             {t("footer.shop")}
           </Link>
-          <Link href="/collections" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href={localePath(locale, "/collections")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.collections")}
           </Link>
-          <Link href="/about" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href={localePath(locale, "/about")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.about")}
           </Link>
         </nav>
@@ -61,16 +62,16 @@ export function SiteFooter() {
       <div className="flex flex-col gap-4 text-center md:text-left">
         <p className="label-caps mb-3 text-[0.72rem] text-foreground md:mb-4 md:text-inherit">{t("footer.serviceHeading")}</p>
         <nav className="flex flex-col gap-3 items-center md:items-start md:gap-4">
-          <Link href="/care" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href={localePath(locale, "/care")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.careGuide")}
           </Link>
-          <Link href="/shipping" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href={localePath(locale, "/shipping")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.shipping")}
           </Link>
-          <Link href="/returns" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href={localePath(locale, "/returns")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.returns")}
           </Link>
-          <Link href="/faq" className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+          <Link href={localePath(locale, "/faq")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.faq")}
           </Link>
           <Link
@@ -86,19 +87,19 @@ export function SiteFooter() {
       <FooterOrnamentDivider />
 
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-stroke pt-6 text-center md:col-span-4 md:justify-start md:border-t md:pt-6 md:text-left">
-        <Link href="/privacy" className="label-mono text-muted transition-colors hover:text-foreground">
+        <Link href={localePath(locale, "/privacy")} className="label-mono text-muted transition-colors hover:text-foreground">
           {t("footer.privacyPolicy")}
         </Link>
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
         <PrivacySettingsButton />
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
-        <Link href="/offer" className="label-mono text-muted transition-colors hover:text-foreground">
+        <Link href={localePath(locale, "/offer")} className="label-mono text-muted transition-colors hover:text-foreground">
           {t("footer.publicOffer")}
         </Link>
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
         <p className="label-mono text-muted/60">
           {t("footer.offerGovernedBy")}{" "}
-          <Link href="/offer" className="underline underline-offset-4 transition-colors hover:text-foreground">
+          <Link href={localePath(locale, "/offer")} className="underline underline-offset-4 transition-colors hover:text-foreground">
             {t("footer.offerTerms")}
           </Link>
         </p>

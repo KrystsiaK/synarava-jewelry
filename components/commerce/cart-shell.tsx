@@ -7,6 +7,7 @@ import { PrimaryCtaButton } from "@/components/ui";
 import { CartItemRow } from "./cart-item-row";
 import { CartSummaryPanel } from "./cart-summary-panel";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -35,7 +36,7 @@ type CartShellProps = {
 };
 
 function EmptyCart() {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   return (
     <motion.div
       className="relative max-w-3xl py-8 md:py-16"
@@ -74,7 +75,7 @@ function EmptyCart() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.55 }}
       >
-        <PrimaryCtaButton href="/shop">{t("cart.browse")}</PrimaryCtaButton>
+        <PrimaryCtaButton href={localePath(locale, "/shop")}>{t("cart.browse")}</PrimaryCtaButton>
       </motion.div>
     </motion.div>
   );
@@ -88,7 +89,7 @@ export function CartShell({
   currency,
   usesShopifyCheckout,
 }: CartShellProps) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   return (
     <main
       className="cart-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
@@ -161,7 +162,7 @@ export function CartShell({
                 <CartSummaryPanel
                   itemCount={itemCount}
                   subtotal={subtotal}
-                  ctaHref="/checkout"
+                  ctaHref={localePath(locale, "/checkout")}
                   ctaLabel={usesShopifyCheckout ? t("cart.secureCheckout") : t("cart.continueDelivery")}
                   ecommerce={usesShopifyCheckout ? {
                     currency,
@@ -188,7 +189,7 @@ export function CartShell({
                   transition={{ duration: 0.6, delay: 0.4 }}
                 >
                   <Link
-                    href="/shop"
+                    href={localePath(locale, "/shop")}
                     className="label-mono border-b border-foreground/15 pb-1 text-foreground/45 transition-colors hover:border-couture-red hover:text-couture-red"
                   >
                     {t("cart.continueShopping")}

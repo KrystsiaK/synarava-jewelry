@@ -46,10 +46,12 @@ function List({ items }: { items: string[] }) {
   );
 }
 
-export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail }: {
+export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail, homeHref = "/", offerHref = "/offer" }: {
   legalName: string;
   postalAddress?: string;
   privacyEmail: string;
+  homeHref?: string;
+  offerHref?: string;
 }) {
   const cookies = [
     ["synarava-consent · Synarava", "Regista as suas escolhas de consentimento.", "Necessário", "180 dias"],
@@ -158,7 +160,7 @@ export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail
             <p className="text-sm text-foreground/55">Podemos atualizar este aviso quando o tratamento mudar. Indicaremos a data e comunicaremos alterações materiais. Se uma nova finalidade exigir consentimento, pedi-lo-emos antes de iniciar o tratamento.</p>
           </Section>
 
-          <div className="flex flex-wrap gap-4 border-t border-stroke pt-10"><Link href="/" className="label-caps text-muted transition-colors hover:text-foreground">← Voltar à loja</Link><Link href="/offer" className="label-caps text-muted transition-colors hover:text-foreground">Condições gerais de venda →</Link></div>
+          <div className="flex flex-wrap gap-4 border-t border-stroke pt-10"><Link href={homeHref} className="label-caps text-muted transition-colors hover:text-foreground">← Voltar à loja</Link><Link href={offerHref} className="label-caps text-muted transition-colors hover:text-foreground">Condições gerais de venda →</Link></div>
         </article>
       </div>
     </main>

@@ -14,7 +14,7 @@ describe("storefront Content Security Policy", () => {
     );
 
     const response = await proxy(
-      new NextRequest("https://shop.synarava.test/login"),
+      new NextRequest("https://shop.synarava.test/en/login"),
     );
     const csp = response.headers.get("Content-Security-Policy");
     const connectDirective = csp
@@ -28,7 +28,7 @@ describe("storefront Content Security Policy", () => {
   });
 
   it("allows consent-gated analytics and advertising destinations", async () => {
-    const response = await proxy(new NextRequest("https://shop.synarava.test/"));
+    const response = await proxy(new NextRequest("https://shop.synarava.test/en/"));
     const csp = response.headers.get("Content-Security-Policy") ?? "";
     const imageDirective = csp
       .split("; ")

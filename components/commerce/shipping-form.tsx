@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useMemo, useRef } from "react";
 
-import { submitShippingAction } from "@/app/checkout/actions";
-import type { ShippingActionState, ShippingField } from "@/app/checkout/actions";
+import { submitShippingAction } from "@/app/[locale]/checkout/actions";
+import type { ShippingActionState, ShippingField } from "@/app/[locale]/checkout/actions";
 import { SubmitButton } from "./submit-button";
 import { useTranslations } from "@/lib/i18n/context";
 import { localeTag } from "@/lib/i18n/format";

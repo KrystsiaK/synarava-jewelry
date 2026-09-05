@@ -17,12 +17,13 @@ import {
 } from "@/components/auth/auth-form-primitives";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const initialState: AuthActionState = {};
 
 export function PasswordResetRequestForm() {
   const [state, formAction] = useActionState(requestPasswordResetAction, initialState);
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
 
   return (
     <AuthForm action={formAction}>
@@ -41,7 +42,7 @@ export function PasswordResetRequestForm() {
 
       <p className="text-sm text-foreground/60">
         {t("auth.resetRequest.returnTo")}{" "}
-        <Link href="/login" className="transition-colors hover:text-accent">
+        <Link href={localePath(locale, "/login")} className="transition-colors hover:text-accent">
           {t("auth.resetRequest.loginLink")}
         </Link>
       </p>
@@ -51,7 +52,7 @@ export function PasswordResetRequestForm() {
 
 export function PasswordResetConfirmForm({ token }: { token: string }) {
   const [state, formAction] = useActionState(resetPasswordAction, initialState);
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
 
   return (
     <AuthForm action={formAction}>
@@ -75,7 +76,7 @@ export function PasswordResetConfirmForm({ token }: { token: string }) {
 
       <p className="text-sm text-foreground/60">
         {t("auth.resetConfirm.backTo")}{" "}
-        <Link href="/login" className="transition-colors hover:text-accent">
+        <Link href={localePath(locale, "/login")} className="transition-colors hover:text-accent">
           {t("auth.resetConfirm.loginLink")}
         </Link>
       </p>

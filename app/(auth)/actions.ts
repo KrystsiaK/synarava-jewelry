@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { checkRateLimit } from "@/lib/auth/guard";
 import { clearUserSession, createUserSession } from "@/lib/auth/session";
 import { attachStorefrontCartToUser } from "@/lib/commerce/storefront-cart";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { localePath } from "@/lib/i18n/routing";
 import {
   authenticateUser,
   createPasswordResetToken,
@@ -55,7 +57,7 @@ export async function loginAction(
     redirect(redirectTo);
   }
 
-  redirect("/shop");
+  redirect(localePath(await getRequestLocale(), "/shop"));
 }
 
 export async function registerAction(
@@ -92,7 +94,7 @@ export async function registerAction(
   await createUserSession(result.userId);
   await attachStorefrontCartToUser(result.userId);
 
-  redirect("/shop");
+  redirect(localePath(await getRequestLocale(), "/shop"));
 }
 
 export async function requestPasswordResetAction(
@@ -157,5 +159,5 @@ export async function logoutAction() {
   const cookieStore = await cookies();
   cookieStore.delete(CART_COOKIE);
   cookieStore.delete(SHOPIFY_CART_COOKIE);
-  redirect("/login");
+  redirect(localePath(await getRequestLocale(), "/login"));
 }

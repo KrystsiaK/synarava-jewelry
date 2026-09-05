@@ -22,6 +22,7 @@ import type { ProductSummary } from "@/lib/content/catalog";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -39,7 +40,7 @@ function ShopHero({
   leadProduct?: ProductSummary;
   archiveCount: number;
 }) {
-  const { t, plural } = useTranslations();
+  const { t, plural, locale } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const { scrollYProgress } = useScroll({
@@ -121,7 +122,7 @@ function ShopHero({
           {SHOP_DEPARTMENTS.map((department) => (
             <ArtifactLink
               key={department.slug}
-              href={`/shop?department=${department.slug}`}
+              href={localePath(locale, `/shop?department=${department.slug}`)}
               onClick={() => trackCommerceEvent("department_entry", {
                 department: department.slug,
                 source: "shop_hero",
@@ -177,7 +178,7 @@ const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
 function EmptyState({ filters, departments = [], categories, collections, tags }: EmptyStateProps) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
   const isDepartmentLanding = Boolean(filters.department) && ![
@@ -276,7 +277,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
       )}
 
       {/* Primary CTA */}
-      <PrimaryCtaButton href="/shop">
+      <PrimaryCtaButton href={localePath(locale, "/shop")}>
         {isDepartmentLanding ? t("shop.empty.browseAvailable") : t("shop.empty.showAll")}
       </PrimaryCtaButton>
     </motion.div>
@@ -342,7 +343,7 @@ function ProductGrid({ products }: { products: ProductSummary[] }) {
 
 /* ─── Shop CTA footer ────────────────────────────────────────────── */
 function ShopFooter() {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
 
@@ -398,12 +399,12 @@ function ShopFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.28 }}
         >
-          <PrimaryCtaButton href="/collections">
+          <PrimaryCtaButton href={localePath(locale, "/collections")}>
             {t("shop.footerCta.collections")}
           </PrimaryCtaButton>
 
           <Link
-            href="/about"
+            href={localePath(locale, "/about")}
             className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
           >
             {t("shop.footerCta.story")}

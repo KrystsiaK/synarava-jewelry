@@ -12,6 +12,7 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 
 type SiteHeaderProps = {
@@ -20,9 +21,10 @@ type SiteHeaderProps = {
 };
 
 export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderProps) {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname.replace(/^\/(en|pt)(?=\/|$)/, "") || "/";
   const { resolvedTheme } = useTheme();
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const reduceMotion = useReducedMotion() ?? false;
   const [cartCountOverride, setCartCountOverride] = useState<{
     count: number;
@@ -214,7 +216,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           </button>
 
           <Link
-            href="/"
+            href={localePath(locale, "/")}
             className="site-nav-brand absolute left-1/2 flex -translate-x-1/2 items-center justify-center md:static md:translate-x-0 md:gap-4"
             aria-label="SYNARAVA"
           >
@@ -241,7 +243,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           {navItems.map((item) => item.match === "/shop" ? (
             <span key={item.href} className="flex items-center gap-1">
               <Link
-                href={item.href}
+                href={localePath(locale, item.href)}
                 aria-current={isActive(item.match) ? "page" : undefined}
                 className={`label-caps transition-colors hover:text-accent ${isActive(item.match) ? "border-b border-foreground pb-1 text-foreground" : "text-muted"}`}
               >
@@ -266,11 +268,11 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                 )}
                 className="border border-stroke bg-panel p-2 text-foreground shadow-[0_18px_45px_rgba(0,0,0,0.16)]"
               >
-                <Link href="/shop" role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 px-3 py-3 label-caps hover:bg-foreground/[0.05]">
+                <Link href={localePath(locale, "/shop")} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 px-3 py-3 label-caps hover:bg-foreground/[0.05]">
                   {t("shop.allProducts")}
                 </Link>
                 {SHOP_DEPARTMENTS.map((department) => (
-                  <Link key={department.slug} href={`/shop?department=${department.slug}`} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 border-t border-stroke px-3 py-3 label-caps text-muted hover:bg-foreground/[0.05] hover:text-foreground">
+                  <Link key={department.slug} href={localePath(locale, `/shop?department=${department.slug}`)} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 border-t border-stroke px-3 py-3 label-caps text-muted hover:bg-foreground/[0.05] hover:text-foreground">
                     {t(`shop.${department.slug === "jewelry-making" ? "jewelryMaking" : department.slug}`)}
                   </Link>
                 ))}
@@ -279,7 +281,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           ) : (
             <Link
               key={item.href}
-              href={item.href}
+              href={localePath(locale, item.href)}
               aria-current={isActive(item.match) ? "page" : undefined}
               className={`label-caps transition-colors hover:text-accent ${isActive(item.match) ? "border-b border-foreground pb-1 text-foreground" : "text-muted"}`}
             >
@@ -296,7 +298,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           <LanguageSwitcher />
 
           <Link
-            href="/cart"
+            href={localePath(locale, "/cart")}
             aria-label={`${t("nav.cart")}${cartCount > 0 ? `, ${cartCount} items` : ""}`}
             className={`relative inline-flex min-h-11 items-center gap-2 px-3 py-2 transition-[background-color,color,transform] hover:text-accent ${
               /* c8 ignore next 4 */
@@ -345,7 +347,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           </Link>
 
           <Link
-            href={isLoggedIn ? "/profile" : "/login"}
+            href={localePath(locale, isLoggedIn ? "/profile" : "/login")}
             className="hidden label-caps px-2 text-muted transition-colors hover:text-accent md:inline"
           >
             {isLoggedIn ? t("nav.account") : t("nav.login")}
@@ -375,7 +377,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
             {navItems.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={localePath(locale, item.href)}
                 onClick={() => setIsMenuOpen(false)}
                 aria-current={isActive(item.match) ? "page" : undefined}
                 className={`border-b border-stroke py-4 font-serif text-[1.38rem] leading-none transition-colors hover:text-foreground ${
@@ -393,7 +395,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
               {SHOP_DEPARTMENTS.map((department) => (
                 <Link
                   key={department.slug}
-                  href={`/shop?department=${department.slug}`}
+                  href={localePath(locale, `/shop?department=${department.slug}`)}
                   onClick={() => setIsMenuOpen(false)}
                   className="min-h-11 border-b border-stroke py-3 text-sm text-muted transition-colors hover:text-foreground"
                 >
@@ -404,7 +406,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           </nav>
 
           <div className="mt-7 flex flex-col gap-3">
-            <Link href={isLoggedIn ? "/profile" : "/login"} onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-foreground">
+            <Link href={localePath(locale, isLoggedIn ? "/profile" : "/login")} onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-foreground">
               {isLoggedIn ? t("nav.account") : t("nav.loginRegister")}
             </Link>
           </div>

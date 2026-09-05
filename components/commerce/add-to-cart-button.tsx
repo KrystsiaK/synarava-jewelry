@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { trackCommerceEvent, type CommerceEcommerce } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 type AddToCartButtonProps = {
   productSlug: string;
@@ -29,7 +30,7 @@ export function AddToCartButton({
   disabled = false,
   unavailableLabel,
 }: AddToCartButtonProps) {
-  const { t, plural } = useTranslations();
+  const { t, plural, locale } = useTranslations();
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
@@ -144,11 +145,11 @@ export function AddToCartButton({
           </div>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <ArtifactLink href="/cart" variant="secondary" size="md" className="flex-1 border-white/24 text-white hover:border-white hover:text-white">
+            <ArtifactLink href={localePath(locale, "/cart")} variant="secondary" size="md" className="flex-1 border-white/24 text-white hover:border-white hover:text-white">
               {t("product.viewCart")}
             </ArtifactLink>
             <PrimaryCtaButton
-              href="/checkout"
+              href={localePath(locale, "/checkout")}
               className="w-full flex-1"
               onClick={() => recentEcommerce && trackCommerceEvent("begin_checkout", {
                 ecommerce: recentEcommerce,

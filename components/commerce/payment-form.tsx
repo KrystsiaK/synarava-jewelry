@@ -12,6 +12,7 @@ import {
 import { PrimaryCtaButton } from "@/components/ui";
 import { useTheme } from "@/components/theme/theme-provider";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -138,7 +139,7 @@ const lightElementsAppearance: Appearance = {
 };
 
 function CheckoutForm() {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const checkoutResult = useCheckoutElements();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +169,7 @@ function CheckoutForm() {
       return;
     }
 
-    router.push("/checkout/confirmed?status=confirmed");
+    router.push(localePath(locale, "/checkout/confirmed?status=confirmed"));
     router.refresh();
   }
 

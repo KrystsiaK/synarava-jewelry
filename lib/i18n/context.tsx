@@ -1,10 +1,11 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import en from "@/messages/en.json";
 import { flattenMessages } from "./utils";
 import { normalizeLocale, type Locale } from "./locales";
+import { localePath } from "./routing";
 
 export type { Locale } from "./locales";
 
@@ -39,6 +40,7 @@ export function TranslationProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [locale, setLocaleState] = useState<Locale>(() => normalizeLocale(initialLocale));
   const [messages, setMessages] = useState<Record<string, string>>(enFlat);
   const [loading, setLoading] = useState(false);
@@ -46,18 +48,25 @@ export function TranslationProvider({
   useEffect(() => {
     const normalizedLocale = normalizeLocale(initialLocale);
     if (normalizedLocale !== "en") {
-      loadLocale(normalizedLocale);
+      loadLocale(normalizedLocale, { navigate: false });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadLocale(newLocale: Locale): Promise<void> {
+  function navigateToLocale(newLocale: Locale) {
+    const rest = pathname.replace(/^\/(en|pt)(?=\/|$)/, "");
+    router.push(localePath(newLocale, rest === "" ? "/" : rest));
+  }
+
+  async function loadLocale(newLocale: Locale, options: { navigate?: boolean } = {}): Promise<void> {
+    const navigate = options.navigate ?? true;
+
     if (newLocale === "en") {
       setLocaleState("en");
       setMessages(enFlat);
       persist("en");
       document.documentElement.lang = "en";
-      router.refresh();
+      if (navigate) navigateToLocale("en");
       return;
     }
 
@@ -67,7 +76,7 @@ export function TranslationProvider({
       setMessages(cached);
       persist(newLocale);
       document.documentElement.lang = newLocale;
-      router.refresh();
+      if (navigate) navigateToLocale(newLocale);
       return;
     }
 
@@ -81,7 +90,7 @@ export function TranslationProvider({
       setLocaleState(newLocale);
       persist(newLocale);
       document.documentElement.lang = newLocale;
-      router.refresh();
+      if (navigate) navigateToLocale(newLocale);
     } catch (err) {
       console.error("[i18n] Failed to load translations:", err);
     } finally {

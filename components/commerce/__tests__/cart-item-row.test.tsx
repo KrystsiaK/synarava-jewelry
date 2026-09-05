@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@/app/cart/actions", () => ({
+vi.mock("@/app/[locale]/cart/actions", () => ({
   decreaseCartItemAction: vi.fn(),
   increaseCartItemAction: vi.fn(),
   removeCartItemAction: vi.fn(),
@@ -43,7 +43,7 @@ describe("CartItemRow", () => {
 
   it("renders product link", () => {
     render(<CartItemRow item={item} />);
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/products/birch-bracelet");
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/en/products/birch-bracelet");
   });
 
   it("renders remove button", () => {

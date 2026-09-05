@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -24,7 +25,7 @@ export function ProductCard({
   isParentInView,
   offsetClass,
 }: ProductCardProps) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const [imgError, setImgError] = useState(false);
   const aspectClass = isFeatured ? "aspect-[16/9]" : "aspect-[3/4]";
 
@@ -35,7 +36,7 @@ export function ProductCard({
       animate={isParentInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.9, ease, delay: 0.06 + index * 0.11 }}
     >
-      <Link href={`/products/${product.slug}`} className="group block cursor-pointer">
+      <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
         <motion.div
           className={`relative mb-5 overflow-hidden bg-stone-beige ${aspectClass}`}
           initial="rest"

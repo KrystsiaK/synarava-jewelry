@@ -9,6 +9,7 @@ type AuthShellProps = {
   asideBody: string;
   children: ReactNode;
   footer?: ReactNode;
+  homeHref?: string;
 };
 
 export function AuthShell({
@@ -19,6 +20,7 @@ export function AuthShell({
   asideBody,
   children,
   footer,
+  homeHref = "/",
 }: AuthShellProps) {
   return (
     <main className="auth-experience artifact-shell min-h-[100svh] pt-24">
@@ -47,7 +49,7 @@ export function AuthShell({
         <section className="auth-form-surface self-center p-6 sm:p-8 md:p-10">
           {children}
           <div className="mt-7 border-t border-stroke pt-5 text-sm text-foreground/62">
-            <Link href="/" className="transition-colors hover:text-accent">
+            <Link href={homeHref} className="transition-colors hover:text-accent">
               Back to storefront
             </Link>
           </div>

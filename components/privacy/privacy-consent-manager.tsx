@@ -7,6 +7,7 @@ import Link from "next/link";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ArtifactButton } from "@/components/ui/artifact-button";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 import { initializeClientTelemetry, publishClientTelemetry } from "@/lib/telemetry/client";
 import {
   createPrivacyConsent,
@@ -171,7 +172,7 @@ export function PrivacyConsentManager({
   metaPixelId?: string;
   nonce?: string;
 }) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const [consent, setConsent] = useState<PrivacyConsent | null>(() => parsePrivacyConsent(initialConsent));
   const [draft, setDraft] = useState<PrivacyConsentChoices>(() => consent ?? DEFAULT_CHOICES);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
@@ -275,7 +276,7 @@ export function PrivacyConsentManager({
           </h2>
           <p className="mt-3 text-sm leading-6 text-foreground/70">
             {t("privacyConsent.description")} {" "}
-            <Link href="/privacy#cookies" className="underline underline-offset-4 hover:text-foreground">
+            <Link href={`${localePath(locale, "/privacy")}#cookies`} className="underline underline-offset-4 hover:text-foreground">
               {t("privacyConsent.policyLink")}
             </Link>
           </p>

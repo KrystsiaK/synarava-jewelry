@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 
 import { getCurrentSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { localePath } from "@/lib/i18n/routing";
 
 const _rl = new Map<string, { count: number; resetAt: number }>();
 const MAX_FALLBACK_BUCKETS = 10_000;
@@ -102,11 +104,12 @@ export async function requireAuthenticatedUser() {
   const session = await getCurrentSession();
 
   if (!session?.user) {
-    redirect("/login?redirectTo=/profile");
+    const locale = await getRequestLocale();
+    redirect(`${localePath(locale, "/login")}?redirectTo=${encodeURIComponent(localePath(locale, "/profile"))}`);
   }
 
   if (session.user.status === "SUSPENDED") {
-    redirect("/login?error=suspended");
+    redirect(`${localePath(await getRequestLocale(), "/login")}?error=suspended`);
   }
 
   return session.user;

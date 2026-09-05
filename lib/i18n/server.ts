@@ -1,6 +1,6 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import { normalizeLocale } from "./locales";
@@ -14,7 +14,7 @@ const dictionaries = {
 };
 
 export async function getRequestLocale() {
-  return normalizeLocale((await cookies()).get("synarava-locale")?.value);
+  return normalizeLocale((await headers()).get("x-locale"));
 }
 
 export async function getServerTranslations() {

@@ -25,12 +25,12 @@ describe("LoginForm", () => {
 
   it("renders Forgot password link", () => {
     render(<LoginForm />);
-    expect(screen.getByRole("link", { name: "Forgot password" })).toHaveAttribute("href", "/reset-password");
+    expect(screen.getByRole("link", { name: "Forgot password" })).toHaveAttribute("href", "/en/reset-password");
   });
 
   it("renders Create one link", () => {
     render(<LoginForm />);
-    expect(screen.getByRole("link", { name: "Create one" })).toHaveAttribute("href", "/register");
+    expect(screen.getByRole("link", { name: "Create one" })).toHaveAttribute("href", "/en/register");
   });
 
   it("shows error passed via prop", () => {

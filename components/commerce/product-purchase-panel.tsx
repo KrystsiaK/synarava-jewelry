@@ -8,6 +8,7 @@ import { ArtifactButton } from "@/components/ui";
 import { getProductPresentation } from "@/lib/catalog/product-presentation";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 type ProductPurchasePanelProps = {
   product: ProductSummary;
@@ -30,7 +31,7 @@ function selectionForVariant(variant: ProductSummary["variantDetails"][number]) 
 }
 
 export function ProductPurchasePanel({ product, compact = false }: ProductPurchasePanelProps) {
-  const { t, plural } = useTranslations();
+  const { t, plural, locale } = useTranslations();
   const presentation = getProductPresentation(product.departmentSlug);
   const purchasableVariants = useMemo(
     () => product.variantDetails.filter((variant) => variant.merchandiseId),
@@ -155,7 +156,7 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
             ].map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={localePath(locale, item.href)}
                 className="group flex min-h-16 flex-col justify-center border-b border-foreground/12 py-3 text-left last:border-b-0 sm:border-b-0 sm:border-r sm:px-4 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0"
               >
                 <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/78 transition-colors group-hover:text-couture-red">

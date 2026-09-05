@@ -10,7 +10,7 @@ import {
   updatePasswordAction,
   revokeAllSessionsAction,
   type ProfileActionState,
-} from "@/app/profile/actions";
+} from "@/app/[locale]/profile/actions";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 

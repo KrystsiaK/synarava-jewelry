@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import { finalizeConfirmedCheckoutAction } from "@/app/checkout/confirmed/actions";
+import { finalizeConfirmedCheckoutAction } from "@/app/[locale]/checkout/confirmed/actions";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 
 type CheckoutFinalizerProps = {

@@ -26,7 +26,7 @@ describe("SiteHeader", () => {
 
   it("wordmark links to home", () => {
     renderHeader();
-    expect(screen.getByRole("link", { name: "SYNARAVA" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "SYNARAVA" })).toHaveAttribute("href", "/en");
   });
 
   it("renders desktop nav links", () => {

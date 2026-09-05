@@ -23,12 +23,13 @@ import {
 } from "@/lib/catalog/product-presentation";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
 function ProductHero({ product }: { product: ProductSummary }) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -112,7 +113,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
                   <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-2">
                     {index > 0 ? <span className="text-foreground/20" aria-hidden="true">/</span> : null}
                     {item.href ? (
-                      <Link href={item.href} className="transition-colors hover:text-couture-red">
+                      <Link href={localePath(locale, item.href)} className="transition-colors hover:text-couture-red">
                         {item.label}
                       </Link>
                     ) : (
@@ -848,6 +849,7 @@ function LookbookSection({ product }: { product: ProductSummary }) {
 function ProductFooter({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const { locale } = useTranslations();
 
   if (!product.collectionSlug || !product.collectionName) {
     return null;
@@ -902,12 +904,12 @@ function ProductFooter({ product }: { product: ProductSummary }) {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.28 }}
         >
-          <PrimaryCtaButton href={`/collections/${product.collectionSlug}`}>
+          <PrimaryCtaButton href={localePath(locale, `/collections/${product.collectionSlug}`)}>
             View collection
           </PrimaryCtaButton>
 
           <Link
-            href="/shop"
+            href={localePath(locale, "/shop")}
             className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
           >
             Back to shop

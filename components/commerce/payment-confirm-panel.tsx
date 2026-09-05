@@ -1,4 +1,4 @@
-import { resetCheckoutAction } from "@/app/checkout/actions";
+import { resetCheckoutAction } from "@/app/[locale]/checkout/actions";
 import { PaymentForm } from "./payment-form";
 import { SubmitButton } from "./submit-button";
 

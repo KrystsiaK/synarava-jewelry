@@ -3,7 +3,7 @@
 import { useActionState, useRef } from "react";
 import { motion, useInView } from "motion/react";
 
-import { deleteAddressAction, setDefaultAddressAction, type ProfileActionState } from "@/app/profile/actions";
+import { deleteAddressAction, setDefaultAddressAction, type ProfileActionState } from "@/app/[locale]/profile/actions";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 

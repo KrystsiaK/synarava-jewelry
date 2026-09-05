@@ -74,7 +74,7 @@ describe("FilterBar", () => {
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop?category=bracelets", noScroll));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop?category=bracelets", noScroll));
   });
 
   it("saves filters to sessionStorage on selection", async () => {
@@ -100,7 +100,7 @@ describe("FilterBar", () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /remove filter bracelets/i }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop", noScroll));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
   });
 
   // ── Clear all ─────────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ describe("FilterBar", () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
     await user.click(screen.getByRole("button", { name: /^clear all$/i }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop", noScroll));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
   });
 
   // ── Search debounce ───────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ describe("FilterBar", () => {
     const inputs = screen.getAllByPlaceholderText(/search/i);
     await user.type(inputs[0], "oak");
     // Debounce is 350ms — waitFor polls until it passes or times out at 1s
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop?q=oak", noScroll), { timeout: 1000 });
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop?q=oak", noScroll), { timeout: 1000 });
   });
 
   it("clears search and navigates on X button click", async () => {
@@ -147,7 +147,7 @@ describe("FilterBar", () => {
     // Both desktop and mobile bars render a clear button; click the first
     const clearBtns = screen.getAllByRole("button", { name: /clear search/i });
     await user.click(clearBtns[0]);
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop", noScroll));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
   });
 
   // ── Session persistence ───────────────────────────────────────────────────
@@ -211,7 +211,7 @@ describe("FilterBar", () => {
     // Clear all in the sheet header, then confirm via CTA.
     await user.click(within(dialog).getByRole("button", { name: /^clear all$/i }));
     await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop", noScroll));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
   });
 
   it("can deselect a filter section via All button in mobile sheet", async () => {

@@ -7,8 +7,9 @@ import {
   decreaseCartItemAction,
   increaseCartItemAction,
   removeCartItemAction,
-} from "@/app/cart/actions";
+} from "@/app/[locale]/cart/actions";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 type CartItemRowProps = {
   item: {
@@ -25,14 +26,14 @@ type CartItemRowProps = {
 };
 
 export function CartItemRow({ item }: CartItemRowProps) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const isAtStockLimit =
     item.maxQuantity != null && item.quantity >= item.maxQuantity;
   const stockTooltipId = `stock-limit-${item.id}`;
 
   return (
     <article className="grid gap-5 border-t border-stroke py-6 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
-      <Link href={`/products/${item.slug}`} className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
+      <Link href={localePath(locale, `/products/${item.slug}`)} className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
         <Image
           alt={item.title}
           src={item.imageUrl}

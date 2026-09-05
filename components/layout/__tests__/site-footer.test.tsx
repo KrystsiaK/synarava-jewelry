@@ -28,14 +28,14 @@ describe("SiteFooter", () => {
 
   it("renders Shop link", () => {
     renderFooter();
-    expect(screen.getByRole("link", { name: "Shop" })).toHaveAttribute("href", "/shop");
+    expect(screen.getByRole("link", { name: "Shop" })).toHaveAttribute("href", "/en/shop");
   });
 
   it("renders Collections link", () => {
     renderFooter();
     const links = screen.getAllByRole("link", { name: "Collections" });
     expect(links.length).toBeGreaterThan(0);
-    expect(links[0]).toHaveAttribute("href", "/collections");
+    expect(links[0]).toHaveAttribute("href", "/en/collections");
   });
 
   it("does not render a separate Manifesto navigation link", () => {

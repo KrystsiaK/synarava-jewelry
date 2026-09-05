@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@/app/checkout/actions", () => ({
+vi.mock("@/app/[locale]/checkout/actions", () => ({
   confirmOrderAction: vi.fn(),
   resetCheckoutAction: vi.fn(),
 }));

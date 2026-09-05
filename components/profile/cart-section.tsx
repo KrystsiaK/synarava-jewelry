@@ -6,6 +6,8 @@ import Link from "next/link";
 import { motion, useInView } from "motion/react";
 
 import { ArtifactLink } from "@/components/ui";
+import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -32,6 +34,7 @@ type Cart = {
 type Props = { cart: Cart | null };
 
 function EmptyCart() {
+  const { locale } = useTranslations();
   return (
     <div className="flex flex-col items-start gap-4 border border-stroke px-8 py-12">
       <div className="flex items-center gap-4">
@@ -44,7 +47,7 @@ function EmptyCart() {
         Add pieces to your cart and they will appear here, linked to your account.
       </p>
       <Link
-        href="/shop"
+        href={localePath(locale, "/shop")}
         className="label-caps mt-2 border-b border-foreground/30 pb-px text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
       >
         Browse the collection →
@@ -54,6 +57,7 @@ function EmptyCart() {
 }
 
 export function CartSection({ cart }: Props) {
+  const { locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-60px" });
 
@@ -81,7 +85,7 @@ export function CartSection({ cart }: Props) {
             {/* Desktop row */}
             <div className="hidden py-5 transition-colors hover:bg-foreground/[0.018] md:grid md:grid-cols-[5rem_1fr_4rem_5rem_5rem] md:items-center md:gap-4">
               {item.imageUrl && item.slug ? (
-                <Link href={`/products/${item.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-stone-beige">
+                <Link href={localePath(locale, `/products/${item.slug}`)} className="relative block aspect-[4/5] overflow-hidden bg-stone-beige">
                   <Image
                     src={item.imageUrl}
                     alt={item.title}
@@ -97,7 +101,7 @@ export function CartSection({ cart }: Props) {
               <div className="space-y-0.5">
                 {item.slug ? (
                   <Link
-                    href={`/products/${item.slug}`}
+                    href={localePath(locale, `/products/${item.slug}`)}
                     className="font-serif text-lg leading-tight hover:text-couture-red transition-colors"
                   >
                     {item.title}
@@ -121,7 +125,7 @@ export function CartSection({ cart }: Props) {
             {/* Mobile card */}
             <div className="flex gap-4 py-5 md:hidden">
               {item.imageUrl && item.slug ? (
-                <Link href={`/products/${item.slug}`} className="relative block aspect-[4/5] w-16 shrink-0 overflow-hidden bg-stone-beige">
+                <Link href={localePath(locale, `/products/${item.slug}`)} className="relative block aspect-[4/5] w-16 shrink-0 overflow-hidden bg-stone-beige">
                   <Image src={item.imageUrl} alt={item.title} fill sizes="4rem" className="object-cover" />
                 </Link>
               ) : (
@@ -157,7 +161,7 @@ export function CartSection({ cart }: Props) {
           <p className="text-xs text-foreground/40">Shipping calculated at checkout</p>
         </div>
 
-        <ArtifactLink href="/checkout" size="md" showArrow>
+        <ArtifactLink href={localePath(locale, "/checkout")} size="md" showArrow>
           Proceed to checkout
         </ArtifactLink>
       </motion.div>

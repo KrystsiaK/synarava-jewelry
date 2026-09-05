@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
 import {
@@ -50,7 +51,7 @@ export function FilterBar({
   totalCount,
 }: FilterBarProps) {
   const router = useRouter();
-  const { t, plural } = useTranslations();
+  const { t, plural, locale } = useTranslations();
   const [isPending, startTransition] = useTransition();
 
   const [filters, setFilters] = useState<ShopFilters>(initialFilters);
@@ -89,10 +90,10 @@ export function FilterBar({
       saveFiltersToSession(next);
       startTransition(() => {
         const qs = buildSearchParams(next);
-        router.push(qs ? `/shop?${qs}` : "/shop", SHOP_SCROLL_OPTIONS);
+        router.push(localePath(locale, qs ? `/shop?${qs}` : "/shop"), SHOP_SCROLL_OPTIONS);
       });
     },
-    [router],
+    [router, locale],
   );
 
   const setFilter = useCallback(
@@ -121,9 +122,9 @@ export function FilterBar({
     clearFiltersSession();
     startTransition(() => {
       const qs = buildSearchParams(next);
-      router.push(qs ? `/shop?${qs}` : "/shop", SHOP_SCROLL_OPTIONS);
+      router.push(localePath(locale, qs ? `/shop?${qs}` : "/shop"), SHOP_SCROLL_OPTIONS);
     });
-  }, [filters, router]);
+  }, [filters, router, locale]);
 
   // ── Debounced search ───────────────────────────────────────────────────────
   const handleSearchChange = (value: string) => {

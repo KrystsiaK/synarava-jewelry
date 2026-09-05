@@ -4,7 +4,7 @@ const { mockSubmitShippingAction } = vi.hoisted(() => ({
   mockSubmitShippingAction: vi.fn(),
 }));
 
-vi.mock("@/app/checkout/actions", () => ({
+vi.mock("@/app/[locale]/checkout/actions", () => ({
   submitShippingAction: mockSubmitShippingAction,
 }));
 

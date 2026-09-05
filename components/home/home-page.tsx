@@ -18,6 +18,8 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyn
 
 import { ease } from "@/lib/animation";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
+import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 import { PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { buildFinalCtaImages } from "@/lib/content/home-media";
@@ -404,6 +406,7 @@ const DEPARTMENT_NOTES: Record<string, string> = {
 };
 
 function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
+  const { locale } = useTranslations();
   const leadDepartment = departments.find((department) => department.image);
 
   return (
@@ -476,7 +479,7 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
               return department.count > 0 ? (
                 <Link
                   key={department.slug}
-                  href={`/shop?department=${department.slug}`}
+                  href={localePath(locale, `/shop?department=${department.slug}`)}
                   onClick={() => trackCommerceEvent("department_entry", {
                     department: department.slug,
                     source: "home",
@@ -494,7 +497,7 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
           </div>
 
           <div className="mt-10">
-            <PrimaryCtaButton href="/shop">Explore the shop</PrimaryCtaButton>
+            <PrimaryCtaButton href={localePath(locale, "/shop")}>Explore the shop</PrimaryCtaButton>
           </div>
         </motion.div>
       </div>
@@ -1206,6 +1209,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
 
 // 7. FINAL CTA — cubist shop portal
 function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
+  const { locale } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const images = useMemo(() => buildFinalCtaImages(collections), [collections]);
@@ -1318,7 +1322,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
               <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link
-              href="/about"
+              href={localePath(locale, "/about")}
               className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
             >
               The studio

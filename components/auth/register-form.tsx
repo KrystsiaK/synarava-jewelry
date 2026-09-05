@@ -13,12 +13,13 @@ import {
 } from "@/components/auth/auth-form-primitives";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 
 const initialState: AuthActionState = {};
 
 export function RegisterForm() {
   const [state, formAction] = useActionState(registerAction, initialState);
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
 
   return (
     <AuthForm action={formAction}>
@@ -49,7 +50,7 @@ export function RegisterForm() {
 
       <p className="text-sm text-foreground/62">
         {t("auth.register.alreadyRegistered")}{" "}
-        <Link href="/login" className="text-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
+        <Link href={localePath(locale, "/login")} className="text-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:text-accent">
           {t("auth.register.signIn")}
         </Link>
       </p>

@@ -13,6 +13,8 @@ import {
 
 import { ease } from "@/lib/animation";
 import { EditorialSplitFeature, PrimaryCtaButton } from "@/components/ui";
+import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
 import type { CollectionSummary } from "@/lib/content/catalog";
 
 const HERO_SCROLL_SPRING = {
@@ -122,12 +124,13 @@ function CollectionRow({
   collection: CollectionSummary;
   index: number;
 }) {
+  const { locale } = useTranslations();
   const isReversed = index % 2 === 1;
   const numLabel = String(index + 1).padStart(2, "0");
 
   return (
     <EditorialSplitFeature
-      href={`/collections/${collection.slug}`}
+      href={localePath(locale, `/collections/${collection.slug}`)}
       reversed={isReversed}
       imageSrc={collection.heroImage}
       imageAlt={collection.name}
@@ -213,6 +216,7 @@ function CollectionRow({
 
 /* ─── Footer Strip ───────────────────────────────────────────────── */
 function CollectionsFooter() {
+  const { locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
 
@@ -254,7 +258,7 @@ function CollectionsFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.22 }}
         >
-          <PrimaryCtaButton href="/shop">Shop all products</PrimaryCtaButton>
+          <PrimaryCtaButton href={localePath(locale, "/shop")}>Shop all products</PrimaryCtaButton>
         </motion.div>
       </div>
     </div>

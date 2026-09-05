@@ -25,7 +25,7 @@ describe("PasswordResetRequestForm", () => {
 
   it("renders login link", () => {
     render(<PasswordResetRequestForm />);
-    expect(screen.getByRole("link", { name: "login" })).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("link", { name: "login" })).toHaveAttribute("href", "/en/login");
   });
 });
 

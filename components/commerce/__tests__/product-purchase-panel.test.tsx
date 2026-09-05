@@ -126,9 +126,9 @@ describe("ProductPurchasePanel", () => {
     render(<ProductPurchasePanel product={{ ...product, departmentSlug: "pets" }} />);
 
     expect(screen.getByText("Choose the right fit")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Delivery/ })).toHaveAttribute("href", "/shipping");
-    expect(screen.getByRole("link", { name: /Returns/ })).toHaveAttribute("href", "/returns");
-    expect(screen.getByRole("link", { name: /Care & safety/ })).toHaveAttribute("href", "/care");
+    expect(screen.getByRole("link", { name: /Delivery/ })).toHaveAttribute("href", "/en/shipping");
+    expect(screen.getByRole("link", { name: /Returns/ })).toHaveAttribute("href", "/en/returns");
+    expect(screen.getByRole("link", { name: /Care & safety/ })).toHaveAttribute("href", "/en/care");
   });
 
   it("keeps the repeated compact purchase action free of duplicate service navigation", () => {

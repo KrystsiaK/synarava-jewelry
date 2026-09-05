@@ -4,6 +4,9 @@ import { useRef } from "react";
 import Link from "next/link";
 import { motion, useInView } from "motion/react";
 
+import { useTranslations } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/routing";
+
 const ease = [0.22, 1, 0.36, 1] as const;
 
 type OrderItem = {
@@ -63,6 +66,7 @@ function StatusBadge({ map, value }: { map: Record<string, { label: string; cls:
 }
 
 function EmptyOrders() {
+  const { locale } = useTranslations();
   return (
     <div className="flex flex-col items-start gap-4 border border-stroke px-8 py-12">
       <div className="flex items-center gap-4">
@@ -75,7 +79,7 @@ function EmptyOrders() {
         Once you complete a purchase, your order history will appear here.
       </p>
       <Link
-        href="/shop"
+        href={localePath(locale, "/shop")}
         className="label-caps mt-2 border-b border-foreground/30 pb-px text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
       >
         Browse the collection →

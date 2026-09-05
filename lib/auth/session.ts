@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { ensureAuthSeed } from "@/lib/auth/bootstrap";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { localePath } from "@/lib/i18n/routing";
 
 const SESSION_COOKIE = "synarava-session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 14;
@@ -150,7 +152,8 @@ export async function requireUser(redirectTo?: string) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(`/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`);
+    const locale = await getRequestLocale();
+    redirect(`${localePath(locale, "/login")}${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`);
   }
 
   return user;
@@ -161,7 +164,7 @@ export async function requirePermission(permissionKey: string, redirectTo?: stri
   const permissions = await getCurrentUserPermissions();
 
   if (!permissions.includes(permissionKey)) {
-    redirect("/shop?error=admin-only");
+    redirect(localePath(await getRequestLocale(), "/shop?error=admin-only"));
   }
 
   return user;

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { normalizeLocale } from "@/lib/i18n/locales";
+
 const ADMIN_COOKIE = "synarava-admin-session";
+const LOCALE_PREFIX_RE = /^\/(en|pt)(\/|$)/;
 
 function origin(value?: string) {
   try {
@@ -106,12 +109,34 @@ async function validAdminCookie(value: string | undefined) {
 }
 
 export async function proxy(request: NextRequest) {
-  const isAdminPage = request.nextUrl.pathname.startsWith("/admin");
-  const isLogin = request.nextUrl.pathname === "/admin/login";
-  if (isAdminPage && !isLogin && !(await validAdminCookie(request.cookies.get(ADMIN_COOKIE)?.value))) {
-    const login = new URL("/admin/login", request.url);
-    login.searchParams.set("redirectTo", `${request.nextUrl.pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(login);
+  const { pathname } = request.nextUrl;
+  const isAdminPage = pathname.startsWith("/admin");
+  // /media serves files by key (often without a file extension), so the
+  // matcher's "contains a dot" exclusion doesn't catch it — exempt explicitly.
+  const isLocaleExempt = isAdminPage || pathname.startsWith("/media");
+
+  if (isAdminPage) {
+    const isLogin = pathname === "/admin/login";
+    if (!isLogin && !(await validAdminCookie(request.cookies.get(ADMIN_COOKIE)?.value))) {
+      const login = new URL("/admin/login", request.url);
+      login.searchParams.set("redirectTo", `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(login);
+    }
+  }
+
+  const localeMatch = isLocaleExempt ? null : LOCALE_PREFIX_RE.exec(pathname);
+  if (!isLocaleExempt && !localeMatch) {
+    const cookieLocale = request.cookies.get("synarava-locale")?.value;
+    const hasValidCookie = cookieLocale === "en" || cookieLocale === "pt";
+    const locale = normalizeLocale(cookieLocale);
+
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+
+    // A remembered preference is a personalized, non-cacheable redirect (307).
+    // No cookie — what Googlebot and first-time visitors get — is the stable,
+    // permanent mapping of every currently-indexed bare URL (308).
+    return NextResponse.redirect(url, hasValidCookie ? 307 : 308);
   }
 
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64");
@@ -119,6 +144,9 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
+  if (localeMatch) {
+    requestHeaders.set("x-locale", localeMatch[1]);
+  }
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
   return response;

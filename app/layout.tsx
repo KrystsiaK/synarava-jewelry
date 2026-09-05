@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
-import { normalizeLocale } from "@/lib/i18n/locales";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 
@@ -100,11 +100,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, requestHeaders] = await Promise.all([cookies(), headers()]);
+  const [cookieStore, requestHeaders, initialLocale] = await Promise.all([
+    cookies(),
+    headers(),
+    getRequestLocale(),
+  ]);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
-  const initialLocale = normalizeLocale(cookieStore.get("synarava-locale")?.value);
   const shopifyPrivacyConfig = {
     storefrontAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
     checkoutRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_CHECKOUT_ROOT_DOMAIN,
