@@ -53,9 +53,10 @@ analytics.subscribe("checkout_completed", (event) => {
 
   const items = checkout.lineItems.map((line) => {
     const quantity = line.quantity || 1;
-    const unitPrice = line.finalLinePrice?.amount != null
-      ? Number(line.finalLinePrice.amount) / quantity
-      : Number(line.variant?.price?.amount || 0);
+    let unitPrice = Number(line.variant?.price?.amount || 0);
+    if (line.finalLinePrice?.amount != null) {
+      unitPrice = Number(line.finalLinePrice.amount) / quantity;
+    }
     const discount = (line.discountAllocations || []).reduce(
       (sum, allocation) => sum + Number(allocation.amount?.amount || allocation.amount || 0),
       0,
