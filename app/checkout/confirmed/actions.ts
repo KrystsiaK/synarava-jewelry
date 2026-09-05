@@ -10,7 +10,7 @@ import {
 
 // Payment status is set exclusively by the Stripe webhook (checkout.session.completed).
 // This action only cleans up the cart and session cookies.
-export async function finalizeConfirmedCheckoutAction(_orderId?: string | null) {
+export async function finalizeConfirmedCheckoutAction() {
   const cart = await getOrCreateCart({ createIfMissing: false });
   if (cart) {
     await clearActiveCart(cart.id);

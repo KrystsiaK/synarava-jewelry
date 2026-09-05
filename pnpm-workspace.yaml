@@ -10,4 +10,5 @@ ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
 overrides:
+  browserslist: 4.28.9
   deepmerge-ts: 8.0.2

@@ -16,7 +16,7 @@ export function CheckoutFinalizer({ orderId }: CheckoutFinalizerProps) {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    void finalizeConfirmedCheckoutAction(orderId)
+    void finalizeConfirmedCheckoutAction()
       .then(() => trackCommerceEvent("checkout_completed", { orderId }))
       .catch((error) => {
         console.error("[checkout] Failed to finalize confirmed checkout.", error);

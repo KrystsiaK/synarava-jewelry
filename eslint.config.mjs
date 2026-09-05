@@ -14,6 +14,13 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated files:
     "coverage/**",
+    "graphify-out/**",
+    // Local agent/tooling bundles are not application source.
+    ".agents/**",
+    ".claude/**",
+    ".codex-tmp/**",
+    "artifacts/**",
+    "edited-product-photos/**",
   ]),
 ]);
 
