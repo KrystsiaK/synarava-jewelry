@@ -30,10 +30,14 @@ describe("storefront Content Security Policy", () => {
   it("allows consent-gated analytics and advertising destinations", async () => {
     const response = await proxy(new NextRequest("https://shop.synarava.test/"));
     const csp = response.headers.get("Content-Security-Policy") ?? "";
+    const imageDirective = csp
+      .split("; ")
+      .find((directive) => directive.startsWith("img-src "));
 
     expect(csp).toContain("https://www.googletagmanager.com");
     expect(csp).toContain("https://connect.facebook.net");
     expect(csp).toContain("https://www.google-analytics.com");
     expect(csp).toContain("https://www.facebook.com");
+    expect(imageDirective).toContain("https://www.googletagmanager.com");
   });
 });

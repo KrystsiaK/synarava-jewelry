@@ -68,7 +68,7 @@ function cspFor(nonce: string) {
     "default-src 'self'",
     `script-src ${scripts}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com https://www.google-analytics.com https://www.facebook.com ${storage.join(" ")}`,
+    `img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com https://www.googletagmanager.com https://www.google-analytics.com https://www.facebook.com ${storage.join(" ")}`,
     `media-src 'self' ${storage.join(" ")}`,
     `connect-src ${connections}`,
     "frame-src https://js.stripe.com",
