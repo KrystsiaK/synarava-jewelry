@@ -14,6 +14,24 @@ export type RemoteCommerceVariant = {
   inventoryQuantity?: number | null;
 };
 
+export type RemoteProductStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
+
+export function synaravaVisibilityForShopifyStatus(status: RemoteProductStatus) {
+  return status === "ACTIVE" ? "PUBLIC" as const : "PRIVATE" as const;
+}
+
+export function pickShopifyProductImageUrl({
+  featuredImageUrl,
+  media,
+}: {
+  featuredImageUrl?: string | null;
+  media: Array<{ mediaContentType?: string | null; imageUrl?: string | null }>;
+}) {
+  return featuredImageUrl?.trim() ||
+    media.find((item) => item.mediaContentType === "IMAGE" && item.imageUrl?.trim())?.imageUrl?.trim() ||
+    null;
+}
+
 export type VariantCommerceDifference = {
   variant: string;
   field: "variant" | "sku" | "price" | "compareAtPrice" | "inventoryQuantity";

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   classifyRemoteReconciliationAction,
   compareVariantCommerce,
+  pickShopifyProductImageUrl,
+  synaravaVisibilityForShopifyStatus,
   variantCommerceChangeLabels,
   type LocalCommerceVariant,
   type RemoteCommerceVariant,
@@ -79,5 +81,25 @@ describe("classifyRemoteReconciliationAction", () => {
         remoteHasChanges: false,
       }),
     ).toBe("CONFLICT");
+  });
+});
+
+describe("Shopify storefront projection", () => {
+  it("makes active Shopify products visible on the Synarava storefront", () => {
+    expect(synaravaVisibilityForShopifyStatus("ACTIVE")).toBe("PUBLIC");
+    expect(synaravaVisibilityForShopifyStatus("DRAFT")).toBe("PRIVATE");
+    expect(synaravaVisibilityForShopifyStatus("ARCHIVED")).toBe("PRIVATE");
+  });
+
+  it("uses the first Shopify image media when no featured image is set", () => {
+    expect(
+      pickShopifyProductImageUrl({
+        featuredImageUrl: null,
+        media: [
+          { mediaContentType: "VIDEO", imageUrl: "https://cdn.shopify.com/video-preview.jpg" },
+          { mediaContentType: "IMAGE", imageUrl: "https://cdn.shopify.com/product.jpg" },
+        ],
+      }),
+    ).toBe("https://cdn.shopify.com/product.jpg");
   });
 });

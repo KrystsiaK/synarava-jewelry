@@ -8,6 +8,8 @@ import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/
 import {
   classifyRemoteReconciliationAction,
   compareVariantCommerce,
+  pickShopifyProductImageUrl,
+  synaravaVisibilityForShopifyStatus,
   type RemoteCommerceVariant,
   variantCommerceChangeLabel,
   variantCommerceChangeLabels,
@@ -213,8 +215,15 @@ async function fetchShopifyProduct(id: string) {
 async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force = false) {
   const firstVariant = remote.variants.nodes[0];
   const onlineStorePublication = remote.resourcePublicationsV2.nodes.find((item) => /online store/i.test(item.publication.name));
-  const publishedToOnlineStore = Boolean(onlineStorePublication?.isPublished);
   const remoteSku = firstVariant?.sku?.trim() || `SHOPIFY-${remote.id.split("/").pop()}`;
+  const imageUrl = pickShopifyProductImageUrl({
+    featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
+    media: remote.media.nodes.map((item) => ({
+      mediaContentType: item.mediaContentType,
+      imageUrl: item.preview?.image?.url,
+    })),
+  });
+  const visibility = synaravaVisibilityForShopifyStatus(remote.status);
   const existingById = await db.product.findUnique({ where: { shopifyProductId: remote.id } });
   const existingBySku = existingById ? null : await db.product.findUnique({ where: { sku: remoteSku } });
   const existingBySlug = existingById || existingBySku
@@ -282,10 +291,10 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       productType: "ARTIFACT",
       priceCents: cents(firstVariant?.price),
       compareAtCents: firstVariant?.compareAtPrice ? cents(firstVariant.compareAtPrice) : null,
-      imageUrl: remote.featuredMedia?.preview?.image?.url ?? null,
+      imageUrl,
       status: remote.status,
-      visibility: remote.status === "ACTIVE" && publishedToOnlineStore ? "PUBLIC" : "PRIVATE",
-      publishedAt: remote.status === "ACTIVE" && publishedToOnlineStore
+      visibility,
+      publishedAt: visibility === "PUBLIC"
         ? onlineStorePublication?.publishDate ? new Date(onlineStorePublication.publishDate) : existing?.publishedAt ?? new Date()
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
@@ -309,10 +318,10 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       currency: "EUR",
       priceCents: cents(firstVariant?.price),
       compareAtCents: firstVariant?.compareAtPrice ? cents(firstVariant.compareAtPrice) : null,
-      imageUrl: remote.featuredMedia?.preview?.image?.url ?? null,
+      imageUrl,
       status: remote.status,
-      visibility: remote.status === "ACTIVE" && publishedToOnlineStore ? "PUBLIC" : "PRIVATE",
-      publishedAt: remote.status === "ACTIVE" && publishedToOnlineStore
+      visibility,
+      publishedAt: visibility === "PUBLIC"
         ? onlineStorePublication?.publishDate ? new Date(onlineStorePublication.publishDate) : new Date()
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
@@ -500,9 +509,15 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     .filter((item) => item.isPublished)
     .map((item) => item.publication.name)
     .sort();
-  const publishedToOnlineStore = publishedPublications.some((name) => /online store/i.test(name));
-  compare("Online Store publication", local.visibility === "PUBLIC" ? "Published" : "Not published", publishedToOnlineStore ? "Published" : "Not published");
-  compare("Primary image", local.imageUrl ?? "", remote.featuredMedia?.preview?.image?.url ?? "");
+  const remoteImageUrl = pickShopifyProductImageUrl({
+    featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
+    media: remote.media.nodes.map((item) => ({
+      mediaContentType: item.mediaContentType,
+      imageUrl: item.preview?.image?.url,
+    })),
+  });
+  compare("Synarava storefront visibility", local.visibility, synaravaVisibilityForShopifyStatus(remote.status));
+  compare("Primary image", local.imageUrl ?? "", remoteImageUrl ?? "");
   for (const difference of compareVariantCommerce(local.variants, remote.variants.nodes)) {
     const variantSuffix = remote.variants.nodes.length > 1 ? ` (${difference.variant})` : "";
     compare(
