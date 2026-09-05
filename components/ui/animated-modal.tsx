@@ -141,7 +141,7 @@ export function AnimatedModal({
   );
 
   return createPortal(
-    <div ref={modalRootRef} className="contents" data-animated-modal-root="true">
+    <div ref={modalRootRef} className="fixed inset-0 isolate" data-animated-modal-root="true">
       <button
         type="button"
         className={cn("modal-backdrop fixed inset-0 cursor-default", backdropZIndexClassName, visuallyOpen && "is-open")}

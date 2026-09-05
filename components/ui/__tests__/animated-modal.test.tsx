@@ -17,6 +17,7 @@ describe("AnimatedModal", () => {
     expect(screen.getByTestId("background").parentElement).toHaveProperty("inert", true);
     expect(screen.getByRole("dialog", { name: "Example dialog" }).closest("[data-animated-modal-root]"))
       .toBe(document.body.querySelector("[data-animated-modal-root]"));
+    expect(document.body.querySelector("[data-animated-modal-root]")).toHaveClass("fixed", "inset-0", "isolate");
 
     unmount();
     expect(document.body.querySelector("[data-animated-modal-root]")).not.toBeInTheDocument();
