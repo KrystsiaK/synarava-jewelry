@@ -10,6 +10,17 @@ function origin(value?: string) {
   }
 }
 
+function secureOrigin(value?: string) {
+  if (!value) return null;
+
+  try {
+    const parsed = new URL(value.includes("://") ? value : `https://${value}`);
+    return parsed.protocol === "https:" ? parsed.origin : null;
+  } catch {
+    return null;
+  }
+}
+
 function storageOrigins() {
   const values = new Set<string>();
   for (const value of [process.env.S3_PUBLIC_URL, process.env.S3_ENDPOINT]) {
@@ -32,6 +43,15 @@ function storageOrigins() {
 
 function cspFor(nonce: string) {
   const storage = storageOrigins();
+  const checkoutOrigin = secureOrigin(
+    process.env.NEXT_PUBLIC_SHOPIFY_CHECKOUT_ROOT_DOMAIN,
+  );
+  const connections = [
+    "'self'",
+    "https://api.stripe.com",
+    ...(checkoutOrigin ? [checkoutOrigin] : []),
+    ...storage,
+  ].join(" ");
   const scripts = [
     "'self'",
     `'nonce-${nonce}'`,
@@ -45,9 +65,9 @@ function cspFor(nonce: string) {
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com ${storage.join(" ")}`,
     `media-src 'self' ${storage.join(" ")}`,
-    `connect-src 'self' https://api.stripe.com ${storage.join(" ")}`,
+    `connect-src ${connections}`,
     "frame-src https://js.stripe.com",
-    "font-src 'self' data:",
+    "font-src 'self' data: https://cdn.shopify.com https://*.shopifycdn.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
