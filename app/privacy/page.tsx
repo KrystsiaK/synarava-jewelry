@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PrivacySettingsButton } from "@/components/privacy/privacy-settings-button";
+import { PortuguesePrivacyPolicy } from "@/components/privacy/portuguese-privacy-policy";
+import { getRequestLocale } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy | Synarava",
-  description: "How Synarava Jewelry collects, uses, and protects your personal data.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  return locale === "pt" ? {
+    title: "Política de Privacidade | Synarava",
+    description: "Como a Synarava recolhe, utiliza e protege os seus dados pessoais.",
+  } : {
+    title: "Privacy Policy | Synarava",
+    description: "How Synarava Jewelry collects, uses, and protects your personal data.",
+  };
+}
 
 const sections = [
   { id: "controller", label: "1. Data Controller" },
@@ -19,7 +28,16 @@ const sections = [
   { id: "contact", label: "10. Contact" },
 ];
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const legalName = process.env.NEXT_PUBLIC_LEGAL_NAME ?? "Synarava Jewelry";
+  const postalAddress = process.env.NEXT_PUBLIC_LEGAL_POSTAL_ADDRESS;
+  const privacyEmail = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "studio@synarava.com";
+  const locale = await getRequestLocale();
+
+  if (locale === "pt") {
+    return <PortuguesePrivacyPolicy legalName={legalName} postalAddress={postalAddress} privacyEmail={privacyEmail} />;
+  }
+
   return (
     <main className="artifact-shell min-h-screen pt-24 pb-20 md:pt-28 md:pb-32">
       {/* Header */}
@@ -29,7 +47,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-4 max-w-xl text-base leading-7 text-foreground/60 md:mt-5 md:text-lg md:leading-8">
-          Last updated: 19 August 2026
+          Last updated: 5 September 2026
         </p>
       </header>
 
@@ -61,11 +79,12 @@ export default function PrivacyPage() {
             <div className="space-y-4 text-base leading-8 text-foreground/75">
               <p>
                 The data controller for all personal information processed through this website is
-                <strong className="text-foreground"> Synarava Jewelry</strong> (hereafter &ldquo;Synarava&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;).
+                <strong className="text-foreground"> {legalName}</strong> (hereafter &ldquo;Synarava&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;).
               </p>
               <p>
-                Contact address: <a href="mailto:studio@synarava.com" className="text-accent underline underline-offset-4">studio@synarava.com</a>
+                Email: <a href={`mailto:${privacyEmail}`} className="text-accent underline underline-offset-4">{privacyEmail}</a>
               </p>
+              {postalAddress ? <p>Postal address: {postalAddress}</p> : null}
               <p>
                 We are committed to protecting your privacy and handling your data in full compliance
                 with the General Data Protection Regulation (GDPR) and applicable national data
@@ -189,6 +208,13 @@ export default function PrivacyPage() {
                 If required by law, we may disclose data to competent authorities (courts, law
                 enforcement, tax authorities) without prior notice.
               </p>
+              <p>
+                Some providers may process data outside the European Economic Area. Where this
+                happens, we use an applicable transfer mechanism such as an adequacy decision or
+                the European Commission&apos;s Standard Contractual Clauses, together with additional
+                safeguards where required. Contact us for information about the safeguards relevant
+                to your data.
+              </p>
             </div>
           </section>
 
@@ -235,9 +261,10 @@ export default function PrivacyPage() {
               </div>
               <p>
                 To exercise any right, contact us at{" "}
-                <a href="mailto:studio@synarava.com" className="text-accent underline underline-offset-4">studio@synarava.com</a>.
+                <a href={`mailto:${privacyEmail}`} className="text-accent underline underline-offset-4">{privacyEmail}</a>.
                 We will respond within 30 days. You also have the right to lodge a complaint with
-                your national supervisory authority.
+                your national supervisory authority. In Portugal, this is the{" "}
+                <a href="https://www.cnpd.pt/" rel="noreferrer" target="_blank" className="text-accent underline underline-offset-4">Comissão Nacional de Proteção de Dados (CNPD)</a>.
               </p>
             </div>
           </section>
@@ -248,23 +275,45 @@ export default function PrivacyPage() {
             <p className="label-caps mb-3 text-accent">8. Cookies</p>
             <h2 className="mb-5 font-serif text-[1.8rem] leading-tight md:text-[2.2rem]">How we use cookies</h2>
             <div className="space-y-4 text-base leading-8 text-foreground/75">
-              <p>We use the following types of cookies:</p>
-              <div className="panel divide-y divide-stroke">
-                {[
-                  { type: "Essential", required: "Required", desc: "Session management, authentication, cart state. Cannot be disabled." },
-                  { type: "Preference", required: "Required", desc: "Theme selection (light/dark mode). Stored locally." },
-                  { type: "Analytics", required: "Optional", desc: "Anonymous visitor statistics to improve the website. Requires your consent." },
-                ].map((c) => (
-                  <div key={c.type} className="flex flex-col gap-2 p-5 sm:flex-row sm:items-start sm:gap-4 md:p-6">
-                    <div className="flex shrink-0 items-center gap-3 sm:w-40">
-                      <span className="label-caps text-foreground">{c.type}</span>
-                      <span className={`label-mono text-[10px] px-2 py-0.5 border ${c.required === "Required" ? "border-stroke text-muted" : "border-accent/40 text-accent"}`}>
-                        {c.required}
-                      </span>
-                    </div>
-                    <p className="text-sm leading-7 text-foreground/70">{c.desc}</p>
-                  </div>
-                ))}
+              <p>
+                Optional storage and destinations remain disabled until you consent. Rejecting them
+                does not prevent you from browsing, creating an account, or completing a purchase.
+              </p>
+              <div className="overflow-x-auto border border-stroke">
+                <table className="w-full min-w-[46rem] border-collapse text-left text-sm">
+                  <thead className="bg-foreground/[0.04]">
+                    <tr>
+                      {['Name / provider', 'Purpose', 'Category', 'Duration'].map((heading) => (
+                        <th key={heading} scope="col" className="label-caps border-b border-stroke p-4 text-foreground">{heading}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ['synarava-consent · Synarava', 'Records your consent choices so the banner does not reappear on every page.', 'Necessary', '180 days'],
+                      ['synarava-locale · Synarava', 'Remembers the language after you choose it.', 'Preference', '1 year'],
+                      ['synarava-theme · Synarava', 'Remembers light, dark, or system appearance after you choose it.', 'Preference', '1 year'],
+                      ['Session and cart cookies · Synarava / Shopify', 'Keeps authentication, security, cart, and checkout working.', 'Necessary', 'Session or provider-defined'],
+                      ['_ga, _gid, _gat and related identifiers · Google', 'Measures site usage and commerce journeys through the configured Google tag.', 'Analytics', 'Up to 2 years'],
+                      ['_fbp, _fbc and related identifiers · Meta', 'Measures advertising performance and attribution.', 'Marketing', 'Up to 90 days'],
+                    ].map(([name, purpose, category, duration]) => (
+                      <tr key={name} className="border-b border-stroke last:border-0">
+                        <th scope="row" className="p-4 align-top font-medium text-foreground">{name}</th>
+                        <td className="p-4 align-top text-foreground/70">{purpose}</td>
+                        <td className="p-4 align-top text-foreground/70">{category}</td>
+                        <td className="p-4 align-top text-foreground/70">{duration}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p>
+                Analytics and marketing rows apply only when those integrations are configured and
+                you enable the corresponding category. You can withdraw consent at any time; the
+                withdrawal applies from that point onward.
+              </p>
+              <div className="inline-flex border border-stroke px-4 py-3">
+                <PrivacySettingsButton />
               </div>
             </div>
           </section>
@@ -308,13 +357,19 @@ export default function PrivacyPage() {
                 For any questions about this Privacy Policy or your personal data, please contact us:
               </p>
               <div className="panel p-6 md:p-8">
-                <p className="label-caps mb-4 text-foreground">Synarava Jewelry</p>
-                <p>Email: <a href="mailto:studio@synarava.com" className="text-accent underline underline-offset-4">studio@synarava.com</a></p>
+                <p className="label-caps mb-4 text-foreground">{legalName}</p>
+                <p>Email: <a href={`mailto:${privacyEmail}`} className="text-accent underline underline-offset-4">{privacyEmail}</a></p>
+                {postalAddress ? <p>Postal address: {postalAddress}</p> : null}
               </div>
+              <p>
+                We do not make decisions that produce legal or similarly significant effects using
+                solely automated processing. Information required for an order is necessary to enter
+                into and perform the sale; without it, we may be unable to complete the purchase.
+              </p>
               <p className="text-sm text-foreground/55">
-                We reserve the right to update this Privacy Policy. Material changes will be
-                communicated via email to registered users. Continued use of our services after any
-                changes constitutes acceptance of the updated policy.
+                We may update this notice when our processing changes. We will identify the update
+                date and provide an appropriate notice for material changes. Where the law requires
+                consent for a new purpose, we will ask for it before that processing begins.
               </p>
             </div>
           </section>

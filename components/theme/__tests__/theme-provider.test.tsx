@@ -21,6 +21,7 @@ function ThemeConsumer() {
 describe("ThemeProvider", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/shop");
+    document.cookie = "synarava-theme=; Path=/; Max-Age=0";
   });
 
   it("provides initial preference to consumers", () => {
@@ -51,6 +52,16 @@ describe("ThemeProvider", () => {
     );
     await user.click(screen.getByRole("button", { name: "Set Dark" }));
     expect(screen.getByTestId("pref")).toHaveTextContent("dark");
+    expect(document.cookie).toContain("synarava-theme=dark");
+  });
+
+  it("does not create a preference cookie before the visitor chooses a theme", () => {
+    render(
+      <ThemeProvider initialPreference="light">
+        <ThemeConsumer />
+      </ThemeProvider>,
+    );
+    expect(document.cookie).not.toContain("synarava-theme=");
   });
 
   it("resolves system preference to light when matchMedia is false", () => {

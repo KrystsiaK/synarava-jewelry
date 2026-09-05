@@ -12,6 +12,7 @@
     "start": "next start",
     "clean": "rm -rf .next",
     "check:version": "node scripts/check-version.mjs",
+    "check:privacy": "node scripts/check-privacy-config.mjs",
     "auth:hash": "node scripts/hash-password.mjs",
     "media:migrate-s3": "node scripts/migrate-local-uploads-to-s3.mjs",
     "lint": "eslint .",

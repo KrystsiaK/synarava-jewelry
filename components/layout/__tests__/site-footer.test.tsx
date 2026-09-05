@@ -50,4 +50,9 @@ describe("SiteFooter", () => {
       "mailto:studio@synarava.com",
     );
   });
+
+  it("always exposes cookie settings", () => {
+    renderFooter();
+    expect(screen.getByRole("button", { name: "Cookie settings" })).toBeInTheDocument();
+  });
 });

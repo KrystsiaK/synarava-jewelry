@@ -49,6 +49,9 @@ function cspFor(nonce: string) {
   const connections = [
     "'self'",
     "https://api.stripe.com",
+    "https://www.google-analytics.com",
+    "https://region1.google-analytics.com",
+    "https://www.facebook.com",
     ...(checkoutOrigin ? [checkoutOrigin] : []),
     ...storage,
   ].join(" ");
@@ -57,13 +60,15 @@ function cspFor(nonce: string) {
     `'nonce-${nonce}'`,
     "'strict-dynamic'",
     "https://js.stripe.com",
+    "https://www.googletagmanager.com",
+    "https://connect.facebook.net",
     ...(process.env.NODE_ENV === "production" ? [] : ["'unsafe-eval'"]),
   ].join(" ");
   return [
     "default-src 'self'",
     `script-src ${scripts}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com ${storage.join(" ")}`,
+    `img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com https://www.google-analytics.com https://www.facebook.com ${storage.join(" ")}`,
     `media-src 'self' ${storage.join(" ")}`,
     `connect-src ${connections}`,
     "frame-src https://js.stripe.com",

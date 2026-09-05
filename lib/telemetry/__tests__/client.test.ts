@@ -5,6 +5,11 @@ import {
   initializeClientTelemetry,
   publishClientTelemetry,
 } from "../client";
+import {
+  createPrivacyConsent,
+  PRIVACY_CONSENT_COOKIE,
+  serializePrivacyConsent,
+} from "@/lib/privacy/consent";
 
 type TestWindow = Window & {
   dataLayer?: Array<Record<string, unknown>>;
@@ -16,9 +21,19 @@ describe("client telemetry", () => {
     const target = window as TestWindow;
     target.dataLayer = [];
     target.__synaravaTelemetryInitialized = false;
+    document.cookie = `${PRIVACY_CONSENT_COOKIE}=; Path=/; Max-Age=0`;
   });
 
+  function allowAnalytics() {
+    document.cookie = `${PRIVACY_CONSENT_COOKIE}=${serializePrivacyConsent(createPrivacyConsent({
+      preferences: false,
+      analytics: true,
+      marketing: false,
+    }))}; Path=/`;
+  }
+
   it("forwards commerce events without unsafe or undefined properties", () => {
+    allowAnalytics();
     initializeClientTelemetry();
 
     window.dispatchEvent(new CustomEvent(COMMERCE_EVENT_NAME, {
@@ -50,6 +65,7 @@ describe("client telemetry", () => {
   });
 
   it("initializes global listeners only once", () => {
+    allowAnalytics();
     initializeClientTelemetry();
     initializeClientTelemetry();
 
@@ -59,5 +75,15 @@ describe("client telemetry", () => {
     });
 
     expect((window as TestWindow).dataLayer).toHaveLength(1);
+  });
+
+  it("does not queue telemetry before analytics consent", () => {
+    initializeClientTelemetry();
+    publishClientTelemetry("navigation_start", { path: "/shop" });
+    window.dispatchEvent(new CustomEvent(COMMERCE_EVENT_NAME, {
+      detail: { event: "view_item", schemaVersion: 1, properties: { productSlug: "ring" } },
+    }));
+
+    expect((window as TestWindow).dataLayer).toEqual([]);
   });
 });

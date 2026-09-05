@@ -2,6 +2,7 @@ import {
   COMMERCE_EVENT_NAME,
   type CommerceEventDetail,
 } from "@/lib/analytics/commerce";
+import { hasAnalyticsConsent } from "@/lib/privacy/consent";
 
 type DataLayerEntry = Record<string, unknown>;
 
@@ -36,7 +37,7 @@ function telemetryWindow(): TelemetryWindow | null {
 }
 function pushDataLayer(entry: DataLayerEntry) {
   const target = telemetryWindow();
-  if (!target) return;
+  if (!target || !hasAnalyticsConsent()) return;
 
   target.dataLayer ??= [];
   target.dataLayer.push(entry);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BrandMark } from "@/components/ui/brand-mark";
+import { PrivacySettingsButton } from "@/components/privacy/privacy-settings-button";
 import { useTranslations } from "@/lib/i18n/context";
 
 function FooterOrnamentDivider() {
@@ -88,6 +89,8 @@ export function SiteFooter() {
         <Link href="/privacy" className="label-mono text-muted transition-colors hover:text-foreground">
           {t("footer.privacyPolicy")}
         </Link>
+        <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
+        <PrivacySettingsButton />
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
         <Link href="/offer" className="label-mono text-muted transition-colors hover:text-foreground">
           {t("footer.publicOffer")}

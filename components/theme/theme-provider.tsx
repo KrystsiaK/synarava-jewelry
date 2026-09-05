@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import {
   THEME_COOKIE_NAME,
@@ -34,6 +34,11 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
     initialPreference === "dark" ? "dark" : "light",
   );
 
+  const setPreference = useCallback((nextPreference: ThemePreference) => {
+    document.cookie = `${THEME_COOKIE_NAME}=${nextPreference}; path=/; max-age=31536000; samesite=lax`;
+    setPreferenceState(nextPreference);
+  }, []);
+
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -44,7 +49,6 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
       root.dataset.theme = nextResolved;
       root.dataset.themeScope = "preference";
       root.style.colorScheme = nextResolved;
-      document.cookie = `${THEME_COOKIE_NAME}=${nextPreference}; path=/; max-age=31536000; samesite=lax`;
       setResolvedTheme(nextResolved);
     }
 
@@ -67,9 +71,9 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
     () => ({
       preference,
       resolvedTheme,
-      setPreference: setPreferenceState,
+      setPreference,
     }),
-    [preference, resolvedTheme],
+    [preference, resolvedTheme, setPreference],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

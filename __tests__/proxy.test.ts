@@ -26,4 +26,14 @@ describe("storefront Content Security Policy", () => {
     );
     expect(connectDirective).toContain("https://checkout.synarava.test");
   });
+
+  it("allows consent-gated analytics and advertising destinations", async () => {
+    const response = await proxy(new NextRequest("https://shop.synarava.test/"));
+    const csp = response.headers.get("Content-Security-Policy") ?? "";
+
+    expect(csp).toContain("https://www.googletagmanager.com");
+    expect(csp).toContain("https://connect.facebook.net");
+    expect(csp).toContain("https://www.google-analytics.com");
+    expect(csp).toContain("https://www.facebook.com");
+  });
 });
