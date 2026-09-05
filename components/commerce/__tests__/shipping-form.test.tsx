@@ -72,7 +72,9 @@ describe("ShippingForm", () => {
     fireEvent.submit(container.querySelector("form")!);
 
     await waitFor(() => expect(screen.getByText("Enter a valid email address.")).toBeInTheDocument());
-    expect(screen.getByPlaceholderText("Email")).toHaveFocus();
-    expect(screen.getByPlaceholderText("Email")).toHaveAttribute("aria-invalid", "true");
+    const email = screen.getByPlaceholderText("Email");
+
+    await waitFor(() => expect(email).toHaveFocus());
+    expect(email).toHaveAttribute("aria-invalid", "true");
   });
 });
