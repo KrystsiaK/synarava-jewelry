@@ -24,6 +24,11 @@ Shopify privacy values are present: storefront access token, checkout root domai
 and storefront root domain. The API-only Shopify consent asset is used; the
 storefront does not load Shopify's second, competing banner.
 
+The Shopify custom pixel documented in
+`docs/analytics/shopify-gtm-purchase-pixel.js` must be configured in Shopify to
+require Analytics consent. It is the only production source of GA4 `purchase`;
+the pixel deliberately excludes customer contact, address, and account data.
+
 Run `pnpm check:privacy` in the production deployment environment before release.
 It reports only missing variable names and configuration status, never values.
 
@@ -40,6 +45,9 @@ It reports only missing variable names and configuration status, never values.
 6. Repeat the flow in English and Portuguese and on mobile keyboard/screen-reader paths.
 7. Record the deployed policy version, vendor contracts, retention settings, and
    international-transfer safeguards in the internal processing register.
+8. Complete a Shopify test order with analytics accepted, confirm exactly one
+   `purchase` in GA4 DebugView, then repeat with analytics rejected and confirm
+   that no Google pixel runs in Shopify checkout.
 
 Marketing email must remain off until a chosen email provider records source,
 policy version, consent timestamp, and withdrawal/unsubscribe evidence. The local

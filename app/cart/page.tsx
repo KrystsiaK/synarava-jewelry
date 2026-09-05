@@ -18,7 +18,9 @@ export default async function CartPage() {
     <CartShell
       items={cart.items}
       itemCount={cart.itemCount}
+      subtotalCents={cart.subtotalCents}
       subtotal={cart.subtotal}
+      currency={cart.currency}
       usesShopifyCheckout={usesShopifyCart()}
     />
   );

@@ -41,24 +41,43 @@ describe("client telemetry", () => {
         event: "add_to_cart",
         schemaVersion: 1,
         properties: {
-          productSlug: "silver-ring",
-          merchandiseId: "gid://shopify/ProductVariant/1",
-          quantity: 1,
-          email: "must-not-leave@example.com",
-          cartId: "gid://shopify/Cart/secret?key=secret",
-          optional: undefined,
+          ecommerce: {
+            currency: "EUR",
+            value: 120,
+            items: [{
+              item_id: "RING-1",
+              item_name: "Silver ring",
+              price: 120,
+              quantity: 1,
+              email: "must-not-leave@example.com",
+            }],
+          },
+          metadata: {
+            productSlug: "silver-ring",
+            cartId: "gid://shopify/Cart/secret?key=secret",
+            optional: undefined,
+          },
         },
       },
     }));
 
     expect((window as TestWindow).dataLayer).toEqual([
+      { ecommerce: null },
       {
         event: "add_to_cart",
+        ecommerce: {
+          currency: "EUR",
+          value: 120,
+          items: [{
+            item_id: "RING-1",
+            item_name: "Silver ring",
+            price: 120,
+            quantity: 1,
+          }],
+        },
         synarava: {
           schemaVersion: 1,
           productSlug: "silver-ring",
-          merchandiseId: "gid://shopify/ProductVariant/1",
-          quantity: 1,
         },
       },
     ]);
@@ -82,6 +101,21 @@ describe("client telemetry", () => {
     publishClientTelemetry("navigation_start", { path: "/shop" });
     window.dispatchEvent(new CustomEvent(COMMERCE_EVENT_NAME, {
       detail: { event: "view_item", schemaVersion: 1, properties: { productSlug: "ring" } },
+    }));
+
+    expect((window as TestWindow).dataLayer).toEqual([]);
+  });
+
+  it("never forwards a storefront checkout completion as purchase", () => {
+    allowAnalytics();
+    initializeClientTelemetry();
+
+    window.dispatchEvent(new CustomEvent(COMMERCE_EVENT_NAME, {
+      detail: {
+        event: "checkout_completed",
+        schemaVersion: 1,
+        properties: { orderId: "legacy-stripe-order" },
+      },
     }));
 
     expect((window as TestWindow).dataLayer).toEqual([]);

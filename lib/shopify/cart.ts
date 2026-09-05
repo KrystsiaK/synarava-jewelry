@@ -27,6 +27,7 @@ type ShopifyCartLine = {
   cost: { totalAmount: Money };
   merchandise: {
     id: string;
+    sku: string | null;
     title: string;
     price: Money;
     image: ShopifyImage | null;
@@ -76,6 +77,7 @@ const CART_FRAGMENT = `#graphql
         merchandise {
           ... on ProductVariant {
             id
+            sku
             title
             price { amount currencyCode }
             image { url altText }
@@ -221,6 +223,8 @@ export async function getShopifyCartViewModel() {
 
     return {
       id: line.id,
+      merchandiseId: line.merchandise.id,
+      sku: line.merchandise.sku,
       quantity: line.quantity,
       slug: line.merchandise.product.handle,
       title: line.merchandise.product.title,

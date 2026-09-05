@@ -222,6 +222,8 @@ export async function getCartViewModel() {
 
   const items = cart.items.map((item) => ({
     id: item.id,
+    merchandiseId: null,
+    sku: item.sku,
     quantity: item.quantity,
     slug: item.product?.slug ?? "",
     title: item.title,

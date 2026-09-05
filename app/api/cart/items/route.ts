@@ -4,7 +4,7 @@ import { getTrustedClientIp } from "@/lib/security/request-ip";
 
 import {
   addStorefrontProductToCart,
-  getStorefrontCartCount,
+  getStorefrontCartViewModel,
 } from "@/lib/commerce/storefront-cart";
 
 export async function POST(request: Request) {
@@ -37,9 +37,23 @@ export async function POST(request: Request) {
       quantity,
       body.merchandiseId?.trim() || undefined,
     );
-    const count = await getStorefrontCartCount();
+    const cart = await getStorefrontCartViewModel();
 
-    return NextResponse.json({ ok: true, count });
+    return NextResponse.json({
+      ok: true,
+      count: cart.itemCount,
+      ecommerce: {
+        currency: cart.currency,
+        value: cart.subtotalCents / 100,
+        items: cart.items.map((item) => ({
+          item_id: item.sku || item.merchandiseId || item.slug || item.id,
+          item_name: item.title,
+          item_variant: item.materialLine || undefined,
+          price: item.unitCents / 100,
+          quantity: item.quantity,
+        })),
+      },
+    });
   } catch {
     return NextResponse.json(
       { ok: false, error: "Couldn’t add this piece. Please refresh and try again." },

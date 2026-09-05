@@ -12,12 +12,15 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 type CartItem = {
   id: string;
+  merchandiseId: string | null;
+  sku: string | null;
   slug: string;
   title: string;
   imageUrl: string;
   materialLine: string;
   quantity: number;
   maxQuantity?: number | null;
+  unitCents: number;
   price: string;
   total: string;
 };
@@ -25,7 +28,9 @@ type CartItem = {
 type CartShellProps = {
   items: CartItem[];
   itemCount: number;
+  subtotalCents: number;
   subtotal: string;
+  currency: string;
   usesShopifyCheckout: boolean;
 };
 
@@ -78,7 +83,9 @@ function EmptyCart() {
 export function CartShell({
   items,
   itemCount,
+  subtotalCents,
   subtotal,
+  currency,
   usesShopifyCheckout,
 }: CartShellProps) {
   const { t } = useTranslations();
@@ -156,6 +163,17 @@ export function CartShell({
                   subtotal={subtotal}
                   ctaHref="/checkout"
                   ctaLabel={usesShopifyCheckout ? t("cart.secureCheckout") : t("cart.continueDelivery")}
+                  ecommerce={usesShopifyCheckout ? {
+                    currency,
+                    value: subtotalCents / 100,
+                    items: items.map((item) => ({
+                      item_id: item.sku || item.merchandiseId || item.slug || item.id,
+                      item_name: item.title,
+                      item_variant: item.materialLine || undefined,
+                      price: item.unitCents / 100,
+                      quantity: item.quantity,
+                    })),
+                  } : undefined}
                   note={
                     usesShopifyCheckout
                       ? t("cart.shopifyNote")

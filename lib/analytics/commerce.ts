@@ -4,12 +4,30 @@ export type CommerceEvent =
   | "department_entry"
   | "view_item"
   | "add_to_cart"
-  | "checkout_started"
+  | "begin_checkout"
   | "checkout_completed";
+
+export type CommerceItem = {
+  item_id: string;
+  item_name?: string;
+  item_brand?: string;
+  item_category?: string;
+  item_category2?: string;
+  item_list_name?: string;
+  item_variant?: string;
+  price?: number;
+  quantity?: number;
+};
+
+export type CommerceEcommerce = {
+  currency?: string;
+  value?: number;
+  items: CommerceItem[];
+};
 
 export type CommerceEventDetail = {
   event: CommerceEvent;
-  properties: Record<string, boolean | number | string | null | undefined>;
+  properties: Record<string, unknown>;
   schemaVersion: 1;
 };
 

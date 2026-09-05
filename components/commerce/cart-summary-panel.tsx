@@ -1,7 +1,7 @@
 "use client";
 
 import { PrimaryCtaButton } from "@/components/ui";
-import { trackCommerceEvent } from "@/lib/analytics/commerce";
+import { trackCommerceEvent, type CommerceEcommerce } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 
 type CartSummaryPanelProps = {
@@ -9,6 +9,7 @@ type CartSummaryPanelProps = {
   subtotal: string;
   ctaHref?: string;
   ctaLabel?: string;
+  ecommerce?: CommerceEcommerce;
   note?: string;
 };
 
@@ -17,6 +18,7 @@ export function CartSummaryPanel({
   subtotal,
   ctaHref,
   ctaLabel,
+  ecommerce,
   note,
 }: CartSummaryPanelProps) {
   const { t, plural } = useTranslations();
@@ -44,10 +46,12 @@ export function CartSummaryPanel({
         <PrimaryCtaButton
           href={ctaHref}
           className="mt-7 w-full"
-          onClick={() => trackCommerceEvent("checkout_started", {
-            source: "cart_summary",
-            itemCount,
-            subtotal,
+          onClick={() => ecommerce && trackCommerceEvent("begin_checkout", {
+            ecommerce,
+            metadata: {
+              source: "cart_summary",
+              itemCount,
+            },
           })}
         >
           {ctaLabel}

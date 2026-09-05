@@ -113,8 +113,12 @@ Minimum commerce payloads:
 | `department_entry` | department, source |
 | `view_item` | product ID/slug, variant ID when selected, SKU, name, numeric value, currency, collection, department, availability |
 | `add_to_cart` | product and variant identifiers, quantity, numeric value, currency, cart ID/hash |
-| `checkout_started` | cart ID/hash, item count, numeric value, currency, source |
-| `checkout_completed` | Shopify order/checkout ID, transaction ID, numeric revenue, tax, shipping, currency, coupon, item snapshot |
+| `begin_checkout` | item count, numeric value, currency, source, item snapshot |
+| `purchase` | Shopify order ID as transaction ID, numeric revenue, tax, shipping, currency, coupon, item snapshot |
+
+`purchase` must be emitted only by Shopify's consent-aware
+`checkout_completed` customer event. The storefront and the legacy local Stripe
+confirmation flow must never emit a GA4 `purchase` event.
 
 Never send email, name, address, phone, raw customer ID, full Shopify cart
 secret, or free-form customer notes to browser analytics.

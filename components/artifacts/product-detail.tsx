@@ -927,15 +927,23 @@ export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummar
     if (trackedProduct.current === product.slug) return;
     trackedProduct.current = product.slug;
     trackCommerceEvent("view_item", {
-      productSlug: product.slug,
-      sku: product.sku,
-      itemName: product.title,
-      value: product.priceAmount,
-      currency: product.currency,
-      collection: product.collectionSlug,
-      department: product.departmentSlug,
-      category: product.categorySlug,
-      available: product.stockOnHand > 0,
+      ecommerce: {
+        value: product.priceAmount,
+        currency: product.currency,
+        items: [{
+          item_id: product.sku || product.slug,
+          item_name: product.title,
+          item_category: product.departmentSlug,
+          item_category2: product.categorySlug,
+          item_list_name: product.collectionSlug,
+          price: product.priceAmount,
+          quantity: 1,
+        }],
+      },
+      metadata: {
+        productSlug: product.slug,
+        available: product.stockOnHand > 0,
+      },
     });
   }, [product.categorySlug, product.collectionSlug, product.currency, product.departmentSlug, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
 

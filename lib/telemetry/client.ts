@@ -1,6 +1,8 @@
 import {
   COMMERCE_EVENT_NAME,
   type CommerceEventDetail,
+  type CommerceEcommerce,
+  type CommerceItem,
 } from "@/lib/analytics/commerce";
 import { hasAnalyticsConsent } from "@/lib/privacy/consent";
 
@@ -32,6 +34,19 @@ const BLOCKED_COMMERCE_KEYS = new Set([
   "phone",
 ]);
 
+const GA4_ECOMMERCE_EVENTS = new Set(["view_item", "add_to_cart", "begin_checkout"]);
+const GA4_ITEM_KEYS = new Set<keyof CommerceItem>([
+  "item_id",
+  "item_name",
+  "item_brand",
+  "item_category",
+  "item_category2",
+  "item_list_name",
+  "item_variant",
+  "price",
+  "quantity",
+]);
+
 function telemetryWindow(): TelemetryWindow | null {
   return typeof window === "undefined" ? null : window as TelemetryWindow;
 }
@@ -58,9 +73,55 @@ function sanitizeCommerceProperties(
 ) {
   return Object.fromEntries(
     Object.entries(properties).filter(([key, value]) => (
-      !BLOCKED_COMMERCE_KEYS.has(key) && value !== undefined
+      !BLOCKED_COMMERCE_KEYS.has(key)
+      && (value === null
+        || typeof value === "boolean"
+        || typeof value === "number"
+        || typeof value === "string")
     )),
   );
+}
+
+function finiteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function shortString(value: unknown) {
+  return typeof value === "string" && value.length <= 300 ? value : undefined;
+}
+
+function sanitizeCommerceItem(value: unknown): CommerceItem | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const source = value as Record<string, unknown>;
+  const itemId = shortString(source.item_id);
+  if (!itemId) return null;
+
+  const item: Record<string, string | number> = { item_id: itemId };
+  for (const key of GA4_ITEM_KEYS) {
+    if (key === "item_id") continue;
+    const next = key === "price" || key === "quantity"
+      ? finiteNumber(source[key])
+      : shortString(source[key]);
+    if (next !== undefined) item[key] = next;
+  }
+  return item as CommerceItem;
+}
+
+function sanitizeEcommerce(value: unknown): CommerceEcommerce | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const source = value as Record<string, unknown>;
+  const items = Array.isArray(source.items)
+    ? source.items.slice(0, 100).map(sanitizeCommerceItem).filter((item): item is CommerceItem => Boolean(item))
+    : [];
+  if (items.length === 0) return null;
+
+  const ecommerce: CommerceEcommerce = { items };
+  const currency = shortString(source.currency);
+  const amount = finiteNumber(source.value);
+  if (currency) ecommerce.currency = currency;
+  if (amount !== undefined) ecommerce.value = amount;
+  return ecommerce;
 }
 
 function isCommerceEventDetail(value: unknown): value is CommerceEventDetail {
@@ -76,6 +137,27 @@ function isCommerceEventDetail(value: unknown): value is CommerceEventDetail {
 
 function forwardCommerceEvent(event: Event) {
   if (!(event instanceof CustomEvent) || !isCommerceEventDetail(event.detail)) return;
+
+  // A completed purchase is intentionally never sourced from the storefront.
+  // Shopify's consent-aware checkout_completed customer event is authoritative.
+  if (event.detail.event === "checkout_completed") return;
+
+  if (GA4_ECOMMERCE_EVENTS.has(event.detail.event)) {
+    const ecommerce = sanitizeEcommerce(event.detail.properties.ecommerce);
+    if (!ecommerce) return;
+    pushDataLayer({ ecommerce: null });
+    pushDataLayer({
+      event: event.detail.event,
+      ecommerce,
+      synarava: {
+        schemaVersion: event.detail.schemaVersion,
+        ...sanitizeCommerceProperties(
+          (event.detail.properties.metadata as Record<string, unknown> | undefined) ?? {},
+        ),
+      },
+    });
+    return;
+  }
 
   pushDataLayer({
     event: event.detail.event,

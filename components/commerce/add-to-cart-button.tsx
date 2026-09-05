@@ -5,7 +5,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
-import { trackCommerceEvent } from "@/lib/analytics/commerce";
+import { trackCommerceEvent, type CommerceEcommerce } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 
 type AddToCartButtonProps = {
@@ -34,6 +34,7 @@ export function AddToCartButton({
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [recentCount, setRecentCount] = useState<number | null>(null);
+  const [recentEcommerce, setRecentEcommerce] = useState<CommerceEcommerce | null>(null);
 
   async function handleAdd() {
     setIsError(false);
@@ -49,6 +50,7 @@ export function AddToCartButton({
       const payload = (await response.json()) as {
         ok: boolean;
         count?: number;
+        ecommerce?: CommerceEcommerce;
         error?: string;
       };
 
@@ -63,17 +65,25 @@ export function AddToCartButton({
       );
 
       trackCommerceEvent("add_to_cart", {
-        productSlug,
-        merchandiseId,
-        sku,
-        itemName,
-        value,
-        currency,
-        quantity: 1,
-        cartCount: payload.count ?? 0,
+        ecommerce: {
+          value,
+          currency,
+          items: [{
+            item_id: sku || merchandiseId || productSlug,
+            item_name: itemName,
+            item_variant: merchandiseId,
+            price: value,
+            quantity: 1,
+          }],
+        },
+        metadata: {
+          productSlug,
+          cartCount: payload.count ?? 0,
+        },
       });
 
       setRecentCount(payload.count ?? 0);
+      setRecentEcommerce(payload.ecommerce ?? null);
       setMessage(t("product.added"));
     } catch (error) {
       setIsError(true);
@@ -88,6 +98,7 @@ export function AddToCartButton({
   function dismissPanel() {
     setMessage(null);
     setRecentCount(null);
+    setRecentEcommerce(null);
   }
 
   const confirmation = showPanel ? (
@@ -139,9 +150,12 @@ export function AddToCartButton({
             <PrimaryCtaButton
               href="/checkout"
               className="w-full flex-1"
-              onClick={() => trackCommerceEvent("checkout_started", {
-                source: "add_to_cart_confirmation",
-                cartCount: recentCount,
+              onClick={() => recentEcommerce && trackCommerceEvent("begin_checkout", {
+                ecommerce: recentEcommerce,
+                metadata: {
+                  source: "add_to_cart_confirmation",
+                  cartCount: recentCount,
+                },
               })}
             >
               {t("product.checkout")}
