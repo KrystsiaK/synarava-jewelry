@@ -65,7 +65,7 @@ function ShopHero({
 
       {leadProduct ? (
         <motion.div
-          className="absolute -right-[18%] top-[5rem] h-[54svh] w-[96%] transform-gpu overflow-hidden md:-right-[3%] md:top-[6.5rem] md:h-[78vh] md:w-[67%]"
+          className="absolute inset-x-4 top-[5rem] h-[54svh] transform-gpu overflow-hidden md:inset-x-[10vw] md:top-[6.5rem] md:h-[68vh] lg:inset-x-auto lg:-right-[3%] lg:h-[78vh] lg:w-[62%]"
           style={{
             y: mediaY,
             scale: mediaScale,
@@ -83,7 +83,7 @@ function ShopHero({
           />
           <div className="shop-hero-image-overlay absolute inset-0" />
           <div className="absolute inset-[5%] border border-white/15 [clip-path:polygon(7%_0,100%_0,100%_82%,78%_100%,0_89%,0_21%)]" />
-          <p className="absolute right-8 top-8 hidden font-sans text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65 md:block">
+          <p className="absolute left-[18%] right-8 top-8 hidden truncate text-right font-sans text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65 md:block">
             {t("shop.featuredProduct", { department: leadProduct.departmentName || leadProduct.series })}
           </p>
         </motion.div>
