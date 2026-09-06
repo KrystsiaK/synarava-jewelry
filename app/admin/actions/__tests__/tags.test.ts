@@ -35,7 +35,8 @@ vi.mock("../shared", () => ({
   writeAuditLog: mocks.writeAuditLog,
 }));
 
-import { deleteTagAction, parseTags, saveTagAction } from "../tags";
+import { parseTags } from "@/lib/text/parse-tags";
+import { deleteTagAction, saveTagAction } from "../tags";
 
 function formData(fields: Record<string, string>) {
   const fd = new FormData();

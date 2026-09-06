@@ -25,17 +25,6 @@ export type SavedTagPayload = {
   name: string;
 };
 
-export function parseTags(raw: string) {
-  return Array.from(
-    new Set(
-      raw
-        .split(",")
-        .map((item) => slugify(item))
-        .filter(Boolean),
-    ),
-  );
-}
-
 export async function getSavedTagPayload(tagId: string): Promise<SavedTagPayload> {
   const tag = await db.tag.findUnique({
     where: { id: tagId },

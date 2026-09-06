@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
+import { productCommerceSignature } from "@/lib/admin/product-commerce-signature";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 import { parseFormData } from "@/lib/forms/parse-form-data";
@@ -13,6 +14,7 @@ import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
+import { parseTags } from "@/lib/text/parse-tags";
 import {
   asRecord,
   createDraftToken,
@@ -22,7 +24,6 @@ import {
   writeAuditLog,
   type DraftAutosaveResult,
 } from "./shared";
-import { parseTags } from "./tags";
 
 export type ProductActionState = {
   error?: string;
@@ -104,35 +105,6 @@ export type SavedProductPayload = {
     tag: { id: string; slug: string; name: string };
   }[];
 };
-
-export function productCommerceSignature(product: SavedProductPayload) {
-  const primaryVariant = product.variants[0] ?? null;
-  return JSON.stringify({
-    name: product.name,
-    slug: product.slug,
-    description: product.description ?? "",
-    imageUrl: product.imageUrl ?? "",
-    status: product.status,
-    visibility: product.visibility,
-    sku: primaryVariant?.sku ?? product.sku,
-    priceCents: primaryVariant?.priceCents ?? product.priceCents,
-    compareAtCents: primaryVariant?.compareAtCents ?? null,
-    stockOnHand: primaryVariant?.stockOnHand ?? 0,
-    tags: product.tags.map((item) => item.tag.slug).sort(),
-    characteristics: product.characteristics
-      .map((item) => ({
-        key: item.key,
-        valueType: item.valueType,
-        value: item.valueType === "BOOLEAN"
-          ? Boolean(item.booleanValue)
-          : item.valueType === "NUMBER"
-            ? item.numberValue
-            : item.textValue ?? "",
-        certificateUrl: item.certificateUrl ?? "",
-      }))
-      .sort((left, right) => left.key.localeCompare(right.key)),
-  });
-}
 
 export async function getSavedProductPayload(productId: string): Promise<SavedProductPayload> {
   const product = await db.product.findUnique({
