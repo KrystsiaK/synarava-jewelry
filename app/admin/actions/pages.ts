@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { ContentVisibility, PageStatus, PageTemplate } from "@prisma/client";
+import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
+import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { savePageImageUpload } from "@/lib/media/local-upload";
 import {
@@ -101,30 +103,46 @@ async function uploadOptionalPageAsset(input: {
   return uploaded.publicPath;
 }
 
+const pageContentFieldsSchema = z.object({
+  pageId: z.string().trim().default(""),
+  slug: z.string().trim().default(""),
+  title: z.string().trim().default(""),
+  excerpt: z.string().trim().default(""),
+  eyebrow: z.string().trim().default(""),
+  body: z.string().trim().default(""),
+  ctaLabel: z.string().trim().default(""),
+  ctaHref: z.string().trim().default(""),
+  quote: z.string().trim().default(""),
+  secondaryTitle: z.string().trim().default(""),
+  secondaryBody: z.string().trim().default(""),
+  ptTitle: z.string().trim().default(""),
+  ptExcerpt: z.string().trim().default(""),
+  ptEyebrow: z.string().trim().default(""),
+  ptBody: z.string().trim().default(""),
+  ptCtaLabel: z.string().trim().default(""),
+  ptQuote: z.string().trim().default(""),
+  ptSecondaryTitle: z.string().trim().default(""),
+  ptSecondaryBody: z.string().trim().default(""),
+});
+
+const savePageSchema = pageContentFieldsSchema.extend({
+  title: z.string().trim().min(1),
+  workflowState: z.string().trim().default("PUBLISHED"),
+});
+
 export async function savePageAction(formData: FormData): Promise<PageActionState> {
   const currentUser = await requireAdminSession("/admin/pages");
 
-  const pageId = String(formData.get("pageId") ?? "").trim();
-  const rawSlug = String(formData.get("slug") ?? "").trim();
-  const workflowState = String(formData.get("workflowState") ?? "PUBLISHED");
-  const title = String(formData.get("title") ?? "").trim();
-  const slug = slugify(rawSlug || title);
-  const excerpt = String(formData.get("excerpt") ?? "").trim();
-  const eyebrow = String(formData.get("eyebrow") ?? "").trim();
-  const body = String(formData.get("body") ?? "").trim();
-  const ctaLabel = String(formData.get("ctaLabel") ?? "").trim();
-  const ctaHref = String(formData.get("ctaHref") ?? "").trim();
-  const quote = String(formData.get("quote") ?? "").trim();
-  const secondaryTitle = String(formData.get("secondaryTitle") ?? "").trim();
-  const secondaryBody = String(formData.get("secondaryBody") ?? "").trim();
-  const ptTitle = String(formData.get("ptTitle") ?? "").trim();
-  const ptExcerpt = String(formData.get("ptExcerpt") ?? "").trim();
-  const ptEyebrow = String(formData.get("ptEyebrow") ?? "").trim();
-  const ptBody = String(formData.get("ptBody") ?? "").trim();
-  const ptCtaLabel = String(formData.get("ptCtaLabel") ?? "").trim();
-  const ptQuote = String(formData.get("ptQuote") ?? "").trim();
-  const ptSecondaryTitle = String(formData.get("ptSecondaryTitle") ?? "").trim();
-  const ptSecondaryBody = String(formData.get("ptSecondaryBody") ?? "").trim();
+  const parsed = parseFormData(formData, savePageSchema);
+  if (!parsed.success) {
+    return { error: "Page slug and title are required." };
+  }
+  const {
+    pageId, workflowState, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
+    secondaryTitle, secondaryBody, ptTitle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
+    ptQuote, ptSecondaryTitle, ptSecondaryBody,
+  } = parsed.data;
+  const slug = slugify(parsed.data.slug || title);
 
   if (!slug || !title) {
     return { error: "Page slug and title are required." };
@@ -240,26 +258,16 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     return {};
   }
 
-  const pageId = String(formData.get("pageId") ?? "").trim();
-  const rawSlug = String(formData.get("slug") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const excerpt = String(formData.get("excerpt") ?? "").trim();
-  const eyebrow = String(formData.get("eyebrow") ?? "").trim();
-  const body = String(formData.get("body") ?? "").trim();
-  const ctaLabel = String(formData.get("ctaLabel") ?? "").trim();
-  const ctaHref = String(formData.get("ctaHref") ?? "").trim();
-  const quote = String(formData.get("quote") ?? "").trim();
-  const secondaryTitle = String(formData.get("secondaryTitle") ?? "").trim();
-  const secondaryBody = String(formData.get("secondaryBody") ?? "").trim();
-  const ptTitle = String(formData.get("ptTitle") ?? "").trim();
-  const ptExcerpt = String(formData.get("ptExcerpt") ?? "").trim();
-  const ptEyebrow = String(formData.get("ptEyebrow") ?? "").trim();
-  const ptBody = String(formData.get("ptBody") ?? "").trim();
-  const ptCtaLabel = String(formData.get("ptCtaLabel") ?? "").trim();
-  const ptQuote = String(formData.get("ptQuote") ?? "").trim();
-  const ptSecondaryTitle = String(formData.get("ptSecondaryTitle") ?? "").trim();
-  const ptSecondaryBody = String(formData.get("ptSecondaryBody") ?? "").trim();
-  const slug = slugify(rawSlug || title) || createDraftToken("draft-page");
+  const parsed = parseFormData(formData, pageContentFieldsSchema);
+  if (!parsed.success) {
+    return {};
+  }
+  const {
+    pageId, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
+    secondaryTitle, secondaryBody, ptTitle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
+    ptQuote, ptSecondaryTitle, ptSecondaryBody,
+  } = parsed.data;
+  const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
 
   const pageData = {
     slug,
@@ -313,15 +321,19 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   return { recordId: page.id };
 }
 
+const updatePageStatusSchema = z.object({
+  slug: z.string().trim().min(1),
+  action: z.string().trim().default(""),
+});
+
 export async function updatePageStatusAction(formData: FormData): Promise<PageActionState> {
   await requireAdminSession("/admin/pages");
 
-  const slug = String(formData.get("slug") ?? "").trim();
-  const action = String(formData.get("action") ?? "").trim();
-
-  if (!slug) {
+  const parsed = parseFormData(formData, updatePageStatusSchema);
+  if (!parsed.success) {
     return { error: "Page slug is missing." };
   }
+  const { slug, action } = parsed.data;
 
   const state =
     action === "publish"
@@ -367,14 +379,18 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
   return { success: `Page moved to ${page.status.toLowerCase()}.`, page };
 }
 
+const deletePageSchema = z.object({
+  slug: z.string().trim().toLowerCase().min(1),
+});
+
 export async function deletePageAction(formData: FormData): Promise<PageActionState> {
   await requireAdminSession("/admin/pages");
 
-  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
-
-  if (!slug) {
+  const parsed = parseFormData(formData, deletePageSchema);
+  if (!parsed.success) {
     return { error: "Page slug is required." };
   }
+  const { slug } = parsed.data;
 
   if (PROTECTED_PAGE_SLUGS.has(slug)) {
     return { error: "System pages cannot be deleted." };

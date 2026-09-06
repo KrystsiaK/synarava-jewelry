@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
+import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
@@ -256,31 +258,52 @@ async function uploadOptionalProductAsset(input: {
   return uploaded.publicPath;
 }
 
+// Only the flat, singly-named fields are validated declaratively here.
+// The indexed/repeated fields (materialTitle1..3, attributeLabel1..8,
+// lookbookImageFile1..4, etc.) are free-form and built dynamically further
+// down via the shared formValue() helper — a fixed zod schema doesn't fit
+// a field set whose keys are generated in a loop.
+const saveProductFieldsSchema = z.object({
+  productId: z.string().trim().default(""),
+  slug: z.string().trim().default(""),
+  sku: z.string().trim().default(""),
+  name: z.string().trim().default(""),
+  seriesLabel: z.string().trim().default(""),
+  shortDescription: z.string().trim().default(""),
+  description: z.string().trim().default(""),
+  materialLine: z.string().trim().default(""),
+  symbolismLabel: z.string().trim().default(""),
+  symbolismTitle: z.string().trim().default(""),
+  symbolismBody: z.string().trim().default(""),
+  symbolismBody2: z.string().trim().default(""),
+  removeImage: z.string().trim().default(""),
+  existingImageUrl: z.string().trim().default(""),
+  price: z.string().trim().default("0"),
+  stockOnHand: z.string().trim().default("0"),
+  categorySlug: z.string().trim().default(""),
+  collectionSlug: z.string().trim().default(""),
+  tags: z.string().trim().default(""),
+  workflowState: z.string().trim().default("DRAFT"),
+});
+
 export async function saveProductAction(formData: FormData): Promise<ProductActionState> {
   const currentUser = await requireAdminSession("/admin/products");
 
-  const productId = String(formData.get("productId") ?? "").trim();
-  const slug = slugify(String(formData.get("slug") ?? ""));
-  const sku = String(formData.get("sku") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const seriesLabel = String(formData.get("seriesLabel") ?? "").trim();
-  const shortDescription = String(formData.get("shortDescription") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const materialLine = String(formData.get("materialLine") ?? "").trim();
-  const symbolismLabel = String(formData.get("symbolismLabel") ?? "").trim();
-  const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
-  const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
-  const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
-  const removeImage = String(formData.get("removeImage") ?? "").trim() === "1";
-  const existingImageUrl = removeImage
-    ? ""
-    : String(formData.get("existingImageUrl") ?? "").trim();
-  const price = Number(String(formData.get("price") ?? "0").trim() || "0");
-  const stockOnHand = Math.max(0, Math.trunc(Number(String(formData.get("stockOnHand") ?? "0").trim() || "0")));
-  const categorySlug = String(formData.get("categorySlug") ?? "").trim();
-  const collectionSlug = String(formData.get("collectionSlug") ?? "").trim();
-  const tagInput = String(formData.get("tags") ?? "").trim();
-  const workflowState = String(formData.get("workflowState") ?? "DRAFT").trim();
+  const parsed = parseFormData(formData, saveProductFieldsSchema);
+  if (!parsed.success) {
+    return { error: "Name, slug, SKU, and price are required." };
+  }
+  const {
+    productId, sku, name, seriesLabel, shortDescription, description, materialLine,
+    symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, categorySlug,
+    collectionSlug, workflowState,
+  } = parsed.data;
+  const slug = slugify(parsed.data.slug);
+  const removeImage = parsed.data.removeImage === "1";
+  const existingImageUrl = removeImage ? "" : parsed.data.existingImageUrl;
+  const price = Number(parsed.data.price || "0");
+  const stockOnHand = Math.max(0, Math.trunc(Number(parsed.data.stockOnHand || "0")));
+  const tagInput = parsed.data.tags;
   const imageFile = formData.get("imageFile");
   const characteristics = parseCharacteristicsForm(formData);
   const tagSlugs = parseTags(tagInput);
@@ -551,6 +574,20 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   };
 }
 
+const autosaveProductFieldsSchema = z.object({
+  productId: z.string().trim().default(""),
+  slug: z.string().trim().default(""),
+  sku: z.string().trim().default(""),
+  name: z.string().trim().default(""),
+  seriesLabel: z.string().trim().default(""),
+  shortDescription: z.string().trim().default(""),
+  description: z.string().trim().default(""),
+  materialLine: z.string().trim().default(""),
+  price: z.string().trim().default("0"),
+  removeImage: z.string().trim().default(""),
+  existingImageUrl: z.string().trim().default(""),
+});
+
 export async function autosaveProductDraftAction(formData: FormData): Promise<DraftAutosaveResult> {
   await requireAdminSession("/admin/products");
 
@@ -558,19 +595,17 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     return {};
   }
 
-  const productId = String(formData.get("productId") ?? "").trim();
-  const slug = slugify(String(formData.get("slug") ?? "").trim()) || createDraftToken("draft-product");
-  const sku = String(formData.get("sku") ?? "").trim() || createDraftToken("sku").toUpperCase();
-  const name = String(formData.get("name") ?? "").trim() || "Untitled product";
-  const seriesLabel = String(formData.get("seriesLabel") ?? "").trim();
-  const shortDescription = String(formData.get("shortDescription") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const materialLine = String(formData.get("materialLine") ?? "").trim();
-  const price = Number(String(formData.get("price") ?? "0").trim() || "0");
-  const removeImage = String(formData.get("removeImage") ?? "").trim() === "1";
-  const existingImageUrl = removeImage
-    ? ""
-    : String(formData.get("existingImageUrl") ?? "").trim();
+  const parsed = parseFormData(formData, autosaveProductFieldsSchema);
+  if (!parsed.success) {
+    return {};
+  }
+  const { productId, seriesLabel, shortDescription, description, materialLine } = parsed.data;
+  const slug = slugify(parsed.data.slug) || createDraftToken("draft-product");
+  const sku = parsed.data.sku || createDraftToken("sku").toUpperCase();
+  const name = parsed.data.name || "Untitled product";
+  const price = Number(parsed.data.price || "0");
+  const removeImage = parsed.data.removeImage === "1";
+  const existingImageUrl = removeImage ? "" : parsed.data.existingImageUrl;
   const existingProduct = productId
     ? await db.product.findUnique({ where: { id: productId }, select: { details: true } })
     : null;
@@ -617,17 +652,21 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
   return { recordId: product.id };
 }
 
+const deleteProductSchema = z.object({
+  productId: z.string().trim().min(1),
+  productSlug: z.string().trim().default(""),
+});
+
 export async function deleteProductAction(formData: FormData): Promise<ProductActionState> {
   await requireAdminSession("/admin/products");
 
-  const productId = String(formData.get("productId") ?? "").trim();
-  const productSlug = String(formData.get("productSlug") ?? "").trim();
-
-  if (!productId) {
+  const parsed = parseFormData(formData, deleteProductSchema);
+  if (!parsed.success) {
     return {
       error: "Product id is missing.",
     };
   }
+  const { productId, productSlug } = parsed.data;
 
   const existing = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
   if (isShopifyConfigured() && existing?.shopifyProductId) {
@@ -655,15 +694,19 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
   };
 }
 
+const updateProductStatusSchema = z.object({
+  productId: z.string().trim().min(1),
+  action: z.string().trim().default(""),
+});
+
 export async function updateProductStatusAction(formData: FormData): Promise<ProductActionState> {
   await requireAdminSession("/admin/products");
 
-  const productId = String(formData.get("productId") ?? "").trim();
-  const action = String(formData.get("action") ?? "").trim();
-
-  if (!productId) {
+  const parsed = parseFormData(formData, updateProductStatusSchema);
+  if (!parsed.success) {
     return { error: "Product id is missing." };
   }
+  const { productId, action } = parsed.data;
 
   const state =
     action === "publish"

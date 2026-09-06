@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
+import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { revalidateStorefront, writeAuditLog } from "./shared";
 
@@ -46,18 +48,25 @@ export async function getSavedCategoryPayload(categoryId: string): Promise<Saved
   return category;
 }
 
+const saveCategorySchema = z.object({
+  categoryId: z.string().trim().default(""),
+  name: z.string().trim().min(1),
+  slug: z.string().trim().default(""),
+  description: z.string().trim().default(""),
+  sortOrder: z.string().trim().default("0"),
+});
+
 export async function saveCategoryAction(formData: FormData): Promise<CategoryActionState> {
   await requireAdminSession("/admin/products");
 
-  const categoryId = String(formData.get("categoryId") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) {
+  const parsed = parseFormData(formData, saveCategorySchema);
+  if (!parsed.success) {
     return { error: "Category name is required." };
   }
+  const { categoryId, name, description } = parsed.data;
 
-  const slug = slugify(String(formData.get("slug") ?? "") || name);
-  const description = String(formData.get("description") ?? "").trim();
-  const sortOrder = Number(String(formData.get("sortOrder") ?? "0").trim() || "0");
+  const slug = slugify(parsed.data.slug || name);
+  const sortOrder = Number(parsed.data.sortOrder || "0");
   const before = categoryId ? await getSavedCategoryPayload(categoryId).catch(() => null) : null;
 
   const category = await db.productCategory.upsert({
@@ -99,14 +108,18 @@ export async function saveCategoryAction(formData: FormData): Promise<CategoryAc
   return { success: categoryId ? "Category updated." : "Category created.", category };
 }
 
+const deleteCategorySchema = z.object({
+  categoryId: z.string().trim().min(1),
+});
+
 export async function deleteCategoryAction(formData: FormData): Promise<CategoryActionState> {
   await requireAdminSession("/admin/products");
 
-  const categoryId = String(formData.get("categoryId") ?? "").trim();
-
-  if (!categoryId) {
+  const parsed = parseFormData(formData, deleteCategorySchema);
+  if (!parsed.success) {
     return { error: "Category id is missing." };
   }
+  const { categoryId } = parsed.data;
 
   const affectedProducts = await db.product.count({ where: { categoryId } });
 

@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
+import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import {
@@ -158,28 +160,47 @@ function validateCollectionInput(input: {
   return fieldErrors;
 }
 
+// Requiredness for these fields is reported per-field (see
+// validateCollectionInput's fieldErrors), not as a single pass/fail, so
+// this schema only extracts and trims — it deliberately has no `.min(1)`
+// of its own.
+const collectionFieldsSchema = z.object({
+  collectionId: z.string().trim().default(""),
+  slug: z.string().trim().default(""),
+  code: z.string().trim().default(""),
+  name: z.string().trim().default(""),
+  description: z.string().trim().default(""),
+  manifesto: z.string().trim().default(""),
+  searchSummary: z.string().trim().default(""),
+  symbolismLabel: z.string().trim().default(""),
+  symbolismTitle: z.string().trim().default(""),
+  symbolismBody: z.string().trim().default(""),
+  symbolismBody2: z.string().trim().default(""),
+  removeHeroImage: z.string().trim().default(""),
+  existingHeroImageUrl: z.string().trim().default(""),
+  workflowState: z.string().trim().default("DRAFT"),
+});
+
 export async function saveCollectionAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
   const currentUser = await requireAdminSession("/admin/collections");
 
-  const collectionId = String(formData.get("collectionId") ?? "").trim();
-  const slug = slugify(String(formData.get("slug") ?? "").trim());
-  const code = String(formData.get("code") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const manifesto = String(formData.get("manifesto") ?? "").trim();
-  const searchSummary = String(formData.get("searchSummary") ?? "").trim();
-  const symbolismLabel = String(formData.get("symbolismLabel") ?? "").trim();
-  const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
-  const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
-  const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
-  const removeHeroImage = String(formData.get("removeHeroImage") ?? "").trim() === "1";
-  const existingHeroImageUrl = removeHeroImage
-    ? ""
-    : String(formData.get("existingHeroImageUrl") ?? "").trim();
-  const workflowState = String(formData.get("workflowState") ?? "DRAFT").trim();
+  const parsed = parseFormData(formData, collectionFieldsSchema);
+  if (!parsed.success) {
+    return { error: "Please fix the required fields and try again." };
+  }
+  const {
+    collectionId, code, name, description, manifesto, searchSummary,
+    symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, workflowState,
+  } = parsed.data;
+  const slug = slugify(parsed.data.slug);
+  const removeHeroImage = parsed.data.removeHeroImage === "1";
+  const existingHeroImageUrl = removeHeroImage ? "" : parsed.data.existingHeroImageUrl;
+  // FormData File values are dropped to "" by parseFormData, so the image
+  // file itself is read directly from the original FormData, not the
+  // parsed schema output.
   const imageFile = formData.get("heroImageFile");
 
   const fieldErrors = validateCollectionInput({
@@ -305,21 +326,18 @@ export async function autosaveCollectionDraftAction(
     return {};
   }
 
-  const collectionId = String(formData.get("collectionId") ?? "").trim();
-  const slug = slugify(String(formData.get("slug") ?? "").trim()) || createDraftToken("draft-collection");
-  const code = String(formData.get("code") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim() || "Untitled collection";
-  const description = String(formData.get("description") ?? "").trim();
-  const manifesto = String(formData.get("manifesto") ?? "").trim();
-  const searchSummary = String(formData.get("searchSummary") ?? "").trim();
-  const symbolismLabel = String(formData.get("symbolismLabel") ?? "").trim();
-  const symbolismTitle = String(formData.get("symbolismTitle") ?? "").trim();
-  const symbolismBody = String(formData.get("symbolismBody") ?? "").trim();
-  const symbolismBody2 = String(formData.get("symbolismBody2") ?? "").trim();
-  const removeHeroImage = String(formData.get("removeHeroImage") ?? "").trim() === "1";
-  const existingHeroImageUrl = removeHeroImage
-    ? ""
-    : String(formData.get("existingHeroImageUrl") ?? "").trim();
+  const parsed = parseFormData(formData, collectionFieldsSchema);
+  if (!parsed.success) {
+    return {};
+  }
+  const {
+    collectionId, code, description, manifesto, searchSummary,
+    symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
+  } = parsed.data;
+  const slug = slugify(parsed.data.slug) || createDraftToken("draft-collection");
+  const name = parsed.data.name || "Untitled collection";
+  const removeHeroImage = parsed.data.removeHeroImage === "1";
+  const existingHeroImageUrl = removeHeroImage ? "" : parsed.data.existingHeroImageUrl;
 
   const collectionData = {
     slug,
@@ -374,18 +392,22 @@ export async function autosaveCollectionDraftAction(
   return { recordId: collection.id };
 }
 
+const deleteCollectionSchema = z.object({
+  collectionId: z.string().trim().min(1),
+  collectionSlug: z.string().trim().default(""),
+});
+
 export async function deleteCollectionAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
   await requireAdminSession("/admin/collections");
 
-  const collectionId = String(formData.get("collectionId") ?? "").trim();
-  const collectionSlug = String(formData.get("collectionSlug") ?? "").trim();
-
-  if (!collectionId) {
+  const parsed = parseFormData(formData, deleteCollectionSchema);
+  if (!parsed.success) {
     return { error: "Collection id is missing." };
   }
+  const { collectionId, collectionSlug } = parsed.data;
 
   await db.$transaction(async (tx) => {
     await tx.collection.delete({
@@ -409,18 +431,22 @@ export async function deleteCollectionAction(
   };
 }
 
+const moveCollectionOrderSchema = z.object({
+  collectionId: z.string().trim().min(1),
+  direction: z.string().trim().default(""),
+});
+
 export async function moveCollectionOrderAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
   await requireAdminSession("/admin/collections");
 
-  const collectionId = String(formData.get("collectionId") ?? "").trim();
-  const direction = String(formData.get("direction") ?? "").trim();
-
-  if (!collectionId) {
+  const parsed = parseFormData(formData, moveCollectionOrderSchema);
+  if (!parsed.success) {
     return { error: "Collection id is missing." };
   }
+  const { collectionId, direction } = parsed.data;
 
   if (direction !== "up" && direction !== "down") {
     return { error: "Unknown collection move direction." };
@@ -472,18 +498,22 @@ export async function moveCollectionOrderAction(
   };
 }
 
+const updateCollectionStatusSchema = z.object({
+  collectionId: z.string().trim().min(1),
+  action: z.string().trim().default(""),
+});
+
 export async function updateCollectionStatusAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
   await requireAdminSession("/admin/collections");
 
-  const collectionId = String(formData.get("collectionId") ?? "").trim();
-  const action = String(formData.get("action") ?? "").trim();
-
-  if (!collectionId) {
+  const parsed = parseFormData(formData, updateCollectionStatusSchema);
+  if (!parsed.success) {
     return { error: "Collection id is missing." };
   }
+  const { collectionId, action } = parsed.data;
 
   const state =
     action === "publish"
