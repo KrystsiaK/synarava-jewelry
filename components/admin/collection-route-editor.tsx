@@ -6,7 +6,7 @@ import {
   CreateCollectionForm,
   EditCollectionForm,
 } from "@/components/admin/collections-cms";
-import type { SavedCollectionPayload } from "@/app/admin/actions";
+import type { SavedCollectionPayload } from "@/app/admin/actions/collections";
 
 export function CollectionCreateRoute() {
   const router = useRouter();

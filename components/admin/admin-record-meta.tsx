@@ -4,12 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import {
-  getAdminRecordHistoryAction,
-  restoreAdminRecordVersionAction,
-  type AdminAuditEntityType,
-  type AdminRecordHistoryItem,
-} from "@/app/admin/actions";
+import { getAdminRecordHistoryAction, restoreAdminRecordVersionAction } from "@/app/admin/actions/history";
+import type { AdminAuditEntityType, AdminRecordHistoryItem } from "@/app/admin/actions/shared";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 
 export type AdminRecordMeta = {

@@ -12,7 +12,7 @@ import {
   type CollectionActionState,
   type CollectionFieldName,
   type SavedCollectionPayload,
-} from "@/app/admin/actions";
+} from "@/app/admin/actions/collections";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/admin-help";

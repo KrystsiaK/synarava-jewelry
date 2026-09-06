@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { CreatePageForm, PageEditor } from "@/components/admin/pages-cms";
-import type { SavedPagePayload } from "@/app/admin/actions";
+import type { SavedPagePayload } from "@/app/admin/actions/pages";
 
 export function PageCreateRoute() {
   const router = useRouter();

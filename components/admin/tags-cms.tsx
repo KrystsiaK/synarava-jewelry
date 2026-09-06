@@ -9,7 +9,7 @@ import {
   saveTagAction,
   type SavedTagPayload,
   type TagActionState,
-} from "@/app/admin/actions";
+} from "@/app/admin/actions/tags";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { slugify } from "@/lib/text/slug";

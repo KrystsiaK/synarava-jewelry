@@ -9,7 +9,7 @@ import {
   saveCategoryAction,
   type CategoryActionState,
   type SavedCategoryPayload,
-} from "@/app/admin/actions";
+} from "@/app/admin/actions/categories";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { slugify } from "@/lib/text/slug";

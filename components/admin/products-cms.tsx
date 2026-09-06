@@ -6,21 +6,23 @@ import { useRouter } from "next/navigation";
 
 import {
   autosaveProductDraftAction,
-  archiveMissingShopifyProductsAction,
   deleteProductAction,
+  saveProductAction,
+  updateProductStatusAction,
+  type ProductActionState,
+  type SavedProductPayload,
+} from "@/app/admin/actions/products";
+import {
+  archiveMissingShopifyProductsAction,
   inspectProductSyncAction,
   previewShopifyReconciliationAction,
   pullSingleProductFromShopifyAction,
-  saveProductAction,
   pushSingleProductToShopifyAction,
   syncShopifySelectionAction,
   testShopifyConnectionAction,
-  updateProductStatusAction,
-  type ProductActionState,
-  type SavedCategoryPayload,
-  type SavedProductPayload,
-  type SavedTagPayload,
-} from "@/app/admin/actions";
+} from "@/app/admin/actions/sync";
+import type { SavedCategoryPayload } from "@/app/admin/actions/categories";
+import type { SavedTagPayload } from "@/app/admin/actions/tags";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminIssueInlineWarning } from "@/components/admin/admin-issues-cms";

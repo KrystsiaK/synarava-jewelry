@@ -9,7 +9,7 @@ import {
   updatePageStatusAction,
   type PageActionState,
   type SavedPagePayload,
-} from "@/app/admin/actions";
+} from "@/app/admin/actions/pages";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";

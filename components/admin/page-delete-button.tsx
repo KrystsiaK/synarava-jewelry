@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { deletePageAction } from "@/app/admin/actions";
+import { deletePageAction } from "@/app/admin/actions/pages";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { useAdminToast } from "@/components/admin/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
