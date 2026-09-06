@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
+import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { revalidateStorefront, writeAuditLog } from "./shared";
 
@@ -53,16 +55,22 @@ export async function getSavedTagPayload(tagId: string): Promise<SavedTagPayload
   return tag;
 }
 
+const saveTagSchema = z.object({
+  tagId: z.string().trim().default(""),
+  name: z.string().trim().min(1),
+  slug: z.string().trim().default(""),
+});
+
 export async function saveTagAction(formData: FormData): Promise<TagActionState> {
   await requireAdminSession("/admin/products");
 
-  const tagId = String(formData.get("tagId") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) {
+  const parsed = parseFormData(formData, saveTagSchema);
+  if (!parsed.success) {
     return { error: "Tag name is required." };
   }
+  const { tagId, name } = parsed.data;
 
-  const slug = slugify(String(formData.get("slug") ?? "") || name);
+  const slug = slugify(parsed.data.slug || name);
   const before = tagId ? await getSavedTagPayload(tagId).catch(() => null) : null;
 
   const tag = await db.tag.upsert({
@@ -98,14 +106,18 @@ export async function saveTagAction(formData: FormData): Promise<TagActionState>
   return { success: tagId ? "Tag updated." : "Tag created.", tag };
 }
 
+const deleteTagSchema = z.object({
+  tagId: z.string().trim().min(1),
+});
+
 export async function deleteTagAction(formData: FormData): Promise<TagActionState> {
   await requireAdminSession("/admin/products");
 
-  const tagId = String(formData.get("tagId") ?? "").trim();
-
-  if (!tagId) {
+  const parsed = parseFormData(formData, deleteTagSchema);
+  if (!parsed.success) {
     return { error: "Tag id is missing." };
   }
+  const { tagId } = parsed.data;
 
   const affectedProducts = await db.productTag.count({ where: { tagId } });
 
