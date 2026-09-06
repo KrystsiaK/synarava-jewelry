@@ -186,5 +186,8 @@ export async function requireAdminSession(redirectTo = "/admin") {
  */
 export function getSafeAdminRedirect(value: string | null | undefined) {
   const safe = safeRedirectPath(value, "/admin");
-  return safe.startsWith("/admin") && !safe.startsWith("/admin/login") ? safe : "/admin";
+  const pathname = safe.split(/[?#]/, 1)[0];
+  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isLoginPath = pathname === "/admin/login" || pathname.startsWith("/admin/login/");
+  return isAdminPath && !isLoginPath ? safe : "/admin";
 }

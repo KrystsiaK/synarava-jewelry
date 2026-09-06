@@ -102,6 +102,23 @@ describe("admin session credentials", () => {
     expect(adminSession.isAdminAuthConfigured()).toBe(false);
   });
 
+  it("only accepts redirects within the /admin route boundary", async () => {
+    const { adminSession } = await loadAdminSession({
+      ADMIN_USERNAME: "studio",
+      ADMIN_PASSWORD_HASH: hashPassword("correct-password"),
+      ADMIN_SESSION_SECRET: "test-admin-secret",
+    });
+
+    expect(adminSession.getSafeAdminRedirect("/admin/products?tab=drafts")).toBe(
+      "/admin/products?tab=drafts",
+    );
+    expect(adminSession.getSafeAdminRedirect("/administrator")).toBe("/admin");
+    expect(adminSession.getSafeAdminRedirect("/admin-login")).toBe("/admin");
+    expect(adminSession.getSafeAdminRedirect("/admin/login?redirectTo=/admin/products")).toBe(
+      "/admin",
+    );
+  });
+
   it("expires the admin cookie using the same /admin path used at sign-in", async () => {
     const { adminSession, cookieStore } = await loadAdminSession({
       ADMIN_USERNAME: "studio",
