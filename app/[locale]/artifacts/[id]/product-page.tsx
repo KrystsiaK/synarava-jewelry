@@ -8,6 +8,7 @@ import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
+import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { buildProductJsonLd } from "@/lib/seo/product-json-ld";
 import { safeJsonLd } from "@/lib/seo/json-ld";
 
@@ -71,7 +72,7 @@ export default async function ProductDetailPage({ params }: Props) {
       />
       <ProductDetail
         product={product}
-        fitVideoSrc={product.departmentSlug === "jewelry" ? videos.braceletFilm : undefined}
+        fitVideoSrc={hasFitFilm(product.departmentSlug) ? videos.braceletFilm : undefined}
       />
     </>
   );

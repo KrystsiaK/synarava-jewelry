@@ -1,5 +1,10 @@
 import "server-only";
 
+// Thin re-export over lib/shopify/cart, named for what pages/actions do
+// ("the storefront cart") rather than how it's implemented. Shopify is the
+// only commerce backend — this isn't a seam for a hypothetical alternate
+// one, just a naming boundary between storefront code and Shopify-specific
+// code.
 import { db } from "@/lib/db";
 import {
   addShopifyProductToCart,

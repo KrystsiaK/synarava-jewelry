@@ -35,10 +35,24 @@ function signAdminValue(value: string): string {
   return createHmac("sha256", getAdminSessionSecret()).update(value).digest("hex");
 }
 
+/** Compares two strings in constant time (via their digests, so length itself never leaks) to resist timing attacks on credential/token comparisons. */
 function constantTimeEqual(a: string, b: string) {
   return timingSafeEqual(Buffer.from(digest(a), "hex"), Buffer.from(digest(b), "hex"));
 }
 
+/**
+ * The admin session cookie is `sessionId.token.signature`:
+ * - `sessionId` looks up the `AdminSession` row (holds only `tokenHash`,
+ *   never the raw token).
+ * - `token` is the session secret; only its SHA-256 digest is ever stored,
+ *   so a database read alone can't produce a valid cookie.
+ * - `signature` is an HMAC (server-secret-keyed) over `sessionId.token`,
+ *   so a client can't forge a cookie for a `sessionId` it doesn't already
+ *   hold the token for, even if it could guess or enumerate session ids.
+ *
+ * All three checks must pass before the caller even queries the database
+ * for the session row.
+ */
 function parseAdminCookie(raw: string) {
   const [sessionId, token, signature, ...rest] = raw.split(".");
   if (rest.length || !sessionId || !token || !signature) return null;
@@ -54,6 +68,11 @@ export function hasValidAdminSessionCookie(raw: string | undefined) {
   return Boolean(raw && parseAdminCookie(raw));
 }
 
+/**
+ * `ADMIN_PASSWORD` (a plaintext env var) only works outside production —
+ * it exists purely so local development doesn't require generating a
+ * password hash first. Production must set `ADMIN_PASSWORD_HASH`.
+ */
 function getAdminCredentials() {
   const username = env.ADMIN_USERNAME?.trim() || env.ADMIN_EMAIL?.trim() || "";
   const legacyPassword = process.env.NODE_ENV === "production" ? "" : env.ADMIN_PASSWORD?.trim() || "";

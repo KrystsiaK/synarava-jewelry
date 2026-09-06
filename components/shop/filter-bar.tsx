@@ -9,6 +9,7 @@ import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { isJewelryDepartment, supportsComplianceFilters } from "@/lib/catalog/taxonomy";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
 import {
@@ -157,9 +158,9 @@ export function FilterBar({
   const availabilityOptions: FilterOption[] = [
     { value: "in-stock", label: t("shop.filters.inStock") },
   ];
-  const isJewelryContext = !filters.department || filters.department === "jewelry";
+  const isJewelryContext = isJewelryDepartment(filters.department);
   const showFinish = isJewelryContext;
-  const showCompliance = filters.department !== "jewelry-making";
+  const showCompliance = supportsComplianceFilters(filters.department);
 
   return (
     <div className={cn("relative", isPending && "pointer-events-none")} aria-busy={isPending}>
@@ -483,18 +484,18 @@ function MobileFilterSheet({
     { key: "department", label: t("shop.filters.department"), options: departments },
     { key: "category", label: t("shop.filters.category"), options: categories },
     { key: "availability", label: t("shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
-    ...(!local.department || local.department === "jewelry"
+    ...(isJewelryDepartment(local.department)
       ? [{ key: "collection" as const, label: t("shop.filters.collection"), options: collections }]
       : []),
     { key: "tag", label: t("shop.filters.tag"), options: tags },
     { key: "material", label: t("shop.filters.material"), options: materials },
-    ...(!local.department || local.department === "jewelry"
+    ...(isJewelryDepartment(local.department)
       ? [{ key: "finish" as const, label: t("shop.filters.finish"), options: finishes }]
       : []),
     { key: "origin", label: t("shop.filters.origin"), options: origins },
-    ...(local.department === "jewelry-making"
-      ? []
-      : [{ key: "certified" as const, label: t("shop.filters.compliance"), options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] }]),
+    ...(supportsComplianceFilters(local.department)
+      ? [{ key: "certified" as const, label: t("shop.filters.compliance"), options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] }]
+      : []),
   ];
 
   return (

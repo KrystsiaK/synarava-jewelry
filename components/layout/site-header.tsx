@@ -13,7 +13,7 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
+import { SHOP_DEPARTMENTS, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
 
 type SiteHeaderProps = {
   initialCartCount: number;
@@ -273,7 +273,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                 </Link>
                 {SHOP_DEPARTMENTS.map((department) => (
                   <Link key={department.slug} href={localePath(locale, `/shop?department=${department.slug}`)} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 border-t border-stroke px-3 py-3 label-caps text-muted hover:bg-foreground/[0.05] hover:text-foreground">
-                    {t(`shop.${department.slug === "jewelry-making" ? "jewelryMaking" : department.slug}`)}
+                    {t(`shop.${shopDepartmentTranslationKey(department.slug)}`)}
                   </Link>
                 ))}
               </AdaptivePopover>
@@ -399,7 +399,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                   onClick={() => setIsMenuOpen(false)}
                   className="min-h-11 border-b border-stroke py-3 text-sm text-muted transition-colors hover:text-foreground"
                 >
-                  {t(`shop.${department.slug === "jewelry-making" ? "jewelryMaking" : department.slug}`)}
+                  {t(`shop.${shopDepartmentTranslationKey(department.slug)}`)}
                 </Link>
               ))}
             </div>

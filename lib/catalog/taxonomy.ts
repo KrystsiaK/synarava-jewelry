@@ -15,6 +15,38 @@ export function shopDepartmentName(slug: ShopDepartmentSlug | null | undefined) 
   return SHOP_DEPARTMENTS.find((department) => department.slug === slug)?.name ?? "";
 }
 
+/**
+ * The camelCase i18n key suffix for a department slug — translation keys
+ * can't contain hyphens, so "jewelry-making" is looked up as
+ * `shop.jewelryMaking` rather than `shop.jewelry-making`.
+ */
+export function shopDepartmentTranslationKey(slug: ShopDepartmentSlug) {
+  return slug === "jewelry-making" ? "jewelryMaking" : slug;
+}
+
+/**
+ * Whether `slug` is the jewelry department — treating "no department
+ * selected" (the shop's default, unfiltered view) as jewelry too, since
+ * jewelry is the largest department and the one shown by default.
+ */
+export function isJewelryDepartment(slug: string | null | undefined) {
+  return !slug || slug === "jewelry";
+}
+
+/**
+ * Compliance/certification filters (REACH, lead-free, cadmium-free,
+ * nickel-free) describe finished jewelry, not raw jewelry-making supplies —
+ * they apply to every department except jewelry-making.
+ */
+export function supportsComplianceFilters(slug: string | null | undefined) {
+  return slug !== "jewelry-making";
+}
+
+/** Only the jewelry department has a fit-on-body film; other departments show a plain process film instead. */
+export function hasFitFilm(slug: string | null | undefined) {
+  return slug === "jewelry";
+}
+
 type InferrableProduct = {
   productType: string;
   title: string;

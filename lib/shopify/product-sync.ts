@@ -209,6 +209,25 @@ async function fetchShopifyProduct(id: string) {
   return data.product;
 }
 
+/**
+ * Writes a product pulled from Shopify (webhook or manual pull) into the
+ * local catalog.
+ *
+ * Matching is identity-first, falling back in order: Shopify product ID,
+ * then SKU, then slug/handle — the first match wins and the rest are never
+ * checked. A local record whose `shopifyProductId` already points at a
+ * *different* Shopify product is an identity conflict (two Shopify products
+ * would otherwise collapse onto one local row) and is marked `CONFLICT`
+ * without writing any other field.
+ *
+ * Unless `force` is true, a local product with unsynced local edits
+ * (`syncStatus` PENDING/FAILED/CONFLICT) is only overwritten if the
+ * incoming Shopify data is strictly newer (`remote.updatedAt` vs.
+ * `shopifyUpdatedAt`); if the local edit is newer, the pull is recorded as
+ * `LOCAL_CHANGES` and skipped rather than silently discarding studio edits.
+ * `force: true` (used by the admin's explicit "pull" action) always takes
+ * the remote version regardless of local edits.
+ */
 async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force = false) {
   const firstVariant = remote.variants.nodes[0];
   const onlineStorePublication = remote.resourcePublicationsV2.nodes.find((item) => /online store/i.test(item.publication.name));
@@ -595,6 +614,20 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
   return { ignored: false as const, productId: variant.productId, stockOnHand };
 }
 
+/**
+ * Pushes a local product's title, description, price, SKU, inventory,
+ * tags, and `synarava.*` characteristic metafields to Shopify via the
+ * Admin GraphQL API, creating the remote product on first push.
+ *
+ * The product's image is only forwarded if its URL's origin is our own
+ * configured app/S3 origin or Shopify's own CDN — this is a deliberate
+ * allowlist, not an oversight: `product.imageUrl` can originate from
+ * admin-editable content, and pushing an arbitrary attacker-supplied URL
+ * to Shopify's `originalSource` would let Shopify's servers fetch it
+ * (SSRF-shaped). A non-matching URL is silently dropped rather than
+ * pushed or rejected outright, since a missing image is recoverable and
+ * failing the whole sync over it is not worth the disruption.
+ */
 export async function pushProductToShopify(productId: string) {
   const event = await db.productSyncEvent.create({
     data: { productId, direction: "PUSH", status: "PROCESSING", attemptCount: 1 },
@@ -783,6 +816,24 @@ export async function pushProductToShopify(productId: string) {
   }
 }
 
+/**
+ * Full bidirectional catalog sync, run from the admin's "Reconcile" action.
+ * Three passes, in order:
+ *
+ * 1. **Pull** — page through every Shopify product (100/page) via
+ *    `savePulledProduct`, which applies the same identity-matching and
+ *    conflict rules as a webhook pull.
+ * 2. **Archive** — any local product with a `shopifyProductId` that was
+ *    *not* seen in pass 1 no longer exists in Shopify (deleted remotely),
+ *    so it's archived locally rather than left pointing at a dead ID.
+ * 3. **Push** — any local product with no Shopify link at all
+ *    (`shopifyProductId: null`) and not already `CONFLICT` is pushed to
+ *    Shopify, creating it there for the first time.
+ *
+ * Returns counts, not the individual results — see
+ * `previewShopifyReconciliation` for a dry-run breakdown of exactly which
+ * products would move which way before committing to this.
+ */
 export async function reconcileShopifyProducts() {
   const results = { pulled: 0, pushed: 0, archived: 0, conflicts: 0, failed: 0 };
   const seenRemoteIds = new Set<string>();

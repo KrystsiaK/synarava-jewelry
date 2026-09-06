@@ -24,6 +24,7 @@ import {
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { hasFitFilm } from "@/lib/catalog/taxonomy";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -631,8 +632,8 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
   }
 
   const processMedia = fitVideoSrc || product.process.mediaImage;
-  const processMediaLabel = product.departmentSlug === "jewelry" ? "Fit film" : "Process film";
-  const processMediaAlt = product.departmentSlug === "jewelry"
+  const processMediaLabel = hasFitFilm(product.departmentSlug) ? "Fit film" : "Process film";
+  const processMediaAlt = hasFitFilm(product.departmentSlug)
     ? `${product.title} worn on the body`
     : `${product.title} in use`;
   if (!product.process.eyebrow || !product.process.title) {

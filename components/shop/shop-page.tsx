@@ -19,7 +19,7 @@ import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
-import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
+import { SHOP_DEPARTMENTS, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -131,7 +131,7 @@ function ShopHero({
               size="sm"
               className="min-h-12 border-0 px-3 text-[0.66rem] tracking-[0.13em]"
             >
-              {t(`shop.${department.slug === "jewelry-making" ? "jewelryMaking" : department.slug}`)}
+              {t(`shop.${shopDepartmentTranslationKey(department.slug)}`)}
             </ArtifactLink>
           ))}
         </nav>

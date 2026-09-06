@@ -13,6 +13,14 @@ const dictionaries = {
   pt: flattenMessages(pt as Record<string, unknown>),
 };
 
+/**
+ * Reads the current locale from the `x-locale` request header, which
+ * `proxy.ts` sets from the URL's `/en/...` or `/pt/...` prefix before the
+ * request reaches any page or Server Action. There is deliberately no
+ * cookie fallback here: locale must be derivable from the URL alone so a
+ * crawler (which never carries the old locale-preference cookie) sees the
+ * same content a real visitor does at that URL.
+ */
 export async function getRequestLocale() {
   return normalizeLocale((await headers()).get("x-locale"));
 }

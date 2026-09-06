@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import {
   addStorefrontProductToCart,
@@ -9,11 +10,21 @@ import {
   updateStorefrontCartItemQuantity,
 } from "@/lib/commerce/storefront-cart";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
+import { parseFormData } from "@/lib/forms/parse-form-data";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { safeRedirectPath } from "@/lib/security/safe-redirect";
 
 const MAX_LINE_QUANTITY = 10;
+
+const addToCartSchema = z.object({
+  productSlug: z.string().trim().min(1),
+  redirectTo: z.string().trim().default(""),
+});
+
+const cartItemSchema = z.object({
+  itemId: z.string().trim().min(1),
+});
 
 function refreshCommerce() {
   revalidateStorefrontPath("/cart");
@@ -21,18 +32,15 @@ function refreshCommerce() {
 }
 
 export async function addToCartAction(formData: FormData) {
-  const productSlug = String(formData.get("productSlug") ?? "").trim();
-  const requestedRedirect = String(formData.get("redirectTo") ?? "").trim();
-
-  if (!productSlug) {
-    return;
-  }
+  const parsed = parseFormData(formData, addToCartSchema);
+  if (!parsed.success) return;
+  const { productSlug, redirectTo } = parsed.data;
 
   await addStorefrontProductToCart(productSlug, 1);
   refreshCommerce();
 
   const locale = await getRequestLocale();
-  redirect(safeRedirectPath(requestedRedirect, localePath(locale, "/cart")));
+  redirect(safeRedirectPath(redirectTo, localePath(locale, "/cart")));
 }
 
 // The line's current quantity is read back from the cart rather than trusted
@@ -45,30 +53,31 @@ async function currentLineQuantity(itemId: string): Promise<number | null> {
 }
 
 export async function increaseCartItemAction(formData: FormData) {
-  const itemId = String(formData.get("itemId") ?? "").trim();
-  if (!itemId) return;
+  const parsed = parseFormData(formData, cartItemSchema);
+  if (!parsed.success) return;
 
-  const quantity = await currentLineQuantity(itemId);
+  const quantity = await currentLineQuantity(parsed.data.itemId);
   if (quantity === null || quantity >= MAX_LINE_QUANTITY) return;
 
-  await updateStorefrontCartItemQuantity(itemId, quantity + 1);
+  await updateStorefrontCartItemQuantity(parsed.data.itemId, quantity + 1);
   refreshCommerce();
 }
 
 export async function decreaseCartItemAction(formData: FormData) {
-  const itemId = String(formData.get("itemId") ?? "").trim();
-  if (!itemId) return;
+  const parsed = parseFormData(formData, cartItemSchema);
+  if (!parsed.success) return;
 
-  const quantity = await currentLineQuantity(itemId);
+  const quantity = await currentLineQuantity(parsed.data.itemId);
   if (quantity === null || quantity < 1) return;
 
-  await updateStorefrontCartItemQuantity(itemId, quantity - 1);
+  await updateStorefrontCartItemQuantity(parsed.data.itemId, quantity - 1);
   refreshCommerce();
 }
 
 export async function removeCartItemAction(formData: FormData) {
-  const itemId = String(formData.get("itemId") ?? "").trim();
-  if (!itemId) return;
-  await removeStorefrontCartItem(itemId);
+  const parsed = parseFormData(formData, cartItemSchema);
+  if (!parsed.success) return;
+
+  await removeStorefrontCartItem(parsed.data.itemId);
   refreshCommerce();
 }
