@@ -12,19 +12,19 @@
 | Переменная | Описание |
 |-----------|----------|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `AUTH_SESSION_SECRET` | Секрет для подписи сессионных токенов (HMAC-SHA256). Минимум 32 случайных символа. Генерить: `openssl rand -hex 32` |
 | `ADMIN_USERNAME` | Логин для отдельного входа в `/admin/login` |
 | `ADMIN_PASSWORD_HASH` | Хеш пароля админки. Генерить локально: `pnpm auth:hash` |
 | `ADMIN_SESSION_SECRET` | Отдельный секрет для подписи admin-cookie. Минимум 32 случайных символа. Генерить: `openssl rand -hex 32` |
 
-### Обязательные для оплаты
+### Обязательные для коммерции
 
 | Переменная | Описание |
 |-----------|----------|
-| `STRIPE_SECRET_KEY` | Stripe secret key (`sk_live_...`) |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_live_...`) |
-| `STRIPE_WEBHOOK_SECRET` | Секрет вебхука Stripe (`whsec_...`). Создаётся в Stripe Dashboard → Webhooks |
-| `NEXT_PUBLIC_APP_URL` | Полный URL приложения (`https://synarava.com`). Нужен для return_url Stripe |
+| `SHOPIFY_STORE_DOMAIN` | Постоянный домен `your-store.myshopify.com` |
+| `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` | Private Storefront API token (только server-side) |
+| `NEXT_PUBLIC_APP_URL` | Полный URL приложения (`https://synarava.com`). Нужен для Shopify OAuth callback |
+
+Без этих трёх переменных корзина и чекаут падают с явной ошибкой конфигурации — Shopify единственный commerce backend, локального фолбэка нет.
 
 ### Для медиа (выбрать одно: S3 или локальное хранилище)
 
@@ -84,42 +84,27 @@ Railpack должен использовать стандартную устан
 
 ---
 
-## Stripe
+## Shopify
 
-- [ ] Создать вебхук в Stripe Dashboard → Developers → Webhooks
-  - URL: `https://your-domain.com/api/stripe/webhook`
-  - Events: `checkout.session.completed`, `checkout.session.async_payment_failed`
-- [ ] Скопировать `whsec_...` в `STRIPE_WEBHOOK_SECRET`
-- [ ] Проверить тестовую оплату через Stripe CLI: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
-
----
-
-## Email (не реализовано — нужно сделать)
-
-Сброс пароля создаёт токен в БД, но письмо **не отправляется**.
-Без email-провайдера функция восстановления пароля не работает для пользователей.
-
-- [ ] Подключить SMTP / SendGrid / Resend / Postmark
-- [ ] В `app/(auth)/actions.ts` → `requestPasswordResetAction` добавить отправку письма с ссылкой `${base}/reset-password?token=${result.token}`
-- [ ] Проверить что ссылка доходит и токен работает
+- [ ] Создать вебхук в Shopify Admin → Settings → Notifications → Webhooks (или через **Reconcile** в `/admin`, которая регистрирует их автоматически при заданном `NEXT_PUBLIC_APP_URL`)
+  - Events: `products/create`, `products/update`, `products/delete`, `inventory_levels/update`
+- [ ] Скопировать секрет подписи вебхука в `SHOPIFY_WEBHOOK_SECRET`
+- [ ] Прогнать **Reconcile** в `/admin` и убедиться, что каталог совпал по Shopify product ID/SKU/handle без конфликтов
 
 ---
 
-## Rate Limiting (не реализовано полностью)
+## Rate Limiting
 
-Текущий rate-limit хранится в памяти процесса — не работает при нескольких инстансах или serverless.
+Rate-limit хранится в Postgres (`RateLimitBucket`) и переживает несколько инстансов; in-memory `Map` в `lib/auth/rate-limit.ts` — только резервный фолбэк на время недоступности БД, не основное хранилище.
 
-- [ ] Подключить Redis (Upstash, Redis Cloud, или self-hosted)
-- [ ] Заменить in-memory `_rl` Map в `lib/auth/guard.ts` на Redis-клиент
+- [ ] Ничего дополнительно настраивать не нужно — таблица создаётся миграцией
 
 ---
 
 ## Безопасность
 
-- [ ] `AUTH_SESSION_SECRET` установлен и не менее 32 символов (приложение падает без него в production)
 - [ ] `ADMIN_SESSION_SECRET` установлен и не менее 32 символов (приложение падает без него в production)
-- [ ] Все Stripe ключи — live (`sk_live_`, `pk_live_`), не test
-- [ ] `NEXTAUTH_SECRET` или `AUTH_SESSION_SECRET` не совпадают с дефолтными dev-значениями
+- [ ] `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` и `SHOPIFY_ADMIN_ACCESS_TOKEN` никогда не заданы через `NEXT_PUBLIC_` переменную
 - [ ] S3 бакет не публичный — доступ только через подписанные URL или Nginx/CDN
 - [ ] Настроить HTTPS (Let's Encrypt / Cloudflare)
 - [ ] Проверить заголовки безопасности: `curl -I https://your-domain.com` → должны быть `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`
@@ -139,7 +124,6 @@ Railpack должен использовать стандартную устан
 
 - [ ] Открыть `/` — сайт загружается
 - [ ] Добавить товар в корзину
-- [ ] Пройти чекаут с тестовой картой Stripe (`4242 4242 4242 4242`)
-- [ ] Убедиться что в `/admin` заказ появился со статусом `PAID`
-- [ ] Проверить регистрацию нового пользователя
-- [ ] Проверить что `/admin` **недоступен** для обычного пользователя
+- [ ] Дойти до `/checkout` — редиректит на хостед Shopify checkout
+- [ ] Войти в `/profile` через Shopify Customer Account (magic-link/OTP)
+- [ ] Проверить что `/admin` **недоступен** без `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH`

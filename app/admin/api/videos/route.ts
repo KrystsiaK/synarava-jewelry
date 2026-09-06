@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
+import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
 import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { SITE_VIDEO_SETTING_KEY, siteVideoSlots, type SiteVideoSlot } from "@/lib/site-videos";
 
@@ -59,11 +60,12 @@ function isPreparedUpload(value: unknown): value is PreparedUpload {
 }
 
 function revalidateStorefront() {
-  for (const route of ["/", "/shop", "/collections", "/about", "/admin/videos"]) {
-    revalidatePath(route);
+  for (const route of ["/", "/shop", "/collections", "/about"]) {
+    revalidateStorefrontPath(route);
   }
-  revalidatePath("/collections/[slug]", "page");
-  revalidatePath("/products/[slug]", "page");
+  revalidatePath("/admin/videos");
+  revalidateStorefrontTemplate("/collections/[slug]");
+  revalidateStorefrontTemplate("/products/[slug]");
 }
 
 export async function POST(request: Request) {
@@ -132,7 +134,7 @@ export async function POST(request: Request) {
               bucket: process.env.S3_BUCKET ?? null,
               source: "UPLOAD",
               status: "READY",
-              uploadedById: session.id,
+              uploadedByUsername: session.username,
             },
           });
         }

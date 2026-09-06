@@ -1,10 +1,6 @@
-import { redirect } from "next/navigation";
 import { createHash } from "node:crypto";
 
-import { getCurrentSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { getRequestLocale } from "@/lib/i18n/server";
-import { localePath } from "@/lib/i18n/routing";
 
 const _rl = new Map<string, { count: number; resetAt: number }>();
 const MAX_FALLBACK_BUCKETS = 10_000;
@@ -92,88 +88,3 @@ export async function clearRateLimit(action: string, identifier: string) {
   }
 }
 
-export class AuthorizationError extends Error {
-  readonly status = 403;
-  constructor(message = "Access denied") {
-    super(message);
-    this.name = "AuthorizationError";
-  }
-}
-
-export async function requireAuthenticatedUser() {
-  const session = await getCurrentSession();
-
-  if (!session?.user) {
-    const locale = await getRequestLocale();
-    redirect(`${localePath(locale, "/login")}?redirectTo=${encodeURIComponent(localePath(locale, "/profile"))}`);
-  }
-
-  if (session.user.status === "SUSPENDED") {
-    redirect(`${localePath(await getRequestLocale(), "/login")}?error=suspended`);
-  }
-
-  return session.user;
-}
-
-// Verifies the given userId equals the current session's user id.
-// Never accept a userId from client-provided params — always resolve from session first.
-export async function assertOwnership(resourceUserId: string | null | undefined) {
-  const session = await getCurrentSession();
-
-  if (!session?.user) {
-    throw new AuthorizationError("Not authenticated");
-  }
-
-  if (!resourceUserId || resourceUserId !== session.user.id) {
-    throw new AuthorizationError("Resource does not belong to current user");
-  }
-
-  return session.user;
-}
-
-export async function assertOrderOwnership(orderId: string) {
-  const session = await getCurrentSession();
-  if (!session?.user) throw new AuthorizationError("Not authenticated");
-
-  const order = await db.order.findUnique({
-    where: { id: orderId },
-    select: { userId: true },
-  });
-
-  if (!order || order.userId !== session.user.id) {
-    throw new AuthorizationError("Order not found");
-  }
-
-  return session.user;
-}
-
-export async function assertAddressOwnership(addressId: string) {
-  const session = await getCurrentSession();
-  if (!session?.user) throw new AuthorizationError("Not authenticated");
-
-  const address = await db.address.findUnique({
-    where: { id: addressId },
-    select: {
-      customerProfile: { select: { userId: true } },
-    },
-  });
-
-  if (!address?.customerProfile || address.customerProfile.userId !== session.user.id) {
-    throw new AuthorizationError("Address not found");
-  }
-
-  return session.user;
-}
-
-export async function assertPermission(permissionKey: string) {
-  const session = await getCurrentSession();
-  if (!session?.user) throw new AuthorizationError("Not authenticated");
-
-  const has = session.user.roles.some((ur) =>
-    ur.role.permissions.some((rp) => rp.permission.key === permissionKey),
-  );
-
-  if (!has) throw new AuthorizationError(`Missing permission: ${permissionKey}`);
-
-  return session.user;
-}

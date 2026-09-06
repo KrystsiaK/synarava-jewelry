@@ -32,7 +32,6 @@ type CartShellProps = {
   subtotalCents: number;
   subtotal: string;
   currency: string;
-  usesShopifyCheckout: boolean;
 };
 
 function EmptyCart() {
@@ -87,7 +86,6 @@ export function CartShell({
   subtotalCents,
   subtotal,
   currency,
-  usesShopifyCheckout,
 }: CartShellProps) {
   const { t, locale } = useTranslations();
   return (
@@ -163,8 +161,8 @@ export function CartShell({
                   itemCount={itemCount}
                   subtotal={subtotal}
                   ctaHref={localePath(locale, "/checkout")}
-                  ctaLabel={usesShopifyCheckout ? t("cart.secureCheckout") : t("cart.continueDelivery")}
-                  ecommerce={usesShopifyCheckout ? {
+                  ctaLabel={t("cart.secureCheckout")}
+                  ecommerce={{
                     currency,
                     value: subtotalCents / 100,
                     items: items.map((item) => ({
@@ -174,12 +172,8 @@ export function CartShell({
                       price: item.unitCents / 100,
                       quantity: item.quantity,
                     })),
-                  } : undefined}
-                  note={
-                    usesShopifyCheckout
-                      ? t("cart.shopifyNote")
-                      : t("cart.localNote")
-                  }
+                  }}
+                  note={t("cart.shopifyNote")}
                 />
 
                 <motion.div

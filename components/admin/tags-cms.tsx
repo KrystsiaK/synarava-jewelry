@@ -12,7 +12,7 @@ import {
 } from "@/app/admin/actions";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
-import { slugifyForAdmin } from "@/components/admin/slug-utils";
+import { slugify } from "@/lib/text/slug";
 import { useAdminToast } from "@/components/admin/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
@@ -115,13 +115,13 @@ export function TagEditor({ tag }: { tag?: SavedTagPayload }) {
   function updateName(value: string) {
     setNameValue(value);
     if (!slugLocked) {
-      setSlugValue(slugifyForAdmin(value));
+      setSlugValue(slugify(value));
     }
   }
 
   function updateSlug(value: string) {
     if (!value.trim()) {
-      setSlugValue(slugifyForAdmin(nameValue));
+      setSlugValue(slugify(nameValue));
       setSlugLocked(false);
       return;
     }

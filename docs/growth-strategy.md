@@ -117,8 +117,8 @@ Minimum commerce payloads:
 | `purchase` | Shopify order ID as transaction ID, numeric revenue, tax, shipping, currency, coupon, item snapshot |
 
 `purchase` must be emitted only by Shopify's consent-aware
-`checkout_completed` customer event. The storefront and the legacy local Stripe
-confirmation flow must never emit a GA4 `purchase` event.
+`checkout_completed` customer event. The storefront must never emit a GA4
+`purchase` event itself.
 
 Never send email, name, address, phone, raw customer ID, full Shopify cart
 secret, or free-form customer notes to browser analytics.

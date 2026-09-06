@@ -2,15 +2,12 @@ import "server-only";
 
 import type { ProductSummary } from "@/lib/content/catalog";
 import type { ShopFilters } from "@/components/shop/types";
-import {
-  isShopDepartmentSlug,
-  shopDepartmentName,
-  type ShopDepartmentSlug,
-} from "@/lib/catalog/taxonomy";
+import { inferDepartment, shopDepartmentName } from "@/lib/catalog/taxonomy";
 import { shopifyStorefrontRequest } from "@/lib/shopify/storefront";
 import { formatCurrency, shopifyLanguage } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
+import { slugify } from "@/lib/text/slug";
 
 type ShopifyProduct = {
   id: string;
@@ -40,25 +37,6 @@ type ShopifyProduct = {
 type ShopifyProductConnection = {
   products: { nodes: ShopifyProduct[] };
 };
-
-function inferDepartment(product: ShopifyProduct): ShopDepartmentSlug {
-  const explicitType = product.productType.trim().toLowerCase();
-  if (isShopDepartmentSlug(explicitType)) return explicitType;
-
-  const searchable = `${product.productType} ${product.title}`.toLowerCase();
-  if (/\b(leash|lead|collar|harness|pet|dog|cat)\b/.test(searchable)) return "pets";
-  if (/\b(kid|kids|child|children|educational toy|developmental toy)\b/.test(searchable)) {
-    return "kids";
-  }
-  if (/\b(bead|finding|cord|chain|jewelry making|jewellery making|craft tool|supply)\b/.test(searchable)) {
-    return "jewelry-making";
-  }
-  return "jewelry";
-}
-
-function slugify(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-}
 
 function toProductSummary(product: ShopifyProduct, locale: Locale): ProductSummary {
   const department = inferDepartment(product);

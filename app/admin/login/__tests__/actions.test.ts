@@ -20,17 +20,21 @@ vi.mock("next/navigation", () => ({
   redirect: redirectMock,
 }));
 
-vi.mock("@/lib/auth/guard", () => ({
+vi.mock("@/lib/auth/rate-limit", () => ({
   checkRateLimit: checkRateLimitMock,
   clearRateLimit: clearRateLimitMock,
 }));
 
-vi.mock("@/lib/auth/admin-session", () => ({
-  clearAdminSession: clearAdminSessionMock,
-  createAdminSession: createAdminSessionMock,
-  isAdminAuthConfigured: isAdminAuthConfiguredMock,
-  verifyAdminCredentials: verifyAdminCredentialsMock,
-}));
+vi.mock("@/lib/auth/admin-session", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth/admin-session")>();
+  return {
+    ...actual,
+    clearAdminSession: clearAdminSessionMock,
+    createAdminSession: createAdminSessionMock,
+    isAdminAuthConfigured: isAdminAuthConfiguredMock,
+    verifyAdminCredentials: verifyAdminCredentialsMock,
+  };
+});
 
 import { adminLoginAction, adminLogoutAction } from "@/app/admin/login/actions";
 

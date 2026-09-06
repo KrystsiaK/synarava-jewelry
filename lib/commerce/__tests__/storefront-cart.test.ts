@@ -2,7 +2,6 @@ const mocks = vi.hoisted(() => ({
   addShopifyProductToCart: vi.fn(),
   findFirst: vi.fn(),
   findUnique: vi.fn(),
-  isShopifyCommerceEnabled: vi.fn(() => true),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -14,10 +13,6 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-vi.mock("@/lib/shopify/config", () => ({
-  isShopifyCommerceEnabled: mocks.isShopifyCommerceEnabled,
-}));
-
 vi.mock("@/lib/shopify/cart", () => ({
   addShopifyProductToCart: mocks.addShopifyProductToCart,
   getShopifyCartCount: vi.fn(),
@@ -27,20 +22,10 @@ vi.mock("@/lib/shopify/cart", () => ({
   updateShopifyCartItemQuantity: vi.fn(),
 }));
 
-vi.mock("@/lib/commerce/cart", () => ({
-  addProductToCart: vi.fn(),
-  attachCurrentCartToUser: vi.fn(),
-  getCartCount: vi.fn(),
-  getCartViewModel: vi.fn(),
-  removeCartItem: vi.fn(),
-  updateCartItemQuantity: vi.fn(),
-}));
-
 import { addStorefrontProductToCart } from "@/lib/commerce/storefront-cart";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.isShopifyCommerceEnabled.mockReturnValue(true);
   mocks.findFirst.mockResolvedValue({ shopifyHandle: "local-slug" });
 });
 

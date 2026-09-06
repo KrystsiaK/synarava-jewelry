@@ -118,7 +118,7 @@ export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail
           </Section>
 
           <Section id="sharing" number="5. Partilha e transferências" title="Fornecedores e destinatários">
-            <p>Partilhamos apenas os dados necessários com fornecedores sujeitos a obrigações de proteção: Shopify para comércio, conta e checkout; Stripe quando o checkout local é usado; fornecedor de alojamento; e fornecedor de armazenamento de imagens e ficheiros.</p>
+            <p>Partilhamos apenas os dados necessários com fornecedores sujeitos a obrigações de proteção: Shopify para comércio, pagamentos, conta e checkout; fornecedor de alojamento; e fornecedor de armazenamento de imagens e ficheiros.</p>
             <p>Podemos divulgar dados a autoridades quando a lei o imponha. Para tratamentos fora do Espaço Económico Europeu aplicamos uma decisão de adequação ou Cláusulas Contratuais-Tipo da Comissão Europeia e medidas adicionais quando exigidas. Pode pedir informação sobre as salvaguardas aplicáveis.</p>
           </Section>
 

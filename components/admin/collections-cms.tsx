@@ -20,7 +20,7 @@ import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin
 import { useAdminToast } from "@/components/admin/admin-toast";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
-import { slugifyForAdmin } from "@/components/admin/slug-utils";
+import { slugify } from "@/lib/text/slug";
 import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
 
 type AdminCollection = SavedCollectionPayload;
@@ -508,7 +508,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
     setDraft((current) => {
       const next = { ...current, [key]: value };
       if (key === "name" && !slugLocked) {
-        next.slug = slugifyForAdmin(String(value));
+        next.slug = slugify(String(value));
       }
       if (key === "name" && !codeLocked) {
         next.code = generateCollectionCode(String(value));

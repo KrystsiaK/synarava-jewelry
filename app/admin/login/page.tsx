@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AdminLoginForm } from "@/components/auth/admin-login-form";
-import { getCurrentAdminSession } from "@/lib/auth/admin-session";
+import { getCurrentAdminSession, getSafeAdminRedirect } from "@/lib/auth/admin-session";
 
 export const metadata: Metadata = {
   title: "Admin Login | Synarava",
@@ -17,17 +17,9 @@ type Props = {
   }>;
 };
 
-function getSafeRedirect(value?: string) {
-  if (!value || !value.startsWith("/admin") || value.startsWith("/admin/login")) {
-    return "/admin";
-  }
-
-  return value;
-}
-
 export default async function AdminLoginPage({ searchParams }: Props) {
   const params = (await searchParams) ?? {};
-  const redirectTo = getSafeRedirect(params.redirectTo);
+  const redirectTo = getSafeAdminRedirect(params.redirectTo);
   const session = await getCurrentAdminSession();
 
   if (session) {

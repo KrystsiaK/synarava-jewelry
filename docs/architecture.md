@@ -56,8 +56,11 @@ editorial layer.
   - editorial and merchandising surface
 - `ProductCollection`
   - explicit join for ordering products inside a collection
-- `Order`, `OrderItem`
-  - immutable checkout snapshot for Stripe-driven orders
+
+There is no local `Order`/`OrderItem` model. Cart, checkout, and order history are entirely
+Shopify's — Shopify is the only commerce backend (see
+[`SHOPIFY_DECISION.md`](../SHOPIFY_DECISION.md)). An earlier local cart/checkout/Stripe path and
+its models were removed once Shopify covered the same ground.
 
 ### CMS
 
@@ -71,51 +74,27 @@ editorial layer.
 - `MediaAsset`
   - S3-backed asset registry shared by products, collections, pages, and users
 
-### Auth and RBAC
+### Auth
 
-- `User`
-  - shared identity model for customers and staff
-- `Role`, `Permission`, `UserRole`, `RolePermission`
-  - explicit RBAC layer for admin features
-- `AuthAccount`, `UserSession`, `VerificationToken`
-  - future-proof auth storage for credentials + providers + password reset/email verification
+There is no shared `User` model and no RBAC layer — the site has exactly two, unrelated
+audiences, each with its own auth mechanism:
+
+- **Admin operators** authenticate against `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` env
+  credentials, not a database row. `AdminSession` (opaque token, HMAC-verified in `proxy.ts`)
+  tracks the logged-in session. Every admin action guards on `requireAdminSession()` — there is a
+  single admin role, not a permission matrix, because there is a single kind of admin operator.
+- **Storefront customers** authenticate via Shopify Customer Account OAuth
+  (`lib/shopify/customer-account/`). Shopify owns the customer identity, session, and
+  password/OTP flow entirely; this app only stores the resulting session token.
+
+An earlier local email/password customer auth system plus an RBAC layer (`User`, `Role`,
+`Permission`, `UserRole`, `RolePermission`, `UserSession`, `AuthAccount`, `VerificationToken`)
+was designed but never wired to any real permission check, and was removed once Shopify Customer
+Accounts made it redundant.
+
 - `AuditLog`
-  - mandatory for admin operations that mutate catalog, content, or roles
-
-## Permission model
-
-Seed these permissions as first-class keys:
-
-- `catalog.read`
-- `catalog.write`
-- `collections.read`
-- `collections.write`
-- `pages.read`
-- `pages.write`
-- `assets.read`
-- `assets.write`
-- `orders.read`
-- `orders.write`
-- `users.read`
-- `users.write`
-- `roles.read`
-- `roles.write`
-- `settings.read`
-- `settings.write`
-- `audit.read`
-
-Seed these roles:
-
-- `super_admin`
-  - full access
-- `editor`
-  - pages, collections, assets
-- `merchandiser`
-  - catalog, collections, assets
-- `support`
-  - orders, customers, read-only catalog
-- `customer`
-  - storefront only, no admin access
+  - mandatory for admin operations that mutate catalog or content; records `adminUsername` and
+    `adminSessionId` — there being one admin role, "who" is enough, no permission to check.
 
 ## Admin information architecture
 

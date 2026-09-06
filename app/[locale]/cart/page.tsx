@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 
-import {
-  getStorefrontCartViewModel,
-  usesShopifyCart,
-} from "@/lib/commerce/storefront-cart";
+import { getStorefrontCartViewModel } from "@/lib/commerce/storefront-cart";
 import { CartShell } from "@/components/commerce/cart-shell";
 
 export const metadata: Metadata = {
@@ -21,7 +18,6 @@ export default async function CartPage() {
       subtotalCents={cart.subtotalCents}
       subtotal={cart.subtotal}
       currency={cart.currency}
-      usesShopifyCheckout={usesShopifyCart()}
     />
   );
 }

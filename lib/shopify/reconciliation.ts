@@ -1,3 +1,5 @@
+import { shopifyAmountToCents } from "@/lib/shopify/money";
+
 export type LocalCommerceVariant = {
   shopifyVariantId: string | null;
   sku: string;
@@ -44,10 +46,6 @@ type MatchedVariants = {
   remote: RemoteCommerceVariant;
 };
 
-function cents(value: string | null | undefined) {
-  const amount = Number(value ?? 0);
-  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
-}
 
 function variantLabel(variant: LocalCommerceVariant | RemoteCommerceVariant) {
   return variant.sku?.trim() || ("id" in variant ? variant.id : variant.shopifyVariantId) || "Unknown variant";
@@ -89,13 +87,13 @@ const VARIANT_FIELD_COMPARATORS = [
   {
     field: "price" as const,
     local: (variant: LocalCommerceVariant) => variant.priceCents,
-    shopify: (variant: RemoteCommerceVariant) => cents(variant.price),
+    shopify: (variant: RemoteCommerceVariant) => shopifyAmountToCents(variant.price),
   },
   {
     field: "compareAtPrice" as const,
     local: (variant: LocalCommerceVariant) => variant.compareAtCents,
     shopify: (variant: RemoteCommerceVariant) =>
-      variant.compareAtPrice == null ? null : cents(variant.compareAtPrice),
+      variant.compareAtPrice == null ? null : shopifyAmountToCents(variant.compareAtPrice),
   },
   {
     field: "inventoryQuantity" as const,

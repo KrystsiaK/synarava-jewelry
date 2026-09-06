@@ -6,7 +6,6 @@ source:
 - `view_item`, `add_to_cart`, and `begin_checkout` are emitted by the headless
   storefront into the GTM `dataLayer` after analytics consent.
 - `purchase` is emitted only by Shopify's `checkout_completed` customer event.
-- The local Stripe confirmation event is deliberately not forwarded to GTM.
 
 ## GTM configuration
 

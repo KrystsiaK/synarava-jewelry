@@ -51,7 +51,6 @@ function cspFor(nonce: string) {
   );
   const connections = [
     "'self'",
-    "https://api.stripe.com",
     "https://www.google-analytics.com",
     "https://region1.google-analytics.com",
     "https://www.facebook.com",
@@ -62,7 +61,6 @@ function cspFor(nonce: string) {
     "'self'",
     `'nonce-${nonce}'`,
     "'strict-dynamic'",
-    "https://js.stripe.com",
     "https://www.googletagmanager.com",
     "https://connect.facebook.net",
     ...(process.env.NODE_ENV === "production" ? [] : ["'unsafe-eval'"]),
@@ -74,7 +72,6 @@ function cspFor(nonce: string) {
     `img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com https://www.googletagmanager.com https://www.google-analytics.com https://www.facebook.com ${storage.join(" ")}`,
     `media-src 'self' ${storage.join(" ")}`,
     `connect-src ${connections}`,
-    "frame-src https://js.stripe.com",
     "font-src 'self' data: https://cdn.shopify.com https://*.shopifycdn.com",
     "object-src 'none'",
     "base-uri 'self'",

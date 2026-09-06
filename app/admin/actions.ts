@@ -4,20 +4,15 @@ import { revalidatePath } from "next/cache";
 import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/client";
 import { getCurrentAdminSession, requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
+import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
+import { slugify } from "@/lib/text/slug";
 import { saveCollectionImageUpload, savePageImageUpload, saveProductImageUpload } from "@/lib/media/local-upload";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
-import { isShopifyCommerceEnabled } from "@/lib/shopify/config";
+import { isShopifyConfigured } from "@/lib/shopify/config";
 import { hasShopifyAdminConfig, testShopifyAdminConnection } from "@/lib/shopify/admin";
 import { deleteShopifyProduct, ensureProductWebhookSubscriptions, inspectProductSyncState, previewShopifyReconciliation, pullShopifyProduct, pushProductToShopify, reconcileShopifyProducts } from "@/lib/shopify/product-sync";
 import { env } from "@/lib/env";
 
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 function parseTags(raw: string) {
   return Array.from(
@@ -39,7 +34,7 @@ async function uploadOptionalProductAsset(input: {
   fieldName: string;
   existingValue: string;
   removeFieldName?: string;
-  currentUserId?: string | null;
+  uploadedByUsername?: string | null;
 }) {
   const file = input.formData.get(input.fieldName);
   const shouldRemoveExisting = input.removeFieldName
@@ -67,7 +62,7 @@ async function uploadOptionalProductAsset(input: {
       bucket: process.env.S3_BUCKET ?? null,
       source: "UPLOAD",
       status: "READY",
-      uploadedById: input.currentUserId ?? null,
+      uploadedByUsername: input.uploadedByUsername ?? null,
     },
     select: { id: true },
   });
@@ -76,12 +71,12 @@ async function uploadOptionalProductAsset(input: {
 }
 
 function revalidateStorefront() {
-  revalidatePath("/");
-  revalidatePath("/shop");
-  revalidatePath("/collections");
-  revalidatePath("/collections/[slug]", "page");
-  revalidatePath("/products/[slug]", "page");
-  revalidatePath("/about");
+  revalidateStorefrontPath("/");
+  revalidateStorefrontPath("/shop");
+  revalidateStorefrontPath("/collections");
+  revalidateStorefrontTemplate("/collections/[slug]");
+  revalidateStorefrontTemplate("/products/[slug]");
+  revalidateStorefrontPath("/about");
 }
 
 export type AdminAuditEntityType = "PRODUCT" | "COLLECTION" | "PAGE" | "CATEGORY" | "TAG";
@@ -149,7 +144,6 @@ async function writeAuditLog(input: {
   before?: unknown;
   after?: unknown;
   metadata?: unknown;
-  actorId?: string | null;
 }) {
   const adminSession = await getCurrentAdminSession();
   await db.auditLog.create({
@@ -160,7 +154,6 @@ async function writeAuditLog(input: {
       before: toAuditJson(input.before),
       after: toAuditJson(input.after),
       metadata: toAuditJson(input.metadata),
-      actorId: input.actorId ?? null,
       adminSessionId: adminSession?.sessionId ?? null,
       adminUsername: adminSession?.username ?? null,
     },
@@ -671,7 +664,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     existingValue: typeof existingContent.heroImage === "string" ? existingContent.heroImage : "",
     removeFieldName: "removeHeroImage",
     pageSlug: slug,
-    currentUserId: currentUser?.id,
+    uploadedByUsername: currentUser?.username,
   });
   const pageData = {
     slug,
@@ -703,7 +696,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     status: isPublished ? PageStatus.PUBLISHED : PageStatus.DRAFT,
     visibility: isPublished ? ContentVisibility.PUBLIC : ContentVisibility.PRIVATE,
     publishedAt: isPublished ? new Date() : null,
-    authoredById: currentUser?.id ?? null,
+    authoredByUsername: currentUser?.username ?? null,
   };
 
   const page = pageId
@@ -756,11 +749,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     entityId: page.id,
     before,
     after: page,
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
-  revalidatePath(`/${slug}`);
+  revalidateStorefrontPath(`/${slug}`);
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages?updated=${slug}`);
   return { success: before ? "Page updated." : "Page created.", page };
@@ -772,7 +764,7 @@ async function uploadOptionalPageAsset(input: {
   existingValue: string;
   removeFieldName?: string;
   pageSlug: string;
-  currentUserId?: string | null;
+  uploadedByUsername?: string | null;
 }) {
   const file = input.formData.get(input.fieldName);
   const shouldRemoveExisting = input.removeFieldName
@@ -798,7 +790,7 @@ async function uploadOptionalPageAsset(input: {
       bucket: process.env.S3_BUCKET ?? null,
       source: "UPLOAD",
       status: "READY",
-      uploadedById: input.currentUserId ?? null,
+      uploadedByUsername: input.uploadedByUsername ?? null,
     },
     select: { id: true },
   });
@@ -864,7 +856,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     status: "DRAFT" as const,
     visibility: "PRIVATE" as const,
     publishedAt: null,
-    authoredById: currentUser?.id ?? null,
+    authoredByUsername: currentUser?.username ?? null,
   };
 
   const page = pageId
@@ -887,7 +879,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
 }
 
 export async function updatePageStatusAction(formData: FormData): Promise<PageActionState> {
-  const currentUser = await requireAdminSession("/admin/pages");
+  await requireAdminSession("/admin/pages");
 
   const slug = String(formData.get("slug") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -933,7 +925,6 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
     entityId: page.id,
     before,
     after: page,
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -942,7 +933,7 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
 }
 
 export async function deletePageAction(formData: FormData): Promise<PageActionState> {
-  const currentUser = await requireAdminSession("/admin/pages");
+  await requireAdminSession("/admin/pages");
 
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
 
@@ -975,11 +966,10 @@ export async function deletePageAction(formData: FormData): Promise<PageActionSt
     entityType: "PAGE",
     entityId: page.id,
     before,
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
-  revalidatePath(`/${slug}`);
+  revalidateStorefrontPath(`/${slug}`);
   revalidatePath("/admin");
   revalidatePath("/admin/pages");
 
@@ -987,7 +977,7 @@ export async function deletePageAction(formData: FormData): Promise<PageActionSt
 }
 
 export async function saveCategoryAction(formData: FormData): Promise<CategoryActionState> {
-  const currentUser = await requireAdminSession("/admin/products");
+  await requireAdminSession("/admin/products");
 
   const categoryId = String(formData.get("categoryId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -1031,7 +1021,6 @@ export async function saveCategoryAction(formData: FormData): Promise<CategoryAc
     entityId: category.id,
     before,
     after: category,
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -1066,7 +1055,7 @@ export async function deleteCategoryAction(formData: FormData): Promise<Category
 }
 
 export async function saveTagAction(formData: FormData): Promise<TagActionState> {
-  const currentUser = await requireAdminSession("/admin/products");
+  await requireAdminSession("/admin/products");
 
   const tagId = String(formData.get("tagId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -1102,7 +1091,6 @@ export async function saveTagAction(formData: FormData): Promise<TagActionState>
     entityId: tag.id,
     before,
     after: tag,
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -1200,7 +1188,7 @@ export async function saveCollectionAction(
             bucket: process.env.S3_BUCKET ?? null,
             source: "UPLOAD",
             status: "READY",
-            uploadedById: currentUser?.id ?? null,
+            uploadedByUsername: currentUser?.username ?? null,
           },
           select: { id: true },
         });
@@ -1264,7 +1252,6 @@ export async function saveCollectionAction(
     entityId: savedCollection.id,
     before,
     after: savedCollection,
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -1278,7 +1265,7 @@ export async function saveCollectionAction(
 export async function autosaveCollectionDraftAction(
   formData: FormData,
 ): Promise<DraftAutosaveResult> {
-  const currentUser = await requireAdminSession("/admin/collections");
+  await requireAdminSession("/admin/collections");
 
   if (!hasMeaningfulDraftInput(formData, ["collectionId", "workflowState", "existingHeroImageUrl"])) {
     return {};
@@ -1346,7 +1333,6 @@ export async function autosaveCollectionDraftAction(
     entityType: "COLLECTION",
     entityId: collection.id,
     after: collectionData,
-    actorId: currentUser?.id,
   });
 
   revalidatePath("/admin/collections");
@@ -1393,7 +1379,7 @@ export async function moveCollectionOrderAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
-  const currentUser = await requireAdminSession("/admin/collections");
+  await requireAdminSession("/admin/collections");
 
   const collectionId = String(formData.get("collectionId") ?? "").trim();
   const direction = String(formData.get("direction") ?? "").trim();
@@ -1441,7 +1427,6 @@ export async function moveCollectionOrderAction(
     before,
     after: movedCollection ?? null,
     metadata: { direction },
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -1457,7 +1442,7 @@ export async function updateCollectionStatusAction(
   _prevState: CollectionActionState,
   formData: FormData,
 ): Promise<CollectionActionState> {
-  const currentUser = await requireAdminSession("/admin/collections");
+  await requireAdminSession("/admin/collections");
 
   const collectionId = String(formData.get("collectionId") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -1493,7 +1478,6 @@ export async function updateCollectionStatusAction(
     entityId: collection.id,
     before,
     after: collection,
-    actorId: currentUser?.id,
   });
 
   revalidateStorefront();
@@ -1549,7 +1533,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
           bucket: process.env.S3_BUCKET ?? null,
           source: "UPLOAD",
           status: "READY",
-          uploadedById: currentUser?.id ?? null,
+          uploadedByUsername: currentUser?.username ?? null,
         },
         select: { id: true },
       });
@@ -1564,7 +1548,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         fieldName: `materialImageFile${index}`,
         existingValue: formValue(formData, `existingMaterialImage${index}`),
         removeFieldName: `removeMaterialImage${index}`,
-        currentUserId: currentUser?.id,
+        uploadedByUsername: currentUser?.username,
       });
 
       return {
@@ -1580,7 +1564,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     fieldName: "processMediaImageFile",
     existingValue: formValue(formData, "existingProcessMediaImage"),
     removeFieldName: "removeProcessMediaImage",
-    currentUserId: currentUser?.id,
+    uploadedByUsername: currentUser?.username,
   });
 
   const processStats = [1, 2, 3, 4]
@@ -1597,7 +1581,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         fieldName: `lookbookImageFile${index}`,
         existingValue: formValue(formData, `existingLookbookImage${index}`),
         removeFieldName: `removeLookbookImage${index}`,
-        currentUserId: currentUser?.id,
+        uploadedByUsername: currentUser?.username,
       });
 
       return {
@@ -1759,7 +1743,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   revalidateStorefront();
   revalidatePath("/admin/products");
-  revalidatePath(`/products/${product.slug}`);
+  revalidateStorefrontPath(`/products/${product.slug}`);
 
   let savedProduct = await getSavedProductPayload(product.id);
   const commerceChanged = !before || productCommerceSignature(before) !== productCommerceSignature(savedProduct);
@@ -1785,7 +1769,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     entityId: savedProduct.id,
     before,
     after: savedProduct,
-    actorId: currentUser?.id,
   });
 
   return {
@@ -1799,7 +1782,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
 export async function reconcileProductsAction() {
   await requireAdminSession("/admin/products");
-  if (!isShopifyCommerceEnabled()) return { error: "Shopify commerce is not enabled." };
+  if (!isShopifyConfigured()) return { error: "Shopify is not configured." };
   try {
     if (env.NEXT_PUBLIC_APP_URL) {
       await ensureProductWebhookSubscriptions(env.NEXT_PUBLIC_APP_URL);
@@ -2007,7 +1990,7 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
 }
 
 export async function archiveMissingShopifyProductsAction(productIds: string[]) {
-  const currentUser = await requireAdminSession("/admin/products");
+  await requireAdminSession("/admin/products");
   const selectedIds = Array.from(new Set(productIds)).slice(0, 100);
   if (selectedIds.length === 0) return { error: "Select at least one product to archive." };
 
@@ -2037,7 +2020,6 @@ export async function archiveMissingShopifyProductsAction(productIds: string[]) 
         entityId: productId,
         before,
         after,
-        actorId: currentUser?.id,
       });
     }
 
@@ -2130,7 +2112,7 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
   }
 
   const existing = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
-  if (isShopifyCommerceEnabled() && existing?.shopifyProductId) {
+  if (isShopifyConfigured() && existing?.shopifyProductId) {
     try {
       await deleteShopifyProduct(existing.shopifyProductId);
     } catch (error) {
@@ -2146,7 +2128,7 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
   revalidatePath("/admin/products");
 
   if (productSlug) {
-    revalidatePath(`/products/${productSlug}`);
+    revalidateStorefrontPath(`/products/${productSlug}`);
   }
 
   return {
@@ -2156,7 +2138,7 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
 }
 
 export async function updateProductStatusAction(formData: FormData): Promise<ProductActionState> {
-  const currentUser = await requireAdminSession("/admin/products");
+  await requireAdminSession("/admin/products");
 
   const productId = String(formData.get("productId") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim();
@@ -2197,7 +2179,7 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
 
   revalidateStorefront();
   revalidatePath("/admin/products");
-  revalidatePath(`/products/${product.slug}`);
+  revalidateStorefrontPath(`/products/${product.slug}`);
 
   const savedProduct = await getSavedProductPayload(product.id);
 
@@ -2207,7 +2189,6 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
     entityId: savedProduct.id,
     before,
     after: savedProduct,
-    actorId: currentUser?.id,
   });
 
   return {
@@ -2244,7 +2225,7 @@ export async function restoreAdminRecordVersionAction(input: {
   entityId: string;
   auditLogId: string;
 }): Promise<AdminRecordHistoryState> {
-  const currentUser = await requireAdminSession("/admin");
+  await requireAdminSession("/admin");
 
   const auditLog = await db.auditLog.findFirst({
     where: {
@@ -2378,7 +2359,7 @@ export async function restoreAdminRecordVersionAction(input: {
       }
 
       revalidatePath("/admin/products");
-      revalidatePath(`/products/${snapshotString(snapshot, "slug")}`);
+      revalidateStorefrontPath(`/products/${snapshotString(snapshot, "slug")}`);
     }
 
     const after = await getCurrentRecordSnapshot(input.entityType, input.entityId);
@@ -2389,7 +2370,6 @@ export async function restoreAdminRecordVersionAction(input: {
       before,
       after,
       metadata: { restoredFromAuditLogId: input.auditLogId },
-      actorId: currentUser?.id,
     });
 
     revalidateStorefront();

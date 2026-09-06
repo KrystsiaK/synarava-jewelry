@@ -27,7 +27,7 @@ import { AdminIssueInlineWarning } from "@/components/admin/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
 import { useAdminToast } from "@/components/admin/admin-toast";
-import { slugifyForAdmin } from "@/components/admin/slug-utils";
+import { slugify } from "@/lib/text/slug";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
@@ -781,13 +781,13 @@ function ProductFormFields({
   function updateName(value: string) {
     setNameValue(value);
     if (!slugLocked) {
-      setSlugValue(slugifyForAdmin(value));
+      setSlugValue(slugify(value));
     }
   }
 
   function updateSlug(value: string) {
     if (!value.trim()) {
-      setSlugValue(slugifyForAdmin(nameValue));
+      setSlugValue(slugify(nameValue));
       setSlugLocked(false);
       return;
     }

@@ -8,9 +8,8 @@ System rebuild of the Synarava storefront and lightweight CMS on:
 - Prisma + PostgreSQL
 - Railway config-as-code deployment setup
 - S3-compatible storage scaffold
-- Stripe checkout scaffold
-- Optional Shopify Storefront API cart and hosted checkout
-- RBAC-ready admin/CMS foundation
+- Shopify Storefront API cart, customer accounts, and hosted checkout
+- Env-credential admin auth (no local customer accounts or RBAC)
 - Stitch-derived design system direction
 
 ## Local development
@@ -52,15 +51,10 @@ Open [http://localhost:3000](http://localhost:3000).
 Fill in local/production variables as needed:
 
 - `DATABASE_URL`
-- `AUTH_SESSION_SECRET` (or `NEXTAUTH_SECRET` as a fallback)
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD_HASH` (generate with `pnpm auth:hash`)
 - `ADMIN_SESSION_SECRET`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
-- `COMMERCE_BACKEND` — `local` by default; set to `shopify` only after Shopify is configured
 - `SHOPIFY_STORE_DOMAIN` — the permanent `your-store.myshopify.com` domain
 - `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` — private Storefront API token; server-only
 - `SHOPIFY_STOREFRONT_API_VERSION` — optional, defaults to `2026-07`
@@ -80,7 +74,10 @@ Storefront video is managed at `/admin/videos`: upload MP4 or WebM files there a
 
 ## Shopify commerce backend
 
-The storefront can switch between the existing local/Stripe flow and Shopify without changing UI code. Shopify mode currently provides a Shopify-backed cart and redirects `/checkout` to Shopify's hosted checkout. The site's editorial CMS, authentication, and page design stay local.
+Shopify is the only commerce backend — the storefront cart, customer accounts, and checkout are
+all Shopify-hosted. The site's editorial CMS, admin auth, and page design stay local. Without
+`SHOPIFY_STORE_DOMAIN`/`SHOPIFY_STOREFRONT_PRIVATE_TOKEN` configured, cart and checkout requests
+fail with a clear configuration error rather than falling back to another flow.
 
 1. In Shopify Admin, install/open the **Headless** sales channel and create a storefront.
 2. Create a **private Storefront API token** with product and cart access.
@@ -88,7 +85,6 @@ The storefront can switch between the existing local/Stripe flow and Shopify wit
 4. Add these values locally and to Railway variables. Never expose the private token through a `NEXT_PUBLIC_` variable:
 
 ```dotenv
-COMMERCE_BACKEND=local
 SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
 SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpat_...
 SHOPIFY_STOREFRONT_API_VERSION=2026-07
@@ -101,7 +97,7 @@ SHOPIFY_WEBHOOK_SECRET=...
 
 ### Product synchronization
 
-With `COMMERCE_BACKEND=shopify`, the local catalog is the storefront read model. Saving a product in
+The local catalog is the storefront read model. Saving a product in
 the studio pushes title, handle, description, status, price, SKU, primary image, inventory, tags, and
 `synarava.*` characteristic metafields through the Shopify Admin GraphQL API. Shopify
 `products/create`, `products/update`, `products/delete`, and `inventory_levels/update` webhooks pull commerce changes back into
@@ -109,14 +105,10 @@ the local database. The **Reconcile** action registers those webhook subscriptio
 `NEXT_PUBLIC_APP_URL` is set) and imports the full Shopify catalog, matching by Shopify product ID,
 then SKU, then handle. Ambiguous identities are recorded as conflicts instead of being overwritten.
 
-Run the Prisma migration before enabling the integration. The Admin API token needs
+The Admin API token needs
 `read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`, and
 `write_publications`; the public app URL must be
 HTTPS so Shopify can deliver signed webhooks.
-
-5. Keep `COMMERCE_BACKEND=local` while products and credentials are being prepared. After testing the matching product handles in a preview deployment, change it to `shopify` and redeploy.
-
-To roll back, set `COMMERCE_BACKEND=local` and redeploy. Existing local checkout code remains intact during this migration phase.
 
 ## Railway
 
@@ -132,21 +124,20 @@ GitHub CI checks that this value is valid semver and that release tags match `vX
 
 ## Architecture notes
 
-- data model and admin strategy: [docs/architecture.md](/Users/arturkrystsia/WebstormProjects/synarava-jewelry/docs/architecture.md)
-- UI kit contract: [docs/ui-kit.md](/Users/arturkrystsia/WebstormProjects/synarava-jewelry/docs/ui-kit.md)
+- data model and admin strategy: [docs/architecture.md](docs/architecture.md)
+- UI kit contract: [docs/ui-kit.md](docs/ui-kit.md)
+- why Shopify is the sole commerce backend: [SHOPIFY_DECISION.md](SHOPIFY_DECISION.md)
 
 ## Current implementation posture
 
-The project now distinguishes three layers:
+The project distinguishes three layers:
 
-1. domain model
+1. domain model (Prisma-backed CMS content; Shopify owns cart/checkout/customer data)
 2. design system / reusable UI primitives
 3. page composition
 
-The next implementation pass should build:
-
-1. seeded roles, permissions, and auth storage
-2. admin shell and entity management screens
-3. CMS-backed pages for `Home` and `Manifesto`
-4. collection index, collection detail, and artifact detail pages from shared primitives
-5. Stripe-backed checkout and order lifecycle
+Auth is split by audience, not by a shared user table: admin operators authenticate against
+`ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` env credentials (`lib/auth/admin-session.ts`), and
+storefront customers authenticate via Shopify Customer Account OAuth
+(`lib/shopify/customer-account/`). There is no local email/password account system for
+customers and no RBAC — both were removed as dead code once Shopify covered the same ground.

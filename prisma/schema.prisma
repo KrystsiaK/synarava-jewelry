@@ -7,98 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  name            String?
-  passwordHash    String?
-  status          UserStatus       @default(PENDING_VERIFICATION)
-  emailVerifiedAt DateTime?
-  avatarAssetId   String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  avatarAsset     MediaAsset?      @relation("UserAvatar", fields: [avatarAssetId], references: [id], onDelete: SetNull)
-  roles           UserRole[]
-  sessions        UserSession[]
-  accounts        AuthAccount[]
-  carts           Cart[]
-  orders          Order[]
-  auditLogs       AuditLog[]       @relation("ActorAuditLogs")
-  customerProfile CustomerProfile?
-  authoredPages   Page[]           @relation("PageAuthor")
-  uploadedAssets  MediaAsset[]
-}
-
-model Role {
-  id          String           @id @default(cuid())
-  key         String           @unique
-  name        String
-  description String?
-  isSystem    Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  users       UserRole[]
-  permissions RolePermission[]
-}
-
-model Permission {
-  id          String           @id @default(cuid())
-  key         String           @unique
-  name        String
-  description String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  roles       RolePermission[]
-}
-
-model UserRole {
-  id         String   @id @default(cuid())
-  assignedAt DateTime @default(now())
-  userId     String
-  roleId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId])
-}
-
-model RolePermission {
-  id           String     @id @default(cuid())
-  grantedAt    DateTime   @default(now())
-  roleId       String
-  permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-}
-
-model AuthAccount {
-  id                String   @id @default(cuid())
-  provider          String
-  providerAccountId String
-  type              String
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model UserSession {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
 model AdminSession {
   id         String   @id @default(uuid())
   tokenHash  String   @unique
@@ -132,52 +40,6 @@ model ShopifyCustomerSession {
   updatedAt    DateTime @updatedAt
 
   @@index([expiresAt])
-}
-
-model VerificationToken {
-  id         String                @id @default(cuid())
-  identifier String
-  token      String                @unique
-  type       VerificationTokenType
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime              @default(now())
-
-  @@index([identifier, type])
-}
-
-model CustomerProfile {
-  id               String    @id @default(cuid())
-  phone            String?
-  marketingOptIn   Boolean   @default(false)
-  notes            String?
-  defaultAddressId String?   @unique
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  userId           String    @unique
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  addresses        Address[]
-  defaultAddress   Address?  @relation("CustomerDefaultAddress", fields: [defaultAddressId], references: [id], onDelete: SetNull)
-}
-
-model Address {
-  id                String           @id @default(cuid())
-  type              AddressType      @default(SHIPPING)
-  firstName         String
-  lastName          String
-  company           String?
-  line1             String
-  line2             String?
-  city              String
-  region            String?
-  postalCode        String
-  countryCode       String
-  phone             String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  customerProfileId String?
-  customerProfile   CustomerProfile? @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
-  defaultForProfile CustomerProfile? @relation("CustomerDefaultAddress")
 }
 
 model Collection {
@@ -274,8 +136,6 @@ model Product {
   optionValues        ProductOptionValue[]
   collections         ProductCollection[]
   tags                ProductTag[]
-  cartItems           CartItem[]
-  orderItems          OrderItem[]
   characteristics     ProductCharacteristic[]
   syncEvents          ProductSyncEvent[]
 
@@ -388,7 +248,6 @@ model ProductVariant {
   productId              String
   product                Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
   optionValues           ProductVariantOptionValue[]
-  orderItems             OrderItem[]
 
   @@index([productId, status])
 }
@@ -479,12 +338,12 @@ model MediaAsset {
   source             AssetSource    @default(UPLOAD)
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
-  uploadedById       String?
-  uploadedBy         User?          @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  // Admin operator username at upload time (admin auth is env-credential
+  // based, not a User row — see AuditLog.adminUsername for the same pattern).
+  uploadedByUsername String?
   productPrimaryFor  Product[]      @relation("ProductPrimaryAsset")
   collectionHeroFor  Collection[]   @relation("CollectionHeroAsset")
   collectionCoverFor Collection[]   @relation("CollectionCoverAsset")
-  userAvatars        User[]         @relation("UserAvatar")
   productMedia       ProductMedia[] @relation("ProductMediaAsset")
 }
 
@@ -503,8 +362,8 @@ model Page {
   content        Json?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  authoredById   String?
-  authoredBy     User?             @relation("PageAuthor", fields: [authoredById], references: [id], onDelete: SetNull)
+  // Admin operator username at authoring time — see MediaAsset.uploadedByUsername.
+  authoredByUsername String?
 }
 
 model SiteSetting {
@@ -513,89 +372,6 @@ model SiteSetting {
   value     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model Cart {
-  id         String     @id @default(cuid())
-  sessionKey String     @unique
-  status     CartStatus @default(ACTIVE)
-  currency   String     @default("EUR")
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  userId     String?
-  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items      CartItem[]
-
-  @@index([userId, status])
-}
-
-model CartItem {
-  id        String   @id @default(cuid())
-  quantity  Int      @default(1)
-  unitCents Int
-  title     String
-  sku       String?
-  snapshot  Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  cartId    String
-  productId String?
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  @@unique([cartId, productId])
-  @@index([cartId, createdAt])
-}
-
-model Order {
-  id                      String            @id @default(uuid())
-  checkoutAccessTokenHash String?           @unique
-  number                  Int               @unique @default(autoincrement())
-  status                  OrderStatus       @default(DRAFT)
-  paymentStatus           PaymentStatus     @default(PENDING)
-  fulfillmentStatus       FulfillmentStatus @default(UNFULFILLED)
-  stripeCheckoutSessionId String?           @unique
-  stripePaymentIntentId   String?           @unique
-  currency                String            @default("EUR")
-  subtotalCents           Int               @default(0)
-  shippingCents           Int               @default(0)
-  taxCents                Int               @default(0)
-  discountCents           Int               @default(0)
-  totalCents              Int               @default(0)
-  customerEmail           String
-  customerName            String?
-  notes                   String?
-  shippingAddress         Json?
-  billingAddress          Json?
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
-  userId                  String?
-  user                    User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items                   OrderItem[]
-
-  @@index([status, paymentStatus, fulfillmentStatus, createdAt])
-  @@index([userId, createdAt])
-  @@index([userId, paymentStatus])
-}
-
-model OrderItem {
-  id         String          @id @default(cuid())
-  quantity   Int             @default(1)
-  unitCents  Int
-  totalCents Int
-  title      String
-  sku        String?
-  snapshot   Json?
-  createdAt  DateTime        @default(now())
-  orderId    String
-  productId  String?
-  variantId  String?
-  order      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product    Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-
-  @@index([orderId])
-  @@index([productId])
 }
 
 model AuditLog {
@@ -607,13 +383,10 @@ model AuditLog {
   after          Json?
   metadata       Json?
   createdAt      DateTime @default(now())
-  actorId        String?
   adminSessionId String?
   adminUsername  String?
-  actor          User?    @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId, createdAt])
-  @@index([actorId, createdAt])
   @@index([adminSessionId, createdAt])
 }
 
@@ -640,23 +413,6 @@ model AdminIssue {
 
   @@index([status, severity, updatedAt])
   @@index([entityType, entityId])
-}
-
-enum UserStatus {
-  PENDING_VERIFICATION
-  ACTIVE
-  SUSPENDED
-}
-
-enum VerificationTokenType {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
-  MAGIC_LINK
-}
-
-enum AddressType {
-  SHIPPING
-  BILLING
 }
 
 enum ContentVisibility {
@@ -763,35 +519,6 @@ enum PageStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
-}
-
-enum OrderStatus {
-  DRAFT
-  PENDING
-  PAID
-  CANCELLED
-  FULFILLED
-}
-
-enum PaymentStatus {
-  PENDING
-  AUTHORIZED
-  PAID
-  REFUNDED
-  FAILED
-}
-
-enum FulfillmentStatus {
-  UNFULFILLED
-  PARTIALLY_FULFILLED
-  FULFILLED
-  RETURNED
-}
-
-enum CartStatus {
-  ACTIVE
-  CONVERTED
-  ABANDONED
 }
 
 model TranslationCache {

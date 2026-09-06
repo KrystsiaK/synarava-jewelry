@@ -22,18 +22,13 @@ const optionalShopDomain = z.preprocess(
 
 const envSchema = z.object({
   DATABASE_URL: optionalString,
-  AUTH_SESSION_SECRET: optionalString,
   ADMIN_USERNAME: optionalString,
   ADMIN_EMAIL: optionalString,
   ADMIN_PASSWORD: optionalString,
   ADMIN_PASSWORD_HASH: optionalString,
   ADMIN_SESSION_SECRET: optionalString,
-  NEXTAUTH_SECRET: optionalString,
   NEXTAUTH_URL: optionalUrl,
   NEXT_PUBLIC_APP_URL: optionalUrl,
-  STRIPE_SECRET_KEY: optionalString,
-  STRIPE_WEBHOOK_SECRET: optionalString,
-  COMMERCE_BACKEND: z.enum(["local", "shopify"]).optional(),
   SHOPIFY_STORE_DOMAIN: optionalShopDomain,
   SHOPIFY_STOREFRONT_PRIVATE_TOKEN: optionalString,
   SHOPIFY_STOREFRONT_API_VERSION: z
@@ -65,18 +60,13 @@ const envSchema = z.object({
 
 export const env = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
-  AUTH_SESSION_SECRET: process.env.AUTH_SESSION_SECRET,
   ADMIN_USERNAME: process.env.ADMIN_USERNAME,
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
   ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-  COMMERCE_BACKEND: process.env.COMMERCE_BACKEND,
   SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
   SHOPIFY_STOREFRONT_PRIVATE_TOKEN: process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN,
   SHOPIFY_STOREFRONT_API_VERSION: process.env.SHOPIFY_STOREFRONT_API_VERSION,

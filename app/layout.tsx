@@ -13,8 +13,6 @@ import { PrivacyConsentManager } from "@/components/privacy/privacy-consent-mana
 import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
-import { getCurrentUser } from "@/lib/auth/session";
-import { isShopifyCommerceEnabled } from "@/lib/shopify/config";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
 
@@ -116,9 +114,7 @@ export default async function RootLayout({
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
   const [cartCount, isLoggedIn] = await Promise.all([
     getStorefrontCartCount(),
-    isShopifyCommerceEnabled()
-      ? hasShopifyCustomerSession()
-      : getCurrentUser().then(Boolean),
+    hasShopifyCustomerSession(),
   ]);
 
   return (

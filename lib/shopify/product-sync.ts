@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { characteristicDisplayValue, PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
+import { shopifyAmountToCents } from "@/lib/shopify/money";
 import {
   classifyRemoteReconciliationAction,
   compareVariantCommerce,
@@ -112,10 +113,6 @@ function tagSlug(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-function cents(value: string | null | undefined) {
-  const amount = Number(value ?? 0);
-  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
-}
 
 function metafieldValue(characteristic: {
   valueType: "TEXT" | "NUMBER" | "BOOLEAN";
@@ -289,8 +286,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       seoDescription: remote.seo.description || null,
       shopifySnapshot: snapshotForProduct(remote),
       productType: "ARTIFACT",
-      priceCents: cents(firstVariant?.price),
-      compareAtCents: firstVariant?.compareAtPrice ? cents(firstVariant.compareAtPrice) : null,
+      priceCents: shopifyAmountToCents(firstVariant?.price),
+      compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
       imageUrl,
       status: remote.status,
       visibility,
@@ -316,8 +313,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       seoDescription: remote.seo.description || null,
       shopifySnapshot: snapshotForProduct(remote),
       currency: "EUR",
-      priceCents: cents(firstVariant?.price),
-      compareAtCents: firstVariant?.compareAtPrice ? cents(firstVariant.compareAtPrice) : null,
+      priceCents: shopifyAmountToCents(firstVariant?.price),
+      compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
       imageUrl,
       status: remote.status,
       visibility,
@@ -341,8 +338,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         shopifyVariantId: variant.id,
         shopifyInventoryItemId: variant.inventoryItem?.id ?? null,
         title: variant.title,
-        priceCents: cents(variant.price),
-        compareAtCents: variant.compareAtPrice ? cents(variant.compareAtPrice) : null,
+        priceCents: shopifyAmountToCents(variant.price),
+        compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
         stockOnHand: variant.inventoryQuantity ?? 0,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,
@@ -359,8 +356,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         shopifyInventoryItemId: variant.inventoryItem?.id ?? null,
         sku,
         title: variant.title,
-        priceCents: cents(variant.price),
-        compareAtCents: variant.compareAtPrice ? cents(variant.compareAtPrice) : null,
+        priceCents: shopifyAmountToCents(variant.price),
+        compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
         stockOnHand: variant.inventoryQuantity ?? 0,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,

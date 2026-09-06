@@ -5,14 +5,8 @@ import { getCollectionBySlug, getProductsByCollection } from "@/lib/content/cata
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 import { CollectionDetail } from "@/components/collections/collection-detail";
-
-function safeJsonLd(obj: unknown): string {
-  return JSON.stringify(obj)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
-}
 
 type Props = {
   params: Promise<{ slug: string }>;

@@ -9,13 +9,7 @@ import { buildAlternates } from "@/lib/seo/alternates";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
 import { buildProductJsonLd } from "@/lib/seo/product-json-ld";
-
-function safeJsonLd(obj: unknown): string {
-  return JSON.stringify(obj)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
-}
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 type Props = {
   params: Promise<{ slug?: string; id?: string }>;

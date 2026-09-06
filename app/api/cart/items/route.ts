@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkRateLimit } from "@/lib/auth/guard";
+import { checkRateLimit } from "@/lib/auth/rate-limit";
 import { getTrustedClientIp } from "@/lib/security/request-ip";
 
 import {

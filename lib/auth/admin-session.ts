@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { verifyPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { safeRedirectPath } from "@/lib/security/safe-redirect";
 
 export const ADMIN_SESSION_COOKIE = "synarava-admin-session";
 const ADMIN_SESSION_MAX_AGE = 60 * 60 * 8;
@@ -157,4 +158,14 @@ export async function requireAdminSession(redirectTo = "/admin") {
   const session = await getCurrentAdminSession();
   if (!session) redirect(`/admin/login?redirectTo=${encodeURIComponent(redirectTo)}`);
   return session;
+}
+
+/**
+ * Validates a client-supplied `redirectTo` for the admin login flow: must be
+ * a same-origin path under `/admin`, and never back to the login page itself
+ * (which would otherwise loop after a successful login).
+ */
+export function getSafeAdminRedirect(value: string | null | undefined) {
+  const safe = safeRedirectPath(value, "/admin");
+  return safe.startsWith("/admin") && !safe.startsWith("/admin/login") ? safe : "/admin";
 }

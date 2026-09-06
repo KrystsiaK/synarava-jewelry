@@ -1,24 +1,28 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
   addStorefrontProductToCart,
+  getStorefrontCartViewModel,
   removeStorefrontCartItem,
   updateStorefrontCartItemQuantity,
 } from "@/lib/commerce/storefront-cart";
+import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
+import { safeRedirectPath } from "@/lib/security/safe-redirect";
+
+const MAX_LINE_QUANTITY = 10;
 
 function refreshCommerce() {
-  revalidatePath("/cart");
-  revalidatePath("/shop");
+  revalidateStorefrontPath("/cart");
+  revalidateStorefrontPath("/shop");
 }
 
 export async function addToCartAction(formData: FormData) {
   const productSlug = String(formData.get("productSlug") ?? "").trim();
-  const redirectTo = String(formData.get("redirectTo") ?? "/cart").trim();
+  const requestedRedirect = String(formData.get("redirectTo") ?? "").trim();
 
   if (!productSlug) {
     return;
@@ -26,21 +30,38 @@ export async function addToCartAction(formData: FormData) {
 
   await addStorefrontProductToCart(productSlug, 1);
   refreshCommerce();
-  redirect(redirectTo || localePath(await getRequestLocale(), "/cart"));
+
+  const locale = await getRequestLocale();
+  redirect(safeRedirectPath(requestedRedirect, localePath(locale, "/cart")));
+}
+
+// The line's current quantity is read back from the cart rather than trusted
+// from the submitted form field, so a stale or tampered client value can
+// only ever move the real server-side quantity by one step, never set it
+// to an arbitrary number.
+async function currentLineQuantity(itemId: string): Promise<number | null> {
+  const cart = await getStorefrontCartViewModel();
+  return cart.items.find((item) => item.id === itemId)?.quantity ?? null;
 }
 
 export async function increaseCartItemAction(formData: FormData) {
   const itemId = String(formData.get("itemId") ?? "").trim();
-  const quantity = Number(formData.get("quantity") ?? 1);
-  if (!itemId || !Number.isInteger(quantity) || quantity < 0 || quantity >= 10) return;
+  if (!itemId) return;
+
+  const quantity = await currentLineQuantity(itemId);
+  if (quantity === null || quantity >= MAX_LINE_QUANTITY) return;
+
   await updateStorefrontCartItemQuantity(itemId, quantity + 1);
   refreshCommerce();
 }
 
 export async function decreaseCartItemAction(formData: FormData) {
   const itemId = String(formData.get("itemId") ?? "").trim();
-  const quantity = Number(formData.get("quantity") ?? 1);
-  if (!itemId || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) return;
+  if (!itemId) return;
+
+  const quantity = await currentLineQuantity(itemId);
+  if (quantity === null || quantity < 1) return;
+
   await updateStorefrontCartItemQuantity(itemId, quantity - 1);
   refreshCommerce();
 }

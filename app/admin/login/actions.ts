@@ -3,10 +3,11 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { checkRateLimit, clearRateLimit } from "@/lib/auth/guard";
+import { checkRateLimit, clearRateLimit } from "@/lib/auth/rate-limit";
 import {
   clearAdminSession,
   createAdminSession,
+  getSafeAdminRedirect,
   isAdminAuthConfigured,
   verifyAdminCredentials,
 } from "@/lib/auth/admin-session";
@@ -20,14 +21,6 @@ export type AdminLoginActionState = {
 async function getClientIp(): Promise<string> {
   const h = await headers();
   return getTrustedClientIp(h);
-}
-
-function getSafeAdminRedirect(value: string) {
-  if (!value.startsWith("/admin") || value.startsWith("/admin/login")) {
-    return "/admin";
-  }
-
-  return value;
 }
 
 export async function adminLoginAction(

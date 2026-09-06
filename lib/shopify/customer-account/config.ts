@@ -2,6 +2,7 @@ import "server-only";
 
 import { env } from "@/lib/env";
 import { normalizeLocale, type Locale } from "@/lib/i18n/locales";
+import { safeRedirectPath } from "@/lib/security/safe-redirect";
 
 export const SHOPIFY_CUSTOMER_SESSION_COOKIE =
   "synarava-shopify-customer-session";
@@ -38,18 +39,5 @@ export function safeCustomerReturnPath(
   value: string | null | undefined,
   fallbackLocale: Locale | string = "en",
 ) {
-  const fallback = `/${normalizeLocale(fallbackLocale)}/profile`;
-
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return fallback;
-  }
-
-  try {
-    const url = new URL(value, "https://synarava.invalid");
-    return url.origin === "https://synarava.invalid"
-      ? `${url.pathname}${url.search}${url.hash}`
-      : fallback;
-  } catch {
-    return fallback;
-  }
+  return safeRedirectPath(value, `/${normalizeLocale(fallbackLocale)}/profile`);
 }

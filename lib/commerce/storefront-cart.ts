@@ -1,8 +1,6 @@
 import "server-only";
 
-import * as localCart from "@/lib/commerce/cart";
 import { db } from "@/lib/db";
-import { isShopifyCommerceEnabled } from "@/lib/shopify/config";
 import {
   addShopifyProductToCart,
   getShopifyCartCount,
@@ -12,20 +10,12 @@ import {
   updateShopifyCartItemQuantity,
 } from "@/lib/shopify/cart";
 
-export function usesShopifyCart() {
-  return isShopifyCommerceEnabled();
-}
-
 export async function getStorefrontCartViewModel() {
-  return isShopifyCommerceEnabled()
-    ? getShopifyCartViewModel()
-    : localCart.getCartViewModel();
+  return getShopifyCartViewModel();
 }
 
 export async function getStorefrontCartCount() {
-  return isShopifyCommerceEnabled()
-    ? getShopifyCartCount()
-    : localCart.getCartCount();
+  return getShopifyCartCount();
 }
 
 export async function addStorefrontProductToCart(
@@ -33,69 +23,56 @@ export async function addStorefrontProductToCart(
   quantity = 1,
   merchandiseId?: string,
 ) {
-  if (isShopifyCommerceEnabled()) {
-    if (merchandiseId) {
-      const product = await db.product.findFirst({
-        where: {
-          slug: productSlug,
-          status: "ACTIVE",
-          visibility: "PUBLIC",
-          variants: {
-            some: { shopifyVariantId: merchandiseId, status: "ACTIVE" },
-          },
-        },
-        select: { shopifyHandle: true },
-      });
-      if (!product) throw new Error("Product not available.");
-      return addShopifyProductToCart(product.shopifyHandle || productSlug, quantity, merchandiseId);
-    }
-
-    const product = await db.product.findUnique({
-      where: { slug: productSlug },
-      select: {
-        shopifyHandle: true,
+  if (merchandiseId) {
+    const product = await db.product.findFirst({
+      where: {
+        slug: productSlug,
+        status: "ACTIVE",
+        visibility: "PUBLIC",
         variants: {
-          where: {
-            shopifyVariantId: { not: null },
-            status: "ACTIVE",
-          },
-          orderBy: [
-            { stockOnHand: "desc" },
-            { createdAt: "asc" },
-          ],
-          take: 1,
-          select: { shopifyVariantId: true },
+          some: { shopifyVariantId: merchandiseId, status: "ACTIVE" },
         },
       },
+      select: { shopifyHandle: true },
     });
-
-    return addShopifyProductToCart(
-      product?.shopifyHandle || productSlug,
-      quantity,
-      product?.variants[0]?.shopifyVariantId ?? undefined,
-    );
+    if (!product) throw new Error("Product not available.");
+    return addShopifyProductToCart(product.shopifyHandle || productSlug, quantity, merchandiseId);
   }
-  return localCart.addProductToCart(productSlug, quantity);
+
+  const product = await db.product.findUnique({
+    where: { slug: productSlug },
+    select: {
+      shopifyHandle: true,
+      variants: {
+        where: {
+          shopifyVariantId: { not: null },
+          status: "ACTIVE",
+        },
+        orderBy: [
+          { stockOnHand: "desc" },
+          { createdAt: "asc" },
+        ],
+        take: 1,
+        select: { shopifyVariantId: true },
+      },
+    },
+  });
+
+  return addShopifyProductToCart(
+    product?.shopifyHandle || productSlug,
+    quantity,
+    product?.variants[0]?.shopifyVariantId ?? undefined,
+  );
 }
 
 export async function updateStorefrontCartItemQuantity(itemId: string, quantity: number) {
-  return isShopifyCommerceEnabled()
-    ? updateShopifyCartItemQuantity(itemId, quantity)
-    : localCart.updateCartItemQuantity(itemId, quantity);
+  return updateShopifyCartItemQuantity(itemId, quantity);
 }
 
 export async function removeStorefrontCartItem(itemId: string) {
-  return isShopifyCommerceEnabled()
-    ? removeShopifyCartItem(itemId)
-    : localCart.removeCartItem(itemId);
-}
-
-export async function attachStorefrontCartToUser(userId: string) {
-  if (!isShopifyCommerceEnabled()) {
-    await localCart.attachCurrentCartToUser(userId);
-  }
+  return removeShopifyCartItem(itemId);
 }
 
 export async function getStorefrontCheckoutUrl() {
-  return isShopifyCommerceEnabled() ? getShopifyCheckoutUrl() : null;
+  return getShopifyCheckoutUrl();
 }

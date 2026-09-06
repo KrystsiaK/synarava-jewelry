@@ -199,8 +199,7 @@ export default async function PrivacyPage() {
               </p>
               <div className="panel divide-y divide-stroke">
                 {[
-                  { name: "Shopify", role: "Commerce and customer accounts", note: "Shopify group entities, including Shopify International Limited for customers in the EEA, support customer authentication, cart, checkout, order processing, and related commerce services when the Shopify storefront is enabled." },
-                  { name: "Stripe, Inc.", role: "Payment processing", note: "Stripe processes payment details when the local checkout is used." },
+                  { name: "Shopify", role: "Commerce, payments, and customer accounts", note: "Shopify group entities, including Shopify International Limited for customers in the EEA, support customer authentication, cart, checkout, payment processing, order processing, and related commerce services." },
                   { name: "Object storage provider", role: "File and media storage", note: "Product images and uploaded assets are stored using access-controlled object storage." },
                   { name: "Hosting provider", role: "Infrastructure", note: "Our server infrastructure provider processes operational data as a data processor." },
                 ].map((p) => (
