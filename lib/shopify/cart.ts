@@ -155,6 +155,28 @@ async function loadShopifyCart(cartId: string, buyerIp: string | null) {
   return data.cart;
 }
 
+export async function getShopifyCartLineQuantity(lineId: string): Promise<number | null> {
+  const cartId = await getCartId();
+  if (!cartId) return null;
+
+  const buyerIp = await getShopifyBuyerIp();
+  const data = await shopifyStorefrontRequest<{
+    cart: { lines: { nodes: Array<{ id: string; quantity: number }> } } | null;
+  }>(
+    `#graphql
+      query SynaravaCartLineQuantities($cartId: ID!) {
+        cart(id: $cartId) {
+          lines(first: 100) { nodes { id quantity } }
+        }
+      }
+    `,
+    { cartId },
+    { buyerIp },
+  );
+
+  return data.cart?.lines.nodes.find((line) => line.id === lineId)?.quantity ?? null;
+}
+
 async function resolveMerchandiseId(productHandle: string, buyerIp: string | null) {
   const data = await shopifyStorefrontRequest<{
     product: {

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import {
   addStorefrontProductToCart,
-  getStorefrontCartViewModel,
+  getStorefrontCartLineQuantity,
   removeStorefrontCartItem,
   updateStorefrontCartItemQuantity,
 } from "@/lib/commerce/storefront-cart";
@@ -48,8 +48,7 @@ export async function addToCartAction(formData: FormData) {
 // only ever move the real server-side quantity by one step, never set it
 // to an arbitrary number.
 async function currentLineQuantity(itemId: string): Promise<number | null> {
-  const cart = await getStorefrontCartViewModel();
-  return cart.items.find((item) => item.id === itemId)?.quantity ?? null;
+  return getStorefrontCartLineQuantity(itemId);
 }
 
 export async function increaseCartItemAction(formData: FormData) {

@@ -16,6 +16,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/shopify/cart", () => ({
   addShopifyProductToCart: mocks.addShopifyProductToCart,
   getShopifyCartCount: vi.fn(),
+  getShopifyCartLineQuantity: vi.fn(),
   getShopifyCartViewModel: vi.fn(),
   getShopifyCheckoutUrl: vi.fn(),
   removeShopifyCartItem: vi.fn(),

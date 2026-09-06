@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import {
   addShopifyProductToCart,
   getShopifyCartCount,
+  getShopifyCartLineQuantity,
   getShopifyCartViewModel,
   getShopifyCheckoutUrl,
   removeShopifyCartItem,
@@ -21,6 +22,10 @@ export async function getStorefrontCartViewModel() {
 
 export async function getStorefrontCartCount() {
   return getShopifyCartCount();
+}
+
+export async function getStorefrontCartLineQuantity(itemId: string) {
+  return getShopifyCartLineQuantity(itemId);
 }
 
 export async function addStorefrontProductToCart(
