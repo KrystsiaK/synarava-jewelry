@@ -7,8 +7,8 @@ import {
   updateAdminCredentialsAction,
   type AccountActionState,
 } from "@/app/admin/account/actions";
-import { AdminHelp } from "@/components/admin/admin-help";
-import { useAdminToast } from "@/components/admin/admin-toast";
+import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage, PasswordInput } from "@/components/auth/auth-form-primitives";
 import { useTranslations } from "@/lib/i18n/context";
 

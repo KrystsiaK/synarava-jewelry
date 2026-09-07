@@ -10,10 +10,10 @@ import {
   type SavedTagPayload,
   type TagActionState,
 } from "@/app/admin/actions/tags";
-import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
-import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { slugify } from "@/lib/text/slug";
-import { useAdminToast } from "@/components/admin/admin-toast";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function TagsTable({ tags }: { tags: SavedTagPayload[] }) {

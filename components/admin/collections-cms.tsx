@@ -13,15 +13,15 @@ import {
   type CollectionFieldName,
   type SavedCollectionPayload,
 } from "@/app/admin/actions/collections";
-import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
+import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminHelp } from "@/components/admin/admin-help";
-import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
-import { useAdminToast } from "@/components/admin/admin-toast";
-import { ImageFileField } from "@/components/admin/image-file-field";
-import { LocaleTabStrip } from "@/components/admin/admin-primitives";
+import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { ImageFileField } from "@/components/admin/shared/image-file-field";
+import { LocaleTabStrip } from "@/components/admin/shared/admin-primitives";
 import { slugify } from "@/lib/text/slug";
-import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
+import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 
 type AdminCollection = SavedCollectionPayload;
 

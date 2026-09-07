@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { useAdminToast } from "@/components/admin/admin-toast";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { SiteVideos } from "@/lib/site-videos";
 
 const VIDEO_FIELDS: Array<{

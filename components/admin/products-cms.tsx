@@ -28,23 +28,23 @@ import {
 } from "@/app/admin/actions/sync";
 import type { SavedCategoryPayload } from "@/app/admin/actions/categories";
 import type { SavedTagPayload } from "@/app/admin/actions/tags";
-import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
+import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import {
   AdminFieldError,
   AdminFormAlert,
   useAdminFormValidation,
   type AdminFormValidation,
-} from "@/components/admin/admin-form-validation";
-import { AdminHelp } from "@/components/admin/admin-help";
+} from "@/components/admin/shared/admin-form-validation";
+import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminIssueInlineWarning } from "@/components/admin/admin-issues-cms";
-import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
-import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
-import { useAdminToast } from "@/components/admin/admin-toast";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { slugify } from "@/lib/text/slug";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { ImageFileField } from "@/components/admin/image-file-field";
-import { LocaleTabStrip } from "@/components/admin/admin-primitives";
-import { buildDraftFormData, useDraftAutosave } from "@/components/admin/use-draft-autosave";
+import { ImageFileField } from "@/components/admin/shared/image-file-field";
+import { LocaleTabStrip } from "@/components/admin/shared/admin-primitives";
+import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { parseProductDetails } from "@/lib/content/product-details";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";

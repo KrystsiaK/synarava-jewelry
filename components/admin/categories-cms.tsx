@@ -10,10 +10,10 @@ import {
   type CategoryActionState,
   type SavedCategoryPayload,
 } from "@/app/admin/actions/categories";
-import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
-import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { slugify } from "@/lib/text/slug";
-import { useAdminToast } from "@/components/admin/admin-toast";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function CategoriesTable({

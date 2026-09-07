@@ -7,7 +7,7 @@ import {
   AuthTextarea,
   AuthMessage,
 } from "../auth-form-primitives";
-import { AdminToastProvider } from "@/components/admin/admin-toast";
+import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
 
 describe("AuthForm", () => {
   it("renders children in a form", () => {

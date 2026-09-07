@@ -8,8 +8,8 @@ import {
   AdminThemeShell,
   AdminThemeToggle,
   AdminTopbarIssueLink,
-} from "@/components/admin/admin-primitives";
-import { AdminToastProvider } from "@/components/admin/admin-toast";
+} from "@/components/admin/shared/admin-primitives";
+import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
 import { BrandMark } from "@/components/ui/brand-mark";
 
 export default async function AdminLayout({

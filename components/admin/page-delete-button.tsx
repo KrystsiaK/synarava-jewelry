@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { deletePageAction } from "@/app/admin/actions/pages";
-import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
-import { useAdminToast } from "@/components/admin/admin-toast";
+import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function PageDeleteButton({

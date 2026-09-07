@@ -10,13 +10,13 @@ import {
   type PageActionState,
   type SavedPagePayload,
 } from "@/app/admin/actions/pages";
-import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
-import { AdminHelp } from "@/components/admin/admin-help";
-import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/admin-record-meta";
+import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { PageDeleteButton } from "@/components/admin/page-delete-button";
-import { useAdminToast } from "@/components/admin/admin-toast";
-import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
-import { ImageFileField } from "@/components/admin/image-file-field";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
+import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 type PageRowAction = {

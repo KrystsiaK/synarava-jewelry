@@ -8,7 +8,7 @@ import {
 } from "@/components/admin/products-cms";
 import type { SavedCategoryPayload } from "@/app/admin/actions/categories";
 import type { SavedProductPayload } from "@/app/admin/actions/products";
-import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 
 type CollectionOption = { id: string; slug: string; name: string };
 

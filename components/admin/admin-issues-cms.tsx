@@ -8,8 +8,8 @@ import {
   scanAdminIssuesAction,
   type AdminIssueScanState,
 } from "@/app/admin/issues/actions";
-import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
-import { useAdminToast } from "@/components/admin/admin-toast";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
+import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 function formatDate(value: Date) {
