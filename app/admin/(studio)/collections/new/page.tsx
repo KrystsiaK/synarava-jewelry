@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { CollectionCreateRoute } from "@/components/admin/collection-route-editor";
+import { CollectionCreateRoute } from "@/components/admin/collections/collection-route-editor";
 
 export default function NewCollectionPage() {
   return (

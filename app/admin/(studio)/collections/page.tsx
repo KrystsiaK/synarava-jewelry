@@ -1,4 +1,4 @@
-import { CollectionsCms } from "@/components/admin/collections-cms";
+import { CollectionsCms } from "@/components/admin/collections/collections-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminCollectionsPage() {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { CollectionEditRoute } from "@/components/admin/collection-route-editor";
+import { CollectionEditRoute } from "@/components/admin/collections/collection-route-editor";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function EditCollectionPage({
