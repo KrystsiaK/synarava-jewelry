@@ -1,4 +1,4 @@
-import { ProductsCms } from "@/components/admin/products-cms";
+import { ProductsCms } from "@/components/admin/products/products-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminProductsPage() {

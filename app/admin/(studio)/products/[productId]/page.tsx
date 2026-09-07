@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { ProductEditRoute } from "@/components/admin/product-route-editor";
+import { ProductEditRoute } from "@/components/admin/products/product-route-editor";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function EditProductPage({
