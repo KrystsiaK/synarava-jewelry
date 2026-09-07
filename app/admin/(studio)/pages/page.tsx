@@ -1,4 +1,4 @@
-import { PagesCms } from "@/components/admin/pages-cms";
+import { PagesCms } from "@/components/admin/pages/pages-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminPagesPage() {

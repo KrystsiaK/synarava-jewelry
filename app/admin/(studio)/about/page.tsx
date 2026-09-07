@@ -1,4 +1,4 @@
-import { PageEditRoute } from "@/components/admin/page-route-editor";
+import { PageEditRoute } from "@/components/admin/pages/page-route-editor";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminAboutPage() {

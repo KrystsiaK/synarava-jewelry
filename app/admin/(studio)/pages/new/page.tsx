@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { PageCreateRoute } from "@/components/admin/page-route-editor";
+import { PageCreateRoute } from "@/components/admin/pages/page-route-editor";
 
 export default function NewPagePage() {
   return (
