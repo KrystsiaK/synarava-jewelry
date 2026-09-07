@@ -1,4 +1,4 @@
-import { TagsTable } from "@/components/admin/tags-cms";
+import { TagsTable } from "@/components/admin/tags/tags-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminTagsPage() {

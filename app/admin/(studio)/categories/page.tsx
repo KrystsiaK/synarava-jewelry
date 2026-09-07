@@ -1,4 +1,4 @@
-import { CategoriesTable } from "@/components/admin/categories-cms";
+import { CategoriesTable } from "@/components/admin/categories/categories-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminCategoriesPage() {

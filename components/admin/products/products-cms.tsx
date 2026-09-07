@@ -36,7 +36,7 @@ import {
   type AdminFormValidation,
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
-import { AdminIssueInlineWarning } from "@/components/admin/admin-issues-cms";
+import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";

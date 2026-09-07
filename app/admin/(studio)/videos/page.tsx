@@ -1,4 +1,4 @@
-import { SiteVideosCms } from "@/components/admin/site-videos-cms";
+import { SiteVideosCms } from "@/components/admin/site-videos/site-videos-cms";
 import { getSiteVideos } from "@/lib/site-videos";
 
 export default async function AdminVideosPage() {

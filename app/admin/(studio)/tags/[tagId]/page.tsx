@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { TagEditor } from "@/components/admin/tags-cms";
+import { TagEditor } from "@/components/admin/tags/tags-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function EditTagPage({

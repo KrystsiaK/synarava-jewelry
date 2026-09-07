@@ -1,4 +1,4 @@
-import { AdminIssuesCms } from "@/components/admin/admin-issues-cms";
+import { AdminIssuesCms } from "@/components/admin/issues/admin-issues-cms";
 import { db } from "@/lib/db";
 
 export default async function AdminIssuesPage() {

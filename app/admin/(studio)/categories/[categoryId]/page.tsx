@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { CategoryEditor } from "@/components/admin/categories-cms";
+import { CategoryEditor } from "@/components/admin/categories/categories-cms";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function EditCategoryPage({
