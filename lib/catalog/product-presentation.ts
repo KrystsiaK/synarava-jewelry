@@ -45,7 +45,11 @@ const PRESENTATION_BY_DEPARTMENT: Record<ShopDepartmentSlug, ProductPresentation
 };
 
 export function getProductPresentation(department: ShopDepartmentSlug | null | undefined) {
-  return PRESENTATION_BY_DEPARTMENT[department ?? "jewelry"];
+  // Departments are now admin-curated primary-nav collections, so a slug
+  // with no dedicated presentation (freshly added, not yet designed for)
+  // falls back to jewelry's rather than indexing to undefined.
+  const key = department && department in PRESENTATION_BY_DEPARTMENT ? department : "jewelry";
+  return PRESENTATION_BY_DEPARTMENT[key];
 }
 
 export function getProductBreadcrumbs(product: {

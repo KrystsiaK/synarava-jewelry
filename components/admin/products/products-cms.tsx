@@ -46,7 +46,6 @@ import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/shared/admin-primitives";
 import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { parseProductDetails } from "@/lib/content/product-details";
-import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 import { ShopifyCategoryField } from "@/components/admin/products/shopify-category-field";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
 import {
@@ -58,7 +57,7 @@ import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, Eye, RefreshCw, Triang
 
 type CategoryOption = SavedCategoryPayload;
 type TagOption = SavedTagPayload;
-type CollectionOption = { id: string; slug: string; name: string };
+type CollectionOption = { id: string; slug: string; name: string; isPrimaryNav: boolean; navSortOrder: number };
 type ProductRecord = SavedProductPayload;
 
 type ProductCmsProps = {
@@ -612,11 +611,16 @@ function ProductDetailFields({
   details,
   mode,
   issues = [],
+  collections,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   mode: "create" | "edit";
   issues?: AdminIssueSummary[];
+  collections: CollectionOption[];
 }) {
+  const departmentCollections = collections
+    .filter((collection) => collection.isPrimaryNav)
+    .sort((a, b) => a.navSortOrder - b.navSortOrder);
   return (
     <div
       className="grid gap-6 pt-5"
@@ -650,7 +654,7 @@ function ProductDetailFields({
           <span className="adm-label">Department</span>
           <select name="department" defaultValue={details.department} className="adm-field">
             <option value="">No department</option>
-            {SHOP_DEPARTMENTS.map((department) => (
+            {departmentCollections.map((department) => (
               <option key={department.slug} value={department.slug}>
                 {department.name}
               </option>
@@ -1257,7 +1261,7 @@ export function CreateProductForm({
             setDraftProduct(product);
           }}
         />
-        <ProductDetailFields details={getProductEditorDetails(null)} mode="create" />
+        <ProductDetailFields details={getProductEditorDetails(null)} mode="create" collections={collections} />
 
         <div
           className="flex items-center justify-end pt-4"
@@ -1470,6 +1474,7 @@ export function EditProductForm({
             details={details}
             mode="edit"
             issues={issues}
+            collections={collections}
           />
 
           <div

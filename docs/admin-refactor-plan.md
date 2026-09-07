@@ -166,9 +166,44 @@ integration.
    collection picker is unchanged (still a single local `collectionSlug`)
    — multi-collection editing UX is not in scope for this item and is
    still open.
-3. **Storefront navigation migration.** Replace `details.department` and the
-   hard-coded department inference with explicit storefront navigation built
-   from collections. Backfill or map existing products before switching reads.
+3. **Storefront navigation migration — complete.** `Collection` gained
+   `isPrimaryNav`/`navSortOrder` (migration
+   `20260907223000_add_collection_primary_navigation`, which also seeds the
+   four legacy departments as `isPrimaryNav` collections, upserted by slug
+   so a Shopify-linked collection at one of these slugs is promoted rather
+   than duplicated). `scripts/backfill-department-collections.mjs`
+   (idempotent — safe to re-run) links every existing product to its
+   department collection using the same classification the storefront used
+   to compute it on the fly, then `getStorefrontNavigation()` in
+   `lib/content/catalog.ts` replaces `SHOP_DEPARTMENTS` as the read path:
+   `toSummary`'s `departmentSlug`/`departmentName` now come from the
+   product's `isPrimaryNav` `ProductCollection` membership, not from
+   `details.department`/keyword inference. `?department=<slug>` URLs are
+   unchanged — a department is simply a collection slug now. The admin
+   department `<select>` (`components/admin/products/products-cms.tsx`)
+   now lists `isPrimaryNav` collections instead of a hardcoded array, and
+   `saveProductAction` syncs the corresponding `ProductCollection` row
+   (`syncDepartmentCollectionMembership`) whenever department changes, so
+   the admin's existing single-department UX and the new collection-backed
+   read path stay consistent without a UI rebuild. `details.department`
+   itself is untouched in the schema (still the admin's write-side intent
+   field) — pure contraction of it is item 4's job, not this one.
+   `lib/catalog/taxonomy.ts` keeps `SHOP_DEPARTMENTS`/`isShopDepartmentSlug`/
+   `shopDepartmentName`/`inferDepartment` only because `lib/shopify/products.ts`
+   (an already-dead, zero-importer legacy Storefront-API client) still
+   imports them — deleting both was attempted but blocked by this session's
+   sandbox; deleting `lib/shopify/products.ts` and its test, then removing
+   those four `@deprecated` exports from `taxonomy.ts`, is safe and still
+   pending.
+   Only the four original department slugs have translated nav labels; a
+   primary-nav collection added later without a translation falls back to
+   its own `name` (`hasDepartmentTranslation` in `taxonomy.ts`) — a real
+   but pre-existing i18n gap, not a regression.
+   Verified in-browser (not just tests): `/shop`, `/`, header dropdown
+   (desktop + mobile), and department filtering all work in both `en` and
+   `pt` locales after a dev-server + `.next` cache restart (Turbopack had
+   cached the pre-migration Prisma Client and needed a clean restart to
+   pick up the new columns).
 4. **Contract obsolete entities.** After verifying no active read/write paths,
    remove Department controls/data and local Product Category CRUD/relation.
    Retire standalone Tag CRUD when all filters read the Shopify-backed tag

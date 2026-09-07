@@ -1,19 +1,10 @@
-export const SHOP_DEPARTMENTS = [
-  { slug: "jewelry", name: "Jewelry" },
-  { slug: "pets", name: "Pets" },
-  { slug: "kids", name: "Kids" },
-  { slug: "jewelry-making", name: "Jewelry Making" },
-] as const;
-
-export type ShopDepartmentSlug = (typeof SHOP_DEPARTMENTS)[number]["slug"];
-
-export function isShopDepartmentSlug(value: unknown): value is ShopDepartmentSlug {
-  return SHOP_DEPARTMENTS.some((department) => department.slug === value);
-}
-
-export function shopDepartmentName(slug: ShopDepartmentSlug | null | undefined) {
-  return SHOP_DEPARTMENTS.find((department) => department.slug === slug)?.name ?? "";
-}
+/**
+ * A department is a Shopify-backed `Collection` marked `isPrimaryNav` —
+ * see `getStorefrontNavigation()` in `lib/content/catalog.ts`. This alias
+ * keeps the semantic name at call sites even though the value is now a
+ * free-form collection slug rather than a fixed enum.
+ */
+export type ShopDepartmentSlug = string;
 
 /**
  * The camelCase i18n key suffix for a department slug — translation keys
@@ -22,6 +13,18 @@ export function shopDepartmentName(slug: ShopDepartmentSlug | null | undefined) 
  */
 export function shopDepartmentTranslationKey(slug: ShopDepartmentSlug) {
   return slug === "jewelry-making" ? "jewelryMaking" : slug;
+}
+
+/**
+ * Only the four original departments have translated nav labels
+ * (`shop.jewelry`, `shop.pets`, `shop.kids`, `shop.jewelryMaking`).
+ * A primary-nav collection added later through the admin falls back to
+ * its own `name` at call sites instead of a missing translation key.
+ */
+const TRANSLATED_DEPARTMENT_SLUGS = new Set(["jewelry", "pets", "kids", "jewelry-making"]);
+
+export function hasDepartmentTranslation(slug: string | null | undefined) {
+  return Boolean(slug) && TRANSLATED_DEPARTMENT_SLUGS.has(slug!);
 }
 
 /**
@@ -47,15 +50,39 @@ export function hasFitFilm(slug: string | null | undefined) {
   return slug === "jewelry";
 }
 
+/**
+ * @deprecated Only used by `lib/shopify/products.ts`, an unused legacy
+ * Storefront-API client superseded by the DB-backed catalog
+ * (`lib/content/catalog.ts`). Kept so that dead file still compiles;
+ * safe to delete both together.
+ */
+export const SHOP_DEPARTMENTS = [
+  { slug: "jewelry", name: "Jewelry" },
+  { slug: "pets", name: "Pets" },
+  { slug: "kids", name: "Kids" },
+  { slug: "jewelry-making", name: "Jewelry Making" },
+] as const;
+
+/** @deprecated See `SHOP_DEPARTMENTS`. */
+export function isShopDepartmentSlug(value: unknown): value is ShopDepartmentSlug {
+  return SHOP_DEPARTMENTS.some((department) => department.slug === value);
+}
+
+/** @deprecated See `SHOP_DEPARTMENTS`. */
+export function shopDepartmentName(slug: ShopDepartmentSlug | null | undefined) {
+  return SHOP_DEPARTMENTS.find((department) => department.slug === slug)?.name ?? "";
+}
+
 type InferrableProduct = {
   productType: string;
   title: string;
 };
 
 /**
- * Classifies a Shopify product into a shop department when Shopify's own
- * `productType` doesn't already match one of our department slugs exactly
- * (the common case for a freshly-imported or miscategorized product).
+ * @deprecated See `SHOP_DEPARTMENTS`. Classifies a Shopify product into a
+ * shop department when Shopify's own `productType` doesn't already match
+ * one of our department slugs exactly (the common case for a freshly
+ * imported or miscategorized product).
  *
  * Falls back to keyword matching against `productType` + `title`, and
  * finally to "jewelry" — the storefront's largest and default department —

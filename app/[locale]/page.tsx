@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { getPageBySlug, listCollections, listShopProducts } from "@/lib/content/catalog";
-import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
+import { getPageBySlug, getStorefrontNavigation, listCollections, listShopProducts } from "@/lib/content/catalog";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -27,12 +26,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [page, collectionData, videos, products, locale] = await Promise.all([
+  const [page, collectionData, videos, products, locale, navigation] = await Promise.all([
     getPageBySlug("home"),
     listCollections(),
     getSiteVideos(),
     listShopProducts({}),
     getRequestLocale(),
+    getStorefrontNavigation(),
   ]);
 
   const collections = collectionData
@@ -48,7 +48,7 @@ export default async function Page() {
 
   const content = (page?.content ?? {}) as Record<string, string>;
   const heroImage = content.heroImage || collections[0]?.image || "";
-  const departments = SHOP_DEPARTMENTS.map((department) => {
+  const departments = navigation.map((department) => {
     const departmentProducts = products.filter((product) => product.departmentSlug === department.slug);
     return {
       slug: department.slug,

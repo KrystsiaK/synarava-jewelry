@@ -1,9 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  SHOP_DEPARTMENTS,
-  shopDepartmentName,
-  type ShopDepartmentSlug,
-} from "@/lib/catalog/taxonomy";
+import type { ShopDepartmentSlug } from "@/lib/catalog/taxonomy";
 import {
   parseProductDetails,
   type ProductAttribute,
@@ -187,6 +183,7 @@ function toSummary(product: {
       symbolismTitle: string | null;
       symbolismBody: string | null;
       symbolismBody2: string | null;
+      isPrimaryNav: boolean;
     };
   }[];
   characteristics: Array<{
@@ -211,7 +208,11 @@ function toSummary(product: {
     asset: { key: string; width: number | null; height: number | null };
   }>;
 }, locale: Locale): ProductSummary {
-  const leadCollection = product.collections[0]?.collection;
+  // "Collection" (curated/marketing grouping) and "department" (top-level
+  // storefront navigation) are both ProductCollection membership now —
+  // isPrimaryNav distinguishes which one a given membership row is.
+  const leadCollection = product.collections.find((item) => !item.collection.isPrimaryNav)?.collection;
+  const primaryNavCollection = product.collections.find((item) => item.collection.isPrimaryNav)?.collection ?? null;
   const details = parseProductDetails(product.details);
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
@@ -234,27 +235,6 @@ function toSummary(product: {
     localMedia,
     projection.media,
   );
-  const explicitDepartment = details.department ?? null;
-  const classificationText = [
-    product.shopifyCategoryName,
-    product.name,
-    product.seriesLabel,
-    product.category?.name,
-    ...product.tags.map((entry) => entry.tag.name),
-  ].filter(Boolean).join(" ").toLowerCase();
-  // The catalog started as jewelry-only. Preserve that legacy default while
-  // explicit CMS departments take precedence for every new product line.
-  const inferredDepartment: ShopDepartmentSlug | null = explicitDepartment
-    ?? (/\b(pet|pets|dog|dogs|cat|cats)\b/.test(classificationText)
-      ? "pets"
-      : /\b(kid|kids|child|children|toy|toys)\b/.test(classificationText)
-        ? "kids"
-        : /\b(bead|beads|findings|jewelry making|jewellery making|craft tools?)\b/.test(classificationText)
-          ? "jewelry-making"
-          : /\b(jewelry|jewellery|necklaces?|bracelets?|earrings?|rings?|pendants?|brooches?)\b/.test(classificationText)
-            ? "jewelry"
-            : "jewelry");
-
   return {
     slug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
@@ -300,8 +280,8 @@ function toSummary(product: {
     collectionSlug: leadCollection?.slug ?? "",
     collectionName: leadCollection?.name ?? "",
     materialLine: product.materialLine ?? "",
-    departmentSlug: inferredDepartment,
-    departmentName: shopDepartmentName(inferredDepartment),
+    departmentSlug: primaryNavCollection?.slug ?? null,
+    departmentName: primaryNavCollection?.name ?? "",
     attributes: product.characteristics.length
       ? product.characteristics.map((item) => ({ label: item.label, value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }) }))
       : details.attributes ?? [],
@@ -325,8 +305,25 @@ function toSummary(product: {
   };
 }
 
+/**
+ * The storefront's top-level navigation departments — Shopify-backed
+ * collections marked `isPrimaryNav`, replacing the hard-coded
+ * `SHOP_DEPARTMENTS` list. Seeded once by migration
+ * `20260907223000_add_collection_primary_navigation`; admin can add more
+ * by marking another collection primary-nav.
+ */
+export async function getStorefrontNavigation() {
+  const collections = await db.collection.findMany({
+    where: { isPrimaryNav: true, status: "ACTIVE", visibility: "PUBLIC" },
+    orderBy: [{ navSortOrder: "asc" }, { name: "asc" }],
+    select: { slug: true, name: true },
+  });
+  return collections;
+}
+
 export async function getShopFilterData() {
-  const [categories, tags, collections, characteristicRows] = await Promise.all([
+  const [departments, categories, tags, collections, characteristicRows] = await Promise.all([
+    getStorefrontNavigation(),
     db.productCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
@@ -334,7 +331,7 @@ export async function getShopFilterData() {
       orderBy: { name: "asc" },
     }),
     db.collection.findMany({
-      where: { status: "ACTIVE", visibility: "PUBLIC" },
+      where: { status: "ACTIVE", visibility: "PUBLIC", isPrimaryNav: false },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
     db.productCharacteristic.findMany({
@@ -346,7 +343,7 @@ export async function getShopFilterData() {
   ]);
 
   const values = (key: string) => characteristicRows.filter((item) => item.key === key && item.textValue).map((item) => ({ slug: item.textValue!, name: item.textValue! }));
-  return { departments: SHOP_DEPARTMENTS, categories, tags, collections, materials: values("material"), finishes: values("finish"), origins: values("origin") };
+  return { departments, categories, tags, collections, materials: values("material"), finishes: values("finish"), origins: values("origin") };
 }
 
 export async function listCollections() {
@@ -486,6 +483,7 @@ export async function listShopProducts(filters: ShopFilters = {}) {
               symbolismTitle: true,
               symbolismBody: true,
               symbolismBody2: true,
+              isPrimaryNav: true,
             },
           },
         },
@@ -527,6 +525,7 @@ export async function getProductBySlug(slug: string) {
               symbolismTitle: true,
               symbolismBody: true,
               symbolismBody2: true,
+              isPrimaryNav: true,
             },
           },
         },

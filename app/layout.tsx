@@ -12,6 +12,7 @@ import { PrivacyConsentManager } from "@/components/privacy/privacy-consent-mana
 import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
+import { getStorefrontNavigation } from "@/lib/content/catalog";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
 import { safeJsonLd } from "@/lib/seo/json-ld";
@@ -121,9 +122,10 @@ export default async function RootLayout({
     storefrontRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ROOT_DOMAIN,
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
-  const [cartCount, isLoggedIn] = await Promise.all([
+  const [cartCount, isLoggedIn, departments] = await Promise.all([
     getStorefrontCartCount(),
     hasShopifyCustomerSession(),
+    getStorefrontNavigation(),
   ]);
 
   return (
@@ -182,7 +184,7 @@ export default async function RootLayout({
             </defs>
           </svg>
           <ThemeProvider initialPreference={themePreference}>
-            <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} />
+            <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} departments={departments} />
             <div id="main-content" tabIndex={-1}>{children}</div>
             <SiteFooter />
           </ThemeProvider>

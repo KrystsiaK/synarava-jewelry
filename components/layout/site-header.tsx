@@ -13,14 +13,15 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { SHOP_DEPARTMENTS, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
+import { hasDepartmentTranslation, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
 
 type SiteHeaderProps = {
   initialCartCount: number;
   isLoggedIn?: boolean;
+  departments?: Array<{ slug: string; name: string }>;
 };
 
-export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderProps) {
+export function SiteHeader({ initialCartCount, isLoggedIn = false, departments = [] }: SiteHeaderProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname.replace(/^\/(en|pt)(?=\/|$)/, "") || "/";
   const { resolvedTheme } = useTheme();
@@ -271,9 +272,9 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
                 <Link href={localePath(locale, "/shop")} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 px-3 py-3 label-caps hover:bg-foreground/[0.05]">
                   {t("shop.allProducts")}
                 </Link>
-                {SHOP_DEPARTMENTS.map((department) => (
+                {departments.map((department) => (
                   <Link key={department.slug} href={localePath(locale, `/shop?department=${department.slug}`)} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 border-t border-stroke px-3 py-3 label-caps text-muted hover:bg-foreground/[0.05] hover:text-foreground">
-                    {t(`shop.${shopDepartmentTranslationKey(department.slug)}`)}
+                    {hasDepartmentTranslation(department.slug) ? t(`shop.${shopDepartmentTranslationKey(department.slug)}`) : department.name}
                   </Link>
                 ))}
               </AdaptivePopover>
@@ -392,14 +393,14 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
           <nav className="mt-6" aria-label="Shop departments">
             <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">{t("shop.departments")}</p>
             <div className="grid grid-cols-2 gap-x-4">
-              {SHOP_DEPARTMENTS.map((department) => (
+              {departments.map((department) => (
                 <Link
                   key={department.slug}
                   href={localePath(locale, `/shop?department=${department.slug}`)}
                   onClick={() => setIsMenuOpen(false)}
                   className="min-h-11 border-b border-stroke py-3 text-sm text-muted transition-colors hover:text-foreground"
                 >
-                  {t(`shop.${shopDepartmentTranslationKey(department.slug)}`)}
+                  {hasDepartmentTranslation(department.slug) ? t(`shop.${shopDepartmentTranslationKey(department.slug)}`) : department.name}
                 </Link>
               ))}
             </div>

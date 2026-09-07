@@ -9,7 +9,7 @@ import {
 import type { SavedProductPayload } from "@/app/admin/actions/products";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 
-type CollectionOption = { id: string; slug: string; name: string };
+type CollectionOption = { id: string; slug: string; name: string; isPrimaryNav: boolean; navSortOrder: number };
 
 export function ProductCreateRoute({
   collections,

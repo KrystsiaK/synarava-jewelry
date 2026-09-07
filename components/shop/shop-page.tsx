@@ -19,7 +19,7 @@ import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
-import { SHOP_DEPARTMENTS, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
+import { hasDepartmentTranslation, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -36,9 +36,11 @@ const SHOP_HERO_SPRING = {
 function ShopHero({
   leadProduct,
   archiveCount,
+  departments,
 }: {
   leadProduct?: ProductSummary;
   archiveCount: number;
+  departments: FilterOption[];
 }) {
   const { t, plural, locale } = useTranslations();
   const ref = useRef<HTMLElement>(null);
@@ -119,19 +121,19 @@ function ShopHero({
         </p>
 
         <nav className="mt-7 grid max-w-[42rem] grid-cols-2 gap-px border border-foreground/14 bg-foreground/14 sm:grid-cols-4" aria-label={t("shop.departmentNav")}>
-          {SHOP_DEPARTMENTS.map((department) => (
+          {departments.map((department) => (
             <ArtifactLink
-              key={department.slug}
-              href={localePath(locale, `/shop?department=${department.slug}`)}
+              key={department.value}
+              href={localePath(locale, `/shop?department=${department.value}`)}
               onClick={() => trackCommerceEvent("department_entry", {
-                department: department.slug,
+                department: department.value,
                 source: "shop_hero",
               })}
               variant="inverse"
               size="sm"
               className="min-h-12 border-0 px-3 text-[0.66rem] tracking-[0.13em]"
             >
-              {t(`shop.${shopDepartmentTranslationKey(department.slug)}`)}
+              {hasDepartmentTranslation(department.value) ? t(`shop.${shopDepartmentTranslationKey(department.value)}`) : department.label}
             </ArtifactLink>
           ))}
         </nav>
@@ -428,7 +430,7 @@ export function ShopPage({ products, leadProduct, archiveCount, filterProps }: S
     <main
       className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
-      <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} />
+      <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} departments={filterProps.departments ?? []} />
 
       <div id="shop-results" className="relative scroll-mt-24 bg-background pb-16 pt-6 md:pb-24 md:pt-14">
         <div

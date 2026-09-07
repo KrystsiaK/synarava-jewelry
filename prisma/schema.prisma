@@ -61,6 +61,8 @@ model Collection {
   shopifyCollectionId String?             @unique
   shopifyHandle       String?
   lastSyncedAt        DateTime?
+  isPrimaryNav        Boolean             @default(false)
+  navSortOrder        Int                 @default(0)
   status              CollectionStatus    @default(DRAFT)
   visibility          ContentVisibility   @default(PRIVATE)
   heroAssetId         String?

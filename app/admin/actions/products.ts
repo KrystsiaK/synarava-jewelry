@@ -413,6 +413,32 @@ const saveProductFieldsSchema = z.object({
   workflowState: z.string().trim().default("DRAFT"),
 });
 
+/**
+ * Keeps a product's storefront-navigation membership (its "department")
+ * in sync with the admin's department select, without touching any other
+ * collection membership (e.g. the marketing collection set below). Only
+ * `isPrimaryNav` collections are ever added or removed here.
+ */
+async function syncDepartmentCollectionMembership(productId: string, departmentSlug: string) {
+  const existingNavMemberships = await db.productCollection.findMany({
+    where: { productId, collection: { isPrimaryNav: true } },
+    select: { id: true, collectionId: true },
+  });
+  const target = departmentSlug
+    ? await db.collection.findFirst({ where: { slug: departmentSlug, isPrimaryNav: true }, select: { id: true } })
+    : null;
+
+  const staleIds = existingNavMemberships
+    .filter((item) => item.collectionId !== target?.id)
+    .map((item) => item.id);
+  if (staleIds.length) {
+    await db.productCollection.deleteMany({ where: { id: { in: staleIds } } });
+  }
+  if (target && !existingNavMemberships.some((item) => item.collectionId === target.id)) {
+    await db.productCollection.create({ data: { productId, collectionId: target.id } });
+  }
+}
+
 function productConflictState(field: "slug" | "sku"): ProductActionState {
   return field === "slug"
     ? {
@@ -560,8 +586,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     }),
   );
 
+  const department = formValue(formData, "department");
   const details = {
-    department: formValue(formData, "department"),
+    department,
     attributes: Array.from({ length: 8 }, (_, index) => ({
       label: formValue(formData, `attributeLabel${index + 1}`),
       value: formValue(formData, `attributeValue${index + 1}`),
@@ -683,6 +710,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       },
     });
   }
+
+  await syncDepartmentCollectionMembership(product.id, department);
 
   await db.productTag.deleteMany({
     where: { productId: product.id },
