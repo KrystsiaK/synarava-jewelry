@@ -115,4 +115,30 @@ describe("useDraftAutosave", () => {
     expect(saveDraft).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
+
+  it("ignores transient lookup inputs that are not persisted directly", async () => {
+    vi.useFakeTimers();
+    const saveDraft = vi.fn().mockResolvedValue({});
+
+    function TestForm() {
+      const formRef = useRef<HTMLFormElement>(null);
+      useDraftAutosave({ formRef, saveDraft });
+      return (
+        <form ref={formRef}>
+          <input name="categorySearch" data-draft-autosave="ignore" />
+        </form>
+      );
+    }
+
+    const { container } = render(<TestForm />);
+    fireEvent.input(container.querySelector<HTMLInputElement>('input[name="categorySearch"]')!, {
+      target: { value: "rings" },
+    });
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(saveDraft).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });

@@ -36,6 +36,17 @@ beforeEach(() => {
 });
 
 describe("saveProductAction", () => {
+  it("rejects a category value that was not selected from Shopify taxonomy", async () => {
+    const formData = validProductFormData();
+    formData.set("shopifyCategoryId", "rings");
+    formData.set("shopifyCategoryName", "Rings");
+
+    await expect(saveProductAction(formData)).resolves.toEqual({
+      error: "Choose a category from Shopify taxonomy results.",
+    });
+    expect(mocks.findConflictingProduct).not.toHaveBeenCalled();
+  });
+
   it("rejects a create whose slug belongs to another product instead of overwriting it", async () => {
     mocks.findConflictingProduct.mockResolvedValue({
       id: "existing-product",

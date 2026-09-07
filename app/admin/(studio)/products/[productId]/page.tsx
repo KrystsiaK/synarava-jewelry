@@ -9,7 +9,7 @@ export default async function EditProductPage({
   params: Promise<{ productId: string }>;
 }) {
   const { productId } = await params;
-  const { products, categories, collections, issues } = await getAdminCatalogData();
+  const { products, collections, issues } = await getAdminCatalogData();
   const product = products.find((item) => item.id === productId);
   const productIssues = issues.filter(
     (issue) => issue.entityType === "PRODUCT" && issue.entityId === productId,
@@ -51,7 +51,6 @@ export default async function EditProductPage({
 
       <ProductEditRoute
         product={product}
-        categories={categories}
         collections={collections}
         issues={productIssues}
       />

@@ -4,7 +4,7 @@ import { ProductCreateRoute } from "@/components/admin/products/product-route-ed
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function NewProductPage() {
-  const { categories, collections } = await getAdminCatalogData();
+  const { collections } = await getAdminCatalogData();
 
   return (
     <div className="space-y-8">
@@ -23,7 +23,7 @@ export default async function NewProductPage() {
         </div>
       </div>
 
-      <ProductCreateRoute categories={categories} collections={collections} />
+      <ProductCreateRoute collections={collections} />
     </div>
   );
 }

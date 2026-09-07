@@ -6,24 +6,20 @@ import {
   CreateProductForm,
   EditProductForm,
 } from "@/components/admin/products/products-cms";
-import type { SavedCategoryPayload } from "@/app/admin/actions/categories";
 import type { SavedProductPayload } from "@/app/admin/actions/products";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 
 type CollectionOption = { id: string; slug: string; name: string };
 
 export function ProductCreateRoute({
-  categories,
   collections,
 }: {
-  categories: SavedCategoryPayload[];
   collections: CollectionOption[];
 }) {
   const router = useRouter();
 
   return (
     <CreateProductForm
-      categories={categories}
       collections={collections}
       onCreated={(product) => {
         router.push(`/admin/products/${product.id}`);
@@ -35,12 +31,10 @@ export function ProductCreateRoute({
 
 export function ProductEditRoute({
   product,
-  categories,
   collections,
   issues = [],
 }: {
   product: SavedProductPayload;
-  categories: SavedCategoryPayload[];
   collections: CollectionOption[];
   issues?: AdminIssueSummary[];
 }) {
@@ -49,7 +43,6 @@ export function ProductEditRoute({
   return (
     <EditProductForm
       product={product}
-      categories={categories}
       collections={collections}
       issues={issues}
       onUpdated={() => router.refresh()}

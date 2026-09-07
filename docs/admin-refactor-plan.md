@@ -1,5 +1,26 @@
 # Admin components refactor plan
 
+## Catalog ownership decision
+
+The structural refactor must not preserve duplicate catalog concepts just
+because they already exist in the code. Shopify is the commerce system of
+record, so the admin should use Shopify's own concepts wherever Shopify has a
+matching first-class field:
+
+| Admin concept | Canonical owner | Direction |
+|---|---|---|
+| Product category | Shopify Standard Product Taxonomy | Search/select a Shopify taxonomy category; persist its GID and full name; push and pull it with the product. |
+| Collection | Shopify collection | Keep one local projection for storefront presentation, linked by Shopify collection GID; synchronize membership instead of inventing a second grouping model. |
+| Tags | Shopify product tags | Edit on the product; retire separate tag lifecycle/CRUD after compatibility consumers are migrated. |
+| Department | None | Remove. Storefront top-level navigation must be derived from explicit collections/navigation configuration, not a second product classification. |
+| Product type | Shopify free-form product type | Stop translating it through the local `ARTIFACT`/`JEWELRY`/`OBJECT` enum. Hide it until it is represented faithfully. |
+| Category attributes | Shopify taxonomy/metafields | Prefer Shopify category attributes and metafield definitions; reserve `synarava.*` for genuinely editorial storefront content. |
+
+This is an expand/migrate/contract change. Existing `ProductCategory`, `Tag`,
+and `details.department` data stay readable until their consumers and stored
+data have been migrated. They must not remain visible as competing choices in
+the product editor once the Shopify-backed replacement for that choice works.
+
 ## Why
 
 `components/admin/` is a flat folder of 21 files mixing three unrelated
@@ -94,6 +115,10 @@ churn without payoff (YAGNI).
 - Not introducing barrel `index.ts` files — direct imports stay explicit,
   consistent with the rest of the codebase.
 
+The earlier “no behavior changes” boundary applies to the component-splitting
+phases only. The Shopify-alignment phase below is deliberately behavioral and
+must land as separate, independently reversible commits.
+
 ## Phases
 
 Each phase must typecheck, pass focused tests, and build clean before moving to
@@ -110,6 +135,45 @@ Commit after each phase so a bad step is a single revert, not a lost
 afternoon. Do not start the move while unrelated or unfinished work is mixed
 into the same commit: first establish a named, reproducible baseline commit.
 
+### Phase A — Shopify-aligned catalog model (before further splitting)
+
+This phase takes priority over Phase 2. Each numbered item is a vertical slice
+with its own tests and commit; do not combine schema contraction with a new
+integration.
+
+1. **Canonical product category (expand) — complete.** The product editor now
+   searches Shopify taxonomy, saves `shopifyCategoryId` +
+   `shopifyCategoryName`, includes the category GID in `productSet`, compares
+   it during reconciliation, and keeps the existing pull projection. The old
+   `categoryId` relation remains readable but is no longer an editor choice.
+2. **Collection identity and membership (expand).** Add a nullable unique
+   Shopify collection GID to the local collection projection. Pull/push
+   collection identity and product membership without creating a parallel
+   collection hierarchy. Preserve Synarava-only presentation fields locally.
+3. **Storefront navigation migration.** Replace `details.department` and the
+   hard-coded department inference with explicit storefront navigation built
+   from collections. Backfill or map existing products before switching reads.
+4. **Contract obsolete entities.** After verifying no active read/write paths,
+   remove Department controls/data and local Product Category CRUD/relation.
+   Retire standalone Tag CRUD when all filters read the Shopify-backed tag
+   projection. Destructive schema changes land separately from the cutover.
+5. **Complete Shopify field parity.** Represent Shopify product type as a
+   string or omit it; align status/publication behavior; move SKU, price, and
+   inventory ownership fully to variants; map vendor and SEO without lossy
+   defaults.
+6. **Taxonomy attributes.** Discover the selected category's attributes and
+   map supported values through Shopify metafield definitions. Keep only
+   editorial, non-commerce fields under the `synarava` namespace.
+
+Checkpoint after items 1–3:
+
+- A product has one visible category choice, sourced from Shopify taxonomy.
+- Selecting a collection never requires selecting a Department.
+- Push → pull preserves category and collection identity and memberships.
+- Existing storefront URLs remain valid during the migration.
+- Focused tests, full tests, typecheck, lint, build, and browser smoke checks
+  pass before any legacy column/table is removed.
+
 ### Phase 0 — baseline
 - Confirm the current feature work is committed separately, or explicitly
   record which existing changes form the refactor baseline.
@@ -118,7 +182,7 @@ into the same commit: first establish a named, reproducible baseline commit.
 - Record a short manual smoke-test checklist for product create/edit (including
   media and sync controls), collection create/edit, and page create/edit/delete.
 
-### Phase 1 — mechanical folder moves (no content split)
+### Phase 1 — mechanical folder moves (complete)
 - Create `shared/`, `products/`, `collections/`, `pages/`, `categories/`,
   `tags/`, `issues/`, `site-videos/`.
 - `git mv` each file into place, update all list-page and route-page importers,
@@ -131,6 +195,9 @@ into the same commit: first establish a named, reproducible baseline commit.
   pointing at an old relative path.
 - One commit per entity group (shared, products, collections, pages, the
   four small ones) so failures are isolated.
+
+Completed in commits `67a81de` through `c71e5ab`; verification passed before
+the Shopify-alignment work began.
 
 ### Phase 2 — split the three god files
 Do these one at a time, verify build after each:
@@ -176,3 +243,7 @@ the split from introducing circular dependencies.
   `admin-form-validation.tsx` already is that; each entity's form-fields
   file is entity-specific by nature (different fields), so there's nothing
   further to generalize without speculative abstraction.
+- Reproducing Shopify's private category recommendation model. The supported
+  integration is search/browse over Shopify Standard Product Taxonomy. An
+  optional Synarava-side suggestion may be added later, but it must always be
+  presented as a suggestion that the administrator confirms.

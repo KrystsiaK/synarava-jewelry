@@ -47,6 +47,7 @@ import { LocaleTabStrip } from "@/components/admin/shared/admin-primitives";
 import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { parseProductDetails } from "@/lib/content/product-details";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
+import { ShopifyCategoryField } from "@/components/admin/products/shopify-category-field";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
 import {
   PRODUCT_FIELD_MESSAGES,
@@ -166,7 +167,8 @@ type ProductDraft = {
   symbolismTitle: string;
   symbolismBody: string;
   symbolismBody2: string;
-  categorySlug: string;
+  shopifyCategoryId: string;
+  shopifyCategoryName: string;
   collectionSlug: string;
   tags: string;
   workflowState: "DRAFT" | "PUBLISHED";
@@ -243,7 +245,7 @@ function emptyDraft(): ProductDraft {
     name: "", slug: "", sku: "", price: "", seriesLabel: "",
     shortDescription: "", description: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
-    symbolismBody2: "", categorySlug: "", collectionSlug: "",
+    symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
     tags: "", workflowState: "DRAFT", imageUrl: "", stockOnHand: "0",
   };
 }
@@ -262,7 +264,8 @@ function productToDraft(product: ProductRecord): ProductDraft {
     symbolismTitle: product.symbolismTitle ?? "",
     symbolismBody: product.symbolismBody ?? "",
     symbolismBody2: product.symbolismBody2 ?? "",
-    categorySlug: product.category?.slug ?? "",
+    shopifyCategoryId: product.shopifyCategoryId ?? "",
+    shopifyCategoryName: product.shopifyCategoryName ?? "",
     collectionSlug: product.collections[0]?.collection.slug ?? "",
     tags: product.tags.map((item) => item.tag.slug).join(", "),
     workflowState:
@@ -902,14 +905,12 @@ function ProductDetailFields({
 
 function ProductFormFields({
   draft,
-  categories,
   collections,
   variantExists = false,
   issues = [],
   validation,
 }: {
   draft: ProductDraft;
-  categories: CategoryOption[];
   collections: CollectionOption[];
   variantExists?: boolean;
   issues?: AdminIssueSummary[];
@@ -1104,16 +1105,12 @@ function ProductFormFields({
       {/* Taxonomy + state */}
       <div className="grid gap-4 md:grid-cols-3">
         <div id="field-taxonomy-category" className="grid gap-2">
-          <OwnershipLabel owner="Synarava">Category</OwnershipLabel>
+          <OwnershipLabel owner="Shopify">Product category</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-category")} />
-          <select name="categorySlug" defaultValue={draft.categorySlug} className="adm-field">
-            <option value="">No category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.slug}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <ShopifyCategoryField
+            initialId={draft.shopifyCategoryId}
+            initialName={draft.shopifyCategoryName}
+          />
         </div>
         <div id="field-taxonomy-collection" className="grid gap-2">
           <OwnershipLabel owner="Synarava">Collection</OwnershipLabel>
@@ -1151,11 +1148,9 @@ function ProductFormFields({
 }
 
 export function CreateProductForm({
-  categories,
   collections,
   onCreated,
 }: {
-  categories: CategoryOption[];
   collections: CollectionOption[];
   onCreated?: (product: ProductRecord) => void;
 }) {
@@ -1251,7 +1246,6 @@ export function CreateProductForm({
 
         <ProductFormFields
           draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
-          categories={categories}
           collections={collections}
           validation={validation}
         />
@@ -1288,7 +1282,6 @@ export function CreateProductForm({
 
 export function EditProductForm({
   product,
-  categories,
   collections,
   issues = [],
   onUpdated,
@@ -1296,7 +1289,6 @@ export function EditProductForm({
   highlighted = false,
 }: {
   product: ProductRecord;
-  categories: CategoryOption[];
   collections: CollectionOption[];
   issues?: AdminIssueSummary[];
   onUpdated?: (product: ProductRecord) => void;
@@ -1468,7 +1460,6 @@ export function EditProductForm({
           <ProductFormFields
             key={`${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
             draft={draft}
-            categories={categories}
             collections={collections}
             variantExists={currentProduct.variants.length > 0}
             issues={issues}

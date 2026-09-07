@@ -116,6 +116,13 @@ export function useDraftAutosave<T extends DraftAutosaveResult>({
         return;
       }
 
+      // Search/autocomplete text can be transient while a separate hidden
+      // field holds the confirmed value. Autosaving the transient keystrokes
+      // would clear or replace a valid selection before the user chooses one.
+      if (target.dataset.draftAutosave === "ignore") {
+        return;
+      }
+
       scheduleDraftSave();
     };
 

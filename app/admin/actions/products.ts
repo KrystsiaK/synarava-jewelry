@@ -19,6 +19,7 @@ import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
+import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
 import {
   asRecord,
@@ -64,6 +65,8 @@ export type SavedProductPayload = {
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
   shopifyProductId: string | null;
   shopifyHandle: string | null;
+  shopifyCategoryId: string | null;
+  shopifyCategoryName: string | null;
   shopifyUpdatedAt: Date | null;
   lastSyncedAt: Date | null;
   syncStatus: "UNLINKED" | "PENDING" | "SYNCED" | "CONFLICT" | "FAILED";
@@ -154,6 +157,8 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       visibility: true,
       shopifyProductId: true,
       shopifyHandle: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
       shopifyUpdatedAt: true,
       lastSyncedAt: true,
       syncStatus: true,
@@ -401,7 +406,8 @@ const saveProductFieldsSchema = z.object({
   existingImageUrl: z.string().trim().default(""),
   price: z.string().trim().default("0"),
   stockOnHand: z.string().trim().default("0"),
-  categorySlug: z.string().trim().default(""),
+  shopifyCategoryId: z.string().trim().default(""),
+  shopifyCategoryName: z.string().trim().default(""),
   collectionSlug: z.string().trim().default(""),
   tags: z.string().trim().default(""),
   workflowState: z.string().trim().default("DRAFT"),
@@ -428,7 +434,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
   const {
     productId, sku, name, seriesLabel, shortDescription, description, materialLine,
-    symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, categorySlug,
+    symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
     collectionSlug, workflowState,
   } = parsed.data;
   const slug = slugify(parsed.data.slug);
@@ -440,6 +446,19 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const imageFile = formData.get("imageFile");
   const characteristics = parseCharacteristicsForm(formData);
   const tagSlugs = parseTags(tagInput);
+  const hasShopifyCategorySelection =
+    formData.has("shopifyCategoryId") || formData.has("shopifyCategoryName");
+  let shopifyCategory;
+  if (hasShopifyCategorySelection) {
+    try {
+      shopifyCategory = parseShopifyTaxonomySelection({
+        id: parsed.data.shopifyCategoryId,
+        name: parsed.data.shopifyCategoryName,
+      });
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Choose a Shopify product category." };
+    }
+  }
 
   const fieldErrors = validateProductInput({
     name,
@@ -561,9 +580,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     lookbook: lookbookEntries.filter((item) => item.src),
   };
 
-  const category = categorySlug
-    ? await db.productCategory.findUnique({ where: { slug: categorySlug }, select: { id: true } })
-    : null;
   const collection = collectionSlug
     ? await db.collection.findUnique({ where: { slug: collectionSlug }, select: { id: true } })
     : null;
@@ -592,7 +608,10 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     imageUrl,
     ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : removeImage ? { primaryAssetId: null } : {}),
     priceCents: Math.round(price * 100),
-    categoryId: category?.id ?? null,
+    ...(hasShopifyCategorySelection ? {
+      shopifyCategoryId: shopifyCategory?.id ?? null,
+      shopifyCategoryName: shopifyCategory?.name ?? null,
+    } : {}),
     status: isPublished ? "ACTIVE" as const : "DRAFT" as const,
     visibility: isPublished ? "PUBLIC" as const : "PRIVATE" as const,
     publishedAt: isPublished ? new Date() : null,
@@ -740,6 +759,8 @@ const autosaveProductFieldsSchema = z.object({
   shortDescription: z.string().trim().default(""),
   description: z.string().trim().default(""),
   materialLine: z.string().trim().default(""),
+  shopifyCategoryId: z.string().trim().default(""),
+  shopifyCategoryName: z.string().trim().default(""),
   price: z.string().trim().default("0"),
   removeImage: z.string().trim().default(""),
   existingImageUrl: z.string().trim().default(""),
@@ -757,6 +778,19 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     return {};
   }
   const { productId, seriesLabel, shortDescription, description, materialLine } = parsed.data;
+  const hasShopifyCategorySelection =
+    formData.has("shopifyCategoryId") || formData.has("shopifyCategoryName");
+  let shopifyCategory;
+  if (hasShopifyCategorySelection) {
+    try {
+      shopifyCategory = parseShopifyTaxonomySelection({
+        id: parsed.data.shopifyCategoryId,
+        name: parsed.data.shopifyCategoryName,
+      });
+    } catch {
+      return { error: "Choose a category from Shopify taxonomy results." };
+    }
+  }
   const slug = slugify(parsed.data.slug) || createDraftToken("draft-product");
   const sku = parsed.data.sku || createDraftToken("sku").toUpperCase();
   const name = parsed.data.name || "Untitled product";
@@ -785,6 +819,10 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     shortDescription: shortDescription || null,
     description: description || null,
     materialLine: materialLine || null,
+    ...(hasShopifyCategorySelection ? {
+      shopifyCategoryId: shopifyCategory?.id ?? null,
+      shopifyCategoryName: shopifyCategory?.name ?? null,
+    } : {}),
     details: draftDetails,
     imageUrl: existingImageUrl || null,
     priceCents: Number.isFinite(price) ? Math.round(price * 100) : 0,

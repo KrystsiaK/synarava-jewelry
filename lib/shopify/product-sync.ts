@@ -22,6 +22,7 @@ import {
   matchReadyShopifyMedia,
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
+import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = { namespace: string; key: string; type: string; value: string };
@@ -688,6 +689,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   compare("Name", local.name, remote.title);
   compare("Handle", local.slug, remote.handle);
   compare("Description", local.description ?? "", stripHtml(remote.descriptionHtml));
+  compare("Product category", local.shopifyCategoryId ?? "", remote.category?.id ?? "");
   compare("Status", local.status, remote.status);
   const publishedPublications = remote.resourcePublicationsV2.nodes
     .filter((item) => item.isPublished)
@@ -918,6 +920,7 @@ export async function pushProductToShopify(productId: string) {
       productType: product.productType.toLowerCase(),
       status: product.status,
       tags: product.tags.map((item) => item.tag.name),
+      ...shopifyProductCategoryInput(product.shopifyCategoryId),
       ...(!product.shopifyProductId ? {
         productOptions: [{ name: "Title", position: 1, values: [{ name: "Default Title" }] }],
         variants: [{
@@ -1046,6 +1049,8 @@ export async function pushProductToShopify(productId: string) {
     const productUpdate = {
       shopifyProductId: settled.product.id,
       shopifyHandle: settled.product.handle,
+      shopifyCategoryId: settled.product.category?.id ?? null,
+      shopifyCategoryName: settled.product.category?.fullName ?? settled.product.category?.name ?? null,
       shopifySnapshot: snapshotForProduct(settled.product),
       shopifyUpdatedAt: new Date(settled.product.updatedAt),
       lastSyncedAt: new Date(),
