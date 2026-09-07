@@ -314,8 +314,10 @@ function sortProducts(items: ProductRecord[], sortBy: ProductSortKey) {
 }
 
 function ProgressBar({ pending }: { pending: boolean }) {
+  if (!pending) return null;
+
   return (
-    <div className="adm-progress-bar">
+    <div className="adm-progress-bar" role="progressbar" aria-label="Saving product">
       <div
         className={[
           "adm-progress-fill",
