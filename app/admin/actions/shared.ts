@@ -18,6 +18,7 @@ export type AdminRecordHistoryState = {
 
 export type DraftAutosaveResult = {
   recordId?: string;
+  error?: string;
 };
 
 export function formValue(formData: FormData, key: string) {

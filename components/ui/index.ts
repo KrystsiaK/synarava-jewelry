@@ -16,3 +16,4 @@ export { PrimaryCtaButton } from "./primary-cta-button";
 export { ProductCard } from "./product-card";
 export { ScrollReveal } from "./scroll-reveal";
 export { ShinyText } from "./shiny-text";
+export { Tooltip } from "./tooltip";

@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
+import { ProductMediaGallery } from "@/components/artifacts/product-media-gallery";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { PrimaryCtaButton } from "@/components/ui";
@@ -30,15 +31,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
 function ProductHero({ product }: { product: ProductSummary }) {
-  const { t, locale } = useTranslations();
-  const ref = useRef<HTMLElement>(null);
-  const [imageFailed, setImageFailed] = useState(false);
-  const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "12%"]);
-  const textY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-5%"]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.62], [1, 0.14]);
-
+  const { locale } = useTranslations();
   const words = product.title.split(" ");
   const heroDescription = product.shortDescription.trim() || product.description.trim();
   const availability = product.stockOnHand > 0
@@ -58,53 +51,22 @@ function ProductHero({ product }: { product: ProductSummary }) {
   const breadcrumbs = getProductBreadcrumbs(product);
 
   return (
-    <motion.header
-      ref={ref}
-      className="relative flex min-h-[100svh] items-end overflow-hidden bg-background pt-24 text-foreground md:min-h-screen md:pt-28"
-    >
-      <motion.div
-        className="absolute right-0 top-24 h-[48svh] w-full overflow-hidden md:right-0 md:top-28 md:h-[78vh] md:w-[68%] md:[clip-path:polygon(9%_0,100%_0,100%_100%,0_92%)]"
-        style={reduceMotion ? undefined : { y: imgY }}
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.25, ease, delay: 0.1 }}
-      >
-        {product.image && !imageFailed ? (
-          <Image
-            src={product.image}
-            alt={product.title}
-            fill
-            preload
-            quality={90}
-            sizes="(max-width: 768px) 100vw, 68vw"
-            className="object-cover brightness-[0.88] contrast-[1.06] saturate-[1.08]"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <div
-            className="flex h-full w-full flex-col items-center justify-center gap-5 bg-surface text-foreground/55"
-            role="img"
-            aria-label={t("product.imageUnavailable")}
-          >
-            <span className="size-20 rotate-45 border border-current" aria-hidden="true" />
-            <span className="label-mono text-[0.68rem]">{t("product.imageUnavailable")}</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-r from-background/5 via-transparent to-background/15" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
-      </motion.div>
+    <header className="bg-background pt-24 text-foreground md:pt-28">
+      <div className="site-shell grid gap-8 pb-14 pt-3 md:pt-5 lg:grid-cols-12 lg:items-start lg:gap-x-10 lg:pb-20 xl:gap-x-16">
+        <motion.div
+          className="lg:order-2 lg:col-span-7 lg:col-start-6"
+          initial={{ opacity: 0, scale: 0.985 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.75, ease }}
+        >
+          <ProductMediaGallery product={product} />
+        </motion.div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[44%] bg-gradient-to-t from-background via-background/82 to-transparent" />
-      <div className="pointer-events-none absolute -right-6 bottom-[4%] hidden font-serif text-[16vw] leading-none text-foreground/[0.025] md:block [writing-mode:vertical-rl]">
-        {product.departmentName || "PRODUCT"}
-      </div>
-
-      <div className="site-shell relative z-10 w-full pb-6 pt-[38svh] md:grid md:grid-cols-12 md:gap-x-10 md:pb-[6vh] md:pt-36 xl:gap-x-16">
-        <motion.div className="md:col-span-7 lg:col-span-6">
-          <motion.div style={reduceMotion ? undefined : { y: textY, opacity: textOpacity }}>
+        <motion.div className="lg:order-1 lg:col-span-5 lg:row-start-1 lg:pt-2">
+          <div>
             <motion.nav
               aria-label="Breadcrumb"
-              className="mb-2 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.2em] text-foreground/48 md:mb-5 md:text-[0.68rem]"
+              className="mb-4 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.18em] text-foreground/52 md:mb-6 md:text-[0.68rem]"
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, ease }}
@@ -128,7 +90,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
             </motion.nav>
 
             <h1
-              className="max-w-[12ch] text-balance font-serif text-[clamp(2.65rem,6.3vw,6rem)] leading-[0.91] tracking-[-0.035em] md:leading-[0.94]"
+              className="max-w-[12ch] text-balance font-serif text-[clamp(2.65rem,5.5vw,5.5rem)] leading-[0.93] tracking-[-0.035em]"
             >
               {words.map((word, i) => (
                 <span
@@ -151,7 +113,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
 
             {heroDescription ? (
               <motion.p
-                className="mt-3 max-w-[60ch] text-pretty text-sm leading-[1.6] text-foreground/74 md:mt-6 md:text-base md:leading-[1.75]"
+                className="mt-4 max-w-[60ch] text-pretty text-sm leading-[1.65] text-foreground/76 md:mt-6 md:text-base md:leading-[1.75]"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease, delay: 0.55 }}
@@ -170,9 +132,9 @@ function ProductHero({ product }: { product: ProductSummary }) {
                 {product.materialLine}
               </motion.p>
             ) : null}
-          </motion.div>
+          </div>
 
-          <motion.div className="mt-7 md:mt-10 lg:mt-12">
+          <motion.div className="mt-7 md:mt-9">
             <ProductPurchasePanel product={product} />
           </motion.div>
 
@@ -193,30 +155,29 @@ function ProductHero({ product }: { product: ProductSummary }) {
               ))}
             </motion.div>
           )}
+          <motion.dl
+            className="mt-8 grid grid-cols-2 border-y border-foreground/18"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease, delay: 0.55 }}
+          >
+            {quickFacts.map((fact) => (
+              <div
+                key={fact.label}
+                className="min-w-0 border-b border-foreground/12 py-3 pr-4 odd:border-r odd:pl-0 even:pl-4 last:border-b-0 [&:nth-last-child(2):nth-child(odd)]:border-b-0"
+              >
+                <dt className="font-sans text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-foreground/48">
+                  {fact.label}
+                </dt>
+                <dd className="mt-1 break-words text-sm leading-5 text-foreground/82">
+                  {fact.value}
+                </dd>
+              </div>
+            ))}
+          </motion.dl>
         </motion.div>
-
-        <motion.dl
-          className="mt-10 grid grid-cols-2 border-y border-foreground/18 md:col-span-5 md:col-start-8 md:mt-0 md:self-end xl:col-span-4 xl:col-start-9"
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.85, ease, delay: 0.78 }}
-        >
-          {quickFacts.map((fact) => (
-            <div
-              key={fact.label}
-              className="min-w-0 border-b border-foreground/12 py-3 pr-4 odd:border-r odd:pl-0 even:pl-4 last:border-b-0 [&:nth-last-child(2):nth-child(odd)]:border-b-0 md:py-4"
-            >
-              <dt className="font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-foreground/42">
-                {fact.label}
-              </dt>
-              <dd className="mt-1 break-words text-sm leading-5 text-foreground/82">
-                {fact.value}
-              </dd>
-            </div>
-          ))}
-        </motion.dl>
       </div>
-    </motion.header>
+    </header>
   );
 }
 
@@ -299,32 +260,6 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
             ))}
           </div>
         ) : null}
-      </div>
-    </section>
-  );
-}
-
-function CommerceMediaGallery({ product }: { product: ProductSummary }) {
-  const primary = product.image;
-  const media = product.commerceMedia.filter((item, index, all) =>
-    item.src !== primary && all.findIndex((candidate) => candidate.src === item.src) === index,
-  );
-  if (media.length === 0) return null;
-
-  return (
-    <section className="border-b border-foreground/10 bg-background py-10 md:py-16" aria-label="Product gallery">
-      <div className="site-shell flex snap-x gap-4 overflow-x-auto pb-3 md:grid md:grid-cols-2 md:overflow-visible lg:grid-cols-3">
-        {media.map((item) => (
-          <figure key={item.src} className="relative aspect-[4/5] min-w-[78vw] snap-center overflow-hidden bg-surface md:min-w-0">
-            <Image
-              src={item.src}
-              alt={item.alt || product.title}
-              fill
-              sizes="(max-width: 768px) 78vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover transition-transform duration-700 ease-out hover:scale-[1.015] motion-reduce:transition-none"
-            />
-          </figure>
-        ))}
       </div>
     </section>
   );
@@ -954,7 +889,6 @@ export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummar
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
       <ProductHero product={product} />
-      <CommerceMediaGallery product={product} />
       <ProductDescription product={product} />
       <ProductSpecifications product={product} />
       <MaterialsSection product={product} />

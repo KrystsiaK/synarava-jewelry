@@ -9,6 +9,7 @@ describe("ThemeScript", () => {
 
   it("forwards the CSP nonce to the inline script", () => {
     const element = ThemeScript({ initialPreference: "light", nonce: "test-nonce" });
+    expect(element.type).toBe("script");
     expect(element.props).toMatchObject({ nonce: "test-nonce", suppressHydrationWarning: true });
   });
 

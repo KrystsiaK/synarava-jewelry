@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
 
 import {
   THEME_COOKIE_NAME,
@@ -39,7 +39,7 @@ export function ThemeProvider({ children, initialPreference }: ThemeProviderProp
     setPreferenceState(nextPreference);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
 
     function applyTheme(nextPreference: ThemePreference) {

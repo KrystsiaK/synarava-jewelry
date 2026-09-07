@@ -70,6 +70,11 @@ Fill in local/production variables as needed:
 - `S3_ENDPOINT` if using an S3-compatible provider
 - `S3_PUBLIC_URL` public bucket/CDN origin used for optimized media URLs
 
+For local development, `docker compose up -d` also starts a private MinIO staging
+bucket on port `59000` (console: `59001`). When no `S3_*` variables are set in a
+non-production process, the app uses that bucket automatically and serves images
+through `/media/*`. Production never falls back to these local development values.
+
 Storefront video is managed at `/admin/videos`: upload MP4 or WebM files there after S3 is configured. The same stored assets are used on the home page, About page, and product fit-film sections. Railway Bucket users should set `S3_USE_PROXY=true`, so private objects are served from `/media/uploads/*`.
 
 ## Shopify commerce backend

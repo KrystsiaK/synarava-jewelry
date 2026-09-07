@@ -278,6 +278,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
   useDraftAutosave({
     formRef,
     saveDraft: autosavePageDraftAction,
+    recordIdField: "pageId",
     onSaved: (result) => {
       if (result.recordId) setDraftId(result.recordId);
     },

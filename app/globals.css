@@ -1513,12 +1513,6 @@ html[data-theme="light"] .adm-btn-primary {
   color: #fffdf8;
 }
 
-html[data-theme="light"] .adm-help__popover,
-html[data-theme="light"] .adm-help__popover::after {
-  background: var(--adm-panel);
-  box-shadow: 0 6px 8px rgba(33, 29, 25, 0.12);
-}
-
 html[data-theme="light"] .adm-progress-bar {
   background: rgba(33, 29, 25, 0.1);
 }
@@ -2081,83 +2075,107 @@ select.adm-field option {
   transform: scale(0.96);
 }
 
-.adm-help__popover {
-  display: none;
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 0.55rem);
-  width: min(20rem, calc(100vw - 2rem));
-  transform: translateX(-50%) translateY(0.25rem) scale(0.98);
-  transform-origin: bottom center;
-  border: 1px solid var(--adm-border-strong);
+.ui-tooltip {
+  --tooltip-bg: var(--foreground);
+  --tooltip-border: color-mix(in srgb, var(--background) 28%, transparent);
+  --tooltip-fg: var(--background);
+  --tooltip-enter-x: 0;
+  --tooltip-enter-y: 0;
+  position: fixed;
+  inset: auto;
+  z-index: 280;
+  isolation: isolate;
+  margin: 0;
+  width: max-content;
+  border: 1px solid var(--tooltip-border);
   border-radius: 10px;
-  background: #1c1814;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
-  color: var(--adm-text);
+  background-color: var(--tooltip-bg);
+  background-image: none;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+  color: var(--tooltip-fg);
   font-family: var(--font-sans), sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0;
-  line-height: 1.5;
-  opacity: 0;
-  padding: 0.72rem 0.8rem;
-  pointer-events: none;
+  line-height: 1.48;
+  max-height: calc(100vh - 1rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.62rem 0.72rem;
+  opacity: 1;
   text-transform: none;
   white-space: normal;
-  transition:
-    opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
-    transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  animation: ui-tooltip-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-.adm-help[data-align="start"] .adm-help__popover {
-  left: 0;
-  transform: translateX(0) translateY(0.25rem) scale(0.98);
-  transform-origin: bottom left;
+body.admin-mode .ui-tooltip {
+  --tooltip-bg: var(--adm-panel);
+  --tooltip-border: var(--adm-border-strong);
+  --tooltip-fg: var(--adm-text);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  font-size: 0.82rem;
+  padding: 0.72rem 0.8rem;
 }
 
-.adm-help[data-align="end"] .adm-help__popover {
-  left: auto;
-  right: 0;
-  transform: translateX(0) translateY(0.25rem) scale(0.98);
-  transform-origin: bottom right;
+.ui-tooltip[data-side="top"] {
+  --tooltip-enter-y: 0.25rem;
+  transform-origin: bottom center;
 }
 
-.adm-help__popover::after {
-  content: "";
+.ui-tooltip[data-side="bottom"] {
+  --tooltip-enter-y: -0.25rem;
+  transform-origin: top center;
+}
+
+.ui-tooltip[data-side="left"] {
+  --tooltip-enter-x: 0.25rem;
+  transform-origin: right center;
+}
+
+.ui-tooltip[data-side="right"] {
+  --tooltip-enter-x: -0.25rem;
+  transform-origin: left center;
+}
+
+.ui-tooltip__arrow {
   position: absolute;
-  left: 50%;
-  top: 100%;
-  width: 0.65rem;
-  height: 0.65rem;
-  transform: translate(-50%, -50%) rotate(45deg);
-  border-bottom: 1px solid var(--adm-border-strong);
-  border-right: 1px solid var(--adm-border-strong);
-  background: #1c1814;
+  z-index: -1;
+  width: 0.62rem;
+  height: 0.62rem;
+  border: 1px solid var(--tooltip-border);
+  background: var(--tooltip-bg);
+  transform: rotate(45deg);
 }
 
-.adm-help[data-align="start"] .adm-help__popover::after {
-  left: 1rem;
-  transform: translate(0, -50%) rotate(45deg);
+.ui-tooltip[data-side="top"] .ui-tooltip__arrow {
+  bottom: -0.32rem;
 }
 
-.adm-help[data-align="end"] .adm-help__popover::after {
-  left: auto;
-  right: 0.75rem;
-  transform: translate(0, -50%) rotate(45deg);
+.ui-tooltip[data-side="bottom"] .ui-tooltip__arrow {
+  top: -0.32rem;
 }
 
-.adm-help:hover .adm-help__popover,
-.adm-help:focus-within .adm-help__popover {
-  display: block;
-  opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+.ui-tooltip[data-side="left"] .ui-tooltip__arrow {
+  right: -0.32rem;
 }
 
-.adm-help[data-align="start"]:hover .adm-help__popover,
-.adm-help[data-align="start"]:focus-within .adm-help__popover,
-.adm-help[data-align="end"]:hover .adm-help__popover,
-.adm-help[data-align="end"]:focus-within .adm-help__popover {
-  transform: translateX(0) translateY(0) scale(1);
+.ui-tooltip[data-side="right"] .ui-tooltip__arrow {
+  left: -0.32rem;
+}
+
+@keyframes ui-tooltip-in {
+  from {
+    transform: translate(var(--tooltip-enter-x), var(--tooltip-enter-y)) scale(0.98);
+  }
+  to {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-tooltip {
+    animation: none;
+  }
 }
 
 .adm-badge-draft {
@@ -2416,6 +2434,12 @@ select.adm-field option {
 
 .adm-field--error {
   border-color: var(--adm-danger);
+  background: color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%);
+}
+
+.adm-field--error:focus {
+  border-color: var(--adm-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-danger) 22%, transparent);
 }
 
 .admin-terminal :focus-visible {

@@ -17,6 +17,8 @@ import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { formatCurrency } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
+import { getS3PublicUrl } from "@/lib/s3";
+import { combineProductGallery } from "@/lib/media/product-gallery";
 
 export type CollectionSummary = {
   slug: string;
@@ -203,6 +205,11 @@ function toSummary(product: {
     weightGrams: { toString(): string } | null;
     selectedOptions: unknown;
   }>;
+  media: Array<{
+    alt: string | null;
+    sortOrder: number;
+    asset: { key: string; width: number | null; height: number | null };
+  }>;
 }, locale: Locale): ProductSummary {
   const leadCollection = product.collections[0]?.collection;
   const details = parseProductDetails(product.details);
@@ -216,6 +223,17 @@ function toSummary(product: {
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   const projection = shopifyProjection(product.shopifySnapshot);
+  const localMedia = product.media.map((item) => ({
+    src: getS3PublicUrl(item.asset.key),
+    alt: item.alt ?? product.name,
+    width: item.asset.width,
+    height: item.asset.height,
+  }));
+  const combinedMedia = combineProductGallery(
+    product.imageUrl ? { src: product.imageUrl, alt: product.name, width: null, height: null } : null,
+    localMedia,
+    projection.media,
+  );
   const explicitDepartment = details.department ?? null;
   const classificationText = [
     product.shopifyCategoryName,
@@ -253,7 +271,7 @@ function toSummary(product: {
     variantCount: product.variants.length,
     vendor: product.vendor ?? "",
     shopifyCategoryName: product.shopifyCategoryName ?? "",
-    commerceMedia: projection.media,
+    commerceMedia: combinedMedia,
     options: projection.options.filter((option) => option.name !== "Title" || option.values.some((value) => value !== "Default Title")),
     variantDetails: product.variants.map((variant) => {
       const selectedOptions = Array.isArray(variant.selectedOptions)
@@ -477,6 +495,7 @@ export async function listShopProducts(filters: ShopFilters = {}) {
       },
       characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
       variants: { orderBy: { createdAt: "asc" } },
+      media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
     },
     orderBy,
   });
@@ -517,6 +536,7 @@ export async function getProductBySlug(slug: string) {
       },
       characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
       variants: { orderBy: { createdAt: "asc" } },
+      media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
     },
   });
 
@@ -572,6 +592,7 @@ export async function getAdminCatalogData() {
         },
         characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
         variants: { orderBy: { createdAt: "asc" } },
+        media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
       },
       orderBy: { updatedAt: "desc" },
     }),
@@ -592,6 +613,10 @@ export async function getAdminCatalogData() {
 
   const products = rawProducts.map((product) => ({
     ...product,
+    media: product.media.map((item) => ({
+      id: item.id, assetId: item.assetId, kind: item.kind, alt: item.alt, caption: item.caption,
+      sortOrder: item.sortOrder, url: getS3PublicUrl(item.asset.key), width: item.asset.width, height: item.asset.height,
+    })),
     characteristics: product.characteristics.map((item) => ({
       ...item,
       numberValue: item.numberValue == null ? null : Number(item.numberValue),

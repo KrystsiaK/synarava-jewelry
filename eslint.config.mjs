@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // Generated files:
     "coverage/**",
     "graphify-out/**",
+    "storybook-static/**",
     // Local agent/tooling bundles are not application source.
     ".agents/**",
     ".claude/**",

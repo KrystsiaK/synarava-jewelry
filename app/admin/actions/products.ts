@@ -9,8 +9,13 @@ import { productCommerceSignature } from "@/lib/admin/product-commerce-signature
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 import { parseFormData } from "@/lib/forms/parse-form-data";
+import {
+  validateProductInput,
+  type ProductFieldErrors,
+} from "@/lib/products/product-form-validation";
 import { slugify } from "@/lib/text/slug";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
+import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
@@ -27,6 +32,7 @@ import {
 
 export type ProductActionState = {
   error?: string;
+  fieldErrors?: ProductFieldErrors;
   success?: string;
   product?: SavedProductPayload;
   deletedProductId?: string;
@@ -38,6 +44,7 @@ export type SavedProductPayload = {
   id: string;
   createdAt: Date;
   updatedAt: Date;
+  publishedAt: Date | null;
   slug: string;
   sku: string;
   name: string;
@@ -51,6 +58,7 @@ export type SavedProductPayload = {
   symbolismBody2: string | null;
   details: unknown;
   imageUrl: string | null;
+  primaryAssetId: string | null;
   priceCents: number;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
@@ -60,6 +68,7 @@ export type SavedProductPayload = {
   lastSyncedAt: Date | null;
   syncStatus: "UNLINKED" | "PENDING" | "SYNCED" | "CONFLICT" | "FAILED";
   syncError: string | null;
+  media: SavedProductMediaPayload[];
   characteristics: {
     id: string;
     key: string;
@@ -106,6 +115,18 @@ export type SavedProductPayload = {
   }[];
 };
 
+export type SavedProductMediaPayload = {
+  id: string;
+  assetId: string;
+  kind: "PRIMARY" | "GALLERY" | "DETAIL" | "LOOKBOOK";
+  alt: string | null;
+  caption: string | null;
+  sortOrder: number;
+  url: string;
+  width: number | null;
+  height: number | null;
+};
+
 export async function getSavedProductPayload(productId: string): Promise<SavedProductPayload> {
   const product = await db.product.findUnique({
     where: { id: productId },
@@ -113,6 +134,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       id: true,
       createdAt: true,
       updatedAt: true,
+      publishedAt: true,
       slug: true,
       sku: true,
       name: true,
@@ -126,6 +148,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       symbolismBody2: true,
       details: true,
       imageUrl: true,
+      primaryAssetId: true,
       priceCents: true,
       status: true,
       visibility: true,
@@ -135,6 +158,10 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       lastSyncedAt: true,
       syncStatus: true,
       syncError: true,
+      media: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        include: { asset: true },
+      },
       characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
       variants: { orderBy: { createdAt: "asc" } },
       category: {
@@ -178,6 +205,17 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
 
   return {
     ...product,
+    media: product.media.map((item) => ({
+      id: item.id,
+      assetId: item.assetId,
+      kind: item.kind,
+      alt: item.alt,
+      caption: item.caption,
+      sortOrder: item.sortOrder,
+      url: getS3PublicUrl(item.asset.key),
+      width: item.asset.width,
+      height: item.asset.height,
+    })),
     characteristics: product.characteristics.map((item) => ({
       ...item,
       numberValue: item.numberValue == null ? null : Number(item.numberValue),
@@ -187,6 +225,117 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
     })),
   };
+}
+
+export type ProductMediaActionState = {
+  error?: string;
+  success?: string;
+  product?: SavedProductPayload;
+};
+
+async function finishProductMediaMutation(productId: string, success: string): Promise<ProductMediaActionState> {
+  await db.product.updateMany({
+    where: { id: productId, shopifyProductId: { not: null } },
+    data: { syncStatus: "PENDING", syncError: null },
+  });
+  revalidatePath("/admin/products");
+  revalidateStorefront();
+  return { success, product: await getSavedProductPayload(productId) };
+}
+
+export async function uploadProductMediaAction(formData: FormData): Promise<ProductMediaActionState> {
+  const currentUser = await requireAdminSession("/admin/products");
+  const productId = formValue(formData, "productId");
+  const alt = formValue(formData, "alt");
+  const file = formData.get("file");
+  if (!productId || !(file instanceof File) || file.size === 0) return { error: "Choose an image to upload." };
+  const existingProduct = await db.product.findUnique({ where: { id: productId }, select: { id: true, primaryAssetId: true } });
+  if (!existingProduct) return { error: "Save the product before adding gallery images." };
+  const mediaCount = await db.productMedia.count({ where: { productId } });
+  if (mediaCount >= 250) return { error: "Shopify supports up to 250 media items per product." };
+
+  try {
+    const uploaded = await saveProductImageUpload(file);
+    if (!uploaded) return { error: "The image could not be uploaded." };
+    const last = await db.productMedia.findFirst({ where: { productId }, orderBy: { sortOrder: "desc" }, select: { sortOrder: true } });
+    await db.$transaction(async (tx) => {
+      const asset = await tx.mediaAsset.create({
+        data: {
+          key: uploaded.storageKey, filename: uploaded.filename, mimeType: uploaded.mimeType,
+          extension: uploaded.extension.replace(/^\./, ""), sizeBytes: uploaded.sizeBytes,
+          width: uploaded.width, height: uploaded.height, bucket: getS3Bucket(),
+          source: "UPLOAD", status: "READY", uploadedByUsername: currentUser?.username ?? null,
+        },
+        select: { id: true },
+      });
+      await tx.productMedia.create({
+        data: { productId, assetId: asset.id, kind: existingProduct.primaryAssetId ? "GALLERY" : "PRIMARY", alt: alt || null, sortOrder: (last?.sortOrder ?? -1) + 1 },
+      });
+      if (!existingProduct.primaryAssetId) {
+        await tx.product.update({ where: { id: productId }, data: { primaryAssetId: asset.id, imageUrl: uploaded.publicPath } });
+      }
+    });
+    return finishProductMediaMutation(productId, "Gallery image uploaded.");
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Gallery upload failed." };
+  }
+}
+
+export async function setPrimaryProductMediaAction(mediaId: string): Promise<ProductMediaActionState> {
+  await requireAdminSession("/admin/products");
+  const media = await db.productMedia.findUnique({ where: { id: mediaId }, include: { asset: true } });
+  if (!media) return { error: "Gallery image not found." };
+  await db.$transaction([
+    db.productMedia.updateMany({ where: { productId: media.productId }, data: { kind: "GALLERY" } }),
+    db.productMedia.updateMany({ where: { productId: media.productId, sortOrder: { lt: media.sortOrder } }, data: { sortOrder: { increment: 1 } } }),
+    db.productMedia.update({ where: { id: media.id }, data: { kind: "PRIMARY", sortOrder: 0 } }),
+    db.product.update({ where: { id: media.productId }, data: { primaryAssetId: media.assetId, imageUrl: getS3PublicUrl(media.asset.key) } }),
+  ]);
+  return finishProductMediaMutation(media.productId, "Primary image updated.");
+}
+
+export async function moveProductMediaAction(mediaId: string, direction: -1 | 1): Promise<ProductMediaActionState> {
+  await requireAdminSession("/admin/products");
+  const media = await db.productMedia.findUnique({ where: { id: mediaId } });
+  if (!media) return { error: "Gallery image not found." };
+  const neighbor = await db.productMedia.findFirst({
+    where: { productId: media.productId, sortOrder: direction < 0 ? { lt: media.sortOrder } : { gt: media.sortOrder } },
+    orderBy: { sortOrder: direction < 0 ? "desc" : "asc" },
+  });
+  if (!neighbor) return { product: await getSavedProductPayload(media.productId) };
+  await db.$transaction([
+    db.productMedia.update({ where: { id: media.id }, data: { sortOrder: neighbor.sortOrder } }),
+    db.productMedia.update({ where: { id: neighbor.id }, data: { sortOrder: media.sortOrder } }),
+  ]);
+  const first = await db.productMedia.findFirst({
+    where: { productId: media.productId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true },
+  });
+  if (first) {
+    await db.$transaction([
+      db.productMedia.updateMany({ where: { productId: media.productId }, data: { kind: "GALLERY" } }),
+      db.productMedia.update({ where: { id: first.id }, data: { kind: "PRIMARY" } }),
+      db.product.update({ where: { id: media.productId }, data: { primaryAssetId: first.assetId, imageUrl: getS3PublicUrl(first.asset.key) } }),
+    ]);
+  }
+  return finishProductMediaMutation(media.productId, "Gallery order updated.");
+}
+
+export async function removeProductMediaAction(mediaId: string): Promise<ProductMediaActionState> {
+  await requireAdminSession("/admin/products");
+  const media = await db.productMedia.findUnique({ where: { id: mediaId }, include: { product: { select: { primaryAssetId: true } } } });
+  if (!media) return { error: "Gallery image not found." };
+  await db.productMedia.delete({ where: { id: media.id } });
+  if (media.product.primaryAssetId === media.assetId) {
+    const next = await db.productMedia.findFirst({ where: { productId: media.productId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } });
+    await db.$transaction([
+      ...(next ? [db.productMedia.update({ where: { id: next.id }, data: { kind: "PRIMARY" } })] : []),
+      db.product.update({
+        where: { id: media.productId },
+        data: next ? { primaryAssetId: next.assetId, imageUrl: getS3PublicUrl(next.asset.key) } : { primaryAssetId: null, imageUrl: null },
+      }),
+    ]);
+  }
+  return finishProductMediaMutation(media.productId, "Image removed from this product. The source asset was retained safely.");
 }
 
 async function uploadOptionalProductAsset(input: {
@@ -258,6 +407,18 @@ const saveProductFieldsSchema = z.object({
   workflowState: z.string().trim().default("DRAFT"),
 });
 
+function productConflictState(field: "slug" | "sku"): ProductActionState {
+  return field === "slug"
+    ? {
+        error: "A product with this slug already exists.",
+        fieldErrors: { slug: "A product with this URL slug already exists." },
+      }
+    : {
+        error: "A product with this SKU already exists.",
+        fieldErrors: { sku: "A product with this SKU already exists." },
+      };
+}
+
 export async function saveProductAction(formData: FormData): Promise<ProductActionState> {
   const currentUser = await requireAdminSession("/admin/products");
 
@@ -279,6 +440,28 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const imageFile = formData.get("imageFile");
   const characteristics = parseCharacteristicsForm(formData);
   const tagSlugs = parseTags(tagInput);
+
+  const fieldErrors = validateProductInput({
+    name,
+    slug,
+    sku,
+    price: parsed.data.price,
+  });
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      error: "Review the highlighted fields and try again.",
+      fieldErrors,
+    };
+  }
+
+  if (!productId) {
+    const conflictingProduct = await db.product.findFirst({
+      where: { OR: [{ slug }, { sku }] },
+      select: { slug: true, sku: true },
+    });
+    if (conflictingProduct?.slug === slug) return productConflictState("slug");
+    if (conflictingProduct?.sku === sku) return productConflictState("sku");
+  }
 
   let imageUrl = existingImageUrl || null;
   let uploadedAssetId: string | null = null;
@@ -378,12 +561,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     lookbook: lookbookEntries.filter((item) => item.src),
   };
 
-  if (!slug || !sku || !name || !price) {
-    return {
-      error: "Name, slug, SKU, and price are required.",
-    };
-  }
-
   const category = categorySlug
     ? await db.productCategory.findUnique({ where: { slug: categorySlug }, select: { id: true } })
     : null;
@@ -399,61 +576,69 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const wasCreate = !productId;
   const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
 
-  const product = await db.product.upsert({
-    where: productId ? { id: productId } : { slug },
-    update: {
-      slug,
-      sku,
-      name,
-      seriesLabel,
-      shortDescription,
-      description,
-      materialLine,
-      symbolismLabel: symbolismLabel || null,
-      symbolismTitle: symbolismTitle || null,
-      symbolismBody: symbolismBody || null,
-      symbolismBody2: symbolismBody2 || null,
-      details,
-      imageUrl,
-      ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : {}),
-      priceCents: Math.round(price * 100),
-      categoryId: category?.id ?? null,
-      status: isPublished ? "ACTIVE" : "DRAFT",
-      visibility: isPublished ? "PUBLIC" : "PRIVATE",
-      publishedAt: isPublished ? new Date() : null,
-      searchDocument: buildProductSearchDocument({
-        name, sku, slug, description, shortDescription, materialLine,
-        tags: tagSlugs, characteristics,
-      }),
-    },
-    create: {
-      slug,
-      sku,
-      name,
-      seriesLabel,
-      shortDescription,
-      description,
-      materialLine,
-      symbolismLabel: symbolismLabel || null,
-      symbolismTitle: symbolismTitle || null,
-      symbolismBody: symbolismBody || null,
-      symbolismBody2: symbolismBody2 || null,
-      details,
-      imageUrl,
-      ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : {}),
-      priceCents: Math.round(price * 100),
-      currency: "EUR",
-      categoryId: category?.id ?? null,
-      status: isPublished ? "ACTIVE" : "DRAFT",
-      visibility: isPublished ? "PUBLIC" : "PRIVATE",
-      publishedAt: isPublished ? new Date() : null,
-      searchDocument: buildProductSearchDocument({
-        name, sku, slug, description, shortDescription, materialLine,
-        tags: tagSlugs, characteristics,
-      }),
-    },
-    select: { id: true, slug: true },
-  });
+  const productData = {
+    slug,
+    sku,
+    name,
+    seriesLabel,
+    shortDescription,
+    description,
+    materialLine,
+    symbolismLabel: symbolismLabel || null,
+    symbolismTitle: symbolismTitle || null,
+    symbolismBody: symbolismBody || null,
+    symbolismBody2: symbolismBody2 || null,
+    details,
+    imageUrl,
+    ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : removeImage ? { primaryAssetId: null } : {}),
+    priceCents: Math.round(price * 100),
+    categoryId: category?.id ?? null,
+    status: isPublished ? "ACTIVE" as const : "DRAFT" as const,
+    visibility: isPublished ? "PUBLIC" as const : "PRIVATE" as const,
+    publishedAt: isPublished ? new Date() : null,
+    searchDocument: buildProductSearchDocument({
+      name, sku, slug, description, shortDescription, materialLine,
+      tags: tagSlugs, characteristics,
+    }),
+  };
+
+  let product: { id: string; slug: string };
+  try {
+    product = productId
+      ? await db.product.update({
+          where: { id: productId },
+          data: productData,
+          select: { id: true, slug: true },
+        })
+      : await db.product.create({
+          data: { ...productData, currency: "EUR" },
+          select: { id: true, slug: true },
+        });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const target = Array.isArray(error.meta?.target) ? error.meta.target.map(String) : [];
+      return productConflictState(target.includes("sku") ? "sku" : "slug");
+    }
+    throw error;
+  }
+
+  if (uploadedAssetId) {
+    await db.$transaction(async (tx) => {
+      await tx.productMedia.updateMany({ where: { productId: product.id }, data: { sortOrder: { increment: 1 }, kind: "GALLERY" } });
+      if (before?.primaryAssetId) {
+        await tx.productMedia.upsert({
+          where: { productId_assetId: { productId: product.id, assetId: before.primaryAssetId } },
+          update: { kind: "GALLERY" },
+          create: { productId: product.id, assetId: before.primaryAssetId, kind: "GALLERY", alt: before.name, sortOrder: 1 },
+        });
+      }
+      await tx.productMedia.upsert({
+        where: { productId_assetId: { productId: product.id, assetId: uploadedAssetId } },
+        update: { kind: "PRIMARY", alt: name, sortOrder: 0 },
+        create: { productId: product.id, assetId: uploadedAssetId, kind: "PRIMARY", alt: name, sortOrder: 0 },
+      });
+    });
+  }
 
   const existingVariant = await db.productVariant.findFirst({ where: { productId: product.id }, orderBy: { createdAt: "asc" } });
   if (existingVariant) {
@@ -560,10 +745,10 @@ const autosaveProductFieldsSchema = z.object({
   existingImageUrl: z.string().trim().default(""),
 });
 
-export async function autosaveProductDraftAction(formData: FormData): Promise<DraftAutosaveResult> {
+export async function autosaveProductDraftAction(formData: FormData): Promise<DraftAutosaveResult & { product?: SavedProductPayload }> {
   await requireAdminSession("/admin/products");
 
-  if (!hasMeaningfulDraftInput(formData, ["productId", "workflowState", "existingImageUrl"])) {
+  if (formValue(formData, "forceDraft") !== "1" && !hasMeaningfulDraftInput(formData, ["productId", "workflowState", "existingImageUrl"])) {
     return {};
   }
 
@@ -608,20 +793,32 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     publishedAt: null,
   };
 
-  const product = productId
-    ? await db.product.update({
-        where: { id: productId },
-        data: productData,
-        select: { id: true },
-      })
-    : await db.product.create({
-        data: productData,
-        select: { id: true },
-      });
+  let product: { id: string };
+  try {
+    product = productId
+      ? await db.product.update({
+          where: { id: productId },
+          data: productData,
+          select: { id: true },
+        })
+      : await db.product.create({
+          data: productData,
+          select: { id: true },
+        });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const target = Array.isArray(error.meta?.target) ? error.meta.target.map(String) : [];
+      if (target.includes("sku")) {
+        return { error: `A product with the SKU “${sku}” already exists. Choose a different SKU.` };
+      }
+      return { error: `A product with the slug “${slug}” already exists. Choose a different slug.` };
+    }
+    throw error;
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");
-  return { recordId: product.id };
+  return { recordId: product.id, product: await getSavedProductPayload(product.id) };
 }
 
 const deleteProductSchema = z.object({

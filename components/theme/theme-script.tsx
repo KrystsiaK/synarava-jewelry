@@ -1,7 +1,3 @@
-/* eslint-disable @next/next/no-before-interactive-script-outside-document -- Rendered only from the App Router root layout. */
-
-import Script from "next/script";
-
 import { THEME_COOKIE_NAME, type ThemePreference } from "@/lib/theme/shared";
 
 type ThemeScriptProps = {
@@ -37,11 +33,10 @@ export function getThemeScript(initialPreference: ThemePreference): string {
 
 export function ThemeScript({ initialPreference, nonce }: ThemeScriptProps) {
   return (
-    <Script
+    <script
       id="theme-initializer-script"
       nonce={nonce}
       suppressHydrationWarning
-      strategy="beforeInteractive"
       dangerouslySetInnerHTML={{ __html: getThemeScript(initialPreference) }}
     />
   );

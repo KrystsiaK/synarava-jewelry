@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type ImageFileFieldProps = {
   name: string;
@@ -120,15 +121,16 @@ export function ImageFileField({
               <p className="text-xs" style={{ color: "var(--adm-muted)" }}>
                 {formatFileSize(selectedFile.size)}
               </p>
-              <button
-                type="button"
-                className="adm-btn-ghost h-8 min-h-8 px-2"
-                aria-label="Clear selected image"
-                title="Clear selected image"
-                onClick={clearSelectedFile}
-              >
-                <X aria-hidden="true" size={14} strokeWidth={1.8} />
-              </button>
+              <Tooltip content="Clear selected image">
+                <button
+                  type="button"
+                  className="adm-btn-ghost h-8 min-h-8 px-2"
+                  aria-label="Clear selected image"
+                  onClick={clearSelectedFile}
+                >
+                  <X aria-hidden="true" size={14} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
             </div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}

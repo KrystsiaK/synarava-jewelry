@@ -3,6 +3,7 @@ type ProductCommerceSnapshot = {
   slug: string;
   description: string | null;
   imageUrl: string | null;
+  media: Array<{ assetId: string; sortOrder: number }>;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
   sku: string;
@@ -31,6 +32,7 @@ export function productCommerceSignature(product: ProductCommerceSnapshot) {
     slug: product.slug,
     description: product.description ?? "",
     imageUrl: product.imageUrl ?? "",
+    media: product.media.map((item) => ({ assetId: item.assetId, sortOrder: item.sortOrder })),
     status: product.status,
     visibility: product.visibility,
     sku: primaryVariant?.sku ?? product.sku,

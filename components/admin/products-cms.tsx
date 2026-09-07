@@ -2,14 +2,19 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import {
   autosaveProductDraftAction,
   deleteProductAction,
   saveProductAction,
+  moveProductMediaAction,
+  removeProductMediaAction,
+  setPrimaryProductMediaAction,
   updateProductStatusAction,
   type ProductActionState,
+  type ProductMediaActionState,
   type SavedProductPayload,
 } from "@/app/admin/actions/products";
 import {
@@ -24,6 +29,12 @@ import {
 import type { SavedCategoryPayload } from "@/app/admin/actions/categories";
 import type { SavedTagPayload } from "@/app/admin/actions/tags";
 import { AdminConfirmModal } from "@/components/admin/admin-confirm-modal";
+import {
+  AdminFieldError,
+  AdminFormAlert,
+  useAdminFormValidation,
+  type AdminFormValidation,
+} from "@/components/admin/admin-form-validation";
 import { AdminHelp } from "@/components/admin/admin-help";
 import { AdminIssueInlineWarning } from "@/components/admin/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/admin-issue-types";
@@ -33,10 +44,14 @@ import { slugify } from "@/lib/text/slug";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ImageFileField } from "@/components/admin/image-file-field";
 import { LocaleTabStrip } from "@/components/admin/admin-primitives";
-import { useDraftAutosave } from "@/components/admin/use-draft-autosave";
+import { buildDraftFormData, useDraftAutosave } from "@/components/admin/use-draft-autosave";
 import { parseProductDetails } from "@/lib/content/product-details";
 import { SHOP_DEPARTMENTS } from "@/lib/catalog/taxonomy";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
+import {
+  PRODUCT_FIELD_MESSAGES,
+  type ProductFieldName,
+} from "@/lib/products/product-form-validation";
 import type { ProductSyncInspection, ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
 import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, Eye, RefreshCw, TriangleAlert } from "lucide-react";
 
@@ -52,6 +67,91 @@ type ProductCmsProps = {
   collections: CollectionOption[];
   issues?: AdminIssueSummary[];
 };
+
+function ProductMediaManager({
+  product,
+  onChange,
+  ensureProduct,
+}: {
+  product: ProductRecord | null;
+  onChange: (product: ProductRecord) => void;
+  ensureProduct?: () => Promise<ProductRecord | null>;
+}) {
+  const [pending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { pushToast } = useAdminToast();
+
+  function apply(result: ProductMediaActionState) {
+    if (result.error) pushToast({ message: result.error, tone: "error" });
+    if (result.success) pushToast({ message: result.success, tone: "success" });
+    if (result.product) onChange(result.product);
+  }
+
+  function upload(files: FileList | null) {
+    if (!files?.length) return;
+    startTransition(async () => {
+      let targetProduct = product ?? await ensureProduct?.() ?? null;
+      if (!targetProduct) {
+        pushToast({ message: "The draft could not be created. Try again.", tone: "error" });
+        return;
+      }
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.set("productId", targetProduct.id);
+        formData.set("alt", file.name.replace(/\.[^.]+$/, ""));
+        formData.set("file", file);
+        const response = await fetch("/admin/api/products/media", { method: "POST", body: formData });
+        const result = await response.json() as ProductMediaActionState;
+        if (!response.ok && !result.error) result.error = "Gallery upload failed.";
+        apply(result);
+        if (result.product) targetProduct = result.product;
+        if (result.error) break;
+      }
+      if (inputRef.current) inputRef.current.value = "";
+    });
+  }
+
+  function mutate(action: () => Promise<ProductMediaActionState>) {
+    startTransition(async () => apply(await action()));
+  }
+
+  return (
+    <section className="grid gap-4 border border-[var(--adm-border)] p-4" aria-label="Product gallery">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="adm-label">Product gallery</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">Upload up to 250 images. Position 1 is the catalog cover and is sent first to Shopify.</p>
+        </div>
+        <label className={`adm-btn-ghost ${pending ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
+          {pending ? "Uploading…" : "Add images"}
+          <input ref={inputRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => upload(event.target.files)} disabled={pending} />
+        </label>
+      </div>
+      {product?.media.length ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {product.media.map((item, index) => {
+            const primary = product.primaryAssetId === item.assetId;
+            return (
+              <article key={item.id} className="grid gap-3 border border-[var(--adm-border)] p-3">
+                <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
+                  <Image src={item.url} alt={item.alt || product.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
+                  <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">{primary ? "01 · Cover" : String(index + 1).padStart(2, "0")}</span>
+                </div>
+                <p className="truncate text-xs text-[var(--adm-muted)]">{item.alt || `Image ${index + 1}`}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</button>
+                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === product.media.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</button>
+                  {!primary ? <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending} onClick={() => mutate(() => setPrimaryProductMediaAction(item.id))}>Move to first</button> : null}
+                  <button type="button" className="adm-btn-danger min-h-9 px-3" disabled={pending} onClick={() => mutate(() => removeProductMediaAction(item.id))}>Remove</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : <p className="text-sm text-[var(--adm-muted)]">No gallery images yet. The existing primary image remains available separately.</p>}
+    </section>
+  );
+}
 
 type ProductDraft = {
   name: string;
@@ -176,6 +276,41 @@ function productToDraft(product: ProductRecord): ProductDraft {
 
 function normalizeProducts(items: ProductRecord[]) {
   return [...items].sort((left, right) => right.name.localeCompare(left.name));
+}
+
+const PRODUCT_SORT_OPTIONS = [
+  { value: "published", label: "Latest published" },
+  { value: "updated", label: "Recently updated" },
+  { value: "name-asc", label: "Name (A–Z)" },
+  { value: "name-desc", label: "Name (Z–A)" },
+  { value: "price-desc", label: "Price (high–low)" },
+  { value: "price-asc", label: "Price (low–high)" },
+] as const;
+
+type ProductSortKey = (typeof PRODUCT_SORT_OPTIONS)[number]["value"];
+
+function sortProducts(items: ProductRecord[], sortBy: ProductSortKey) {
+  const sorted = [...items];
+  switch (sortBy) {
+    case "published":
+      return sorted.sort((left, right) => {
+        const leftTime = left.publishedAt ? new Date(left.publishedAt).getTime() : -Infinity;
+        const rightTime = right.publishedAt ? new Date(right.publishedAt).getTime() : -Infinity;
+        return rightTime - leftTime;
+      });
+    case "updated":
+      return sorted.sort(
+        (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      );
+    case "name-asc":
+      return sorted.sort((left, right) => left.name.localeCompare(right.name));
+    case "name-desc":
+      return sorted.sort((left, right) => right.name.localeCompare(left.name));
+    case "price-asc":
+      return sorted.sort((left, right) => left.priceCents - right.priceCents);
+    case "price-desc":
+      return sorted.sort((left, right) => right.priceCents - left.priceCents);
+  }
 }
 
 function ProgressBar({ pending }: { pending: boolean }) {
@@ -769,13 +904,16 @@ function ProductFormFields({
   collections,
   variantExists = false,
   issues = [],
+  validation,
 }: {
   draft: ProductDraft;
   categories: CategoryOption[];
   collections: CollectionOption[];
   variantExists?: boolean;
   issues?: AdminIssueSummary[];
+  validation: AdminFormValidation<ProductFieldName>;
 }) {
+  const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
   const [slugValue, setSlugValue] = useState(draft.slug);
   const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
@@ -812,47 +950,75 @@ function ProductFormFields({
       <LocaleTabStrip />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">Name</OwnershipLabel>
+        <div className="grid gap-2">
+          <label htmlFor={validation.fieldId("name")}>
+            <OwnershipLabel owner="Shopify">Name *</OwnershipLabel>
+          </label>
           <input
             name="name"
+            required
+            data-validation-message={PRODUCT_FIELD_MESSAGES.name}
             value={nameValue}
             onChange={(event) => updateName(event.target.value)}
-            className="adm-field"
+            {...validation.fieldProps("name")}
+            className={fieldErrors.name ? "adm-field adm-field--error" : "adm-field"}
           />
-        </label>
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">Slug</OwnershipLabel>
+          <AdminFieldError id={validation.fieldErrorId("name")} message={fieldErrors.name} />
+        </div>
+        <div className="grid gap-2">
+          <label htmlFor={validation.fieldId("slug")}>
+            <OwnershipLabel owner="Shopify">Slug *</OwnershipLabel>
+          </label>
           <input
             name="slug"
+            required
+            data-validation-message={PRODUCT_FIELD_MESSAGES.slug}
             value={slugValue}
             onChange={(event) => updateSlug(event.target.value)}
-            className="adm-field"
+            {...validation.fieldProps("slug")}
+            className={fieldErrors.slug ? "adm-field adm-field--error" : "adm-field"}
           />
-        </label>
+          <AdminFieldError id={validation.fieldErrorId("slug")} message={fieldErrors.slug} />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">SKU</OwnershipLabel>
-          <input name="sku" defaultValue={draft.sku} className="adm-field" />
-        </label>
+        <div className="grid gap-2">
+          <label htmlFor={validation.fieldId("sku")}>
+            <OwnershipLabel owner="Shopify">SKU *</OwnershipLabel>
+          </label>
+          <input
+            name="sku"
+            required
+            data-validation-message={PRODUCT_FIELD_MESSAGES.sku}
+            defaultValue={draft.sku}
+            {...validation.fieldProps("sku")}
+            className={fieldErrors.sku ? "adm-field adm-field--error" : "adm-field"}
+          />
+          <AdminFieldError id={validation.fieldErrorId("sku")} message={fieldErrors.sku} />
+        </div>
         <label className="grid gap-2">
           <OwnershipLabel owner="Synarava">Series label</OwnershipLabel>
           <input name="seriesLabel" defaultValue={draft.seriesLabel} className="adm-field" />
         </label>
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">Price EUR</OwnershipLabel>
+        <div className="grid gap-2">
+          <label htmlFor={validation.fieldId("price")}>
+            <OwnershipLabel owner="Shopify">Price EUR *</OwnershipLabel>
+          </label>
           <input
             name="price"
             type="number"
-            min="0"
+            required
+            min="0.01"
             step="0.01"
             inputMode="decimal"
+            data-validation-message={PRODUCT_FIELD_MESSAGES.price}
             defaultValue={draft.price}
-            className="adm-field"
+            {...validation.fieldProps("price")}
+            className={fieldErrors.price ? "adm-field adm-field--error" : "adm-field"}
           />
-        </label>
+          <AdminFieldError id={validation.fieldErrorId("price")} message={fieldErrors.price} />
+        </div>
         <label className="grid gap-2">
           <OwnershipLabel owner="Shopify">Available quantity</OwnershipLabel>
           <input name="stockOnHand" type="number" min="0" step="1" inputMode="numeric" defaultValue={draft.stockOnHand} className="adm-field" />
@@ -885,19 +1051,13 @@ function ProductFormFields({
           <OwnershipLabel owner="Synarava">Material line</OwnershipLabel>
           <input name="materialLine" defaultValue={draft.materialLine} className="adm-field" />
         </label>
-        <label id="field-imageUrl" className="grid gap-2">
-          <OwnershipLabel owner="Shopify">Primary product image</OwnershipLabel>
+        <div id="field-imageUrl" className="grid content-start gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
+          <OwnershipLabel owner="Shopify">Catalog cover</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-imageUrl")} />
           <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
-          <ImageFileField
-            name="imageFile"
-            currentImageUrl={draft.imageUrl}
-            currentImageAlt={draft.name || "Product image"}
-            removeFieldName="removeImage"
-            removeLabel="Remove"
-          />
-          <span className="text-xs text-[var(--adm-subtle)]">The primary image is mirrored to Shopify when its URL is publicly reachable. Editorial gallery images remain in Synarava.</span>
-        </label>
+          <input type="hidden" name="removeImage" value="0" />
+          <span className="text-xs leading-5 text-[var(--adm-subtle)]">Managed by Product gallery below. The first image is the catalog cover and is sent first to Shopify.</span>
+        </div>
       </div>
 
       {/* Symbolism */}
@@ -1001,24 +1161,49 @@ export function CreateProductForm({
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [draftId, setDraftId] = useState("");
+  const [draftProduct, setDraftProduct] = useState<ProductRecord | null>(null);
   const [draft] = useState<ProductDraft>(emptyDraft);
   const formRef = useRef<HTMLFormElement>(null);
+  const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const { pushToast } = useAdminToast();
 
   useDraftAutosave({
     formRef,
     saveDraft: autosaveProductDraftAction,
+    recordIdField: "productId",
     onSaved: (result) => {
       if (result.recordId) setDraftId(result.recordId);
+      if (result.product) setDraftProduct(result.product);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
     },
   });
+
+  async function ensureDraftForGallery() {
+    if (draftProduct) return draftProduct;
+    const form = formRef.current;
+    if (!form) return null;
+    const formData = buildDraftFormData(form);
+    formData.set("forceDraft", "1");
+    const result = await autosaveProductDraftAction(formData);
+    if (result.error) {
+      pushToast({ message: result.error, tone: "error" });
+      return null;
+    }
+    if (result.recordId) {
+      setDraftId(result.recordId);
+      const field = form.elements.namedItem("productId");
+      if (field instanceof HTMLInputElement) field.value = result.recordId;
+    }
+    if (result.product) setDraftProduct(result.product);
+    return result.product ?? null;
+  }
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
       const result = await saveProductAction(formData);
       setState(result);
       setConfirmOpen(false);
-      if (result.error) pushToast({ message: result.error, tone: "error" });
+      validation.showFieldErrors(result.fieldErrors ?? {});
       if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.syncWarning) pushToast({ message: `Saved locally. Sync failed: ${result.syncWarning}`, tone: "error" });
 
@@ -1032,9 +1217,14 @@ export function CreateProductForm({
     });
   }
 
+  function requestSave() {
+    setState({});
+    if (validation.validate()) setConfirmOpen(true);
+  }
+
   return (
     <>
-      <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
+      <form ref={formRef} action={formAction} noValidate className="adm-panel grid gap-4 p-5">
         <input type="hidden" name="productId" value={draftId} />
         <div
           className="flex items-center justify-between gap-4 pb-4"
@@ -1046,25 +1236,38 @@ export function CreateProductForm({
               Create product
             </h2>
           </div>
-          <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
+          <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
         </div>
 
         <ProgressBar pending={isPending} />
-        <AuthMessage error={state.error} />
+        <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
         <div>
           <AdminHelp label="Publishing guidance">
             Saving updates the database. Published products can immediately affect the public storefront.
           </AdminHelp>
         </div>
 
-        <ProductFormFields draft={draft} categories={categories} collections={collections} />
+        <ProductFormFields
+          draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
+          categories={categories}
+          collections={collections}
+          validation={validation}
+        />
+        <ProductMediaManager
+          product={draftProduct}
+          ensureProduct={ensureDraftForGallery}
+          onChange={(product) => {
+            setDraftId(product.id);
+            setDraftProduct(product);
+          }}
+        />
         <ProductDetailFields details={getProductEditorDetails(null)} mode="create" />
 
         <div
           className="flex items-center justify-end pt-4"
           style={{ borderTop: "1px solid var(--adm-border)" }}
         >
-          <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
+          <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
         </div>
       </form>
 
@@ -1106,6 +1309,8 @@ export function EditProductForm({
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
   const [conflictResolution, setConflictResolution] = useState<"shopify" | "synarava" | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const currentProduct = state.product ?? product;
   const draft = productToDraft(currentProduct);
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
@@ -1131,7 +1336,7 @@ export function EditProductForm({
       const result = await saveProductAction(formData);
       setState(result);
       setConfirmOpen(false);
-      if (result.error) pushToast({ message: result.error, tone: "error" });
+      validation.showFieldErrors(result.fieldErrors ?? {});
       if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.product) {
         setIsDirty(false);
@@ -1146,6 +1351,11 @@ export function EditProductForm({
         onUpdated?.(result.product);
       }
     });
+  }
+
+  function requestSave() {
+    setState({});
+    if (validation.validate()) setConfirmOpen(true);
   }
 
   function handleCheckShopify() {
@@ -1214,7 +1424,7 @@ export function EditProductForm({
             : {}),
         }}
       >
-        <form action={formAction} className="grid gap-4" onChange={() => setIsDirty(true)}>
+        <form ref={formRef} action={formAction} noValidate className="grid gap-4" onChange={() => setIsDirty(true)}>
           <input type="hidden" name="productId" value={currentProduct.id} />
 
           <div
@@ -1237,11 +1447,11 @@ export function EditProductForm({
                 </p>
               ) : null}
             </div>
-            <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
+            <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
           </div>
 
           <ProgressBar pending={isPending} />
-          <AuthMessage error={state.error} />
+          <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
           <ProductSyncStrip
             product={currentProduct}
             dirty={isDirty}
@@ -1260,6 +1470,7 @@ export function EditProductForm({
             collections={collections}
             variantExists={currentProduct.variants.length > 0}
             issues={issues}
+            validation={validation}
           />
           <ProductDetailFields
             key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
@@ -1280,9 +1491,17 @@ export function EditProductForm({
             >
               Delete product
             </button>
-            <SaveButtons onOpenConfirm={() => setConfirmOpen(true)} pending={isPending} />
+            <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
           </div>
         </form>
+        <ProductMediaManager
+          product={currentProduct}
+          onChange={(product) => {
+            setState({ success: "Gallery updated locally.", product });
+            setIsDirty(false);
+            onUpdated?.(product);
+          }}
+        />
       </div>
 
       <AdminConfirmModal
@@ -1292,8 +1511,7 @@ export function EditProductForm({
         confirmLabel="Yes, save changes"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
-          const form = rowRef.current?.querySelector("form");
-          if (form instanceof HTMLFormElement) form.requestSubmit();
+          formRef.current?.requestSubmit();
         }}
         pending={isPending}
       />
@@ -1351,6 +1569,7 @@ export function ProductsCms({
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [collectionFilter, setCollectionFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState<ProductSortKey>("published");
   const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [rowActionState, setRowActionState] = useState<ProductActionState>({});
@@ -1515,6 +1734,7 @@ export function ProductsCms({
 
     return matchesQuery && matchesStatus && matchesCategory && matchesCollection;
   });
+  const sortedProducts = sortProducts(filteredProducts, sortBy);
 
   return (
     <section className="grid gap-6">
@@ -1556,7 +1776,7 @@ export function ProductsCms({
         </div>
 
         <div
-          className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_10rem_12rem_12rem]"
+          className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_9rem_10rem_10rem_11rem]"
           style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <label className="grid gap-2">
@@ -1607,6 +1827,20 @@ export function ProductsCms({
               {collections.map((collection) => (
                 <option key={collection.id} value={collection.slug}>
                   {collection.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="adm-label">Sort by</span>
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as ProductSortKey)}
+              className="adm-field"
+            >
+              {PRODUCT_SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -1800,8 +2034,8 @@ export function ProductsCms({
               <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-right">Actions</span>
             </div>
 
-            {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => {
+            {sortedProducts.length > 0 ? (
+              sortedProducts.map((product) => {
                 const status = productStatusLabel(product);
                 const productIssues = issues.filter(
                   (issue) => issue.entityType === "PRODUCT" && issue.entityId === product.id,
@@ -1823,6 +2057,11 @@ export function ProductsCms({
                         /{product.slug}
                       </p>
                       <AdminRecordDates record={product} />
+                      <p className="mt-1 text-xs" style={{ color: "var(--adm-subtle)" }}>
+                        {product.publishedAt
+                          ? `Published ${new Date(product.publishedAt).toLocaleDateString("en-IE", { dateStyle: "medium" })}`
+                          : "Not published yet"}
+                      </p>
                       {productIssues.length > 0 ? (
                         <Link
                           href={productIssues[0]?.targetHref ?? `/admin/products/${product.id}`}

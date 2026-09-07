@@ -76,6 +76,18 @@ export type ProductCharacteristicValue = {
   sortOrder: number;
 };
 
+/**
+ * Reads the fixed `PRODUCT_CHARACTERISTICS` list out of a product form,
+ * one `characteristic_<key>` field per definition, and drops any
+ * characteristic with nothing meaningful to store: a blank TEXT value, a
+ * non-finite/empty NUMBER value, or an unchecked BOOLEAN.
+ *
+ * The unchecked-BOOLEAN rule has one exception: if a certificate URL was
+ * attached (`certificate_<key>_certificate`) even though the checkbox
+ * itself is off, the characteristic is still kept so the certificate isn't
+ * silently discarded — a certified-but-currently-unchecked claim is still
+ * data worth keeping.
+ */
 export function parseCharacteristicsForm(formData: FormData) {
   return PRODUCT_CHARACTERISTICS.flatMap((definition, sortOrder) => {
     const field = `characteristic_${definition.key}`;

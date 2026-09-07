@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("@/app/[locale]/cart/actions", () => ({
   decreaseCartItemAction: vi.fn(),
@@ -60,10 +60,12 @@ describe("CartItemRow", () => {
   it("explains when no more inventory is available", () => {
     render(<CartItemRow item={{ ...item, maxQuantity: 2 }} />);
 
-    expect(screen.getByRole("button", { name: "Increase quantity" })).toHaveAttribute(
+    const increaseButton = screen.getByRole("button", { name: "Increase quantity" });
+    expect(increaseButton).toHaveAttribute(
       "aria-disabled",
       "true",
     );
+    fireEvent.focus(increaseButton);
     expect(screen.getByRole("tooltip")).toHaveTextContent("No more items available");
   });
 });

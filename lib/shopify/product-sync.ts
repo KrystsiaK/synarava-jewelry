@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { characteristicDisplayValue, PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
@@ -16,6 +17,11 @@ import {
   variantCommerceChangeLabels,
 } from "@/lib/shopify/reconciliation";
 import { env } from "@/lib/env";
+import { getS3, getS3Bucket } from "@/lib/s3";
+import {
+  matchReadyShopifyMedia,
+  type StagedProductMedia,
+} from "@/lib/shopify/staged-product-media";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = { namespace: string; key: string; type: string; value: string };
@@ -36,7 +42,10 @@ type ShopifyProduct = {
     id: string;
     alt: string | null;
     mediaContentType: string;
+    status: string;
+    filename?: string | null;
     preview: { image: { url: string; width: number | null; height: number | null } | null } | null;
+    image?: { url: string; width: number | null; height: number | null } | null;
   }> };
   options: Array<{ id: string; name: string; position: number; values: string[] }>;
   collections: { nodes: Array<{ id: string; handle: string; title: string }> };
@@ -84,8 +93,11 @@ const PRODUCT_FIELDS = `
   id title handle descriptionHtml vendor productType tags status updatedAt totalInventory
   category { id name fullName }
   seo { title description }
-  media(first: 100) {
-    nodes { id alt mediaContentType preview { image { url width height } } }
+  media(first: 250) {
+    nodes {
+      id alt mediaContentType status preview { image { url width height } }
+      ... on MediaImage { filename image { url width height } }
+    }
   }
   options { id name position values }
   collections(first: 100) { nodes { id handle title } }
@@ -207,6 +219,160 @@ async function fetchShopifyProduct(id: string) {
     { id: shopifyNumericId(id) },
   );
   return data.product;
+}
+
+type LocalProductAsset = StagedProductMedia & {
+  alt: string;
+  mimeType: string;
+};
+
+type StagedUploadTarget = {
+  url: string | null;
+  resourceUrl: string | null;
+  parameters: Array<{ name: string; value: string }>;
+};
+
+function shopifyMediaStates(product: ShopifyProduct) {
+  return product.media.nodes.map((item) => ({
+    id: item.id,
+    filename: item.filename ?? null,
+    status: item.status,
+    imageUrl: item.image?.url ?? item.preview?.image?.url ?? null,
+  }));
+}
+
+async function uploadAssetsToShopifyStaging(assets: LocalProductAsset[]) {
+  if (!assets.length) return new Map<string, string>();
+  const staged = await shopifyAdminRequest<{
+    stagedUploadsCreate: { stagedTargets: StagedUploadTarget[]; userErrors: UserError[] };
+  }>(
+    `mutation SynaravaStagedProductUploads($input: [StagedUploadInput!]!) {
+      stagedUploadsCreate(input: $input) {
+        stagedTargets { url resourceUrl parameters { name value } }
+        userErrors { field message }
+      }
+    }`,
+    {
+      input: assets.map((asset) => ({
+        filename: asset.filename,
+        mimeType: asset.mimeType,
+        resource: "PRODUCT_IMAGE",
+        httpMethod: "POST",
+      })),
+    },
+  );
+  userErrors(staged.stagedUploadsCreate.userErrors);
+  if (staged.stagedUploadsCreate.stagedTargets.length !== assets.length) {
+    throw new ShopifyAdminError("Shopify did not return every staged media upload target.");
+  }
+
+  const uploaded = new Map<string, string>();
+  await Promise.all(assets.map(async (asset, index) => {
+    const target = staged.stagedUploadsCreate.stagedTargets[index];
+    if (!target?.url || !target.resourceUrl) {
+      throw new ShopifyAdminError(`Shopify did not return an upload URL for ${asset.filename}.`);
+    }
+    const object = await getS3().send(new GetObjectCommand({
+      Bucket: getS3Bucket(),
+      Key: asset.key,
+    }));
+    if (!object.Body) throw new Error(`Staged media object ${asset.assetId} is missing.`);
+    const bytes = await object.Body.transformToByteArray();
+    const body = new FormData();
+    for (const parameter of target.parameters) body.append(parameter.name, parameter.value);
+    body.append("file", new Blob([Uint8Array.from(bytes).buffer], { type: asset.mimeType }), asset.filename);
+    const response = await fetch(target.url, { method: "POST", body });
+    if (!response.ok) {
+      throw new ShopifyAdminError(`Shopify staging upload failed for ${asset.filename} (${response.status}).`);
+    }
+    uploaded.set(asset.assetId, target.resourceUrl);
+  }));
+  return uploaded;
+}
+
+async function waitForReadyProductMedia(product: ShopifyProduct, stagedAssets: StagedProductMedia[]) {
+  if (!stagedAssets.length) return { product, matched: [] };
+  let current = product;
+  for (const waitMs of [0, 250, 500, 1_000, 1_500, 2_000, 3_000]) {
+    if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
+    if (waitMs) current = await fetchShopifyProduct(product.id) ?? current;
+    const matched = matchReadyShopifyMedia(stagedAssets, shopifyMediaStates(current));
+    if (matched) return { product: current, matched };
+  }
+  return { product: current, matched: null };
+}
+
+async function deleteUnreferencedArchivedProductAssets(assetIds?: string[]) {
+  const assets = await db.mediaAsset.findMany({
+    where: {
+      ...(assetIds ? { id: { in: assetIds } } : {}),
+      status: "ARCHIVED",
+      source: "UPLOAD",
+      key: { startsWith: "uploads/products/" },
+    },
+    select: {
+      id: true,
+      key: true,
+      _count: {
+        select: {
+          productPrimaryFor: true,
+          collectionHeroFor: true,
+          collectionCoverFor: true,
+          productMedia: true,
+        },
+      },
+    },
+  });
+  for (const asset of assets) {
+    if (Object.values(asset._count).some((count) => count > 0)) continue;
+    try {
+      await getS3().send(new DeleteObjectCommand({ Bucket: getS3Bucket(), Key: asset.key }));
+      await db.mediaAsset.deleteMany({ where: { id: asset.id, status: "ARCHIVED" } });
+    } catch (error) {
+      console.error("Deferred product staging cleanup failed", {
+        assetId: asset.id,
+        message: error instanceof Error ? error.message : "Unknown storage error",
+      });
+    }
+  }
+}
+
+async function releaseReadyLocalProductMedia(productId: string, remote: ShopifyProduct) {
+  const local = await db.product.findUnique({
+    where: { id: productId },
+    select: {
+      primaryAsset: { select: { id: true, key: true, filename: true, source: true } },
+      media: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { asset: { select: { id: true, key: true, filename: true, source: true } } },
+      },
+    },
+  });
+  if (!local) return false;
+  const assets = new Map<string, StagedProductMedia>();
+  for (const relation of local.media) {
+    const asset = relation.asset;
+    if (asset.source === "UPLOAD" && asset.key.startsWith("uploads/products/")) {
+      assets.set(asset.id, { assetId: asset.id, key: asset.key, filename: asset.filename });
+    }
+  }
+  if (local.primaryAsset?.source === "UPLOAD" && local.primaryAsset.key.startsWith("uploads/products/")) {
+    assets.set(local.primaryAsset.id, {
+      assetId: local.primaryAsset.id,
+      key: local.primaryAsset.key,
+      filename: local.primaryAsset.filename,
+    });
+  }
+  const matched = matchReadyShopifyMedia([...assets.values()], shopifyMediaStates(remote));
+  if (!matched?.length) return false;
+  const assetIds = matched.map((item) => item.assetId);
+  await db.$transaction([
+    db.product.update({ where: { id: productId }, data: { primaryAssetId: null } }),
+    db.productMedia.deleteMany({ where: { productId, assetId: { in: assetIds } } }),
+    db.mediaAsset.updateMany({ where: { id: { in: assetIds } }, data: { status: "ARCHIVED" } }),
+  ]);
+  await deleteUnreferencedArchivedProductAssets(assetIds);
+  return true;
 }
 
 /**
@@ -465,6 +631,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       searchDocument: [remote.title, remoteSku, remote.handle, stripHtml(remote.descriptionHtml), ...searchable.flatMap((item) => [item.label, characteristicDisplayValue({ ...item, numberValue: item.numberValue ? Number(item.numberValue) : null })])].join(" "),
     },
   });
+  await releaseReadyLocalProductMedia(product.id, remote);
+  await deleteUnreferencedArchivedProductAssets();
   if (eventId) await db.productSyncEvent.update({
     where: { id: eventId },
     data: { productId: product.id, status: "SUCCEEDED", completedAt: new Date() },
@@ -637,7 +805,13 @@ export async function pushProductToShopify(productId: string) {
   try {
     const product = await db.product.findUniqueOrThrow({
       where: { id: productId },
-      include: { characteristics: true, variants: { orderBy: { createdAt: "asc" } }, tags: { include: { tag: true } } },
+      include: {
+        characteristics: true,
+        variants: { orderBy: { createdAt: "asc" } },
+        tags: { include: { tag: true } },
+        primaryAsset: true,
+        media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
+      },
     });
     const metafields = product.characteristics.flatMap((item) => {
       const value = metafieldValue(item);
@@ -654,10 +828,11 @@ export async function pushProductToShopify(productId: string) {
         ? { measurement: { weight: { value: unitWeight.toNumber(), unit: "GRAMS" as const } } }
         : {}),
     };
-    const shopifyImageUrl = (() => {
-      if (!product.imageUrl) return null;
+    const shopifyImageUrl = (source: string | null) => {
+      if (!source) return null;
       try {
-        const url = new URL(product.imageUrl, env.NEXT_PUBLIC_APP_URL);
+        const url = new URL(source, env.NEXT_PUBLIC_APP_URL);
+        if (["localhost", "127.0.0.1", "::1"].includes(url.hostname)) return null;
         const allowedOrigins = new Set(
           [env.NEXT_PUBLIC_APP_URL, env.S3_PUBLIC_URL, env.S3_ENDPOINT]
             .filter(Boolean)
@@ -670,13 +845,72 @@ export async function pushProductToShopify(productId: string) {
       } catch {
         return null;
       }
-    })();
+    };
     const currentRemote = product.shopifyProductId ? await fetchShopifyProduct(product.shopifyProductId) : null;
-    const files = shopifyImageUrl
-      ? currentRemote?.featuredMedia?.preview?.image?.url === shopifyImageUrl
-        ? [{ id: currentRemote.featuredMedia.id, alt: product.name }]
-        : [{ originalSource: shopifyImageUrl, alt: product.name }]
-      : [];
+    const localAssetsById = new Map<string, LocalProductAsset>();
+    for (const item of product.media) {
+      localAssetsById.set(item.assetId, {
+        assetId: item.assetId,
+        filename: item.asset.filename,
+        key: item.asset.key,
+        mimeType: item.asset.mimeType,
+        alt: item.alt || product.name,
+      });
+    }
+    if (product.primaryAsset && !localAssetsById.has(product.primaryAsset.id)) {
+      localAssetsById.set(product.primaryAsset.id, {
+        assetId: product.primaryAsset.id,
+        filename: product.primaryAsset.filename,
+        key: product.primaryAsset.key,
+        mimeType: product.primaryAsset.mimeType,
+        alt: product.name,
+      });
+    }
+    const localAssets = [...localAssetsById.values()].sort((left, right) =>
+      left.assetId === product.primaryAssetId ? -1 : right.assetId === product.primaryAssetId ? 1 : 0,
+    );
+    const remoteByFilename = new Map(
+      (currentRemote?.media.nodes ?? []).flatMap((item) =>
+        item.filename && item.status !== "FAILED" ? [[item.filename, item] as const] : [],
+      ),
+    );
+    const assetsToStage = localAssets.filter((asset) => !remoteByFilename.has(asset.filename));
+    const stagedUrls = await uploadAssetsToShopifyStaging(assetsToStage);
+    const seenMediaUrls = new Set<string>();
+    const seenMediaIds = new Set<string>();
+    const remoteByUrl = new Map(
+      (currentRemote?.media.nodes ?? []).flatMap((item) => item.preview?.image?.url ? [[item.preview.image.url, item] as const] : []),
+    );
+    const files: Array<{ id?: string; originalSource?: string; alt: string; filename?: string; contentType?: "IMAGE" }> = [];
+    for (const asset of localAssets) {
+      const existing = remoteByFilename.get(asset.filename);
+      if (existing) {
+        seenMediaIds.add(existing.id);
+        files.push({ id: existing.id, alt: asset.alt });
+        continue;
+      }
+      const originalSource = stagedUrls.get(asset.assetId);
+      if (!originalSource) throw new ShopifyAdminError(`Shopify staging URL is missing for ${asset.filename}.`);
+      files.push({ originalSource, filename: asset.filename, contentType: "IMAGE", alt: asset.alt });
+    }
+    const directImage = localAssets.length ? null : shopifyImageUrl(product.imageUrl);
+    if (directImage) {
+      const existing = remoteByUrl.get(directImage);
+      if (existing) {
+        seenMediaIds.add(existing.id);
+        files.push({ id: existing.id, alt: product.name });
+      } else {
+        seenMediaUrls.add(directImage);
+        files.push({ originalSource: directImage, contentType: "IMAGE", alt: product.name });
+      }
+    }
+    for (const remote of currentRemote?.media.nodes ?? []) {
+      const url = remote.preview?.image?.url;
+      if (seenMediaIds.has(remote.id) || (url && seenMediaUrls.has(url))) continue;
+      seenMediaIds.add(remote.id);
+      if (url) seenMediaUrls.add(url);
+      files.push({ id: remote.id, alt: remote.alt || product.name });
+    }
     const input = {
       title: product.name,
       handle: product.slug,
@@ -801,11 +1035,36 @@ export async function pushProductToShopify(productId: string) {
         }
       }
     }
-    await db.product.update({ where: { id: productId }, data: {
-      shopifyProductId: remote.id, shopifyHandle: remote.handle,
-      shopifyUpdatedAt: new Date(remote.updatedAt), lastSyncedAt: new Date(),
-      syncStatus: "SYNCED", syncError: null,
-    } });
+    const settled = await waitForReadyProductMedia(remote, localAssets);
+    const remoteImageUrl = pickShopifyProductImageUrl({
+      featuredImageUrl: settled.product.featuredMedia?.preview?.image?.url,
+      media: settled.product.media.nodes.map((item) => ({
+        mediaContentType: item.mediaContentType,
+        imageUrl: item.image?.url ?? item.preview?.image?.url,
+      })),
+    });
+    const productUpdate = {
+      shopifyProductId: settled.product.id,
+      shopifyHandle: settled.product.handle,
+      shopifySnapshot: snapshotForProduct(settled.product),
+      shopifyUpdatedAt: new Date(settled.product.updatedAt),
+      lastSyncedAt: new Date(),
+      syncStatus: "SYNCED" as const,
+      syncError: null,
+      ...(settled.matched ? { imageUrl: remoteImageUrl, primaryAssetId: null } : {}),
+    };
+    if (settled.matched?.length) {
+      const assetIds = settled.matched.map((item) => item.assetId);
+      await db.$transaction([
+        db.product.update({ where: { id: productId }, data: productUpdate }),
+        db.productMedia.deleteMany({ where: { productId, assetId: { in: assetIds } } }),
+        db.mediaAsset.updateMany({ where: { id: { in: assetIds } }, data: { status: "ARCHIVED" } }),
+      ]);
+      await deleteUnreferencedArchivedProductAssets(assetIds);
+    } else {
+      await db.product.update({ where: { id: productId }, data: productUpdate });
+    }
+    await deleteUnreferencedArchivedProductAssets();
     await db.productSyncEvent.update({ where: { id: event.id }, data: { shopifyProductId: remote.id, status: "SUCCEEDED", completedAt: new Date() } });
     return { ok: true as const, shopifyProductId: remote.id };
   } catch (error) {

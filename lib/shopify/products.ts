@@ -18,6 +18,11 @@ type ShopifyProduct = {
   productType: string;
   vendor: string;
   featuredImage: { url: string; altText: string | null } | null;
+  media: { nodes: Array<{
+    alt: string | null;
+    mediaContentType: string;
+    preview: { image: { url: string; altText: string | null; width: number | null; height: number | null } | null } | null;
+  }> };
   priceRange: {
     minVariantPrice: { amount: string; currencyCode: string };
   };
@@ -64,12 +69,11 @@ function toProductSummary(product: ShopifyProduct, locale: Locale): ProductSumma
     variantCount: product.variants.nodes.length,
     vendor: product.vendor,
     shopifyCategoryName: product.productType,
-    commerceMedia: product.featuredImage ? [{
-      src: product.featuredImage.url,
-      alt: product.featuredImage.altText ?? product.title,
-      width: null,
-      height: null,
-    }] : [],
+    commerceMedia: product.media.nodes.flatMap((item) => {
+      const image = item.preview?.image;
+      if (item.mediaContentType !== "IMAGE" || !image?.url) return [];
+      return [{ src: image.url, alt: item.alt || image.altText || product.title, width: image.width, height: image.height }];
+    }),
     options: [],
     variantDetails: product.variants.nodes.map((variant) => ({
       merchandiseId: variant.id,
@@ -123,6 +127,13 @@ const PRODUCT_FIELDS = `#graphql
     productType
     vendor
     featuredImage { url altText }
+    media(first: 250) {
+      nodes {
+        alt
+        mediaContentType
+        preview { image { url altText width height } }
+      }
+    }
     priceRange {
       minVariantPrice { amount currencyCode }
     }

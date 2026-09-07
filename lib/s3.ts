@@ -2,32 +2,77 @@ import { S3Client } from "@aws-sdk/client-s3";
 
 let s3Client: S3Client | null = null;
 
+type S3Environment = Record<string, string | undefined>;
+
+export type S3Config = {
+  region: string;
+  bucket: string;
+  endpoint: string | null;
+  publicUrl: string | null;
+  accessKeyId: string | null;
+  secretAccessKey: string | null;
+  forcePathStyle: boolean;
+  useProxy: boolean;
+};
+
+const LOCAL_S3_CONFIG: S3Config = {
+  region: "us-east-1",
+  bucket: "synarava-media",
+  endpoint: "http://127.0.0.1:59000",
+  publicUrl: null,
+  accessKeyId: "synarava-local",
+  secretAccessKey: "synarava-local-storage",
+  forcePathStyle: true,
+  useProxy: true,
+};
+
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
-export function getS3() {
-  if (!process.env.S3_REGION || !process.env.S3_BUCKET) {
+export function resolveS3Config(source: S3Environment, nodeEnv = process.env.NODE_ENV): S3Config {
+  const hasExplicitStorage = Boolean(source.S3_REGION || source.S3_BUCKET || source.S3_ENDPOINT);
+  if (!hasExplicitStorage && nodeEnv !== "production") return LOCAL_S3_CONFIG;
+  if (!source.S3_REGION || !source.S3_BUCKET) {
     throw new Error("S3 storage is not fully configured.");
   }
 
+  return {
+    region: source.S3_REGION,
+    bucket: source.S3_BUCKET,
+    endpoint: source.S3_ENDPOINT ?? null,
+    publicUrl: source.S3_PUBLIC_URL ?? null,
+    accessKeyId: source.S3_ACCESS_KEY_ID ?? null,
+    secretAccessKey: source.S3_SECRET_ACCESS_KEY ?? null,
+    forcePathStyle:
+      source.S3_FORCE_PATH_STYLE === "true"
+        ? true
+        : source.S3_FORCE_PATH_STYLE === "false"
+          ? false
+          : Boolean(source.S3_ENDPOINT),
+    useProxy: source.S3_USE_PROXY === "true",
+  };
+}
+
+export function getS3Config() {
+  return resolveS3Config(process.env);
+}
+
+export function getS3() {
+  const config = getS3Config();
+
   if (!s3Client) {
     s3Client = new S3Client({
-      region: process.env.S3_REGION,
-      endpoint: process.env.S3_ENDPOINT || undefined,
+      region: config.region,
+      endpoint: config.endpoint ?? undefined,
       credentials:
-        process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
+        config.accessKeyId && config.secretAccessKey
           ? {
-              accessKeyId: process.env.S3_ACCESS_KEY_ID,
-              secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+              accessKeyId: config.accessKeyId,
+              secretAccessKey: config.secretAccessKey,
             }
           : undefined,
-      forcePathStyle:
-        process.env.S3_FORCE_PATH_STYLE === "true"
-          ? true
-          : process.env.S3_FORCE_PATH_STYLE === "false"
-            ? false
-            : Boolean(process.env.S3_ENDPOINT),
+      forcePathStyle: config.forcePathStyle,
     });
   }
 
@@ -35,12 +80,7 @@ export function getS3() {
 }
 
 export function getS3Bucket() {
-  const bucket = process.env.S3_BUCKET;
-  if (!bucket) {
-    throw new Error("S3 bucket is not configured.");
-  }
-
-  return bucket;
+  return getS3Config().bucket;
 }
 
 export function getS3PublicUrl(key: string) {
@@ -50,24 +90,19 @@ export function getS3PublicUrl(key: string) {
     .map((part) => encodeURIComponent(part))
     .join("/");
 
-  if (process.env.S3_PUBLIC_URL) {
-    return `${trimTrailingSlash(process.env.S3_PUBLIC_URL)}/${normalizedKey}`;
+  const config = getS3Config();
+
+  if (config.publicUrl) {
+    return `${trimTrailingSlash(config.publicUrl)}/${normalizedKey}`;
   }
 
-  if (process.env.S3_USE_PROXY === "true") {
+  if (config.useProxy) {
     return `/media/${normalizedKey}`;
   }
 
-  const bucket = getS3Bucket();
-
-  if (process.env.S3_ENDPOINT) {
-    return `${trimTrailingSlash(process.env.S3_ENDPOINT)}/${bucket}/${normalizedKey}`;
+  if (config.endpoint) {
+    return `${trimTrailingSlash(config.endpoint)}/${config.bucket}/${normalizedKey}`;
   }
 
-  const region = process.env.S3_REGION;
-  if (!region) {
-    throw new Error("S3 region is not configured.");
-  }
-
-  return `https://${bucket}.s3.${region}.amazonaws.com/${normalizedKey}`;
+  return `https://${config.bucket}.s3.${config.region}.amazonaws.com/${normalizedKey}`;
 }

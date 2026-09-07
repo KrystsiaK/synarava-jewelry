@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { Tooltip } from "@/components/ui/tooltip";
+
 export function AdminHelp({
   children,
   label = "Field guidance",
@@ -11,12 +13,11 @@ export function AdminHelp({
 }) {
   return (
     <span className="adm-help" data-align={align}>
-      <button type="button" className="adm-help__trigger" aria-label={label}>
-        i
-      </button>
-      <span className="adm-help__popover" role="tooltip">
-        {children}
-      </span>
+      <Tooltip content={children} align={align} side="auto">
+        <button type="button" className="adm-help__trigger" aria-label={label}>
+          i
+        </button>
+      </Tooltip>
     </span>
   );
 }

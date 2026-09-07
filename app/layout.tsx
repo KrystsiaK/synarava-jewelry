@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
-import Script from "next/script";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -15,6 +14,7 @@ import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 import "./globals.css";
 
@@ -31,6 +31,15 @@ const serif = Playfair_Display({
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Synarava",
+  url: siteUrl,
+  description:
+    "Handcrafted Belarusian couture jewelry rooted in folk symbolism and contemporary design.",
+  sameAs: [],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -121,33 +130,25 @@ export default async function RootLayout({
     <html
       lang={initialLocale}
       className={`${sans.variable} ${serif.variable}`}
+      data-scroll-behavior="smooth"
       data-theme-preference={themePreference}
       data-theme="light"
       suppressHydrationWarning
     >
-      <body>
-        <a href="#main-content" className="skip-link">
-          {initialLocale === "pt" ? "Saltar para o conteúdo principal" : "Skip to main content"}
-        </a>
-        <Script
+      <head>
+        <ThemeScript initialPreference={themePreference} nonce={nonce} />
+        <script
           id="organization-json-ld"
           nonce={nonce}
           suppressHydrationWarning
           type="application/ld+json"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "Synarava",
-              url: siteUrl,
-              description:
-                "Handcrafted Belarusian couture jewelry rooted in folk symbolism and contemporary design.",
-              sameAs: [],
-            }),
-          }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationJsonLd) }}
         />
-        <ThemeScript initialPreference={themePreference} nonce={nonce} />
+      </head>
+      <body>
+        <a href="#main-content" className="skip-link">
+          {initialLocale === "pt" ? "Saltar para o conteúdo principal" : "Skip to main content"}
+        </a>
         <TranslationProvider initialLocale={initialLocale}>
           <PrivacyConsentManager
             initialConsent={cookieStore.get(PRIVACY_CONSENT_COOKIE)?.value}

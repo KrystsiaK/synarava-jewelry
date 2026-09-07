@@ -7,6 +7,7 @@ import {
   AuthTextarea,
   AuthMessage,
 } from "../auth-form-primitives";
+import { AdminToastProvider } from "@/components/admin/admin-toast";
 
 describe("AuthForm", () => {
   it("renders children in a form", () => {
@@ -118,5 +119,15 @@ describe("AuthMessage", () => {
     const { container } = render(<AuthMessage error="Oops" />);
     const el = container.firstChild as HTMLElement;
     expect(el.className).toMatch(/border-\[/);
+  });
+
+  it("does not create a toast as a hidden rendering side effect", () => {
+    render(
+      <AdminToastProvider>
+        <AuthMessage error="Invalid credentials" />
+      </AdminToastProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Close notification" })).not.toBeInTheDocument();
   });
 });

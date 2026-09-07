@@ -6,10 +6,9 @@ import type {
   ReactNode,
   TextareaHTMLAttributes,
 } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, Info, Check } from "lucide-react";
 
-import { useAdminToast } from "@/components/admin/admin-toast";
 import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
 
@@ -221,28 +220,6 @@ export function AuthMessage({
   error?: string;
   success?: string;
 }) {
-  const { pushToast } = useAdminToast();
-  const lastMessageRef = useRef("");
-
-  useEffect(() => {
-    const message = error ?? success ?? "";
-
-    if (!message) {
-      lastMessageRef.current = "";
-      return;
-    }
-
-    const tone = error ? "error" : "success";
-    const fingerprint = `${tone}:${message}`;
-
-    if (lastMessageRef.current === fingerprint) {
-      return;
-    }
-
-    lastMessageRef.current = fingerprint;
-    pushToast({ message, tone });
-  }, [error, pushToast, success]);
-
   if (!error && !success) {
     return null;
   }

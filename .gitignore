@@ -15,6 +15,7 @@ node_modules/
 /coverage
 /playwright-report/
 /test-results/
+/storybook-static/
 
 # next.js
 /.next/
@@ -33,9 +34,14 @@ node_modules/
 # graphify (generated — do not commit)
 graphify-out/
 
+# photo-editing scratch output (unreferenced by app code — do not commit)
+/artifacts/product-photo/
+/edited-product-photos/
+
 # Claude Code & Codex local tooling
 .claude/skills/
 .codex/skills/
+.codex-tmp/
 .stitch/
 
 # Python

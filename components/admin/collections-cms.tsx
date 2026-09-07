@@ -477,6 +477,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
   useDraftAutosave({
     formRef,
     saveDraft: autosaveCollectionDraftAction,
+    recordIdField: "collectionId",
     onSaved: (result) => {
       if (result.recordId) setDraftId(result.recordId);
     },
