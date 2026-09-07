@@ -167,6 +167,18 @@ export function variantCommerceChangeLabels(
   );
 }
 
+export function diffCollectionMembership(
+  desiredCollectionIds: string[],
+  currentCollectionIds: string[],
+): { toJoin: string[]; toLeave: string[] } {
+  const desired = new Set(desiredCollectionIds);
+  const current = new Set(currentCollectionIds);
+  return {
+    toJoin: desiredCollectionIds.filter((id) => !current.has(id)),
+    toLeave: currentCollectionIds.filter((id) => !desired.has(id)),
+  };
+}
+
 export function classifyRemoteReconciliationAction({
   hasUnresolvedConflict = false,
   localHasChanges,

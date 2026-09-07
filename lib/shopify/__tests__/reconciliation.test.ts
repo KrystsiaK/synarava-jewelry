@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyRemoteReconciliationAction,
   compareVariantCommerce,
+  diffCollectionMembership,
   pickShopifyProductImageUrl,
   synaravaVisibilityForShopifyStatus,
   variantCommerceChangeLabels,
@@ -101,5 +102,38 @@ describe("Shopify storefront projection", () => {
         ],
       }),
     ).toBe("https://cdn.shopify.com/product.jpg");
+  });
+});
+
+describe("diffCollectionMembership", () => {
+  it("reports nothing to change when membership already matches", () => {
+    expect(diffCollectionMembership(["gid://shopify/Collection/1"], ["gid://shopify/Collection/1"]))
+      .toEqual({ toJoin: [], toLeave: [] });
+  });
+
+  it("joins collections that are desired but not yet linked", () => {
+    expect(diffCollectionMembership(["gid://shopify/Collection/1"], [])).toEqual({
+      toJoin: ["gid://shopify/Collection/1"],
+      toLeave: [],
+    });
+  });
+
+  it("leaves collections that are linked but no longer desired", () => {
+    expect(diffCollectionMembership([], ["gid://shopify/Collection/1"])).toEqual({
+      toJoin: [],
+      toLeave: ["gid://shopify/Collection/1"],
+    });
+  });
+
+  it("computes join and leave sets independently for a partial overlap", () => {
+    expect(
+      diffCollectionMembership(
+        ["gid://shopify/Collection/1", "gid://shopify/Collection/2"],
+        ["gid://shopify/Collection/2", "gid://shopify/Collection/3"],
+      ),
+    ).toEqual({
+      toJoin: ["gid://shopify/Collection/1"],
+      toLeave: ["gid://shopify/Collection/3"],
+    });
   });
 });

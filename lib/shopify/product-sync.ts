@@ -10,6 +10,7 @@ import { shopifyAmountToCents } from "@/lib/shopify/money";
 import {
   classifyRemoteReconciliationAction,
   compareVariantCommerce,
+  diffCollectionMembership,
   pickShopifyProductImageUrl,
   synaravaVisibilityForShopifyStatus,
   type RemoteCommerceVariant,
@@ -124,6 +125,74 @@ function stripHtml(value: string) {
 
 function tagSlug(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Resolves a Shopify collection reference to the local collection
+ * projection, matching identity-first (`shopifyCollectionId`) and falling
+ * back to slug/handle for a local-only collection that predates the
+ * Shopify link. A local collection already linked to a *different*
+ * Shopify collection under the same slug is left untouched — presentation
+ * fields (name, subtitle, hero, etc.) are never overwritten here, only
+ * identity columns.
+ */
+async function upsertCollectionIdentity(remote: { id: string; handle: string; title: string }) {
+  const existingById = await db.collection.findUnique({ where: { shopifyCollectionId: remote.id } });
+  if (existingById) {
+    return db.collection.update({
+      where: { id: existingById.id },
+      data: { shopifyHandle: remote.handle, lastSyncedAt: new Date() },
+    });
+  }
+
+  const existingBySlug = await db.collection.findUnique({ where: { slug: remote.handle } });
+  if (existingBySlug) {
+    if (existingBySlug.shopifyCollectionId) return null;
+    return db.collection.update({
+      where: { id: existingBySlug.id },
+      data: { shopifyCollectionId: remote.id, shopifyHandle: remote.handle, lastSyncedAt: new Date() },
+    });
+  }
+
+  return db.collection.create({
+    data: {
+      slug: remote.handle,
+      name: remote.title,
+      shopifyCollectionId: remote.id,
+      shopifyHandle: remote.handle,
+      lastSyncedAt: new Date(),
+    },
+  });
+}
+
+/**
+ * Replaces a product's collection membership to exactly match Shopify's
+ * `collections(first: 100)` for that product. Every referenced collection
+ * is linked/created via `upsertCollectionIdentity` first so membership
+ * never points at a collection Shopify no longer reports.
+ */
+async function syncProductCollectionMembership(productId: string, remoteCollections: Array<{ id: string; handle: string; title: string }>) {
+  const membershipCollectionIds: string[] = [];
+  for (const remoteCollection of remoteCollections) {
+    const collection = await upsertCollectionIdentity(remoteCollection);
+    if (collection) membershipCollectionIds.push(collection.id);
+  }
+
+  if (membershipCollectionIds.length > 0) {
+    await db.productCollection.deleteMany({
+      where: { productId, collectionId: { notIn: membershipCollectionIds } },
+    });
+  } else {
+    await db.productCollection.deleteMany({ where: { productId } });
+  }
+
+  for (const [index, collectionId] of membershipCollectionIds.entries()) {
+    await db.productCollection.upsert({
+      where: { productId_collectionId: { productId, collectionId } },
+      update: { sortOrder: index },
+      create: { productId, collectionId, sortOrder: index },
+    });
+  }
 }
 
 
@@ -576,6 +645,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
     await db.productTag.create({ data: { productId: product.id, tagId: tag.id } });
   }
 
+  await syncProductCollectionMembership(product.id, remote.collections.nodes);
+
   const definitions = new Map<string, (typeof PRODUCT_CHARACTERISTICS)[number] & { sortOrder: number }>(PRODUCT_CHARACTERISTICS.map((item, index) => [item.key, { ...item, sortOrder: index }]));
   const reachCertificate = remote.metafields.nodes.find((item) => item.key === "reach_certified_certificate")?.value ?? null;
   // Structured characteristics belong to the Synarava CMS layer. Shopify
@@ -786,8 +857,14 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
 
 /**
  * Pushes a local product's title, description, price, SKU, inventory,
- * tags, and `synarava.*` characteristic metafields to Shopify via the
- * Admin GraphQL API, creating the remote product on first push.
+ * tags, collection membership, and `synarava.*` characteristic metafields
+ * to Shopify via the Admin GraphQL API, creating the remote product on
+ * first push.
+ *
+ * Collection membership is only pushed for local collections that already
+ * carry a `shopifyCollectionId` — a purely local collection has no Shopify
+ * counterpart to add the product to, so it is silently excluded rather
+ * than treated as an error.
  *
  * The product's image is only forwarded if its URL's origin is our own
  * configured app/S3 origin or Shopify's own CDN — this is a deliberate
@@ -811,6 +888,7 @@ export async function pushProductToShopify(productId: string) {
         characteristics: true,
         variants: { orderBy: { createdAt: "asc" } },
         tags: { include: { tag: true } },
+        collections: { include: { collection: true } },
         primaryAsset: true,
         media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
       },
@@ -948,6 +1026,29 @@ export async function pushProductToShopify(productId: string) {
     if (!data.productSet.product) throw new ShopifyAdminError("Shopify did not return the saved product.");
     const remote = data.productSet.product;
     await syncOnlineStorePublication(remote.id, product.status === "ACTIVE");
+    const desiredCollectionIds = product.collections
+      .map((item) => item.collection.shopifyCollectionId)
+      .filter((id): id is string => Boolean(id));
+    const currentCollectionIds = (currentRemote?.collections.nodes ?? []).map((item) => item.id);
+    const { toJoin, toLeave } = diffCollectionMembership(desiredCollectionIds, currentCollectionIds);
+    for (const collectionId of toJoin) {
+      const joinData = await shopifyAdminRequest<{ collectionAddProductsV2: { userErrors: UserError[] } }>(
+        `mutation SynaravaCollectionJoin($id: ID!, $productIds: [ID!]!) {
+          collectionAddProductsV2(id: $id, productIds: $productIds) { userErrors { field message } }
+        }`,
+        { id: collectionId, productIds: [remote.id] },
+      );
+      userErrors(joinData.collectionAddProductsV2.userErrors);
+    }
+    for (const collectionId of toLeave) {
+      const leaveData = await shopifyAdminRequest<{ collectionRemoveProducts: { userErrors: UserError[] } }>(
+        `mutation SynaravaCollectionLeave($id: ID!, $productIds: [ID!]!) {
+          collectionRemoveProducts(id: $id, productIds: $productIds) { userErrors { field message } }
+        }`,
+        { id: collectionId, productIds: [remote.id] },
+      );
+      userErrors(leaveData.collectionRemoveProducts.userErrors);
+    }
     if (metafields.length) {
       const metafieldData = await shopifyAdminRequest<{
         metafieldsSet: { userErrors: UserError[] };

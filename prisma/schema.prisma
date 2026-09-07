@@ -43,33 +43,36 @@ model ShopifyCustomerSession {
 }
 
 model Collection {
-  id             String              @id @default(cuid())
-  slug           String              @unique
-  code           String?             @unique
-  name           String
-  subtitle       String?
-  description    String?
-  manifesto      String?
-  symbolismLabel String?
-  symbolismTitle String?
-  symbolismBody  String?
-  symbolismBody2 String?
-  searchSummary  String?
-  seoTitle       String?
-  seoDescription String?
-  heroImageUrl   String?
-  status         CollectionStatus    @default(DRAFT)
-  visibility     ContentVisibility   @default(PRIVATE)
-  heroAssetId    String?
-  coverAssetId   String?
-  sortOrder      Int                 @default(0)
-  publishedAt    DateTime?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  heroAsset      MediaAsset?         @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
-  coverAsset     MediaAsset?         @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
-  products       ProductCollection[]
-  sections       CollectionSection[]
+  id                  String              @id @default(cuid())
+  slug                String              @unique
+  code                String?             @unique
+  name                String
+  subtitle            String?
+  description         String?
+  manifesto           String?
+  symbolismLabel      String?
+  symbolismTitle      String?
+  symbolismBody       String?
+  symbolismBody2      String?
+  searchSummary       String?
+  seoTitle            String?
+  seoDescription      String?
+  heroImageUrl        String?
+  shopifyCollectionId String?             @unique
+  shopifyHandle       String?
+  lastSyncedAt        DateTime?
+  status              CollectionStatus    @default(DRAFT)
+  visibility          ContentVisibility   @default(PRIVATE)
+  heroAssetId         String?
+  coverAssetId        String?
+  sortOrder           Int                 @default(0)
+  publishedAt         DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  heroAsset           MediaAsset?         @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
+  coverAsset          MediaAsset?         @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  products            ProductCollection[]
+  sections            CollectionSection[]
 
   @@index([status, visibility, sortOrder])
 }
@@ -348,20 +351,20 @@ model MediaAsset {
 }
 
 model Page {
-  id             String            @id @default(cuid())
-  slug           String            @unique
-  title          String
-  template       PageTemplate
-  excerpt        String?
-  searchSummary  String?
-  seoTitle       String?
-  seoDescription String?
-  status         PageStatus        @default(DRAFT)
-  visibility     ContentVisibility @default(PRIVATE)
-  publishedAt    DateTime?
-  content        Json?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id                 String            @id @default(cuid())
+  slug               String            @unique
+  title              String
+  template           PageTemplate
+  excerpt            String?
+  searchSummary      String?
+  seoTitle           String?
+  seoDescription     String?
+  status             PageStatus        @default(DRAFT)
+  visibility         ContentVisibility @default(PRIVATE)
+  publishedAt        DateTime?
+  content            Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   // Admin operator username at authoring time — see MediaAsset.uploadedByUsername.
   authoredByUsername String?
 }

@@ -146,10 +146,26 @@ integration.
    `shopifyCategoryName`, includes the category GID in `productSet`, compares
    it during reconciliation, and keeps the existing pull projection. The old
    `categoryId` relation remains readable but is no longer an editor choice.
-2. **Collection identity and membership (expand).** Add a nullable unique
-   Shopify collection GID to the local collection projection. Pull/push
-   collection identity and product membership without creating a parallel
-   collection hierarchy. Preserve Synarava-only presentation fields locally.
+2. **Collection identity and membership (expand) — complete.** `Collection`
+   gained a nullable unique `shopifyCollectionId`, plus `shopifyHandle` and
+   `lastSyncedAt` (migration `20260907212252_expand_collection_shopify_identity`).
+   Pulling a product now resolves each of Shopify's
+   `collections(first: 100)` entries to a local collection — matching by
+   `shopifyCollectionId` first, then by `slug`/handle for a local-only
+   collection that predates the link, creating one only if neither matches
+   — and replaces that product's `ProductCollection` rows to mirror Shopify
+   exactly (`lib/shopify/product-sync.ts`: `upsertCollectionIdentity`,
+   `syncProductCollectionMembership`). Only identity columns are written on
+   an existing match; presentation fields (name, subtitle, hero, etc.) are
+   never touched by pull. Pushing a product now diffs its local collections'
+   `shopifyCollectionId`s against Shopify's current membership
+   (`diffCollectionMembership` in `lib/shopify/reconciliation.ts`, unit
+   tested) and calls `collectionAddProductsV2`/`collectionRemoveProducts`
+   for the difference; a collection with no `shopifyCollectionId` is
+   excluded from push rather than erroring. The admin product editor's
+   collection picker is unchanged (still a single local `collectionSlug`)
+   — multi-collection editing UX is not in scope for this item and is
+   still open.
 3. **Storefront navigation migration.** Replace `details.department` and the
    hard-coded department inference with explicit storefront navigation built
    from collections. Backfill or map existing products before switching reads.
