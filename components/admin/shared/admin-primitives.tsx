@@ -139,8 +139,6 @@ const NAV_ITEMS = [
   { href: "/admin/videos", label: "Videos", code: "VID" },
   { href: "/admin/products", label: "Catalog", code: "CAT" },
   { href: "/admin/issues", label: "Problems", code: "QA" },
-  { href: "/admin/categories", label: "Categories", code: "TAX" },
-  { href: "/admin/tags", label: "Tags", code: "TAG" },
   { href: "/admin/collections", label: "Collections", code: "COL" },
   { href: "/admin/account", label: "Account", code: "ACC" },
 ] as const;

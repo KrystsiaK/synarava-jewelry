@@ -14,7 +14,7 @@ export default async function NewProductPage() {
           <div>
             <h1 className="adm-page-title">New product</h1>
             <p className="adm-page-subtitle">
-              Create one catalog record. Product lists, categories, and tags stay on their own screens.
+              Create one catalog record. Collections stay on their own screen.
             </p>
           </div>
           <Link href="/admin/products" className="adm-btn-ghost">

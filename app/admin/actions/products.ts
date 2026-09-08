@@ -102,7 +102,6 @@ export type SavedProductPayload = {
     shopifyVariantId: string | null;
     shopifyInventoryItemId: string | null;
   }[];
-  category: { id: string; slug: string; name: string } | null;
   collections: {
     id: string;
     sortOrder: number;
@@ -170,13 +169,6 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       },
       characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
       variants: { orderBy: { createdAt: "asc" } },
-      category: {
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-        },
-      },
       collections: {
         include: {
           collection: {
@@ -836,7 +828,9 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
   })).filter((item) => item.label && item.value);
   // department is no longer stored in details — it's ProductCollection
   // membership. Strip any legacy key left over from before this migration.
-  const { department: _legacyDepartment, ...existingDetails } = asRecord(existingProduct?.details);
+  const existingDetails = Object.fromEntries(
+    Object.entries(asRecord(existingProduct?.details)).filter(([key]) => key !== "department"),
+  );
   const draftDetails = {
     ...existingDetails,
     attributes,

@@ -164,6 +164,7 @@ function toSummary(product: {
   currency: string;
   updatedAt: Date;
   vendor: string | null;
+  shopifyCategoryId: string | null;
   shopifyCategoryName: string | null;
   shopifySnapshot: unknown;
   imageUrl: string | null;
@@ -173,7 +174,6 @@ function toSummary(product: {
   symbolismBody: string | null;
   symbolismBody2: string | null;
   details: unknown;
-  category: { slug: string; name: string } | null;
   tags: { tag: { slug: string; name: string } }[];
   collections: {
     collection: {
@@ -286,8 +286,8 @@ function toSummary(product: {
       ? product.characteristics.map((item) => ({ label: item.label, value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }) }))
       : details.attributes ?? [],
     characteristics: product.characteristics.map((item) => ({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) })),
-    categorySlug: product.category?.slug ?? null,
-    categoryName: product.category?.name ?? null,
+    categorySlug: product.shopifyCategoryId,
+    categoryName: product.shopifyCategoryName,
     tagSlugs: product.tags.map((item) => item.tag.slug),
     tagNames: product.tags.map((item) => item.tag.name),
     symbolismLabel: product.symbolismLabel ?? leadCollection?.symbolismLabel ?? "",
@@ -322,10 +322,16 @@ export async function getStorefrontNavigation() {
 }
 
 export async function getShopFilterData() {
-  const [departments, categories, tags, collections, characteristicRows] = await Promise.all([
+  const [departments, categoryRows, tags, collections, characteristicRows] = await Promise.all([
     getStorefrontNavigation(),
-    db.productCategory.findMany({
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    // Category is Shopify Standard Product Taxonomy now (item 1) — there's
+    // no local category table to browse, so the filter options are just
+    // the distinct categories actually in use, like materials/finishes below.
+    db.product.findMany({
+      where: { status: "ACTIVE", visibility: "PUBLIC", shopifyCategoryId: { not: null } },
+      select: { shopifyCategoryId: true, shopifyCategoryName: true },
+      distinct: ["shopifyCategoryId"],
+      orderBy: { shopifyCategoryName: "asc" },
     }),
     db.tag.findMany({
       orderBy: { name: "asc" },
@@ -342,6 +348,10 @@ export async function getShopFilterData() {
     }),
   ]);
 
+  const categories = categoryRows.map((row) => ({
+    slug: row.shopifyCategoryId!,
+    name: row.shopifyCategoryName ?? row.shopifyCategoryId!,
+  }));
   const values = (key: string) => characteristicRows.filter((item) => item.key === key && item.textValue).map((item) => ({ slug: item.textValue!, name: item.textValue! }));
   return { departments, categories, tags, collections, materials: values("material"), finishes: values("finish"), origins: values("origin") };
 }
@@ -417,13 +427,7 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     where: {
       status: "ACTIVE",
       visibility: "PUBLIC",
-      ...(filters.category
-        ? {
-            category: {
-              slug: filters.category,
-            },
-          }
-        : {}),
+      ...(filters.category ? { shopifyCategoryId: filters.category } : {}),
       ...(filters.availability === "in-stock"
         ? { variants: { some: { status: "ACTIVE", stockOnHand: { gt: 0 } } } }
         : {}),
@@ -467,7 +471,6 @@ export async function listShopProducts(filters: ShopFilters = {}) {
         : {}),
     },
     include: {
-      category: true,
       tags: {
         include: {
           tag: true,
@@ -509,7 +512,6 @@ export async function getProductBySlug(slug: string) {
   const product = await db.product.findUnique({
     where: { slug },
     include: {
-      category: true,
       tags: {
         include: {
           tag: true,
@@ -572,13 +574,12 @@ export async function getPageBySlug(slug: string) {
 }
 
 export async function getAdminCatalogData() {
-  const [pages, rawProducts, categories, tags, collections, issues] = await Promise.all([
+  const [pages, rawProducts, categoryRows, tags, collections, issues] = await Promise.all([
     db.page.findMany({
       orderBy: { slug: "asc" },
     }),
     db.product.findMany({
       include: {
-        category: true,
         tags: {
           include: {
             tag: true,
@@ -595,8 +596,14 @@ export async function getAdminCatalogData() {
       },
       orderBy: { updatedAt: "desc" },
     }),
-    db.productCategory.findMany({
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    // Category is Shopify Standard Product Taxonomy now (item 1) — options
+    // are the distinct categories actually assigned to a product, not a
+    // separate local table.
+    db.product.findMany({
+      where: { shopifyCategoryId: { not: null } },
+      select: { shopifyCategoryId: true, shopifyCategoryName: true },
+      distinct: ["shopifyCategoryId"],
+      orderBy: { shopifyCategoryName: "asc" },
     }),
     db.tag.findMany({
       orderBy: { name: "asc" },
@@ -624,6 +631,10 @@ export async function getAdminCatalogData() {
       ...variant,
       weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
     })),
+  }));
+  const categories = categoryRows.map((row) => ({
+    slug: row.shopifyCategoryId!,
+    name: row.shopifyCategoryName ?? row.shopifyCategoryId!,
   }));
   return { pages, products, categories, tags, collections, issues };
 }

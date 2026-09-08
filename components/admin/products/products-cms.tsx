@@ -26,7 +26,6 @@ import {
   syncShopifySelectionAction,
   testShopifyConnectionAction,
 } from "@/app/admin/actions/sync";
-import type { SavedCategoryPayload } from "@/app/admin/actions/categories";
 import type { SavedTagPayload } from "@/app/admin/actions/tags";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import {
@@ -55,7 +54,7 @@ import {
 import type { ProductSyncInspection, ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
 import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, Eye, RefreshCw, TriangleAlert } from "lucide-react";
 
-type CategoryOption = SavedCategoryPayload;
+type CategoryOption = { slug: string; name: string };
 type TagOption = SavedTagPayload;
 type CollectionOption = { id: string; slug: string; name: string; isPrimaryNav: boolean; navSortOrder: number };
 type ProductRecord = SavedProductPayload;
@@ -1726,7 +1725,7 @@ export function ProductsCms({
         .includes(normalizedQuery);
     const matchesStatus = statusFilter === "ALL" || status === statusFilter;
     const matchesCategory =
-      categoryFilter === "ALL" || product.category?.slug === categoryFilter;
+      categoryFilter === "ALL" || product.shopifyCategoryId === categoryFilter;
     const matchesCollection =
       collectionFilter === "ALL" ||
       product.collections.some((item) => item.collection.slug === collectionFilter);
@@ -1809,7 +1808,7 @@ export function ProductsCms({
             >
               <option value="ALL">All categories</option>
               {categories.map((category) => (
-                <option key={category.id} value={category.slug}>
+                <option key={category.slug} value={category.slug}>
                   {category.name}
                 </option>
               ))}
@@ -2078,7 +2077,7 @@ export function ProductsCms({
                       {centsToPrice(product.priceCents)} EUR
                     </span>
                     <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
-                      {product.category?.name ?? "No category"}
+                      {product.shopifyCategoryName ?? "No category"}
                     </span>
                     <div className="flex min-w-0 flex-wrap justify-start gap-2 xl:justify-end">
                       <button
