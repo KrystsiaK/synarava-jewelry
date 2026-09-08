@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "pnpm start",
-    "preDeployCommand": "pnpm prisma:deploy",
+    "preDeployCommand": "pnpm prisma:deploy && pnpm catalog:backfill-departments",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",

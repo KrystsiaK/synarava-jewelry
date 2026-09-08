@@ -61,7 +61,7 @@ export type SavedProductPayload = {
   imageUrl: string | null;
   primaryAssetId: string | null;
   priceCents: number;
-  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED" | "UNLISTED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
   shopifyProductId: string | null;
   shopifyHandle: string | null;
@@ -605,7 +605,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     : null;
 
   const isPublished = workflowState === "PUBLISHED";
-  if (isPublished && !imageUrl) {
+  const isUnlisted = workflowState === "UNLISTED";
+  if ((isPublished || isUnlisted) && !imageUrl) {
     return { error: "Product image is required before publishing." };
   }
 
@@ -632,9 +633,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       shopifyCategoryId: shopifyCategory?.id ?? null,
       shopifyCategoryName: shopifyCategory?.name ?? null,
     } : {}),
-    status: isPublished ? "ACTIVE" as const : "DRAFT" as const,
-    visibility: isPublished ? "PUBLIC" as const : "PRIVATE" as const,
-    publishedAt: isPublished ? new Date() : null,
+    status: isPublished ? "ACTIVE" as const : isUnlisted ? "UNLISTED" as const : "DRAFT" as const,
+    visibility: isPublished ? "PUBLIC" as const : isUnlisted ? "UNLISTED" as const : "PRIVATE" as const,
+    publishedAt: isPublished || isUnlisted ? new Date() : null,
     searchDocument: buildProductSearchDocument({
       name, sku, slug, description, shortDescription, materialLine,
       tags: tagSlugs, characteristics,
@@ -683,11 +684,11 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   if (existingVariant) {
     await db.productVariant.update({
       where: { id: existingVariant.id },
-      data: { sku, priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : "DRAFT" },
+      data: { sku, priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : isUnlisted ? "UNLISTED" : "DRAFT" },
     });
   } else {
     await db.productVariant.create({
-      data: { productId: product.id, sku, title: "Default Title", priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : "DRAFT" },
+      data: { productId: product.id, sku, title: "Default Title", priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : isUnlisted ? "UNLISTED" : "DRAFT" },
     });
   }
 

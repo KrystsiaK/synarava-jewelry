@@ -172,7 +172,7 @@ export async function restoreAdminRecordVersionAction(input: {
           imageUrl: snapshotNullableString(snapshot, "imageUrl"),
           priceCents: snapshotNumber(snapshot, "priceCents"),
           categoryId: typeof category.id === "string" ? category.id : null,
-          status: snapshotString(snapshot, "status") as "DRAFT" | "ACTIVE" | "ARCHIVED",
+          status: snapshotString(snapshot, "status") as "DRAFT" | "ACTIVE" | "ARCHIVED" | "UNLISTED",
           visibility: snapshotString(snapshot, "visibility") as "PRIVATE" | "UNLISTED" | "PUBLIC",
         },
       });

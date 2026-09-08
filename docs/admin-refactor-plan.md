@@ -87,10 +87,6 @@ components/admin/
     page-delete-button.tsx       (page-owned delete action)
     page-helpers.ts              (pageStatusLabel, isProtectedPage, pageActionCopy)
     page-route-editor.tsx
-  categories/
-    categories-cms.tsx           (moved as-is, 285 lines — not split)
-  tags/
-    tags-cms.tsx                 (moved as-is, 253 lines — not split)
   issues/
     admin-issues-cms.tsx         (moved as-is, 155 lines — not split)
   site-videos/
@@ -98,10 +94,10 @@ components/admin/
   __tests__/                     (mirror new paths; move tests with their source phase)
 ```
 
-`categories-cms.tsx`, `tags-cms.tsx`, `admin-issues-cms.tsx`,
-`site-videos-cms.tsx` are under 300 lines and already single-concern — they
-get a folder for consistency, not a content split. Splitting them would be
-churn without payoff (YAGNI).
+`admin-issues-cms.tsx` and `site-videos-cms.tsx` are under 300 lines and
+already single-concern — they get a folder for consistency, not a content
+split. The category/tag admin folders were removed in Phase A item 4 after
+Shopify became the canonical editor for those concepts.
 
 ## Non-goals
 
@@ -160,9 +156,14 @@ integration.
    never touched by pull. Pushing a product now diffs its local collections'
    `shopifyCollectionId`s against Shopify's current membership
    (`diffCollectionMembership` in `lib/shopify/reconciliation.ts`, unit
-   tested) and calls `collectionAddProductsV2`/`collectionRemoveProducts`
-   for the difference; a collection with no `shopifyCollectionId` is
-   excluded from push rather than erroring. The admin product editor's
+   tested). With Shopify API `2026-07`, changes use a dedicated
+   Synarava-owned product source through `collectionUpdate` with
+   `selectionsToAdd`/`selectionsToRemove`; `shopifyManualSourceId` retains
+   that source identity, asynchronous Shopify jobs are awaited, and
+   Shopify-authored condition sources remain untouched. A collection with
+   no `shopifyCollectionId` is excluded from push rather than erroring, and
+   a handle collision between different Shopify collection IDs becomes a
+   visible sync failure instead of silently dropping membership. The admin product editor's
    collection picker is unchanged (still a single local `collectionSlug`)
    — multi-collection editing UX is not in scope for this item and is
    still open.
@@ -174,7 +175,9 @@ integration.
    than duplicated). `scripts/backfill-department-collections.mjs`
    (idempotent — safe to re-run) links every existing product to its
    department collection using the same classification the storefront used
-   to compute it on the fly, then `getStorefrontNavigation()` in
+   to compute it on the fly. Railway runs the backfill after
+   `prisma migrate deploy`, so the read-path cutover cannot deploy with empty
+   department collections. Then `getStorefrontNavigation()` in
    `lib/content/catalog.ts` replaces `SHOP_DEPARTMENTS` as the read path:
    `toSummary`'s `departmentSlug`/`departmentName` now come from the
    product's `isPrimaryNav` `ProductCollection` membership, not from
@@ -242,7 +245,9 @@ integration.
      Store, was wrongly treated as `PUBLIC` on the Synarava storefront.
      Now `synaravaVisibilityForShopifyProduct(status, isPublishedOnline)`
      requires both, checked from `resourcePublicationsV2`'s Online Store
-     entry.
+     entry. Shopify's `UNLISTED` status is represented losslessly in Prisma
+     and the admin: it stays out of listings while the direct product URL and
+     cart path remain available when Online Store is published.
    - *Vendor/SEO*: pull-only — `pushProductToShopify` never included
      `vendor`/`seo` in the `productSet` input, so local values (however
      they got there) had no way back to Shopify. Now pushed, following
@@ -305,7 +310,8 @@ Checkpoint after items 1–3:
 
 ### Phase 1 — mechanical folder moves (complete)
 - Create `shared/`, `products/`, `collections/`, `pages/`, `categories/`,
-  `tags/`, `issues/`, `site-videos/`.
+  `tags/`, `issues/`, `site-videos/`. The category/tag folders were later
+  removed by Phase A item 4 after their competing CRUD surfaces were retired.
 - `git mv` each file into place, update all list-page and route-page importers,
   then update relative imports inside moved files
   (`@/components/admin/...` absolute imports need no change if the alias

@@ -71,7 +71,12 @@ describe("addStorefrontProductToCart", () => {
     expect(mocks.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         slug: "local-slug",
-        variants: { some: { shopifyVariantId: "gid://shopify/ProductVariant/selected", status: "ACTIVE" } },
+        variants: {
+          some: {
+            shopifyVariantId: "gid://shopify/ProductVariant/selected",
+            status: { in: ["ACTIVE", "UNLISTED"] },
+          },
+        },
       }),
     }));
     expect(mocks.addShopifyProductToCart).toHaveBeenCalledWith(

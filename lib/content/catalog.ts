@@ -15,6 +15,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
 import { combineProductGallery } from "@/lib/media/product-gallery";
+import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
 
 export type CollectionSummary = {
   slug: string;
@@ -545,7 +546,7 @@ export async function getProductBySlug(slug: string) {
     },
   });
 
-  if (!product || product.status !== "ACTIVE" || product.visibility !== "PUBLIC") {
+  if (!product || !isSynaravaProductAccessible(product.status, product.visibility)) {
     return null;
   }
 

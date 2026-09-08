@@ -37,10 +37,12 @@ export async function addStorefrontProductToCart(
     const product = await db.product.findFirst({
       where: {
         slug: productSlug,
-        status: "ACTIVE",
-        visibility: "PUBLIC",
+        OR: [
+          { status: "ACTIVE", visibility: "PUBLIC" },
+          { status: "UNLISTED", visibility: "UNLISTED" },
+        ],
         variants: {
-          some: { shopifyVariantId: merchandiseId, status: "ACTIVE" },
+          some: { shopifyVariantId: merchandiseId, status: { in: ["ACTIVE", "UNLISTED"] } },
         },
       },
       select: { shopifyHandle: true },
@@ -56,7 +58,7 @@ export async function addStorefrontProductToCart(
       variants: {
         where: {
           shopifyVariantId: { not: null },
-          status: "ACTIVE",
+          status: { in: ["ACTIVE", "UNLISTED"] },
         },
         orderBy: [
           { stockOnHand: "desc" },

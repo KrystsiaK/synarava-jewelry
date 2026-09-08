@@ -5,26 +5,9 @@
 // skips any product that already has a primary-nav membership (e.g. from a
 // Shopify collection pull).
 import { PrismaClient } from "@prisma/client";
+import { classifyDepartment } from "./department-backfill-classifier.mjs";
 
 const prisma = new PrismaClient();
-
-function classifyDepartment(product) {
-  const explicit = typeof product.details?.department === "string" ? product.details.department.trim() : "";
-  if (explicit) return explicit;
-
-  const classificationText = [
-    product.shopifyCategoryName,
-    product.name,
-    product.seriesLabel,
-    product.category?.name,
-    ...product.tags.map((entry) => entry.tag.name),
-  ].filter(Boolean).join(" ").toLowerCase();
-
-  if (/\b(pet|pets|dog|dogs|cat|cats)\b/.test(classificationText)) return "pets";
-  if (/\b(kid|kids|child|children|toy|toys)\b/.test(classificationText)) return "kids";
-  if (/\b(bead|beads|findings|jewelry making|jewellery making|craft tools?)\b/.test(classificationText)) return "jewelry-making";
-  return "jewelry";
-}
 
 async function main() {
   const navCollections = await prisma.collection.findMany({ where: { isPrimaryNav: true } });

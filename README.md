@@ -120,7 +120,8 @@ HTTPS so Shopify can deliver signed webhooks.
 Production deployment is defined in `railway.json`:
 
 - build: `pnpm build`
-- pre-deploy: `pnpm prisma:deploy`
+- pre-deploy: `pnpm prisma:deploy`, then the idempotent department-collection
+  backfill (`pnpm catalog:backfill-departments`)
 - start: `pnpm start`
 - healthcheck: `/api/health`
 

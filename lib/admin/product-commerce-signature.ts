@@ -5,7 +5,7 @@ type ProductCommerceSnapshot = {
   imageUrl: string | null;
   shopifyCategoryId: string | null;
   media: Array<{ assetId: string; sortOrder: number }>;
-  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED" | "UNLISTED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
   sku: string;
   priceCents: number;

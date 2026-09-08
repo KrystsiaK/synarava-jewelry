@@ -16,7 +16,7 @@ export type RemoteCommerceVariant = {
   inventoryQuantity?: number | null;
 };
 
-export type RemoteProductStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
+export type RemoteProductStatus = "ACTIVE" | "DRAFT" | "ARCHIVED" | "UNLISTED";
 
 /**
  * A product only reaches the Synarava storefront when it's both ACTIVE
@@ -25,7 +25,25 @@ export type RemoteProductStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
  * status alone would wrongly surface it here.
  */
 export function synaravaVisibilityForShopifyProduct(status: RemoteProductStatus, isPublishedOnline: boolean) {
-  return status === "ACTIVE" && isPublishedOnline ? "PUBLIC" as const : "PRIVATE" as const;
+  if (!isPublishedOnline) return "PRIVATE" as const;
+  if (status === "ACTIVE") return "PUBLIC" as const;
+  if (status === "UNLISTED") return "UNLISTED" as const;
+  return "PRIVATE" as const;
+}
+
+export function isSynaravaProductAccessible(
+  status: RemoteProductStatus,
+  visibility: "PRIVATE" | "UNLISTED" | "PUBLIC",
+) {
+  return (status === "ACTIVE" && visibility === "PUBLIC") ||
+    (status === "UNLISTED" && visibility === "UNLISTED");
+}
+
+export async function refreshShopifyProductAfterPush<T extends { id: string }>(
+  product: T,
+  fetchProduct: (id: string) => Promise<T | null>,
+) {
+  return await fetchProduct(product.id) ?? product;
 }
 
 export function pickShopifyProductImageUrl({

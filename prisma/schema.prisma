@@ -43,38 +43,39 @@ model ShopifyCustomerSession {
 }
 
 model Collection {
-  id                  String              @id @default(cuid())
-  slug                String              @unique
-  code                String?             @unique
-  name                String
-  subtitle            String?
-  description         String?
-  manifesto           String?
-  symbolismLabel      String?
-  symbolismTitle      String?
-  symbolismBody       String?
-  symbolismBody2      String?
-  searchSummary       String?
-  seoTitle            String?
-  seoDescription      String?
-  heroImageUrl        String?
-  shopifyCollectionId String?             @unique
-  shopifyHandle       String?
-  lastSyncedAt        DateTime?
-  isPrimaryNav        Boolean             @default(false)
-  navSortOrder        Int                 @default(0)
-  status              CollectionStatus    @default(DRAFT)
-  visibility          ContentVisibility   @default(PRIVATE)
-  heroAssetId         String?
-  coverAssetId        String?
-  sortOrder           Int                 @default(0)
-  publishedAt         DateTime?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  heroAsset           MediaAsset?         @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
-  coverAsset          MediaAsset?         @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
-  products            ProductCollection[]
-  sections            CollectionSection[]
+  id                    String              @id @default(cuid())
+  slug                  String              @unique
+  code                  String?             @unique
+  name                  String
+  subtitle              String?
+  description           String?
+  manifesto             String?
+  symbolismLabel        String?
+  symbolismTitle        String?
+  symbolismBody         String?
+  symbolismBody2        String?
+  searchSummary         String?
+  seoTitle              String?
+  seoDescription        String?
+  heroImageUrl          String?
+  shopifyCollectionId   String?             @unique
+  shopifyManualSourceId String?             @unique
+  shopifyHandle         String?
+  lastSyncedAt          DateTime?
+  isPrimaryNav          Boolean             @default(false)
+  navSortOrder          Int                 @default(0)
+  status                CollectionStatus    @default(DRAFT)
+  visibility            ContentVisibility   @default(PRIVATE)
+  heroAssetId           String?
+  coverAssetId          String?
+  sortOrder             Int                 @default(0)
+  publishedAt           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  heroAsset             MediaAsset?         @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
+  coverAsset            MediaAsset?         @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  products              ProductCollection[]
+  sections              CollectionSection[]
 
   @@index([status, visibility, sortOrder])
 }
@@ -446,6 +447,7 @@ enum ProductStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+  UNLISTED
 }
 
 enum ProductSyncStatus {

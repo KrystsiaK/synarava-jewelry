@@ -4,7 +4,9 @@ import {
   classifyRemoteReconciliationAction,
   compareVariantCommerce,
   diffCollectionMembership,
+  isSynaravaProductAccessible,
   pickShopifyProductImageUrl,
+  refreshShopifyProductAfterPush,
   synaravaVisibilityForShopifyProduct,
   variantCommerceChangeLabels,
   type LocalCommerceVariant,
@@ -86,11 +88,28 @@ describe("classifyRemoteReconciliationAction", () => {
 });
 
 describe("Shopify storefront projection", () => {
+  it("keeps unlisted products accessible by direct URL but out of public listings", () => {
+    expect(isSynaravaProductAccessible("ACTIVE", "PUBLIC")).toBe(true);
+    expect(isSynaravaProductAccessible("UNLISTED", "UNLISTED")).toBe(true);
+    expect(isSynaravaProductAccessible("UNLISTED", "PRIVATE")).toBe(false);
+    expect(isSynaravaProductAccessible("DRAFT", "PRIVATE")).toBe(false);
+  });
+
   it("requires both ACTIVE status and an Online Store publication", () => {
     expect(synaravaVisibilityForShopifyProduct("ACTIVE", true)).toBe("PUBLIC");
     expect(synaravaVisibilityForShopifyProduct("ACTIVE", false)).toBe("PRIVATE");
     expect(synaravaVisibilityForShopifyProduct("DRAFT", true)).toBe("PRIVATE");
     expect(synaravaVisibilityForShopifyProduct("ARCHIVED", true)).toBe("PRIVATE");
+    expect(synaravaVisibilityForShopifyProduct("UNLISTED", true)).toBe("UNLISTED");
+    expect(synaravaVisibilityForShopifyProduct("UNLISTED", false)).toBe("PRIVATE");
+  });
+
+  it("refreshes the product after all Shopify mutations before persisting the snapshot", async () => {
+    const initial = { id: "gid://shopify/Product/1", updatedAt: "before" };
+    const refreshed = { id: initial.id, updatedAt: "after" };
+
+    await expect(refreshShopifyProductAfterPush(initial, async () => refreshed)).resolves.toBe(refreshed);
+    await expect(refreshShopifyProductAfterPush(initial, async () => null)).resolves.toBe(initial);
   });
 
   it("uses the first Shopify image media when no featured image is set", () => {

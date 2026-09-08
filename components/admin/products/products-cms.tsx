@@ -169,7 +169,7 @@ type ProductDraft = {
   shopifyCategoryName: string;
   collectionSlug: string;
   tags: string;
-  workflowState: "DRAFT" | "PUBLISHED";
+  workflowState: "DRAFT" | "PUBLISHED" | "UNLISTED";
   imageUrl: string;
   stockOnHand: string;
 };
@@ -272,9 +272,10 @@ function productToDraft(product: ProductRecord): ProductDraft {
     shopifyCategoryName: product.shopifyCategoryName ?? "",
     collectionSlug: marketingCollection?.slug ?? "",
     tags: product.tags.map((item) => item.tag.slug).join(", "),
-    workflowState:
-      product.status === "ACTIVE" && product.visibility === "PUBLIC"
-        ? "PUBLISHED"
+    workflowState: product.status === "ACTIVE" && product.visibility === "PUBLIC"
+      ? "PUBLISHED"
+      : product.status === "UNLISTED" && product.visibility === "UNLISTED"
+        ? "UNLISTED"
         : "DRAFT",
     imageUrl: product.imageUrl ?? "",
     stockOnHand: String(primaryVariant?.stockOnHand ?? 0),
@@ -360,6 +361,8 @@ function ProductSyncStrip({ product, dirty, inspection, pending, onCheck, onPull
   const shopifyPublications = inspection?.publications ?? [];
   const storefrontState = product.status === "ACTIVE" && product.visibility === "PUBLIC"
     ? "Published"
+    : product.status === "UNLISTED" && product.visibility === "UNLISTED"
+      ? "Unlisted · direct link"
     : product.status === "ARCHIVED"
       ? "Archived"
       : "Draft / hidden";
@@ -543,6 +546,7 @@ function SaveButtons({
 
 function productStatusLabel(product: ProductRecord) {
   if (product.status === "ARCHIVED") return "ARCHIVED";
+  if (product.status === "UNLISTED") return "UNLISTED";
   return product.status === "ACTIVE" && product.visibility === "PUBLIC" ? "PUBLISHED" : "DRAFT";
 }
 
@@ -1150,6 +1154,7 @@ function ProductFormFields({
         <select name="workflowState" defaultValue={draft.workflowState} className="adm-field">
           <option value="DRAFT">Draft — hidden</option>
           <option value="PUBLISHED">Published — visible</option>
+          <option value="UNLISTED">Unlisted — direct link only</option>
         </select>
       </label>
     </>
@@ -1802,6 +1807,7 @@ export function ProductsCms({
               <option value="ALL">All</option>
               <option value="PUBLISHED">Published</option>
               <option value="DRAFT">Draft</option>
+              <option value="UNLISTED">Unlisted</option>
               <option value="ARCHIVED">Archived</option>
             </select>
           </label>

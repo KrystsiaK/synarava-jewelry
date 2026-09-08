@@ -12,11 +12,22 @@ import {
   compareVariantCommerce,
   diffCollectionMembership,
   pickShopifyProductImageUrl,
+  refreshShopifyProductAfterPush,
   synaravaVisibilityForShopifyProduct,
   type RemoteCommerceVariant,
+  type RemoteProductStatus,
   variantCommerceChangeLabel,
   variantCommerceChangeLabels,
 } from "@/lib/shopify/reconciliation";
+import {
+  findManagedCollectionSourceId,
+  hasCollectionIdentityConflict,
+  type ShopifyCollectionSource,
+} from "@/lib/shopify/collection-membership";
+import {
+  addProductToShopifyCollection,
+  removeProductFromShopifyCollection,
+} from "@/lib/shopify/collection-sync";
 import { env } from "@/lib/env";
 import { getS3, getS3Bucket } from "@/lib/s3";
 import {
@@ -35,7 +46,7 @@ type ShopifyProduct = {
   vendor: string;
   productType: string;
   tags: string[];
-  status: "ACTIVE" | "DRAFT" | "ARCHIVED";
+  status: RemoteProductStatus;
   updatedAt: string;
   totalInventory: number;
   category: { id: string; name: string; fullName: string } | null;
@@ -50,7 +61,12 @@ type ShopifyProduct = {
     image?: { url: string; width: number | null; height: number | null } | null;
   }> };
   options: Array<{ id: string; name: string; position: number; values: string[] }>;
-  collections: { nodes: Array<{ id: string; handle: string; title: string }> };
+  collections: { nodes: Array<{
+    id: string;
+    handle: string;
+    title: string;
+    sources: ShopifyCollectionSource[];
+  }> };
   resourcePublicationsV2: { nodes: Array<{
     isPublished: boolean;
     publishDate: string | null;
@@ -102,7 +118,15 @@ const PRODUCT_FIELDS = `
     }
   }
   options { id name position values }
-  collections(first: 100) { nodes { id handle title } }
+  collections(first: 100) {
+    nodes {
+      id handle title
+      sources {
+        __typename id title
+        ... on CollectionConditionsSource { targetType }
+      }
+    }
+  }
   resourcePublicationsV2(first: 100) { nodes { isPublished publishDate publication { id name } } }
   featuredMedia { id preview { image { url } } }
   variants(first: 100) {
@@ -136,21 +160,38 @@ function tagSlug(value: string) {
  * fields (name, subtitle, hero, etc.) are never overwritten here, only
  * identity columns.
  */
-async function upsertCollectionIdentity(remote: { id: string; handle: string; title: string }) {
+async function upsertCollectionIdentity(remote: {
+  id: string;
+  handle: string;
+  title: string;
+  sources: ShopifyCollectionSource[];
+}) {
   const existingById = await db.collection.findUnique({ where: { shopifyCollectionId: remote.id } });
   if (existingById) {
+    const shopifyManualSourceId = findManagedCollectionSourceId(
+      remote.sources,
+      existingById.shopifyManualSourceId,
+    );
     return db.collection.update({
       where: { id: existingById.id },
-      data: { shopifyHandle: remote.handle, lastSyncedAt: new Date() },
+      data: { shopifyHandle: remote.handle, shopifyManualSourceId, lastSyncedAt: new Date() },
     });
   }
 
   const existingBySlug = await db.collection.findUnique({ where: { slug: remote.handle } });
   if (existingBySlug) {
-    if (existingBySlug.shopifyCollectionId) return null;
+    if (hasCollectionIdentityConflict(existingBySlug.shopifyCollectionId, remote.id)) {
+      throw new ShopifyAdminError(
+        `Collection handle "${remote.handle}" is already linked to ${existingBySlug.shopifyCollectionId}; refusing to replace it with ${remote.id}.`,
+      );
+    }
+    const shopifyManualSourceId = findManagedCollectionSourceId(
+      remote.sources,
+      existingBySlug.shopifyManualSourceId,
+    );
     return db.collection.update({
       where: { id: existingBySlug.id },
-      data: { shopifyCollectionId: remote.id, shopifyHandle: remote.handle, lastSyncedAt: new Date() },
+      data: { shopifyCollectionId: remote.id, shopifyHandle: remote.handle, shopifyManualSourceId, lastSyncedAt: new Date() },
     });
   }
 
@@ -159,6 +200,7 @@ async function upsertCollectionIdentity(remote: { id: string; handle: string; ti
       slug: remote.handle,
       name: remote.title,
       shopifyCollectionId: remote.id,
+      shopifyManualSourceId: findManagedCollectionSourceId(remote.sources),
       shopifyHandle: remote.handle,
       lastSyncedAt: new Date(),
     },
@@ -171,7 +213,7 @@ async function upsertCollectionIdentity(remote: { id: string; handle: string; ti
  * is linked/created via `upsertCollectionIdentity` first so membership
  * never points at a collection Shopify no longer reports.
  */
-async function syncProductCollectionMembership(productId: string, remoteCollections: Array<{ id: string; handle: string; title: string }>) {
+async function syncProductCollectionMembership(productId: string, remoteCollections: ShopifyProduct["collections"]["nodes"]) {
   const membershipCollectionIds: string[] = [];
   for (const remoteCollection of remoteCollections) {
     const collection = await upsertCollectionIdentity(remoteCollection);
@@ -547,7 +589,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       imageUrl,
       status: remote.status,
       visibility,
-      publishedAt: visibility === "PUBLIC"
+      publishedAt: visibility !== "PRIVATE"
         ? onlineStorePublication?.publishDate ? new Date(onlineStorePublication.publishDate) : existing?.publishedAt ?? new Date()
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
@@ -575,7 +617,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       imageUrl,
       status: remote.status,
       visibility,
-      publishedAt: visibility === "PUBLIC"
+      publishedAt: visibility !== "PRIVATE"
         ? onlineStorePublication?.publishDate ? new Date(onlineStorePublication.publishDate) : new Date()
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
@@ -872,9 +914,9 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
  * Shopify's own value with a blank default.
  *
  * Collection membership is only pushed for local collections that already
- * carry a `shopifyCollectionId` — a purely local collection has no Shopify
- * counterpart to add the product to, so it is silently excluded rather
- * than treated as an error.
+ * carry a `shopifyCollectionId`. Shopify 2026-07 changes go through a
+ * Synarava-owned product source on `collectionUpdate`; Shopify-authored
+ * conditions remain untouched. Purely local collections are excluded.
  *
  * The product's image is only forwarded if its URL's origin is our own
  * configured app/S3 origin or Shopify's own CDN — this is a deliberate
@@ -1050,29 +1092,43 @@ export async function pushProductToShopify(productId: string) {
     userErrors(data.productSet.userErrors);
     if (!data.productSet.product) throw new ShopifyAdminError("Shopify did not return the saved product.");
     const remote = data.productSet.product;
-    await syncOnlineStorePublication(remote.id, product.status === "ACTIVE");
-    const desiredCollectionIds = product.collections
-      .map((item) => item.collection.shopifyCollectionId)
-      .filter((id): id is string => Boolean(id));
+    await syncOnlineStorePublication(
+      remote.id,
+      product.status === "ACTIVE" || product.status === "UNLISTED",
+    );
+    const desiredCollections = product.collections.flatMap((item) =>
+      item.collection.shopifyCollectionId
+        ? [{
+            id: item.collection.id,
+            shopifyCollectionId: item.collection.shopifyCollectionId,
+            shopifyManualSourceId: item.collection.shopifyManualSourceId,
+          }]
+        : [],
+    );
+    const desiredCollectionIds = desiredCollections.map((collection) => collection.shopifyCollectionId);
     const currentCollectionIds = (currentRemote?.collections.nodes ?? []).map((item) => item.id);
     const { toJoin, toLeave } = diffCollectionMembership(desiredCollectionIds, currentCollectionIds);
-    for (const collectionId of toJoin) {
-      const joinData = await shopifyAdminRequest<{ collectionAddProductsV2: { userErrors: UserError[] } }>(
-        `mutation SynaravaCollectionJoin($id: ID!, $productIds: [ID!]!) {
-          collectionAddProductsV2(id: $id, productIds: $productIds) { userErrors { field message } }
-        }`,
-        { id: collectionId, productIds: [remote.id] },
-      );
-      userErrors(joinData.collectionAddProductsV2.userErrors);
+    for (const collection of desiredCollections.filter((item) => toJoin.includes(item.shopifyCollectionId))) {
+      await addProductToShopifyCollection(collection, remote.id);
     }
-    for (const collectionId of toLeave) {
-      const leaveData = await shopifyAdminRequest<{ collectionRemoveProducts: { userErrors: UserError[] } }>(
-        `mutation SynaravaCollectionLeave($id: ID!, $productIds: [ID!]!) {
-          collectionRemoveProducts(id: $id, productIds: $productIds) { userErrors { field message } }
-        }`,
-        { id: collectionId, productIds: [remote.id] },
-      );
-      userErrors(leaveData.collectionRemoveProducts.userErrors);
+    const leavingCollections = toLeave.length
+      ? await db.collection.findMany({
+          where: {
+            shopifyCollectionId: { in: toLeave },
+            shopifyManualSourceId: { not: null },
+          },
+          select: {
+            shopifyCollectionId: true,
+            shopifyManualSourceId: true,
+          },
+        })
+      : [];
+    for (const collection of leavingCollections) {
+      if (!collection.shopifyCollectionId || !collection.shopifyManualSourceId) continue;
+      await removeProductFromShopifyCollection({
+        shopifyCollectionId: collection.shopifyCollectionId,
+        shopifyManualSourceId: collection.shopifyManualSourceId,
+      }, remote.id);
     }
     if (metafields.length) {
       const metafieldData = await shopifyAdminRequest<{
@@ -1163,7 +1219,11 @@ export async function pushProductToShopify(productId: string) {
         }
       }
     }
-    const settled = await waitForReadyProductMedia(remote, localAssets);
+    const mediaSettled = await waitForReadyProductMedia(remote, localAssets);
+    const settled = {
+      ...mediaSettled,
+      product: await refreshShopifyProductAfterPush(mediaSettled.product, fetchShopifyProduct),
+    };
     const remoteImageUrl = pickShopifyProductImageUrl({
       featuredImageUrl: settled.product.featuredMedia?.preview?.image?.url,
       media: settled.product.media.nodes.map((item) => ({
