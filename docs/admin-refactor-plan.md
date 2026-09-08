@@ -371,11 +371,10 @@ circular dependencies.
   passing (49 new), `lint` clean, `build` exits 0.
 - Ran `graphify update .` after the new test files landed so the project graph
   matches the current paths.
-- The Phase 0 manual browser smoke checklist (product/collection/page
-  create-edit-delete) was explicitly skipped by decision: it requires an
-  admin login, and entering credentials into any login form is outside what
-  this assistant will do regardless of context. The automated coverage above
-  was judged sufficient to close this phase.
+- Confirmed in an authenticated local browser that the product, collection,
+  and page create routes render their extracted forms and expose the expected
+  controls. The Phase 0 create/edit/delete browser checklist was then completed
+  by the user, closing the final manual gate for this phase.
 
 ## Explicitly out of scope for this pass
 
