@@ -326,31 +326,33 @@ Checkpoint after items 1–3:
 Completed in commits `67a81de` through `c71e5ab`; verification passed before
 the Shopify-alignment work began.
 
-### Phase 2 — split the three god files
-Do these one at a time, verify build after each:
-
-Within each entity, enforce one-way dependencies:
+### Phase 2 — split the three god files (complete)
+Within each entity, one-way dependencies were enforced:
 
 ```text
 types -> helpers/fields -> forms -> CMS orchestrator
                          \-> route editor
 ```
 
-Forms and leaf components must not import from the CMS orchestrator; this keeps
-the split from introducing circular dependencies.
+Forms and leaf components do not import from the CMS orchestrator, avoiding
+circular dependencies.
 
-1. **`pages-cms.tsx`** (smallest, 584 lines) — extract `PageEditor` into
+1. **`pages-cms.tsx`** (584 → 185 lines) — `PageEditor` extracted into
    `page-editor-form.tsx`, `CreatePageForm` into `page-create-form.tsx`,
-   and the three helpers into `page-helpers.ts`. `PagesCms` stays in
-   `pages-cms.tsx` and imports the rest.
-2. **`collections-cms.tsx`** (1006 lines) — extract per the table above.
-   Watch `WorkflowStateField`/`CollectionFields`/`FieldLabel`/`FieldError`
-   are used by both create and edit forms — they go in the shared
-   `collection-fields.tsx`, not duplicated.
-3. **`products-cms.tsx`** (2136 lines, do last — highest risk) — extract
-   per the table above. `ProductDetailFields`/`ProductFormFields` are
-   shared between `CreateProductForm` and `EditProductForm`, so they go in
-   `product-form-fields.tsx` and both forms import from there.
+   and helpers into `page-helpers.ts`/`page-types.ts`. Committed `9ce1d2a`.
+2. **`collections-cms.tsx`** (1006 → 250 lines) — extracted into
+   `collection-types.ts`, `collection-helpers.ts`, `collection-fields.tsx`
+   (shared `WorkflowStateField`/`CollectionFields`/`FieldLabel`/`FieldError`),
+   `collection-create-form.tsx`, `collection-edit-form.tsx`. Committed `1c85403`.
+3. **`products-cms.tsx`** (2199 → 672 lines, done last as highest risk) —
+   extracted into `product-types.ts`, `product-helpers.ts`,
+   `product-media-manager.tsx`, `product-sync-strip.tsx` (`ProgressBar`,
+   `SaveButtons`, `ProductSyncStrip`), `product-form-fields.tsx`
+   (shared `ProductDetailFields`/`ProductFormFields`/`OwnershipLabel`),
+   `product-create-form.tsx`, `product-edit-form.tsx`. `ProductsCms` stays in
+   `products-cms.tsx` and imports the rest; `product-route-editor.tsx` updated
+   to import the forms directly. No behavior change — full verification
+   (`tsc`, `vitest`, `lint`, `build`) passed clean.
 
 ### Phase 3 — characterization and final verification
 - Add focused tests for pure extracted helpers (normalization, status/action

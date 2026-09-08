@@ -2,10 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
-import {
-  CreateProductForm,
-  EditProductForm,
-} from "@/components/admin/products/products-cms";
+import { CreateProductForm } from "@/components/admin/products/product-create-form";
+import { EditProductForm } from "@/components/admin/products/product-edit-form";
 import type { SavedProductPayload } from "@/app/admin/actions/products";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 
