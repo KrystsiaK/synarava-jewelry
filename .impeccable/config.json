@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "cubic-bezier(0.34, 1.36, 0.64, 1)",
+        "createdAt": "2026-09-07T22:02:13.425Z",
+        "reason": "unused token copied verbatim from .agents/skills/transitions-dev/_root.css's sanctioned badge-pop reference pattern (notification-badge pop-in is the documented domain-appropriate use for slight overshoot); currently has zero live transition/animation usage in globals.css"
+      }
+    ]
+  }
+}

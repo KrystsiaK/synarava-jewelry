@@ -2379,13 +2379,15 @@ body.admin-mode .ui-tooltip {
 
 .adm-progress-fill {
   height: 100%;
+  width: 100%;
   background: var(--adm-accent);
-  width: 0;
-  transition: width 260ms cubic-bezier(0.23, 1, 0.32, 1);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .adm-progress-fill--active {
-  width: 100%;
+  transform: scaleX(1);
   animation: adm-pulse 0.9s cubic-bezier(0.23, 1, 0.32, 1) infinite alternate;
 }
 
