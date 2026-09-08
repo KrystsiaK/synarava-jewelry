@@ -2,8 +2,12 @@
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
-import { searchShopifyTaxonomyCategoriesAction } from "@/app/admin/actions/taxonomy";
+import {
+  getShopifyCategoryAttributesAction,
+  searchShopifyTaxonomyCategoriesAction,
+} from "@/app/admin/actions/taxonomy";
 import type { ShopifyTaxonomyCategory } from "@/lib/shopify/taxonomy-selection";
+import type { ShopifyTaxonomyCategoryAttribute } from "@/lib/shopify/taxonomy";
 
 export function ShopifyCategoryField({
   initialId,
@@ -18,9 +22,33 @@ export function ShopifyCategoryField({
   const [results, setResults] = useState<ShopifyTaxonomyCategory[]>([]);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [attributes, setAttributes] = useState<ShopifyTaxonomyCategoryAttribute[]>([]);
+  const [attributesError, setAttributesError] = useState("");
+  const [attributesPending, startAttributesTransition] = useTransition();
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const resultListId = useId();
   const errorId = useId();
+
+  useEffect(() => {
+    let cancelled = false;
+    startAttributesTransition(async () => {
+      if (!selectedId) {
+        if (cancelled) return;
+        setAttributes([]);
+        setAttributesError("");
+        return;
+      }
+
+      const result = await getShopifyCategoryAttributesAction(selectedId);
+      if (cancelled) return;
+      setAttributes(result.attributes);
+      setAttributesError(result.error ?? "");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId]);
 
   useEffect(() => {
     const search = query.trim();
@@ -121,6 +149,34 @@ export function ShopifyCategoryField({
       ) : null}
       {!selectedId && query.trim() ? (
         <p className="text-xs text-[var(--adm-muted)]">Select a result to save the Shopify category.</p>
+      ) : null}
+      {selectedId ? (
+        <div className="grid gap-1.5 border-t border-[var(--adm-border)] pt-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.06em] text-[var(--adm-subtle)]">
+            Shopify category attributes
+          </p>
+          {attributesPending ? (
+            <p className="text-xs text-[var(--adm-muted)]" aria-live="polite">Looking up Shopify&rsquo;s attributes…</p>
+          ) : attributesError ? (
+            <p className="text-xs text-[var(--adm-danger)]" role="alert">{attributesError}</p>
+          ) : attributes.length ? (
+            <>
+              <ul className="grid gap-1 text-xs text-[var(--adm-muted)]">
+                {attributes.map((attribute) => (
+                  <li key={attribute.id}>
+                    <span className="font-medium text-[var(--adm-ink)]">{attribute.name}</span>
+                    {attribute.values.length ? `: ${attribute.values.join(", ")}` : ""}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-[var(--adm-muted)]">
+                Reference only — characteristics below are not pushed against these attributes.
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-[var(--adm-muted)]">Shopify defines no attributes for this category.</p>
+          )}
+        </div>
       ) : null}
     </div>
   );

@@ -4,20 +4,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   search: vi.fn(),
+  attributes: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/taxonomy", () => ({
   searchShopifyTaxonomyCategoriesAction: mocks.search,
+  getShopifyCategoryAttributesAction: mocks.attributes,
 }));
 
 import { ShopifyCategoryField } from "../shopify-category-field";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.attributes.mockResolvedValue({ attributes: [] });
 });
 
 describe("ShopifyCategoryField", () => {
-  it("preserves an existing Shopify category selection", () => {
+  it("preserves an existing Shopify category selection", async () => {
     const { container } = render(
       <ShopifyCategoryField
         initialId="gid://shopify/TaxonomyCategory/aa-1-9"
@@ -31,6 +34,7 @@ describe("ShopifyCategoryField", () => {
     expect(container.querySelector<HTMLInputElement>('input[name="shopifyCategoryId"]')).toHaveValue(
       "gid://shopify/TaxonomyCategory/aa-1-9",
     );
+    await waitFor(() => expect(mocks.attributes).toHaveBeenCalledWith("gid://shopify/TaxonomyCategory/aa-1-9"));
   });
 
   it("searches Shopify and stores the selected category id and full name", async () => {
@@ -71,5 +75,22 @@ describe("ShopifyCategoryField", () => {
 
     expect(container.querySelector<HTMLInputElement>('input[name="shopifyCategoryId"]')).toHaveValue("");
     expect(container.querySelector<HTMLInputElement>('input[name="shopifyCategoryName"]')).toHaveValue("");
+  });
+
+  it("shows Shopify's discovered category attributes for an existing selection", async () => {
+    mocks.attributes.mockResolvedValue({
+      attributes: [{ id: "gid://shopify/TaxonomyAttribute/1", name: "Material", values: ["Gold", "Silver"] }],
+    });
+
+    render(
+      <ShopifyCategoryField
+        initialId="gid://shopify/TaxonomyCategory/aa-1-9"
+        initialName="Rings"
+      />,
+    );
+
+    await waitFor(() => expect(mocks.attributes).toHaveBeenCalledWith("gid://shopify/TaxonomyCategory/aa-1-9"));
+    expect(await screen.findByText("Material")).toBeInTheDocument();
+    expect(screen.getByText(": Gold, Silver")).toBeInTheDocument();
   });
 });
