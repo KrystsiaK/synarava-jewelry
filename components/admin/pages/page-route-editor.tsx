@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
-import { CreatePageForm, PageEditor } from "@/components/admin/pages/pages-cms";
+import { CreatePageForm } from "@/components/admin/pages/page-create-form";
+import { PageEditor } from "@/components/admin/pages/page-editor-form";
 import type { SavedPagePayload } from "@/app/admin/actions/pages";
 
 export function PageCreateRoute() {
