@@ -204,10 +204,31 @@ integration.
    `pt` locales after a dev-server + `.next` cache restart (Turbopack had
    cached the pre-migration Prisma Client and needed a clean restart to
    pick up the new columns).
-4. **Contract obsolete entities.** After verifying no active read/write paths,
-   remove Department controls/data and local Product Category CRUD/relation.
-   Retire standalone Tag CRUD when all filters read the Shopify-backed tag
-   projection. Destructive schema changes land separately from the cutover.
+4. **Contract obsolete entities — code complete, schema drop still pending.**
+   `details.department` is gone from the JSON schema (pure `ProductCollection`
+   membership now); the admin department `<select>` reads/writes membership
+   directly. `ProductSummary.categorySlug`/`categoryName`, the shop's category
+   filter, and the admin product list's category filter all read
+   `shopifyCategoryId`/`shopifyCategoryName` instead of the local
+   `ProductCategory` relation (which had 0 rows and no writer — this fixed an
+   always-empty filter, not just removed dead code). Standalone Tag CRUD
+   (`/admin/tags`, rename/delete UI) is retired — every tag read already went
+   through the same `Tag`/`ProductTag` tables Shopify pull maintains, so the
+   standalone editor was a competing surface a pull would silently overwrite.
+   `/admin/categories` and `/admin/tags` routes, their CMS components, and
+   their CRUD server actions are deleted; `getSavedCategoryPayload`/
+   `getSavedTagPayload` survive (used by `history.ts`'s version-restore
+   feature for any entity type). Also deleted `lib/shopify/products.ts` (dead
+   Storefront-API client, zero importers) and the `SHOP_DEPARTMENTS`/
+   `isShopDepartmentSlug`/`shopDepartmentName`/`inferDepartment` exports from
+   `lib/catalog/taxonomy.ts` that only it needed.
+   **Still pending, deliberately separate (destructive):** the
+   `ProductCategory` table, `Product.categoryId` column, and unused
+   `AdminAuditEntityType` CATEGORY/TAG values are still in the schema —
+   dropping them is its own migration, landing only after this cutover has
+   run in production without issue. `app/admin/(studio)/layout.tsx`'s
+   issue-routing switch still has CATEGORY/TAG branches that no longer fire;
+   left alone as harmless dead code rather than touched for this pass.
 5. **Complete Shopify field parity.** Represent Shopify product type as a
    string or omit it; align status/publication behavior; move SKU, price, and
    inventory ownership fully to variants; map vendor and SEO without lossy
