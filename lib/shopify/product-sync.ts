@@ -763,6 +763,10 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   compare("Handle", local.slug, remote.handle);
   compare("Description", local.description ?? "", stripHtml(remote.descriptionHtml));
   compare("Product category", local.shopifyCategoryId ?? "", remote.category?.id ?? "");
+  compare("Product type", local.productType ?? "", remote.productType ?? "");
+  compare("Vendor", local.vendor ?? "", remote.vendor ?? "");
+  compare("SEO title", local.seoTitle ?? "", remote.seo.title ?? "");
+  compare("SEO description", local.seoDescription ?? "", remote.seo.description ?? "");
   compare("Status", local.status, remote.status);
   const publishedPublications = remote.resourcePublicationsV2.nodes
     .filter((item) => item.isPublished)
@@ -860,9 +864,12 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
 
 /**
  * Pushes a local product's title, description, price, SKU, inventory,
- * tags, collection membership, and `synarava.*` characteristic metafields
- * to Shopify via the Admin GraphQL API, creating the remote product on
- * first push.
+ * tags, collection membership, product type, vendor, SEO title/description,
+ * and `synarava.*` characteristic metafields to Shopify via the Admin
+ * GraphQL API, creating the remote product on first push. Product type,
+ * vendor, and SEO are omitted from the input (rather than sent as empty
+ * strings) when we have no local value, so a push never overwrites
+ * Shopify's own value with a blank default.
  *
  * Collection membership is only pushed for local collections that already
  * carry a `shopifyCollectionId` — a purely local collection has no Shopify
@@ -999,6 +1006,13 @@ export async function pushProductToShopify(productId: string) {
       handle: product.slug,
       descriptionHtml: product.description ? `<p>${product.description.replace(/[<>&]/g, "")}</p>` : "",
       ...(product.productType ? { productType: product.productType } : {}),
+      ...(product.vendor ? { vendor: product.vendor } : {}),
+      ...(product.seoTitle || product.seoDescription ? {
+        seo: {
+          title: product.seoTitle || undefined,
+          description: product.seoDescription || undefined,
+        },
+      } : {}),
       status: product.status,
       tags: product.tags.map((item) => item.tag.name),
       ...shopifyProductCategoryInput(product.shopifyCategoryId),
