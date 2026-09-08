@@ -220,8 +220,12 @@ function toSummary(product: {
     mediaImage: details.process?.mediaImage ?? "",
     stats: details.process?.stats ?? [],
   };
+  // Commerce fields (SKU, price, compare-at) are owned by the variant —
+  // Product's own copies exist only as an identity anchor for Shopify
+  // pull's by-SKU matching, not as a display source of truth.
   const primaryVariant = product.variants[0];
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
+  const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   const projection = shopifyProjection(product.shopifySnapshot);
   const localMedia = product.media.map((item) => ({
@@ -242,8 +246,8 @@ function toSummary(product: {
     title: product.name,
     shortDescription: product.shortDescription ?? "",
     description: product.description ?? "",
-    price: priceFromCents(product.priceCents, product.currency, locale),
-    priceAmount: product.priceCents / 100,
+    price: priceFromCents(priceCents, product.currency, locale),
+    priceAmount: priceCents / 100,
     currency: product.currency,
     compareAtPrice: compareAtCents == null ? "" : priceFromCents(compareAtCents, product.currency, locale),
     compareAtAmount: compareAtCents == null ? null : compareAtCents / 100,

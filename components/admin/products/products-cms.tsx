@@ -249,11 +249,17 @@ function emptyDraft(): ProductDraft {
 }
 
 function productToDraft(product: ProductRecord): ProductDraft {
+  // Commerce fields are owned by the variant, not Product's own mirror
+  // columns (kept only as a Shopify pull identity anchor). Collection
+  // membership mixes marketing collections with the primary-nav
+  // ("department") one in the same array — exclude isPrimaryNav here too.
+  const primaryVariant = product.variants[0];
+  const marketingCollection = product.collections.find((item) => !item.collection.isPrimaryNav)?.collection;
   return {
     name: product.name,
     slug: product.slug,
-    sku: product.sku,
-    price: centsToPrice(product.priceCents),
+    sku: primaryVariant?.sku ?? product.sku,
+    price: centsToPrice(primaryVariant?.priceCents ?? product.priceCents),
     seriesLabel: product.seriesLabel ?? "",
     shortDescription: product.shortDescription ?? "",
     description: product.description ?? "",
@@ -264,14 +270,14 @@ function productToDraft(product: ProductRecord): ProductDraft {
     symbolismBody2: product.symbolismBody2 ?? "",
     shopifyCategoryId: product.shopifyCategoryId ?? "",
     shopifyCategoryName: product.shopifyCategoryName ?? "",
-    collectionSlug: product.collections[0]?.collection.slug ?? "",
+    collectionSlug: marketingCollection?.slug ?? "",
     tags: product.tags.map((item) => item.tag.slug).join(", "),
     workflowState:
       product.status === "ACTIVE" && product.visibility === "PUBLIC"
         ? "PUBLISHED"
         : "DRAFT",
     imageUrl: product.imageUrl ?? "",
-    stockOnHand: String(product.variants[0]?.stockOnHand ?? 0),
+    stockOnHand: String(primaryVariant?.stockOnHand ?? 0),
   };
 }
 
@@ -2074,7 +2080,7 @@ export function ProductsCms({
                       {status}
                     </span>
                     <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
-                      {centsToPrice(product.priceCents)} EUR
+                      {centsToPrice(product.variants[0]?.priceCents ?? product.priceCents)} EUR
                     </span>
                     <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
                       {product.shopifyCategoryName ?? "No category"}

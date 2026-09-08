@@ -903,6 +903,14 @@ export async function pushProductToShopify(productId: string) {
         media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
       },
     });
+    // Commerce fields (SKU, price, compare-at) are owned by the variant —
+    // Product's own copies exist only as an identity anchor for pull's
+    // by-SKU matching, and are never the source of truth once a variant
+    // exists.
+    const localVariant = product.variants[0];
+    const commerceSku = localVariant?.sku ?? product.sku;
+    const commercePriceCents = localVariant?.priceCents ?? product.priceCents;
+    const commerceCompareAtCents = localVariant?.compareAtCents ?? product.compareAtCents;
     const metafields = product.characteristics.flatMap((item) => {
       const value = metafieldValue(item);
       if (!value) return [];
@@ -913,7 +921,7 @@ export async function pushProductToShopify(productId: string) {
     });
     const unitWeight = product.characteristics.find((item) => item.key === "unit_weight")?.numberValue;
     const inventoryItemInput = {
-      sku: product.sku,
+      sku: commerceSku,
       ...(unitWeight && unitWeight.greaterThan(0)
         ? { measurement: { weight: { value: unitWeight.toNumber(), unit: "GRAMS" as const } } }
         : {}),
@@ -1019,9 +1027,9 @@ export async function pushProductToShopify(productId: string) {
       ...(!product.shopifyProductId ? {
         productOptions: [{ name: "Title", position: 1, values: [{ name: "Default Title" }] }],
         variants: [{
-          sku: product.sku,
-          price: (product.priceCents / 100).toFixed(2),
-          compareAtPrice: product.compareAtCents == null ? null : (product.compareAtCents / 100).toFixed(2),
+          sku: commerceSku,
+          price: (commercePriceCents / 100).toFixed(2),
+          compareAtPrice: commerceCompareAtCents == null ? null : (commerceCompareAtCents / 100).toFixed(2),
           optionValues: [{ optionName: "Title", name: "Default Title" }],
           inventoryItem: inventoryItemInput,
         }],
@@ -1091,7 +1099,6 @@ export async function pushProductToShopify(productId: string) {
       userErrors(deleted.metafieldsDelete.userErrors);
     }
     const remoteVariant = remote.variants.nodes[0];
-    const localVariant = product.variants[0];
     if (remoteVariant) {
       const variantData = await shopifyAdminRequest<{
         productVariantsBulkUpdate: { productVariants: ShopifyProduct["variants"]["nodes"]; userErrors: UserError[] };
@@ -1106,8 +1113,8 @@ export async function pushProductToShopify(productId: string) {
           productId: remote.id,
           variants: [{
             id: remoteVariant.id,
-            price: (product.priceCents / 100).toFixed(2),
-            compareAtPrice: product.compareAtCents == null ? null : (product.compareAtCents / 100).toFixed(2),
+            price: (commercePriceCents / 100).toFixed(2),
+            compareAtPrice: commerceCompareAtCents == null ? null : (commerceCompareAtCents / 100).toFixed(2),
             inventoryItem: inventoryItemInput,
           }],
         },
@@ -1119,8 +1126,8 @@ export async function pushProductToShopify(productId: string) {
           await db.productVariant.update({ where: { id: localVariant.id }, data: { shopifyVariantId: savedVariant.id, shopifyInventoryItemId: savedVariant.inventoryItem?.id ?? null } });
         } else {
           await db.productVariant.create({ data: {
-            productId, sku: product.sku, title: savedVariant.title || "Default Title",
-            priceCents: product.priceCents, compareAtCents: product.compareAtCents,
+            productId, sku: commerceSku, title: savedVariant.title || "Default Title",
+            priceCents: commercePriceCents, compareAtCents: commerceCompareAtCents,
             status: product.status, shopifyVariantId: savedVariant.id,
             shopifyInventoryItemId: savedVariant.inventoryItem?.id ?? null,
           } });
