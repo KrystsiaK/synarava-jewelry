@@ -229,10 +229,39 @@ integration.
    run in production without issue. `app/admin/(studio)/layout.tsx`'s
    issue-routing switch still has CATEGORY/TAG branches that no longer fire;
    left alone as harmless dead code rather than touched for this pass.
-5. **Complete Shopify field parity.** Represent Shopify product type as a
-   string or omit it; align status/publication behavior; move SKU, price, and
-   inventory ownership fully to variants; map vendor and SEO without lossy
-   defaults.
+5. **Complete Shopify field parity — complete.**
+   - *Product type*: was a fixed local enum (`ARTIFACT`/`JEWELRY`/`OBJECT`,
+     zero other readers) that pull hard-coded to `"ARTIFACT"` on every save
+     and push then sent back to Shopify lowercased — clobbering Shopify's
+     real `productType` on every push regardless of what it actually was.
+     Now a free-form nullable string (migration
+     `20260908101432_free_form_product_type`) that round-trips as-is.
+   - *Status/publication*: `visibility` was derived from `status` alone
+     (`synaravaVisibilityForShopifyStatus`) — a product `ACTIVE` in
+     Shopify but published only to POS or another channel, not Online
+     Store, was wrongly treated as `PUBLIC` on the Synarava storefront.
+     Now `synaravaVisibilityForShopifyProduct(status, isPublishedOnline)`
+     requires both, checked from `resourcePublicationsV2`'s Online Store
+     entry.
+   - *Vendor/SEO*: pull-only — `pushProductToShopify` never included
+     `vendor`/`seo` in the `productSet` input, so local values (however
+     they got there) had no way back to Shopify. Now pushed, following
+     the same omit-rather-than-blank pattern as product type/category.
+     Also added Product type/Vendor/SEO diffs to
+     `inspectProductSyncState`'s "Preview sync" comparison, which was
+     blind to exactly these fields.
+   - *SKU/price/inventory ownership*: `Product`'s own `sku`/`priceCents`/
+     `compareAtCents` and the (single) `ProductVariant`'s copies were
+     always written together by every path, so they never actually
+     diverged — but reads were inconsistent about which one they trusted.
+     `toSummary`, `pushProductToShopify`, and the admin edit form's
+     pre-fill/list price column are now uniformly variant-first, falling
+     back to `Product`'s columns only when no variant exists yet.
+     `Product.sku` itself is untouched in the schema — it's still an
+     identity-matching key for Shopify pull's by-SKU lookup, so dropping
+     it is a separate, later step. Also fixed a second instance of the
+     `collections[0]`-is-ambiguous bug from item 3 in the admin edit
+     form's collection pre-fill (same root cause, different call site).
 6. **Taxonomy attributes.** Discover the selected category's attributes and
    map supported values through Shopify metafield definitions. Keep only
    editorial, non-commerce fields under the `synarava` namespace.
