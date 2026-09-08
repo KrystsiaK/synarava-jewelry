@@ -262,9 +262,29 @@ integration.
      it is a separate, later step. Also fixed a second instance of the
      `collections[0]`-is-ambiguous bug from item 3 in the admin edit
      form's collection pre-fill (same root cause, different call site).
-6. **Taxonomy attributes.** Discover the selected category's attributes and
-   map supported values through Shopify metafield definitions. Keep only
-   editorial, non-commerce fields under the `synarava` namespace.
+6. **Taxonomy attributes — discovery done, mapping deliberately deferred.**
+   `ShopifyCategoryField` now queries and displays the attributes Shopify's
+   Standard Product Taxonomy defines for the selected category (name +
+   controlled value list, e.g. "Material: Gold, Silver") as read-only admin
+   reference — `getShopifyCategoryAttributes` in `lib/shopify/taxonomy.ts`,
+   confirmed against Shopify's public GraphQL Admin API docs.
+
+   **Not done: mapping our characteristics through Shopify metafield
+   definitions, or restricting `synarava.*` to editorial-only fields.**
+   Researched, not just deferred out of caution: a taxonomy attribute value
+   is a `shopify`-namespaced metafield whose value is a JSON array of
+   `TaxonomyValue` *ids* (a controlled-vocabulary reference), not a plain
+   string — and appears to need a "standard metaobject definition" enable
+   step that even Shopify's own community threads describe as
+   under-documented. Mapping `PRODUCT_CHARACTERISTICS`' free text into that
+   means either fuzzy-matching arbitrary admin-entered values against
+   Shopify's controlled vocabulary, or a dedicated picker per attribute
+   (comparable in scope to item 1's whole category-search feature) — not
+   something to improvise without a live store to verify the exact
+   metafield/metaobject shape against. `PRODUCT_CHARACTERISTICS` and the
+   `synarava.*` push are unchanged; nothing that syncs today stops syncing.
+   Whoever picks this up next should start from a live Shopify Admin API
+   sandbox, not from this codebase's assumptions.
 
 Checkpoint after items 1–3:
 
