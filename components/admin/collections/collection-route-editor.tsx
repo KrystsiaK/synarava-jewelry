@@ -2,10 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
-import {
-  CreateCollectionForm,
-  EditCollectionForm,
-} from "@/components/admin/collections/collections-cms";
+import { CreateCollectionForm } from "@/components/admin/collections/collection-create-form";
+import { EditCollectionForm } from "@/components/admin/collections/collection-edit-form";
 import type { SavedCollectionPayload } from "@/app/admin/actions/collections";
 
 export function CollectionCreateRoute() {
