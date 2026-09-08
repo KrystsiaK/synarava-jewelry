@@ -8,7 +8,6 @@ const legacyImage =
 describe("parseProductDetails", () => {
   it("does not invent editorial product sections for empty CMS details", () => {
     expect(parseProductDetails({})).toEqual({
-      department: undefined,
       attributes: [],
       materialsEyebrow: "",
       materialsTitle: "",
@@ -33,7 +32,6 @@ describe("parseProductDetails", () => {
         lookbook: [{ src: legacyImage, label: "Demo lookbook" }],
       }),
     ).toEqual({
-      department: undefined,
       attributes: [],
       materialsEyebrow: "",
       materialsTitle: "",
@@ -52,7 +50,6 @@ describe("parseProductDetails", () => {
 
   it("preserves editorial content entered through the product admin", () => {
     const details = {
-      department: "jewelry" as const,
       attributes: [{ label: "Length", value: "45 cm" }],
       materialsEyebrow: "Material archive",
       materialsTitle: "The honest material",

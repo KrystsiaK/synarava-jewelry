@@ -110,6 +110,7 @@ export type SavedProductPayload = {
       id: string;
       slug: string;
       name: string;
+      isPrimaryNav: boolean;
     };
   }[];
   tags: {
@@ -183,6 +184,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
               id: true,
               slug: true,
               name: true,
+              isPrimaryNav: true,
             },
           },
         },
@@ -588,7 +590,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   const department = formValue(formData, "department");
   const details = {
-    department,
     attributes: Array.from({ length: 8 }, (_, index) => ({
       label: formValue(formData, `attributeLabel${index + 1}`),
       value: formValue(formData, `attributeValue${index + 1}`),
@@ -829,14 +830,15 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
   const existingProduct = productId
     ? await db.product.findUnique({ where: { id: productId }, select: { details: true } })
     : null;
-  const department = formValue(formData, "department");
   const attributes = Array.from({ length: 8 }, (_, index) => ({
     label: formValue(formData, `attributeLabel${index + 1}`),
     value: formValue(formData, `attributeValue${index + 1}`),
   })).filter((item) => item.label && item.value);
+  // department is no longer stored in details — it's ProductCollection
+  // membership. Strip any legacy key left over from before this migration.
+  const { department: _legacyDepartment, ...existingDetails } = asRecord(existingProduct?.details);
   const draftDetails = {
-    ...asRecord(existingProduct?.details),
-    department: department || null,
+    ...existingDetails,
     attributes,
   } as Prisma.InputJsonValue;
 

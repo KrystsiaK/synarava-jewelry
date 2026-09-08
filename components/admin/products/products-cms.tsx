@@ -179,7 +179,7 @@ function centsToPrice(cents: number) {
   return (cents / 100).toFixed(2);
 }
 
-function getProductEditorDetails(details: unknown, characteristics: ProductRecord["characteristics"] = []) {
+function getProductEditorDetails(details: unknown, characteristics: ProductRecord["characteristics"] = [], department = "") {
   const parsed = parseProductDetails(details);
   const attributes = Array.from({ length: 8 }, (_, index) => {
     const source = parsed.attributes?.[index];
@@ -219,7 +219,7 @@ function getProductEditorDetails(details: unknown, characteristics: ProductRecor
   });
 
   return {
-    department: parsed.department ?? "",
+    department,
     attributes,
     characteristics: Object.fromEntries(characteristics.map((item) => [item.key, {
       value: item.valueType === "BOOLEAN"
@@ -1311,7 +1311,8 @@ export function EditProductForm({
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const currentProduct = state.product ?? product;
   const draft = productToDraft(currentProduct);
-  const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
+  const currentDepartment = currentProduct.collections.find((item) => item.collection.isPrimaryNav)?.collection.slug ?? "";
+  const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics, currentDepartment);
   const { pushToast } = useAdminToast();
   const router = useRouter();
 

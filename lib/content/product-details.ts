@@ -1,4 +1,3 @@
-import type { ShopDepartmentSlug } from "@/lib/catalog/taxonomy";
 import { isLegacyDemoImage, storefrontMedia } from "@/lib/content/media-fallbacks";
 
 export type ProductAttribute = {
@@ -31,7 +30,6 @@ export type ProductLookbookStory = {
 };
 
 export type ProductDetailsPayload = {
-  department?: ShopDepartmentSlug;
   attributes?: ProductAttribute[];
   materialsEyebrow?: string;
   materialsTitle?: string;
@@ -89,12 +87,6 @@ export function parseProductDetails(details: unknown): ProductDetailsPayload {
     typeof details.materialsEyebrow === "string" ? details.materialsEyebrow.trim() : "";
   const materialsTitle =
     typeof details.materialsTitle === "string" ? details.materialsTitle.trim() : "";
-  // Free-form: department is now an admin-chosen primary-nav collection
-  // slug, validated against real collections when membership is synced
-  // (app/admin/actions/products.ts), not against a fixed enum here.
-  const department = typeof details.department === "string" && details.department.trim()
-    ? details.department.trim()
-    : undefined;
   const attributes = Array.isArray(details.attributes)
     ? details.attributes.map(normalizeProductAttribute).filter(Boolean) as ProductAttribute[]
     : [];
@@ -129,7 +121,6 @@ export function parseProductDetails(details: unknown): ProductDetailsPayload {
     : undefined;
 
   return {
-    department,
     attributes,
     materialsEyebrow,
     materialsTitle,
