@@ -12,7 +12,7 @@ import {
   compareVariantCommerce,
   diffCollectionMembership,
   pickShopifyProductImageUrl,
-  synaravaVisibilityForShopifyStatus,
+  synaravaVisibilityForShopifyProduct,
   type RemoteCommerceVariant,
   variantCommerceChangeLabel,
   variantCommerceChangeLabels,
@@ -475,7 +475,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       imageUrl: item.preview?.image?.url,
     })),
   });
-  const visibility = synaravaVisibilityForShopifyStatus(remote.status);
+  const isPublishedOnline = Boolean(onlineStorePublication?.isPublished);
+  const visibility = synaravaVisibilityForShopifyProduct(remote.status, isPublishedOnline);
   const existingById = await db.product.findUnique({ where: { shopifyProductId: remote.id } });
   const existingBySku = existingById ? null : await db.product.findUnique({ where: { sku: remoteSku } });
   const existingBySlug = existingById || existingBySku
@@ -540,7 +541,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       seoTitle: remote.seo.title || null,
       seoDescription: remote.seo.description || null,
       shopifySnapshot: snapshotForProduct(remote),
-      productType: "ARTIFACT",
+      productType: remote.productType || null,
       priceCents: shopifyAmountToCents(firstVariant?.price),
       compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
       imageUrl,
@@ -567,6 +568,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       seoTitle: remote.seo.title || null,
       seoDescription: remote.seo.description || null,
       shopifySnapshot: snapshotForProduct(remote),
+      productType: remote.productType || null,
       currency: "EUR",
       priceCents: shopifyAmountToCents(firstVariant?.price),
       compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
@@ -773,7 +775,8 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
       imageUrl: item.preview?.image?.url,
     })),
   });
-  compare("Synarava storefront visibility", local.visibility, synaravaVisibilityForShopifyStatus(remote.status));
+  const isPublishedOnline = publishedPublications.some((name) => /online store/i.test(name));
+  compare("Synarava storefront visibility", local.visibility, synaravaVisibilityForShopifyProduct(remote.status, isPublishedOnline));
   compare("Primary image", local.imageUrl ?? "", remoteImageUrl ?? "");
   for (const difference of compareVariantCommerce(local.variants, remote.variants.nodes)) {
     const variantSuffix = remote.variants.nodes.length > 1 ? ` (${difference.variant})` : "";
@@ -995,7 +998,7 @@ export async function pushProductToShopify(productId: string) {
       title: product.name,
       handle: product.slug,
       descriptionHtml: product.description ? `<p>${product.description.replace(/[<>&]/g, "")}</p>` : "",
-      productType: product.productType.toLowerCase(),
+      ...(product.productType ? { productType: product.productType } : {}),
       status: product.status,
       tags: product.tags.map((item) => item.tag.name),
       ...shopifyProductCategoryInput(product.shopifyCategoryId),

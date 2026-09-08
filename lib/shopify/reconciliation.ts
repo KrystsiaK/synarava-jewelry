@@ -18,8 +18,14 @@ export type RemoteCommerceVariant = {
 
 export type RemoteProductStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
 
-export function synaravaVisibilityForShopifyStatus(status: RemoteProductStatus) {
-  return status === "ACTIVE" ? "PUBLIC" as const : "PRIVATE" as const;
+/**
+ * A product only reaches the Synarava storefront when it's both ACTIVE
+ * *and* actually published to Shopify's Online Store channel — a product
+ * can be ACTIVE while published only to POS or another sales channel, and
+ * status alone would wrongly surface it here.
+ */
+export function synaravaVisibilityForShopifyProduct(status: RemoteProductStatus, isPublishedOnline: boolean) {
+  return status === "ACTIVE" && isPublishedOnline ? "PUBLIC" as const : "PRIVATE" as const;
 }
 
 export function pickShopifyProductImageUrl({

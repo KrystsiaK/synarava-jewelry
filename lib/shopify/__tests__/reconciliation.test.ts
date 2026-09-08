@@ -5,7 +5,7 @@ import {
   compareVariantCommerce,
   diffCollectionMembership,
   pickShopifyProductImageUrl,
-  synaravaVisibilityForShopifyStatus,
+  synaravaVisibilityForShopifyProduct,
   variantCommerceChangeLabels,
   type LocalCommerceVariant,
   type RemoteCommerceVariant,
@@ -86,10 +86,11 @@ describe("classifyRemoteReconciliationAction", () => {
 });
 
 describe("Shopify storefront projection", () => {
-  it("makes active Shopify products visible on the Synarava storefront", () => {
-    expect(synaravaVisibilityForShopifyStatus("ACTIVE")).toBe("PUBLIC");
-    expect(synaravaVisibilityForShopifyStatus("DRAFT")).toBe("PRIVATE");
-    expect(synaravaVisibilityForShopifyStatus("ARCHIVED")).toBe("PRIVATE");
+  it("requires both ACTIVE status and an Online Store publication", () => {
+    expect(synaravaVisibilityForShopifyProduct("ACTIVE", true)).toBe("PUBLIC");
+    expect(synaravaVisibilityForShopifyProduct("ACTIVE", false)).toBe("PRIVATE");
+    expect(synaravaVisibilityForShopifyProduct("DRAFT", true)).toBe("PRIVATE");
+    expect(synaravaVisibilityForShopifyProduct("ARCHIVED", true)).toBe("PRIVATE");
   });
 
   it("uses the first Shopify image media when no featured image is set", () => {

@@ -111,7 +111,7 @@ model Product {
   currency            String                  @default("EUR")
   status              ProductStatus           @default(DRAFT)
   visibility          ContentVisibility       @default(PRIVATE)
-  productType         ProductType             @default(ARTIFACT)
+  productType         String?
   priceCents          Int
   compareAtCents      Int?
   imageUrl            String?
@@ -475,12 +475,6 @@ enum SyncEventStatus {
   FAILED
   CONFLICT
   IGNORED
-}
-
-enum ProductType {
-  ARTIFACT
-  JEWELRY
-  OBJECT
 }
 
 enum ProductOptionType {
