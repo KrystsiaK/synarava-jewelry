@@ -262,7 +262,7 @@ function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipP
   );
 
   return (
-    <div ref={ref} className="w-full h-full relative overflow-hidden" style={{ clipPath }}>
+    <div data-component="ParallaxImage" ref={ref} className="w-full h-full relative overflow-hidden" style={{ clipPath }}>
       <motion.div
         style={{ transform }}
         className="absolute -top-[8%] left-0 h-[116%] w-full transform-gpu [backface-visibility:hidden]"
@@ -323,7 +323,7 @@ function HeroSection({
   );
 
   return (
-    <section
+    <section data-component="HeroSection"
       ref={containerRef}
       className="home-hero relative flex min-h-[108svh] w-full items-end overflow-hidden bg-transparent px-5 pb-40 pt-24 md:min-h-[112vh] md:px-[4vw]"
     >
@@ -410,7 +410,7 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
   const leadDepartment = departments.find((department) => department.image);
 
   return (
-    <section className="home-department-surface relative z-20 px-6 py-24 text-linen md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
+    <section data-component="DepartmentPathway" className="home-department-surface relative z-20 px-6 py-24 text-linen md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
       <div className="mx-auto grid max-w-[90rem] gap-12 md:grid-cols-[minmax(0,0.82fr)_minmax(24rem,1.18fr)] md:items-stretch md:gap-[7vw]">
         <motion.div
           className="relative min-h-[24rem] overflow-hidden md:min-h-[42rem]"
@@ -542,7 +542,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
   }
 
   return (
-    <section
+    <section data-component="ArchivePathway"
       ref={containerRef}
       className="relative z-20 -mt-[18svh] bg-transparent px-6 pb-24 pt-[calc(6rem+18svh)] text-linen md:px-[4vw]"
       id="archive-pathway"
@@ -968,7 +968,7 @@ function MaterialLab({ collections }: { collections: CollectionItem[] }) {
   }
 
   return (
-    <section
+    <section data-component="MaterialLab"
       ref={ref}
       className="relative h-[330svh] bg-transparent text-linen"
       aria-labelledby="lexicon-title"
@@ -1043,7 +1043,7 @@ function ManifestoQuote({ quote }: { quote?: string }) {
   }
 
   return (
-    <section className="home-manifesto relative overflow-hidden bg-transparent px-5 py-24 text-linen md:flex md:min-h-screen md:items-center md:justify-center md:px-[4vw] md:py-32">
+    <section data-component="ManifestoQuote" className="home-manifesto relative overflow-hidden bg-transparent px-5 py-24 text-linen md:flex md:min-h-screen md:items-center md:justify-center md:px-[4vw] md:py-32">
       <div className="home-theme-grid pointer-events-none absolute inset-0 select-none opacity-50" />
       <div className="home-manifesto-glow pointer-events-none absolute inset-0 select-none" />
 
@@ -1077,7 +1077,7 @@ function ManifestoQuote({ quote }: { quote?: string }) {
 
 function FinalFooter() {
   return (
-    <div className="mt-auto flex flex-1 flex-col justify-end gap-6 border-t border-linen/15 pb-1 pt-8 sm:flex-row sm:items-end sm:justify-between md:pt-10">
+    <div data-component="FinalFooter" className="mt-auto flex flex-1 flex-col justify-end gap-6 border-t border-linen/15 pb-1 pt-8 sm:flex-row sm:items-end sm:justify-between md:pt-10">
       <p className="max-w-sm font-serif text-2xl leading-tight text-linen md:text-3xl">
         Objects shaped slowly,<br />kept for a lifetime.
       </p>
@@ -1098,7 +1098,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   const images = useMemo(() => buildFinalCtaImages(collections ?? []).slice(0, 2), [collections]);
 
   return (
-    <section
+    <section data-component="CompactFinalCTA"
       ref={ref}
       className="home-final-surface home-final-scene relative overflow-hidden px-5 pb-10 pt-20 text-linen"
     >
@@ -1293,7 +1293,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   }
 
   return (
-    <section
+    <section data-component="DesktopFinalCTA"
       ref={ref}
       className="home-final-surface home-final-scene relative h-[300svh] text-linen md:h-[280vh]"
     >

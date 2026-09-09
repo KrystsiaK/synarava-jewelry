@@ -102,7 +102,7 @@ function ConsentToggle({
   onChange?: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-5 border-b border-stroke py-5 last:border-0">
+    <label data-component="ConsentToggle" className="flex cursor-pointer items-start justify-between gap-5 border-b border-stroke py-5 last:border-0">
       <span>
         <span className="label-caps block text-foreground">{label}</span>
         <span className="mt-1.5 block text-sm leading-6 text-foreground/65">{description}</span>

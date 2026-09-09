@@ -169,7 +169,7 @@ export function FolkBorder({ className, delay = 0 }: { className?: string; delay
   const isInView = useInView(ref, { once: true, margin: "-5%" });
 
   return (
-    <svg ref={ref} viewBox="0 0 800 40" fill="none" className={className} aria-hidden="true">
+    <svg data-component="FolkBorder" ref={ref} viewBox="0 0 800 40" fill="none" className={className} aria-hidden="true">
       {Array.from({ length: 16 }).map((_, i) => {
         const cx = 25 + i * 50;
         return (
@@ -214,7 +214,7 @@ export function FolkOrnamentBand({
   const nodes = Array.from({ length: 13 }, (_, i) => 87.5 + i * 110);
 
   return (
-    <svg
+    <svg data-component="FolkOrnamentBand"
       ref={ref}
       viewBox="0 0 1440 128"
       fill="none"
@@ -380,7 +380,7 @@ export function FolkSpiderOrnament({
 /* ─── Static variants (no animation — for ghost backgrounds) ─────── */
 export function KodRodaStatic({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" className={className} aria-hidden="true">
+    <svg data-component="KodRodaStatic" viewBox="0 0 200 200" fill="none" className={className} aria-hidden="true">
       <path d="M100 8 L192 100 L100 192 L8 100 Z" stroke="currentColor" strokeWidth="1.2" />
       <path d="M100 42 L158 100 L100 158 L42 100 Z" stroke="currentColor" strokeWidth="1" />
       <path d="M100 68 L132 100 L100 132 L68 100 Z" stroke="currentColor" strokeWidth="0.85" />
@@ -403,7 +403,7 @@ export function KodRodaStatic({ className }: { className?: string }) {
 
 export function KolaStatic({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" className={className} aria-hidden="true">
+    <svg data-component="KolaStatic" viewBox="0 0 200 200" fill="none" className={className} aria-hidden="true">
       <circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="1" />
       <circle cx="100" cy="100" r="60" stroke="currentColor" strokeWidth="0.85" opacity="0.6" />
       <circle cx="100" cy="100" r="28" stroke="currentColor" strokeWidth="1" />
@@ -431,7 +431,7 @@ export function KolaStatic({ className }: { className?: string }) {
 
 export function ZiamlaStatic({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" className={className} aria-hidden="true">
+    <svg data-component="ZiamlaStatic" viewBox="0 0 200 200" fill="none" className={className} aria-hidden="true">
       <rect x="18" y="18" width="164" height="164" stroke="currentColor" strokeWidth="1.1" transform="rotate(45 100 100)" />
       <rect x="44" y="44" width="112" height="112" stroke="currentColor" strokeWidth="1" transform="rotate(45 100 100)" opacity="0.7" />
       <rect x="68" y="68" width="64" height="64" stroke="currentColor" strokeWidth="0.9" transform="rotate(45 100 100)" opacity="0.5" />

@@ -12,7 +12,7 @@ export function AdminHelp({
   align?: "start" | "center" | "end";
 }) {
   return (
-    <span className="adm-help" data-align={align}>
+    <span data-component="AdminHelp" className="adm-help" data-align={align}>
       <Tooltip content={children} align={align} side="auto">
         <button type="button" className="adm-help__trigger" aria-label={label}>
           i

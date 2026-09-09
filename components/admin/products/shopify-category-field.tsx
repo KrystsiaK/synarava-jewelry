@@ -95,7 +95,7 @@ export function ShopifyCategoryField({
   }
 
   return (
-    <div className="relative grid gap-2">
+    <div data-component="ShopifyCategoryField" className="relative grid gap-2">
       <div className="flex gap-2">
         <input
           value={query}

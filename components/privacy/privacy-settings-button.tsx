@@ -7,7 +7,7 @@ export function PrivacySettingsButton() {
   const { t } = useTranslations();
 
   return (
-    <button
+    <button data-component="PrivacySettingsButton"
       type="button"
       className="label-mono text-muted underline decoration-transparent underline-offset-4 transition-colors hover:text-foreground hover:decoration-current focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
       onClick={() => window.dispatchEvent(new Event(OPEN_PRIVACY_PREFERENCES_EVENT))}

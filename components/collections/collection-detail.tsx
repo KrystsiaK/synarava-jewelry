@@ -171,7 +171,7 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
   const bgScale = useTransform(scrollYProgress, [0, 1], [0.88, 1.06]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden border-t border-foreground/10 bg-background py-20 text-foreground md:py-40">
+    <section data-component="ManifestoStrip" ref={ref} className="relative overflow-hidden border-t border-foreground/10 bg-background py-20 text-foreground md:py-40">
       {/* Ghost text background */}
       <motion.div
         className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
@@ -238,7 +238,7 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
   const isInView = useInView(ref, { once: true, margin: "-14%" });
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-background py-16 text-foreground md:py-16 lg:py-28">
+    <section data-component="CollectionStory" ref={ref} className="relative overflow-hidden bg-background py-16 text-foreground md:py-16 lg:py-28">
       <div className="pointer-events-none absolute right-[-7vw] top-[-4rem] hidden font-serif text-[18vw] leading-none text-foreground/[0.035] md:block">
         {collection.accent}
       </div>
@@ -420,7 +420,7 @@ function ProductsSection({
   const isInView = useInView(headerRef, { once: true, margin: "-8%" });
 
   return (
-    <section className="bg-surface py-20 md:py-36">
+    <section data-component="ProductsSection" className="bg-surface py-20 md:py-36">
       <div className="site-shell">
         <div
           ref={headerRef}
@@ -480,7 +480,7 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
   const bgY = useTransform(scrollYProgress, [0, 1], ["-6%", "6%"]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-background py-0 text-foreground">
+    <section data-component="NextCollectionTeaser" ref={ref} className="relative overflow-hidden bg-background py-0 text-foreground">
       {/* Parallax background */}
       <motion.div className="absolute inset-0 opacity-25" style={{ y: bgY }}>
         <Image
@@ -541,7 +541,7 @@ export function CollectionDetail({
   products: ProductSummary[];
 }) {
   return (
-    <main
+    <main data-component="CollectionDetail"
       className="collection-detail-experience artifact-shell overflow-x-hidden bg-background text-foreground"
     >
       <DetailHero collection={collection} />

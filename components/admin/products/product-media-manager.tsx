@@ -60,7 +60,7 @@ export function ProductMediaManager({
   }
 
   return (
-    <section className="grid gap-4 border border-[var(--adm-border)] p-4" aria-label="Product gallery">
+    <section data-component="ProductMediaManager" className="grid gap-4 border border-[var(--adm-border)] p-4" aria-label="Product gallery">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="adm-label">Product gallery</p>

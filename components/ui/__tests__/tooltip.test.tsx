@@ -76,4 +76,19 @@ describe("Tooltip", () => {
       delete (HTMLElement.prototype as Partial<HTMLElement>).showPopover;
     }
   });
+
+  it("portals an admin tooltip into its themed admin surface", () => {
+    const { container } = render(
+      <div className="admin-terminal">
+        <Tooltip content="Admin guidance" delay={0}>
+          <button type="button">Help</button>
+        </Tooltip>
+      </div>,
+    );
+
+    fireEvent.focus(screen.getByRole("button", { name: "Help" }));
+
+    const adminSurface = container.querySelector(".admin-terminal");
+    expect(screen.getByRole("tooltip").parentElement).toBe(adminSurface);
+  });
 });

@@ -84,7 +84,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
   }
 
   return (
-    <section className="adm-panel grid gap-6 p-5 md:p-6">
+    <section data-component="SiteVideosCms" className="adm-panel grid gap-6 p-5 md:p-6">
       <div className="grid gap-2">
         <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
         <h2 className="adm-title-sm">Storefront video</h2>

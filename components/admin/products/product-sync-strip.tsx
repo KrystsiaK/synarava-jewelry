@@ -10,7 +10,7 @@ export function ProgressBar({ pending }: { pending: boolean }) {
   if (!pending) return null;
 
   return (
-    <div className="adm-progress-bar" role="progressbar" aria-label="Saving product">
+    <div data-component="ProgressBar" className="adm-progress-bar" role="progressbar" aria-label="Saving product">
       <div
         className={[
           "adm-progress-fill",
@@ -29,7 +29,7 @@ export function SaveButtons({
   pending: boolean;
 }) {
   return (
-    <button
+    <button data-component="SaveButtons"
       type="button"
       onClick={onOpenConfirm}
       disabled={pending}
@@ -105,7 +105,7 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onCheck,
   const canPull = !dirty && Boolean(product.shopifyProductId) && syncState !== "REMOTE_MISSING";
   const pullLabel = syncState === "REMOTE_CHANGES" ? "Pull Shopify update" : "Refresh from Shopify";
   return (
-    <section className="grid gap-4 border bg-[var(--adm-bg-soft)] p-4" style={{ borderColor: "var(--adm-border)" }} aria-label="Commerce synchronization">
+    <section data-component="ProductSyncStrip" className="grid gap-4 border bg-[var(--adm-bg-soft)] p-4" style={{ borderColor: "var(--adm-border)" }} aria-label="Commerce synchronization">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full border border-[var(--adm-accent)] text-[var(--adm-accent)]"><Icon className="size-4" /></span>

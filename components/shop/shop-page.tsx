@@ -9,140 +9,64 @@ import {
   motion,
   useInView,
   useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
 } from "motion/react";
 
 import { ProductCard } from "@/components/ui/product-card";
-import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
+import { PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import type { ProductSummary } from "@/lib/content/catalog";
-import { hasDepartmentTranslation, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
-import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-const SHOP_HERO_SPRING = {
-  stiffness: 84,
-  damping: 24,
-  mass: 0.62,
-  restDelta: 0.0005,
-} as const;
-
-function ShopHero({
+export function ShopHero({
   leadProduct,
   archiveCount,
-  departments,
 }: {
   leadProduct?: ProductSummary;
   archiveCount: number;
-  departments: FilterOption[];
 }) {
-  const { t, plural, locale } = useTranslations();
-  const ref = useRef<HTMLElement>(null);
-  const reduceMotion = useReducedMotion() ?? false;
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"],
-  });
-  const smoothProgress = useSpring(scrollYProgress, SHOP_HERO_SPRING);
-  const progress = reduceMotion ? scrollYProgress : smoothProgress;
-  const copyOpacity = useTransform(progress, [0, 0.68], [1, 0]);
-  const copyY = useTransform(progress, [0, 0.68], reduceMotion ? ["0%", "0%"] : ["0%", "-8%"]);
-  const mediaY = useTransform(progress, [0, 1], reduceMotion ? ["0%", "0%"] : ["0%", "9%"]);
-  const mediaScale = useTransform(progress, [0, 1], reduceMotion ? [1, 1] : [1.04, 0.97]);
+  const { t, plural } = useTranslations();
 
   return (
-    <header
-      ref={ref}
-      className="shop-hero relative flex min-h-[74svh] items-end overflow-hidden bg-background px-5 pb-10 pt-24 text-foreground md:min-h-[88svh] md:px-[4vw] md:pb-20 md:pt-28"
+    <header data-component="ShopHero"
+      className="shop-hero relative flex min-h-[72svh] items-end overflow-hidden bg-background px-5 pb-10 pt-24 text-foreground md:min-h-[82svh] md:px-[8vw] md:pb-16 md:pt-32"
     >
-      <div
-        className="shop-theme-grid pointer-events-none absolute inset-0"
-        aria-hidden="true"
-      />
-
       {leadProduct ? (
-        <motion.div
-          className="absolute inset-x-4 top-[5rem] h-[54svh] transform-gpu overflow-hidden md:inset-x-[10vw] md:top-[6.5rem] md:h-[68vh] lg:inset-x-auto lg:-right-[3%] lg:h-[78vh] lg:w-[62%]"
-          style={{
-            y: mediaY,
-            scale: mediaScale,
-            clipPath: "polygon(12% 4%, 94% 0, 100% 84%, 79% 100%, 0 91%, 5% 22%)",
-          }}
+        <div
+          data-testid="shop-hero-media"
+          className="absolute inset-0 overflow-hidden bg-charcoal"
         >
           <Image
             src={leadProduct.image}
-            alt={leadProduct.title}
+            alt=""
             fill
             preload
-            quality={90}
-            sizes="(max-width: 768px) 110vw, 68vw"
-            className="shop-hero-image object-cover"
+            quality={75}
+            sizes="100vw"
+            className="shop-hero-image object-cover object-[62%_center] md:object-center"
           />
-          <div className="shop-hero-image-overlay absolute inset-0" />
-          <div className="absolute inset-[5%] border border-white/15 [clip-path:polygon(7%_0,100%_0,100%_82%,78%_100%,0_89%,0_21%)]" />
-          <p className="absolute left-[18%] right-8 top-8 hidden truncate text-right font-sans text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65 md:block">
-            {t("shop.featuredProduct", { department: leadProduct.departmentName || leadProduct.series })}
-          </p>
-        </motion.div>
+        </div>
       ) : null}
 
-      <div className="shop-hero-fade pointer-events-none absolute inset-x-0 bottom-0 h-[58%]" aria-hidden="true" />
+      <div className="shop-hero-image-overlay pointer-events-none absolute inset-0" aria-hidden="true" />
 
-      <span
-        className="pointer-events-none absolute -bottom-10 right-[2%] hidden select-none font-serif text-[clamp(7rem,16vw,13rem)] uppercase leading-none text-foreground/[0.035] md:block"
-        aria-hidden="true"
-      >
-        Archive
-      </span>
-
-      <motion.div
-        className="relative z-10 w-full max-w-[52rem] transform-gpu md:pl-[4vw]"
-        style={{ opacity: copyOpacity, y: copyY }}
-      >
-        <div className="mb-5 flex items-center gap-4 md:mb-7">
-          <span className="h-px w-10 bg-couture-red" aria-hidden="true" />
-          <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-foreground/70">
-            {t("shop.heroEyebrow")}
-          </p>
-        </div>
-
-        <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.5rem,9vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-foreground">
+      <div className="relative z-10 w-full max-w-[46rem]">
+        <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.6rem,8vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-foreground">
           {t("shop.heroTitleLead")} <span className="font-light italic text-couture-red">{t("shop.heroTitleAccent")}</span>
         </h1>
 
-        <p className="mt-6 max-w-[40rem] text-pretty font-sans text-sm font-medium leading-relaxed text-muted md:mt-8 md:text-base">
+        <p className="mt-6 max-w-[36rem] text-pretty font-sans text-sm font-medium leading-relaxed text-foreground/72 md:mt-7 md:text-base">
           {t("shop.heroDescription")}
         </p>
 
-        <nav className="mt-7 grid max-w-[42rem] grid-cols-2 gap-px border border-foreground/14 bg-foreground/14 sm:grid-cols-4" aria-label={t("shop.departmentNav")}>
-          {departments.map((department) => (
-            <ArtifactLink
-              key={department.value}
-              href={localePath(locale, `/shop?department=${department.value}`)}
-              onClick={() => trackCommerceEvent("department_entry", {
-                department: department.value,
-                source: "shop_hero",
-              })}
-              variant="inverse"
-              size="sm"
-              className="min-h-12 border-0 px-3 text-[0.66rem] tracking-[0.13em]"
-            >
-              {hasDepartmentTranslation(department.value) ? t(`shop.${shopDepartmentTranslationKey(department.value)}`) : department.label}
-            </ArtifactLink>
-          ))}
-        </nav>
-
-        <div className="mt-6 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/12 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/55 md:mt-7">
+        <div className="mt-7 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/20 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/65 md:mt-9">
           <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong>{plural("shop.availableCount", archiveCount)}</span>
           <span>{t("shop.selectionPromise")}</span>
         </div>
-      </motion.div>
+      </div>
     </header>
   );
 }
@@ -350,7 +274,7 @@ function ShopFooter() {
   const isInView = useInView(ref, { once: true, margin: "-10%" });
 
   return (
-    <div
+    <div data-component="ShopFooter"
       ref={ref}
       className="relative mt-24 overflow-hidden border-t border-foreground/[0.06] bg-surface py-16 md:mt-32 md:py-24"
     >
@@ -427,10 +351,10 @@ export type ShopPageProps = {
 
 export function ShopPage({ products, leadProduct, archiveCount, filterProps }: ShopPageProps) {
   return (
-    <main
+    <main data-component="ShopPage"
       className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
-      <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} departments={filterProps.departments ?? []} />
+      <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} />
 
       <div id="shop-results" className="relative scroll-mt-24 bg-background pb-16 pt-6 md:pb-24 md:pt-14">
         <div

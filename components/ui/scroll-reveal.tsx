@@ -35,7 +35,7 @@ export function ScrollReveal({
   }, [threshold]);
 
   return (
-    <div
+    <div data-component="ScrollReveal"
       ref={ref}
       className={`scroll-reveal scroll-reveal--${direction}${className ? ` ${className}` : ''}`}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}

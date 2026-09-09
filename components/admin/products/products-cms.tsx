@@ -219,7 +219,7 @@ export function ProductsCms({
   const sortedProducts = sortProducts(filteredProducts, sortBy);
 
   return (
-    <section className="grid gap-6">
+    <section data-component="ProductsCms" className="grid gap-6">
       <div className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"

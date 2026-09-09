@@ -23,7 +23,7 @@ import type { CollectionOption, ProductDraft } from "@/components/admin/products
 
 export function OwnershipLabel({ children, owner }: { children: React.ReactNode; owner: "Shopify" | "Synarava" | "Shopify push" }) {
   return (
-    <span className="adm-label flex items-center justify-between gap-2">
+    <span data-component="OwnershipLabel" className="adm-label flex items-center justify-between gap-2">
       <span>{children}</span>
       <span className={owner === "Shopify" ? "text-[var(--adm-accent)]" : "text-[var(--adm-subtle)]"}>{owner}</span>
     </span>
@@ -45,7 +45,7 @@ export function ProductDetailFields({
     .filter((collection) => collection.isPrimaryNav)
     .sort((a, b) => a.navSortOrder - b.navSortOrder);
   return (
-    <div
+    <div data-component="ProductDetailFields"
       className="grid gap-6 pt-5"
       style={{ borderTop: "1px solid var(--adm-border)" }}
     >

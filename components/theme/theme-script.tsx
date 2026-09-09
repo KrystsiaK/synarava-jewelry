@@ -33,7 +33,7 @@ export function getThemeScript(initialPreference: ThemePreference): string {
 
 export function ThemeScript({ initialPreference, nonce }: ThemeScriptProps) {
   return (
-    <script
+    <script data-component="ThemeScript"
       id="theme-initializer-script"
       nonce={nonce}
       suppressHydrationWarning

@@ -329,7 +329,7 @@ select {
 }
 
 .artifact-nav {
-  position: fixed;
+  position: sticky;
   inset-inline: 0;
   top: 0.75rem;
   z-index: 50;
@@ -345,53 +345,50 @@ select {
   border: 0;
   background: transparent;
   box-shadow: none;
-  transform: translate3d(0, 0, 0);
   transition:
-    transform 210ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 180ms ease,
     opacity 180ms ease;
-  will-change: transform;
-}
-
-.artifact-nav[data-hidden="true"] {
-  transform: translate3d(0, calc(-100% - 1.25rem), 0);
-  opacity: 0.98;
 }
 
 .artifact-nav[data-scrolled="true"] {
   border-color: transparent;
 }
 
-.artifact-nav[data-menu-open="true"] {
-  transform: translate3d(0, 0, 0);
-  opacity: 1;
+.artifact-nav[data-overlay="true"] {
+  position: fixed;
 }
 
-.artifact-nav[data-over-dark="true"] {
-  --color-foreground: #f1f1ef;
-  --color-muted: #b9b7b3;
-  --color-background: #0d0d0d;
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
-  --color-border-soft: rgba(255, 255, 255, 0.14);
-  --color-stroke: rgba(255, 255, 255, 0.1);
-}
 
 .site-nav-mobile-glass {
   display: none;
 }
 
 @media (max-width: 1199px) {
-  /*
-   * WebKit repaints a fixed SVG displacement backdrop on every touch-scroll
-   * frame. The mobile material keeps the same clear-glass read using only
-   * composited gradients and inset highlights.
-   */
   .site-nav-liquid-glass {
-    display: none !important;
+    display: block !important;
+    clip-path: inset(0);
+    background:
+      linear-gradient(112deg, rgba(255, 255, 255, 0.22), transparent 36%),
+      var(--color-header-chrome) !important;
+    backdrop-filter: url("#lg-refract-strong") !important;
+    -webkit-backdrop-filter: url("#lg-refract-strong") !important;
   }
 
   .site-nav-mobile-glass {
-    display: block;
+    display: none;
+  }
+
+  @supports not ((backdrop-filter: url("#lg-refract-strong")) or (-webkit-backdrop-filter: url("#lg-refract-strong"))) {
+    .site-nav-liquid-glass {
+      display: none !important;
+    }
+
+    .site-nav-mobile-glass {
+      display: block;
+    }
+  }
+
+  .site-nav-mobile-glass {
     border: 1px solid var(--color-border-subtle);
     background:
       linear-gradient(112deg, rgba(255, 255, 255, 0.66), transparent 34%),
@@ -690,17 +687,7 @@ html[data-theme="dark"] .home-material-plate {
 }
 
 .shop-hero {
-  background:
-    radial-gradient(circle at 82% 18%, rgba(166, 25, 46, 0.08), transparent 25rem),
-    linear-gradient(180deg, #f8f6f2 0%, var(--color-background) 100%);
-}
-
-.shop-theme-grid {
-  opacity: 0.1;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--color-foreground) 18%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-foreground) 18%, transparent) 1px, transparent 1px);
-  background-size: clamp(52px, 7vw, 104px) clamp(52px, 7vw, 104px);
+  background: var(--color-background);
 }
 
 .home-hero-media,
@@ -712,14 +699,8 @@ html[data-theme="dark"] .home-material-plate {
 
 .shop-hero-image-overlay {
   background:
-    linear-gradient(90deg, rgba(247, 247, 245, 0.62) 0%, rgba(247, 247, 245, 0.18) 10%, transparent 22%),
-    linear-gradient(125deg, transparent 58%, rgba(13, 13, 14, 0.22) 100%);
-}
-
-.shop-hero-fade {
-  right: auto;
-  width: min(58vw, 68rem);
-  background: none;
+    linear-gradient(90deg, rgba(247, 247, 245, 0.98) 0%, rgba(247, 247, 245, 0.9) 34%, rgba(247, 247, 245, 0.42) 58%, transparent 82%),
+    linear-gradient(to top, rgba(247, 247, 245, 0.72), transparent 48%);
 }
 
 html[data-theme="dark"] .shop-hero {
@@ -747,31 +728,28 @@ html[data-theme="dark"] .collection-detail-hero-media {
 }
 
 html[data-theme="dark"] .shop-hero-image-overlay {
-  background: linear-gradient(125deg, rgba(9, 9, 10, 0.04) 20%, transparent 48%, rgba(9, 9, 10, 0.72) 100%);
-}
-
-html[data-theme="dark"] .shop-hero-fade {
-  right: 0;
-  width: auto;
-  background: linear-gradient(to top, #09090a 8%, rgba(9, 9, 10, 0.88) 38%, transparent 100%);
+  background:
+    linear-gradient(90deg, rgba(9, 9, 10, 0.98) 0%, rgba(9, 9, 10, 0.9) 34%, rgba(9, 9, 10, 0.42) 58%, transparent 82%),
+    linear-gradient(to top, rgba(9, 9, 10, 0.72), transparent 48%);
 }
 
 @media (max-width: 767px) {
-  .shop-hero-fade {
-    right: 0;
-    width: auto;
-    height: 48%;
-    background: radial-gradient(
-      ellipse 94% 88% at 0% 100%,
-      var(--color-background) 0%,
-      color-mix(in srgb, var(--color-background) 86%, transparent) 48%,
-      transparent 100%
+  .shop-hero-image {
+    filter: saturate(0.82) contrast(1.08) brightness(0.88);
+  }
+
+  .shop-hero-image-overlay {
+    background: linear-gradient(
+      to top,
+      var(--color-background) 3%,
+      color-mix(in srgb, var(--color-background) 94%, transparent) 28%,
+      color-mix(in srgb, var(--color-background) 42%, transparent) 58%,
+      transparent 78%
     );
   }
 
-  html[data-theme="dark"] .shop-hero-fade {
-    height: 58%;
-    background: linear-gradient(to top, #09090a 8%, rgba(9, 9, 10, 0.88) 38%, transparent 100%);
+  html[data-theme="dark"] .shop-hero-image-overlay {
+    background: linear-gradient(to top, #09090a 3%, rgba(9, 9, 10, 0.94) 28%, rgba(9, 9, 10, 0.42) 58%, transparent 78%);
   }
 }
 
@@ -1671,6 +1649,9 @@ html[data-theme="light"] .adm-workflow-btn--off:hover {
   position: fixed;
   inset: 0;
   z-index: 180;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: contain;
   background: rgba(5, 4, 3, 0.72);
 }
 
@@ -1678,7 +1659,13 @@ html[data-theme="light"] .adm-workflow-btn--off:hover {
   display: flex;
   flex-direction: column;
   width: min(21rem, calc(100vw - 2rem));
-  min-height: 100dvh;
+  min-height: 0;
+  height: 100%;
+  max-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 1rem;
   border-right: 1px solid var(--adm-border);
   background: color-mix(in srgb, var(--adm-bg-soft) 98%, black);

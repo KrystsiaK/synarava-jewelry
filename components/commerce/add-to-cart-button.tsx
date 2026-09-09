@@ -168,7 +168,7 @@ export function AddToCartButton({
   ) : null;
 
   return (
-    <div className="relative">
+    <div data-component="AddToCartButton" className="relative">
       <PrimaryCtaButton
         type="button"
         onClick={handleAdd}

@@ -52,7 +52,7 @@ export const PerformanceVideo = forwardRef<HTMLVideoElement, PerformanceVideoPro
     }, [eager, rootMargin, shouldLoad]);
 
     return (
-      <video
+      <video data-component="PerformanceVideo"
         {...props}
         ref={videoRef}
         src={shouldLoad ? src : undefined}

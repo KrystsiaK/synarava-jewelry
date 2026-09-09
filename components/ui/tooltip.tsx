@@ -72,6 +72,7 @@ export function Tooltip({
   const frameRef = useRef(0);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const trigger = Children.only(children);
 
   const clearTimers = useCallback(() => {
@@ -89,6 +90,9 @@ export function Tooltip({
     closeTimerRef.current = null;
     const commit = () => {
       window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: instanceId }));
+      setPortalTarget(
+        triggerRef.current?.closest<HTMLElement>(".admin-terminal, .admin-modal-root") ?? document.body,
+      );
       setPosition(null);
       setOpen(true);
     };
@@ -229,7 +233,7 @@ export function Tooltip({
   return (
     <>
       {triggerNode}
-      {open && typeof document !== "undefined" ? createPortal(
+      {open && portalTarget ? createPortal(
         <div
           ref={floatingRef}
           id={tooltipId}
@@ -252,7 +256,7 @@ export function Tooltip({
           {content}
           <span className="ui-tooltip__arrow" aria-hidden="true" style={arrowStyle} />
         </div>,
-        document.body,
+        portalTarget,
       ) : null}
     </>
   );

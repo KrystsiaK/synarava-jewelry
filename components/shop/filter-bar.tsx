@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { AnimatedModal, ArtifactButton } from "@/components/ui";
@@ -163,7 +163,7 @@ export function FilterBar({
   const showCompliance = supportsComplianceFilters(filters.department);
 
   return (
-    <div className={cn("relative", isPending && "pointer-events-none")} aria-busy={isPending}>
+    <div data-component="FilterBar" className={cn("relative", isPending && "pointer-events-none")} aria-busy={isPending}>
       <AnimatePresence>
         {isPending ? (
           <motion.div
@@ -342,8 +342,8 @@ export function FilterBar({
       </div>
 
       {/* ── Mobile filter row ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-[1fr_auto] items-end gap-3 md:hidden">
-        <div className="relative col-span-2 flex items-center border-b border-foreground/[0.14]">
+      <div className="md:hidden">
+        <div className="relative flex items-center border-b border-foreground/[0.14]">
           <Search className="absolute left-0 size-3.5 shrink-0 text-muted/60 pointer-events-none" aria-hidden="true" />
           <input
             type="search"
@@ -365,7 +365,11 @@ export function FilterBar({
           )}
         </div>
 
-        <div className="flex items-end gap-2">
+        <span className="mt-3 flex justify-end whitespace-nowrap text-right text-[0.64rem] font-semibold uppercase tracking-[0.13em] text-muted/60 tabular-nums" aria-live="polite" aria-atomic="true">
+          {plural("shop.filters.productCount", totalCount)}
+        </span>
+
+        <div className="mt-2 grid w-full grid-cols-2 divide-x divide-foreground/[0.1] border border-foreground/[0.12] bg-background/55">
           <FilterDropdown
             label={t("shop.filters.sort")}
             options={sortOptions}
@@ -373,6 +377,8 @@ export function FilterBar({
             onChange={(value) => setFilter("sort", value)}
             allLabel={t("shop.filters.featured")}
             inactiveLabel={t("shop.filters.featured")}
+            triggerVariant="toolbar"
+            triggerIcon={<ArrowUpDown className="size-4" />}
           />
           <button
             type="button"
@@ -382,27 +388,27 @@ export function FilterBar({
             }}
             aria-label={`${t("shop.filters.filters")}${activeCount > 0 ? `, ${t("shop.filters.activeCount", { count: activeCount })}` : ""}`}
             className={cn(
-              "relative inline-flex shrink-0 items-center gap-2 border px-4 py-3 label-caps",
-              "cursor-pointer transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97]",
-              activeCount > 0
-                ? "border-couture-red bg-couture-red/[0.06] text-couture-red"
-                : "border-foreground/[0.12] text-muted hover:border-foreground/25 hover:text-foreground",
+              "relative inline-flex min-h-14 min-w-0 cursor-pointer items-center gap-3 px-3 text-left",
+              "transition-[background-color,color,transform] duration-200 hover:bg-surface/70 active:scale-[0.97]",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent",
+              activeCount > 0 ? "bg-couture-red/[0.045] text-couture-red" : "text-foreground",
             )}
           >
-            <SlidersHorizontal className="size-3.5" aria-hidden="true" />
-            {t("shop.filters.filters")}
-            {activeCount > 0 && (
-              <span className="inline-flex h-4 w-4 items-center justify-center bg-accent text-white label-mono text-[10px] rounded-full shrink-0">
-                {activeCount}
+            <span className="inline-flex size-5 shrink-0 items-center justify-center text-muted" aria-hidden="true">
+              <SlidersHorizontal className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-muted/65">
+                {t("shop.filters.filters")}
               </span>
-            )}
+              <span className="mt-0.5 block truncate text-[0.7rem] font-semibold uppercase tracking-[0.12em]">
+                {activeCount > 0
+                  ? t("shop.filters.activeCount", { count: activeCount })
+                  : t("shop.filters.all")}
+              </span>
+            </span>
           </button>
         </div>
-
-        {/* Labelled count */}
-        <span className="shrink-0 whitespace-nowrap text-right text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted/55 tabular-nums" aria-live="polite" aria-atomic="true">
-          {plural("shop.filters.productCount", totalCount)}
-        </span>
       </div>
 
       {/* ── Active filter chips ──────────────────────────────────────────────── */}

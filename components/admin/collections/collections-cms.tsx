@@ -90,7 +90,7 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
   }
 
   return (
-    <div className="space-y-8">
+    <div data-component="CollectionsCms" className="space-y-8">
       <section className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 mb-1 md:flex-row md:items-end md:justify-between"

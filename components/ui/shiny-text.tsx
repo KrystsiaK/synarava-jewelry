@@ -8,7 +8,7 @@ export function ShinyText({
   className?: string;
 }) {
   return (
-    <span className={`relative inline-block ${className ?? ""}`}>
+    <span data-component="ShinyText" className={`relative inline-block ${className ?? ""}`}>
       <span className="relative z-0">{children}</span>
       <span
         aria-hidden="true"

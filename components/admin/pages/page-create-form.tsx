@@ -42,7 +42,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
   }
 
   return (
-    <form ref={formRef} action={formAction} className="adm-panel grid gap-5 p-5 md:p-6">
+    <form data-component="CreatePageForm" ref={formRef} action={formAction} className="adm-panel grid gap-5 p-5 md:p-6">
       <input type="hidden" name="pageId" value={draftId} />
       <div
         className="flex flex-wrap items-start justify-between gap-4 pb-5"

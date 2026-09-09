@@ -25,7 +25,7 @@ export function LanguageSwitcher({
   }
 
   return (
-    <div className={fullWidth ? "w-full" : undefined}>
+    <div data-component="LanguageSwitcher" className={fullWidth ? "w-full" : undefined}>
       <AdaptivePopover
         open={open}
         onOpenChange={setOpen}

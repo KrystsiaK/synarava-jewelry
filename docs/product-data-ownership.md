@@ -20,6 +20,17 @@ The synchronization boundary has three explicit layers:
 - Conflicting edits to a field with shared ownership require an explicit choice: use Shopify or push the saved Synarava value.
 - Technical identifiers and a raw normalized snapshot are retained for reconciliation and audit, but are not exposed as storefront copy.
 
+## Catalog concepts
+
+- **Product category** means a Shopify Standard Product Taxonomy category. Synarava stores its GID and full name; there is no editable local category lifecycle.
+- **Collection** is the only product-grouping model. The local record projects Shopify identity and membership while retaining Synarava-owned editorial presentation.
+- **Primary navigation group** is a collection with `isPrimaryNav`; the legacy `department` query parameter and admin label are compatibility vocabulary, not a separate entity or product field.
+- **Tags** are Shopify product tags edited on the product. Local tag rows are a synchronized read projection, not standalone admin-managed records.
+- **Product type** is Shopify's free-form value and must round-trip without translation into a local enum.
+
+The September 2026 migration and its deliberate compatibility remnants are
+recorded in [`history/admin-shopify-refactor-2026-09.md`](./history/admin-shopify-refactor-2026-09.md).
+
 ## Shopify standard field coverage
 
 The supported commerce projection should include, where available:
@@ -78,4 +89,3 @@ Structured characteristics are searchable, filterable, grouped, and mirrored to 
 ## Search projection
 
 Search documents include Shopify identity and description, tags, option and variant values, and all characteristics marked searchable. Facets use normalized characteristics marked filterable. Editorial prose can improve recall but never replaces structured filters.
-

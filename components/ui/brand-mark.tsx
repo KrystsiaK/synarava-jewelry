@@ -23,7 +23,7 @@ export function BrandMark({
   const resolvedTone = tone === "auto" ? "light" : tone;
 
   return (
-    <span
+    <span data-component="BrandMark"
       role={alt ? "img" : undefined}
       aria-label={alt || undefined}
       aria-hidden={alt ? undefined : true}
@@ -42,7 +42,7 @@ export function BrandWordmark({
   tone = "light",
 }: BrandWordmarkProps) {
   return (
-    <span
+    <span data-component="BrandWordmark"
       role={alt ? "img" : undefined}
       aria-label={alt || undefined}
       aria-hidden={alt ? undefined : true}

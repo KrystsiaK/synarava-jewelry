@@ -98,7 +98,7 @@ function AdminToastCard({
   const toneStyles = toastStyles(toast.tone);
 
   return (
-    <div
+    <div data-component="AdminToastCard"
       className="adm-toast-card pointer-events-auto rounded-[12px] border px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.28)] backdrop-blur"
       role={toast.tone === "error" ? "alert" : "status"}
       aria-live={toast.tone === "error" ? "assertive" : "polite"}

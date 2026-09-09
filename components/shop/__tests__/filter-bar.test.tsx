@@ -226,11 +226,11 @@ describe("FilterBar", () => {
     await waitFor(() => expect(mockPush).toHaveBeenCalled());
   });
 
-  it("shows active filter count badge on mobile Filters button", () => {
+  it("includes the active filter count in the mobile Filters button", () => {
     render(
       <FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />,
     );
-    // The badge shows the count of active filters
-    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /filters, 2 active/i })).toBeInTheDocument();
+    expect(screen.getByText("2 active")).toBeInTheDocument();
   });
 });

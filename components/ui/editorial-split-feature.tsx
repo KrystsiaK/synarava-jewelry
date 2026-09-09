@@ -165,7 +165,7 @@ export function EditorialSplitFeature({
   );
 
   return (
-    <div ref={ref} className={className}>
+    <div data-component="EditorialSplitFeature" ref={ref} className={className}>
       {showDivider && (
         <div className="relative h-px bg-foreground/[0.06]">
           <motion.div

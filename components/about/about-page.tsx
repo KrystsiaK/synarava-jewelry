@@ -37,7 +37,7 @@ function AboutHero({
   const reduceMotion = useReducedMotion();
 
   return (
-    <header className="about-hero relative flex min-h-[100svh] items-end overflow-hidden bg-background text-foreground">
+    <header data-component="AboutHero" className="about-hero relative flex min-h-[100svh] items-end overflow-hidden bg-background text-foreground">
       <motion.div
         className="absolute inset-0"
         initial={false}
@@ -118,7 +118,7 @@ function StudioCopy({
   if (!title && !body) return null;
 
   return (
-    <section className="bg-surface py-24 text-foreground md:py-40">
+    <section data-component="StudioCopy" className="bg-surface py-24 text-foreground md:py-40">
       <div className="site-shell grid gap-10 md:grid-cols-12">
         {title ? (
           <h2 className="text-balance font-serif text-[clamp(3rem,7vw,6.5rem)] leading-[0.9] tracking-[-0.035em] md:col-span-7">
@@ -146,7 +146,7 @@ function MovementStory({
   if (!title || !videoSrc) return null;
 
   return (
-    <section className="about-movement relative min-h-[100svh] overflow-hidden bg-background text-foreground">
+    <section data-component="MovementStory" className="about-movement relative min-h-[100svh] overflow-hidden bg-background text-foreground">
       <PerformanceVideo
         src={videoSrc}
         className="absolute inset-0 h-full w-full object-cover"
@@ -168,7 +168,7 @@ function MovementStory({
 
 export function AboutPage(props: AboutPageProps) {
   return (
-    <main className="about-experience min-h-screen overflow-x-clip bg-background text-foreground">
+    <main data-component="AboutPage" className="about-experience min-h-screen overflow-x-clip bg-background text-foreground">
       <AboutHero
         title={props.title}
         excerpt={props.excerpt}

@@ -51,7 +51,7 @@ function ProductHero({ product }: { product: ProductSummary }) {
   const breadcrumbs = getProductBreadcrumbs(product);
 
   return (
-    <header className="bg-background pt-24 text-foreground md:pt-28">
+    <header data-component="ProductHero" className="bg-background pt-24 text-foreground md:pt-28">
       <div className="site-shell grid gap-8 pb-14 pt-3 md:pt-5 lg:grid-cols-12 lg:items-start lg:gap-x-10 lg:pb-20 xl:gap-x-16">
         <motion.div
           className="lg:order-2 lg:col-span-7 lg:col-start-6"
@@ -219,7 +219,7 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
   if (!product.departmentName && specificationGroups.length === 0) return null;
 
   return (
-    <section className="border-y border-foreground/10 bg-surface py-16 md:py-20">
+    <section data-component="ProductSpecifications" className="border-y border-foreground/10 bg-surface py-16 md:py-20">
       <div className="site-shell grid gap-10 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div>
           <p className="label-mono text-couture-red">Product information</p>
@@ -272,7 +272,7 @@ function ProductDescription({ product }: { product: ProductSummary }) {
   if (!description || !shortDescription || description === shortDescription) return null;
 
   return (
-    <section className="bg-background py-20 md:py-28">
+    <section data-component="ProductDescription" className="bg-background py-20 md:py-28">
       <div className="site-shell grid gap-8 md:grid-cols-12 md:gap-12">
         <div className="md:col-span-4">
           <p className="label-mono text-couture-red">{presentation.descriptionLabel}</p>
@@ -315,7 +315,7 @@ function MaterialsScrollSection({ product }: { product: ProductSummary }) {
   });
 
   return (
-    <section
+    <section data-component="MaterialsScrollSection"
       ref={ref}
       className={
         reduceMotion
@@ -425,7 +425,7 @@ function SymbolismScrollSection({
   const bodyRemainder = product.symbolismBody.slice(1);
 
   return (
-    <section ref={ref} className="overflow-clip border-y border-foreground/10 bg-surface py-24 md:py-36">
+    <section data-component="SymbolismScrollSection" ref={ref} className="overflow-clip border-y border-foreground/10 bg-surface py-24 md:py-36">
       <div className="site-shell">
         <header className="grid gap-8 border-b border-foreground/15 pb-9 md:grid-cols-12 md:items-end md:pb-12">
           <div className="md:col-span-9">
@@ -576,7 +576,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
   }
 
   return (
-    <section className="product-craft-section relative overflow-clip border-y border-stroke bg-surface py-24 text-foreground md:py-36">
+    <section data-component="CraftSection" className="product-craft-section relative overflow-clip border-y border-stroke bg-surface py-24 text-foreground md:py-36">
       <div className="site-shell">
         <header className="grid gap-8 pb-10 md:grid-cols-12 md:items-end md:pb-14">
           <div className="md:col-span-8">
@@ -701,7 +701,7 @@ function LookbookSection({ product }: { product: ProductSummary }) {
   }
 
   return (
-    <section ref={ref} className="site-shell py-20 md:py-32">
+    <section data-component="LookbookSection" ref={ref} className="site-shell py-20 md:py-32">
       <motion.div
         className="mb-10 flex items-end justify-between md:mb-14"
         initial={{ opacity: 0, y: 20 }}
@@ -792,7 +792,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
   }
 
   return (
-    <div ref={ref} className="relative overflow-hidden border-t border-foreground/[0.06] bg-surface py-20 md:py-28">
+    <div data-component="ProductFooter" ref={ref} className="relative overflow-hidden border-t border-foreground/[0.06] bg-surface py-20 md:py-28">
       {/* Ghost text */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
         <span
@@ -885,7 +885,7 @@ export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummar
   }, [product.categorySlug, product.collectionSlug, product.currency, product.departmentSlug, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
 
   return (
-    <main
+    <main data-component="ProductDetail"
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
       <ProductHero product={product} />

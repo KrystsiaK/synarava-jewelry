@@ -49,7 +49,7 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
   const position = `${String(activeIndex + 1).padStart(2, "0")} / ${String(count).padStart(2, "0")}`;
 
   return (
-    <section aria-label={t("product.galleryLabel")} className="min-w-0">
+    <section data-component="ProductMediaGallery" aria-label={t("product.galleryLabel")} className="min-w-0">
       <div className="grid gap-3 md:grid-cols-[4.5rem_minmax(0,1fr)] md:gap-4">
         <div className="order-2 flex snap-x gap-2 overflow-x-auto pb-1 md:order-1 md:grid md:max-h-[42rem] md:content-start md:overflow-y-auto md:pb-0">
           {media.map((item, index) => (
@@ -169,20 +169,20 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
 
 function GalleryArrow({ label, direction, onClick }: { label: string; direction: "left" | "right"; onClick: () => void }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className="pointer-events-auto grid size-12 place-items-center border border-white/35 bg-black/30 transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:size-14">
+    <button data-component="GalleryArrow" type="button" aria-label={label} onClick={onClick} className="pointer-events-auto grid size-12 place-items-center border border-white/35 bg-black/30 transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:size-14">
       <ArrowIcon direction={direction} />
     </button>
   );
 }
 
 function ZoomIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5M10.5 7v7M7 10.5h7" /></svg>;
+  return <svg data-component="ZoomIcon" aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5M10.5 7v7M7 10.5h7" /></svg>;
 }
 
 function CloseIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m5 5 14 14M19 5 5 19" /></svg>;
+  return <svg data-component="CloseIcon" aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m5 5 14 14M19 5 5 19" /></svg>;
 }
 
 function ArrowIcon({ direction }: { direction: "left" | "right" }) {
-  return <svg aria-hidden="true" viewBox="0 0 24 24" className={`size-5 ${direction === "right" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.7"><path d="m14.5 5-7 7 7 7" /></svg>;
+  return <svg data-component="ArrowIcon" aria-hidden="true" viewBox="0 0 24 24" className={`size-5 ${direction === "right" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.7"><path d="m14.5 5-7 7 7 7" /></svg>;
 }

@@ -89,7 +89,7 @@ export function CartShell({
 }: CartShellProps) {
   const { t, locale } = useTranslations();
   return (
-    <main
+    <main data-component="CartShell"
       className="cart-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
     >
       <div className="relative z-10 pt-28">

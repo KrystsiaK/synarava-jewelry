@@ -11,6 +11,8 @@ import { useTheme } from "@/components/theme/theme-provider";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
+import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
+import { useDrawerFocusTrap } from "@/components/layout/use-drawer-focus-trap";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasDepartmentTranslation, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
@@ -41,22 +43,6 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
       ? cartCountOverride.count
       : initialCartCount;
   const hasCartItems = cartCount > 0;
-  const hasDarkHero =
-    pathname === "/" ||
-    pathname === "/shop" ||
-    pathname === "/cart" ||
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname.startsWith("/checkout") ||
-    pathname.startsWith("/collections") ||
-    pathname.startsWith("/products") ||
-    pathname.startsWith("/artifacts") ||
-    pathname.startsWith("/about");
-  const isOverDarkHero =
-    hasDarkHero &&
-    !hasScrolledHeader &&
-    !isMenuOpen &&
-    resolvedTheme === "dark";
 
   const navItems = [
     { href: "/", label: t("nav.home"), match: "/" },
@@ -80,52 +66,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
     };
   }, [initialCartCount]);
 
-  useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? "hidden" : "";
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMenuOpen]);
-
-  useEffect(() => {
-    if (!isMenuOpen) return;
-    const drawer = drawerRef.current;
-    const previousFocus = document.activeElement as HTMLElement | null;
-    const menuButton = menuButtonRef.current;
-    const background = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
-    background.forEach((element) => { element.inert = true; });
-    drawer?.querySelector<HTMLElement>("a[href], button:not([disabled])")?.focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setIsMenuOpen(false);
-        return;
-      }
-      if (event.key !== "Tab" || !drawer) return;
-      const focusable = Array.from(
-        drawer.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      background.forEach((element) => { element.inert = false; });
-      document.removeEventListener("keydown", handleKeyDown);
-      (previousFocus?.isConnected ? previousFocus : menuButton)?.focus();
-    };
-  }, [isMenuOpen]);
+  useDrawerFocusTrap(isMenuOpen, drawerRef, menuButtonRef, () => setIsMenuOpen(false));
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1200px)");
@@ -188,14 +129,13 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
       <header
         className="artifact-nav relative"
         data-scrolled={hasScrolledHeader ? "true" : "false"}
-        data-menu-open={isMenuOpen ? "true" : "false"}
-        data-over-dark={isOverDarkHero ? "true" : "false"}
+        data-overlay={pathname === "/shop" ? "true" : undefined}
       >
         <div
           className="site-nav-liquid-glass absolute inset-0 z-0 h-full w-full"
           style={{
             border: "none",
-            backgroundColor: "transparent",
+            backgroundColor: "var(--color-header-chrome)",
             backdropFilter: "url(#lg-refract-strong)",
             WebkitBackdropFilter: "url(#lg-refract-strong)",
             boxShadow: "var(--site-nav-shadow)",
@@ -226,12 +166,12 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
                 alt=""
                 priority
                 size={40}
-                tone={isOverDarkHero || resolvedTheme === "dark" ? "light" : "dark"}
+                tone={resolvedTheme === "dark" ? "light" : "dark"}
                 className="brand-mark--mobile"
               />
             </span>
             <span className="site-nav-mark site-nav-mark--desktop hidden shrink-0 items-center justify-center min-[1200px]:flex">
-              <BrandMark alt="" size={38} tone={isOverDarkHero || resolvedTheme === "dark" ? "light" : "dark"} className="brand-mark--header" />
+              <BrandMark alt="" size={38} tone={resolvedTheme === "dark" ? "light" : "dark"} className="brand-mark--header" />
             </span>
             <span className="site-nav-wordmark-text hidden min-[1200px]:grid" aria-hidden="true">
               <span>SYNARAVA</span>
@@ -356,77 +296,15 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
         </div>
       </header>
 
-      <div
-        className={`site-nav-drawer-backdrop fixed inset-0 z-40 bg-black/55 backdrop-blur-sm transition-opacity duration-300 min-[1200px]:hidden ${
-          isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        onClick={() => setIsMenuOpen(false)}
-        aria-hidden="true"
+      <MobileNavDrawer
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        drawerRef={drawerRef}
+        navItems={navItems}
+        departments={departments}
+        isActive={isActive}
+        isLoggedIn={isLoggedIn}
       />
-
-      <aside
-        ref={drawerRef}
-        className={`site-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,22rem)] flex-col border-r border-stroke bg-background px-4 pb-7 pt-20 text-foreground shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-transform duration-300 min-[1200px]:hidden ${
-          isMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-        aria-hidden={!isMenuOpen}
-        inert={!isMenuOpen}
-        aria-label="Main navigation"
-      >
-        <div className="relative z-10 flex flex-col h-full w-full">
-          <nav className="flex flex-col pt-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={localePath(locale, item.href)}
-                onClick={() => setIsMenuOpen(false)}
-                aria-current={isActive(item.match) ? "page" : undefined}
-                className={`border-b border-stroke py-4 font-serif text-[1.38rem] leading-none transition-colors hover:text-foreground ${
-                  isActive(item.match) ? "text-foreground" : "text-muted"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <nav className="mt-6" aria-label="Shop departments">
-            <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">{t("shop.departments")}</p>
-            <div className="grid grid-cols-2 gap-x-4">
-              {departments.map((department) => (
-                <Link
-                  key={department.slug}
-                  href={localePath(locale, `/shop?department=${department.slug}`)}
-                  onClick={() => setIsMenuOpen(false)}
-                  className="min-h-11 border-b border-stroke py-3 text-sm text-muted transition-colors hover:text-foreground"
-                >
-                  {hasDepartmentTranslation(department.slug) ? t(`shop.${shopDepartmentTranslationKey(department.slug)}`) : department.name}
-                </Link>
-              ))}
-            </div>
-          </nav>
-
-          <div className="mt-7 flex flex-col gap-3">
-            <Link href={localePath(locale, isLoggedIn ? "/profile" : "/login")} onClick={() => setIsMenuOpen(false)} className="label-caps text-muted transition-colors hover:text-foreground">
-              {isLoggedIn ? t("nav.account") : t("nav.loginRegister")}
-            </Link>
-          </div>
-
-          <div className="mt-auto border-t border-stroke pt-4">
-            <div className="mb-4 border-b border-stroke pb-4">
-              <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">
-                {t("theme.appearance")}
-              </p>
-              <ThemeToggle compact />
-            </div>
-            <div className="flex min-h-11 items-center justify-end">
-              <div className="[&>div>button]:!text-muted [&>div>button:hover]:!text-foreground">
-                <LanguageSwitcher showCode align="right" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
     </>
   );
 }

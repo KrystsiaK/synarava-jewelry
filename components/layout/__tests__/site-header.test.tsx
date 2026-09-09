@@ -87,4 +87,10 @@ describe("SiteHeader", () => {
     renderHeader();
     expect(screen.getByRole("link", { name: "Home" }).className).toContain("text-foreground");
   });
+
+  it("overlays the shop cover instead of reserving a row above it", () => {
+    mockUsePathname.mockReturnValue("/pt/shop");
+    renderHeader();
+    expect(screen.getByRole("banner")).toHaveAttribute("data-overlay", "true");
+  });
 });

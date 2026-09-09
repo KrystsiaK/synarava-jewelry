@@ -32,7 +32,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
     item.maxQuantity != null && item.quantity >= item.maxQuantity;
 
   return (
-    <article className="grid gap-5 border-t border-stroke py-6 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
+    <article data-component="CartItemRow" className="grid gap-5 border-t border-stroke py-6 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
       <Link href={localePath(locale, `/products/${item.slug}`)} className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
         <Image
           alt={item.title}

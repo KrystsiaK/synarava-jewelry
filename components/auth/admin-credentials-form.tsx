@@ -24,7 +24,7 @@ function AdminCredentialsSubmit({
   const { pending } = useFormStatus();
 
   return (
-    <button type="submit" disabled={pending} className="adm-btn-primary mt-2 w-fit">
+    <button data-component="AdminCredentialsSubmit" type="submit" disabled={pending} className="adm-btn-primary mt-2 w-fit">
       {pending ? pendingLabel : label}
     </button>
   );
@@ -41,7 +41,7 @@ export function AdminCredentialsForm({ currentEmail }: { currentEmail: string })
   }, [pushToast, state]);
 
   return (
-    <form action={formAction} className="adm-panel grid gap-5 p-5 md:p-6">
+    <form data-component="AdminCredentialsForm" action={formAction} className="adm-panel grid gap-5 p-5 md:p-6">
       <div className="space-y-2">
         <p className="adm-section-tag">{t("auth.adminCredentials.eyebrow")}</p>
         <h2 className="adm-title-sm">{t("auth.adminCredentials.title")}</h2>

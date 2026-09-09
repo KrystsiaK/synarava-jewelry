@@ -98,30 +98,22 @@ Accounts made it redundant.
 
 ## Admin information architecture
 
-The admin should be intentionally small and task-focused:
+The implemented admin is intentionally small and task-focused:
 
-- `Dashboard`
-  - recent orders, draft content, publish queue
-- `Catalog`
-  - products
-  - variants
-  - collections
-- `Content`
-  - home
-  - manifesto
-  - generic pages
-- `Media`
-  - S3-backed asset library
-- `Orders`
-  - payment and fulfillment review
-- `People`
-  - customers
-  - staff users
-  - roles
-- `Settings`
-  - navigation
-  - footer
-  - promo bar
+- `Overview` — content/catalog summary and QA entry point;
+- `Home` and `About` — dedicated editorial surfaces;
+- `Pages` — generic editorial pages;
+- `Videos` — shared S3-backed storefront video assets;
+- `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;
+- `Collections` — Shopify-linked grouping, merchandising, and primary storefront navigation;
+- `Problems` — catalog/content consistency findings;
+- `Account` — the current administrator's session and operational controls.
+
+There are no standalone Category, Tag, Department, Order, Customer, Staff, or
+Role administration surfaces. Shopify owns the matching commerce concepts;
+admin authentication has one operator role. The completed restructuring and
+catalog cutover are recorded in
+[`history/admin-shopify-refactor-2026-09.md`](./history/admin-shopify-refactor-2026-09.md).
 
 ## Search strategy
 

@@ -18,7 +18,7 @@ type ServicePageProps = {
 export function ServicePage({ eyebrow, title, intro, sections }: ServicePageProps) {
   const { t } = useTranslations();
   return (
-    <main className="artifact-shell min-h-screen bg-background pb-24 pt-32 text-foreground md:pt-40">
+    <main data-component="ServicePage" className="artifact-shell min-h-screen bg-background pb-24 pt-32 text-foreground md:pt-40">
       <div className="site-shell">
         <header className="max-w-4xl border-b border-stroke pb-12 md:pb-16">
           <p className="label-caps text-accent">{eyebrow}</p>

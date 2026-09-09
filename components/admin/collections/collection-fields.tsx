@@ -17,7 +17,7 @@ export function FieldLabel({
   required?: boolean;
 }) {
   return (
-    <span className="adm-label-row">
+    <span data-component="FieldLabel" className="adm-label-row">
       <span className="adm-label">
         {children}
         {required ? <span style={{ color: "var(--adm-accent)", marginLeft: "0.25rem" }}>*</span> : null}
@@ -29,7 +29,7 @@ export function FieldLabel({
 
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="adm-field-error">{message}</p>;
+  return <p data-component="FieldError" className="adm-field-error">{message}</p>;
 }
 
 export function WorkflowStateField({
@@ -59,7 +59,7 @@ export function WorkflowStateField({
   ];
 
   return (
-    <div className="grid gap-2">
+    <div data-component="WorkflowStateField" className="grid gap-2">
       <FieldLabel required help="Draft collections stay private. Published collections appear on the collections index and their public detail page.">
         Storefront state
       </FieldLabel>

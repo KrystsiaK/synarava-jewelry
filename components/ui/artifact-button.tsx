@@ -80,7 +80,7 @@ export function ArtifactButton({
   ...props
 }: ButtonProps) {
   return (
-    <button className={artifactButtonClasses({ variant, size, className })} {...props}>
+    <button data-component="ArtifactButton" className={artifactButtonClasses({ variant, size, className })} {...props}>
       <ButtonContent showArrow={showArrow}>{children}</ButtonContent>
     </button>
   );

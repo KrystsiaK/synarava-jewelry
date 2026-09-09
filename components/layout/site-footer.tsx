@@ -8,7 +8,7 @@ import { localePath } from "@/lib/i18n/routing";
 
 function FooterOrnamentDivider() {
   return (
-    <div className="flex items-center justify-center gap-5 md:hidden" aria-hidden="true">
+    <div data-component="FooterOrnamentDivider" className="flex items-center justify-center gap-5 md:hidden" aria-hidden="true">
       <div className="h-px w-14 bg-stone-beige" />
       <div className="h-2 w-2 rotate-45 border border-couture-red" />
       <div className="h-px w-14 bg-stone-beige" />
@@ -20,7 +20,7 @@ export function SiteFooter() {
   const { t, locale } = useTranslations();
 
   return (
-    <footer className="artifact-footer">
+    <footer data-component="SiteFooter" className="artifact-footer">
       <div className="relative text-center md:col-span-2 md:text-left">
         <div className="artifact-footer__wordmark" aria-hidden="true">
           <span>SYNARAVA</span>

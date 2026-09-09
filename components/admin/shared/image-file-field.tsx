@@ -96,7 +96,7 @@ export function ImageFileField({
   const currentImageBroken = Boolean(currentImageUrl && brokenCurrentImageUrl === currentImageUrl);
 
   return (
-    <div className="grid gap-3">
+    <div data-component="ImageFileField" className="grid gap-3">
       <input
         ref={inputRef}
         name={name}

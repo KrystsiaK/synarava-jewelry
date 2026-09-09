@@ -72,7 +72,7 @@ export function ShopifyProfileShell({
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <main data-component="ShopifyProfileShell" className="relative min-h-screen overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden">
         <span className="block select-none font-serif text-[clamp(8rem,20vw,22rem)] leading-none text-wordmark-fade opacity-40">
           Synarava

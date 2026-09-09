@@ -34,7 +34,7 @@ export function AdminIssueInlineWarning({
   if (issues.length === 0) return null;
 
   return (
-    <div
+    <div data-component="AdminIssueInlineWarning"
       className={`grid gap-2 p-3 text-xs ${className}`}
       style={{
         border: "1px solid rgba(255, 93, 93, 0.38)",
@@ -74,7 +74,7 @@ export function AdminIssuesCms({ issues }: { issues: AdminIssueSummary[] }) {
   }
 
   return (
-    <section className="adm-panel grid gap-5 p-5">
+    <section data-component="AdminIssuesCms" className="adm-panel grid gap-5 p-5">
       <div
         className="flex flex-col gap-4 pb-4 md:flex-row md:items-end md:justify-between"
         style={{ borderBottom: "1px solid var(--adm-border)" }}

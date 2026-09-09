@@ -3,7 +3,6 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 
 import { useTheme } from "@/components/theme/theme-provider";
-import { Tooltip } from "@/components/ui/tooltip";
 import { type ThemePreference } from "@/lib/theme/shared";
 
 const options: Array<{
@@ -21,10 +20,10 @@ type ThemeToggleProps = {
 };
 
 export function ThemeToggle({ compact = false }: ThemeToggleProps) {
-  const { preference, resolvedTheme, setPreference } = useTheme();
+  const { preference, setPreference } = useTheme();
 
   return (
-    <div
+    <div data-component="ThemeToggle"
       className={`inline-flex items-center bg-background/80 backdrop-blur ${
         compact ? "gap-1 p-1" : "gap-1 p-1.5"
       }`}
@@ -35,25 +34,22 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
         const Icon = option.icon;
         const active = preference === option.value;
 
-        const tooltipLabel = option.value === "system" ? `System (${resolvedTheme})` : option.label;
-
         return (
-          <Tooltip key={option.value} content={tooltipLabel}>
-            <button
-              type="button"
-              onClick={() => setPreference(option.value)}
-              aria-pressed={active}
-              aria-label={option.label}
-              className={`inline-flex min-h-11 min-w-11 items-center gap-2 px-2.5 py-2 transition-[background-color,color,transform] ${
-                active
-                  ? "bg-foreground text-background"
-                  : "text-muted hover:bg-foreground/5 hover:text-foreground"
-              } ${compact ? "justify-center" : ""}`}
-            >
-              <Icon className="size-4" aria-hidden="true" />
-              {!compact ? <span className="label-caps">{option.label}</span> : null}
-            </button>
-          </Tooltip>
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setPreference(option.value)}
+            aria-pressed={active}
+            aria-label={option.label}
+            className={`inline-flex min-h-11 min-w-11 items-center gap-2 px-2.5 py-2 transition-[background-color,color,transform] ${
+              active
+                ? "bg-foreground text-background"
+                : "text-muted hover:bg-foreground/5 hover:text-foreground"
+            } ${compact ? "justify-center" : ""}`}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+            {!compact ? <span className="label-caps">{option.label}</span> : null}
+          </button>
         );
       })}
     </div>

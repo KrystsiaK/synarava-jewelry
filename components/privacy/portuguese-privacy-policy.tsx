@@ -35,7 +35,7 @@ function Section({ id, number, title, children }: {
 
 function List({ items }: { items: string[] }) {
   return (
-    <ul className="space-y-2 pl-4">
+    <ul data-component="List" className="space-y-2 pl-4">
       {items.map((item) => (
         <li key={item} className="flex gap-3">
           <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-stroke" />
@@ -63,7 +63,7 @@ export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail
   ];
 
   return (
-    <main className="artifact-shell min-h-screen pb-20 pt-24 md:pb-32 md:pt-28">
+    <main data-component="PortuguesePrivacyPolicy" className="artifact-shell min-h-screen pb-20 pt-24 md:pb-32 md:pt-28">
       <header className="site-shell border-b border-stroke pb-10 md:pb-14">
         <p className="label-mono mb-4 text-accent">Legal</p>
         <h1 className="font-serif text-[2.4rem] leading-tight sm:text-[3.2rem] md:text-[4.5rem]">Política de Privacidade</h1>

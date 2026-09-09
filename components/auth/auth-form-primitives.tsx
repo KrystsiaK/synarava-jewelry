@@ -22,7 +22,7 @@ export function AuthForm({
   className?: FormHTMLAttributes<HTMLFormElement>["className"];
 }) {
   return (
-    <form action={action} className={cn("grid gap-5", className)}>
+    <form data-component="AuthForm" action={action} className={cn("grid gap-5", className)}>
       {children}
     </form>
   );
@@ -36,7 +36,7 @@ export function AuthField({
   children: ReactNode;
 }) {
   return (
-    <label className="grid gap-2.5">
+    <label data-component="AuthField" className="grid gap-2.5">
       <span className="label-caps text-foreground/68">{label}</span>
       {children}
     </label>
@@ -45,7 +45,7 @@ export function AuthField({
 
 export function AuthInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input
+    <input data-component="AuthInput"
       {...props}
       className={cn(
         "storefront-field",
@@ -122,7 +122,7 @@ export function PasswordInput({
   ];
 
   return (
-    <div className="grid gap-1.5">
+    <div data-component="PasswordInput" className="grid gap-1.5">
       <div className="relative">
         <input
           {...props}
@@ -203,7 +203,7 @@ export function PasswordInput({
 
 export function AuthTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
-    <textarea
+    <textarea data-component="AuthTextarea"
       {...props}
       className={cn(
         "storefront-field",
@@ -225,7 +225,7 @@ export function AuthMessage({
   }
 
   return (
-    <div
+    <div data-component="AuthMessage"
       className={cn(
         "px-4 py-3 text-sm leading-6",
         error

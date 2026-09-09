@@ -42,7 +42,7 @@ function CollectionsHero({ collections }: { collections: CollectionSummary[] }) 
   );
 
   return (
-    <header
+    <header data-component="CollectionsHero"
       ref={heroRef}
       className="relative flex min-h-[94svh] items-end overflow-hidden bg-background pb-14 pt-32 text-foreground md:min-h-screen md:pb-[8vh] md:pt-36"
     >
@@ -221,7 +221,7 @@ function CollectionsFooter() {
   const isInView = useInView(ref, { once: true, margin: "-10%" });
 
   return (
-    <div
+    <div data-component="CollectionsFooter"
       ref={ref}
       className="relative overflow-hidden border-t border-white/10 bg-surface py-20 text-foreground md:py-28"
     >
@@ -272,7 +272,7 @@ export function CollectionsPage({
   collections: CollectionSummary[];
 }) {
   return (
-    <main
+    <main data-component="CollectionsPage"
       className="collections-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
     >
       <CollectionsHero collections={collections} />

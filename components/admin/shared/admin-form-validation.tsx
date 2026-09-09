@@ -124,13 +124,13 @@ export function useAdminFormValidation<FieldName extends string>({
 
 export function AdminFieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
-  return <p id={id} className="adm-field-error">{message}</p>;
+  return <p data-component="AdminFieldError" id={id} className="adm-field-error">{message}</p>;
 }
 
 export function AdminFormAlert({ message, className }: { message?: string; className?: string }) {
   if (!message) return null;
   return (
-    <div
+    <div data-component="AdminFormAlert"
       role="alert"
       className={cn("border border-[var(--adm-danger)] bg-[var(--adm-danger-soft)] px-4 py-3 text-sm leading-6 text-[var(--adm-danger)]", className)}
     >

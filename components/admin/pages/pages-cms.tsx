@@ -48,7 +48,7 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
   }
 
   return (
-    <div className="grid gap-6">
+    <div data-component="PagesCms" className="grid gap-6">
       <div className="adm-panel flex items-start gap-3 p-4">
         <span style={{ color: "var(--adm-accent)", fontSize: "0.8rem" }}>◆</span>
         <div className="adm-label-row">

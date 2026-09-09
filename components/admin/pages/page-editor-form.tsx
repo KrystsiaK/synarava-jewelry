@@ -44,7 +44,7 @@ export function PageEditor({
   }
 
   return (
-    <div className="adm-panel grid gap-5 p-5 md:p-6">
+    <div data-component="PageEditor" className="adm-panel grid gap-5 p-5 md:p-6">
       <form ref={formRef} action={formAction} className="grid gap-5">
         <input type="hidden" name="slug" value={page.slug} />
 

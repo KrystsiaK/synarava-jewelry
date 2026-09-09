@@ -23,7 +23,7 @@ export function AuthShell({
   homeHref = "/",
 }: AuthShellProps) {
   return (
-    <main className="auth-experience artifact-shell min-h-[100svh] pt-24">
+    <main data-component="AuthShell" className="auth-experience artifact-shell min-h-[100svh] pt-24">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="auth-art-direction absolute inset-0" />
       </div>

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -21,7 +22,7 @@ export function AdminThemeShell() {
 
 export function AdminThemeToggle() {
   return (
-    <div className="admin-theme-toggle">
+    <div data-component="AdminThemeToggle" className="admin-theme-toggle">
       <ThemeToggle compact />
     </div>
   );
@@ -53,7 +54,7 @@ export function AdminSmartTopbar({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div
+    <div data-component="AdminSmartTopbar"
       className="adm-topbar shrink-0 flex items-center justify-between gap-4 border-b px-4 py-3 md:px-5"
       data-scrolled={hasScrolled ? "true" : "false"}
     >
@@ -110,7 +111,7 @@ export function LocaleTabStrip() {
   const [active, setActive] = useState<string>("EN");
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--adm-border)] pb-4">
+    <div data-component="LocaleTabStrip" className="flex flex-wrap items-center gap-1.5 border-b border-[var(--adm-border)] pb-4">
       <span className="adm-section-tag mr-1">LOCALE /</span>
       {LOCALES.map((locale) => (
         <Tooltip key={locale.code} content={locale.label}>
@@ -147,7 +148,7 @@ function AdminIssueNavBadge({ count }: { count: number }) {
   if (count <= 0) return null;
 
   return (
-    <span className="adm-nav-issue-badge" aria-label={`${count} open problems`}>
+    <span data-component="AdminIssueNavBadge" className="adm-nav-issue-badge" aria-label={`${count} open problems`}>
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -166,7 +167,7 @@ export function AdminNav({
   const issueHrefSet = new Set(issueNavHrefs);
 
   return (
-    <nav className="flex flex-col gap-1">
+    <nav data-component="AdminNav" className="flex flex-col gap-1">
       {NAV_ITEMS.map((item) => {
         const active =
           "exact" in item && item.exact
@@ -239,14 +240,28 @@ export function AdminMobileMenu({
   issueNavHrefs?: string[];
 }) {
   const [open, setOpen] = useState(false);
+  const portalTarget = typeof document === "undefined"
+    ? null
+    : document.querySelector<HTMLElement>(".admin-terminal") ?? document.body;
 
   useEffect(() => {
     if (!open) return;
+    const body = document.body;
+    const root = document.documentElement;
+    const previousBodyOverflow = body.style.overflow;
+    const previousRootOverflow = root.style.overflow;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
+
+    body.style.overflow = "hidden";
+    root.style.overflow = "hidden";
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      root.style.overflow = previousRootOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -272,7 +287,7 @@ export function AdminMobileMenu({
         {open ? <X size={18} strokeWidth={1.8} /> : <Menu size={18} strokeWidth={1.8} />}
       </button>
 
-      {open ? (
+      {open && portalTarget ? createPortal(
         <div className="adm-menu-overlay lg:hidden" role="presentation" onMouseDown={() => setOpen(false)}>
           <aside
             className="adm-menu-drawer"
@@ -314,7 +329,8 @@ export function AdminMobileMenu({
               </div>
             ) : null}
           </aside>
-        </div>
+        </div>,
+        portalTarget,
       ) : null}
     </>
   );

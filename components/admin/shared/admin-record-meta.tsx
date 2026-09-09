@@ -33,7 +33,7 @@ function formatAdminDate(value: Date | string) {
 
 export function AdminRecordDates({ record }: { record: AdminRecordMeta }) {
   return (
-    <dl
+    <dl data-component="AdminRecordDates"
       className="mt-2 grid gap-1.5 text-xs sm:grid-cols-2 sm:gap-x-4"
       style={{ color: "var(--adm-muted)" }}
     >

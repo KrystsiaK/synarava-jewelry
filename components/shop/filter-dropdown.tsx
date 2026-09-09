@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Check, ChevronDown } from "lucide-react";
 
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
@@ -16,6 +16,8 @@ export type FilterDropdownProps = {
   allLabel?: string;
   inactiveLabel?: string;
   disabled?: boolean;
+  triggerVariant?: "default" | "toolbar";
+  triggerIcon?: ReactNode;
 };
 
 export function FilterDropdown({
@@ -26,6 +28,8 @@ export function FilterDropdown({
   allLabel = `All ${label.toLowerCase()}`,
   inactiveLabel,
   disabled = false,
+  triggerVariant = "default",
+  triggerIcon,
 }: FilterDropdownProps) {
   const { t } = useTranslations();
   const [open, setOpen] = useState(false);
@@ -34,7 +38,7 @@ export function FilterDropdown({
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
   return (
-    <div data-testid={`filter-dropdown-${label.toLowerCase()}`}>
+    <div data-component="FilterDropdown" data-testid={`filter-dropdown-${label.toLowerCase()}`}>
       <AdaptivePopover
         open={open}
         onOpenChange={(nextOpen) => {
@@ -51,20 +55,47 @@ export function FilterDropdown({
             aria-haspopup="listbox"
             disabled={disabled}
             className={cn(
-              "inline-flex min-h-11 cursor-pointer items-center gap-2 border px-3.5 py-2 transition-[background-color,border-color,color,transform] duration-200",
-              "text-[0.7rem] font-semibold uppercase tracking-[0.16em] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
+              "inline-flex cursor-pointer items-center transition-[background-color,border-color,color,transform] duration-200",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent",
               "disabled:cursor-not-allowed disabled:opacity-40",
               "active:scale-[0.97]",
-              isActive
-                ? "border-accent bg-couture-red/[0.055] text-couture-red"
-                : "border-foreground/[0.1] bg-surface/45 text-muted hover:border-foreground/24 hover:bg-surface hover:text-foreground",
-              open && !isActive && "border-foreground/25 text-foreground",
+              triggerVariant === "toolbar"
+                ? "min-h-14 w-full justify-start gap-3 px-3 text-left hover:bg-surface/70"
+                : "min-h-11 gap-2 border px-3.5 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.16em]",
+              triggerVariant === "toolbar"
+                ? isActive
+                  ? "bg-couture-red/[0.045] text-couture-red"
+                  : "text-foreground"
+                : isActive
+                  ? "border-accent bg-couture-red/[0.055] text-couture-red"
+                  : "border-foreground/[0.1] bg-surface/45 text-muted hover:border-foreground/24 hover:bg-surface hover:text-foreground",
+              open && !isActive && triggerVariant === "default" && "border-foreground/25 text-foreground",
             )}
           >
-            <span>{selectedLabel ?? inactiveLabel ?? label}</span>
+            {triggerVariant === "toolbar" ? (
+              <>
+                <span className="inline-flex size-5 shrink-0 items-center justify-center text-muted" aria-hidden="true">
+                  {triggerIcon}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-muted/65">
+                    {label}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[0.7rem] font-semibold uppercase tracking-[0.12em]">
+                    {selectedLabel ?? inactiveLabel ?? label}
+                  </span>
+                </span>
+              </>
+            ) : (
+              <span>{selectedLabel ?? inactiveLabel ?? label}</span>
+            )}
             <ChevronDown
               aria-hidden="true"
-              className={cn("size-3 shrink-0 transition-transform duration-200", open && "rotate-180")}
+              className={cn(
+                "size-3 shrink-0 transition-transform duration-200",
+                triggerVariant === "toolbar" && "text-muted/65",
+                open && "rotate-180",
+              )}
             />
           </button>
         )}

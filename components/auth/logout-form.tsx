@@ -2,7 +2,7 @@ import { adminLogoutAction } from "@/app/admin/login/actions";
 
 export function LogoutForm() {
   return (
-    <form action={adminLogoutAction}>
+    <form data-component="LogoutForm" action={adminLogoutAction}>
       <button
         type="submit"
         className="adm-btn-ghost w-full"

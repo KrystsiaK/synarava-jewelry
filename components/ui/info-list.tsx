@@ -16,7 +16,7 @@ export function InfoList({
   className?: string;
 }) {
   return (
-    <dl className={cn("grid gap-6", className)}>
+    <dl data-component="InfoList" className={cn("grid gap-6", className)}>
       {items.map((item) => (
         <div key={item.label} className="grid gap-2 border-b border-[color:var(--color-border-subtle)] pb-4 last:border-b-0 last:pb-0">
           <dt>

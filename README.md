@@ -131,6 +131,8 @@ GitHub CI checks that this value is valid semver and that release tags match `vX
 ## Architecture notes
 
 - data model and admin strategy: [docs/architecture.md](docs/architecture.md)
+- product/Shopify ownership contract: [docs/product-data-ownership.md](docs/product-data-ownership.md)
+- September 2026 admin and catalog refactor history: [docs/history/admin-shopify-refactor-2026-09.md](docs/history/admin-shopify-refactor-2026-09.md)
 - UI kit contract: [docs/ui-kit.md](docs/ui-kit.md)
 - why Shopify is the sole commerce backend: [SHOPIFY_DECISION.md](SHOPIFY_DECISION.md)
 

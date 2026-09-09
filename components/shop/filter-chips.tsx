@@ -62,7 +62,7 @@ export function FilterChips({
   if (chips.length === 0) return null;
 
   return (
-    <div
+    <div data-component="FilterChips"
       className="flex flex-wrap items-center gap-2.5"
       role="group"
       aria-label={t("shop.filters.activeFilters")}

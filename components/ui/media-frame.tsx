@@ -23,7 +23,7 @@ export function MediaFrame({
   ...props
 }: MediaFrameProps) {
   return (
-    <figure className={cn("space-y-4", className)} {...props}>
+    <figure data-component="MediaFrame" className={cn("space-y-4", className)} {...props}>
       <div className="relative aspect-[4/5] overflow-hidden bg-black/5">
         <Image
           alt={alt}

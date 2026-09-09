@@ -23,7 +23,7 @@ export function CartSummaryPanel({
 }: CartSummaryPanelProps) {
   const { t, plural } = useTranslations();
   return (
-    <aside className="cart-summary-panel h-fit border border-stroke bg-panel/70 p-6 text-foreground backdrop-blur-md md:p-7">
+    <aside data-component="CartSummaryPanel" className="cart-summary-panel h-fit border border-stroke bg-panel/70 p-6 text-foreground backdrop-blur-md md:p-7">
       <div className="flex items-start justify-between gap-4">
         <p className="font-serif text-[1.65rem] leading-none">{t("cart.summary")}</p>
         <span className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/50">

@@ -68,7 +68,7 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
   }
 
   return (
-    <div className={compact ? "space-y-4" : "border-y border-foreground/14 py-5 md:py-6"}>
+    <div data-component="ProductPurchasePanel" className={compact ? "space-y-4" : "border-y border-foreground/14 py-5 md:py-6"}>
       <div className={compact ? "mb-4" : "mb-5 flex flex-wrap items-end justify-between gap-4"} aria-live="polite">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <p className="font-serif text-2xl text-foreground md:text-3xl">{price}</p>
