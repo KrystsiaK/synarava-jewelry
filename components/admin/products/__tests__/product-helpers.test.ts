@@ -68,6 +68,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     lastSyncedAt: null,
     syncStatus: "UNLINKED",
     syncError: null,
+    translations: [],
     media: [],
     characteristics: [],
     variants: [],
@@ -136,6 +137,39 @@ describe("productStatusLabel", () => {
 });
 
 describe("productToDraft", () => {
+  it("maps the Portuguese translation into an independent locale draft", () => {
+    const draft = productToDraft(makeProduct({
+      translations: [{
+        id: "translation-pt",
+        locale: "PT",
+        title: "Anel de Lava",
+        shortDescription: "Entrelaçado à mão.",
+        description: "Feito em Lisboa.",
+        materialLine: null,
+        symbolismLabel: null,
+        symbolismTitle: null,
+        symbolismBody: null,
+        symbolismBody2: null,
+        details: null,
+        seoTitle: null,
+        seoDescription: null,
+        reviewStatus: "REVIEWED",
+        reviewedAt: new Date("2026-01-02"),
+        syncStatus: "SYNCED",
+        syncError: null,
+        contentHash: "hash",
+        lastSyncedAt: new Date("2026-01-02"),
+        createdAt: new Date("2026-01-01"),
+        updatedAt: new Date("2026-01-02"),
+        productId: "product-1",
+      }],
+    }));
+
+    expect(draft.pt.title).toBe("Anel de Lava");
+    expect(draft.pt.description).toBe("Feito em Lisboa.");
+    expect(draft.pt.reviewed).toBe(true);
+  });
+
   it("prefers the primary variant's commerce fields over the product's own mirror columns", () => {
     const product = makeProduct({
       priceCents: 1000,

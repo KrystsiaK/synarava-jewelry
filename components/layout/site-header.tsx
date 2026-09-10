@@ -48,6 +48,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
     { href: "/", label: t("nav.home"), match: "/" },
     { href: "/shop", label: t("nav.shop"), match: "/shop" },
     { href: "/collections", label: t("nav.collections"), match: "/collections" },
+    { href: "/journal", label: t("nav.journal"), match: "/journal" },
     { href: "/about", label: t("nav.about"), match: "/about" },
   ];
 

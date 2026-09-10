@@ -112,7 +112,17 @@ then SKU, then handle. Ambiguous identities are recorded as conflicts instead of
 
 The Admin API token needs
 `read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`, and
-`write_publications`; the public app URL must be
+`write_publications`. Product localization also needs `read_translations`, `write_translations`,
+and `read_locales`. Enable and publish Portuguese (Portugal), locale `pt-PT`, in Shopify under
+**Settings → Languages**, then assign it to the relevant market and domain. After changing scopes,
+release the updated Shopify app configuration and approve the new permissions for the store; replace
+`SHOPIFY_ADMIN_ACCESS_TOKEN` if Shopify issues a new token. The studio connection test verifies the
+granted scopes and that `pt-PT` is published before localized product sync is used.
+
+English product content is synchronized as Shopify's base product content. Reviewed Portuguese
+product content is registered through Shopify's Translation API. Journal posts remain owned by this
+application and are stored locally in both English and Portuguese; they are not synchronized to
+Shopify. The public app URL must be
 HTTPS so Shopify can deliver signed webhooks.
 
 ## Railway

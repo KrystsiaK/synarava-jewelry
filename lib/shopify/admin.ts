@@ -1,6 +1,7 @@
 import "server-only";
 
 import { env } from "@/lib/env";
+import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 
 type GraphQLError = { message: string; path?: Array<string | number> };
 type AdminResponse<T> = { data?: T; errors?: GraphQLError[] };
@@ -165,7 +166,14 @@ export async function shopifyAdminRequest<T>(
   return payload.data;
 }
 
-const REQUIRED_SYNC_SCOPES = ["write_products", "write_inventory", "write_publications"] as const;
+const REQUIRED_SYNC_SCOPES = [
+  "write_products",
+  "write_inventory",
+  "write_publications",
+  "read_translations",
+  "write_translations",
+  "read_locales",
+] as const;
 
 export async function testShopifyAdminConnection() {
   const data = await shopifyAdminRequest<{
@@ -174,12 +182,14 @@ export async function testShopifyAdminConnection() {
     locations: { nodes: Array<{ id: string }> };
     publications: { nodes: Array<{ id: string; name: string }> };
     currentAppInstallation: { accessScopes: Array<{ handle: string }> };
+    shopLocales: Array<{ locale: string; name: string; primary: boolean; published: boolean }>;
   }>(`query SynaravaConnectionCheck {
     shop { name myshopifyDomain }
     productsCount(limit: null) { count precision }
     locations(first: 10) { nodes { id } }
     publications(first: 100) { nodes { id name } }
     currentAppInstallation { accessScopes { handle } }
+    shopLocales { locale name primary published }
   }`);
 
   const grantedScopes = data.currentAppInstallation.accessScopes
@@ -196,6 +206,10 @@ export async function testShopifyAdminConnection() {
     publications: data.publications.nodes,
     grantedScopes,
     missingScopes,
+    locales: data.shopLocales ?? [],
+    portuguesePublished: (data.shopLocales ?? []).some(
+      (locale) => locale.locale.toLowerCase() === SHOPIFY_PORTUGUESE_ADMIN_LOCALE.toLowerCase() && locale.published,
+    ),
   };
 }
 

@@ -119,6 +119,7 @@ export function EditProductForm({
       const result = await pushSingleProductToShopifyAction(currentProduct.id, force);
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.translationWarning) pushToast({ message: result.translationWarning, tone: "error" });
       if (result.inspection) setInspection(result.inspection);
       if (result.product) {
         setState({ success: result.success, product: result.product });

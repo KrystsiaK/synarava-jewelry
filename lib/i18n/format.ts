@@ -1,4 +1,5 @@
 import type { Locale } from "./locales";
+import { SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE } from "@/lib/shopify/locales";
 
 const NUMBER_LOCALES: Record<Locale, string> = {
   en: "en-IE",
@@ -22,5 +23,5 @@ export function formatCurrency(
 }
 
 export function shopifyLanguage(locale: Locale) {
-  return locale === "pt" ? "PT" : "EN";
+  return locale === "pt" ? SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE : "EN";
 }

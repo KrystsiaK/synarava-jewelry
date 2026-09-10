@@ -51,6 +51,9 @@ export function SiteFooter() {
           <Link href={localePath(locale, "/collections")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.collections")}
           </Link>
+          <Link href={localePath(locale, "/journal")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
+            {t("footer.journal")}
+          </Link>
           <Link href={localePath(locale, "/about")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
             {t("footer.about")}
           </Link>

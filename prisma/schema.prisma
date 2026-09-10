@@ -144,10 +144,41 @@ model Product {
   tags                ProductTag[]
   characteristics     ProductCharacteristic[]
   syncEvents          ProductSyncEvent[]
+  translations        ProductTranslation[]
 
   @@index([status, visibility, productType, publishedAt])
   @@index([status, visibility, publishedAt])
   @@index([categoryId])
+}
+
+model ProductTranslation {
+  id                  String                  @id @default(cuid())
+  locale              ContentLocale
+  title               String
+  shortDescription    String?
+  description         String?
+  materialLine        String?
+  symbolismLabel      String?
+  symbolismTitle      String?
+  symbolismBody       String?
+  symbolismBody2      String?
+  details             Json?
+  seoTitle            String?
+  seoDescription      String?
+  reviewStatus        TranslationReviewStatus @default(DRAFT)
+  reviewedAt          DateTime?
+  syncStatus          TranslationSyncStatus   @default(NOT_APPLICABLE)
+  syncError           String?
+  contentHash         String?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  productId           String
+  product             Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale, reviewStatus])
+  @@index([syncStatus, locale])
 }
 
 model ProductCategory {
@@ -351,6 +382,7 @@ model MediaAsset {
   collectionHeroFor  Collection[]   @relation("CollectionHeroAsset")
   collectionCoverFor Collection[]   @relation("CollectionCoverAsset")
   productMedia       ProductMedia[] @relation("ProductMediaAsset")
+  postCoverFor       Post[]         @relation("PostCoverAsset")
 }
 
 model Page {
@@ -370,6 +402,41 @@ model Page {
   updatedAt          DateTime          @updatedAt
   // Admin operator username at authoring time — see MediaAsset.uploadedByUsername.
   authoredByUsername String?
+}
+
+model Post {
+  id                 String            @id @default(cuid())
+  slug               String            @unique
+  coverAssetId       String?
+  status             PageStatus        @default(DRAFT)
+  visibility         ContentVisibility @default(PRIVATE)
+  publishedAt        DateTime?
+  authoredByUsername String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  coverAsset         MediaAsset?        @relation("PostCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  translations       PostTranslation[]
+
+  @@index([status, visibility, publishedAt])
+}
+
+model PostTranslation {
+  id             String                  @id @default(cuid())
+  locale         ContentLocale
+  title          String
+  excerpt        String?
+  body           String?
+  seoTitle       String?
+  seoDescription String?
+  reviewStatus   TranslationReviewStatus @default(DRAFT)
+  reviewedAt     DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  postId         String
+  post           Post                    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, locale])
+  @@index([locale, reviewStatus])
 }
 
 model SiteSetting {
@@ -456,6 +523,24 @@ enum ProductSyncStatus {
   SYNCED
   CONFLICT
   FAILED
+}
+
+enum ContentLocale {
+  EN
+  PT
+}
+
+enum TranslationReviewStatus {
+  DRAFT
+  REVIEWED
+}
+
+enum TranslationSyncStatus {
+  NOT_APPLICABLE
+  PENDING
+  SYNCED
+  FAILED
+  CONFLICT
 }
 
 enum CharacteristicValueType {

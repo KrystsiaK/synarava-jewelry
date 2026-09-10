@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { productCommerceSignature } from "@/lib/admin/product-commerce-signature";
@@ -21,6 +22,7 @@ import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
+import { validateProductPublication } from "@/lib/products/localization";
 import {
   asRecord,
   createDraftToken,
@@ -52,6 +54,8 @@ export type SavedProductPayload = {
   seriesLabel: string | null;
   shortDescription: string | null;
   description: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
   materialLine: string | null;
   symbolismLabel: string | null;
   symbolismTitle: string | null;
@@ -71,6 +75,7 @@ export type SavedProductPayload = {
   lastSyncedAt: Date | null;
   syncStatus: "UNLINKED" | "PENDING" | "SYNCED" | "CONFLICT" | "FAILED";
   syncError: string | null;
+  translations: SavedProductTranslationPayload[];
   media: SavedProductMediaPayload[];
   characteristics: {
     id: string;
@@ -118,6 +123,31 @@ export type SavedProductPayload = {
   }[];
 };
 
+export type SavedProductTranslationPayload = {
+  id: string;
+  locale: "EN" | "PT";
+  title: string;
+  shortDescription: string | null;
+  description: string | null;
+  materialLine: string | null;
+  symbolismLabel: string | null;
+  symbolismTitle: string | null;
+  symbolismBody: string | null;
+  symbolismBody2: string | null;
+  details: unknown;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  reviewStatus: "DRAFT" | "REVIEWED";
+  reviewedAt: Date | null;
+  syncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+  syncError: string | null;
+  contentHash: string | null;
+  lastSyncedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  productId: string;
+};
+
 export type SavedProductMediaPayload = {
   id: string;
   assetId: string;
@@ -144,6 +174,8 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       seriesLabel: true,
       shortDescription: true,
       description: true,
+      seoTitle: true,
+      seoDescription: true,
       materialLine: true,
       symbolismLabel: true,
       symbolismTitle: true,
@@ -163,6 +195,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       lastSyncedAt: true,
       syncStatus: true,
       syncError: true,
+      translations: { orderBy: { locale: "asc" } },
       media: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         include: { asset: true },
@@ -391,11 +424,24 @@ const saveProductFieldsSchema = z.object({
   seriesLabel: z.string().trim().default(""),
   shortDescription: z.string().trim().default(""),
   description: z.string().trim().default(""),
+  seoTitle: z.string().trim().default(""),
+  seoDescription: z.string().trim().default(""),
   materialLine: z.string().trim().default(""),
   symbolismLabel: z.string().trim().default(""),
   symbolismTitle: z.string().trim().default(""),
   symbolismBody: z.string().trim().default(""),
   symbolismBody2: z.string().trim().default(""),
+  ptTitle: z.string().trim().default(""),
+  ptShortDescription: z.string().trim().default(""),
+  ptDescription: z.string().trim().default(""),
+  ptMaterialLine: z.string().trim().default(""),
+  ptSymbolismLabel: z.string().trim().default(""),
+  ptSymbolismTitle: z.string().trim().default(""),
+  ptSymbolismBody: z.string().trim().default(""),
+  ptSymbolismBody2: z.string().trim().default(""),
+  ptSeoTitle: z.string().trim().default(""),
+  ptSeoDescription: z.string().trim().default(""),
+  ptReviewed: z.string().trim().default(""),
   removeImage: z.string().trim().default(""),
   existingImageUrl: z.string().trim().default(""),
   price: z.string().trim().default("0"),
@@ -453,8 +499,11 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     return { error: "Name, slug, SKU, and price are required." };
   }
   const {
-    productId, sku, name, seriesLabel, shortDescription, description, materialLine,
+    productId, sku, name, seriesLabel, shortDescription, description, seoTitle, seoDescription, materialLine,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
+    ptTitle, ptShortDescription, ptDescription, ptMaterialLine,
+    ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
+    ptSeoTitle, ptSeoDescription,
     collectionSlug, workflowState,
   } = parsed.data;
   const slug = slugify(parsed.data.slug);
@@ -500,6 +549,24 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
     if (conflictingProduct?.slug === slug) return productConflictState("slug");
     if (conflictingProduct?.sku === sku) return productConflictState("sku");
+  }
+
+  const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
+  const isPublished = workflowState === "PUBLISHED";
+  const isUnlisted = workflowState === "UNLISTED";
+  if (isPublished || isUnlisted) {
+    const missingTranslations = validateProductPublication({
+      isAlreadyPublic: Boolean(
+        (before?.visibility === "PUBLIC" || before?.visibility === "UNLISTED")
+        && !before.translations.some((translation) => translation.locale === "PT"),
+      ),
+      english: { title: name, shortDescription, description },
+      portuguese: { title: ptTitle, shortDescription: ptShortDescription, description: ptDescription },
+      portugueseReviewed: parsed.data.ptReviewed === "on",
+    });
+    if (missingTranslations.length) {
+      return { error: `Complete translations before publishing: ${missingTranslations.join(", ")}.` };
+    }
   }
 
   let imageUrl = existingImageUrl || null;
@@ -604,15 +671,11 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     ? await db.collection.findUnique({ where: { slug: collectionSlug }, select: { id: true } })
     : null;
 
-  const isPublished = workflowState === "PUBLISHED";
-  const isUnlisted = workflowState === "UNLISTED";
   if ((isPublished || isUnlisted) && !imageUrl) {
     return { error: "Product image is required before publishing." };
   }
 
   const wasCreate = !productId;
-  const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
-
   const productData = {
     slug,
     sku,
@@ -620,6 +683,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     seriesLabel,
     shortDescription,
     description,
+    seoTitle: seoTitle || null,
+    seoDescription: seoDescription || null,
     materialLine,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,
@@ -661,6 +726,92 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     }
     throw error;
   }
+
+  const ptCopy = {
+    title: ptTitle,
+    shortDescription: ptShortDescription || null,
+    description: ptDescription || null,
+    materialLine: ptMaterialLine || null,
+    symbolismLabel: ptSymbolismLabel || null,
+    symbolismTitle: ptSymbolismTitle || null,
+    symbolismBody: ptSymbolismBody || null,
+    symbolismBody2: ptSymbolismBody2 || null,
+    seoTitle: ptSeoTitle || null,
+    seoDescription: ptSeoDescription || null,
+  };
+  const ptContentHash = createHash("sha256").update(JSON.stringify(ptCopy)).digest("hex");
+  const ptReviewed = parsed.data.ptReviewed === "on"
+    && Boolean(ptTitle && ptShortDescription && ptDescription);
+  const previousPortuguese = before?.translations.find((translation) => translation.locale === "PT");
+  const sourceTranslationChanged = !before
+    || before.name !== name
+    || before.description !== description
+    || before.seoTitle !== (seoTitle || null)
+    || before.seoDescription !== (seoDescription || null);
+  const ptSyncStatus = !before?.shopifyProductId || !ptReviewed
+    ? "NOT_APPLICABLE" as const
+    : previousPortuguese?.contentHash === ptContentHash
+      && !sourceTranslationChanged
+      && previousPortuguese.syncStatus === "SYNCED"
+      ? "SYNCED" as const
+      : "PENDING" as const;
+  await db.$transaction([
+    db.productTranslation.upsert({
+      where: { productId_locale: { productId: product.id, locale: "EN" } },
+      update: {
+        title: name,
+        shortDescription: shortDescription || null,
+        description: description || null,
+        materialLine: materialLine || null,
+        symbolismLabel: symbolismLabel || null,
+        symbolismTitle: symbolismTitle || null,
+        symbolismBody: symbolismBody || null,
+        symbolismBody2: symbolismBody2 || null,
+        details: details as Prisma.InputJsonValue,
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        reviewStatus: "REVIEWED",
+        reviewedAt: new Date(),
+      },
+      create: {
+        productId: product.id,
+        locale: "EN",
+        title: name,
+        shortDescription: shortDescription || null,
+        description: description || null,
+        materialLine: materialLine || null,
+        symbolismLabel: symbolismLabel || null,
+        symbolismTitle: symbolismTitle || null,
+        symbolismBody: symbolismBody || null,
+        symbolismBody2: symbolismBody2 || null,
+        details: details as Prisma.InputJsonValue,
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        reviewStatus: "REVIEWED",
+        reviewedAt: new Date(),
+      },
+    }),
+    db.productTranslation.upsert({
+      where: { productId_locale: { productId: product.id, locale: "PT" } },
+      update: {
+        ...ptCopy,
+        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: ptReviewed ? new Date() : null,
+        contentHash: ptContentHash,
+        syncStatus: ptSyncStatus,
+        syncError: null,
+      },
+      create: {
+        productId: product.id,
+        locale: "PT",
+        ...ptCopy,
+        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: ptReviewed ? new Date() : null,
+        contentHash: ptContentHash,
+        syncStatus: ptSyncStatus,
+      },
+    }),
+  ]);
 
   if (uploadedAssetId) {
     await db.$transaction(async (tx) => {
@@ -781,7 +932,16 @@ const autosaveProductFieldsSchema = z.object({
   seriesLabel: z.string().trim().default(""),
   shortDescription: z.string().trim().default(""),
   description: z.string().trim().default(""),
+  seoTitle: z.string().trim().default(""),
+  seoDescription: z.string().trim().default(""),
   materialLine: z.string().trim().default(""),
+  ptTitle: z.string().trim().default(""),
+  ptShortDescription: z.string().trim().default(""),
+  ptDescription: z.string().trim().default(""),
+  ptMaterialLine: z.string().trim().default(""),
+  ptSeoTitle: z.string().trim().default(""),
+  ptSeoDescription: z.string().trim().default(""),
+  ptReviewed: z.string().trim().default(""),
   shopifyCategoryId: z.string().trim().default(""),
   shopifyCategoryName: z.string().trim().default(""),
   price: z.string().trim().default("0"),
@@ -800,7 +960,10 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
   if (!parsed.success) {
     return {};
   }
-  const { productId, seriesLabel, shortDescription, description, materialLine } = parsed.data;
+  const {
+    productId, seriesLabel, shortDescription, description, seoTitle, seoDescription, materialLine,
+    ptTitle, ptShortDescription, ptDescription, ptMaterialLine, ptSeoTitle, ptSeoDescription,
+  } = parsed.data;
   const hasShopifyCategorySelection =
     formData.has("shopifyCategoryId") || formData.has("shopifyCategoryName");
   let shopifyCategory;
@@ -844,6 +1007,8 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     seriesLabel: seriesLabel || null,
     shortDescription: shortDescription || null,
     description: description || null,
+    seoTitle: seoTitle || null,
+    seoDescription: seoDescription || null,
     materialLine: materialLine || null,
     ...(hasShopifyCategorySelection ? {
       shopifyCategoryId: shopifyCategory?.id ?? null,
@@ -879,6 +1044,60 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     }
     throw error;
   }
+
+  await db.$transaction([
+    db.productTranslation.upsert({
+      where: { productId_locale: { productId: product.id, locale: "EN" } },
+      update: {
+        title: name,
+        shortDescription: shortDescription || null,
+        description: description || null,
+        materialLine: materialLine || null,
+        details: draftDetails,
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        reviewStatus: "REVIEWED",
+        reviewedAt: new Date(),
+      },
+      create: {
+        productId: product.id,
+        locale: "EN",
+        title: name,
+        shortDescription: shortDescription || null,
+        description: description || null,
+        materialLine: materialLine || null,
+        details: draftDetails,
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        reviewStatus: "REVIEWED",
+        reviewedAt: new Date(),
+      },
+    }),
+    db.productTranslation.upsert({
+      where: { productId_locale: { productId: product.id, locale: "PT" } },
+      update: {
+        title: ptTitle,
+        shortDescription: ptShortDescription || null,
+        description: ptDescription || null,
+        materialLine: ptMaterialLine || null,
+        seoTitle: ptSeoTitle || null,
+        seoDescription: ptSeoDescription || null,
+        reviewStatus: parsed.data.ptReviewed === "on" ? "REVIEWED" : "DRAFT",
+        syncStatus: "NOT_APPLICABLE",
+      },
+      create: {
+        productId: product.id,
+        locale: "PT",
+        title: ptTitle,
+        shortDescription: ptShortDescription || null,
+        description: ptDescription || null,
+        materialLine: ptMaterialLine || null,
+        seoTitle: ptSeoTitle || null,
+        seoDescription: ptSeoDescription || null,
+        reviewStatus: parsed.data.ptReviewed === "on" ? "REVIEWED" : "DRAFT",
+      },
+    }),
+  ]);
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");
@@ -957,6 +1176,26 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
   const before = await getSavedProductPayload(productId).catch(() => null);
   if (action === "publish" && !before?.imageUrl) {
     return { error: "Product image is required before publishing." };
+  }
+  if (action === "publish" && before) {
+    const portuguese = before.translations.find((translation) => translation.locale === "PT");
+    const blockers = validateProductPublication({
+      isAlreadyPublic: false,
+      english: {
+        title: before.name,
+        shortDescription: before.shortDescription ?? "",
+        description: before.description ?? "",
+      },
+      portuguese: {
+        title: portuguese?.title ?? "",
+        shortDescription: portuguese?.shortDescription ?? "",
+        description: portuguese?.description ?? "",
+      },
+      portugueseReviewed: portuguese?.reviewStatus === "REVIEWED",
+    });
+    if (blockers.length > 0) {
+      return { error: `Complete translations before publishing: ${blockers.join(", ")}.` };
+    }
   }
 
   const product = await db.product.update({

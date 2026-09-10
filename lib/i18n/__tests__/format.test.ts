@@ -10,6 +10,6 @@ describe("locale-aware commerce formatting", () => {
     expect(localeTag("en")).toBe("en-IE");
     expect(localeTag("pt")).toBe("pt-PT");
     expect(shopifyLanguage("en")).toBe("EN");
-    expect(shopifyLanguage("pt")).toBe("PT");
+    expect(shopifyLanguage("pt")).toBe("PT_PT");
   });
 });

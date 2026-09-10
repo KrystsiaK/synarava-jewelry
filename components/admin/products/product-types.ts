@@ -23,6 +23,8 @@ export type ProductDraft = {
   seriesLabel: string;
   shortDescription: string;
   description: string;
+  seoTitle: string;
+  seoDescription: string;
   materialLine: string;
   symbolismLabel: string;
   symbolismTitle: string;
@@ -35,6 +37,23 @@ export type ProductDraft = {
   workflowState: "DRAFT" | "PUBLISHED" | "UNLISTED";
   imageUrl: string;
   stockOnHand: string;
+  pt: ProductLocaleDraft;
+};
+
+export type ProductLocaleDraft = {
+  title: string;
+  shortDescription: string;
+  description: string;
+  materialLine: string;
+  symbolismLabel: string;
+  symbolismTitle: string;
+  symbolismBody: string;
+  symbolismBody2: string;
+  seoTitle: string;
+  seoDescription: string;
+  reviewed: boolean;
+  syncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+  syncError: string;
 };
 
 export type ProductRowAction = {

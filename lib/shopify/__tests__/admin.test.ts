@@ -114,4 +114,31 @@ describe("Shopify Admin authentication", () => {
       "X-Shopify-Access-Token": "static-token",
     });
   });
+
+  it("reports translation scopes and whether Portuguese is published", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: {
+        shop: { name: "Synarava", myshopifyDomain: "synarava.myshopify.com" },
+        productsCount: { count: 4, precision: "EXACT" },
+        locations: { nodes: [] },
+        publications: { nodes: [] },
+        currentAppInstallation: { accessScopes: [
+          "write_products", "write_inventory", "write_publications", "read_translations", "write_translations", "read_locales",
+        ].map((handle) => ({ handle })) },
+        shopLocales: [
+          { locale: "en", name: "English", primary: true, published: true },
+          { locale: "pt-PT", name: "Portuguese", primary: false, published: true },
+        ],
+      } }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+
+    const { testShopifyAdminConnection } = await import("@/lib/shopify/admin");
+    const connection = await testShopifyAdminConnection();
+
+    expect(connection.missingScopes).toEqual([]);
+    expect(connection.portuguesePublished).toBe(true);
+  });
 });

@@ -20,6 +20,7 @@ import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/share
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import type { ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
+import { productLocaleReadiness } from "@/lib/products/localization";
 import { ArrowDownToLine, ArrowUpFromLine, Eye, RefreshCw } from "lucide-react";
 import {
   centsToPrice,
@@ -523,6 +524,9 @@ export function ProductsCms({
                 const productIssues = issues.filter(
                   (issue) => issue.entityType === "PRODUCT" && issue.entityId === product.id,
                 );
+                const enReadiness = productLocaleReadiness(product, "en");
+                const ptReadiness = productLocaleReadiness(product, "pt");
+                const ptTranslation = product.translations.find((translation) => translation.locale === "PT");
 
                 return (
                   <div
@@ -539,6 +543,19 @@ export function ProductsCms({
                       <p className="mt-0.5 break-words text-xs" style={{ color: "var(--adm-muted)" }}>
                         /{product.slug}
                       </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className={enReadiness.complete && enReadiness.reviewed ? "adm-badge-published" : "adm-badge-draft"}>
+                          EN {enReadiness.percent}%
+                        </span>
+                        <span className={ptReadiness.complete && ptReadiness.reviewed ? "adm-badge-published" : "adm-badge-draft"}>
+                          PT {ptReadiness.percent}%
+                        </span>
+                        {ptTranslation ? (
+                          <span className={ptTranslation.syncStatus === "SYNCED" ? "adm-badge-published" : "adm-badge-draft"}>
+                            PT {ptTranslation.syncStatus.replace("NOT_APPLICABLE", "LOCAL")}
+                          </span>
+                        ) : null}
+                      </div>
                       <AdminRecordDates record={product} />
                       <p className="mt-1 text-xs" style={{ color: "var(--adm-subtle)" }}>
                         {product.publishedAt

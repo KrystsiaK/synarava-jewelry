@@ -69,10 +69,16 @@ export function getProductEditorDetails(details: unknown, characteristics: Produ
 export function emptyDraft(): ProductDraft {
   return {
     name: "", slug: "", sku: "", price: "", seriesLabel: "",
-    shortDescription: "", description: "", materialLine: "",
+    shortDescription: "", description: "", seoTitle: "", seoDescription: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
     tags: "", workflowState: "DRAFT", imageUrl: "", stockOnHand: "0",
+    pt: {
+      title: "", shortDescription: "", description: "", materialLine: "",
+      symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
+      seoTitle: "", seoDescription: "",
+      reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
+    },
   };
 }
 
@@ -83,6 +89,7 @@ export function productToDraft(product: ProductRecord): ProductDraft {
   // ("department") one in the same array — exclude isPrimaryNav here too.
   const primaryVariant = product.variants[0];
   const marketingCollection = product.collections.find((item) => !item.collection.isPrimaryNav)?.collection;
+  const pt = product.translations?.find((translation) => translation.locale === "PT");
   return {
     name: product.name,
     slug: product.slug,
@@ -91,6 +98,8 @@ export function productToDraft(product: ProductRecord): ProductDraft {
     seriesLabel: product.seriesLabel ?? "",
     shortDescription: product.shortDescription ?? "",
     description: product.description ?? "",
+    seoTitle: product.seoTitle ?? "",
+    seoDescription: product.seoDescription ?? "",
     materialLine: product.materialLine ?? "",
     symbolismLabel: product.symbolismLabel ?? "",
     symbolismTitle: product.symbolismTitle ?? "",
@@ -107,6 +116,21 @@ export function productToDraft(product: ProductRecord): ProductDraft {
         : "DRAFT",
     imageUrl: product.imageUrl ?? "",
     stockOnHand: String(primaryVariant?.stockOnHand ?? 0),
+    pt: {
+      title: pt?.title ?? "",
+      shortDescription: pt?.shortDescription ?? "",
+      description: pt?.description ?? "",
+      materialLine: pt?.materialLine ?? "",
+      symbolismLabel: pt?.symbolismLabel ?? "",
+      symbolismTitle: pt?.symbolismTitle ?? "",
+      symbolismBody: pt?.symbolismBody ?? "",
+      symbolismBody2: pt?.symbolismBody2 ?? "",
+      seoTitle: pt?.seoTitle ?? "",
+      seoDescription: pt?.seoDescription ?? "",
+      reviewed: pt?.reviewStatus === "REVIEWED",
+      syncStatus: pt?.syncStatus ?? "NOT_APPLICABLE",
+      syncError: pt?.syncError ?? "",
+    },
   };
 }
 

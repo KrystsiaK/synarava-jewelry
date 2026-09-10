@@ -16,6 +16,11 @@ import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
 import { combineProductGallery } from "@/lib/media/product-gallery";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
+import {
+  resolveProductCopy,
+  type ProductTranslationRecord,
+} from "@/lib/products/localization";
+import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 
 export type CollectionSummary = {
   slug: string;
@@ -175,6 +180,9 @@ function toSummary(product: {
   symbolismBody: string | null;
   symbolismBody2: string | null;
   details: unknown;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  translations: ProductTranslationRecord[];
   tags: { tag: { slug: string; name: string } }[];
   collections: {
     collection: {
@@ -214,7 +222,8 @@ function toSummary(product: {
   // isPrimaryNav distinguishes which one a given membership row is.
   const leadCollection = product.collections.find((item) => !item.collection.isPrimaryNav)?.collection;
   const primaryNavCollection = product.collections.find((item) => item.collection.isPrimaryNav)?.collection ?? null;
-  const details = parseProductDetails(product.details);
+  const localized = resolveProductCopy(product, locale);
+  const details = parseProductDetails(localized.details);
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
     title: details.process?.title ?? "",
@@ -231,12 +240,12 @@ function toSummary(product: {
   const projection = shopifyProjection(product.shopifySnapshot);
   const localMedia = product.media.map((item) => ({
     src: getS3PublicUrl(item.asset.key),
-    alt: item.alt ?? product.name,
+    alt: item.alt ?? localized.title,
     width: item.asset.width,
     height: item.asset.height,
   }));
   const combinedMedia = combineProductGallery(
-    product.imageUrl ? { src: product.imageUrl, alt: product.name, width: null, height: null } : null,
+    product.imageUrl ? { src: product.imageUrl, alt: localized.title, width: null, height: null } : null,
     localMedia,
     projection.media,
   );
@@ -244,9 +253,9 @@ function toSummary(product: {
     slug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
     series: product.seriesLabel ?? "",
-    title: product.name,
-    shortDescription: product.shortDescription ?? "",
-    description: product.description ?? "",
+    title: localized.title,
+    shortDescription: localized.shortDescription,
+    description: localized.description,
     price: priceFromCents(priceCents, product.currency, locale),
     priceAmount: priceCents / 100,
     currency: product.currency,
@@ -284,7 +293,7 @@ function toSummary(product: {
     image: storefrontMedia(product.imageUrl, product.slug),
     collectionSlug: leadCollection?.slug ?? "",
     collectionName: leadCollection?.name ?? "",
-    materialLine: product.materialLine ?? "",
+    materialLine: localized.materialLine,
     departmentSlug: primaryNavCollection?.slug ?? null,
     departmentName: primaryNavCollection?.name ?? "",
     attributes: product.characteristics.length
@@ -295,10 +304,10 @@ function toSummary(product: {
     categoryName: product.shopifyCategoryName,
     tagSlugs: product.tags.map((item) => item.tag.slug),
     tagNames: product.tags.map((item) => item.tag.name),
-    symbolismLabel: product.symbolismLabel ?? leadCollection?.symbolismLabel ?? "",
-    symbolismTitle: product.symbolismTitle ?? leadCollection?.symbolismTitle ?? "",
-    symbolismBody: product.symbolismBody ?? leadCollection?.symbolismBody ?? "",
-    symbolismBody2: product.symbolismBody2 ?? leadCollection?.symbolismBody2 ?? "",
+    symbolismLabel: localized.symbolismLabel || leadCollection?.symbolismLabel || "",
+    symbolismTitle: localized.symbolismTitle || leadCollection?.symbolismTitle || "",
+    symbolismBody: localized.symbolismBody || leadCollection?.symbolismBody || "",
+    symbolismBody2: localized.symbolismBody2 || leadCollection?.symbolismBody2 || "",
     materialsEyebrow: details.materialsEyebrow ?? "",
     materialsTitle: details.materialsTitle ?? "",
     materials: details.materials ?? [],
@@ -416,6 +425,7 @@ function formatCollectionEyebrow(sortOrder: number | null | undefined) {
 
 export async function listShopProducts(filters: ShopFilters = {}) {
   const locale = await getRequestLocale();
+  const contentLocale = storefrontLocaleToContentLocale(locale);
   const q = filters.q?.trim();
   const sort = normalizeShopSort(filters.sort);
   const orderBy = sort === "newest"
@@ -465,12 +475,28 @@ export async function listShopProducts(filters: ShopFilters = {}) {
       ...(q
         ? {
             OR: [
-              { name: { contains: q, mode: "insensitive" } },
+              { sku: { contains: q, mode: "insensitive" } },
+              { slug: { contains: q, mode: "insensitive" } },
               { seriesLabel: { contains: q, mode: "insensitive" } },
-              { shortDescription: { contains: q, mode: "insensitive" } },
-              { materialLine: { contains: q, mode: "insensitive" } },
-              { searchSummary: { contains: q, mode: "insensitive" } },
-              { searchDocument: { contains: q, mode: "insensitive" } },
+              ...(locale === "en" ? [
+                { name: { contains: q, mode: "insensitive" as const } },
+                { shortDescription: { contains: q, mode: "insensitive" as const } },
+                { materialLine: { contains: q, mode: "insensitive" as const } },
+                { searchSummary: { contains: q, mode: "insensitive" as const } },
+                { searchDocument: { contains: q, mode: "insensitive" as const } },
+              ] : []),
+              {
+                translations: {
+                  some: {
+                    locale: contentLocale,
+                    OR: [
+                      { title: { contains: q, mode: "insensitive" } },
+                      { shortDescription: { contains: q, mode: "insensitive" } },
+                      { description: { contains: q, mode: "insensitive" } },
+                    ],
+                  },
+                },
+              },
             ],
           }
         : {}),
@@ -502,14 +528,19 @@ export async function listShopProducts(filters: ShopFilters = {}) {
       characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
       variants: { orderBy: { createdAt: "asc" } },
       media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
+      translations: true,
     },
     orderBy,
   });
 
-  return products
+  const localizedProducts = products
     .map((product) => toSummary(product, locale))
     .filter((product) => product.image)
     .filter((product) => !filters.department || product.departmentSlug === filters.department);
+
+  return sort === "name-asc"
+    ? localizedProducts.sort((left, right) => left.title.localeCompare(right.title, locale))
+    : localizedProducts;
 }
 
 export async function getProductBySlug(slug: string) {
@@ -543,6 +574,7 @@ export async function getProductBySlug(slug: string) {
       characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
       variants: { orderBy: { createdAt: "asc" } },
       media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
+      translations: true,
     },
   });
 
@@ -598,6 +630,7 @@ export async function getAdminCatalogData() {
         characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
         variants: { orderBy: { createdAt: "asc" } },
         media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
+        translations: true,
       },
       orderBy: { updatedAt: "desc" },
     }),

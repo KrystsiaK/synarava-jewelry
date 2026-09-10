@@ -141,15 +141,16 @@ async function rememberCart(cartId: string) {
   });
 }
 
-async function loadShopifyCart(cartId: string, buyerIp: string | null) {
+async function loadShopifyCart(cartId: string, buyerIp: string | null, locale: Locale) {
+  const language = shopifyLanguage(locale);
   const data = await shopifyStorefrontRequest<{ cart: ShopifyCart | null }>(
     `#graphql
       ${CART_FRAGMENT}
-      query SynaravaCartQuery($cartId: ID!) {
+      query SynaravaCartQuery($cartId: ID!, $language: LanguageCode!) @inContext(language: $language) {
         cart(id: $cartId) { ...SynaravaCart }
       }
     `,
-    { cartId },
+    { cartId, language },
     { buyerIp },
   );
   return data.cart;
@@ -207,11 +208,13 @@ async function createShopifyCart(
   merchandiseId: string,
   quantity: number,
   buyerIp: string | null,
+  locale: Locale,
 ) {
+  const language = shopifyLanguage(locale);
   const data = await shopifyStorefrontRequest<{ cartCreate: CartMutationPayload }>(
     `#graphql
       ${CART_FRAGMENT}
-      mutation SynaravaCartCreate($input: CartInput!) {
+      mutation SynaravaCartCreate($input: CartInput!, $language: LanguageCode!) @inContext(language: $language) {
         cartCreate(input: $input) {
           cart { ...SynaravaCart }
           userErrors { field message code }
@@ -219,7 +222,7 @@ async function createShopifyCart(
         }
       }
     `,
-    { input: { lines: [{ merchandiseId, quantity }] } },
+    { input: { lines: [{ merchandiseId, quantity }] }, language },
     { buyerIp },
   );
   const cart = assertCartMutation(data.cartCreate);
@@ -233,7 +236,7 @@ export async function getShopifyCartViewModel() {
   if (!cartId) return emptyCartViewModel(locale);
 
   const buyerIp = await getShopifyBuyerIp();
-  const cart = await loadShopifyCart(cartId, buyerIp);
+  const cart = await loadShopifyCart(cartId, buyerIp, locale);
   if (!cart) return emptyCartViewModel(locale);
 
   const items = cart.lines.nodes.map((line) => {
@@ -297,18 +300,21 @@ export async function addShopifyProductToCart(
   merchandiseId?: string,
 ) {
   const buyerIp = await getShopifyBuyerIp();
+  const locale = await getRequestLocale();
   const resolvedMerchandiseId =
     merchandiseId || (await resolveMerchandiseId(productHandle, buyerIp));
   const cartId = await getCartId();
 
-  if (!cartId || !(await loadShopifyCart(cartId, buyerIp))) {
-    return createShopifyCart(resolvedMerchandiseId, quantity, buyerIp);
+  if (!cartId || !(await loadShopifyCart(cartId, buyerIp, locale))) {
+    return createShopifyCart(resolvedMerchandiseId, quantity, buyerIp, locale);
   }
+
+  const language = shopifyLanguage(locale);
 
   const data = await shopifyStorefrontRequest<{ cartLinesAdd: CartMutationPayload }>(
     `#graphql
       ${CART_FRAGMENT}
-      mutation SynaravaCartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+      mutation SynaravaCartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!, $language: LanguageCode!) @inContext(language: $language) {
         cartLinesAdd(cartId: $cartId, lines: $lines) {
           cart { ...SynaravaCart }
           userErrors { field message code }
@@ -316,7 +322,7 @@ export async function addShopifyProductToCart(
         }
       }
     `,
-    { cartId, lines: [{ merchandiseId: resolvedMerchandiseId, quantity }] },
+    { cartId, lines: [{ merchandiseId: resolvedMerchandiseId, quantity }], language },
     { buyerIp },
   );
   return assertCartMutation(data.cartLinesAdd);
@@ -328,10 +334,12 @@ export async function updateShopifyCartItemQuantity(lineId: string, quantity: nu
   if (quantity <= 0) return removeShopifyCartItem(lineId);
 
   const buyerIp = await getShopifyBuyerIp();
+  const locale = await getRequestLocale();
+  const language = shopifyLanguage(locale);
   const data = await shopifyStorefrontRequest<{ cartLinesUpdate: CartMutationPayload }>(
     `#graphql
       ${CART_FRAGMENT}
-      mutation SynaravaCartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+      mutation SynaravaCartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!, $language: LanguageCode!) @inContext(language: $language) {
         cartLinesUpdate(cartId: $cartId, lines: $lines) {
           cart { ...SynaravaCart }
           userErrors { field message code }
@@ -339,7 +347,7 @@ export async function updateShopifyCartItemQuantity(lineId: string, quantity: nu
         }
       }
     `,
-    { cartId, lines: [{ id: lineId, quantity }] },
+    { cartId, lines: [{ id: lineId, quantity }], language },
     { buyerIp },
   );
   assertCartMutation(data.cartLinesUpdate);
@@ -350,10 +358,12 @@ export async function removeShopifyCartItem(lineId: string) {
   if (!cartId) return;
 
   const buyerIp = await getShopifyBuyerIp();
+  const locale = await getRequestLocale();
+  const language = shopifyLanguage(locale);
   const data = await shopifyStorefrontRequest<{ cartLinesRemove: CartMutationPayload }>(
     `#graphql
       ${CART_FRAGMENT}
-      mutation SynaravaCartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+      mutation SynaravaCartLinesRemove($cartId: ID!, $lineIds: [ID!]!, $language: LanguageCode!) @inContext(language: $language) {
         cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
           cart { ...SynaravaCart }
           userErrors { field message code }
@@ -361,7 +371,7 @@ export async function removeShopifyCartItem(lineId: string) {
         }
       }
     `,
-    { cartId, lineIds: [lineId] },
+    { cartId, lineIds: [lineId], language },
     { buyerIp },
   );
   assertCartMutation(data.cartLinesRemove);

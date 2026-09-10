@@ -1,6 +1,7 @@
 const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
   getShopifyBuyerIp: vi.fn(),
+  getRequestLocale: vi.fn(),
   shopifyStorefrontRequest: vi.fn(),
 }));
 
@@ -17,10 +18,10 @@ vi.mock("@/lib/shopify/storefront", () => ({
 }));
 
 vi.mock("@/lib/i18n/server", () => ({
-  getRequestLocale: vi.fn(async () => "en"),
+  getRequestLocale: mocks.getRequestLocale,
 }));
 
-import { getShopifyCartLineQuantity } from "@/lib/shopify/cart";
+import { getShopifyCartLineQuantity, getShopifyCartViewModel } from "@/lib/shopify/cart";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,6 +29,7 @@ beforeEach(() => {
     get: vi.fn(() => ({ value: "gid://shopify/Cart/1" })),
   });
   mocks.getShopifyBuyerIp.mockResolvedValue("203.0.113.4");
+  mocks.getRequestLocale.mockResolvedValue("en");
 });
 
 describe("getShopifyCartLineQuantity", () => {
@@ -58,5 +60,24 @@ describe("getShopifyCartLineQuantity", () => {
     expect(query).not.toContain("merchandise");
     expect(variables).toEqual({ cartId: "gid://shopify/Cart/1" });
     expect(options).toEqual({ buyerIp: "203.0.113.4" });
+  });
+
+  it("requests translated cart product copy in the active locale", async () => {
+    mocks.getRequestLocale.mockResolvedValue("pt");
+    mocks.shopifyStorefrontRequest.mockResolvedValue({
+      cart: {
+        id: "cart-1",
+        checkoutUrl: "https://checkout.example",
+        totalQuantity: 0,
+        cost: { subtotalAmount: { amount: "0.00", currencyCode: "EUR" } },
+        lines: { nodes: [] },
+      },
+    });
+
+    await getShopifyCartViewModel();
+
+    const [query, variables] = mocks.shopifyStorefrontRequest.mock.calls[0];
+    expect(query).toContain("@inContext(language: $language)");
+    expect(variables).toEqual({ cartId: "gid://shopify/Cart/1", language: "PT_PT" });
   });
 });

@@ -10,7 +10,6 @@ import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
-import { LocaleTabStrip } from "@/components/admin/shared/admin-primitives";
 import { slugify } from "@/lib/text/slug";
 import { ShopifyCategoryField } from "@/components/admin/products/shopify-category-field";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
@@ -347,6 +346,7 @@ export function ProductFormFields({
   const [nameValue, setNameValue] = useState(draft.name);
   const [slugValue, setSlugValue] = useState(draft.slug);
   const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
+  const [activeLocale, setActiveLocale] = useState<"EN" | "PT">("EN");
 
   function updateName(value: string) {
     setNameValue(value);
@@ -376,11 +376,85 @@ export function ProductFormFields({
         <span className="adm-badge-published w-fit">Shopify-backed</span>
       </div>
 
-      {/* i18n groundwork */}
-      <LocaleTabStrip />
+      <div
+        role="tablist"
+        aria-label="Product content language"
+        className="flex flex-wrap items-center gap-1.5 border-b border-[var(--adm-border)] pb-4"
+      >
+        <span className="adm-section-tag mr-1">LOCALE /</span>
+        {([{"code":"EN","label":"English"},{"code":"PT","label":"Português"}] as const).map((locale) => (
+          <button
+            key={locale.code}
+            type="button"
+            role="tab"
+            aria-label={locale.label}
+            aria-selected={activeLocale === locale.code}
+            onClick={() => setActiveLocale(locale.code)}
+            data-active={activeLocale === locale.code ? "true" : undefined}
+            className="adm-locale-tab"
+          >
+            {locale.code}
+          </button>
+        ))}
+        <span className="adm-section-tag ml-2">
+          {activeLocale === "EN" ? "// EN — SOURCE" : "// PT — TRANSLATION"}
+        </span>
+      </div>
+
+      <section
+        role="tabpanel"
+        aria-label="Portuguese product copy"
+        hidden={activeLocale !== "PT"}
+        className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
+      >
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
+            <span className={draft.pt.syncStatus === "SYNCED" ? "adm-badge-published" : "adm-badge-draft"}>
+              SHOPIFY: {draft.pt.syncStatus.replace("NOT_APPLICABLE", "LOCAL ONLY")}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-[var(--adm-muted)]">
+            Title, short description, and description are required before a new product can be published.
+          </p>
+          {draft.pt.syncError ? (
+            <p className="mt-2 text-xs text-[var(--adm-danger)]">{draft.pt.syncError}</p>
+          ) : null}
+        </div>
+        <label className="grid gap-2">
+          <span className="adm-label">Product name (PT) *</span>
+          <input name="ptTitle" defaultValue={draft.pt.title} className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">Short description (PT) *</span>
+          <textarea name="ptShortDescription" rows={3} defaultValue={draft.pt.shortDescription} className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">Description (PT) *</span>
+          <textarea name="ptDescription" rows={4} defaultValue={draft.pt.description} className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <span className="adm-label">Material line (PT)</span>
+          <input name="ptMaterialLine" defaultValue={draft.pt.materialLine} className="adm-field" />
+        </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2"><span className="adm-label">Symbolism label (PT)</span><input name="ptSymbolismLabel" defaultValue={draft.pt.symbolismLabel} className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">Symbolism title (PT)</span><input name="ptSymbolismTitle" defaultValue={draft.pt.symbolismTitle} className="adm-field" /></label>
+        </div>
+        <label className="grid gap-2"><span className="adm-label">Symbolism body (PT)</span><textarea name="ptSymbolismBody" rows={4} defaultValue={draft.pt.symbolismBody} className="adm-field" /></label>
+        <label className="grid gap-2"><span className="adm-label">Symbolism continuation (PT)</span><textarea name="ptSymbolismBody2" rows={3} defaultValue={draft.pt.symbolismBody2} className="adm-field" /></label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2"><span className="adm-label">SEO title (PT)</span><input name="ptSeoTitle" defaultValue={draft.pt.seoTitle} className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">SEO description (PT)</span><textarea name="ptSeoDescription" rows={2} defaultValue={draft.pt.seoDescription} className="adm-field" /></label>
+        </div>
+        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
+          <input type="checkbox" name="ptReviewed" defaultChecked={draft.pt.reviewed} />
+          <span>Portuguese translation reviewed</span>
+        </label>
+      </section>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="grid gap-2">
+        <div className="grid gap-2" hidden={activeLocale !== "EN"}>
           <label htmlFor={validation.fieldId("name")}>
             <OwnershipLabel owner="Shopify">Name *</OwnershipLabel>
           </label>
@@ -456,7 +530,7 @@ export function ProductFormFields({
         </label>
       </div>
 
-      <label className="grid gap-2">
+      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
         <OwnershipLabel owner="Synarava">Short description</OwnershipLabel>
         <textarea
           name="shortDescription"
@@ -466,7 +540,18 @@ export function ProductFormFields({
         />
       </label>
 
-      <label className="grid gap-2">
+      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2">
+          <OwnershipLabel owner="Shopify">SEO title</OwnershipLabel>
+          <input name="seoTitle" defaultValue={draft.seoTitle} className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <OwnershipLabel owner="Shopify">SEO description</OwnershipLabel>
+          <textarea name="seoDescription" rows={2} defaultValue={draft.seoDescription} className="adm-field" />
+        </label>
+      </div>
+
+      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
         <OwnershipLabel owner="Shopify">Description</OwnershipLabel>
         <textarea
           name="description"
@@ -477,7 +562,7 @@ export function ProductFormFields({
       </label>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
           <OwnershipLabel owner="Synarava">Material line</OwnershipLabel>
           <input name="materialLine" defaultValue={draft.materialLine} className="adm-field" />
         </label>
@@ -493,6 +578,7 @@ export function ProductFormFields({
       {/* Symbolism */}
       <div
         className="grid gap-4 pt-4"
+        hidden={activeLocale !== "EN"}
         style={{ borderTop: "1px solid var(--adm-border)" }}
       >
         <div>

@@ -55,6 +55,18 @@ describe("CreateProductForm", () => {
     await act(async () => {});
   });
 
+  it("provides real English and Portuguese product copy tabs", async () => {
+    const user = userEvent.setup();
+    render(<CreateProductForm collections={collections} />);
+
+    expect(screen.getByRole("tab", { name: "English" })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+
+    expect(screen.getByRole("tab", { name: "Português" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText("Product name (PT) *")).toBeInTheDocument();
+    expect(screen.getByLabelText("Portuguese translation reviewed")).toBeInTheDocument();
+  });
+
   it("opens the confirmation modal after filling required fields and saves on confirm", async () => {
     mocks.saveProductAction.mockResolvedValue({ success: "Product saved.", created: true, product: undefined });
     const user = userEvent.setup();

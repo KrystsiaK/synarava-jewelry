@@ -35,6 +35,7 @@ import {
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
+import { fetchProductTranslation, registerProductTranslation } from "@/lib/shopify/translations";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = { namespace: string; key: string; type: string; value: string };
@@ -626,6 +627,33 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
     },
   });
 
+  const localPortuguese = await db.productTranslation.findUnique({
+    where: { productId_locale: { productId: product.id, locale: "PT" } },
+  });
+  if (!localPortuguese) {
+    try {
+      const remotePortuguese = await fetchProductTranslation(remote.id);
+      if (remotePortuguese?.title) {
+        await db.productTranslation.create({
+          data: {
+            productId: product.id,
+            locale: "PT",
+            title: remotePortuguese.title,
+            description: stripHtml(remotePortuguese.descriptionHtml) || null,
+            seoTitle: remotePortuguese.seoTitle || null,
+            seoDescription: remotePortuguese.seoDescription || null,
+            reviewStatus: "DRAFT",
+            syncStatus: "SYNCED",
+            lastSyncedAt: new Date(),
+          },
+        });
+      }
+    } catch {
+      // Translation access must never make a commerce pull fail. The CMS can
+      // create PT locally later and the next push will register it in Shopify.
+    }
+  }
+
   const pulledVariantIds: string[] = [];
   for (const variant of remote.variants.nodes) {
     const sku = variant.sku?.trim() || `${remoteSku}-${variant.id.split("/").pop()}`;
@@ -943,6 +971,7 @@ export async function pushProductToShopify(productId: string) {
         collections: { include: { collection: true } },
         primaryAsset: true,
         media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
+        translations: true,
       },
     });
     // Commerce fields (SKU, price, compare-at) are owned by the variant —
@@ -1255,8 +1284,38 @@ export async function pushProductToShopify(productId: string) {
       await db.product.update({ where: { id: productId }, data: productUpdate });
     }
     await deleteUnreferencedArchivedProductAssets();
+
+    let translationError: string | undefined;
+    const portuguese = product.translations.find((translation) => translation.locale === "PT");
+    if (
+      portuguese?.reviewStatus === "REVIEWED"
+      && portuguese.title.trim()
+      && portuguese.description?.trim()
+      && portuguese.syncStatus !== "SYNCED"
+    ) {
+      try {
+        await registerProductTranslation(remote.id, {
+          title: portuguese.title,
+          descriptionHtml: portuguese.description
+            ? `<p>${portuguese.description.replace(/[<>&]/g, "")}</p>`
+            : "",
+          seoTitle: portuguese.seoTitle ?? "",
+          seoDescription: portuguese.seoDescription ?? "",
+        });
+        await db.productTranslation.update({
+          where: { id: portuguese.id },
+          data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
+        });
+      } catch (error) {
+        translationError = error instanceof Error ? error.message : "Portuguese translation sync failed.";
+        await db.productTranslation.update({
+          where: { id: portuguese.id },
+          data: { syncStatus: "FAILED", syncError: translationError },
+        });
+      }
+    }
     await db.productSyncEvent.update({ where: { id: event.id }, data: { shopifyProductId: remote.id, status: "SUCCEEDED", completedAt: new Date() } });
-    return { ok: true as const, shopifyProductId: remote.id };
+    return { ok: true as const, shopifyProductId: remote.id, translationError };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Shopify sync error.";
     await db.product.update({ where: { id: productId }, data: { syncStatus: "FAILED", syncError: message } });

@@ -2,7 +2,7 @@ import { getCurrentAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
 
-export type AdminAuditEntityType = "PRODUCT" | "COLLECTION" | "PAGE" | "CATEGORY" | "TAG";
+export type AdminAuditEntityType = "PRODUCT" | "COLLECTION" | "PAGE" | "POST" | "CATEGORY" | "TAG";
 
 export type AdminRecordHistoryItem = {
   id: string;

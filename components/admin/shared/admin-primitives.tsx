@@ -137,6 +137,7 @@ const NAV_ITEMS = [
   { href: "/admin/home", label: "Home", code: "HOME" },
   { href: "/admin/about", label: "About", code: "ABOUT" },
   { href: "/admin/pages", label: "Pages", code: "PGS" },
+  { href: "/admin/posts", label: "Posts", code: "POST" },
   { href: "/admin/videos", label: "Videos", code: "VID" },
   { href: "/admin/products", label: "Catalog", code: "CAT" },
   { href: "/admin/issues", label: "Problems", code: "QA" },

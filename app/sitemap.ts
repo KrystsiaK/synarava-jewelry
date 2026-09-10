@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listCollections, listShopProducts } from "@/lib/content/catalog";
+import { listPublishedPosts } from "@/lib/content/posts";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
 
 type RouteEntry = {
@@ -31,6 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "", changeFrequency: "weekly", priority: 1.0 },
     { path: "/shop", changeFrequency: "daily", priority: 0.9 },
     { path: "/collections", changeFrequency: "weekly", priority: 0.8 },
+    { path: "/journal", changeFrequency: "weekly", priority: 0.7 },
     { path: "/about", changeFrequency: "monthly", priority: 0.6 },
     { path: "/care", changeFrequency: "monthly", priority: 0.5 },
     { path: "/shipping", changeFrequency: "monthly", priority: 0.5 },
@@ -43,7 +45,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let dynamicEntries: RouteEntry[] = [];
 
   try {
-    const [collections, products] = await Promise.all([listCollections(), listShopProducts()]);
+    const [collections, products, posts] = await Promise.all([
+      listCollections(),
+      listShopProducts(),
+      listPublishedPosts("en"),
+    ]);
 
     dynamicEntries = [
       ...collections.map((c) => ({
@@ -57,6 +63,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: p.updatedAt,
         changeFrequency: "weekly" as const,
         priority: 0.9,
+      })),
+      ...posts.map((post) => ({
+        path: `/journal/${post.slug}`,
+        lastModified: post.updatedAt,
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
       })),
     ];
   } catch {

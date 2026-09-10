@@ -60,6 +60,12 @@ export async function testShopifyConnectionAction() {
         connection,
       };
     }
+    if (!connection.portuguesePublished) {
+      return {
+        error: `Connected to ${connection.shopName}, but Portuguese (Portugal, pt-PT) is not enabled and published in Shopify Markets.`,
+        connection,
+      };
+    }
 
     return {
       success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.`,
@@ -114,7 +120,10 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
     revalidatePath("/admin/products");
     const product = await getSavedProductPayload(productId);
     return {
-      success: "Commerce changes pushed to Shopify.",
+      success: result.translationError
+        ? "Commerce changes pushed to Shopify; Portuguese translation needs attention."
+        : "Commerce and Portuguese translation pushed to Shopify.",
+      translationWarning: result.translationError,
       product,
       inspection: await inspectProductSyncState(productId),
     };

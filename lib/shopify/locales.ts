@@ -1,0 +1,2 @@
+export const SHOPIFY_PORTUGUESE_ADMIN_LOCALE = "pt-PT" as const;
+export const SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE = "PT_PT" as const;
