@@ -31,6 +31,10 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
     setPages((current) => current.map((item) => (item.slug === page.slug ? page : item)));
   }
 
+  function handleDeleted(slug: string) {
+    setPages((current) => current.filter((item) => item.slug !== slug));
+  }
+
   function runRowAction() {
     if (!rowAction) return;
 
@@ -148,7 +152,11 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
                     </button>
                   )}
                   {!isProtectedPage(page.slug) ? (
-                    <PageDeleteButton slug={page.slug} title={page.title} />
+                    <PageDeleteButton
+                      slug={page.slug}
+                      title={page.title}
+                      onDeleted={() => handleDeleted(page.slug)}
+                    />
                   ) : null}
                 </div>
               </div>

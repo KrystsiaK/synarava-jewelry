@@ -11,9 +11,11 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 export function PageDeleteButton({
   slug,
   title,
+  onDeleted,
 }: {
   slug: string;
   title: string;
+  onDeleted?: () => void;
 }) {
   const router = useRouter();
   const [state, setState] = useState<{ error?: string; success?: string }>({});
@@ -31,6 +33,7 @@ export function PageDeleteButton({
       if (result.success) pushToast({ message: result.success, tone: "success" });
       if (!result?.error) {
         setConfirmOpen(false);
+        onDeleted?.();
         router.refresh();
       }
     });
