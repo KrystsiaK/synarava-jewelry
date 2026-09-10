@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -35,7 +35,13 @@ import {
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
-import { fetchProductTranslation, registerProductTranslation } from "@/lib/shopify/translations";
+import {
+  decideProductTranslationPull,
+  fetchProductTranslation,
+  fetchProductTranslationIndex,
+  registerProductTranslation,
+  type ShopifyProductTranslationSnapshot,
+} from "@/lib/shopify/translations";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = { namespace: string; key: string; type: string; value: string };
@@ -630,27 +636,99 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   const localPortuguese = await db.productTranslation.findUnique({
     where: { productId_locale: { productId: product.id, locale: "PT" } },
   });
-  if (!localPortuguese) {
-    try {
-      const remotePortuguese = await fetchProductTranslation(remote.id);
-      if (remotePortuguese?.title) {
-        await db.productTranslation.create({
-          data: {
+  let translationStatus: "SYNCED" | "LOCAL_CHANGES" | "CONFLICT" | "UNAVAILABLE" = "SYNCED";
+  let remotePortuguese: ShopifyProductTranslationSnapshot | null = null;
+  let translationAvailable = true;
+  try {
+    remotePortuguese = await fetchProductTranslation(remote.id);
+  } catch {
+    // Missing read_translations access must not make commerce synchronization
+    // fail. Surface it in the result so the admin can fix Shopify permissions.
+    translationAvailable = false;
+    translationStatus = "UNAVAILABLE";
+  }
+  if (translationAvailable) {
+    const localShopifyCopy = localPortuguese ? {
+      title: localPortuguese.title,
+      descriptionHtml: localPortuguese.description ?? "",
+      seoTitle: localPortuguese.seoTitle ?? "",
+      seoDescription: localPortuguese.seoDescription ?? "",
+    } : null;
+    const decision = decideProductTranslationPull({
+      local: localShopifyCopy,
+      localSyncStatus: localPortuguese?.syncStatus ?? "NOT_APPLICABLE",
+      localLastSyncedAt: localPortuguese?.lastSyncedAt ?? null,
+      remote: remotePortuguese,
+      force,
+    });
+
+    if (decision === "CONFLICT" && localPortuguese) {
+      translationStatus = "CONFLICT";
+      await db.productTranslation.update({
+        where: { id: localPortuguese.id },
+        data: {
+          syncStatus: "CONFLICT",
+          syncError: "Portuguese copy changed in both Synarava and Shopify. Choose Pull or Push to resolve it.",
+        },
+      });
+    } else if (decision === "KEEP_LOCAL") {
+      translationStatus = "LOCAL_CHANGES";
+    } else if (decision === "APPLY_REMOTE" || decision === "UNCHANGED") {
+      if (remotePortuguese || localPortuguese) {
+        const mergedCopy = {
+          title: remotePortuguese?.title ?? "",
+          shortDescription: localPortuguese?.shortDescription ?? null,
+          description: remotePortuguese ? stripHtml(remotePortuguese.descriptionHtml) || null : null,
+          materialLine: localPortuguese?.materialLine ?? null,
+          symbolismLabel: localPortuguese?.symbolismLabel ?? null,
+          symbolismTitle: localPortuguese?.symbolismTitle ?? null,
+          symbolismBody: localPortuguese?.symbolismBody ?? null,
+          symbolismBody2: localPortuguese?.symbolismBody2 ?? null,
+          details: localPortuguese?.details ?? undefined,
+          seoTitle: remotePortuguese?.seoTitle || null,
+          seoDescription: remotePortuguese?.seoDescription || null,
+        };
+        const contentHash = createHash("sha256").update(JSON.stringify({
+          title: mergedCopy.title,
+          shortDescription: mergedCopy.shortDescription,
+          description: mergedCopy.description,
+          materialLine: mergedCopy.materialLine,
+          symbolismLabel: mergedCopy.symbolismLabel,
+          symbolismTitle: mergedCopy.symbolismTitle,
+          symbolismBody: mergedCopy.symbolismBody,
+          symbolismBody2: mergedCopy.symbolismBody2,
+          seoTitle: mergedCopy.seoTitle,
+          seoDescription: mergedCopy.seoDescription,
+        })).digest("hex");
+        const reviewed = Boolean(
+          remotePortuguese?.title
+          && mergedCopy.description
+          && mergedCopy.shortDescription
+          && localPortuguese?.reviewStatus === "REVIEWED"
+          && !remotePortuguese.outdated,
+        );
+        await db.productTranslation.upsert({
+          where: { productId_locale: { productId: product.id, locale: "PT" } },
+          update: {
+            ...mergedCopy,
+            reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+            reviewedAt: reviewed ? localPortuguese?.reviewedAt ?? new Date() : null,
+            syncStatus: "SYNCED",
+            syncError: null,
+            contentHash,
+            lastSyncedAt: remotePortuguese?.updatedAt ? new Date(remotePortuguese.updatedAt) : new Date(),
+          },
+          create: {
             productId: product.id,
             locale: "PT",
-            title: remotePortuguese.title,
-            description: stripHtml(remotePortuguese.descriptionHtml) || null,
-            seoTitle: remotePortuguese.seoTitle || null,
-            seoDescription: remotePortuguese.seoDescription || null,
+            ...mergedCopy,
             reviewStatus: "DRAFT",
             syncStatus: "SYNCED",
-            lastSyncedAt: new Date(),
+            contentHash,
+            lastSyncedAt: remotePortuguese?.updatedAt ? new Date(remotePortuguese.updatedAt) : new Date(),
           },
         });
       }
-    } catch {
-      // Translation access must never make a commerce pull fail. The CMS can
-      // create PT locally later and the next push will register it in Shopify.
     }
   }
 
@@ -781,7 +859,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
     where: { id: eventId },
     data: { productId: product.id, status: "SUCCEEDED", completedAt: new Date() },
   });
-  return { productId: product.id, status: "SYNCED" as const };
+  return { productId: product.id, status: "SYNCED" as const, translationStatus };
 }
 
 export async function pullShopifyProduct(id: string, eventId?: string, force = false) {
@@ -955,7 +1033,7 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
  * pushed or rejected outright, since a missing image is recoverable and
  * failing the whole sync over it is not worth the disruption.
  */
-export async function pushProductToShopify(productId: string) {
+export async function pushProductToShopify(productId: string, forceTranslation = false) {
   const event = await db.productSyncEvent.create({
     data: { productId, direction: "PUSH", status: "PROCESSING", attemptCount: 1 },
   });
@@ -1294,18 +1372,40 @@ export async function pushProductToShopify(productId: string) {
       && portuguese.syncStatus !== "SYNCED"
     ) {
       try {
-        await registerProductTranslation(remote.id, {
+        const localCopy = {
           title: portuguese.title,
           descriptionHtml: portuguese.description
             ? `<p>${portuguese.description.replace(/[<>&]/g, "")}</p>`
             : "",
           seoTitle: portuguese.seoTitle ?? "",
           seoDescription: portuguese.seoDescription ?? "",
+        };
+        const remotePortuguese = await fetchProductTranslation(remote.id);
+        const decision = decideProductTranslationPull({
+          local: localCopy,
+          localSyncStatus: portuguese.syncStatus,
+          localLastSyncedAt: portuguese.lastSyncedAt,
+          remote: remotePortuguese,
+          force: forceTranslation,
         });
-        await db.productTranslation.update({
-          where: { id: portuguese.id },
-          data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
-        });
+        if (decision === "CONFLICT") {
+          translationError = "Portuguese copy also changed in Shopify. Pull or explicitly force Push to choose a winner.";
+          await db.productTranslation.update({
+            where: { id: portuguese.id },
+            data: { syncStatus: "CONFLICT", syncError: translationError },
+          });
+        } else if (decision === "UNCHANGED") {
+          await db.productTranslation.update({
+            where: { id: portuguese.id },
+            data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
+          });
+        } else {
+          await registerProductTranslation(remote.id, localCopy);
+          await db.productTranslation.update({
+            where: { id: portuguese.id },
+            data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
+          });
+        }
       } catch (error) {
         translationError = error instanceof Error ? error.message : "Portuguese translation sync failed.";
         await db.productTranslation.update({
@@ -1361,7 +1461,8 @@ export async function reconcileShopifyProducts() {
       const event = await db.productSyncEvent.create({ data: { shopifyProductId: remote.id, direction: "RECONCILE", status: "PROCESSING", attemptCount: 1 } });
       try {
         const result = await savePulledProduct(remote, event.id);
-        if (result.status === "CONFLICT") results.conflicts += 1;
+        if (result.status === "CONFLICT" || result.translationStatus === "CONFLICT") results.conflicts += 1;
+        else if (result.translationStatus === "UNAVAILABLE") results.failed += 1;
         else if (result.status === "SYNCED") results.pulled += 1;
       } catch (error) {
         results.failed += 1;
@@ -1439,6 +1540,8 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
     cursor = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;
   } while (cursor);
 
+  const portugueseByProductId = await fetchProductTranslationIndex();
+
   const localProducts = await db.product.findMany({
     select: {
       id: true,
@@ -1448,6 +1551,17 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
       shopifyProductId: true,
       shopifyUpdatedAt: true,
       syncStatus: true,
+      translations: {
+        where: { locale: "PT" },
+        select: {
+          title: true,
+          description: true,
+          seoTitle: true,
+          seoDescription: true,
+          syncStatus: true,
+          lastSyncedAt: true,
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
         select: {
@@ -1485,9 +1599,25 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
       (!existingById.shopifyUpdatedAt ||
         new Date(product.updatedAt).getTime() > existingById.shopifyUpdatedAt.getTime()),
     );
+    const localPortuguese = existing?.translations[0] ?? null;
+    const remotePortuguese = portugueseByProductId.get(product.id) ?? null;
+    const translationDecision = localPortuguese || remotePortuguese
+      ? decideProductTranslationPull({
+          local: localPortuguese ? {
+            title: localPortuguese.title,
+            descriptionHtml: localPortuguese.description ?? "",
+            seoTitle: localPortuguese.seoTitle ?? "",
+            seoDescription: localPortuguese.seoDescription ?? "",
+          } : null,
+          localSyncStatus: localPortuguese?.syncStatus ?? "NOT_APPLICABLE",
+          localLastSyncedAt: localPortuguese?.lastSyncedAt ?? null,
+          remote: remotePortuguese,
+        })
+      : "UNCHANGED";
     const changes = [
       ...(productDetailsChanged ? ["Product details"] : []),
       ...variantCommerceChangeLabels(variantDifferences),
+      ...(translationDecision === "APPLY_REMOTE" ? ["Portuguese translation"] : []),
     ];
     const remoteHasChanges = changes.length > 0;
     const localHasChanges = Boolean(
@@ -1495,6 +1625,7 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
     );
 
     if (existing?.shopifyProductId && existing.shopifyProductId !== product.id) action = "CONFLICT";
+    else if (translationDecision === "CONFLICT") action = "CONFLICT";
     else if (existingById) action = classifyRemoteReconciliationAction({
       hasUnresolvedConflict: existingById.syncStatus === "CONFLICT",
       localHasChanges,
@@ -1523,7 +1654,10 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
       (product) => {
         if (product.syncStatus === "CONFLICT") return false;
         if (!product.shopifyProductId) return !matchedLocalIds.has(product.id);
-        if (!(["PENDING", "FAILED"] as string[]).includes(product.syncStatus)) return false;
+        const portugueseNeedsPush = product.translations.some((translation) =>
+          (["PENDING", "FAILED"] as string[]).includes(translation.syncStatus),
+        );
+        if (!(["PENDING", "FAILED"] as string[]).includes(product.syncStatus) && !portugueseNeedsPush) return false;
         if (!seenRemoteIds.has(product.shopifyProductId)) return false;
         return remoteActionByLocalId.get(product.id) === "UP_TO_DATE";
       },

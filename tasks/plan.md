@@ -20,14 +20,17 @@
 
 | Данные | Источник истины | Направление синхронизации |
 |---|---|---|
-| Тексты товара EN/PT | Synarava CMS | CMS → Shopify |
+| Тексты товара EN/PT, представимые Shopify | Synarava CMS + Shopify Translate & Adapt | CMS ↔ Shopify с конфликтами |
 | Посты EN/PT | Synarava CMS | Не синхронизировать в Shopify в v1 |
 | Цена, SKU, остаток, variant ID | Существующий commerce flow | Текущий push/pull с конфликтами |
 | Статус товара и публикация в sales channel | Существующий commerce flow | CMS ↔ Shopify по текущим правилам |
 | Медиа товара | Synarava CMS с текущим staging flow | CMS → Shopify |
 | UI-строки сайта | `messages/*.json` | Не относятся к контентному CMS |
 
-У переводов должен быть один редактор-источник. Если разрешить менять PT-тексты и в Shopify Admin, и в Synarava, неизбежны тихие перезаписи и сложные конфликты digest. Поэтому после запуска PT-переводы товара редактируются в Synarava; Shopify получает проекцию.
+Поля PT, которые поддерживает Shopify (`title`, `body_html`, SEO), можно редактировать и в Synarava,
+и в Shopify Translate & Adapt. Синхронизация использует `updatedAt`, локальный sync status и явные
+Pull/Push решения, поэтому параллельные изменения не перезаписываются молча. Локальные editorial-
+поля PT остаются только в Synarava.
 
 ### 2. Модель данных
 
@@ -99,9 +102,10 @@ Shopify требует актуальный digest для регистрации
 Pull из Shopify:
 
 - основной язык может продолжать участвовать в существующем commerce conflict flow;
-- PT translation не должна автоматически перезаписывать локальный reviewed-перевод;
-- initial import может подтянуть PT один раз, только если локального PT ещё нет;
-- после запуска внешнее изменение PT в Shopify показывается как `REMOTE_TRANSLATION_CHANGE`, а решение принимает администратор.
+- чистый локальный PT обновляется из Shopify при Pull/Reconcile;
+- при изменениях с обеих сторон PT получает `CONFLICT`, а администратор выбирает Pull или Push;
+- принудительный Pull применяет Shopify-поля, сохраняя Synarava-only PT editorial content;
+- поскольку Shopify не публикует translation-update webhook, translation-only изменения обнаруживаются через Pull, Preview sync или Reconcile.
 
 В Storefront API запросах, где данные товара/корзины читаются непосредственно из Shopify, передавать `@inContext(language: EN|PT_PT)`. Локальный каталог продолжает выбирать `ProductTranslation` по route locale.
 
@@ -164,7 +168,7 @@ Pull из Shopify:
 
 | Риск | Влияние | Мера |
 |---|---|---|
-| Два источника PT-текста | Высокое | Synarava — единственный writer; Shopify edit определяется как конфликт |
+| Два источника PT-текста | Высокое | `updatedAt` + отдельный sync status; параллельные изменения требуют явного Pull/Push |
 | Shopify digest устарел | Среднее | Получать digest перед push, один контролируемый refetch/retry |
 | Частичный sync EN прошёл, PT упал | Высокое | Раздельные статусы и повторяемый PT step |
 | Публикация смешанного языка | Высокое | Completeness + reviewed gate, fallback только для legacy/optional |
@@ -177,15 +181,15 @@ Pull из Shopify:
 1. Английский остаётся primary locale, португальский — обязательный второй язык.
 2. Под «постами» понимается новый журнал/blog с отдельной сущностью `Post`, а не существующие статические `Page`.
 3. PT обязателен для публикации новых записей; legacy-записи временно работают с fallback.
-4. PT-переводы товара редактируются только в Synarava, не в Shopify Admin.
+4. Shopify-представимые PT-поля можно редактировать в Synarava или Translate & Adapt; локальные editorial-поля редактируются только в Synarava.
 
 ## Статус реализации
 
 Основной v1 flow реализован: схема и backfill EN, редакторы EN/PT для товаров и постов,
 publication gates, локализованные storefront loaders, Shopify Translation API push, проверка
 scopes/`pt-PT`, language context корзины и тесты. Автоматическое включение Shopify locale и
-полноценное разрешение конфликтов после внешнего редактирования PT остаются отдельными улучшениями;
-в текущей версии Shopify PT импортируется только при отсутствии локального перевода.
+translation-aware preview, двусторонний PT pull/push, разрешение конфликтов и безопасная
+перепривязка к дубликату Shopify store по SKU/handle.
 5. Slug/Shopify handle остаётся общим для EN/PT в первой версии.
 
 ## Официальные Shopify references

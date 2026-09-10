@@ -12,6 +12,7 @@ import {
 import {
   archiveMissingShopifyProductsAction,
   previewShopifyReconciliationAction,
+  rebindShopifyStoreAction,
   syncShopifySelectionAction,
   testShopifyConnectionAction,
 } from "@/app/admin/actions/sync";
@@ -61,10 +62,16 @@ export function ProductsCms({
   const [selectedLocalIds, setSelectedLocalIds] = useState<string[]>([]);
   const [selectedArchiveIds, setSelectedArchiveIds] = useState<string[]>([]);
   const [syncConfirmation, setSyncConfirmation] = useState<SyncConfirmation | null>(null);
+  const [shopifyStoreMismatch, setShopifyStoreMismatch] = useState<{
+    boundShopDomain: string;
+    currentShopDomain: string;
+  } | null>(null);
+  const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
   const [isRowActionPending, startRowActionTransition] = useTransition();
   const [isConnectionPending, startConnectionTransition] = useTransition();
   const [isPreviewPending, startPreviewTransition] = useTransition();
   const [isSyncPending, startSyncTransition] = useTransition();
+  const [isStoreRebindPending, startStoreRebindTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
 
@@ -114,6 +121,22 @@ export function ProductsCms({
       const result = await testShopifyConnectionAction();
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
+      setShopifyStoreMismatch(result.storeMismatch ?? null);
+    });
+  }
+
+  function handleStoreRebind() {
+    if (!shopifyStoreMismatch) return;
+    startStoreRebindTransition(async () => {
+      const result = await rebindShopifyStoreAction(shopifyStoreMismatch.currentShopDomain);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) {
+        pushToast({ message: result.success, tone: "success" });
+        setShopifyStoreMismatch(null);
+        setSyncPreview(null);
+        router.refresh();
+      }
+      setConfirmStoreRebind(false);
     });
   }
 
@@ -243,6 +266,16 @@ export function ProductsCms({
               <RefreshCw className={`size-4 ${isConnectionPending ? "animate-spin" : ""}`} />
               {isConnectionPending ? "Testing Shopify..." : "Test Shopify connection"}
             </button>
+            {shopifyStoreMismatch ? (
+              <button
+                type="button"
+                className="adm-btn-danger inline-flex items-center justify-center gap-2"
+                onClick={() => setConfirmStoreRebind(true)}
+                disabled={isStoreRebindPending}
+              >
+                Rebind to {shopifyStoreMismatch.currentShopDomain}
+              </button>
+            ) : null}
             <button
               type="button"
               className="adm-btn-secondary inline-flex items-center justify-center gap-2"
@@ -671,6 +704,19 @@ export function ProductsCms({
             }
             runSync(syncConfirmation.remoteProductIds, syncConfirmation.localProductIds);
           }}
+        />
+      ) : null}
+
+      {shopifyStoreMismatch ? (
+        <AdminConfirmModal
+          open={confirmStoreRebind}
+          title="Rebind catalog to another Shopify store"
+          description={`Synarava is linked to ${shopifyStoreMismatch.boundShopDomain}. Rebinding to ${shopifyStoreMismatch.currentShopDomain} clears only the old store-specific product, variant, inventory, and collection IDs. It does not delete local content or Shopify products. Afterward, run Preview sync to match the duplicated catalog by SKU or handle.`}
+          confirmLabel="Rebind store IDs"
+          tone="danger"
+          pending={isStoreRebindPending}
+          onCancel={() => setConfirmStoreRebind(false)}
+          onConfirm={handleStoreRebind}
         />
       ) : null}
 

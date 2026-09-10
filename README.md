@@ -120,7 +120,20 @@ release the updated Shopify app configuration and approve the new permissions fo
 granted scopes and that `pt-PT` is published before localized product sync is used.
 
 English product content is synchronized as Shopify's base product content. Reviewed Portuguese
-product content is registered through Shopify's Translation API. Journal posts remain owned by this
+product content is registered through Shopify's Translation API, and Portuguese edits made in
+Shopify Translate & Adapt are read back during **Pull**, **Preview sync**, or **Reconcile**. Shopify
+does not expose a translation-update webhook, so translation-only edits are detected by these
+explicit reconciliation actions. Concurrent PT edits are marked as conflicts instead of being
+silently overwritten; Synarava-only editorial fields are preserved.
+Install Shopify's free **Translate & Adapt** app in each store where staff should edit these fields
+inside Shopify Admin; API synchronization itself uses the translation scopes above.
+
+The catalog records the canonical `*.myshopify.com` store it is linked to. If credentials are
+changed to a duplicated Shopify store, **Test Shopify connection** offers an explicit rebind action.
+Rebinding clears only old store-specific IDs, then **Preview sync** matches the duplicated products
+and collections by SKU/handle before any data is applied. The new store still needs its own app
+installation/token, required scopes, published `pt-PT` locale, publication ID, and inventory
+location ID. Journal posts remain owned by this
 application and are stored locally in both English and Portuguese; they are not synchronized to
 Shopify. The public app URL must be
 HTTPS so Shopify can deliver signed webhooks.

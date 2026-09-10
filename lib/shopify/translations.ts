@@ -5,6 +5,7 @@ import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 
 type TranslatableContent = { key: string; digest: string };
 type TranslationUserError = { field?: string[] | null; message: string };
+type RemoteTranslation = { key: string; value: string; updatedAt: string; outdated: boolean };
 
 export type ShopifyProductTranslationCopy = {
   title: string;
@@ -12,6 +13,77 @@ export type ShopifyProductTranslationCopy = {
   seoTitle: string;
   seoDescription: string;
 };
+
+export type ShopifyProductTranslationSnapshot = ShopifyProductTranslationCopy & {
+  updatedAt: string | null;
+  outdated: boolean;
+};
+
+type ProductTranslationPullDecision = "APPLY_REMOTE" | "KEEP_LOCAL" | "CONFLICT" | "UNCHANGED";
+
+function normalizedCopy(copy: ShopifyProductTranslationCopy | null) {
+  if (!copy) return null;
+  return {
+    title: copy.title.trim(),
+    descriptionHtml: copy.descriptionHtml
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/\s+/g, " ")
+      .trim(),
+    seoTitle: copy.seoTitle.trim(),
+    seoDescription: copy.seoDescription.trim(),
+  };
+}
+
+export function decideProductTranslationPull({
+  local,
+  localSyncStatus,
+  localLastSyncedAt,
+  remote,
+  force = false,
+}: {
+  local: ShopifyProductTranslationCopy | null;
+  localSyncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+  localLastSyncedAt: Date | null;
+  remote: ShopifyProductTranslationSnapshot | null;
+  force?: boolean;
+}): ProductTranslationPullDecision {
+  if (force) return "APPLY_REMOTE";
+  if (!local && !remote) return "UNCHANGED";
+  if (JSON.stringify(normalizedCopy(local)) === JSON.stringify(normalizedCopy(remote))) {
+    return "UNCHANGED";
+  }
+
+  const localIsDirty = ["PENDING", "FAILED", "CONFLICT"].includes(localSyncStatus);
+  if (!localIsDirty) return "APPLY_REMOTE";
+
+  const remoteChangedSinceLastSync = remote
+    ? !localLastSyncedAt
+      || !remote.updatedAt
+      || new Date(remote.updatedAt).getTime() > localLastSyncedAt.getTime()
+    : Boolean(localLastSyncedAt);
+  return remoteChangedSinceLastSync ? "CONFLICT" : "KEEP_LOCAL";
+}
+
+function productTranslationSnapshot(translations: RemoteTranslation[]): ShopifyProductTranslationSnapshot | null {
+  const values = new Map(translations.map((translation) => [translation.key, translation.value]));
+  if (values.size === 0) return null;
+  const updatedAt = translations.reduce<string | null>((latest, translation) => {
+    if (!latest || new Date(translation.updatedAt).getTime() > new Date(latest).getTime()) {
+      return new Date(translation.updatedAt).toISOString();
+    }
+    return latest;
+  }, null);
+  return {
+    title: values.get("title") ?? "",
+    descriptionHtml: values.get("body_html") ?? "",
+    seoTitle: values.get("meta_title") ?? "",
+    seoDescription: values.get("meta_description") ?? "",
+    updatedAt,
+    outdated: translations.some((translation) => translation.outdated),
+  };
+}
 
 const PRODUCT_TRANSLATION_KEYS = {
   title: "title",
@@ -133,21 +205,42 @@ export async function registerProductTranslation(
 export async function fetchProductTranslation(resourceId: string) {
   const data = await shopifyAdminRequest<{
     translatableResource: {
-      translations: Array<{ key: string; value: string }>;
+      translations: RemoteTranslation[];
     } | null;
   }>(`query SynaravaProductPortugueseTranslation($resourceId: ID!) {
     translatableResource(resourceId: $resourceId) {
-      translations(locale: "${SHOPIFY_PORTUGUESE_ADMIN_LOCALE}") { key value }
+      translations(locale: "${SHOPIFY_PORTUGUESE_ADMIN_LOCALE}") { key value updatedAt outdated }
     }
   }`, { resourceId });
 
   if (!data.translatableResource) return null;
-  const values = new Map(data.translatableResource.translations.map((translation) => [translation.key, translation.value]));
-  if (values.size === 0) return null;
-  return {
-    title: values.get("title") ?? "",
-    descriptionHtml: values.get("body_html") ?? "",
-    seoTitle: values.get("meta_title") ?? "",
-    seoDescription: values.get("meta_description") ?? "",
-  };
+  return productTranslationSnapshot(data.translatableResource.translations);
+}
+
+export async function fetchProductTranslationIndex() {
+  const result = new Map<string, ShopifyProductTranslationSnapshot | null>();
+  let cursor: string | null = null;
+  do {
+    const data: {
+      translatableResources: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: Array<{ resourceId: string; translations: RemoteTranslation[] }>;
+      };
+    } = await shopifyAdminRequest(`query SynaravaProductTranslationIndex($after: String) {
+      translatableResources(first: 100, after: $after, resourceType: PRODUCT) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          resourceId
+          translations(locale: "${SHOPIFY_PORTUGUESE_ADMIN_LOCALE}") { key value updatedAt outdated }
+        }
+      }
+    }`, { after: cursor });
+    for (const resource of data.translatableResources.nodes) {
+      result.set(resource.resourceId, productTranslationSnapshot(resource.translations));
+    }
+    cursor = data.translatableResources.pageInfo.hasNextPage
+      ? data.translatableResources.pageInfo.endCursor
+      : null;
+  } while (cursor);
+  return result;
 }

@@ -8,7 +8,9 @@ vi.mock("@/lib/shopify/admin", () => ({
 
 import {
   buildProductTranslationInputs,
+  decideProductTranslationPull,
   fetchProductTranslation,
+  fetchProductTranslationIndex,
   registerProductTranslation,
 } from "@/lib/shopify/translations";
 
@@ -72,11 +74,11 @@ describe("Shopify translations", () => {
     });
   });
 
-  it("maps an existing Shopify Portuguese translation for a safe first import", async () => {
+  it("maps Shopify Portuguese translation metadata used for two-way conflict detection", async () => {
     mocks.shopifyAdminRequest.mockResolvedValue({
       translatableResource: { translations: [
-        { key: "title", value: "Anel" },
-        { key: "body_html", value: "<p>Feito em Lisboa.</p>" },
+        { key: "title", value: "Anel", updatedAt: "2026-09-10T10:00:00Z", outdated: false },
+        { key: "body_html", value: "<p>Feito em Lisboa.</p>", updatedAt: "2026-09-10T10:02:00Z", outdated: true },
       ] },
     });
 
@@ -85,6 +87,83 @@ describe("Shopify translations", () => {
       descriptionHtml: "<p>Feito em Lisboa.</p>",
       seoTitle: "",
       seoDescription: "",
+      updatedAt: "2026-09-10T10:02:00.000Z",
+      outdated: true,
     });
+    expect(mocks.shopifyAdminRequest.mock.calls[0]?.[0]).toContain("updatedAt outdated");
+  });
+
+  it("applies a remote edit when the local translation is clean", () => {
+    expect(decideProductTranslationPull({
+      local: { title: "Anel antigo", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "SYNCED",
+      localLastSyncedAt: new Date("2026-09-10T09:00:00Z"),
+      remote: {
+        title: "Anel novo", descriptionHtml: "", seoTitle: "", seoDescription: "",
+        updatedAt: "2026-09-10T10:00:00Z", outdated: false,
+      },
+    })).toBe("APPLY_REMOTE");
+  });
+
+  it("reports a conflict when both Shopify and Synarava changed the translation", () => {
+    expect(decideProductTranslationPull({
+      local: { title: "Edição local", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "PENDING",
+      localLastSyncedAt: new Date("2026-09-10T09:00:00Z"),
+      remote: {
+        title: "Edição Shopify", descriptionHtml: "", seoTitle: "", seoDescription: "",
+        updatedAt: "2026-09-10T10:00:00Z", outdated: false,
+      },
+    })).toBe("CONFLICT");
+  });
+
+  it("keeps a newer local edit when Shopify has not changed since the last sync", () => {
+    expect(decideProductTranslationPull({
+      local: { title: "Edição local", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "PENDING",
+      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
+      remote: {
+        title: "Versão sincronizada", descriptionHtml: "", seoTitle: "", seoDescription: "",
+        updatedAt: "2026-09-10T09:59:00Z", outdated: false,
+      },
+    })).toBe("KEEP_LOCAL");
+  });
+
+  it("lets an explicit force pull make Shopify win", () => {
+    expect(decideProductTranslationPull({
+      local: { title: "Edição local", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "PENDING",
+      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
+      remote: null,
+      force: true,
+    })).toBe("APPLY_REMOTE");
+  });
+
+  it("pushes a first local translation when Shopify has no Portuguese copy yet", () => {
+    expect(decideProductTranslationPull({
+      local: { title: "Primeira tradução", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "PENDING",
+      localLastSyncedAt: null,
+      remote: null,
+    })).toBe("KEEP_LOCAL");
+  });
+
+  it("indexes product translations in pages for reconciliation preview", async () => {
+    mocks.shopifyAdminRequest
+      .mockResolvedValueOnce({ translatableResources: {
+        pageInfo: { hasNextPage: true, endCursor: "next" },
+        nodes: [{ resourceId: "gid://shopify/Product/1", translations: [
+          { key: "title", value: "Anel", updatedAt: "2026-09-10T10:00:00Z", outdated: false },
+        ] }],
+      } })
+      .mockResolvedValueOnce({ translatableResources: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [{ resourceId: "gid://shopify/Product/2", translations: [] }],
+      } });
+
+    const translations = await fetchProductTranslationIndex();
+    expect(translations.get("gid://shopify/Product/1")).toMatchObject({ title: "Anel" });
+    expect(translations.get("gid://shopify/Product/2")).toBeNull();
+    expect(mocks.shopifyAdminRequest.mock.calls[1]?.[1]).toEqual({ after: "next" });
   });
 });

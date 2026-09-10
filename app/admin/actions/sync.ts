@@ -7,6 +7,11 @@ import { db } from "@/lib/db";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { hasShopifyAdminConfig, testShopifyAdminConnection } from "@/lib/shopify/admin";
 import {
+  assertShopifyStoreBinding,
+  ensureShopifyStoreBinding,
+  rebindShopifyStore,
+} from "@/lib/shopify/store-binding";
+import {
   ensureProductWebhookSubscriptions,
   inspectProductSyncState,
   previewShopifyReconciliation,
@@ -23,10 +28,17 @@ export type ShopifySyncSelection = {
   localProductIds: string[];
 };
 
+async function assertConfiguredShopifyStore() {
+  const connection = await testShopifyAdminConnection();
+  await assertShopifyStoreBinding(connection.shopDomain);
+  return connection;
+}
+
 export async function reconcileProductsAction() {
   await requireAdminSession("/admin/products");
   if (!isShopifyConfigured()) return { error: "Shopify is not configured." };
   try {
+    await assertConfiguredShopifyStore();
     if (env.NEXT_PUBLIC_APP_URL) {
       await ensureProductWebhookSubscriptions(env.NEXT_PUBLIC_APP_URL);
     }
@@ -67,6 +79,18 @@ export async function testShopifyConnectionAction() {
       };
     }
 
+    const binding = await ensureShopifyStoreBinding(connection.shopDomain);
+    if (binding.status === "MISMATCH") {
+      return {
+        error: `This Synarava catalog is linked to ${binding.boundShopDomain}, while these credentials point to ${binding.currentShopDomain}. Rebind explicitly before syncing.`,
+        connection,
+        storeMismatch: {
+          boundShopDomain: binding.boundShopDomain,
+          currentShopDomain: binding.currentShopDomain,
+        },
+      };
+    }
+
     return {
       success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.`,
       connection,
@@ -83,6 +107,7 @@ export async function previewShopifyReconciliationAction() {
   }
 
   try {
+    await assertConfiguredShopifyStore();
     const preview = await previewShopifyReconciliation();
     return {
       success: `Preview ready: ${preview.remote.length} Shopify products read, ${preview.pushToShopify.length} local products would be pushed, ${preview.archiveLocal.length} local products would be archived.`,
@@ -107,6 +132,7 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
   await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
+    await assertConfiguredShopifyStore();
     const before = await inspectProductSyncState(productId);
     if (!force && (before.state === "REMOTE_CHANGES" || before.state === "CONFLICT")) {
       return { error: "Shopify has newer changes. Review the conflict before pushing.", inspection: before };
@@ -114,7 +140,7 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
     if (before.state === "REMOTE_MISSING") {
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
-    const result = await pushProductToShopify(productId);
+    const result = await pushProductToShopify(productId, force);
     if (!result.ok) return { error: result.error, inspection: before };
     revalidateStorefront();
     revalidatePath("/admin/products");
@@ -136,6 +162,7 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
   await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
+    await assertConfiguredShopifyStore();
     const product = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
     if (!product?.shopifyProductId) return { error: "This product is not linked to Shopify." };
     const before = await inspectProductSyncState(productId);
@@ -145,12 +172,17 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
     if (before.state === "REMOTE_MISSING") {
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
-    await pullShopifyProduct(product.shopifyProductId, undefined, force);
+    const pullResult = await pullShopifyProduct(product.shopifyProductId, undefined, force);
     revalidateStorefront();
     revalidatePath("/admin/products");
     const savedProduct = await getSavedProductPayload(productId);
     return {
-      success: "Latest Shopify commerce data pulled. Synarava CMS content was preserved.",
+      success: pullResult.translationStatus === "CONFLICT"
+        ? "Shopify commerce data pulled. Portuguese has edits on both sides; choose Pull or Push to resolve it."
+        : pullResult.translationStatus === "UNAVAILABLE"
+          ? "Shopify commerce data pulled, but Portuguese could not be read. Check read_translations access."
+          : "Latest Shopify commerce and Portuguese translation data pulled. Synarava-only editorial fields were preserved.",
+      translationWarning: pullResult.translationStatus === "CONFLICT" || pullResult.translationStatus === "UNAVAILABLE",
       product: savedProduct,
       inspection: await inspectProductSyncState(productId),
     };
@@ -169,6 +201,12 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
   const localProductIds = Array.from(new Set(selection.localProductIds)).slice(0, 100);
   if (remoteProductIds.length === 0 && localProductIds.length === 0) {
     return { error: "Select at least one product to synchronize." };
+  }
+
+  try {
+    await assertConfiguredShopifyStore();
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Shopify store binding check failed." };
   }
 
   let pulled = 0;
@@ -192,6 +230,8 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
       const result = await pullShopifyProduct(shopifyProductId);
       if (result.status === "CONFLICT") failures.push(`${shopifyProductId}: commerce conflict needs an explicit decision`);
       else if (result.status === "LOCAL_CHANGES") failures.push(`${shopifyProductId}: saved local commerce changes must be pushed or resolved first`);
+      else if (result.translationStatus === "CONFLICT") failures.push(`${shopifyProductId}: Portuguese changed on both sides; choose Pull or Push`);
+      else if (result.translationStatus === "UNAVAILABLE") failures.push(`${shopifyProductId}: Portuguese could not be read from Shopify`);
       else {
         pulled += 1;
         changedProductIds.add(result.productId);
@@ -234,6 +274,29 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
     products,
     result: { pulled, pushed, failed: failures.length },
   };
+}
+
+export async function rebindShopifyStoreAction(expectedShopDomain: string) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+
+  try {
+    const connection = await testShopifyAdminConnection();
+    if (connection.missingScopes.length > 0) {
+      return { error: `The new Shopify store is missing scopes: ${connection.missingScopes.join(", ")}.` };
+    }
+    if (!connection.portuguesePublished) {
+      return { error: "Enable and publish Portuguese (Portugal, pt-PT) in the new Shopify store before rebinding." };
+    }
+    const result = await rebindShopifyStore(expectedShopDomain, connection.shopDomain);
+    revalidatePath("/admin/products");
+    return {
+      success: `Catalog is ready to link with ${result.shopDomain}. Run Preview sync to match cloned products by SKU or handle before applying changes.`,
+      result,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Shopify store rebind failed." };
+  }
 }
 
 export async function archiveMissingShopifyProductsAction(productIds: string[]) {
