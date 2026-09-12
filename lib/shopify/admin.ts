@@ -172,8 +172,19 @@ const REQUIRED_SYNC_SCOPES = [
   "write_publications",
   "read_translations",
   "write_translations",
-  "read_locales",
 ] as const;
+
+const LOCALE_READ_SCOPES = ["read_locales", "read_markets_home"] as const;
+
+export async function fetchShopifyShopIdentity() {
+  const data = await shopifyAdminRequest<{
+    shop: { name: string; myshopifyDomain: string };
+  }>(`query SynaravaShopIdentity {
+    shop { name myshopifyDomain }
+  }`);
+
+  return data.shop;
+}
 
 export async function testShopifyAdminConnection() {
   const data = await shopifyAdminRequest<{
@@ -182,20 +193,30 @@ export async function testShopifyAdminConnection() {
     locations: { nodes: Array<{ id: string }> };
     publications: { nodes: Array<{ id: string; name: string }> };
     currentAppInstallation: { accessScopes: Array<{ handle: string }> };
-    shopLocales: Array<{ locale: string; name: string; primary: boolean; published: boolean }>;
   }>(`query SynaravaConnectionCheck {
     shop { name myshopifyDomain }
     productsCount(limit: null) { count precision }
     locations(first: 10) { nodes { id } }
     publications(first: 100) { nodes { id name } }
     currentAppInstallation { accessScopes { handle } }
-    shopLocales { locale name primary published }
   }`);
 
   const grantedScopes = data.currentAppInstallation.accessScopes
     .map((scope) => scope.handle)
     .sort();
-  const missingScopes = REQUIRED_SYNC_SCOPES.filter((scope) => !grantedScopes.includes(scope));
+  const missingScopes: string[] = REQUIRED_SYNC_SCOPES.filter(
+    (scope) => !grantedScopes.includes(scope),
+  );
+  const canReadLocales = LOCALE_READ_SCOPES.some((scope) => grantedScopes.includes(scope));
+  if (!canReadLocales) missingScopes.push("read_locales or read_markets_home");
+
+  const locales = canReadLocales
+    ? (await shopifyAdminRequest<{
+        shopLocales: Array<{ locale: string; name: string; primary: boolean; published: boolean }>;
+      }>(`query SynaravaShopLocales {
+        shopLocales { locale name primary published }
+      }`)).shopLocales ?? []
+    : [];
 
   return {
     shopName: data.shop.name,
@@ -206,8 +227,8 @@ export async function testShopifyAdminConnection() {
     publications: data.publications.nodes,
     grantedScopes,
     missingScopes,
-    locales: data.shopLocales ?? [],
-    portuguesePublished: (data.shopLocales ?? []).some(
+    locales,
+    portuguesePublished: locales.some(
       (locale) => locale.locale.toLowerCase() === SHOPIFY_PORTUGUESE_ADMIN_LOCALE.toLowerCase() && locale.published,
     ),
   };

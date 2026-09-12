@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { isShopifyConfigured } from "@/lib/shopify/config";
-import { hasShopifyAdminConfig, testShopifyAdminConnection } from "@/lib/shopify/admin";
+import {
+  fetchShopifyShopIdentity,
+  hasShopifyAdminConfig,
+  testShopifyAdminConnection,
+} from "@/lib/shopify/admin";
 import {
   assertShopifyStoreBinding,
   ensureShopifyStoreBinding,
@@ -29,9 +33,9 @@ export type ShopifySyncSelection = {
 };
 
 async function assertConfiguredShopifyStore() {
-  const connection = await testShopifyAdminConnection();
-  await assertShopifyStoreBinding(connection.shopDomain);
-  return connection;
+  const shop = await fetchShopifyShopIdentity();
+  await assertShopifyStoreBinding(shop.myshopifyDomain);
+  return shop;
 }
 
 export async function reconcileProductsAction() {
