@@ -37,6 +37,7 @@ export type ProductActionState = {
   error?: string;
   fieldErrors?: ProductFieldErrors;
   success?: string;
+  warning?: string;
   product?: SavedProductPayload;
   deletedProductId?: string;
   created?: boolean;
@@ -479,6 +480,26 @@ async function syncDepartmentCollectionMembership(productId: string, departmentS
   }
 }
 
+/**
+ * Publishing never blocks on incomplete content — the storefront already
+ * falls back gracefully (resolveLocalizedContent uses English when a
+ * Portuguese field is blank; storefrontMedia substitutes a placeholder
+ * image). This turns `missingTranslations`/a missing photo into a plain-
+ * language heads-up instead, so the admin knows what a visitor will see.
+ */
+function publishGapsNotice({ missingTranslations, missingImage }: { missingTranslations: string[]; missingImage: boolean }): string | undefined {
+  const notes: string[] = [];
+  if (missingTranslations.length) {
+    notes.push(
+      `Missing ${missingTranslations.join(", ")}. Portuguese gaps show the English text as a fallback; English gaps appear blank until filled in.`,
+    );
+  }
+  if (missingImage) {
+    notes.push("No photo yet — the storefront will show a placeholder image until one is uploaded.");
+  }
+  return notes.length ? notes.join(" ") : undefined;
+}
+
 function productConflictState(field: "slug" | "sku"): ProductActionState {
   return field === "slug"
     ? {
@@ -554,20 +575,17 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
   const isPublished = workflowState === "PUBLISHED";
   const isUnlisted = workflowState === "UNLISTED";
-  if (isPublished || isUnlisted) {
-    const missingTranslations = validateProductPublication({
-      isAlreadyPublic: Boolean(
-        (before?.visibility === "PUBLIC" || before?.visibility === "UNLISTED")
-        && !before.translations.some((translation) => translation.locale === "PT"),
-      ),
-      english: { title: name, shortDescription, description },
-      portuguese: { title: ptTitle, shortDescription: ptShortDescription, description: ptDescription },
-      portugueseReviewed: parsed.data.ptReviewed === "on",
-    });
-    if (missingTranslations.length) {
-      return { error: `Complete translations before publishing: ${missingTranslations.join(", ")}.` };
-    }
-  }
+  const missingTranslations = (isPublished || isUnlisted)
+    ? validateProductPublication({
+        isAlreadyPublic: Boolean(
+          (before?.visibility === "PUBLIC" || before?.visibility === "UNLISTED")
+          && !before.translations.some((translation) => translation.locale === "PT"),
+        ),
+        english: { title: name, shortDescription, description },
+        portuguese: { title: ptTitle, shortDescription: ptShortDescription, description: ptDescription },
+        portugueseReviewed: parsed.data.ptReviewed === "on",
+      })
+    : [];
 
   let imageUrl = existingImageUrl || null;
   let uploadedAssetId: string | null = null;
@@ -671,9 +689,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     ? await db.collection.findUnique({ where: { slug: collectionSlug }, select: { id: true } })
     : null;
 
-  if ((isPublished || isUnlisted) && !imageUrl) {
-    return { error: "Product image is required before publishing." };
-  }
+  const missingImage = (isPublished || isUnlisted) && !imageUrl;
+  const publishWarning = publishGapsNotice({ missingTranslations, missingImage });
 
   const wasCreate = !productId;
   const productData = {
@@ -919,6 +936,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     success: commerceChanged
       ? `${wasCreate ? "Product created" : "Product saved"} locally. Commerce changes are ready to push.`
       : `${wasCreate ? "Product created" : "Product saved"} locally. Shopify commerce data is unchanged.`,
+    warning: publishWarning,
     created: wasCreate,
     product: savedProduct,
   };
@@ -1174,12 +1192,11 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
   }
 
   const before = await getSavedProductPayload(productId).catch(() => null);
-  if (action === "publish" && !before?.imageUrl) {
-    return { error: "Product image is required before publishing." };
-  }
+  const missingImage = action === "publish" && !before?.imageUrl;
+  let missingTranslations: string[] = [];
   if (action === "publish" && before) {
     const portuguese = before.translations.find((translation) => translation.locale === "PT");
-    const blockers = validateProductPublication({
+    missingTranslations = validateProductPublication({
       isAlreadyPublic: false,
       english: {
         title: before.name,
@@ -1193,10 +1210,8 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
       },
       portugueseReviewed: portuguese?.reviewStatus === "REVIEWED",
     });
-    if (blockers.length > 0) {
-      return { error: `Complete translations before publishing: ${blockers.join(", ")}.` };
-    }
   }
+  const publishWarning = publishGapsNotice({ missingTranslations, missingImage });
 
   const product = await db.product.update({
     where: { id: productId },
@@ -1226,6 +1241,7 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
 
   return {
     success: `Product moved to ${product.status.toLowerCase()} locally. Commerce status is ready to push.`,
+    warning: publishWarning,
     product: savedProduct,
   };
 }

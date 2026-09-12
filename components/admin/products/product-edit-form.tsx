@@ -87,6 +87,7 @@ export function EditProductForm({
         setConfirmOpen(false);
         validation.showFieldErrors(result.fieldErrors ?? {});
         if (result.success) pushToast({ message: result.success, tone: "success" });
+        if (result.warning) pushToast({ message: result.warning, tone: "info" });
         if (result.product) {
           setIsDirty(false);
           setInspection(result.product.shopifyProductId
@@ -130,7 +131,7 @@ export function EditProductForm({
       const result = await pushSingleProductToShopifyAction(currentProduct.id, force);
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.translationWarning) pushToast({ message: result.translationWarning, tone: "error" });
+      if (result.translationWarning) pushToast({ message: result.translationWarning, tone: "info" });
       if (result.inspection) setInspection(result.inspection);
       if (result.product) {
         setState({ success: result.success, product: result.product });

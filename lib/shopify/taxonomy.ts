@@ -56,18 +56,20 @@ export type ShopifyTaxonomyCategoryAttribute = {
 
 const taxonomyAttributeValueSchema = z.object({ id: z.string(), name: z.string() });
 
+// The bare `TaxonomyAttribute` variant (attributes with neither a choice
+// list nor a measurement unit) only exposes `id` in Shopify's schema — no
+// `name`. Those carry nothing worth showing here, so `name` stays optional
+// and such nodes are filtered out below instead of failing validation.
 const taxonomyAttributeNodeSchema = z.object({
   id: z.string(),
-  name: z.string(),
+  name: z.string().optional(),
   values: z.object({ nodes: z.array(taxonomyAttributeValueSchema) }).optional(),
 });
 
 const taxonomyAttributesResponseSchema = z.object({
-  taxonomy: z.object({
-    category: z.object({
-      attributes: z.object({ nodes: z.array(taxonomyAttributeNodeSchema) }),
-    }).nullable(),
-  }),
+  node: z.object({
+    attributes: z.object({ nodes: z.array(taxonomyAttributeNodeSchema) }),
+  }).nullable(),
 });
 
 /**
@@ -87,11 +89,11 @@ export async function getShopifyCategoryAttributes(categoryId: string): Promise<
 
   const data = await shopifyAdminRequest<unknown>(
     `query SynaravaTaxonomyCategoryAttributes($id: ID!) {
-      taxonomy {
-        category(id: $id) {
+      node(id: $id) {
+        ... on TaxonomyCategory {
           attributes(first: 100) {
             nodes {
-              ... on TaxonomyAttribute { id name }
+              ... on TaxonomyAttribute { id }
               ... on TaxonomyChoiceListAttribute {
                 id
                 name
@@ -111,12 +113,14 @@ export async function getShopifyCategoryAttributes(categoryId: string): Promise<
     throw new ShopifyAdminError("Shopify returned an invalid taxonomy attributes response.");
   }
 
-  const category = parsed.data.taxonomy.category;
+  const category = parsed.data.node;
   if (!category) return [];
 
-  return category.attributes.nodes.map((attribute) => ({
-    id: attribute.id,
-    name: attribute.name,
-    values: attribute.values?.nodes.map((value) => value.name) ?? [],
-  }));
+  return category.attributes.nodes
+    .filter((attribute) => Boolean(attribute.name))
+    .map((attribute) => ({
+      id: attribute.id,
+      name: attribute.name as string,
+      values: attribute.values?.nodes.map((value) => value.name) ?? [],
+    }));
 }

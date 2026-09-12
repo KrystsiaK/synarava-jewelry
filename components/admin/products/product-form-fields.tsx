@@ -415,22 +415,23 @@ export function ProductFormFields({
             </span>
           </div>
           <p className="mt-2 text-xs text-[var(--adm-muted)]">
-            Title, short description, and description are required before a new product can be published.
+            Optional — publishing never blocks on this. Whatever is left blank here shows the English text
+            to Portuguese visitors instead, until it&apos;s filled in.
           </p>
           {draft.pt.syncError ? (
             <p className="mt-2 text-xs text-[var(--adm-danger)]">{draft.pt.syncError}</p>
           ) : null}
         </div>
         <label className="grid gap-2">
-          <span className="adm-label">Product name (PT) *</span>
+          <span className="adm-label">Product name (PT)</span>
           <input name="ptTitle" defaultValue={draft.pt.title} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="adm-label">Short description (PT) *</span>
+          <span className="adm-label">Short description (PT)</span>
           <textarea name="ptShortDescription" rows={3} defaultValue={draft.pt.shortDescription} className="adm-field" />
         </label>
         <label className="grid gap-2">
-          <span className="adm-label">Description (PT) *</span>
+          <span className="adm-label">Description (PT)</span>
           <textarea name="ptDescription" rows={4} defaultValue={draft.pt.description} className="adm-field" />
         </label>
         <label className="grid gap-2">

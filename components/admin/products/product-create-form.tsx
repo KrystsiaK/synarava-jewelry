@@ -82,6 +82,7 @@ export function CreateProductForm({
         setConfirmOpen(false);
         validation.showFieldErrors(result.fieldErrors ?? {});
         if (result.success) pushToast({ message: result.success, tone: "success" });
+        if (result.warning) pushToast({ message: result.warning, tone: "info" });
         if (result.syncWarning) pushToast({ message: `Saved locally. Sync failed: ${result.syncWarning}`, tone: "error" });
 
         if (result.product) {

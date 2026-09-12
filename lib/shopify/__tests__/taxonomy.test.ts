@@ -64,18 +64,17 @@ describe("searchShopifyTaxonomyCategories", () => {
 describe("getShopifyCategoryAttributes", () => {
   it("flattens choice-list attribute values to plain names", async () => {
     mocks.shopifyAdminRequest.mockResolvedValue({
-      taxonomy: {
-        category: {
-          attributes: {
-            nodes: [
-              {
-                id: "gid://shopify/TaxonomyAttribute/1",
-                name: "Material",
-                values: { nodes: [{ id: "gid://shopify/TaxonomyValue/1", name: "Gold" }, { id: "gid://shopify/TaxonomyValue/2", name: "Silver" }] },
-              },
-              { id: "gid://shopify/TaxonomyAttribute/2", name: "Weight" },
-            ],
-          },
+      node: {
+        attributes: {
+          nodes: [
+            {
+              id: "gid://shopify/TaxonomyAttribute/1",
+              name: "Material",
+              values: { nodes: [{ id: "gid://shopify/TaxonomyValue/1", name: "Gold" }, { id: "gid://shopify/TaxonomyValue/2", name: "Silver" }] },
+            },
+            { id: "gid://shopify/TaxonomyAttribute/2", name: "Weight" },
+            { id: "gid://shopify/TaxonomyAttribute/3" },
+          ],
         },
       },
     });
@@ -84,10 +83,15 @@ describe("getShopifyCategoryAttributes", () => {
       { id: "gid://shopify/TaxonomyAttribute/1", name: "Material", values: ["Gold", "Silver"] },
       { id: "gid://shopify/TaxonomyAttribute/2", name: "Weight", values: [] },
     ]);
+
+    expect(mocks.shopifyAdminRequest).toHaveBeenCalledWith(
+      expect.stringContaining("node(id: $id)"),
+      { id: "gid://shopify/TaxonomyCategory/aa-1" },
+    );
   });
 
   it("returns an empty list when Shopify has no category for the id", async () => {
-    mocks.shopifyAdminRequest.mockResolvedValue({ taxonomy: { category: null } });
+    mocks.shopifyAdminRequest.mockResolvedValue({ node: null });
     await expect(getShopifyCategoryAttributes("gid://shopify/TaxonomyCategory/missing")).resolves.toEqual([]);
   });
 
@@ -97,7 +101,7 @@ describe("getShopifyCategoryAttributes", () => {
   });
 
   it("rejects malformed attribute responses instead of trusting external data", async () => {
-    mocks.shopifyAdminRequest.mockResolvedValue({ taxonomy: { category: { attributes: { nodes: [{ name: "Material" }] } } } });
+    mocks.shopifyAdminRequest.mockResolvedValue({ node: { attributes: { nodes: [{}] } } });
     await expect(getShopifyCategoryAttributes("gid://shopify/TaxonomyCategory/aa-1")).rejects.toThrow(
       "Shopify returned an invalid taxonomy attributes response",
     );

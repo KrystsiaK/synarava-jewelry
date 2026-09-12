@@ -63,7 +63,7 @@ describe("CreateProductForm", () => {
     await user.click(screen.getByRole("tab", { name: "Português" }));
 
     expect(screen.getByRole("tab", { name: "Português" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByLabelText("Product name (PT) *")).toBeInTheDocument();
+    expect(screen.getByLabelText("Product name (PT)")).toBeInTheDocument();
     expect(screen.getByLabelText("Portuguese translation reviewed")).toBeInTheDocument();
   });
 

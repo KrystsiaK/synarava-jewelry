@@ -107,6 +107,7 @@ export function ProductsCms({
         setRowActionState(result);
         if (result.error) pushToast({ message: result.error, tone: "error" });
         if (result.success) pushToast({ message: result.success, tone: "success" });
+        if (result.warning) pushToast({ message: result.warning, tone: "info" });
         if (result.product) {
           handleUpdated(result.product);
         }
