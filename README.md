@@ -147,6 +147,9 @@ Production deployment is defined in `railway.json`:
   backfill (`pnpm catalog:backfill-departments`)
 - start: `pnpm start`
 - healthcheck: `/api/health`
+- Next.js deployment skew protection uses Railway's commit SHA (falling back to
+  the Railway deployment ID), so tabs left open across a release reload before
+  invoking obsolete Server Actions.
 
 Use `package.json` `version` as the release marker. Bump it before deploying a meaningful production release.
 GitHub CI checks that this value is valid semver and that release tags match `vX.Y.Z`.

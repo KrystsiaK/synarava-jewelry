@@ -2,7 +2,7 @@
 
 Source of truth for `/admin/**` test coverage. Derived from reading the
 implementation (`app/admin/**`, `components/admin/**`, `lib/auth/**`,
-`lib/media/**`, `lib/admin/issues.ts`) as of 2026-09-08, after the
+`lib/media/**`, `lib/admin/issues.ts`) as of 2026-09-12, after the
 Shopify-alignment work and the god-file split (Phases 1–3 of
 `docs/history/admin-shopify-refactor-2026-09.md`).
 
@@ -27,8 +27,9 @@ seconds per run plus a flake surface.
 | `render` | Component renders / wires its action correctly | `components/admin/**/__tests__/*` |
 | `✔` | **Already covered** — do not re-implement, see Notes | — |
 
-`✔` matters: as of this revision **21 catalog cases are already green** in
-Vitest or `admin-auth.spec.ts`. Most of section 1 is in that bucket.
+`✔` matters: already-covered cases should not be reimplemented in another
+layer without a distinct browser or integration outcome. Most of section 1 is
+already covered.
 
 ### Conventions
 
@@ -49,7 +50,7 @@ cases that need a real browser remain as e2e work.
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
 | AUTH-01 | Guest visiting `/admin` redirects to `/admin/login?redirectTo=%2Fadmin` | positive | P1 | ✔ E2E | `admin-auth.spec.ts`. |
-| AUTH-02 | Guest visiting **any** nested admin route redirects with the right `redirectTo` | positive | P1 | **E2E** | Loop a route table: `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/issues`, `/admin/account`. The guard is `requireAdminSession` in the layout, not middleware — it is per-page, so verify per-route. |
+| AUTH-02 | Guest visiting **any** nested admin route redirects with the right `redirectTo` | positive | P1 | **E2E** | Loop a route table: `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/issues`, `/admin/account`. `proxy.ts` performs the fast cookie guard and the layout validates the database-backed session. |
 | AUTH-03 | Valid credentials land on `/admin` | positive | P1 | ✔ E2E | `admin-auth.spec.ts`. |
 | AUTH-04 | Wrong password shows "Incorrect admin credentials.", no session | negative | P1 | ✔ action | `login/__tests__/actions.test.ts` + `admin-session.test.ts`. |
 | AUTH-05 | Wrong username gives the *same* generic error (no enumeration) | negative | P2 | ✔ action | Same files; assertion is that both paths return one message. |
@@ -67,8 +68,10 @@ cases that need a real browser remain as e2e work.
 | AUTH-17 | Session cookie is `httpOnly` (and `Secure` in prod config) | security | P3 | **E2E** | Flag assertion from `context.cookies()`. |
 | AUTH-18 | Unconfigured `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` blocks all logins | negative | P3 | ✔ action | `actions.test.ts` "returns a configuration error". |
 | AUTH-19 | Expired session (>8 h) behaves like a guest | negative | P2 | **action** | Manipulate `expiresAt`; not worth a browser. |
+| AUTH-20 | A Server Action from a tab whose admin cookie expired navigates to login without replaying the POST there | negative | P1 | ✔ unit + **E2E** | `__tests__/proxy.test.ts` covers the action-redirect protocol. Browser coverage should clear cookies on an open product editor and click `Refresh from Shopify`; no React error boundary should appear. |
 
-**E2E work in this section: 6 cases** (AUTH-02, 06, 10, 14, 16, 17).
+Browser coverage is still required for every case marked **E2E**, including the
+long-lived-tab recovery path in AUTH-20.
 
 ## 2. Studio shell / layout (`e2e/admin-layout.spec.ts`)
 
@@ -78,7 +81,7 @@ cases that need a real browser remain as e2e work.
 | UI-02 | Topbar stays pinned while the page scrolls | positive | P3 | ✔ E2E | Same. |
 | UI-03 | No horizontal overflow on `/admin/products` at 778px | positive | P3 | ✔ E2E | Same. |
 | UI-04 | Open-issue counter shows when `AdminIssue` rows are `OPEN` and links correctly | positive | P2 | **E2E** | Seed an open issue, assert badge count and `href`. |
-| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Home, About, Pages, Videos, Catalog, Problems, Collections, Account` (`admin-primitives.tsx`). |
+| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Home, About, Pages, Posts, Videos, Catalog, Problems, Collections, Account` (`admin-primitives.tsx`). |
 | UI-06 | Theme toggle switches and persists across navigation | positive | P3 | **E2E** | |
 | UI-07 | Dashboard tiles reflect actual counts | positive | P2 | **E2E** | **There are exactly three tiles: Pages, Products, Collections.** Categories/Tags tiles were removed with those sections. Status row also shows Products live/draft, Collections live, active locale (`EN`). |
 

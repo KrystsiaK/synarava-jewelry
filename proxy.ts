@@ -117,7 +117,23 @@ export async function proxy(request: NextRequest) {
     if (!isLogin && !(await validAdminCookie(request.cookies.get(ADMIN_COOKIE)?.value))) {
       const login = new URL("/admin/login", request.url);
       login.searchParams.set("redirectTo", `${pathname}${request.nextUrl.search}`);
-      return NextResponse.redirect(login);
+      if (request.method === "POST" && request.headers.has("next-action")) {
+        // A normal 307 preserves the Server Action POST and sends it to the
+        // login page. The action client then receives HTML/404 instead of an
+        // RSC redirect, which crashes long-lived admin tabs when their session
+        // expires. Speak the Server Action redirect protocol directly so the
+        // router performs a fresh navigation to login.
+        return new NextResponse(null, {
+          status: 200,
+          headers: {
+            "cache-control": "no-store",
+            "content-type": "text/plain; charset=utf-8",
+            "x-action-redirect": `${login.pathname}${login.search};replace`,
+          },
+        });
+      }
+      const navigationStatus = request.method === "GET" || request.method === "HEAD" ? 307 : 303;
+      return NextResponse.redirect(login, navigationStatus);
     }
   }
 

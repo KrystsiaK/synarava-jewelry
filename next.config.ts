@@ -42,6 +42,13 @@ const s3SignedBucketHostname =
     : null;
 
 const nextConfig: NextConfig = {
+  // Tie browser assets and Server Action references to the build that created
+  // them. Next.js can then hard-navigate a long-lived tab after a Railway
+  // deployment instead of mixing old client code with new action IDs.
+  deploymentId:
+    process.env.RAILWAY_GIT_COMMIT_SHA ||
+    process.env.RAILWAY_DEPLOYMENT_ID ||
+    undefined,
   experimental: {
     serverActions: {
       // Admin image uploads are capped at 10 MB; leave only multipart overhead.

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-import { proxy } from "../proxy";
+import { proxy } from "@/proxy";
 
 describe("storefront Content Security Policy", () => {
   afterEach(() => {
@@ -39,5 +39,30 @@ describe("storefront Content Security Policy", () => {
     expect(csp).toContain("https://www.google-analytics.com");
     expect(csp).toContain("https://www.facebook.com");
     expect(imageDirective).toContain("https://www.googletagmanager.com");
+  });
+});
+
+describe("admin session proxy", () => {
+  it("turns an unauthenticated admin action into a client-side login redirect", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/admin/products/product-1", {
+      method: "POST",
+      headers: { "next-action": "stale-action-id" },
+    }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-action-redirect")).toBe(
+      "/admin/login?redirectTo=%2Fadmin%2Fproducts%2Fproduct-1;replace",
+    );
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("keeps a temporary redirect for an unauthenticated page request", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/admin/products"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://synarava.test/admin/login?redirectTo=%2Fadmin%2Fproducts",
+    );
   });
 });
