@@ -32,6 +32,8 @@ import { env } from "@/lib/env";
 import { getS3, getS3Bucket } from "@/lib/s3";
 import {
   matchReadyShopifyMedia,
+  SHOPIFY_PRODUCT_MEDIA_FRAGMENT,
+  shopifyMediaFilename,
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
@@ -63,7 +65,7 @@ type ShopifyProduct = {
     alt: string | null;
     mediaContentType: string;
     status: string;
-    filename?: string | null;
+    originalSource?: { url: string | null } | null;
     preview: { image: { url: string; width: number | null; height: number | null } | null } | null;
     image?: { url: string; width: number | null; height: number | null } | null;
   }> };
@@ -118,12 +120,7 @@ const PRODUCT_FIELDS = `
   id title handle descriptionHtml vendor productType tags status updatedAt totalInventory
   category { id name fullName }
   seo { title description }
-  media(first: 250) {
-    nodes {
-      id alt mediaContentType status preview { image { url width height } }
-      ... on MediaImage { filename image { url width height } }
-    }
-  }
+  ${SHOPIFY_PRODUCT_MEDIA_FRAGMENT}
   options { id name position values }
   collections(first: 100) {
     nodes {
@@ -354,7 +351,10 @@ type StagedUploadTarget = {
 function shopifyMediaStates(product: ShopifyProduct) {
   return product.media.nodes.map((item) => ({
     id: item.id,
-    filename: item.filename ?? null,
+    filename: shopifyMediaFilename({
+      originalSourceUrl: item.originalSource?.url,
+      imageUrl: item.image?.url ?? item.preview?.image?.url,
+    }),
     status: item.status,
     imageUrl: item.image?.url ?? item.preview?.image?.url ?? null,
   }));
@@ -1117,9 +1117,15 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       left.assetId === product.primaryAssetId ? -1 : right.assetId === product.primaryAssetId ? 1 : 0,
     );
     const remoteByFilename = new Map(
-      (currentRemote?.media.nodes ?? []).flatMap((item) =>
-        item.filename && item.status !== "FAILED" ? [[item.filename, item] as const] : [],
-      ),
+      (currentRemote?.media.nodes ?? []).flatMap((item) => {
+        const filename = shopifyMediaFilename({
+          originalSourceUrl: item.originalSource?.url,
+          imageUrl: item.image?.url ?? item.preview?.image?.url,
+        });
+        return filename && item.status !== "FAILED"
+          ? [[filename, item] as const]
+          : [];
+      }),
     );
     const assetsToStage = localAssets.filter((asset) => !remoteByFilename.has(asset.filename));
     const stagedUrls = await uploadAssetsToShopifyStaging(assetsToStage);

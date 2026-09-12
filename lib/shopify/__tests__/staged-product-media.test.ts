@@ -1,6 +1,36 @@
 import { describe, expect, it } from "vitest";
 
-import { matchReadyShopifyMedia } from "@/lib/shopify/staged-product-media";
+import {
+  matchReadyShopifyMedia,
+  SHOPIFY_PRODUCT_MEDIA_FRAGMENT,
+  shopifyMediaFilename,
+} from "@/lib/shopify/staged-product-media";
+
+describe("shopifyMediaFilename", () => {
+  it("uses only fields supported by Shopify MediaImage in the product query", () => {
+    expect(SHOPIFY_PRODUCT_MEDIA_FRAGMENT).toContain("originalSource { url }");
+    expect(SHOPIFY_PRODUCT_MEDIA_FRAGMENT).not.toMatch(/\bfilename\b/);
+  });
+
+  it("derives the uploaded filename from Shopify's supported originalSource URL", () => {
+    expect(shopifyMediaFilename({
+      originalSourceUrl: "https://cdn.shopify.com/s/files/1/0001/files/front-uuid.webp?v=123",
+      imageUrl: "https://cdn.shopify.com/s/files/1/0001/products/front_2048x.webp?v=123",
+    })).toBe("front-uuid.webp");
+  });
+
+  it("falls back to the processed image URL and decodes escaped filenames", () => {
+    expect(shopifyMediaFilename({
+      originalSourceUrl: null,
+      imageUrl: "https://cdn.shopify.com/s/files/1/0001/files/detail%20view.webp?v=123",
+    })).toBe("detail view.webp");
+  });
+
+  it("returns null for missing or malformed URLs", () => {
+    expect(shopifyMediaFilename({ originalSourceUrl: null, imageUrl: null })).toBeNull();
+    expect(shopifyMediaFilename({ originalSourceUrl: "not a url", imageUrl: null })).toBeNull();
+  });
+});
 
 describe("matchReadyShopifyMedia", () => {
   const staged = [

@@ -4,6 +4,17 @@ export type StagedProductMedia = {
   key: string;
 };
 
+// Shopify Admin GraphQL 2026-07: MediaImage has originalSource, not filename.
+// https://shopify.dev/docs/api/admin-graphql/latest/objects/mediaimage
+export const SHOPIFY_PRODUCT_MEDIA_FRAGMENT = `
+  media(first: 250) {
+    nodes {
+      id alt mediaContentType status preview { image { url width height } }
+      ... on MediaImage { originalSource { url } image { url width height } }
+    }
+  }
+`;
+
 export type ShopifyMediaState = {
   id: string;
   filename: string | null;
@@ -15,6 +26,25 @@ export type ReadyStagedProductMedia = StagedProductMedia & {
   shopifyMediaId: string;
   shopifyUrl: string;
 };
+
+export function shopifyMediaFilename({
+  originalSourceUrl,
+  imageUrl,
+}: {
+  originalSourceUrl: string | null | undefined;
+  imageUrl: string | null | undefined;
+}) {
+  for (const candidate of [originalSourceUrl, imageUrl]) {
+    if (!candidate) continue;
+    try {
+      const filename = new URL(candidate).pathname.split("/").pop();
+      if (filename) return decodeURIComponent(filename);
+    } catch {
+      // Try the next supported Shopify URL projection.
+    }
+  }
+  return null;
+}
 
 /**
  * A local object is disposable only after the matching Shopify file is READY.
