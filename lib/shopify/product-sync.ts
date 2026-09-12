@@ -1546,7 +1546,9 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
     cursor = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;
   } while (cursor);
 
-  const portugueseByProductId = await fetchProductTranslationIndex();
+  // Missing read_translations access must not make the whole reconciliation
+  // preview fail; see the same tolerance in savePulledProduct below.
+  const portugueseByProductId = await fetchProductTranslationIndex().catch(() => new Map());
 
   const localProducts = await db.product.findMany({
     select: {
