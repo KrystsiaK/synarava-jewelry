@@ -76,12 +76,6 @@ export async function testShopifyConnectionAction() {
         connection,
       };
     }
-    if (!connection.portuguesePublished) {
-      return {
-        error: `Connected to ${connection.shopName}, but Portuguese (Portugal, pt-PT) is not enabled and published in Shopify Markets.`,
-        connection,
-      };
-    }
 
     const binding = await ensureShopifyStoreBinding(connection.shopDomain);
     if (binding.status === "MISMATCH") {
@@ -95,8 +89,14 @@ export async function testShopifyConnectionAction() {
       };
     }
 
+    const translationNotice = connection.missingTranslationScopes.length > 0
+      ? ` Portuguese translation sync is unavailable: missing ${connection.missingTranslationScopes.join(", ")}.`
+      : !connection.portuguesePublished
+        ? " Portuguese (Portugal, pt-PT) is not enabled/published in Shopify Markets; translation sync will be skipped."
+        : "";
+
     return {
-      success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.`,
+      success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.${translationNotice}`,
       connection,
     };
   } catch (error) {
@@ -289,13 +289,15 @@ export async function rebindShopifyStoreAction(expectedShopDomain: string) {
     if (connection.missingScopes.length > 0) {
       return { error: `The new Shopify store is missing scopes: ${connection.missingScopes.join(", ")}.` };
     }
-    if (!connection.portuguesePublished) {
-      return { error: "Enable and publish Portuguese (Portugal, pt-PT) in the new Shopify store before rebinding." };
-    }
     const result = await rebindShopifyStore(expectedShopDomain, connection.shopDomain);
     revalidatePath("/admin/products");
+    const translationNotice = connection.missingTranslationScopes.length > 0
+      ? ` Portuguese translation sync is unavailable: missing ${connection.missingTranslationScopes.join(", ")}.`
+      : !connection.portuguesePublished
+        ? " Portuguese (Portugal, pt-PT) is not enabled/published in Shopify Markets; translation sync will be skipped."
+        : "";
     return {
-      success: `Catalog is ready to link with ${result.shopDomain}. Run Preview sync to match cloned products by SKU or handle before applying changes.`,
+      success: `Catalog is ready to link with ${result.shopDomain}. Run Preview sync to match cloned products by SKU or handle before applying changes.${translationNotice}`,
       result,
     };
   } catch (error) {

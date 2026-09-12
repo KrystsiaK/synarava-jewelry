@@ -144,7 +144,34 @@ describe("Shopify Admin authentication", () => {
     const connection = await testShopifyAdminConnection();
 
     expect(connection.missingScopes).toEqual([]);
+    expect(connection.missingTranslationScopes).toEqual([]);
     expect(connection.portuguesePublished).toBe(true);
+  });
+
+  it("keeps translation scopes out of the blocking missingScopes list", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: {
+        shop: { name: "Synarava", myshopifyDomain: "synarava.myshopify.com" },
+        productsCount: { count: 4, precision: "EXACT" },
+        locations: { nodes: [] },
+        publications: { nodes: [] },
+        currentAppInstallation: { accessScopes: [
+          "write_products", "write_inventory", "write_publications",
+        ].map((handle) => ({ handle })) },
+      } }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+
+    const { testShopifyAdminConnection } = await import("@/lib/shopify/admin");
+    const connection = await testShopifyAdminConnection();
+
+    expect(connection.missingScopes).toEqual([]);
+    expect(connection.missingTranslationScopes).toEqual([
+      "read_translations", "write_translations", "read_locales or read_markets_home",
+    ]);
+    expect(connection.portuguesePublished).toBe(false);
   });
 
   it("reports missing locale access without querying the protected shopLocales field", async () => {
@@ -169,7 +196,8 @@ describe("Shopify Admin authentication", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const request = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as { query: string };
     expect(request.query).not.toContain("shopLocales");
-    expect(connection.missingScopes).toContain("read_locales or read_markets_home");
+    expect(connection.missingScopes).toEqual([]);
+    expect(connection.missingTranslationScopes).toContain("read_locales or read_markets_home");
     expect(connection.locales).toEqual([]);
     expect(connection.portuguesePublished).toBe(false);
   });

@@ -170,10 +170,9 @@ const REQUIRED_SYNC_SCOPES = [
   "write_products",
   "write_inventory",
   "write_publications",
-  "read_translations",
-  "write_translations",
 ] as const;
 
+const TRANSLATION_SCOPES = ["read_translations", "write_translations"] as const;
 const LOCALE_READ_SCOPES = ["read_locales", "read_markets_home"] as const;
 
 export async function fetchShopifyShopIdentity() {
@@ -208,7 +207,10 @@ export async function testShopifyAdminConnection() {
     (scope) => !grantedScopes.includes(scope),
   );
   const canReadLocales = LOCALE_READ_SCOPES.some((scope) => grantedScopes.includes(scope));
-  if (!canReadLocales) missingScopes.push("read_locales or read_markets_home");
+  const missingTranslationScopes: string[] = TRANSLATION_SCOPES.filter(
+    (scope) => !grantedScopes.includes(scope),
+  );
+  if (!canReadLocales) missingTranslationScopes.push("read_locales or read_markets_home");
 
   const locales = canReadLocales
     ? (await shopifyAdminRequest<{
@@ -227,6 +229,7 @@ export async function testShopifyAdminConnection() {
     publications: data.publications.nodes,
     grantedScopes,
     missingScopes,
+    missingTranslationScopes,
     locales,
     portuguesePublished: locales.some(
       (locale) => locale.locale.toLowerCase() === SHOPIFY_PORTUGUESE_ADMIN_LOCALE.toLowerCase() && locale.published,
