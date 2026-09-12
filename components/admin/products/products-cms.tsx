@@ -165,6 +165,7 @@ export function ProductsCms({
       const result = await syncShopifySelectionAction({ remoteProductIds, localProductIds });
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.warning) pushToast({ message: result.warning, tone: "info" });
       if (result.preview) setSyncPreview(result.preview);
       if (result.products?.length) {
         setProducts((current) => {

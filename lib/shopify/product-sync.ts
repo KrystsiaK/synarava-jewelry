@@ -1449,7 +1449,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
  * products would move which way before committing to this.
  */
 export async function reconcileShopifyProducts() {
-  const results = { pulled: 0, pushed: 0, archived: 0, conflicts: 0, failed: 0 };
+  const results = { pulled: 0, pushed: 0, archived: 0, conflicts: 0, failed: 0, translationGaps: 0 };
   const seenRemoteIds = new Set<string>();
   let cursor: string | null = null;
   do {
@@ -1467,8 +1467,12 @@ export async function reconcileShopifyProducts() {
       const event = await db.productSyncEvent.create({ data: { shopifyProductId: remote.id, direction: "RECONCILE", status: "PROCESSING", attemptCount: 1 } });
       try {
         const result = await savePulledProduct(remote, event.id);
-        if (result.status === "CONFLICT" || result.translationStatus === "CONFLICT") results.conflicts += 1;
-        else if (result.translationStatus === "UNAVAILABLE") results.failed += 1;
+        // Portuguese being unreadable (missing read_translations scope) or in
+        // conflict never blocks the commerce pull that already succeeded here
+        // — the storefront falls back to English either way. Both are
+        // tallied for visibility, not as sync failures.
+        if (result.translationStatus === "CONFLICT" || result.translationStatus === "UNAVAILABLE") results.translationGaps += 1;
+        if (result.status === "CONFLICT") results.conflicts += 1;
         else if (result.status === "SYNCED") results.pulled += 1;
       } catch (error) {
         results.failed += 1;

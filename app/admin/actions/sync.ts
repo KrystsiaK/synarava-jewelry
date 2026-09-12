@@ -49,7 +49,13 @@ export async function reconcileProductsAction() {
     const result = await reconcileShopifyProducts();
     revalidateStorefront();
     revalidatePath("/admin/products");
-    return { success: `Reconciliation complete: ${result.pulled} pulled, ${result.pushed} pushed, ${result.archived} archived, ${result.conflicts} conflicts, ${result.failed} failed.`, result };
+    return {
+      success: `Reconciliation complete: ${result.pulled} pulled, ${result.pushed} pushed, ${result.archived} archived, ${result.conflicts} conflicts, ${result.failed} failed.`,
+      warning: result.translationGaps > 0
+        ? `${result.translationGaps} product${result.translationGaps === 1 ? "" : "s"} have a Portuguese gap (unreadable or conflicting) — English is shown as a fallback until it's resolved.`
+        : undefined,
+      result,
+    };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Reconciliation failed." };
   }
@@ -217,6 +223,14 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
   let pushed = 0;
   const failures: string[] = [];
   const changedProductIds = new Set<string>();
+  // Commerce data (price, stock, images, status) is the thing sync exists to
+  // move. Portuguese translation is a best-effort add-on with a working
+  // fallback (the storefront shows English when PT is missing) — a PT-only
+  // hiccup must not make an otherwise-successful commerce sync read as
+  // "failed", so those are tallied separately and reported as one heads-up.
+  let translationUnavailableCount = 0;
+  const translationConflictIds: string[] = [];
+  let pushTranslationIssueCount = 0;
 
   for (const shopifyProductId of remoteProductIds) {
     try {
@@ -232,14 +246,12 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
         }
       }
       const result = await pullShopifyProduct(shopifyProductId);
-      if (result.status === "CONFLICT") failures.push(`${shopifyProductId}: commerce conflict needs an explicit decision`);
-      else if (result.status === "LOCAL_CHANGES") failures.push(`${shopifyProductId}: saved local commerce changes must be pushed or resolved first`);
-      else if (result.translationStatus === "CONFLICT") failures.push(`${shopifyProductId}: Portuguese changed on both sides; choose Pull or Push`);
-      else if (result.translationStatus === "UNAVAILABLE") failures.push(`${shopifyProductId}: Portuguese could not be read from Shopify`);
-      else {
-        pulled += 1;
-        changedProductIds.add(result.productId);
-      }
+      if (result.status === "CONFLICT") { failures.push(`${shopifyProductId}: commerce conflict needs an explicit decision`); continue; }
+      if (result.status === "LOCAL_CHANGES") { failures.push(`${shopifyProductId}: saved local commerce changes must be pushed or resolved first`); continue; }
+      pulled += 1;
+      changedProductIds.add(result.productId);
+      if (result.translationStatus === "CONFLICT") translationConflictIds.push(shopifyProductId);
+      else if (result.translationStatus === "UNAVAILABLE") translationUnavailableCount += 1;
     } catch (error) {
       failures.push(`${shopifyProductId}: ${error instanceof Error ? error.message : "pull failed"}`);
     }
@@ -256,6 +268,7 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
       if (result.ok) {
         pushed += 1;
         changedProductIds.add(productId);
+        if (result.translationError) pushTranslationIssueCount += 1;
       }
       else failures.push(`${productId}: ${result.error}`);
     } catch (error) {
@@ -269,11 +282,29 @@ export async function syncShopifySelectionAction(selection: ShopifySyncSelection
   const products = await Promise.all(Array.from(changedProductIds).map((id) => getSavedProductPayload(id)));
   const summary = `${pulled} imported, ${pushed} pushed${failures.length ? `, ${failures.length} failed` : ""}.`;
 
+  const notices: string[] = [];
+  if (translationUnavailableCount > 0) {
+    notices.push(
+      `Portuguese couldn't be read for ${translationUnavailableCount} product${translationUnavailableCount === 1 ? "" : "s"} — commerce data was still imported, PT shows the English text until Shopify grants read_translations access.`,
+    );
+  }
+  if (translationConflictIds.length > 0) {
+    notices.push(
+      `${translationConflictIds.length} product${translationConflictIds.length === 1 ? "" : "s"} have Portuguese edits on both sides — open each and choose Pull or Push to resolve it.`,
+    );
+  }
+  if (pushTranslationIssueCount > 0) {
+    notices.push(
+      `Portuguese sync had an issue on ${pushTranslationIssueCount} pushed product${pushTranslationIssueCount === 1 ? "" : "s"} — commerce still pushed fine.`,
+    );
+  }
+
   return {
     success: failures.length < remoteProductIds.length + localProductIds.length
       ? `Synchronization complete: ${summary}`
       : undefined,
     error: failures.length ? `Some products could not be synchronized: ${failures.join("; ")}` : undefined,
+    warning: notices.length ? notices.join(" ") : undefined,
     preview,
     products,
     result: { pulled, pushed, failed: failures.length },
