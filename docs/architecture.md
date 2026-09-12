@@ -13,7 +13,7 @@
   - consumes `Collection`, `Product`, search metadata, filters, future search index
 - `SYNARAVA | Home`
   - editorial landing / world-building page
-  - should be backed by `Page(template=HOME)` plus reusable curated content blocks
+  - backed by `Page(template=HOME)` JSON content with six independently visible, localized sections
 - `SYNARAVA | The Manifesto`
   - editorial page / brand doctrine
   - should be backed by `Page(template=MANIFESTO)`
@@ -67,6 +67,10 @@ its models were removed once Shopify covered the same ground.
 - `Page`
   - editorial pages like `Home` and `Manifesto`
   - `content: Json` keeps the first CMS light while still supporting rich composition
+  - the Home page uses explicit fields for Hero, Department pathway, Featured collections,
+    Material lexicon, Manifesto, and Final CTA; visibility is shared across locales while copy is localized
+  - legacy Home records are resolved with compatibility defaults so adding visibility controls does not
+    unexpectedly hide established sections; Department pathway remains opt-in
 - `CollectionSection`
   - structured CMS blocks for collection detail pages
 - `SiteSetting`
@@ -103,6 +107,7 @@ The implemented admin is intentionally small and task-focused:
 - `Overview` — content/catalog summary and QA entry point;
 - `Home` and `About` — dedicated editorial surfaces;
 - `Pages` — generic editorial pages;
+- `Posts` — long-form editorial stories with preview and publishing workflows;
 - `Videos` — shared S3-backed storefront video assets;
 - `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;
 - `Collections` — Shopify-linked grouping, merchandising, and primary storefront navigation;

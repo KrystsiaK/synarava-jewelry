@@ -112,13 +112,37 @@ export type PageContent = {
   secondaryTitle?: string;
   secondaryBody?: string;
   heroImage?: string;
+  heroSectionEnabled?: boolean;
   departmentSectionEnabled?: boolean;
+  archiveSectionEnabled?: boolean;
+  materialSectionEnabled?: boolean;
+  manifestoSectionEnabled?: boolean;
+  finalCtaSectionEnabled?: boolean;
   departmentSectionTitle?: string;
   departmentSectionBody?: string;
   departmentSectionImageCaption?: string;
   departmentSectionCtaLabel?: string;
+  archiveSectionLabel?: string;
+  materialSectionEyebrow?: string;
+  materialSectionTitle?: string;
+  manifestoSectionLabel?: string;
+  manifestoSectionAttribution?: string;
+  finalCtaLabel?: string;
+  finalCtaHref?: string;
+  finalFooterTitle?: string;
+  finalContactLabel?: string;
+  finalContactEmail?: string;
   translations?: {
-    pt?: Omit<PageContent, "translations" | "heroImage" | "departmentSectionEnabled"> & {
+    pt?: Omit<PageContent,
+      | "translations"
+      | "heroImage"
+      | "heroSectionEnabled"
+      | "departmentSectionEnabled"
+      | "archiveSectionEnabled"
+      | "materialSectionEnabled"
+      | "manifestoSectionEnabled"
+      | "finalCtaSectionEnabled"
+    > & {
       title?: string;
       excerpt?: string;
     };

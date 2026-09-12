@@ -28,8 +28,12 @@ import {
   type HomeDepartmentSectionFields,
   type ResolvedHomeDepartmentSection,
 } from "@/lib/content/home-department-section";
+import {
+  resolveHomeSectionVisibility,
+  type HomeSectionVisibilityFields,
+} from "@/lib/content/home-sections";
 
-type HomePageContent = HomeDepartmentSectionFields & {
+type HomePageContent = HomeDepartmentSectionFields & HomeSectionVisibilityFields & {
   eyebrow?: string;
   heroTitle?: string;
   heroBody?: string;
@@ -41,6 +45,16 @@ type HomePageContent = HomeDepartmentSectionFields & {
   quote?: string;
   secondaryTitle?: string;
   secondaryBody?: string;
+  archiveSectionLabel?: string;
+  materialSectionEyebrow?: string;
+  materialSectionTitle?: string;
+  manifestoSectionLabel?: string;
+  manifestoSectionAttribution?: string;
+  finalCtaLabel?: string;
+  finalCtaHref?: string;
+  finalFooterTitle?: string;
+  finalContactLabel?: string;
+  finalContactEmail?: string;
 };
 
 export interface CollectionItem {
@@ -535,7 +549,7 @@ function DepartmentPathway({
 }
 
 // 3. CINEMATIC SCROLL PATHWAY (Transparent background, Parallax images + individual loading scroll reveal)
-function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
+function ArchivePathway({ collections, sectionLabel }: { collections: CollectionItem[]; sectionLabel?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const firstRecordRef = useRef<HTMLDivElement>(null);
   const secondRecordRef = useRef<HTMLDivElement>(null);
@@ -581,7 +595,7 @@ function ArchivePathway({ collections }: { collections: CollectionItem[] }) {
         className="absolute -right-20 top-40 z-0 opacity-5 rotate-[270deg] clipped-text pointer-events-none select-none"
         aria-hidden="true"
       >
-        <div className="font-serif text-[15vw] text-linen leading-none uppercase">RECORDED</div>
+        <div className="font-serif text-[15vw] text-linen leading-none uppercase">{sectionLabel?.trim() || "RECORDED"}</div>
       </div>
 
       <div className="max-w-[90rem] mx-auto flex flex-col gap-32 md:gap-48 relative z-10">
@@ -930,7 +944,7 @@ function MaterialPlate({
 }
 
 // 4. MATERIAL EXPOSITION — scroll-controlled cubist specimen carousel
-function MaterialLab({ collections }: { collections: CollectionItem[] }) {
+function MaterialLab({ collections, eyebrow, title }: { collections: CollectionItem[]; eyebrow?: string; title?: string }) {
   const ref = useRef<HTMLElement>(null);
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
   const scrollContext = useContext(HomeScrollContext);
@@ -1028,10 +1042,10 @@ function MaterialLab({ collections }: { collections: CollectionItem[] }) {
           <header className="absolute inset-x-0 top-20 z-20 flex items-start justify-between gap-6 md:top-24">
             <div>
               <p className="mb-1 font-sans text-[0.58rem] font-bold uppercase tracking-[0.28em] text-couture-red">
-                Material glossary / scroll to turn
+                {eyebrow?.trim() || "Material glossary / scroll to turn"}
               </p>
               <h2 id="lexicon-title" className="font-serif text-[clamp(2rem,4.5vw,4.5rem)] font-bold uppercase leading-none tracking-[-0.035em] text-linen">
-                Lexicon
+                {title?.trim() || "Lexicon"}
               </h2>
             </div>
             <div className="hidden items-center gap-3 pt-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/60 sm:flex">
@@ -1066,7 +1080,7 @@ function MaterialLab({ collections }: { collections: CollectionItem[] }) {
 }
 
 // 5. MANIFESTO QUOTE (Archival directive, grid lines overlay)
-function ManifestoQuote({ quote }: { quote?: string }) {
+function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?: string; attribution?: string }) {
   if (!quote) {
     return null;
   }
@@ -1083,7 +1097,7 @@ function ManifestoQuote({ quote }: { quote?: string }) {
       <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-start md:items-center">
         <div className="mb-8 flex items-center gap-3 font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-couture-red md:mb-12">
           <span className="h-px w-8 bg-couture-red" aria-hidden="true" />
-          06 / A principle to keep
+          06 / {label?.trim() || "A principle to keep"}
         </div>
 
         <h2 className="relative max-w-5xl text-balance text-left font-serif text-[clamp(2.35rem,10.5vw,7rem)] font-light italic leading-[1.02] text-linen md:text-center">
@@ -1095,7 +1109,7 @@ function ManifestoQuote({ quote }: { quote?: string }) {
         <div className="mt-10 flex items-center gap-4 md:mt-14">
           <div className="h-px w-10 bg-couture-red md:w-12" />
           <span className="font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-linen md:text-[10px] md:tracking-[0.25em]">
-            The Synarava Manifesto // Vol 1.
+            {attribution?.trim() || "The Synarava Manifesto // Vol 1."}
           </span>
           <div className="hidden h-px w-12 bg-couture-red md:block" />
         </div>
@@ -1104,23 +1118,25 @@ function ManifestoQuote({ quote }: { quote?: string }) {
   );
 }
 
-function FinalFooter() {
+function FinalFooter({ title, contactLabel, contactEmail }: { title?: string; contactLabel?: string; contactEmail?: string }) {
+  const email = contactEmail?.trim() || "studio@synarava.com";
+
   return (
     <div data-component="FinalFooter" className="mt-auto flex flex-1 flex-col justify-end gap-6 border-t border-linen/15 pb-1 pt-8 sm:flex-row sm:items-end sm:justify-between md:pt-10">
-      <p className="max-w-sm font-serif text-2xl leading-tight text-linen md:text-3xl">
-        Objects shaped slowly,<br />kept for a lifetime.
+      <p className="max-w-sm whitespace-pre-line font-serif text-2xl leading-tight text-linen md:text-3xl">
+        {title?.trim() || "Objects shaped slowly,\nkept for a lifetime."}
       </p>
       <a
-        href="mailto:studio@synarava.com"
+        href={`mailto:${email}`}
         className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
       >
-        studio@synarava.com
+        {contactLabel?.trim() || email}
       </a>
     </div>
   );
 }
 
-function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections?: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
+function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail }: { collections?: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.22 });
   const reduceMotion = useReducedMotion() ?? false;
@@ -1229,7 +1245,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
             </div>
           ) : null}
 
-          <FinalFooter />
+          <FinalFooter title={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
         </motion.div>
       </div>
     </section>
@@ -1237,7 +1253,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
 }
 
 // 7. FINAL CTA — cubist shop portal
-function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
+function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string }) {
   const { locale } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
@@ -1317,6 +1333,9 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
         body={body}
         ctaLabel={ctaLabel}
         ctaHref={ctaHref}
+        footerTitle={footerTitle}
+        contactLabel={contactLabel}
+        contactEmail={contactEmail}
       />
     );
   }
@@ -1417,7 +1436,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
           className="absolute inset-0 z-[8] flex flex-col pt-10 md:pt-0"
           style={{ y: footerY, opacity: footerOpacity }}
         >
-          <FinalFooter />
+          <FinalFooter title={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
         </motion.div>
 
         <div className="absolute bottom-0 right-0 h-20 w-px bg-linen/15" aria-hidden="true">
@@ -1429,7 +1448,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref }: { coll
   );
 }
 
-function FinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string }) {
+function FinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string }) {
   const isDesktop = useDesktopViewport();
   const scrollContext = useContext(HomeScrollContext);
   const isIOSWebKit = scrollContext?.isIOSWebKit ?? false;
@@ -1440,14 +1459,15 @@ function FinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections
 
   return isDesktop && !isIOSWebKit
     ? collections.length > 0
-      ? <DesktopFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
-      : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />
-    : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} />;
+      ? <DesktopFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
+      : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
+    : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />;
 }
 
 export function HomePage({ collections, departments, heroVideoSrc, content }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
   const departmentSection = resolveHomeDepartmentSection(content, departments.length > 0);
+  const visibility = resolveHomeSectionVisibility(content);
 
   return (
     <HomeScrollProvider>
@@ -1462,7 +1482,7 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
         ✧ DOC.VER 9.4.1 // SECURE_ARCHIVE
       </div>
 
-      <HeroSection
+      {visibility.hero ? <HeroSection
         heroVideoSrc={resolvedHeroVideoSrc}
         heroImage={content?.heroImage}
         eyebrow={content?.eyebrow}
@@ -1470,18 +1490,21 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
         excerpt={content?.heroBody}
         ctaLabel={content?.ctaLabel}
         ctaHref={content?.ctaHref}
-      />
-      {departmentSection ? <DepartmentPathway departments={departments} section={departmentSection} /> : null}
-      <ArchivePathway collections={collections} />
-      <MaterialLab collections={collections} />
-      <ManifestoQuote quote={content?.quote} />
-      <FinalCTA
+      /> : null}
+      {visibility.department && departmentSection ? <DepartmentPathway departments={departments} section={departmentSection} /> : null}
+      {visibility.archive ? <ArchivePathway collections={collections} sectionLabel={content?.archiveSectionLabel} /> : null}
+      {visibility.material ? <MaterialLab collections={collections} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} /> : null}
+      {visibility.manifesto ? <ManifestoQuote quote={content?.quote} label={content?.manifestoSectionLabel} attribution={content?.manifestoSectionAttribution} /> : null}
+      {visibility.finalCta ? <FinalCTA
         collections={collections}
         title={content?.secondaryTitle}
         body={content?.secondaryBody}
-        ctaLabel={content?.ctaLabel}
-        ctaHref={content?.ctaHref}
-      />
+        ctaLabel={content?.finalCtaLabel || content?.ctaLabel}
+        ctaHref={content?.finalCtaHref || content?.ctaHref}
+        footerTitle={content?.finalFooterTitle}
+        contactLabel={content?.finalContactLabel}
+        contactEmail={content?.finalContactEmail}
+      /> : null}
     </main>
     </HomeScrollProvider>
   );

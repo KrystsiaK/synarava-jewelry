@@ -63,6 +63,17 @@ describe("savePageAction", () => {
     formData.set("departmentSectionCtaLabel", "Explore the shop");
     formData.set("ptDepartmentSectionTitle", "Escolha por onde começar.");
     formData.set("ptDepartmentSectionBody", "Uma entrada cuidada na coleção.");
+    formData.set("heroSectionEnabled", "1");
+    formData.set("archiveSectionEnabled", "1");
+    formData.set("manifestoSectionEnabled", "1");
+    formData.set("finalCtaSectionEnabled", "1");
+    formData.set("archiveSectionLabel", "Recorded");
+    formData.set("materialSectionTitle", "Lexicon");
+    formData.set("manifestoSectionAttribution", "The Synarava Manifesto");
+    formData.set("finalCtaLabel", "Enter the shop");
+    formData.set("finalCtaHref", "/shop");
+    formData.set("finalFooterTitle", "Objects kept for a lifetime.");
+    formData.set("finalContactEmail", "studio@example.com");
 
     await expect(savePageAction(formData)).resolves.toMatchObject({ success: "Page created." });
     expect(mocks.upsertPage).toHaveBeenCalledWith(expect.objectContaining({
@@ -73,6 +84,18 @@ describe("savePageAction", () => {
           departmentSectionBody: "A considered way into the collection.",
           departmentSectionImageCaption: "One point of view.",
           departmentSectionCtaLabel: "Explore the shop",
+          heroSectionEnabled: true,
+          archiveSectionEnabled: true,
+          materialSectionEnabled: false,
+          manifestoSectionEnabled: true,
+          finalCtaSectionEnabled: true,
+          archiveSectionLabel: "Recorded",
+          materialSectionTitle: "Lexicon",
+          manifestoSectionAttribution: "The Synarava Manifesto",
+          finalCtaLabel: "Enter the shop",
+          finalCtaHref: "/shop",
+          finalFooterTitle: "Objects kept for a lifetime.",
+          finalContactEmail: "studio@example.com",
           translations: {
             pt: expect.objectContaining({
               departmentSectionTitle: "Escolha por onde começar.",

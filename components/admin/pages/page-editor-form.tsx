@@ -14,6 +14,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import type { EditablePageContent } from "@/components/admin/pages/page-types";
+import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 
 export function PageEditor({
   page,
@@ -72,6 +73,8 @@ export function PageEditor({
         <p className="adm-section-tag border-b border-[var(--adm-border)] pb-4">LOCALE / EN — SOURCE</p>
         <AuthMessage error={state.error} />
 
+        {isHomePage ? <HomeSectionVisibilityEditor content={content} /> : null}
+
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Hero headline" : "Title"}</span>
@@ -128,24 +131,6 @@ export function PageEditor({
                 Department links and imagery come from the primary navigation collections.
               </p>
             </div>
-            <label className="flex items-start gap-3 border border-[var(--adm-border)] p-4">
-              <input
-                type="checkbox"
-                name="departmentSectionEnabled"
-                value="1"
-                aria-label="Show department pathway"
-                defaultChecked={content.departmentSectionEnabled === true}
-                className="mt-0.5"
-              />
-              <span>
-                <span className="block text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
-                  Show department pathway
-                </span>
-                <span className="mt-1 block text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                  Uncheck to remove the whole section from the storefront.
-                </span>
-              </span>
-            </label>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2">
                 <span className="adm-label">Department headline (EN)</span>
@@ -165,6 +150,89 @@ export function PageEditor({
               <input name="departmentSectionImageCaption" defaultValue={content.departmentSectionImageCaption ?? ""} className="adm-field" />
             </label>
           </section>
+        ) : null}
+
+        {isHomePage ? (
+          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="collection-sections-heading">
+            <div>
+              <h3 id="collection-sections-heading" className="adm-title-sm">Collection-led sections</h3>
+              <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+                Images, names, and descriptions come from the first three published collections. These labels control the home-page presentation.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <label className="grid gap-2">
+                <span className="adm-label">Archive background label (EN)</span>
+                <input name="archiveSectionLabel" defaultValue={content.archiveSectionLabel ?? ""} placeholder="Recorded" className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">Material eyebrow (EN)</span>
+                <input name="materialSectionEyebrow" defaultValue={content.materialSectionEyebrow ?? ""} placeholder="Material glossary / scroll to turn" className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">Material section title (EN)</span>
+                <input name="materialSectionTitle" defaultValue={content.materialSectionTitle ?? ""} placeholder="Lexicon" className="adm-field" />
+              </label>
+            </div>
+          </section>
+        ) : null}
+
+        {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Manifesto</h3> : null}
+        <label className="grid gap-2">
+          <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
+          <textarea name="quote" defaultValue={content.quote ?? ""} rows={4} className="adm-field" />
+        </label>
+
+        {isHomePage ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="adm-label">Manifesto label (EN)</span>
+              <input name="manifestoSectionLabel" defaultValue={content.manifestoSectionLabel ?? ""} placeholder="A principle to keep" className="adm-field" />
+            </label>
+            <label className="grid gap-2">
+              <span className="adm-label">Manifesto attribution (EN)</span>
+              <input name="manifestoSectionAttribution" defaultValue={content.manifestoSectionAttribution ?? ""} placeholder="The Synarava Manifesto // Vol 1." className="adm-field" />
+            </label>
+          </div>
+        ) : null}
+
+        {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Final call to action</h3> : null}
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="adm-label">{isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : "Secondary title"}</span>
+            <input name="secondaryTitle" defaultValue={content.secondaryTitle ?? ""} className="adm-field" />
+          </label>
+          <label className="grid gap-2">
+            <span className="adm-label">{isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : "Secondary body"}</span>
+            <textarea name="secondaryBody" defaultValue={content.secondaryBody ?? ""} rows={3} className="adm-field" />
+          </label>
+        </div>
+
+        {isHomePage ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="adm-label">Final CTA label (EN)</span>
+              <input name="finalCtaLabel" defaultValue={content.finalCtaLabel ?? content.ctaLabel ?? ""} className="adm-field" />
+            </label>
+            <label className="grid gap-2">
+              <span className="adm-label">Final CTA href</span>
+              <input name="finalCtaHref" defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""} className="adm-field" />
+            </label>
+            <label className="grid gap-2">
+              <span className="adm-label">Footer statement (EN)</span>
+              <textarea name="finalFooterTitle" defaultValue={content.finalFooterTitle ?? ""} placeholder={"Objects shaped slowly,\nkept for a lifetime."} rows={2} className="adm-field" />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="adm-label">Contact label (EN)</span>
+                <input name="finalContactLabel" defaultValue={content.finalContactLabel ?? ""} placeholder="studio@synarava.com" className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">Contact email</span>
+                <input name="finalContactEmail" type="email" defaultValue={content.finalContactEmail ?? ""} placeholder="studio@synarava.com" className="adm-field" />
+              </label>
+            </div>
+          </div>
         ) : null}
 
         <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="pt-copy-heading">
@@ -191,38 +259,28 @@ export function PageEditor({
               <label className="grid gap-2"><span className="adm-label">Department image caption (PT)</span><input name="ptDepartmentSectionImageCaption" defaultValue={ptContent.departmentSectionImageCaption ?? ""} className="adm-field" /></label>
             </div>
           ) : null}
+          {isHomePage ? (
+            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
+              <p className="adm-section-tag">HOME SECTIONS / PT</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="grid gap-2"><span className="adm-label">Archive background label (PT)</span><input name="ptArchiveSectionLabel" defaultValue={ptContent.archiveSectionLabel ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Material eyebrow (PT)</span><input name="ptMaterialSectionEyebrow" defaultValue={ptContent.materialSectionEyebrow ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Material section title (PT)</span><input name="ptMaterialSectionTitle" defaultValue={ptContent.materialSectionTitle ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Manifesto label (PT)</span><input name="ptManifestoSectionLabel" defaultValue={ptContent.manifestoSectionLabel ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Manifesto attribution (PT)</span><input name="ptManifestoSectionAttribution" defaultValue={ptContent.manifestoSectionAttribution ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Final CTA label (PT)</span><input name="ptFinalCtaLabel" defaultValue={ptContent.finalCtaLabel ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Footer statement (PT)</span><textarea name="ptFinalFooterTitle" defaultValue={ptContent.finalFooterTitle ?? ""} rows={2} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Contact label (PT)</span><input name="ptFinalContactLabel" defaultValue={ptContent.finalContactLabel ?? ""} className="adm-field" /></label>
+              </div>
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2"><span className="adm-label">CTA label (PT)</span><input name="ptCtaLabel" defaultValue={ptContent.ctaLabel ?? ""} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Quote (PT)</span><textarea name="ptQuote" defaultValue={ptContent.quote ?? ""} rows={3} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Secondary title (PT)</span><input name="ptSecondaryTitle" defaultValue={ptContent.secondaryTitle ?? ""} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Secondary body (PT)</span><textarea name="ptSecondaryBody" defaultValue={ptContent.secondaryBody ?? ""} rows={3} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Hero CTA label (PT)</span><input name="ptCtaLabel" defaultValue={ptContent.ctaLabel ?? ""} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Manifesto quote (PT)</span><textarea name="ptQuote" defaultValue={ptContent.quote ?? ""} rows={3} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Final CTA headline (PT)</span><input name="ptSecondaryTitle" defaultValue={ptContent.secondaryTitle ?? ""} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Final CTA introduction (PT)</span><textarea name="ptSecondaryBody" defaultValue={ptContent.secondaryBody ?? ""} rows={3} className="adm-field" /></label>
           </div>
         </section>
-
-        <label className="grid gap-2">
-          <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
-          <textarea name="quote" defaultValue={content.quote ?? ""} rows={4} className="adm-field" />
-        </label>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <span className="adm-label">{isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : "Secondary title"}</span>
-            <input
-              name="secondaryTitle"
-              defaultValue={content.secondaryTitle ?? ""}
-              className="adm-field"
-            />
-          </label>
-          <label className="grid gap-2">
-            <span className="adm-label">{isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : "Secondary body"}</span>
-            <textarea
-              name="secondaryBody"
-              defaultValue={content.secondaryBody ?? ""}
-              rows={3}
-              className="adm-field"
-            />
-          </label>
-        </div>
 
         <label className="grid gap-2 md:max-w-xs">
           <span className="adm-label">Publishing state after save</span>

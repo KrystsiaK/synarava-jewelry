@@ -6,7 +6,7 @@ export default async function AdminHomePage() {
   const page = pages.find((item) => item.slug === "home");
   if (!page) return null;
 
-  return <EditorialPage title="Home" description="Control the storefront hero, call to action, and featured editorial copy." page={page} />;
+  return <EditorialPage title="Home" description="Control section visibility, localized editorial copy, calls to action, and contact details across the storefront home page." page={page} />;
 }
 
 function EditorialPage({ title, description, page }: { title: string; description: string; page: NonNullable<Awaited<ReturnType<typeof getAdminCatalogData>>>["pages"][number] }) {

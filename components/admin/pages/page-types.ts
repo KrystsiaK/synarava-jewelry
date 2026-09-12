@@ -19,10 +19,25 @@ export type EditablePageCopy = {
   departmentSectionBody?: string;
   departmentSectionImageCaption?: string;
   departmentSectionCtaLabel?: string;
+  archiveSectionLabel?: string;
+  materialSectionEyebrow?: string;
+  materialSectionTitle?: string;
+  manifestoSectionLabel?: string;
+  manifestoSectionAttribution?: string;
+  finalCtaLabel?: string;
+  finalCtaHref?: string;
+  finalFooterTitle?: string;
+  finalContactLabel?: string;
+  finalContactEmail?: string;
 };
 
 export type EditablePageContent = EditablePageCopy & {
   heroImage?: string;
+  heroSectionEnabled?: boolean;
   departmentSectionEnabled?: boolean;
+  archiveSectionEnabled?: boolean;
+  materialSectionEnabled?: boolean;
+  manifestoSectionEnabled?: boolean;
+  finalCtaSectionEnabled?: boolean;
   translations?: { pt?: EditablePageCopy };
 };

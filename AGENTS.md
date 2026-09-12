@@ -32,6 +32,12 @@ Rules:
 - Do not remove or flatten a rich interaction merely to make a device faster. Find an engineered alternative that retains the visual intent while reducing main-thread, paint, compositing, memory, network, or layout cost.
 - For mobile and iOS, validate the actual interaction path. Prefer progressive enhancement, targeted fallbacks, and rendering strategies that preserve the effect's perceptual result rather than replacing it with a generic opaque surface.
 
+## Documentation hygiene
+
+- Treat documentation updates as part of Definition of Done. When a change makes product, architecture, setup, or operational documentation stale, update or remove the stale material in the same change.
+- Do not preserve placeholders, superseded instructions, or descriptions of unimplemented future state as if they were current. Keep historical context only when it is explicitly labeled as history or captured in an ADR/history document.
+- Before committing, review the documentation touched by or directly describing the changed behavior and make sure it matches the implementation.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

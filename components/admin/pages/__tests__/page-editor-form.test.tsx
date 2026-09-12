@@ -69,6 +69,16 @@ describe("PageEditor", () => {
     expect(screen.getByLabelText("Department CTA label (EN)")).toHaveValue("Explore the shop");
     expect(screen.getByLabelText("Department headline (PT)")).toHaveValue("Escolha por onde começar.");
     expect(screen.getByLabelText("Department description (PT)")).toHaveValue("Uma entrada cuidada na coleção.");
+    expect(screen.getByRole("checkbox", { name: "Show hero" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Show featured collections" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Show material lexicon" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Show manifesto" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Show final call to action" })).toBeChecked();
+    expect(screen.getByLabelText("Archive background label (EN)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Material section title (EN)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Manifesto attribution (EN)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Final CTA label (EN)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Contact email")).toBeInTheDocument();
   });
 
   it("does not show home-only department controls for a regular page", () => {
@@ -95,6 +105,26 @@ describe("PageEditor", () => {
     await user.type(screen.getByLabelText("Department description (EN)"), "A considered way into the collection.");
     await user.type(screen.getByLabelText("Department headline (PT)"), "Escolha por onde começar.");
     await user.type(screen.getByLabelText("Department description (PT)"), "Uma entrada cuidada na coleção.");
+    await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
+    await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
+
+    expect(mocks.savePageAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("submits visibility settings for every home section", async () => {
+    mocks.savePageAction.mockImplementation(async (formData: FormData) => {
+      expect(formData.get("heroSectionEnabled")).toBe("1");
+      expect(formData.get("departmentSectionEnabled")).toBeNull();
+      expect(formData.get("archiveSectionEnabled")).toBe("1");
+      expect(formData.get("materialSectionEnabled")).toBeNull();
+      expect(formData.get("manifestoSectionEnabled")).toBe("1");
+      expect(formData.get("finalCtaSectionEnabled")).toBe("1");
+      return { success: "Page saved." };
+    });
+    const user = userEvent.setup();
+    render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
+
+    await user.click(screen.getByRole("checkbox", { name: "Show material lexicon" }));
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
     await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
 
