@@ -23,6 +23,25 @@ import { localePath } from "@/lib/i18n/routing";
 import { PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { buildFinalCtaImages } from "@/lib/content/home-media";
+import {
+  resolveHomeDepartmentSection,
+  type HomeDepartmentSectionFields,
+  type ResolvedHomeDepartmentSection,
+} from "@/lib/content/home-department-section";
+
+type HomePageContent = HomeDepartmentSectionFields & {
+  eyebrow?: string;
+  heroTitle?: string;
+  heroBody?: string;
+  heroImage?: string;
+  heroVideoSrc?: string | string[];
+  heroVideo?: string | string[];
+  ctaLabel?: string;
+  ctaHref?: string;
+  quote?: string;
+  secondaryTitle?: string;
+  secondaryBody?: string;
+};
 
 export interface CollectionItem {
   series: string;
@@ -36,7 +55,7 @@ export interface CollectionItem {
 export interface HomePageProps {
   title?: string;
   excerpt?: string;
-  content?: Record<string, string>;
+  content?: HomePageContent;
   collections: CollectionItem[];
   departments: DepartmentItem[];
   heroVideoSrc?: string | string[];
@@ -405,7 +424,13 @@ const DEPARTMENT_NOTES: Record<string, string> = {
   "jewelry-making": "Materials and tools for makers",
 };
 
-function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
+function DepartmentPathway({
+  departments,
+  section,
+}: {
+  departments: DepartmentItem[];
+  section: ResolvedHomeDepartmentSection;
+}) {
   const { locale } = useTranslations();
   const leadDepartment = departments.find((department) => department.image);
 
@@ -430,9 +455,11 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
                 className="object-cover grayscale brightness-[0.72] contrast-[1.08]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/62 via-black/5 to-transparent" aria-hidden="true" />
-              <p className="absolute bottom-9 left-9 max-w-[18rem] font-sans text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white/72">
-                One point of view, across every part of daily life
-              </p>
+              {section.imageCaption ? (
+                <p className="absolute bottom-9 left-9 max-w-[18rem] font-sans text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white/72">
+                  {section.imageCaption}
+                </p>
+              ) : null}
             </>
           ) : (
             <div className="h-full w-full border border-linen/12 bg-linen/[0.035]" />
@@ -447,10 +474,10 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
           transition={{ duration: 0.8, delay: 0.08, ease }}
         >
           <h2 id="department-pathway-title" className="max-w-[10ch] text-balance font-serif text-[clamp(2.8rem,6vw,5.4rem)] leading-[0.92] tracking-[-0.035em]">
-            Choose where to begin.
+            {section.title}
           </h2>
           <p className="mt-6 max-w-[34rem] text-pretty font-sans text-sm leading-7 text-stone-beige md:text-base">
-            Adornment, companionship, play, and making — selected with the same eye for material, usefulness, and character.
+            {section.body}
           </p>
 
           <div className="mt-10 border-t border-linen/14 md:mt-14">
@@ -496,9 +523,11 @@ function DepartmentPathway({ departments }: { departments: DepartmentItem[] }) {
             })}
           </div>
 
-          <div className="mt-10">
-            <PrimaryCtaButton href={localePath(locale, "/shop")}>Explore the shop</PrimaryCtaButton>
-          </div>
+          {section.ctaLabel ? (
+            <div className="mt-10">
+              <PrimaryCtaButton href={localePath(locale, "/shop")}>{section.ctaLabel}</PrimaryCtaButton>
+            </div>
+          ) : null}
         </motion.div>
       </div>
     </section>
@@ -1418,6 +1447,7 @@ function FinalCTA({ collections, title, body, ctaLabel, ctaHref }: { collections
 
 export function HomePage({ collections, departments, heroVideoSrc, content }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
+  const departmentSection = resolveHomeDepartmentSection(content, departments.length > 0);
 
   return (
     <HomeScrollProvider>
@@ -1441,7 +1471,7 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
         ctaLabel={content?.ctaLabel}
         ctaHref={content?.ctaHref}
       />
-      <DepartmentPathway departments={departments} />
+      {departmentSection ? <DepartmentPathway departments={departments} section={departmentSection} /> : null}
       <ArchivePathway collections={collections} />
       <MaterialLab collections={collections} />
       <ManifestoQuote quote={content?.quote} />

@@ -112,8 +112,13 @@ export type PageContent = {
   secondaryTitle?: string;
   secondaryBody?: string;
   heroImage?: string;
+  departmentSectionEnabled?: boolean;
+  departmentSectionTitle?: string;
+  departmentSectionBody?: string;
+  departmentSectionImageCaption?: string;
+  departmentSectionCtaLabel?: string;
   translations?: {
-    pt?: Omit<PageContent, "translations" | "heroImage"> & {
+    pt?: Omit<PageContent, "translations" | "heroImage" | "departmentSectionEnabled"> & {
       title?: string;
       excerpt?: string;
     };
@@ -601,12 +606,19 @@ export async function getPageBySlug(slug: string) {
 
   const content = (page.content ?? {}) as PageContent;
   const translation = locale === "pt" ? content.translations?.pt : undefined;
+  const populatedTranslation = translation
+    ? Object.fromEntries(Object.entries(translation).filter(([, value]) => (
+        typeof value !== "string" || value.trim().length > 0
+      )))
+    : undefined;
 
   return {
     slug: page.slug,
     title: translation?.title || page.title,
     excerpt: translation?.excerpt || page.excerpt || "",
-    content: translation ? { ...content, ...translation, translations: content.translations } : content,
+    content: populatedTranslation
+      ? { ...content, ...populatedTranslation, translations: content.translations }
+      : content,
   };
 }
 

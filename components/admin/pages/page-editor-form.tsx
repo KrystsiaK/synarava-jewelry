@@ -119,6 +119,54 @@ export function PageEditor({
           </label>
         </div>
 
+        {isHomePage ? (
+          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="department-copy-heading">
+            <div>
+              <p id="department-copy-heading" className="adm-section-tag">HOME / DEPARTMENT PATHWAY</p>
+              <p className="mt-2 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+                This section stays hidden until it is enabled and both the English headline and description are filled.
+                Department links and imagery come from the primary navigation collections.
+              </p>
+            </div>
+            <label className="flex items-start gap-3 border border-[var(--adm-border)] p-4">
+              <input
+                type="checkbox"
+                name="departmentSectionEnabled"
+                value="1"
+                aria-label="Show department pathway"
+                defaultChecked={content.departmentSectionEnabled === true}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+                  Show department pathway
+                </span>
+                <span className="mt-1 block text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+                  Uncheck to remove the whole section from the storefront.
+                </span>
+              </span>
+            </label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="adm-label">Department headline (EN)</span>
+                <input name="departmentSectionTitle" defaultValue={content.departmentSectionTitle ?? ""} className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">Department CTA label (EN)</span>
+                <input name="departmentSectionCtaLabel" defaultValue={content.departmentSectionCtaLabel ?? ""} className="adm-field" />
+              </label>
+            </div>
+            <label className="grid gap-2">
+              <span className="adm-label">Department description (EN)</span>
+              <textarea name="departmentSectionBody" defaultValue={content.departmentSectionBody ?? ""} rows={3} className="adm-field" />
+            </label>
+            <label className="grid gap-2">
+              <span className="adm-label">Department image caption (EN)</span>
+              <input name="departmentSectionImageCaption" defaultValue={content.departmentSectionImageCaption ?? ""} className="adm-field" />
+            </label>
+          </section>
+        ) : null}
+
         <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="pt-copy-heading">
           <div>
             <p id="pt-copy-heading" className="adm-section-tag">LOCALE / PT — PORTUGUÊS</p>
@@ -132,6 +180,17 @@ export function PageEditor({
           </div>
           <label className="grid gap-2"><span className="adm-label">Excerpt (PT)</span><textarea name="ptExcerpt" defaultValue={ptContent.excerpt ?? ""} rows={3} className="adm-field" /></label>
           <label className="grid gap-2"><span className="adm-label">Body (PT)</span><textarea name="ptBody" defaultValue={ptContent.body ?? ""} rows={5} className="adm-field" /></label>
+          {isHomePage ? (
+            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
+              <p className="adm-section-tag">DEPARTMENT PATHWAY / PT</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="grid gap-2"><span className="adm-label">Department headline (PT)</span><input name="ptDepartmentSectionTitle" defaultValue={ptContent.departmentSectionTitle ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Department CTA label (PT)</span><input name="ptDepartmentSectionCtaLabel" defaultValue={ptContent.departmentSectionCtaLabel ?? ""} className="adm-field" /></label>
+              </div>
+              <label className="grid gap-2"><span className="adm-label">Department description (PT)</span><textarea name="ptDepartmentSectionBody" defaultValue={ptContent.departmentSectionBody ?? ""} rows={3} className="adm-field" /></label>
+              <label className="grid gap-2"><span className="adm-label">Department image caption (PT)</span><input name="ptDepartmentSectionImageCaption" defaultValue={ptContent.departmentSectionImageCaption ?? ""} className="adm-field" /></label>
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2"><span className="adm-label">CTA label (PT)</span><input name="ptCtaLabel" defaultValue={ptContent.ctaLabel ?? ""} className="adm-field" /></label>
             <label className="grid gap-2"><span className="adm-label">Quote (PT)</span><textarea name="ptQuote" defaultValue={ptContent.quote ?? ""} rows={3} className="adm-field" /></label>

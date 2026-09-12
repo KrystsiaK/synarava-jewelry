@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { getPageBySlug, getStorefrontNavigation, listCollections, listShopProducts } from "@/lib/content/catalog";
+import {
+  getPageBySlug,
+  getStorefrontNavigation,
+  listCollections,
+  listShopProducts,
+  type PageContent,
+} from "@/lib/content/catalog";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -46,7 +52,7 @@ export default async function Page() {
       href: localePath(locale, `/collections/${c.slug}`),
     }));
 
-  const content = (page?.content ?? {}) as Record<string, string>;
+  const content: PageContent = page?.content ?? {};
   const heroImage = content.heroImage || collections[0]?.image || "";
   const departments = navigation.map((department) => {
     const departmentProducts = products.filter((product) => product.departmentSlug === department.slug);

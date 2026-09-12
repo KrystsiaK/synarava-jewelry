@@ -115,6 +115,11 @@ const pageContentFieldsSchema = z.object({
   quote: z.string().trim().default(""),
   secondaryTitle: z.string().trim().default(""),
   secondaryBody: z.string().trim().default(""),
+  departmentSectionEnabled: z.string().trim().default(""),
+  departmentSectionTitle: z.string().trim().default(""),
+  departmentSectionBody: z.string().trim().default(""),
+  departmentSectionImageCaption: z.string().trim().default(""),
+  departmentSectionCtaLabel: z.string().trim().default(""),
   ptTitle: z.string().trim().default(""),
   ptExcerpt: z.string().trim().default(""),
   ptEyebrow: z.string().trim().default(""),
@@ -123,6 +128,10 @@ const pageContentFieldsSchema = z.object({
   ptQuote: z.string().trim().default(""),
   ptSecondaryTitle: z.string().trim().default(""),
   ptSecondaryBody: z.string().trim().default(""),
+  ptDepartmentSectionTitle: z.string().trim().default(""),
+  ptDepartmentSectionBody: z.string().trim().default(""),
+  ptDepartmentSectionImageCaption: z.string().trim().default(""),
+  ptDepartmentSectionCtaLabel: z.string().trim().default(""),
 });
 
 const savePageSchema = pageContentFieldsSchema.extend({
@@ -140,7 +149,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   const {
     pageId, workflowState, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
     secondaryTitle, secondaryBody, ptTitle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
-    ptQuote, ptSecondaryTitle, ptSecondaryBody,
+    ptQuote, ptSecondaryTitle, ptSecondaryBody, departmentSectionEnabled,
+    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
+    departmentSectionCtaLabel, ptDepartmentSectionTitle, ptDepartmentSectionBody,
+    ptDepartmentSectionImageCaption, ptDepartmentSectionCtaLabel,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
 
@@ -171,6 +183,11 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       quote,
       secondaryTitle,
       secondaryBody,
+      departmentSectionEnabled: departmentSectionEnabled === "1",
+      departmentSectionTitle,
+      departmentSectionBody,
+      departmentSectionImageCaption,
+      departmentSectionCtaLabel,
       heroImage,
       translations: {
         pt: {
@@ -183,6 +200,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
           quote: ptQuote,
           secondaryTitle: ptSecondaryTitle,
           secondaryBody: ptSecondaryBody,
+          departmentSectionTitle: ptDepartmentSectionTitle,
+          departmentSectionBody: ptDepartmentSectionBody,
+          departmentSectionImageCaption: ptDepartmentSectionImageCaption,
+          departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
         },
       },
     },
@@ -265,7 +286,10 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   const {
     pageId, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
     secondaryTitle, secondaryBody, ptTitle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
-    ptQuote, ptSecondaryTitle, ptSecondaryBody,
+    ptQuote, ptSecondaryTitle, ptSecondaryBody, departmentSectionEnabled,
+    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
+    departmentSectionCtaLabel, ptDepartmentSectionTitle, ptDepartmentSectionBody,
+    ptDepartmentSectionImageCaption, ptDepartmentSectionCtaLabel,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
 
@@ -282,6 +306,11 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       quote,
       secondaryTitle,
       secondaryBody,
+      departmentSectionEnabled: departmentSectionEnabled === "1",
+      departmentSectionTitle,
+      departmentSectionBody,
+      departmentSectionImageCaption,
+      departmentSectionCtaLabel,
       translations: {
         pt: {
           title: ptTitle,
@@ -293,6 +322,10 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
           quote: ptQuote,
           secondaryTitle: ptSecondaryTitle,
           secondaryBody: ptSecondaryBody,
+          departmentSectionTitle: ptDepartmentSectionTitle,
+          departmentSectionBody: ptDepartmentSectionBody,
+          departmentSectionImageCaption: ptDepartmentSectionImageCaption,
+          departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
         },
       },
     },
