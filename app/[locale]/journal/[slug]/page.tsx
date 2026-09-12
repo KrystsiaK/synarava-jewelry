@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getPublishedPost } from "@/lib/content/posts";
+import { isJournalNavVisible } from "@/lib/content/journal-visibility";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
@@ -9,7 +10,8 @@ import { buildAlternates } from "@/lib/seo/alternates";
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
+  const [{ slug }, locale, journalVisible] = await Promise.all([params, getRequestLocale(), isJournalNavVisible()]);
+  if (!journalVisible) return {};
   const post = await getPublishedPost(slug, locale);
   if (!post) return {};
 
@@ -27,7 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function JournalPostPage({ params }: Props) {
-  const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
+  const [{ slug }, locale, journalVisible] = await Promise.all([params, getRequestLocale(), isJournalNavVisible()]);
+  if (!journalVisible) notFound();
   const post = await getPublishedPost(slug, locale);
   if (!post) notFound();
 

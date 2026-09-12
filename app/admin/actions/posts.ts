@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
+import { setJournalNavVisible } from "@/lib/content/journal-visibility";
 import { db } from "@/lib/db";
 import { parseFormData } from "@/lib/forms/parse-form-data";
 import { savePageImageUpload } from "@/lib/media/local-upload";
@@ -369,4 +370,13 @@ export async function autosavePostDraftAction(formData: FormData): Promise<Draft
 
   revalidatePath("/admin/posts");
   return { recordId: post.id };
+}
+
+export async function setJournalVisibilityAction(visible: boolean): Promise<{ visible: boolean }> {
+  await requireAdminSession("/admin/posts");
+  await setJournalNavVisible(visible);
+  revalidatePath("/admin/posts");
+  revalidateStorefrontPath("/journal");
+  revalidateStorefrontTemplate("/journal/[slug]");
+  return { visible };
 }

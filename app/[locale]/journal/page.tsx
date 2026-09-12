@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { listPublishedPosts } from "@/lib/content/posts";
+import { isJournalNavVisible } from "@/lib/content/journal-visibility";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 
 export async function generateMetadata(): Promise<Metadata> {
+  if (!(await isJournalNavVisible())) return {};
   const locale = await getRequestLocale();
   const title = locale === "pt" ? "Diário" : "Journal";
   const description = locale === "pt"
@@ -17,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function JournalPage() {
+  if (!(await isJournalNavVisible())) notFound();
   const locale = await getRequestLocale();
   const posts = await listPublishedPosts(locale);
 
