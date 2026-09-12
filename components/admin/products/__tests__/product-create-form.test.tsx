@@ -83,4 +83,23 @@ describe("CreateProductForm", () => {
 
     expect(mocks.saveProductAction).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps the create form available when the save action rejects", async () => {
+    mocks.saveProductAction.mockRejectedValue(new Error("Database write failed"));
+    const user = userEvent.setup();
+    render(<CreateProductForm collections={collections} />);
+    await act(async () => {});
+
+    await user.type(screen.getByLabelText(/Name/), "Lava Ring");
+    await user.type(screen.getByLabelText(/Slug/), "lava-ring");
+    await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
+    await user.type(screen.getByLabelText(/Price EUR/), "45.00");
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Continue and save" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Product could not be saved. Reload this page before trying again.",
+    );
+    expect(screen.getByRole("heading", { name: "Create product", level: 2 })).toBeInTheDocument();
+  });
 });

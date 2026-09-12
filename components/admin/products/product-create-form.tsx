@@ -18,7 +18,11 @@ import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ProgressBar, SaveButtons } from "@/components/admin/products/product-sync-strip";
-import { emptyDraft, getProductEditorDetails } from "@/components/admin/products/product-helpers";
+import {
+  emptyDraft,
+  getProductEditorDetails,
+  PRODUCT_SAVE_FAILURE_MESSAGE,
+} from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
 
@@ -72,19 +76,26 @@ export function CreateProductForm({
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
-      const result = await saveProductAction(formData);
-      setState(result);
-      setConfirmOpen(false);
-      validation.showFieldErrors(result.fieldErrors ?? {});
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.syncWarning) pushToast({ message: `Saved locally. Sync failed: ${result.syncWarning}`, tone: "error" });
+      try {
+        const result = await saveProductAction(formData);
+        setState(result);
+        setConfirmOpen(false);
+        validation.showFieldErrors(result.fieldErrors ?? {});
+        if (result.success) pushToast({ message: result.success, tone: "success" });
+        if (result.syncWarning) pushToast({ message: `Saved locally. Sync failed: ${result.syncWarning}`, tone: "error" });
 
-      if (result.product) {
-        onCreated?.(result.product);
-      }
+        if (result.product) {
+          onCreated?.(result.product);
+        }
 
-      if (result.success && result.created) {
-        formRef.current?.reset();
+        if (result.success && result.created) {
+          formRef.current?.reset();
+        }
+      } catch {
+        setState({ error: PRODUCT_SAVE_FAILURE_MESSAGE });
+        setConfirmOpen(false);
+        validation.showFieldErrors({});
+        pushToast({ message: PRODUCT_SAVE_FAILURE_MESSAGE, tone: "error" });
       }
     });
   }

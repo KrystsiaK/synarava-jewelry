@@ -112,4 +112,19 @@ describe("EditProductForm", () => {
     expect(mocks.deleteProductAction).toHaveBeenCalledTimes(1);
     expect(onDeleted).toHaveBeenCalledWith("product-1");
   });
+
+  it("keeps the editor available when the save action rejects", async () => {
+    mocks.saveProductAction.mockRejectedValue(new Error("Database write failed"));
+    const user = userEvent.setup();
+    render(<EditProductForm product={makeProduct()} collections={[]} />);
+    await act(async () => {});
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Yes, save changes" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Product could not be saved. Reload this page before trying again.",
+    );
+    expect(screen.getByRole("heading", { name: "Lava Ring" })).toBeInTheDocument();
+  });
 });

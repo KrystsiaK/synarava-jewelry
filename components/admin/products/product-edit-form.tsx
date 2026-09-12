@@ -24,7 +24,11 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
-import { getProductEditorDetails, productToDraft } from "@/components/admin/products/product-helpers";
+import {
+  getProductEditorDetails,
+  productToDraft,
+  PRODUCT_SAVE_FAILURE_MESSAGE,
+} from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
@@ -77,22 +81,29 @@ export function EditProductForm({
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
-      const result = await saveProductAction(formData);
-      setState(result);
-      setConfirmOpen(false);
-      validation.showFieldErrors(result.fieldErrors ?? {});
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.product) {
-        setIsDirty(false);
-        setInspection(result.product.shopifyProductId
-          ? {
-              state: result.product.syncStatus === "CONFLICT" ? "CONFLICT" : result.product.syncStatus === "PENDING" ? "LOCAL_CHANGES" : "SYNCED",
-              remoteUpdatedAt: result.product.shopifyUpdatedAt?.toISOString() ?? null,
-              publications: inspection?.publications ?? [],
-              differences: inspection?.differences ?? [],
-            }
-          : { state: "UNLINKED", remoteUpdatedAt: null, publications: [], differences: [] });
-        onUpdated?.(result.product);
+      try {
+        const result = await saveProductAction(formData);
+        setState(result);
+        setConfirmOpen(false);
+        validation.showFieldErrors(result.fieldErrors ?? {});
+        if (result.success) pushToast({ message: result.success, tone: "success" });
+        if (result.product) {
+          setIsDirty(false);
+          setInspection(result.product.shopifyProductId
+            ? {
+                state: result.product.syncStatus === "CONFLICT" ? "CONFLICT" : result.product.syncStatus === "PENDING" ? "LOCAL_CHANGES" : "SYNCED",
+                remoteUpdatedAt: result.product.shopifyUpdatedAt?.toISOString() ?? null,
+                publications: inspection?.publications ?? [],
+                differences: inspection?.differences ?? [],
+              }
+            : { state: "UNLINKED", remoteUpdatedAt: null, publications: [], differences: [] });
+          onUpdated?.(result.product);
+        }
+      } catch {
+        setState({ error: PRODUCT_SAVE_FAILURE_MESSAGE });
+        setConfirmOpen(false);
+        validation.showFieldErrors({});
+        pushToast({ message: PRODUCT_SAVE_FAILURE_MESSAGE, tone: "error" });
       }
     });
   }

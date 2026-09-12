@@ -36,6 +36,20 @@ test.describe("Admin products CRUD", () => {
     await expect(page.getByRole("heading", { name }).first()).toBeVisible();
   });
 
+  test("saves an existing product and keeps the editor available", async ({ page, runId }) => {
+    const product = await createTestProduct(runId);
+    const updatedName = `E2E Updated Product ${runId}`;
+
+    await page.goto(`/admin/products/${product.id}`);
+    await page.locator('input[name="name"]').fill(updatedName);
+    await page.getByRole("button", { name: "Save product" }).first().click();
+    await page.getByRole("button", { name: "Yes, save changes" }).click();
+
+    await expect(page.getByRole("heading", { name: updatedName }).first()).toBeVisible();
+    await expect(page.getByText("Product saved locally. Commerce changes are ready to push.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save product" }).first()).toBeVisible();
+  });
+
   test("publishes, drafts, archives, and deletes a product from the products table", async ({ page, runId }) => {
     // updateProductStatusAction refuses to publish without an image, so the
     // fixture needs one even though nothing renders/validates it here.

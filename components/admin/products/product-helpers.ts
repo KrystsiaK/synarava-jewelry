@@ -2,6 +2,9 @@ import { parseProductDetails } from "@/lib/content/product-details";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { ProductDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
 
+export const PRODUCT_SAVE_FAILURE_MESSAGE =
+  "Product could not be saved. Reload this page before trying again.";
+
 export function centsToPrice(cents: number) {
   return (cents / 100).toFixed(2);
 }
