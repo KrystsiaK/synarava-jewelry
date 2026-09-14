@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { getShopFilterData, listShopProducts } from "@/lib/content/catalog";
 import { ShopPage } from "@/components/shop/shop-page";
 import { normalizeShopSort } from "@/lib/catalog/shop-sort";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { storefrontMedia } from "@/lib/content/media-fallbacks";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -44,22 +45,44 @@ export default async function Page({ searchParams }: Props) {
     availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
     sort: normalizeShopSort(rawFilters.sort),
   };
-  const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts] = await Promise.all([
+  const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts, { t }] = await Promise.all([
     getShopFilterData(),
     listShopProducts(filters),
     listShopProducts({}),
+    getServerTranslations(),
   ]);
+
+  const departmentTiles = departments.map((department) => {
+    const departmentProducts = archiveProducts.filter((product) => product.departmentSlug === department.slug);
+    return {
+      slug: department.slug,
+      name: department.name,
+      count: departmentProducts.length,
+      image: departmentProducts[0]?.image ?? "",
+    };
+  });
+  const collectionTiles = collections.slice(0, 6).map((collection) => ({
+    slug: collection.slug,
+    name: collection.name,
+    image: storefrontMedia(collection.heroImageUrl, collection.slug),
+  }));
 
   return (
     <ShopPage
       products={products}
       leadProduct={archiveProducts[0]}
       archiveCount={archiveProducts.length}
+      departmentTiles={departmentTiles}
+      collectionTiles={collectionTiles}
       filterProps={{
-        departments: departments.map((department) => ({
-          value: department.slug,
-          label: department.name,
-        })),
+        departments: departments.map((department) => {
+          const hasProducts = archiveProducts.some((product) => product.departmentSlug === department.slug);
+          return {
+            value: department.slug,
+            label: department.name,
+            hint: hasProducts ? undefined : t("shop.filters.comingSoon"),
+          };
+        }),
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
         collections: collections.map((c) => ({ value: c.slug, label: c.name })),
         tags: tags.map((t) => ({ value: t.slug, label: t.name })),

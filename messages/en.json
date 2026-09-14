@@ -65,12 +65,14 @@
     "heroTitleAccent": "shop",
     "heroDescription": "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
     "departmentNav": "Shop by department",
+    "collectionNav": "Shop by collection",
     "availableCount": {
       "one": "product available",
       "other": "products available"
     },
     "selectionPromise": "Selected / useful / made to last",
     "featuredProduct": "Featured product / {department}",
+    "resultsHeading": "Shop results",
     "empty": {
       "preview": "Department preview",
       "count": "0 products found",
@@ -141,6 +143,7 @@
       "refine": "Refine products",
       "close": "Close filters",
       "all": "All",
+      "comingSoon": "Soon",
       "view": {
         "one": "View products · {count} filter active",
         "other": "View products · {count} filters active"

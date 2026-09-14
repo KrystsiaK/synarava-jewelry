@@ -145,14 +145,14 @@ export function ProductCard({
         {/* Tags */}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {product.categoryName && (
-            <span className="border border-foreground/[0.08] px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70">
+            <span className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70">
               {product.categoryName}
             </span>
           )}
           {product.tagNames.slice(0, 2).map((tag) => (
             <span
               key={tag}
-              className="border border-foreground/[0.08] px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70"
+              className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70"
             >
               {tag}
             </span>

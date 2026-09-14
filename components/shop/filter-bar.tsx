@@ -57,6 +57,19 @@ export function FilterBar({
 
   const [filters, setFilters] = useState<ShopFilters>(initialFilters);
   const [search, setSearch] = useState(initialFilters.q ?? "");
+
+  // `initialFilters` only reflects the URL on first mount via useState's
+  // initializer — a route change that doesn't go through this component's
+  // own `navigate()` (an EmptyState CTA `<Link>`, browser back/forward)
+  // otherwise leaves stale filter state applied on top of the new URL.
+  // Re-sync whenever the URL-derived filters actually change.
+  const initialFiltersKey = buildSearchParams(initialFilters);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilters(initialFilters);
+    setSearch(initialFilters.q ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFiltersKey]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(() => Boolean(
@@ -579,6 +592,9 @@ function MobileFilterSheet({
                       )}
                     >
                       {opt.label}
+                      {opt.hint && (
+                        <span className="ml-1.5 normal-case tracking-normal text-muted/55">{opt.hint}</span>
+                      )}
                     </button>
                   ))}
                 </div>

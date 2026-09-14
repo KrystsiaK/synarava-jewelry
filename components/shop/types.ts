@@ -17,6 +17,8 @@ export type ShopFilters = {
 export type FilterOption = {
   value: string;
   label: string;
+  /** Short secondary tag shown next to the label, e.g. "Soon" for an empty department. */
+  hint?: string;
 };
 
 export const FILTERS_STORAGE_KEY = "synarava:shop-filters";

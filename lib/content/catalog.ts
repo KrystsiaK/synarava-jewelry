@@ -24,6 +24,17 @@ import {
 } from "@/lib/products/localization";
 import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 
+// Shopify's Standard Product Taxonomy name is a " > "-delimited full path
+// (e.g. "Apparel & Accessories > Jewelry > Brooches & Lapel Pins >
+// Brooches"). `shopifyCategoryName` keeps that full path for structured
+// data; customer-facing labels (card tags, breadcrumbs, spec rows) want
+// just the leaf.
+function categoryLeafLabel(fullName: string | null | undefined) {
+  if (!fullName) return fullName ?? "";
+  const segments = fullName.split(">").map((segment) => segment.trim()).filter(Boolean);
+  return segments[segments.length - 1] ?? fullName;
+}
+
 export type CollectionSummary = {
   slug: string;
   name: string;
@@ -335,7 +346,7 @@ function toSummary(product: {
       : details.attributes ?? [],
     characteristics: product.characteristics.map((item) => ({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) })),
     categorySlug: product.shopifyCategoryId,
-    categoryName: product.shopifyCategoryName,
+    categoryName: categoryLeafLabel(product.shopifyCategoryName),
     tagSlugs: product.tags.map((item) => item.tag.slug),
     tagNames: product.tags.map((item) => item.tag.name),
     symbolismLabel: localized.symbolismLabel || leadCollection?.symbolismLabel || "",
@@ -398,7 +409,7 @@ export async function getShopFilterData() {
 
   const categories = categoryRows.map((row) => ({
     slug: row.shopifyCategoryId!,
-    name: row.shopifyCategoryName ?? row.shopifyCategoryId!,
+    name: categoryLeafLabel(row.shopifyCategoryName) || row.shopifyCategoryId!,
   }));
   const values = (key: string) => characteristicRows.filter((item) => item.key === key && item.textValue).map((item) => ({ slug: item.textValue!, name: item.textValue! }));
   return { departments, categories, tags, collections, materials: values("material"), finishes: values("finish"), origins: values("origin") };

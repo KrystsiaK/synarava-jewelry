@@ -22,7 +22,7 @@ export function buildProductJsonLd(
     description: product.shortDescription || product.description,
     ...(images.length > 0 ? { image: images } : {}),
     ...(product.sku ? { sku: product.sku } : {}),
-    ...(product.categoryName ? { category: product.categoryName } : {}),
+    ...(product.shopifyCategoryName ? { category: product.shopifyCategoryName } : {}),
     brand: {
       "@type": "Brand",
       name: product.vendor || "Synarava",

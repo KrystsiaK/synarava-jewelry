@@ -134,7 +134,14 @@ export function FilterDropdown({
               value === option.value ? "text-foreground" : "text-muted hover:text-foreground",
             )}
           >
-            <span>{option.label}</span>
+            <span className="inline-flex items-center gap-2">
+              {option.label}
+              {option.hint && (
+                <span className="text-[0.62rem] font-semibold normal-case tracking-normal text-muted/55">
+                  {option.hint}
+                </span>
+              )}
+            </span>
             {value === option.value && <Check className="size-3 shrink-0 text-accent" />}
           </button>
         ))
