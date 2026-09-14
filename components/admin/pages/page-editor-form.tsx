@@ -94,7 +94,7 @@ export function PageEditor({
         <div className="grid gap-2">
           <div className="flex items-center gap-2">
             <span className="adm-label">Hero image</span>
-            <AdminHelp>Optional page-specific hero. It takes priority over the default visual or video, and is converted to optimized WebP on upload.</AdminHelp>
+            <AdminHelp>Optional page-specific hero. Built-in pages show a neutral header when this is empty; uploaded images are converted to optimized WebP.</AdminHelp>
           </div>
           <ImageFileField
             name="heroImageFile"

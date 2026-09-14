@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 
 import { ServicePage } from "@/components/service/service-page";
+import { getPageBySlug } from "@/lib/content/catalog";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t, locale } = await getServerTranslations();
+  const [{ t, locale }, page] = await Promise.all([getServerTranslations(), getPageBySlug("shipping")]);
   const title = t("service.shipping.metaTitle");
   const description = t("service.shipping.metaDescription");
   return {
@@ -17,17 +18,17 @@ export async function generateMetadata(): Promise<Metadata> {
       url: localePath(locale, "/shipping"),
       title,
       description,
-      images: [{ url: "/og-default.jpg", width: 1200, height: 630, alt: title }],
+      images: [{ url: page?.content.heroImage ?? "/og-default.jpg", width: 1200, height: 630, alt: title }],
     },
   };
 }
 
 export default async function ShippingPage() {
-  const { t } = await getServerTranslations();
+  const [{ t }, page] = await Promise.all([getServerTranslations(), getPageBySlug("shipping")]);
   return <ServicePage eyebrow={t("service.shipping.eyebrow")} title={t("service.shipping.title")} intro={t("service.shipping.intro")} sections={[
     { title: t("service.shipping.sections.optionsTitle"), body: t("service.shipping.sections.optionsBody") },
     { title: t("service.shipping.sections.preparingTitle"), body: t("service.shipping.sections.preparingBody") },
     { title: t("service.shipping.sections.trackingTitle"), body: t("service.shipping.sections.trackingBody") },
     { title: t("service.shipping.sections.dutiesTitle"), body: t("service.shipping.sections.dutiesBody") },
-  ]} />;
+  ]} heroImage={page?.content.heroImage} />;
 }

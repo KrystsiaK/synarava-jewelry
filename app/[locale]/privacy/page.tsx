@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PrivacySettingsButton } from "@/components/privacy/privacy-settings-button";
 import { PortuguesePrivacyPolicy } from "@/components/privacy/portuguese-privacy-policy";
+import { PageHeroImage } from "@/components/ui";
+import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { cn } from "@/lib/ui";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getRequestLocale();
+  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("privacy")]);
   const base = locale === "pt" ? {
     title: "Política de Privacidade | Synarava",
     description: "Como a Synarava recolhe, utiliza e protege os seus dados pessoais.",
@@ -18,7 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     ...base,
     alternates: buildAlternates(locale, "/privacy"),
-    openGraph: { url: localePath(locale, "/privacy"), ...base },
+    openGraph: {
+      url: localePath(locale, "/privacy"),
+      ...base,
+      images: [{ url: page?.content.heroImage ?? "/og-default.jpg", width: 1200, height: 630, alt: base.title }],
+    },
   };
 }
 
@@ -39,25 +46,29 @@ export default async function PrivacyPage() {
   const legalName = process.env.NEXT_PUBLIC_LEGAL_NAME ?? "Synarava Jewelry";
   const postalAddress = process.env.NEXT_PUBLIC_LEGAL_POSTAL_ADDRESS;
   const privacyEmail = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "studio@synarava.com";
-  const locale = await getRequestLocale();
+  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("privacy")]);
+  const heroImage = page?.content.heroImage;
   const homeHref = localePath(locale, "/");
   const offerHref = localePath(locale, "/offer");
 
   if (locale === "pt") {
-    return <PortuguesePrivacyPolicy legalName={legalName} postalAddress={postalAddress} privacyEmail={privacyEmail} homeHref={homeHref} offerHref={offerHref} />;
+    return <PortuguesePrivacyPolicy legalName={legalName} postalAddress={postalAddress} privacyEmail={privacyEmail} homeHref={homeHref} offerHref={offerHref} heroImage={heroImage} />;
   }
 
   return (
-    <main className="artifact-shell min-h-screen pt-24 pb-20 md:pt-28 md:pb-32">
+    <main className="artifact-shell min-h-screen pb-20 md:pb-32">
       {/* Header */}
-      <header className="site-shell border-b border-stroke pb-10 md:pb-14">
-        <p className="label-mono mb-4 text-accent">Legal</p>
-        <h1 className="font-serif text-[2.4rem] leading-tight sm:text-[3.2rem] md:text-[4.5rem]">
-          Privacy Policy
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-7 text-foreground/60 md:mt-5 md:text-lg md:leading-8">
-          Last updated: 5 September 2026
-        </p>
+      <header className={cn("relative overflow-hidden border-b border-stroke", heroImage ? "flex min-h-[68svh] items-end py-12 pt-24 md:min-h-[76svh] md:py-16 md:pt-28" : "pt-24 md:pt-28")}>
+        <PageHeroImage src={heroImage} />
+        <div className="site-shell relative z-10 w-full pb-10 md:pb-14">
+          <p className={cn("label-mono mb-4", heroImage ? "text-white/75" : "text-accent")}>Legal</p>
+          <h1 className={cn("font-serif text-[2.4rem] leading-tight sm:text-[3.2rem] md:text-[4.5rem]", heroImage && "text-white")}>
+            Privacy Policy
+          </h1>
+          <p className={cn("mt-4 max-w-xl text-base leading-7 md:mt-5 md:text-lg md:leading-8", heroImage ? "text-white/75" : "text-foreground/60")}>
+            Last updated: 5 September 2026
+          </p>
+        </div>
       </header>
 
       <div className="site-shell mt-10 grid gap-12 md:mt-14 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[18rem_minmax(0,1fr)]">

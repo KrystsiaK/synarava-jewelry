@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { PrivacySettingsButton } from "@/components/privacy/privacy-settings-button";
+import { PageHeroImage } from "@/components/ui";
+import { cn } from "@/lib/ui";
 
 const sections = [
   ["controller", "1. Responsável pelo tratamento"],
@@ -46,12 +48,13 @@ function List({ items }: { items: string[] }) {
   );
 }
 
-export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail, homeHref = "/", offerHref = "/offer" }: {
+export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail, homeHref = "/", offerHref = "/offer", heroImage }: {
   legalName: string;
   postalAddress?: string;
   privacyEmail: string;
   homeHref?: string;
   offerHref?: string;
+  heroImage?: string;
 }) {
   const cookies = [
     ["synarava-consent · Synarava", "Regista as suas escolhas de consentimento.", "Necessário", "180 dias"],
@@ -63,11 +66,14 @@ export function PortuguesePrivacyPolicy({ legalName, postalAddress, privacyEmail
   ];
 
   return (
-    <main data-component="PortuguesePrivacyPolicy" className="artifact-shell min-h-screen pb-20 pt-24 md:pb-32 md:pt-28">
-      <header className="site-shell border-b border-stroke pb-10 md:pb-14">
-        <p className="label-mono mb-4 text-accent">Legal</p>
-        <h1 className="font-serif text-[2.4rem] leading-tight sm:text-[3.2rem] md:text-[4.5rem]">Política de Privacidade</h1>
-        <p className="mt-4 text-base text-foreground/60 md:text-lg">Última atualização: 5 de setembro de 2026</p>
+    <main data-component="PortuguesePrivacyPolicy" className="artifact-shell min-h-screen pb-20 md:pb-32">
+      <header className={cn("relative overflow-hidden border-b border-stroke", heroImage ? "flex min-h-[68svh] items-end py-12 pt-24 md:min-h-[76svh] md:py-16 md:pt-28" : "pt-24 md:pt-28")}>
+        <PageHeroImage src={heroImage} />
+        <div className="site-shell relative z-10 w-full pb-10 md:pb-14">
+          <p className={cn("label-mono mb-4", heroImage ? "text-white/75" : "text-accent")}>Legal</p>
+          <h1 className={cn("font-serif text-[2.4rem] leading-tight sm:text-[3.2rem] md:text-[4.5rem]", heroImage && "text-white")}>Política de Privacidade</h1>
+          <p className={cn("mt-4 text-base md:text-lg", heroImage ? "text-white/75" : "text-foreground/60")}>Última atualização: 5 de setembro de 2026</p>
+        </div>
       </header>
 
       <div className="site-shell mt-10 grid gap-12 md:mt-14 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[18rem_minmax(0,1fr)]">

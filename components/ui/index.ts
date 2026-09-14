@@ -12,6 +12,7 @@ export { MagneticButton } from "./magnetic-button";
 export { MediaFrame } from "./media-frame";
 export { MonoMeta } from "./mono-meta";
 export { PageHero } from "./page-hero";
+export { PageHeroImage } from "./page-hero-image";
 export { PrimaryCtaButton } from "./primary-cta-button";
 export { ProductCard } from "./product-card";
 export { ScrollReveal } from "./scroll-reveal";
