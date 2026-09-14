@@ -25,6 +25,24 @@ const addressSchema = z.object({
   formatted: z.array(z.string()),
 });
 
+const trackingInformationSchema = z.object({
+  company: z.string().nullable(),
+  number: z.string().nullable(),
+  url: z.string().nullable(),
+});
+
+const fulfillmentSchema = z.object({
+  status: z.string().nullable(),
+  latestShipmentStatus: z.string().nullable(),
+  estimatedDeliveryAt: z.string().nullable(),
+  trackingInformation: z.array(trackingInformationSchema),
+});
+
+const returnableLineItemSchema = z.object({
+  quantity: z.number().int(),
+  lineItem: z.object({ id: z.string(), name: z.string() }),
+});
+
 const profileSchema = z.object({
   customer: z.object({
     id: z.string(),
@@ -48,6 +66,10 @@ const profileSchema = z.object({
           fulfillmentStatus: z.string(),
           statusPageUrl: z.string(),
           totalPrice: moneySchema,
+          fulfillments: z.object({ nodes: z.array(fulfillmentSchema) }),
+          returnInformation: z.object({
+            returnableLineItems: z.object({ nodes: z.array(returnableLineItemSchema) }),
+          }),
           lineItems: z.object({
             nodes: z.array(
               z.object({
@@ -104,6 +126,22 @@ const CUSTOMER_PROFILE_QUERY = `#graphql
           fulfillmentStatus
           statusPageUrl
           totalPrice { amount currencyCode }
+          fulfillments(first: 5) {
+            nodes {
+              status
+              latestShipmentStatus
+              estimatedDeliveryAt
+              trackingInformation { company number url }
+            }
+          }
+          returnInformation {
+            returnableLineItems(first: 20) {
+              nodes {
+                quantity
+                lineItem { id name }
+              }
+            }
+          }
           lineItems(first: 20) {
             nodes {
               id productId
@@ -266,4 +304,41 @@ export async function findShopifyCustomerOrderForProduct(productId: string): Pro
       : null;
   } while (ordersAfter);
   return null;
+}
+
+const returnRequestSchema = z.object({
+  data: z.object({
+    orderRequestReturn: z.object({
+      return: z.object({ id: z.string(), status: z.string(), name: z.string() }).nullable(),
+      userErrors: z.array(z.object({ field: z.array(z.string()).nullable(), message: z.string() })),
+    }),
+  }).optional(),
+  errors: z.array(z.object({ message: z.string() }).passthrough()).optional(),
+});
+
+/** Requests a return for the given order line items through Shopify's own return flow. */
+export async function requestShopifyOrderReturn(
+  orderId: string,
+  requestedLineItems: Array<{ lineItemId: string; quantity: number }>,
+) {
+  const payload = returnRequestSchema.parse(await customerAccountQuery(
+    "SynaravaRequestOrderReturn",
+    `mutation SynaravaRequestOrderReturn($orderId: ID!, $requestedLineItems: [RequestedLineItemInput!]!) {
+      orderRequestReturn(orderId: $orderId, requestedLineItems: $requestedLineItems) {
+        return { id status name }
+        userErrors { field message }
+      }
+    }`,
+    { orderId, requestedLineItems },
+  ));
+  if (payload.errors?.length || !payload.data) {
+    throw new Error(payload.errors?.map((error) => error.message).join("; ") || "Shopify did not process the return request.");
+  }
+
+  const result = payload.data.orderRequestReturn;
+  if (result.userErrors.length) {
+    throw new Error(result.userErrors.map((error) => error.message).join("; "));
+  }
+  if (!result.return) throw new Error("Shopify did not create the return.");
+  return result.return;
 }

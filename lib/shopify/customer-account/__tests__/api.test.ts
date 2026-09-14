@@ -7,7 +7,7 @@ vi.mock("../discovery", () => ({
   getCustomerApiDiscovery: vi.fn().mockResolvedValue({ graphql_api: "https://accounts.example/graphql" }),
 }));
 
-import { findShopifyCustomerOrderForProduct } from "../api";
+import { findShopifyCustomerOrderForProduct, requestShopifyOrderReturn } from "../api";
 
 function response(data: unknown) {
   return new Response(JSON.stringify({ data }), {
@@ -47,5 +47,35 @@ describe("Shopify customer purchase lookup", () => {
 
     await expect(findShopifyCustomerOrderForProduct("product-target")).resolves.toBe("order-large");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Shopify order return requests", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns the created return on success", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(response({
+      orderRequestReturn: {
+        return: { id: "gid://shopify/Return/1", status: "OPEN", name: "R1" },
+        userErrors: [],
+      },
+    }));
+
+    await expect(requestShopifyOrderReturn("gid://shopify/Order/1", [
+      { lineItemId: "gid://shopify/LineItem/1", quantity: 1 },
+    ])).resolves.toEqual({ id: "gid://shopify/Return/1", status: "OPEN", name: "R1" });
+  });
+
+  it("throws with Shopify's message when the return request is rejected", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(response({
+      orderRequestReturn: {
+        return: null,
+        userErrors: [{ field: ["requestedLineItems"], message: "This item is not eligible for return." }],
+      },
+    }));
+
+    await expect(requestShopifyOrderReturn("gid://shopify/Order/1", [
+      { lineItemId: "gid://shopify/LineItem/1", quantity: 1 },
+    ])).rejects.toThrow("This item is not eligible for return.");
   });
 });

@@ -13,6 +13,7 @@ import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
+import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 
 const tabs = ["overview", "wishlist", "orders", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
@@ -266,6 +267,34 @@ export function ShopifyProfileShell({
                           </div>
                         ))}
                       </div>
+                      {order.fulfillments.nodes.map((fulfillment, index) => {
+                        const tracking = fulfillment.trackingInformation[0];
+                        if (!tracking && !fulfillment.estimatedDeliveryAt) return null;
+                        return (
+                          <div key={index} className="mt-4 border-t border-stroke pt-4 text-sm text-foreground/60">
+                            {fulfillment.latestShipmentStatus ? (
+                              <p className="label-caps text-foreground/45">{fulfillment.latestShipmentStatus.replaceAll("_", " ")}</p>
+                            ) : null}
+                            {tracking?.company || tracking?.number ? (
+                              <p className="mt-1">
+                                {[tracking.company, tracking.number].filter(Boolean).join(" · ")}
+                                {tracking.url ? (
+                                  <a href={tracking.url} className="ml-2 text-couture-red underline-offset-4 hover:underline">
+                                    Track package →
+                                  </a>
+                                ) : null}
+                              </p>
+                            ) : null}
+                            {fulfillment.estimatedDeliveryAt ? (
+                              <p className="mt-1">Estimated delivery: {date(fulfillment.estimatedDeliveryAt)}</p>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                      <ReturnRequestPanel
+                        orderId={order.id}
+                        returnableLineItems={order.returnInformation.returnableLineItems.nodes}
+                      />
                       <a href={order.statusPageUrl} className="label-caps mt-6 inline-block text-couture-red">
                         Order details →
                       </a>
