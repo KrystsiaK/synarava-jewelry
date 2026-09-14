@@ -59,7 +59,7 @@ export function ShopDiscovery({
 
   const filterHref = (filters: ShopFilters) => {
     const query = buildSearchParams(filters);
-    return `${localePath(locale, query ? `/shop?${query}` : "/shop")}#shop-results`;
+    return `${localePath(locale, query ? `/shop?${query}` : "/shop")}#shop-products`;
   };
   const selectFilters = (event: React.MouseEvent<HTMLAnchorElement>, filters: ShopFilters) => {
     if (!onSelectFilters) return;

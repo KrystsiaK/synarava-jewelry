@@ -187,7 +187,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags, 
           {active.map((f) => (
             <Link
               key={f.key}
-              href={`${localePath(locale, `/shop?${buildSearchParams(f.nextFilters)}`)}#shop-results`}
+              href={`${localePath(locale, `/shop?${buildSearchParams(f.nextFilters)}`)}#shop-products`}
               onClick={(event) => {
                 event.preventDefault();
                 onSelectFilters(f.nextFilters);
@@ -210,7 +210,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags, 
 
       {/* Primary CTA */}
       <Link
-        href={`${localePath(locale, "/shop")}#shop-results`}
+        href={`${localePath(locale, "/shop")}#shop-products`}
         onClick={(event) => {
           event.preventDefault();
           onSelectFilters({});
@@ -389,9 +389,9 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
   const selectDiscoveryFilters = (filters: ShopFilters) => {
     setActiveFilters(filters);
     const qs = buildSearchParams(filters);
-    window.history.pushState(null, "", `${localePath(locale, qs ? `/shop?${qs}` : "/shop")}#shop-results`);
+    window.history.pushState(null, "", `${localePath(locale, qs ? `/shop?${qs}` : "/shop")}#shop-products`);
     window.requestAnimationFrame(() => {
-      document.getElementById("shop-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("shop-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
   return (
@@ -408,7 +408,7 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
         onSelectFilters={selectDiscoveryFilters}
       />
 
-      <div id="shop-results" className="relative scroll-mt-24 bg-background pb-16 pt-6 md:pb-24 md:pt-14">
+      <div className="relative bg-background pb-16 pt-6 md:pb-24 md:pt-14">
         <h2 className="sr-only">{t("shop.resultsHeading")}</h2>
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.025]"
@@ -428,30 +428,32 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
             totalCount={filteredProducts.length}
           />
 
-          <LayoutGroup id="shop-results">
-            <AnimatePresence mode="wait" initial={false}>
-              {filteredProducts.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0, y: 18, filter: "blur(5px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
-                  transition={{ duration: 0.34, ease }}
-                >
-                  <EmptyState
-                    filters={activeFilters}
-                    departments={filterProps.departments}
-                    categories={filterProps.categories}
-                    collections={filterProps.collections}
-                    tags={filterProps.tags}
-                    onSelectFilters={selectDiscoveryFilters}
-                  />
-                </motion.div>
-              ) : (
-                <ProductGrid key="products" products={filteredProducts} sort={activeFilters.sort} />
-              )}
-            </AnimatePresence>
-          </LayoutGroup>
+          <div id="shop-products" className="scroll-mt-24">
+            <LayoutGroup id="shop-results">
+              <AnimatePresence mode="wait" initial={false}>
+                {filteredProducts.length === 0 ? (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0, y: 18, filter: "blur(5px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                    transition={{ duration: 0.34, ease }}
+                  >
+                    <EmptyState
+                      filters={activeFilters}
+                      departments={filterProps.departments}
+                      categories={filterProps.categories}
+                      collections={filterProps.collections}
+                      tags={filterProps.tags}
+                      onSelectFilters={selectDiscoveryFilters}
+                    />
+                  </motion.div>
+                ) : (
+                  <ProductGrid key="products" products={filteredProducts} sort={activeFilters.sort} />
+                )}
+              </AnimatePresence>
+            </LayoutGroup>
+          </div>
         </div>
       </div>
 
