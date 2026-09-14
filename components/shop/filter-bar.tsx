@@ -1,9 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useTransition, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpDown, ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 
 import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
@@ -20,6 +18,7 @@ import {
   countActiveFilters,
   filtersWithoutSort,
   loadFiltersFromSession,
+  parseShopFilters,
   saveFiltersToSession,
 } from "./types";
 
@@ -33,12 +32,11 @@ export type FilterBarProps = {
   origins?: FilterOption[];
   initialFilters: ShopFilters;
   totalCount: number;
+  onFiltersChange?: (filters: ShopFilters) => void;
 };
 
 const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
-
-const SHOP_SCROLL_OPTIONS = { scroll: false };
 
 export function FilterBar({
   departments = [],
@@ -50,10 +48,9 @@ export function FilterBar({
   origins = [],
   initialFilters,
   totalCount,
+  onFiltersChange,
 }: FilterBarProps) {
-  const router = useRouter();
   const { t, plural, locale } = useTranslations();
-  const [isPending, startTransition] = useTransition();
 
   const [filters, setFilters] = useState<ShopFilters>(initialFilters);
   const [search, setSearch] = useState(initialFilters.q ?? "");
@@ -70,6 +67,17 @@ export function FilterBar({
     setSearch(initialFilters.q ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFiltersKey]);
+
+  useEffect(() => {
+    const syncFromHistory = () => {
+      const next = parseShopFilters(new URLSearchParams(window.location.search));
+      setFilters(next);
+      setSearch(next.q ?? "");
+      onFiltersChange?.(next);
+    };
+    window.addEventListener("popstate", syncFromHistory);
+    return () => window.removeEventListener("popstate", syncFromHistory);
+  }, [onFiltersChange]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(() => Boolean(
@@ -102,12 +110,11 @@ export function FilterBar({
   const navigate = useCallback(
     (next: ShopFilters) => {
       saveFiltersToSession(next);
-      startTransition(() => {
-        const qs = buildSearchParams(next);
-        router.push(localePath(locale, qs ? `/shop?${qs}` : "/shop"), SHOP_SCROLL_OPTIONS);
-      });
+      const qs = buildSearchParams(next);
+      window.history.pushState(null, "", localePath(locale, qs ? `/shop?${qs}` : "/shop"));
+      onFiltersChange?.(next);
     },
-    [router, locale],
+    [locale, onFiltersChange],
   );
 
   const setFilter = useCallback(
@@ -134,11 +141,10 @@ export function FilterBar({
     setFilters(next);
     setSearch("");
     clearFiltersSession();
-    startTransition(() => {
-      const qs = buildSearchParams(next);
-      router.push(localePath(locale, qs ? `/shop?${qs}` : "/shop"), SHOP_SCROLL_OPTIONS);
-    });
-  }, [filters, router, locale]);
+    const qs = buildSearchParams(next);
+    window.history.pushState(null, "", localePath(locale, qs ? `/shop?${qs}` : "/shop"));
+    onFiltersChange?.(next);
+  }, [filters, locale, onFiltersChange]);
 
   // ── Debounced search ───────────────────────────────────────────────────────
   const handleSearchChange = (value: string) => {
@@ -177,20 +183,7 @@ export function FilterBar({
   const showCompliance = supportsComplianceFilters(filters.department);
 
   return (
-    <div data-component="FilterBar" className={cn("relative", isPending && "pointer-events-none")} aria-busy={isPending}>
-      <AnimatePresence>
-        {isPending ? (
-          <motion.div
-            className="pointer-events-none absolute inset-x-0 -bottom-px z-20 h-px origin-left bg-couture-red"
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: 0.82, opacity: 1 }}
-            exit={{ scaleX: 1, opacity: 0 }}
-            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-            aria-hidden="true"
-          />
-        ) : null}
-      </AnimatePresence>
-
+    <div data-component="FilterBar" className="relative">
       {/* ── Session restore banner ───────────────────────────────────────────── */}
       {pendingRestore && (
         <div className="mb-4 flex flex-wrap items-center gap-3 border border-foreground/[0.08] bg-surface/80 px-4 py-3">

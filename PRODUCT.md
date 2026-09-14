@@ -22,6 +22,14 @@ Editors can maintain the localized English and Portuguese copy used by these sec
 
 Visibility settings are shared across locales so the page structure stays consistent. Copy remains locale-specific. Existing page records preserve the established storefront by default: all original sections remain visible, while the newer Department pathway remains opt-in until explicitly enabled.
 
+## Shop Discovery and Filtering
+
+The shop landing experience follows a deliberate discovery sequence: cinematic hero, newest products, Shopify best-selling products only when a live ranking is available, exact Shopify Standard Product Taxonomy categories, then the full archive. A missing or empty Shopify ranking omits the popular section instead of substituting a locally invented popularity signal. Product cards remain direct paths to product detail pages.
+
+Shop filters run against the catalog already loaded in the browser. Applying, removing, sorting, or searching updates the URL for shareable, back-button-safe state without reloading the route or moving the shopper away from the results they are viewing. Discovery links update the same client-side filter state, then intentionally move focus down the page to the full archive.
+
+Shopify taxonomy categories and collections serve different purposes. A product has one exact Shopify Standard Product Taxonomy category ID, which powers the storefront category tiles and category filter. Products can belong to multiple Shopify collections, which remain merchandising groups; primary-navigation collections are presented as Synarava departments. The local database is a synchronized storefront projection of those Shopify identities, not a parallel category system.
+
 ## Brand Personality
 
 Quiet, ceremonial, precise. The public brand is editorial and museum-like; the admin should translate that into a calm studio console rather than a decorative marketing surface.

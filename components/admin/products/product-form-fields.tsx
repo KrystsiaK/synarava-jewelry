@@ -617,7 +617,14 @@ export function ProductFormFields({
       {/* Taxonomy + state */}
       <div className="grid items-start gap-4 lg:grid-cols-3">
         <div id="field-taxonomy-category" className="grid content-start gap-2">
-          <OwnershipLabel owner="Shopify">Product category</OwnershipLabel>
+          <div className="adm-label-row">
+            <OwnershipLabel owner="Shopify">Product category</OwnershipLabel>
+            <AdminHelp>
+              This is the exact Shopify Standard Product Taxonomy category. Its Shopify ID powers
+              the Category section and filter on the storefront; Collections and Departments are
+              separate merchandising groups.
+            </AdminHelp>
+          </div>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-category")} />
           <ShopifyCategoryField
             initialId={draft.shopifyCategoryId}

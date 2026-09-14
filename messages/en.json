@@ -73,6 +73,17 @@
     "selectionPromise": "Selected / useful / made to last",
     "featuredProduct": "Featured product / {department}",
     "resultsHeading": "Shop results",
+    "discovery": {
+      "newTitle": "New arrivals",
+      "newDescription": "The latest pieces to enter the Synarava selection.",
+      "popularTitle": "Most popular",
+      "popularDescription": "Pieces customers return to most often.",
+      "categoryTitle": "Shop by category",
+      "categoryDescription": "Browse the exact product categories assigned in Shopify.",
+      "viewAll": "View all",
+      "viewAllLabel": "View all {section}",
+      "shopCategory": "Shop {category}"
+    },
     "empty": {
       "preview": "Department preview",
       "count": "0 products found",

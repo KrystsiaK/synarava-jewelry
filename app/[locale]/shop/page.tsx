@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { getPageBySlug, getShopFilterData, listShopProducts } from "@/lib/content/catalog";
+import { getPageBySlug, getShopFilterData, listBestSellingShopifyProductIds, listShopProducts } from "@/lib/content/catalog";
 import { ShopPage } from "@/components/shop/shop-page";
 import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
@@ -46,10 +46,10 @@ export default async function Page({ searchParams }: Props) {
     availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
     sort: normalizeShopSort(rawFilters.sort),
   };
-  const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts, { t }, page] = await Promise.all([
+  const [{ departments, categories, tags, collections, materials, finishes, origins }, archiveProducts, bestSellingShopifyProductIds, { t }, page] = await Promise.all([
     getShopFilterData(),
-    listShopProducts(filters),
     listShopProducts({}),
+    listBestSellingShopifyProductIds(),
     getServerTranslations(),
     getPageBySlug("shop"),
   ]);
@@ -68,14 +68,30 @@ export default async function Page({ searchParams }: Props) {
     name: collection.name,
     image: storefrontMedia(collection.heroImageUrl, collection.slug),
   }));
+  const categoryTiles = categories.flatMap((category) => {
+    const categoryProducts = archiveProducts.filter((product) => product.categorySlug === category.slug);
+    const image = categoryProducts[0]?.image;
+    return image ? [{ ...category, image, count: categoryProducts.length }] : [];
+  });
+  const productsByShopifyId = new Map(
+    archiveProducts.flatMap((product) => (
+      product.shopifyProductId ? [[product.shopifyProductId, product.slug] as const] : []
+    )),
+  );
+  const popularProductSlugs = bestSellingShopifyProductIds?.flatMap((id) => {
+    const slug = productsByShopifyId.get(id);
+    return slug ? [slug] : [];
+  }) ?? null;
 
   return (
     <ShopPage
-      products={products}
+      products={archiveProducts}
+      popularProductSlugs={popularProductSlugs}
       heroImage={page?.content.heroImage}
       archiveCount={archiveProducts.length}
       departmentTiles={departmentTiles}
       collectionTiles={collectionTiles}
+      categoryTiles={categoryTiles}
       filterProps={{
         departments: departments.map((department) => {
           const hasProducts = archiveProducts.some((product) => product.departmentSlug === department.slug);

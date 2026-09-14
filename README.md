@@ -124,6 +124,15 @@ collection and the **Collection priority** sort, then drag rows or use the arrow
 uses Shopify's `collectionReorderProducts`; the local `ProductCollection.sortOrder` value is only the
 storefront projection of the order returned by Shopify.
 
+The storefront category filter uses each product's single exact Shopify Standard Product Taxonomy
+category ID. Shopify collections are separate, many-to-many merchandising groups; collections marked
+for primary navigation are exposed as departments. The `/shop` page loads the published catalog once,
+then presents hero, newest products, a conditional Shopify best-selling rail, taxonomy categories, and
+the full archive. Best-selling order is read from the storefront-default Shopify collection with
+Shopify's `BEST_SELLING` sort; the rail is omitted when no usable ranking is available. Search, facets,
+and sorting run in the browser and update the query string without a route reload. Browser back and
+forward navigation rehydrates the matching filter state.
+
 Product reviews use Shopify's standard `product_review` metaobject plus the standard
 `reviews.rating` and `reviews.rating_count` product metafields. This integration requires Shopify
 approval for product-review syndication and the `write_product_reviews`, `read_metaobjects`,

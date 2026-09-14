@@ -73,6 +73,17 @@
     "selectionPromise": "Selecionado / útil / feito para durar",
     "featuredProduct": "Produto em destaque / {department}",
     "resultsHeading": "Resultados da loja",
+    "discovery": {
+      "newTitle": "Novidades",
+      "newDescription": "As peças mais recentes da seleção Synarava.",
+      "popularTitle": "Mais populares",
+      "popularDescription": "As peças a que os clientes regressam com mais frequência.",
+      "categoryTitle": "Comprar por categoria",
+      "categoryDescription": "Explore as categorias exatas atribuídas aos produtos na Shopify.",
+      "viewAll": "Ver tudo",
+      "viewAllLabel": "Ver tudo em {section}",
+      "shopCategory": "Comprar {category}"
+    },
     "empty": {
       "preview": "Pré-visualização do departamento",
       "count": "0 produtos encontrados",

@@ -1,8 +1,8 @@
-# Design System: Synarava Admin
+# Design System: Synarava
 
 ## 1. Visual Theme & Atmosphere
 
-A restrained luxury studio console with two equal presentation modes. Dark mode uses graphite surfaces for low-light studio sessions; light mode uses neutral porcelain and mineral-gray layers for daylight work. Both retain warm champagne accents, precise typography, and CMS-oriented hierarchy. Density is balanced for repeated admin work; motion is quiet, tactile, and state-driven.
+A restrained luxury system with two related expressions. The public storefront is an image-led porcelain editorial experience with couture pacing; the admin is a calm studio console built for repeated work. Dark mode uses graphite surfaces for low-light studio sessions, while light mode uses neutral porcelain and mineral-gray layers for daylight work. Both retain precise typography and quiet, state-driven motion. Champagne signals operational state in the admin; couture red provides the storefront's sparing editorial accent.
 
 ## 2. Color Palette & Roles
 
@@ -26,7 +26,7 @@ The public storefront uses neutral porcelain (#F7F7F5) in light mode rather than
 
 ## 4. Component Stylings
 
-- **Buttons:** Hard-edged luxury controls with 8px radius, visible focus rings, and subtle press feedback.
+- **Buttons:** Admin controls use an 8px radius, visible focus rings, and subtle press feedback. Storefront discovery links and filter controls use square, hard-edged geometry.
 - **Panels:** Dark graphite fills with a single hairline border. Use panels for grouped editing and status contexts, not decoration.
 - **Inputs:** Label above, error below, dark inset field, AA placeholder contrast, champagne focus ring. Guidance appears in compact help popovers, never as loose paragraph text beneath fields.
 - **Status Badges:** Published and draft states must be visually distinct but not loud.
@@ -42,6 +42,15 @@ Transitions stay between 120ms and 220ms, mostly color, opacity, and transform. 
 
 Theme preference supports Light, Dark, and System. It is persisted in the `synarava-theme` cookie, applied before hydration to prevent a wrong-theme flash, and shared by the storefront, checkout, profile, authentication, and admin studio. Theme controls must remain available on every route and in the admin mobile drawer.
 
-## 7. Anti-Patterns (Banned)
+## 7. Storefront Shop Experience
+
+The shop should read as an editorial progression before it becomes a utility surface: cinematic hero, newest product rail, conditional Shopify best-selling rail, exact taxonomy category grid, then the complete filterable archive. Do not fabricate a popular section when Shopify ranking is unavailable.
+
+- **Discovery:** Use large serif headlines, generous vertical pacing, hairline dividers, and image-led cards. Product rails scroll horizontally with snap behavior; taxonomy categories resolve into a responsive image grid.
+- **Product imagery:** Let photography carry the cards. Use restrained dark gradients only to preserve white title and price legibility; hover scaling stays slow and slight.
+- **Archive:** Visually separate discovery from the denser archive while keeping the porcelain canvas continuous. Departments are primary-navigation collections; merchandising collections are a secondary rail; exact Shopify taxonomy categories remain a distinct facet.
+- **Interaction:** Archive filters update results and the URL in place so the shopper keeps their reading position. Discovery calls to action may smoothly advance to the archive after setting the corresponding filter.
+
+## 8. Anti-Patterns (Banned)
 
 No neon terminal green, no AI-purple gradients, no pure black, no generic SaaS metric theatre, no low-contrast charcoal text on dark backgrounds, no decorative motion, no centered marketing hero patterns inside admin, no invented publishing metrics.

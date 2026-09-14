@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AnimatePresence,
   LayoutGroup,
@@ -15,11 +15,13 @@ import { ProductCard } from "@/components/ui/product-card";
 import { PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
+import { ShopDiscovery, type ShopCategoryTile } from "./shop-discovery";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { cn } from "@/lib/ui";
 import { isJewelryDepartment } from "@/lib/catalog/taxonomy";
+import { filterAndSortShopProducts } from "./shop-product-filtering";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -87,9 +89,11 @@ export type ShopDepartmentTile = {
 function DepartmentStrip({
   departments,
   activeSlug,
+  onSelectFilters,
 }: {
   departments: ShopDepartmentTile[];
   activeSlug?: string;
+  onSelectFilters: (filters: ShopFilters) => void;
 }) {
   const { t, locale } = useTranslations();
   if (departments.length === 0) return null;
@@ -102,6 +106,10 @@ function DepartmentStrip({
       <div className="flex gap-3 overflow-x-auto pb-1">
         <Link
           href={localePath(locale, "/shop")}
+          onClick={(event) => {
+            event.preventDefault();
+            onSelectFilters({});
+          }}
           className={cn(
             tileClass,
             "justify-center bg-surface/60",
@@ -133,6 +141,10 @@ function DepartmentStrip({
             <Link
               key={department.slug}
               href={localePath(locale, `/shop?department=${department.slug}`)}
+              onClick={(event) => {
+                event.preventDefault();
+                onSelectFilters({ department: department.slug });
+              }}
               className={cn(tileClass, isActive ? "border-couture-red" : "border-foreground/10 hover:border-couture-red/40")}
             >
               {inner}
@@ -155,7 +167,7 @@ export type ShopCollectionTile = {
   image: string;
 };
 
-function CollectionRail({ collections }: { collections: ShopCollectionTile[] }) {
+function CollectionRail({ collections, onSelectFilters }: { collections: ShopCollectionTile[]; onSelectFilters: (filters: ShopFilters) => void }) {
   const { t, locale } = useTranslations();
   if (collections.length === 0) return null;
 
@@ -167,6 +179,10 @@ function CollectionRail({ collections }: { collections: ShopCollectionTile[] }) 
           <Link
             key={collection.slug}
             href={localePath(locale, `/shop?collection=${collection.slug}`)}
+            onClick={(event) => {
+              event.preventDefault();
+              onSelectFilters({ collection: collection.slug });
+            }}
             className="group relative flex h-36 w-48 shrink-0 flex-col justify-end overflow-hidden border border-foreground/10 p-4 transition-colors hover:border-couture-red/40"
           >
             {collection.image ? (
@@ -219,7 +235,7 @@ type EmptyStateProps = {
 const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
-function EmptyState({ filters, departments = [], categories, collections, tags }: EmptyStateProps) {
+function EmptyState({ filters, departments = [], categories, collections, tags, onSelectFilters }: EmptyStateProps & { onSelectFilters: (filters: ShopFilters) => void }) {
   const { t, locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
@@ -241,30 +257,30 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
   };
 
   /* Active filter chips with remove-one URLs */
-  const active: { key: keyof ShopFilters; label: string; removeHref: string }[] = [];
+  const active: { key: keyof ShopFilters; label: string; nextFilters: ShopFilters }[] = [];
   if (filters.q) {
     const next = { ...filters, q: undefined };
-    active.push({ key: "q", label: `"${filters.q}"`, removeHref: `/shop?${buildSearchParams(next)}` });
+    active.push({ key: "q", label: `"${filters.q}"`, nextFilters: next });
   }
   if (filters.department) {
     const next = { ...filters, department: undefined };
-    active.push({ key: "department", label: labelOf(filters.department, departments), removeHref: `/shop?${buildSearchParams(next)}` });
+    active.push({ key: "department", label: labelOf(filters.department, departments), nextFilters: next });
   }
   if (filters.availability) {
     const next = { ...filters, availability: undefined };
-    active.push({ key: "availability", label: t("shop.filters.inStock"), removeHref: `/shop?${buildSearchParams(next)}` });
+    active.push({ key: "availability", label: t("shop.filters.inStock"), nextFilters: next });
   }
   if (filters.category) {
     const next = { ...filters, category: undefined };
-    active.push({ key: "category", label: labelOf(filters.category, categories), removeHref: `/shop?${buildSearchParams(next)}` });
+    active.push({ key: "category", label: labelOf(filters.category, categories), nextFilters: next });
   }
   if (filters.collection) {
     const next = { ...filters, collection: undefined };
-    active.push({ key: "collection", label: labelOf(filters.collection, collections), removeHref: `/shop?${buildSearchParams(next)}` });
+    active.push({ key: "collection", label: labelOf(filters.collection, collections), nextFilters: next });
   }
   if (filters.tag) {
     const next = { ...filters, tag: undefined };
-    active.push({ key: "tag", label: labelOf(filters.tag, tags), removeHref: `/shop?${buildSearchParams(next)}` });
+    active.push({ key: "tag", label: labelOf(filters.tag, tags), nextFilters: next });
   }
 
   return (
@@ -301,7 +317,11 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
           {active.map((f) => (
             <Link
               key={f.key}
-              href={f.removeHref}
+              href={`${localePath(locale, `/shop?${buildSearchParams(f.nextFilters)}`)}#shop-results`}
+              onClick={(event) => {
+                event.preventDefault();
+                onSelectFilters(f.nextFilters);
+              }}
               className="inline-flex items-center gap-0 border border-stroke overflow-hidden transition-colors hover:border-foreground/30 group"
             >
               <span className="label-mono text-[0.65rem] text-muted/50 px-2 py-1.5 border-r border-stroke">
@@ -319,9 +339,16 @@ function EmptyState({ filters, departments = [], categories, collections, tags }
       )}
 
       {/* Primary CTA */}
-      <PrimaryCtaButton href={localePath(locale, "/shop")}>
+      <Link
+        href={`${localePath(locale, "/shop")}#shop-results`}
+        onClick={(event) => {
+          event.preventDefault();
+          onSelectFilters({});
+        }}
+        className="inline-flex min-h-11 items-center bg-foreground px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-couture-red hover:text-white"
+      >
         {isDepartmentLanding ? t("shop.empty.browseAvailable") : t("shop.empty.showAll")}
-      </PrimaryCtaButton>
+      </Link>
     </motion.div>
   );
 }
@@ -460,21 +487,60 @@ function ShopFooter() {
 /* ─── Root ───────────────────────────────────────────────────────── */
 export type ShopPageProps = {
   products: ProductSummary[];
+  popularProductSlugs: string[] | null;
   heroImage?: string;
   archiveCount: number;
   filterProps: Omit<FilterBarProps, "totalCount">;
   departmentTiles: ShopDepartmentTile[];
   collectionTiles: ShopCollectionTile[];
+  categoryTiles: ShopCategoryTile[];
 };
 
-export function ShopPage({ products, heroImage, archiveCount, filterProps, departmentTiles, collectionTiles }: ShopPageProps) {
-  const { t } = useTranslations();
-  const activeDepartment = filterProps.initialFilters.department;
+export function ShopPage({ products, popularProductSlugs, heroImage, archiveCount, filterProps, departmentTiles, collectionTiles, categoryTiles }: ShopPageProps) {
+  const { t, locale } = useTranslations();
+  const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
+  const productsBySlug = useMemo(
+    () => new Map(products.map((product) => [product.slug, product])),
+    [products],
+  );
+  const popularProducts = useMemo(
+    () => popularProductSlugs?.flatMap((slug) => {
+      const product = productsBySlug.get(slug);
+      return product ? [product] : [];
+    }) ?? [],
+    [popularProductSlugs, productsBySlug],
+  );
+  const newestProducts = useMemo(
+    () => filterAndSortShopProducts(products, { sort: "newest" }, [], locale).slice(0, 8),
+    [locale, products],
+  );
+  const filteredProducts = useMemo(
+    () => filterAndSortShopProducts(products, activeFilters, popularProductSlugs ?? [], locale),
+    [activeFilters, locale, popularProductSlugs, products],
+  );
+  const activeDepartment = activeFilters.department;
+
+  const selectDiscoveryFilters = (filters: ShopFilters) => {
+    setActiveFilters(filters);
+    const qs = buildSearchParams(filters);
+    window.history.pushState(null, "", `${localePath(locale, qs ? `/shop?${qs}` : "/shop")}#shop-results`);
+    window.requestAnimationFrame(() => {
+      document.getElementById("shop-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
   return (
     <main data-component="ShopPage"
       className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
       <ShopHero heroImage={heroImage} archiveCount={archiveCount} />
+
+      <ShopDiscovery
+        newestProducts={newestProducts}
+        popularProducts={popularProducts.slice(0, 8)}
+        showPopular={popularProductSlugs !== null && popularProducts.length > 0}
+        categories={categoryTiles}
+        onSelectFilters={selectDiscoveryFilters}
+      />
 
       <div id="shop-results" className="relative scroll-mt-24 bg-background pb-16 pt-6 md:pb-24 md:pt-14">
         <h2 className="sr-only">{t("shop.resultsHeading")}</h2>
@@ -487,14 +553,21 @@ export function ShopPage({ products, heroImage, archiveCount, filterProps, depar
           aria-hidden="true"
         />
         <div className="site-shell">
-          <DepartmentStrip departments={departmentTiles} activeSlug={activeDepartment} />
-          {isJewelryDepartment(activeDepartment) && <CollectionRail collections={collectionTiles} />}
+          <DepartmentStrip departments={departmentTiles} activeSlug={activeDepartment} onSelectFilters={selectDiscoveryFilters} />
+          {isJewelryDepartment(activeDepartment) && <CollectionRail collections={collectionTiles} onSelectFilters={selectDiscoveryFilters} />}
 
-          <FilterSection filterProps={filterProps} totalCount={products.length} />
+          <FilterSection
+            filterProps={{
+              ...filterProps,
+              initialFilters: activeFilters,
+              onFiltersChange: setActiveFilters,
+            }}
+            totalCount={filteredProducts.length}
+          />
 
           <LayoutGroup id="shop-results">
             <AnimatePresence mode="wait" initial={false}>
-              {products.length === 0 ? (
+              {filteredProducts.length === 0 ? (
                 <motion.div
                   key="empty"
                   initial={{ opacity: 0, y: 18, filter: "blur(5px)" }}
@@ -503,15 +576,16 @@ export function ShopPage({ products, heroImage, archiveCount, filterProps, depar
                   transition={{ duration: 0.34, ease }}
                 >
                   <EmptyState
-                    filters={filterProps.initialFilters}
+                    filters={activeFilters}
                     departments={filterProps.departments}
                     categories={filterProps.categories}
                     collections={filterProps.collections}
                     tags={filterProps.tags}
+                    onSelectFilters={selectDiscoveryFilters}
                   />
                 </motion.div>
               ) : (
-                <ProductGrid key="products" products={products} sort={filterProps.initialFilters.sort} />
+                <ProductGrid key="products" products={filteredProducts} sort={activeFilters.sort} />
               )}
             </AnimatePresence>
           </LayoutGroup>

@@ -1,4 +1,4 @@
-import type { ShopSort } from "@/lib/catalog/shop-sort";
+import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 
 export type ShopFilters = {
   q?: string;
@@ -37,6 +37,23 @@ export function buildSearchParams(filters: ShopFilters): string {
   if (filters.certified) params.set("certified", filters.certified);
   if (filters.sort && filters.sort !== "featured") params.set("sort", filters.sort);
   return params.toString();
+}
+
+export function parseShopFilters(searchParams: URLSearchParams): ShopFilters {
+  const availability = searchParams.get("availability");
+  return {
+    q: searchParams.get("q") || undefined,
+    department: searchParams.get("department") || undefined,
+    availability: availability === "in-stock" ? "in-stock" : undefined,
+    category: searchParams.get("category") || undefined,
+    collection: searchParams.get("collection") || undefined,
+    tag: searchParams.get("tag") || undefined,
+    material: searchParams.get("material") || undefined,
+    finish: searchParams.get("finish") || undefined,
+    origin: searchParams.get("origin") || undefined,
+    certified: searchParams.get("certified") || undefined,
+    sort: normalizeShopSort(searchParams.get("sort") || undefined),
+  };
 }
 
 export function countActiveFilters(filters: ShopFilters): number {

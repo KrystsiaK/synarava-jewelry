@@ -20,7 +20,7 @@ type TranslationContextValue = {
 type TranslationValues = Record<string, string | number>;
 
 const STORAGE_LOCALE_KEY = "synarava-locale";
-const STORAGE_CACHE_PREFIX = "synarava-t-v4-";
+const STORAGE_CACHE_PREFIX = "synarava-t-v5-";
 
 const enFlat = flattenMessages(en as Record<string, unknown>);
 

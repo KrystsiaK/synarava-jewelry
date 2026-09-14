@@ -3,24 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { FilterBar } from "../filter-bar";
 import { FILTERS_STORAGE_KEY } from "../types";
 
-const mockPush = vi.fn();
-const mockReplace = vi.fn();
-
-vi.mock("next/navigation", () => ({
-  useRouter: vi.fn(() => ({
-    push: mockPush,
-    replace: mockReplace,
-    prefetch: vi.fn(),
-    back: vi.fn(),
-  })),
-}));
+const historyPush = vi.spyOn(window.history, "pushState");
 
 const categories = [{ value: "bracelets", label: "Bracelets" }];
 const departments = [{ value: "jewelry", label: "Jewelry" }];
 const collections = [{ value: "heritage", label: "Heritage" }];
 const tags = [{ value: "oak", label: "Oak Wood" }];
-const noScroll = { scroll: false };
-
 const defaultProps = {
   departments,
   categories,
@@ -31,8 +19,7 @@ const defaultProps = {
 };
 
 beforeEach(() => {
-  mockPush.mockClear();
-  mockReplace.mockClear();
+  historyPush.mockClear();
   sessionStorage.clear();
   vi.useRealTimers();
 });
@@ -40,6 +27,18 @@ beforeEach(() => {
 // ── Rendering ────────────────────────────────────────────────────────────────
 
 describe("FilterBar", () => {
+  it("updates filters without asking Next.js for a new server render", async () => {
+    const user = userEvent.setup();
+    const onFiltersChange = vi.fn();
+    render(<FilterBar {...defaultProps} onFiltersChange={onFiltersChange} />);
+
+    await user.click(screen.getByRole("button", { name: /^category$/i }));
+    await user.click(screen.getByRole("option", { name: "Bracelets" }));
+
+    expect(onFiltersChange).toHaveBeenCalledWith({ category: "bracelets" });
+    expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop?category=bracelets");
+  });
+
   it("keeps primary filters visible and progressively reveals contextual filters", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
@@ -69,12 +68,12 @@ describe("FilterBar", () => {
 
   // ── Desktop filter selection ──────────────────────────────────────────────
 
-  it("navigates when a category is selected", async () => {
+  it("updates the URL when a category is selected", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop?category=bracelets", noScroll));
+    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop?category=bracelets"));
   });
 
   it("saves filters to sessionStorage on selection", async () => {
@@ -100,7 +99,7 @@ describe("FilterBar", () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /remove filter bracelets/i }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
+    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
   });
 
   // ── Clear all ─────────────────────────────────────────────────────────────
@@ -123,22 +122,22 @@ describe("FilterBar", () => {
     await waitFor(() => expect(sessionStorage.getItem(FILTERS_STORAGE_KEY)).toBeNull());
   });
 
-  it("navigates to /shop when Clear all is clicked", async () => {
+  it("updates the URL to /shop when Clear all is clicked", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
     await user.click(screen.getByRole("button", { name: /^clear all$/i }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
+    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
   });
 
   // ── Search debounce ───────────────────────────────────────────────────────
 
-  it("navigates with search query after debounce", async () => {
+  it("updates the URL with the search query after debounce", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     const inputs = screen.getAllByPlaceholderText(/search/i);
     await user.type(inputs[0], "oak");
     // Debounce is 350ms — waitFor polls until it passes or times out at 1s
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop?q=oak", noScroll), { timeout: 1000 });
+    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop?q=oak"), { timeout: 1000 });
   });
 
   it("clears search and navigates on X button click", async () => {
@@ -147,7 +146,7 @@ describe("FilterBar", () => {
     // Both desktop and mobile bars render a clear button; click the first
     const clearBtns = screen.getAllByRole("button", { name: /clear search/i });
     await user.click(clearBtns[0]);
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
+    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
   });
 
   // ── Session persistence ───────────────────────────────────────────────────
@@ -164,7 +163,7 @@ describe("FilterBar", () => {
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ category: "bracelets" }));
     render(<FilterBar {...defaultProps} initialFilters={{ collection: "heritage" }} />);
     await new Promise((r) => setTimeout(r, 50));
-    expect(mockReplace).not.toHaveBeenCalled();
+    expect(historyPush).not.toHaveBeenCalled();
   });
 
   // ── Mobile sheet ──────────────────────────────────────────────────────────
@@ -199,7 +198,7 @@ describe("FilterBar", () => {
     if (braceletOpt) await user.click(braceletOpt);
     await user.click(screen.getByRole("button", { name: /view products/i }));
     await waitFor(() =>
-      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("bracelets"), noScroll),
+      expect(historyPush).toHaveBeenCalledWith(null, "", expect.stringContaining("bracelets")),
     );
   });
 
@@ -211,7 +210,7 @@ describe("FilterBar", () => {
     // Clear all in the sheet header, then confirm via CTA.
     await user.click(within(dialog).getByRole("button", { name: /^clear all$/i }));
     await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/shop", noScroll));
+    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
   });
 
   it("can deselect a filter section via All button in mobile sheet", async () => {
@@ -223,7 +222,7 @@ describe("FilterBar", () => {
     const allBtns = within(dialog).getAllByRole("button", { name: "All" });
     await user.click(allBtns[1]);
     await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalled());
+    await waitFor(() => expect(historyPush).toHaveBeenCalled());
   });
 
   it("includes the active filter count in the mobile Filters button", () => {

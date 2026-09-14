@@ -46,6 +46,7 @@ export type CollectionSummary = {
 };
 
 export type ProductSummary = {
+  shopifyProductId: string | null;
   slug: string;
   sku: string;
   series: string;
@@ -58,6 +59,8 @@ export type ProductSummary = {
   compareAtPrice: string;
   compareAtAmount: number | null;
   stockOnHand: number;
+  inStock: boolean;
+  searchText: string;
   variantCount: number;
   vendor: string;
   shopifyCategoryName: string;
@@ -78,6 +81,7 @@ export type ProductSummary = {
   }>;
   image: string;
   collectionSlug: string;
+  collectionSlugs: string[];
   collectionName: string;
   materialLine: string;
   departmentSlug: ShopDepartmentSlug | null;
@@ -100,6 +104,7 @@ export type ProductSummary = {
   lookbookTitle: string;
   lookbook: ProductLookbookStory[];
   updatedAt: Date;
+  createdAt: Date;
 };
 
 export type ShopFilters = {
@@ -202,14 +207,18 @@ function shopifyProjection(value: unknown) {
 }
 
 function toSummary(product: {
+  shopifyProductId: string | null;
   slug: string;
   sku: string;
   name: string;
   seriesLabel: string | null;
   shortDescription: string | null;
   description: string | null;
+  searchSummary: string | null;
+  searchDocument: string | null;
   priceCents: number;
   currency: string;
+  createdAt: Date;
   updatedAt: Date;
   vendor: string | null;
   shopifyCategoryId: string | null;
@@ -244,6 +253,7 @@ function toSummary(product: {
     unit: string | null; certificateUrl: string | null; sortOrder: number;
   }>;
   variants: Array<{
+    status: string;
     shopifyVariantId: string | null;
     title: string;
     sku: string;
@@ -280,6 +290,7 @@ function toSummary(product: {
   // pull's by-SKU matching, not as a display source of truth.
   const primaryVariant = product.variants[0];
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
+  const inStock = product.variants.some((variant) => variant.status === "ACTIVE" && variant.stockOnHand > 0);
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   const projection = shopifyProjection(product.shopifySnapshot);
@@ -295,6 +306,7 @@ function toSummary(product: {
     projection.media,
   );
   return {
+    shopifyProductId: product.shopifyProductId,
     slug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
     series: product.seriesLabel ?? "",
@@ -307,6 +319,21 @@ function toSummary(product: {
     compareAtPrice: compareAtCents == null ? "" : priceFromCents(compareAtCents, product.currency, locale),
     compareAtAmount: compareAtCents == null ? null : compareAtCents / 100,
     stockOnHand,
+    inStock,
+    searchText: [
+      product.slug,
+      product.sku,
+      product.seriesLabel,
+      product.searchSummary,
+      product.searchDocument,
+      localized.title,
+      localized.shortDescription,
+      localized.description,
+      localized.materialLine,
+      product.shopifyCategoryName,
+      primaryNavCollection?.name,
+      ...product.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
+    ].filter(Boolean).join(" "),
     variantCount: product.variants.length,
     vendor: product.vendor ?? "",
     shopifyCategoryName: product.shopifyCategoryName ?? "",
@@ -337,6 +364,7 @@ function toSummary(product: {
     }),
     image: storefrontMedia(product.imageUrl, product.slug),
     collectionSlug: leadCollection?.slug ?? "",
+    collectionSlugs: product.collections.map((item) => item.collection.slug),
     collectionName: leadCollection?.name ?? "",
     materialLine: localized.materialLine,
     departmentSlug: primaryNavCollection?.slug ?? null,
@@ -360,6 +388,7 @@ function toSummary(product: {
     lookbookEyebrow: details.lookbookEyebrow ?? "",
     lookbookTitle: details.lookbookTitle ?? "",
     lookbook: details.lookbook ?? [],
+    createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   };
 }
@@ -487,6 +516,11 @@ async function getBestSellingProductRank(): Promise<Map<string, number> | null> 
   } catch {
     return null;
   }
+}
+
+export async function listBestSellingShopifyProductIds(): Promise<string[] | null> {
+  const rank = await getBestSellingProductRank();
+  return rank ? [...rank.keys()] : null;
 }
 
 export async function listShopProducts(filters: ShopFilters = {}) {
