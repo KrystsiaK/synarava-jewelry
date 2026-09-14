@@ -369,7 +369,8 @@
     "save": "Guardar",
     "saved": "Guardado",
     "addToWishlist": "Guardar nos favoritos",
-    "removeFromWishlist": "Remover dos favoritos"
+    "removeFromWishlist": "Remover dos favoritos",
+    "relatedTitle": "Também pode gostar"
   },
   "reviews": {
     "title": "Avaliações de clientes",

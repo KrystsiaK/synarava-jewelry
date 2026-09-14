@@ -369,7 +369,8 @@
     "save": "Save",
     "saved": "Saved",
     "addToWishlist": "Save to wishlist",
-    "removeFromWishlist": "Remove from wishlist"
+    "removeFromWishlist": "Remove from wishlist",
+    "relatedTitle": "You may also like"
   },
   "reviews": {
     "title": "Customer reviews",

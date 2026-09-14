@@ -846,6 +846,52 @@ function LookbookSection({ product }: { product: ProductSummary }) {
   );
 }
 
+/* ─── Related products ───────────────────────────────────────────── */
+function RelatedProductCard({ product }: { product: ProductSummary }) {
+  const { locale } = useTranslations();
+
+  return (
+    <Link
+      href={localePath(locale, `/products/${product.slug}`)}
+      className="group block w-[min(76vw,19rem)] shrink-0 snap-start md:w-[21rem]"
+    >
+      <div className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
+        <Image
+          src={product.image}
+          alt={product.title}
+          fill
+          sizes="(max-width: 767px) 76vw, 336px"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"
+        />
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-5 pb-5 pt-16 text-white">
+          <p className="font-serif text-2xl leading-tight">{product.title}</p>
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/75">{product.price}</p>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function RelatedProductsSection({ products }: { products: ProductSummary[] }) {
+  const { t } = useTranslations();
+  if (products.length === 0) return null;
+
+  return (
+    <section data-component="RelatedProductsSection" className="border-t border-foreground/[0.06] bg-background py-20 md:py-28">
+      <div className="site-shell">
+        <h2 className="mb-8 font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none md:mb-10">
+          {t("product.relatedTitle")}
+        </h2>
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:gap-6">
+          {products.map((product) => (
+            <RelatedProductCard key={product.slug} product={product} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── CTA footer ─────────────────────────────────────────────────── */
 function ProductFooter({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -928,6 +974,7 @@ export function ProductDetail({
   reviews,
   isSignedIn = false,
   submitReviewAction,
+  relatedProducts = [],
 }: {
   product: ProductSummary;
   fitVideoSrc?: string;
@@ -937,6 +984,7 @@ export function ProductDetail({
     state: ProductReviewActionState,
     formData: FormData,
   ) => Promise<ProductReviewActionState>;
+  relatedProducts?: ProductSummary[];
 }) {
   const trackedProduct = useRef<string | null>(null);
   const { locale } = useTranslations();
@@ -976,6 +1024,7 @@ export function ProductDetail({
       <SymbolismSection product={product} />
       <CraftSection product={product} fitVideoSrc={fitVideoSrc} />
       <LookbookSection product={product} />
+      <RelatedProductsSection products={relatedProducts} />
       {reviews && submitReviewAction ? (
         <ProductReviews
           productSlug={product.slug}

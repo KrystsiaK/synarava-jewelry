@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getProductBySlug } from "@/lib/content/catalog";
+import { getProductBySlug, listShopProducts } from "@/lib/content/catalog";
+import { getShopifyRelatedProductIds } from "@/lib/shopify/recommendations";
+import { pickRelatedProducts } from "@/lib/catalog/related-products";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -53,6 +55,14 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
+  const [relatedIds, catalog] = await Promise.all([
+    product.shopifyProductId
+      ? getShopifyRelatedProductIds(product.shopifyProductId).catch(() => [])
+      : Promise.resolve([]),
+    listShopProducts({}),
+  ]);
+  const relatedProducts = pickRelatedProducts(product, catalog, relatedIds);
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const productJsonLd = buildProductJsonLd(product, siteUrl, reviews);
 
@@ -84,6 +94,7 @@ export default async function ProductDetailPage({ params }: Props) {
         reviews={reviews}
         isSignedIn={isSignedIn}
         submitReviewAction={submitProductReviewAction}
+        relatedProducts={relatedProducts}
       />
     </>
   );
