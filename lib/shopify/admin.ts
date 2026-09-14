@@ -182,6 +182,9 @@ const REVIEW_SCOPES = [
   "read_products",
 ] as const;
 
+/** Needed to write the `synarava.wishlist` metafield on a Customer via metafieldsSet. */
+const WISHLIST_SCOPES = ["write_customers"] as const;
+
 export async function fetchShopifyShopIdentity() {
   const data = await shopifyAdminRequest<{
     shop: { name: string; myshopifyDomain: string };
@@ -220,6 +223,9 @@ export async function testShopifyAdminConnection() {
   const missingReviewScopes: string[] = REVIEW_SCOPES.filter(
     (scope) => !grantedScopes.includes(scope),
   );
+  const missingWishlistScopes: string[] = WISHLIST_SCOPES.filter(
+    (scope) => !grantedScopes.includes(scope),
+  );
   if (!canReadLocales) missingTranslationScopes.push("read_locales or read_markets_home");
 
   const locales = canReadLocales
@@ -241,6 +247,7 @@ export async function testShopifyAdminConnection() {
     missingScopes,
     missingTranslationScopes,
     missingReviewScopes,
+    missingWishlistScopes,
     locales,
     portuguesePublished: locales.some(
       (locale) => locale.locale.toLowerCase() === SHOPIFY_PORTUGUESE_ADMIN_LOCALE.toLowerCase() && locale.published,

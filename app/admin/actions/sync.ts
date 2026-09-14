@@ -114,8 +114,12 @@ export async function testShopifyConnectionAction() {
       }
     }
 
+    const wishlistNotice = connection.missingWishlistScopes.length > 0
+      ? ` Customer wishlist saving is unavailable: missing ${connection.missingWishlistScopes.join(", ")}.`
+      : "";
+
     return {
-      success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.${translationNotice}${reviewNotice}`,
+      success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.${translationNotice}${reviewNotice}${wishlistNotice}`,
       connection,
     };
   } catch (error) {
