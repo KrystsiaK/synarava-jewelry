@@ -24,10 +24,10 @@ import { isJewelryDepartment } from "@/lib/catalog/taxonomy";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export function ShopHero({
-  leadProduct,
+  heroImage,
   archiveCount,
 }: {
-  leadProduct?: ProductSummary;
+  heroImage?: string;
   archiveCount: number;
 }) {
   const { t, plural } = useTranslations();
@@ -36,13 +36,13 @@ export function ShopHero({
     <header data-component="ShopHero"
       className="shop-hero relative flex min-h-[72svh] items-end overflow-hidden bg-background px-5 pb-10 pt-24 text-foreground md:min-h-[82svh] md:px-[8vw] md:pb-16 md:pt-32"
     >
-      {leadProduct ? (
+      {heroImage ? (
         <div
           data-testid="shop-hero-media"
           className="absolute inset-0 overflow-hidden bg-charcoal"
         >
           <Image
-            src={leadProduct.image}
+            src={heroImage}
             alt=""
             fill
             preload
@@ -460,21 +460,21 @@ function ShopFooter() {
 /* ─── Root ───────────────────────────────────────────────────────── */
 export type ShopPageProps = {
   products: ProductSummary[];
-  leadProduct?: ProductSummary;
+  heroImage?: string;
   archiveCount: number;
   filterProps: Omit<FilterBarProps, "totalCount">;
   departmentTiles: ShopDepartmentTile[];
   collectionTiles: ShopCollectionTile[];
 };
 
-export function ShopPage({ products, leadProduct, archiveCount, filterProps, departmentTiles, collectionTiles }: ShopPageProps) {
+export function ShopPage({ products, heroImage, archiveCount, filterProps, departmentTiles, collectionTiles }: ShopPageProps) {
   const { t } = useTranslations();
   const activeDepartment = filterProps.initialFilters.department;
   return (
     <main data-component="ShopPage"
       className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
-      <ShopHero leadProduct={leadProduct} archiveCount={archiveCount} />
+      <ShopHero heroImage={heroImage} archiveCount={archiveCount} />
 
       <div id="shop-results" className="relative scroll-mt-24 bg-background pb-16 pt-6 md:pb-24 md:pt-14">
         <h2 className="sr-only">{t("shop.resultsHeading")}</h2>

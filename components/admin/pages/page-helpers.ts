@@ -1,5 +1,6 @@
 import type { SavedPagePayload } from "@/app/admin/actions/pages";
 import type { PageRowAction } from "@/components/admin/pages/page-types";
+import { isBuiltInPage } from "@/lib/content/built-in-pages";
 
 export function pageStatusLabel(page: SavedPagePayload) {
   if (page.status === "ARCHIVED") return "ARCHIVED";
@@ -7,7 +8,7 @@ export function pageStatusLabel(page: SavedPagePayload) {
 }
 
 export function isProtectedPage(slug: string) {
-  return slug === "home" || slug === "about" || slug === "manifesto";
+  return isBuiltInPage(slug) || slug === "manifesto";
 }
 
 export function pageActionCopy(target: PageRowAction) {

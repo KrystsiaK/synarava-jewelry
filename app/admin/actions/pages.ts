@@ -10,6 +10,7 @@ import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { savePageImageUpload } from "@/lib/media/local-upload";
+import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import {
   asRecord,
   createDraftToken,
@@ -18,8 +19,6 @@ import {
   writeAuditLog,
   type DraftAutosaveResult,
 } from "./shared";
-
-const PROTECTED_PAGE_SLUGS = new Set(["home", "about", "manifesto"]);
 
 export type PageActionState = {
   error?: string;
@@ -512,7 +511,7 @@ export async function deletePageAction(formData: FormData): Promise<PageActionSt
   }
   const { slug } = parsed.data;
 
-  if (PROTECTED_PAGE_SLUGS.has(slug)) {
+  if (isBuiltInPage(slug) || slug === "manifesto") {
     return { error: "System pages cannot be deleted." };
   }
 

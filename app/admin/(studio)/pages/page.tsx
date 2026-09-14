@@ -10,7 +10,7 @@ export default async function AdminPagesPage() {
         <p className="adm-section-tag mb-3">[ SYN-ADM // PGS ]</p>
         <h1 className="adm-page-title">Pages</h1>
         <p className="adm-page-subtitle">
-          Editorial CMS for home, about, manifesto, and locale-aware content work.
+          Editorial CMS for page copy, publishing state, and route-specific hero images.
         </p>
       </div>
 

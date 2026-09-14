@@ -53,7 +53,6 @@ export default async function Page() {
     }));
 
   const content: PageContent = page?.content ?? {};
-  const heroImage = content.heroImage || collections[0]?.image || "";
   const departments = navigation.map((department) => {
     const departmentProducts = products.filter((product) => product.departmentSlug === department.slug);
     return {
@@ -68,7 +67,7 @@ export default async function Page() {
     <HomePage
       title={page?.title}
       excerpt={page?.excerpt}
-      content={{ ...content, heroImage, heroTitle: page?.title ?? "", heroBody: content.body ?? page?.excerpt ?? "" }}
+      content={{ ...content, heroImage: content.heroImage, heroTitle: page?.title ?? "", heroBody: content.body ?? page?.excerpt ?? "" }}
       collections={collections}
       departments={departments}
       heroVideoSrc={[videos.homeBeads, videos.homeModel, videos.braceletFilm, videos.materialsFilm]}

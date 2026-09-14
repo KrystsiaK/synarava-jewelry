@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { getShopFilterData, listShopProducts } from "@/lib/content/catalog";
+import { getPageBySlug, getShopFilterData, listShopProducts } from "@/lib/content/catalog";
 import { ShopPage } from "@/components/shop/shop-page";
 import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
@@ -9,7 +9,8 @@ import { buildAlternates } from "@/lib/seo/alternates";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getRequestLocale();
+  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("shop")]);
+  const heroImage = page?.content.heroImage;
   return {
     title: "Shop",
     description:
@@ -17,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: buildAlternates(locale, "/shop"),
     openGraph: {
       url: localePath(locale, "/shop"),
-      images: [{ url: "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Shop" }],
+      images: [{ url: heroImage || "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Shop" }],
     },
   };
 }
@@ -45,11 +46,12 @@ export default async function Page({ searchParams }: Props) {
     availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
     sort: normalizeShopSort(rawFilters.sort),
   };
-  const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts, { t }] = await Promise.all([
+  const [{ departments, categories, tags, collections, materials, finishes, origins }, products, archiveProducts, { t }, page] = await Promise.all([
     getShopFilterData(),
     listShopProducts(filters),
     listShopProducts({}),
     getServerTranslations(),
+    getPageBySlug("shop"),
   ]);
 
   const departmentTiles = departments.map((department) => {
@@ -70,7 +72,7 @@ export default async function Page({ searchParams }: Props) {
   return (
     <ShopPage
       products={products}
-      leadProduct={archiveProducts[0]}
+      heroImage={page?.content.heroImage}
       archiveCount={archiveProducts.length}
       departmentTiles={departmentTiles}
       collectionTiles={collectionTiles}
