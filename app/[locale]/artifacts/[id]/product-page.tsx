@@ -11,6 +11,9 @@ import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { buildProductJsonLd } from "@/lib/seo/product-json-ld";
 import { safeJsonLd } from "@/lib/seo/json-ld";
+import { getProductReviewsBySlug } from "@/lib/content/product-reviews";
+import { submitProductReviewAction } from "@/app/actions/product-reviews";
+import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 
 type Props = {
   params: Promise<{ slug?: string; id?: string }>;
@@ -41,12 +44,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductDetailPage({ params }: Props) {
   const [resolved, locale] = await Promise.all([params, getRequestLocale()]);
   const key = resolved.slug ?? resolved.id ?? "";
-  const [product, videos] = await Promise.all([getProductBySlug(key), getSiteVideos()]);
+  const [product, videos, reviews, isSignedIn] = await Promise.all([
+    getProductBySlug(key),
+    getSiteVideos(),
+    getProductReviewsBySlug(key),
+    hasShopifyCustomerSession(),
+  ]);
 
   if (!product) notFound();
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const productJsonLd = buildProductJsonLd(product, siteUrl);
+  const productJsonLd = buildProductJsonLd(product, siteUrl, reviews);
 
   const breadcrumbs = getProductBreadcrumbs(product);
   const breadcrumbJsonLd = {
@@ -73,6 +81,9 @@ export default async function ProductDetailPage({ params }: Props) {
       <ProductDetail
         product={product}
         fitVideoSrc={hasFitFilm(product.departmentSlug) ? videos.braceletFilm : undefined}
+        reviews={reviews}
+        isSignedIn={isSignedIn}
+        submitReviewAction={submitProductReviewAction}
       />
     </>
   );

@@ -62,7 +62,7 @@ Fill in local/production variables as needed:
 - `SHOPIFY_ADMIN_API_VERSION` — optional, defaults to `2026-07`
 - `SHOPIFY_PUBLICATION_ID` — optional Online Store publication GID; auto-detected by name when omitted
 - `SHOPIFY_LOCATION_ID` — optional inventory location GID; the first active location is used when omitted
-- `SHOPIFY_WEBHOOK_SECRET` — secret used to verify product create/update/delete webhooks
+- `SHOPIFY_WEBHOOK_SECRET` — secret used to verify product, inventory, and product-review webhooks
 - `S3_REGION`
 - `S3_BUCKET`
 - `S3_ACCESS_KEY_ID`
@@ -118,6 +118,20 @@ and `read_locales`. Enable and publish Portuguese (Portugal), locale `pt-PT`, in
 release the updated Shopify app configuration and approve the new permissions for the store; replace
 `SHOPIFY_ADMIN_ACCESS_TOKEN` if Shopify issues a new token. The studio connection test verifies the
 granted scopes and that `pt-PT` is published before localized product sync is used.
+
+Collection priority is Shopify's manual collection order. In the studio product table, choose a
+collection and the **Collection priority** sort, then drag rows or use the arrow controls. Each move
+uses Shopify's `collectionReorderProducts`; the local `ProductCollection.sortOrder` value is only the
+storefront projection of the order returned by Shopify.
+
+Product reviews use Shopify's standard `product_review` metaobject plus the standard
+`reviews.rating` and `reviews.rating_count` product metafields. This integration requires Shopify
+approval for product-review syndication and the `write_product_reviews`, `read_metaobjects`,
+`read_customers`, `read_orders`, and `read_products` scopes. **Test Shopify connection** enables the
+standard definition and registers filtered `metaobjects/create`, `metaobjects/update`, and
+`metaobjects/delete` webhooks when `NEXT_PUBLIC_APP_URL` and `SHOPIFY_WEBHOOK_SECRET` are configured.
+The storefront uses Shopify's official **Verified by Shop** badge only when syndicated reviews are
+actually present.
 
 English product content is synchronized as Shopify's base product content. Reviewed Portuguese
 product content is registered through Shopify's Translation API, and Portuguese edits made in

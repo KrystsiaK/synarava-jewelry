@@ -4,7 +4,14 @@ import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-ty
 
 export type CategoryOption = { slug: string; name: string };
 export type TagOption = SavedTagPayload;
-export type CollectionOption = { id: string; slug: string; name: string; isPrimaryNav: boolean; navSortOrder: number };
+export type CollectionOption = {
+  id: string;
+  slug: string;
+  name: string;
+  isPrimaryNav: boolean;
+  navSortOrder: number;
+  shopifyCollectionId: string | null;
+};
 export type ProductRecord = SavedProductPayload;
 
 export type ProductCmsProps = {

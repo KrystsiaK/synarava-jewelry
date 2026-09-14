@@ -38,6 +38,12 @@ Rules:
 - Do not preserve placeholders, superseded instructions, or descriptions of unimplemented future state as if they were current. Keep historical context only when it is explicitly labeled as history or captured in an ADR/history document.
 - Before committing, review the documentation touched by or directly describing the changed behavior and make sure it matches the implementation.
 
+## Shopify commerce model
+
+- Treat Shopify as the source of truth for catalog and commerce capabilities. Verify the current official Shopify API and data model before implementing a commerce feature.
+- Reuse Shopify-native resources, collections, metafields, metaobjects, and semantics whenever Shopify supports the capability. Do not create a parallel local commerce concept; local data may only act as an explicit projection, cache, or Synarava-specific editorial layer.
+- Keep local projections synchronized with Shopify. When a Shopify capability requires approval or restricted access scopes, preserve the Shopify-native integration contract and surface the requirement instead of replacing it with an invented local substitute.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

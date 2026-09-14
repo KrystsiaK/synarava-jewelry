@@ -9,6 +9,7 @@ import {
   updateProductStatusAction,
   type ProductActionState,
 } from "@/app/admin/actions/products";
+import { reorderCollectionProductAction } from "@/app/admin/actions/catalog-order";
 import {
   archiveMissingShopifyProductsAction,
   previewShopifyReconciliationAction,
@@ -22,7 +23,16 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import type { ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
 import { productLocaleReadiness } from "@/lib/products/localization";
-import { ArrowDownToLine, ArrowUpFromLine, Eye, RefreshCw } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  GripVertical,
+  RefreshCw,
+} from "lucide-react";
+import { moveCollectionItem, syncedOrderPosition } from "@/lib/catalog/collection-order";
 import {
   centsToPrice,
   PRODUCT_SORT_OPTIONS,
@@ -67,11 +77,13 @@ export function ProductsCms({
     currentShopDomain: string;
   } | null>(null);
   const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
+  const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
   const [isConnectionPending, startConnectionTransition] = useTransition();
   const [isPreviewPending, startPreviewTransition] = useTransition();
   const [isSyncPending, startSyncTransition] = useTransition();
   const [isStoreRebindPending, startStoreRebindTransition] = useTransition();
+  const [isOrderPending, startOrderTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
 
@@ -79,6 +91,26 @@ export function ProductsCms({
     setProducts((current) =>
       normalizeProducts(current.map((item) => (item.id === product.id ? product : item))),
     );
+  }
+
+  function applyCollectionOrder(
+    current: ProductRecord[],
+    collectionId: string,
+    orderedProductIds: string[],
+  ) {
+    const positionByProductId = new Map(
+      orderedProductIds.map((productId, sortOrder) => [productId, sortOrder]),
+    );
+    return current.map((product) => {
+      const sortOrder = positionByProductId.get(product.id);
+      if (sortOrder == null) return product;
+      return {
+        ...product,
+        collections: product.collections.map((membership) => (
+          membership.collection.id === collectionId ? { ...membership, sortOrder } : membership
+        )),
+      };
+    });
   }
 
   function handleDeleted(productId: string) {
@@ -223,8 +255,13 @@ export function ProductsCms({
 
   const modalCopy = rowAction ? productActionCopy(rowAction) : null;
   const normalizedQuery = query.trim().toLowerCase();
-  const desktopTableGridClass =
-    "xl:grid-cols-[minmax(14rem,1.5fr)_7rem_7rem_9rem_minmax(18rem,1fr)]";
+  const selectedCollection = collections.find((collection) => collection.id === collectionFilter);
+  const priorityMode = Boolean(selectedCollection) && sortBy === "collection-priority";
+  const hasNarrowingFilters = Boolean(normalizedQuery) || statusFilter !== "ALL" || categoryFilter !== "ALL";
+  const canReorder = priorityMode && !hasNarrowingFilters && Boolean(selectedCollection?.shopifyCollectionId);
+  const desktopTableGridClass = selectedCollection
+    ? "xl:grid-cols-[9rem_minmax(14rem,1.5fr)_7rem_7rem_9rem_minmax(18rem,1fr)]"
+    : "xl:grid-cols-[minmax(14rem,1.5fr)_7rem_7rem_9rem_minmax(18rem,1fr)]";
   const filteredProducts = products.filter((product) => {
     const status = productStatusLabel(product);
     const matchesQuery =
@@ -238,11 +275,45 @@ export function ProductsCms({
       categoryFilter === "ALL" || product.shopifyCategoryId === categoryFilter;
     const matchesCollection =
       collectionFilter === "ALL" ||
-      product.collections.some((item) => item.collection.slug === collectionFilter);
+      product.collections.some((item) => item.collection.id === collectionFilter);
 
     return matchesQuery && matchesStatus && matchesCategory && matchesCollection;
   });
-  const sortedProducts = sortProducts(filteredProducts, sortBy);
+  const sortedProducts = sortProducts(filteredProducts, sortBy, selectedCollection?.id);
+
+  function moveProduct(productId: string, newPosition: number) {
+    if (!canReorder || !selectedCollection || isOrderPending) return;
+    const currentOrder = sortedProducts.map((product) => product.id);
+    const nextOrder = moveCollectionItem(currentOrder, productId, newPosition);
+    if (nextOrder.every((id, index) => id === currentOrder[index])) return;
+
+    const shopifySyncedIds = new Set(
+      sortedProducts.filter((product) => product.shopifyProductId).map((product) => product.id),
+    );
+    const shopifyPosition = syncedOrderPosition(nextOrder, shopifySyncedIds, productId);
+
+    setProducts((current) => applyCollectionOrder(current, selectedCollection.id, nextOrder));
+    startOrderTransition(async () => {
+      const result = await reorderCollectionProductAction({
+        collectionId: selectedCollection.id,
+        productId,
+        newPosition: shopifyPosition,
+      });
+      if (result.error) {
+        setProducts((current) => applyCollectionOrder(current, selectedCollection.id, currentOrder));
+        pushToast({ message: result.error, tone: "error" });
+        return;
+      }
+      if (result.orderedProductIds) {
+        setProducts((current) => applyCollectionOrder(
+          current,
+          selectedCollection.id,
+          result.orderedProductIds!,
+        ));
+      }
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+    });
+  }
 
   return (
     <section data-component="ProductsCms" className="grid gap-6">
@@ -339,12 +410,16 @@ export function ProductsCms({
             <span className="adm-label">Collection</span>
             <select
               value={collectionFilter}
-              onChange={(event) => setCollectionFilter(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setCollectionFilter(value);
+                setSortBy(value === "ALL" ? "published" : "collection-priority");
+              }}
               className="adm-field"
             >
               <option value="ALL">All collections</option>
               {collections.map((collection) => (
-                <option key={collection.id} value={collection.slug}>
+                <option key={collection.id} value={collection.id}>
                   {collection.name}
                 </option>
               ))}
@@ -367,6 +442,29 @@ export function ProductsCms({
         </div>
 
         <AuthMessage error={rowActionState.error} />
+
+        {selectedCollection ? (
+          <div
+            className="mt-4 flex flex-col gap-1 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] px-4 py-3 text-xs md:flex-row md:items-center md:justify-between"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="font-semibold text-[var(--adm-ink)]">
+              Shopify order · {selectedCollection.name}
+            </span>
+            <span className="text-[var(--adm-muted)]">
+              {!selectedCollection.shopifyCollectionId
+                ? "Sync this collection with Shopify to arrange products."
+                : !priorityMode
+                  ? "Choose Collection priority under Sort by to arrange products."
+                  : hasNarrowingFilters
+                    ? "Clear search, status, and category filters before arranging the full collection."
+                    : isOrderPending
+                      ? "Saving the new position in Shopify…"
+                      : "Drag a handle or use the arrow buttons. Changes save immediately."}
+            </span>
+          </div>
+        ) : null}
 
         {syncPreview ? (
           <section className="mt-4 grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
@@ -546,6 +644,7 @@ export function ProductsCms({
               className={`hidden gap-3 px-3 pb-1 xl:grid ${desktopTableGridClass}`}
               style={{ color: "var(--adm-subtle)" }}
             >
+              {selectedCollection ? <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Priority</span> : null}
               <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Product</span>
               <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Status</span>
               <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Price</span>
@@ -566,11 +665,63 @@ export function ProductsCms({
                 return (
                   <div
                     key={product.id}
-                    className={`grid min-w-0 gap-3 p-3 xl:items-center ${desktopTableGridClass}`}
+                    className={`grid min-w-0 gap-3 p-3 transition-colors xl:items-center ${desktopTableGridClass} ${
+                      draggedProductId && draggedProductId !== product.id ? "outline outline-1 outline-transparent hover:outline-[var(--adm-accent)]" : ""
+                    }`}
                     style={{
                       border: "1px solid var(--adm-border)",
                     }}
+                    onDragOver={(event) => {
+                      if (canReorder) event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const sourceId = event.dataTransfer.getData("text/plain") || draggedProductId;
+                      setDraggedProductId(null);
+                      if (!sourceId || sourceId === product.id) return;
+                      moveProduct(sourceId, sortedProducts.findIndex((item) => item.id === product.id));
+                    }}
                   >
+                    {selectedCollection ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          className="adm-btn-ghost grid size-11 cursor-grab place-items-center p-0 active:cursor-grabbing"
+                          draggable={canReorder && Boolean(product.shopifyProductId)}
+                          disabled={!canReorder || !product.shopifyProductId || isOrderPending}
+                          aria-label={`Drag ${product.name} to change its priority`}
+                          title={product.shopifyProductId ? "Drag to change priority" : "Sync product with Shopify first"}
+                          onDragStart={(event) => {
+                            setDraggedProductId(product.id);
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", product.id);
+                          }}
+                          onDragEnd={() => setDraggedProductId(null)}
+                        >
+                          <GripVertical className="size-4" aria-hidden="true" />
+                        </button>
+                        <div className="flex gap-0.5">
+                          <button
+                            type="button"
+                            className="adm-btn-ghost grid size-11 place-items-center p-0"
+                            disabled={!canReorder || !product.shopifyProductId || isOrderPending || sortedProducts[0]?.id === product.id}
+                            aria-label={`Move ${product.name} up`}
+                            onClick={() => moveProduct(product.id, sortedProducts.findIndex((item) => item.id === product.id) - 1)}
+                          >
+                            <ChevronUp className="size-3.5" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className="adm-btn-ghost grid size-11 place-items-center p-0"
+                            disabled={!canReorder || !product.shopifyProductId || isOrderPending || sortedProducts.at(-1)?.id === product.id}
+                            aria-label={`Move ${product.name} down`}
+                            onClick={() => moveProduct(product.id, sortedProducts.findIndex((item) => item.id === product.id) + 1)}
+                          >
+                            <ChevronDown className="size-3.5" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="min-w-0">
                       <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
                         {product.name}

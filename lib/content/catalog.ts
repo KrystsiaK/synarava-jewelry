@@ -562,7 +562,16 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     orderBy,
   });
 
-  const localizedProducts = products
+  const orderedProducts = sort === "featured" && filters.collection
+    ? [...products].sort((left, right) => {
+        const position = (product: typeof left) => product.collections.find(
+          (membership) => membership.collection.slug === filters.collection,
+        )?.sortOrder ?? Number.POSITIVE_INFINITY;
+        return position(left) - position(right);
+      })
+    : products;
+
+  const localizedProducts = orderedProducts
     .map((product) => toSummary(product, locale))
     .filter((product) => product.image)
     .filter((product) => !filters.department || product.departmentSlug === filters.department);

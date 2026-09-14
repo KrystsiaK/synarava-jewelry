@@ -116,6 +116,16 @@ describe("sortProducts", () => {
     expect(sortProducts(products, "price-asc").map((item) => item.id)).toEqual(["a", "c", "b"]);
     expect(sortProducts(products, "price-desc").map((item) => item.id)).toEqual(["b", "c", "a"]);
   });
+
+  it("sorts by the selected Shopify collection priority", () => {
+    const prioritized = [
+      makeProduct({ id: "a", collections: [{ id: "a-link", sortOrder: 4, collection: { id: "featured", slug: "featured", name: "Featured", isPrimaryNav: false } }] }),
+      makeProduct({ id: "b", collections: [{ id: "b-link", sortOrder: 1, collection: { id: "featured", slug: "featured", name: "Featured", isPrimaryNav: false } }] }),
+    ];
+
+    expect(sortProducts(prioritized, "collection-priority", "featured").map((item) => item.id))
+      .toEqual(["b", "a"]);
+  });
 });
 
 describe("productStatusLabel", () => {

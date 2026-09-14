@@ -53,6 +53,7 @@ const profileSchema = z.object({
               z.object({
                 id: z.string(),
                 name: z.string(),
+                productId: z.string().nullable(),
                 quantity: z.number().int(),
                 image: z
                   .object({ altText: z.string().nullable(), url: z.string() })
@@ -105,7 +106,7 @@ const CUSTOMER_PROFILE_QUERY = `#graphql
           totalPrice { amount currencyCode }
           lineItems(first: 20) {
             nodes {
-              id
+              id productId
               name
               quantity
               image { altText url }
@@ -119,6 +120,36 @@ const CUSTOMER_PROFILE_QUERY = `#graphql
 `;
 
 export type ShopifyCustomerProfile = z.infer<typeof profileSchema>["customer"];
+
+const purchaseLookupSchema = z.object({
+  data: z.object({
+    customer: z.object({
+      orders: z.object({
+        nodes: z.array(z.object({
+          id: z.string(),
+          lineItems: z.object({
+            nodes: z.array(z.object({ productId: z.string().nullable() })),
+            pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() }),
+          }),
+        })),
+        pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() }),
+      }),
+    }),
+  }).optional(),
+  errors: z.array(z.object({ message: z.string() }).passthrough()).optional(),
+});
+
+const lineItemLookupSchema = z.object({
+  data: z.object({
+    order: z.object({
+      lineItems: z.object({
+        nodes: z.array(z.object({ productId: z.string().nullable() })),
+        pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() }),
+      }),
+    }).nullable(),
+  }).optional(),
+  errors: z.array(z.object({ message: z.string() }).passthrough()).optional(),
+});
 
 export async function getShopifyCustomerProfile(): Promise<ShopifyCustomerProfile | null> {
   const session = await getShopifyCustomerSession();
@@ -154,4 +185,85 @@ export async function getShopifyCustomerProfile(): Promise<ShopifyCustomerProfil
   }
 
   return payload.data.customer;
+}
+
+async function customerAccountQuery(
+  operationName: string,
+  query: string,
+  variables: Record<string, unknown>,
+) {
+  const session = await getShopifyCustomerSession();
+  if (!session) throw new Error("Shopify customer session is unavailable.");
+  const { graphql_api } = await getCustomerApiDiscovery();
+  const response = await fetch(graphql_api, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: session.accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ operationName, query, variables }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Shopify Customer Account API failed (${response.status}).`);
+  return response.json() as Promise<unknown>;
+}
+
+/** Exhaustively checks the signed-in buyer's orders without treating connection pages as complete. */
+export async function findShopifyCustomerOrderForProduct(productId: string): Promise<string | null> {
+  let ordersAfter: string | null = null;
+  do {
+    const payload = purchaseLookupSchema.parse(await customerAccountQuery(
+      "SynaravaReviewPurchaseLookup",
+      `query SynaravaReviewPurchaseLookup($ordersAfter: String) {
+        customer {
+          orders(first: 50, after: $ordersAfter, sortKey: PROCESSED_AT, reverse: true) {
+            nodes {
+              id
+              lineItems(first: 250) {
+                nodes { productId }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }`,
+      { ordersAfter },
+    ));
+    if (payload.errors?.length || !payload.data) {
+      throw new Error(payload.errors?.map((error) => error.message).join("; ") || "Shopify returned no order data.");
+    }
+
+    for (const order of payload.data.customer.orders.nodes) {
+      if (order.lineItems.nodes.some((lineItem) => lineItem.productId === productId)) return order.id;
+      let lineItemsAfter = order.lineItems.pageInfo.hasNextPage
+        ? order.lineItems.pageInfo.endCursor
+        : null;
+      while (lineItemsAfter) {
+        const lineItemPayload = lineItemLookupSchema.parse(await customerAccountQuery(
+          "SynaravaReviewOrderLineItems",
+          `query SynaravaReviewOrderLineItems($orderId: ID!, $lineItemsAfter: String) {
+            order(id: $orderId) {
+              lineItems(first: 250, after: $lineItemsAfter) {
+                nodes { productId }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+          }`,
+          { orderId: order.id, lineItemsAfter },
+        ));
+        if (lineItemPayload.errors?.length || !lineItemPayload.data?.order) {
+          throw new Error(lineItemPayload.errors?.map((error) => error.message).join("; ") || "Shopify returned no order line items.");
+        }
+        const connection = lineItemPayload.data.order.lineItems;
+        if (connection.nodes.some((lineItem) => lineItem.productId === productId)) return order.id;
+        lineItemsAfter = connection.pageInfo.hasNextPage ? connection.pageInfo.endCursor : null;
+      }
+    }
+    ordersAfter = payload.data.customer.orders.pageInfo.hasNextPage
+      ? payload.data.customer.orders.pageInfo.endCursor
+      : null;
+  } while (ordersAfter);
+  return null;
 }

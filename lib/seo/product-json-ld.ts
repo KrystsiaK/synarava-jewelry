@@ -1,6 +1,11 @@
 import type { ProductSummary } from "@/lib/content/catalog";
+import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 
-export function buildProductJsonLd(product: ProductSummary, siteUrl: string) {
+export function buildProductJsonLd(
+  product: ProductSummary,
+  siteUrl: string,
+  reviews?: ShopifyProductReviews | null,
+) {
   const baseUrl = siteUrl.replace(/\/$/, "");
   const productUrl = `${baseUrl}/products/${encodeURIComponent(product.slug)}`;
   const images = Array.from(new Set([
@@ -22,6 +27,26 @@ export function buildProductJsonLd(product: ProductSummary, siteUrl: string) {
       "@type": "Brand",
       name: product.vendor || "Synarava",
     },
+    ...(reviews?.average != null && reviews.count > 0 ? {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: reviews.average,
+        reviewCount: reviews.count,
+      },
+      review: reviews.reviews.map((review) => ({
+        "@type": "Review",
+        ...(review.title ? { name: review.title } : {}),
+        ...(review.body ? { reviewBody: review.body } : {}),
+        datePublished: review.submittedAt,
+        reviewRating: {
+          "@type": "Rating",
+          ratingValue: review.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
+        author: { "@type": "Person", name: review.authorDisplayName },
+      })),
+    } : {}),
     offers: {
       "@type": "Offer",
       url: productUrl,

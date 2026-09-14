@@ -1,4 +1,5 @@
 import { parseProductDetails } from "@/lib/content/product-details";
+import { productCollectionPosition } from "@/lib/catalog/collection-order";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { ProductDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
 
@@ -142,6 +143,7 @@ export function normalizeProducts(items: ProductRecord[]) {
 }
 
 export const PRODUCT_SORT_OPTIONS = [
+  { value: "collection-priority", label: "Collection priority" },
   { value: "published", label: "Latest published" },
   { value: "updated", label: "Recently updated" },
   { value: "name-asc", label: "Name (A–Z)" },
@@ -152,9 +154,15 @@ export const PRODUCT_SORT_OPTIONS = [
 
 export type ProductSortKey = (typeof PRODUCT_SORT_OPTIONS)[number]["value"];
 
-export function sortProducts(items: ProductRecord[], sortBy: ProductSortKey) {
+export function sortProducts(items: ProductRecord[], sortBy: ProductSortKey, collectionId?: string) {
   const sorted = [...items];
   switch (sortBy) {
+    case "collection-priority":
+      return collectionId
+        ? sorted.sort((left, right) => (
+            productCollectionPosition(left, collectionId) - productCollectionPosition(right, collectionId)
+          ))
+        : sorted;
     case "published":
       return sorted.sort((left, right) => {
         const leftTime = left.publishedAt ? new Date(left.publishedAt).getTime() : -Infinity;

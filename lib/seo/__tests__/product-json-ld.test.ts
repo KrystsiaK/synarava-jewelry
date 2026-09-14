@@ -32,4 +32,46 @@ describe("product JSON-LD", () => {
       },
     });
   });
+
+  it("adds Shopify review aggregate and published reviews when available", () => {
+    const product = {
+      slug: "silver-ring",
+      sku: "RING-01",
+      title: "Silver Ring",
+      shortDescription: "A handmade silver ring.",
+      description: "",
+      image: "",
+      commerceMedia: [],
+      vendor: "Synarava",
+      categoryName: "Rings",
+      priceAmount: 129.5,
+      currency: "EUR",
+      stockOnHand: 2,
+    } as ProductSummary;
+
+    expect(buildProductJsonLd(product, "https://synarava.com", {
+      average: 4.5,
+      count: 2,
+      reviews: [{
+        id: "review-1",
+        handle: "review-1",
+        rating: 5,
+        title: "Beautiful",
+        body: "Better in person.",
+        authorDisplayName: "Ana",
+        submittedAt: "2026-09-10T12:00:00Z",
+        verificationStatus: "verified_buyer",
+        merchantReply: "",
+        merchantRepliedAt: null,
+      }],
+    })).toMatchObject({
+      aggregateRating: { "@type": "AggregateRating", ratingValue: 4.5, reviewCount: 2 },
+      review: [{
+        "@type": "Review",
+        name: "Beautiful",
+        reviewRating: { "@type": "Rating", ratingValue: 5, bestRating: 5, worstRating: 1 },
+        author: { "@type": "Person", name: "Ana" },
+      }],
+    });
+  });
 });

@@ -26,12 +26,16 @@ import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
+import { Star } from "lucide-react";
+import { ProductReviews } from "@/components/reviews/product-reviews";
+import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
+import type { ProductReviewActionState } from "@/app/actions/product-reviews";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
-function ProductHero({ product }: { product: ProductSummary }) {
-  const { locale } = useTranslations();
+function ProductHero({ product, reviews }: { product: ProductSummary; reviews: ShopifyProductReviews | null }) {
+  const { locale, plural } = useTranslations();
   const words = product.title.split(" ");
   const heroDescription = product.shortDescription.trim() || product.description.trim();
   const availability = product.stockOnHand > 0
@@ -120,6 +124,20 @@ function ProductHero({ product }: { product: ProductSummary }) {
               >
                 {heroDescription}
               </motion.p>
+            ) : null}
+
+            {reviews?.average != null && reviews.count > 0 ? (
+              <motion.a
+                href="#reviews"
+                className="mt-4 inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.7, ease, delay: 0.68 }}
+              >
+                <Star className="size-4 fill-current text-couture-red" aria-hidden="true" />
+                <span className="font-semibold tabular-nums">{reviews.average.toFixed(1)}</span>
+                <span>· {plural("reviews.count", reviews.count)}</span>
+              </motion.a>
             ) : null}
 
             {product.materialLine ? (
@@ -857,8 +875,24 @@ function ProductFooter({ product }: { product: ProductSummary }) {
 }
 
 /* ─── Root ───────────────────────────────────────────────────────── */
-export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummary; fitVideoSrc?: string }) {
+export function ProductDetail({
+  product,
+  fitVideoSrc,
+  reviews,
+  isSignedIn = false,
+  submitReviewAction,
+}: {
+  product: ProductSummary;
+  fitVideoSrc?: string;
+  reviews?: ShopifyProductReviews | null;
+  isSignedIn?: boolean;
+  submitReviewAction?: (
+    state: ProductReviewActionState,
+    formData: FormData,
+  ) => Promise<ProductReviewActionState>;
+}) {
   const trackedProduct = useRef<string | null>(null);
+  const { locale } = useTranslations();
 
   useEffect(() => {
     if (trackedProduct.current === product.slug) return;
@@ -888,13 +922,22 @@ export function ProductDetail({ product, fitVideoSrc }: { product: ProductSummar
     <main data-component="ProductDetail"
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
-      <ProductHero product={product} />
+      <ProductHero product={product} reviews={reviews ?? null} />
       <ProductDescription product={product} />
       <ProductSpecifications product={product} />
       <MaterialsSection product={product} />
       <SymbolismSection product={product} />
       <CraftSection product={product} fitVideoSrc={fitVideoSrc} />
       <LookbookSection product={product} />
+      {reviews && submitReviewAction ? (
+        <ProductReviews
+          productSlug={product.slug}
+          locale={locale}
+          isSignedIn={isSignedIn}
+          data={reviews}
+          submitAction={submitReviewAction}
+        />
+      ) : null}
       <ProductFooter product={product} />
     </main>
   );
