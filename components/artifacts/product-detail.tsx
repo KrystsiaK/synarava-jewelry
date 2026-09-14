@@ -26,12 +26,44 @@ import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
-import { Star } from "lucide-react";
+import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+
+/* ─── Share ──────────────────────────────────────────────────────── */
+function ShareButton({ title }: { title: string }) {
+  const { t } = useTranslations();
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch {
+        // User cancelled the native share sheet — nothing to do.
+      }
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      className="inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
+    >
+      <Share2 className="size-4" aria-hidden="true" />
+      {copied ? t("product.linkCopied") : t("product.share")}
+    </button>
+  );
+}
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
 function ProductHero({ product, reviews }: { product: ProductSummary; reviews: ShopifyProductReviews | null }) {
@@ -126,19 +158,24 @@ function ProductHero({ product, reviews }: { product: ProductSummary; reviews: S
               </motion.p>
             ) : null}
 
-            {reviews?.average != null && reviews.count > 0 ? (
-              <motion.a
-                href="#reviews"
-                className="mt-4 inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.7, ease, delay: 0.68 }}
-              >
-                <Star className="size-4 fill-current text-couture-red" aria-hidden="true" />
-                <span className="font-semibold tabular-nums">{reviews.average.toFixed(1)}</span>
-                <span>· {plural("reviews.count", reviews.count)}</span>
-              </motion.a>
-            ) : null}
+            <motion.div
+              className="mt-4 flex flex-wrap items-center gap-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, ease, delay: 0.68 }}
+            >
+              {reviews?.average != null && reviews.count > 0 ? (
+                <a
+                  href="#reviews"
+                  className="inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
+                >
+                  <Star className="size-4 fill-current text-couture-red" aria-hidden="true" />
+                  <span className="font-semibold tabular-nums">{reviews.average.toFixed(1)}</span>
+                  <span>· {plural("reviews.count", reviews.count)}</span>
+                </a>
+              ) : null}
+              <ShareButton title={product.title} />
+            </motion.div>
 
             {product.materialLine ? (
               <motion.p

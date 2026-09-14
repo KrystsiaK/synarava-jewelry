@@ -134,13 +134,12 @@ export function ProductReviews({
                     {state.fieldErrors?.title ? <span className="text-sm text-couture-red">{state.fieldErrors.title}</span> : null}
                   </label>
                   <label className="grid gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/62">{t("reviews.bodyLabel")}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/62">{t("reviews.bodyLabel")} <span className="normal-case tracking-normal text-foreground/40">({t("reviews.optional")})</span></span>
                     <textarea
                       className="min-h-32 resize-y border border-foreground/16 bg-background px-4 py-3 text-sm leading-6 outline-none transition-colors placeholder:text-foreground/38 focus:border-couture-red"
                       name="body"
                       minLength={10}
                       maxLength={2000}
-                      required
                       placeholder={t("reviews.bodyPlaceholder")}
                       aria-invalid={Boolean(state.fieldErrors?.body)}
                     />

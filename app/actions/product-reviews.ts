@@ -17,7 +17,9 @@ const reviewSchema = z.object({
   productSlug: z.string().trim().min(1).max(200),
   rating: z.coerce.number().int().min(1, "Choose a rating from 1 to 5.").max(5, "Choose a rating from 1 to 5."),
   title: z.string().trim().max(120, "Keep the title under 120 characters.").default(""),
-  body: z.string().trim().min(10, "Write at least 10 characters.").max(2_000, "Keep the review under 2,000 characters."),
+  body: z.string().trim().max(2_000, "Keep the review under 2,000 characters.")
+    .refine((value) => value.length === 0 || value.length >= 10, "Write at least 10 characters, or leave this blank.")
+    .default(""),
   locale: z.enum(["en", "pt"]).default("en"),
 });
 

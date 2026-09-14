@@ -363,7 +363,9 @@
       "other": "{count} produtos no carrinho"
     },
     "viewCart": "Ver carrinho",
-    "checkout": "Checkout"
+    "checkout": "Checkout",
+    "share": "Partilhar",
+    "linkCopied": "Link copiado"
   },
   "reviews": {
     "title": "Avaliações de clientes",

@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { discountPercent } from "@/lib/shopify/money";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -28,6 +29,7 @@ export function ProductCard({
   const { t, locale } = useTranslations();
   const [imgError, setImgError] = useState(false);
   const aspectClass = isFeatured ? "aspect-[16/9]" : "aspect-[3/4]";
+  const discount = discountPercent(product.priceAmount, product.compareAtAmount);
 
   return (
     <motion.div
@@ -43,6 +45,11 @@ export function ProductCard({
           whileHover="hover"
           animate="rest"
         >
+          {discount != null ? (
+            <span className="absolute left-3 top-3 z-20 bg-couture-red px-2 py-1 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
+              −{discount}%
+            </span>
+          ) : null}
           {imgError ? (
             /* ── Broken image fallback ─────────────────────────────── */
             <div
@@ -137,8 +144,15 @@ export function ProductCard({
               </p>
             )}
           </div>
-          <span className="label-mono shrink-0 pt-0.5 text-muted-ink transition-colors duration-300 group-hover:text-couture-red">
-            {product.price}
+          <span className="flex shrink-0 flex-col items-end pt-0.5">
+            <span className="label-mono text-muted-ink transition-colors duration-300 group-hover:text-couture-red">
+              {product.price}
+            </span>
+            {discount != null ? (
+              <span className="label-mono text-[0.65rem] text-muted-ink/50 line-through">
+                {product.compareAtPrice}
+              </span>
+            ) : null}
           </span>
         </div>
 

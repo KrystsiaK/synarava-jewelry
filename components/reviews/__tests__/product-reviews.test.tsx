@@ -53,7 +53,7 @@ describe("ProductReviews", () => {
 
     expect(screen.getByRole("radiogroup", { name: "Your rating" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "5 stars" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Review")).toHaveAttribute("maxlength", "2000");
+    expect(screen.getByLabelText("Review (optional)")).toHaveAttribute("maxlength", "2000");
     expect(screen.getByRole("button", { name: "Publish review" })).toBeInTheDocument();
   });
 });

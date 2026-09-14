@@ -363,7 +363,9 @@
       "other": "{count} products in cart"
     },
     "viewCart": "View cart",
-    "checkout": "Checkout"
+    "checkout": "Checkout",
+    "share": "Share",
+    "linkCopied": "Link copied"
   },
   "reviews": {
     "title": "Customer reviews",

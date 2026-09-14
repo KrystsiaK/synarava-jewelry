@@ -89,6 +89,16 @@ describe("submitProductReviewAction", () => {
     }));
   });
 
+  it("accepts a star-only rating with no written review", async () => {
+    const formData = reviewFormData();
+    formData.set("body", "");
+
+    await expect(submitProductReviewAction({}, formData)).resolves.toMatchObject({
+      success: "Your review is now published.",
+    });
+    expect(mocks.upsertShopifyProductReview).toHaveBeenCalledWith(expect.objectContaining({ body: "" }));
+  });
+
   it("validates review content before calling Shopify", async () => {
     const formData = reviewFormData();
     formData.set("rating", "9");

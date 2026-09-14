@@ -9,6 +9,7 @@ import { getProductPresentation } from "@/lib/catalog/product-presentation";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { discountPercent } from "@/lib/shopify/money";
 
 type ProductPurchasePanelProps = {
   product: ProductSummary;
@@ -50,6 +51,10 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
   const isAvailable = Boolean(selectedVariant?.merchandiseId && selectedVariant.stockOnHand > 0);
   const price = selectedVariant?.price || product.price;
   const compareAtPrice = selectedVariant?.compareAtPrice || product.compareAtPrice;
+  const discount = discountPercent(
+    selectedVariant?.priceAmount ?? product.priceAmount,
+    selectedVariant?.compareAtAmount ?? product.compareAtAmount,
+  );
 
   function chooseOption(name: string, value: string) {
     setSelection((current) => {
@@ -74,6 +79,11 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
           <p className="font-serif text-2xl text-foreground md:text-3xl">{price}</p>
           {compareAtPrice && compareAtPrice !== price ? (
             <p className="text-sm text-foreground/48 line-through">{compareAtPrice}</p>
+          ) : null}
+          {discount != null ? (
+            <span className="bg-couture-red px-2 py-0.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
+              −{discount}%
+            </span>
           ) : null}
         </div>
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
