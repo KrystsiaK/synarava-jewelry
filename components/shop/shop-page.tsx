@@ -19,8 +19,6 @@ import { ShopDiscovery, type ShopCategoryTile } from "./shop-discovery";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { cn } from "@/lib/ui";
-import { isJewelryDepartment } from "@/lib/catalog/taxonomy";
 import { filterAndSortShopProducts } from "./shop-product-filtering";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -72,134 +70,6 @@ export function ShopHero({
         </div>
       </div>
     </header>
-  );
-}
-
-/* ─── Department strip ───────────────────────────────────────────────
- * Departments already exist as a filter facet inside FilterBar; this
- * puts them in the page layout itself so the four-department structure
- * is visible before a shopper ever opens a dropdown. */
-export type ShopDepartmentTile = {
-  slug: string;
-  name: string;
-  count: number;
-  image: string;
-};
-
-function DepartmentStrip({
-  departments,
-  activeSlug,
-  onSelectFilters,
-}: {
-  departments: ShopDepartmentTile[];
-  activeSlug?: string;
-  onSelectFilters: (filters: ShopFilters) => void;
-}) {
-  const { t, locale } = useTranslations();
-  if (departments.length === 0) return null;
-
-  const tileClass = "relative flex h-28 w-32 shrink-0 flex-col items-start justify-end gap-1 overflow-hidden border p-3 transition-colors";
-
-  return (
-    <div data-component="DepartmentStrip" className="mb-8 md:mb-10">
-      <p className="label-mono mb-3 text-muted/60">{t("shop.departmentNav")}</p>
-      <div className="flex gap-3 overflow-x-auto pb-1">
-        <Link
-          href={localePath(locale, "/shop")}
-          onClick={(event) => {
-            event.preventDefault();
-            onSelectFilters({});
-          }}
-          className={cn(
-            tileClass,
-            "justify-center bg-surface/60",
-            !activeSlug ? "border-couture-red" : "border-foreground/10 hover:border-foreground/25",
-          )}
-        >
-          <span className="font-serif text-lg leading-none">{t("shop.allProducts")}</span>
-        </Link>
-        {departments.map((department) => {
-          const isActive = department.slug === activeSlug;
-          const isEmpty = department.count === 0;
-          const inner = (
-            <>
-              {department.image ? (
-                <Image src={department.image} alt="" fill sizes="128px" className="object-cover" />
-              ) : null}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" aria-hidden="true" />
-              <span className="relative z-10 font-serif text-lg leading-none text-white">{department.name}</span>
-              <span className="relative z-10 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-white/72">
-                {isEmpty ? t("shop.filters.comingSoon") : department.count}
-              </span>
-            </>
-          );
-          return isEmpty ? (
-            <div key={department.slug} className={cn(tileClass, "border-foreground/10 bg-stone-beige/50 opacity-60")}>
-              {inner}
-            </div>
-          ) : (
-            <Link
-              key={department.slug}
-              href={localePath(locale, `/shop?department=${department.slug}`)}
-              onClick={(event) => {
-                event.preventDefault();
-                onSelectFilters({ department: department.slug });
-              }}
-              className={cn(tileClass, isActive ? "border-couture-red" : "border-foreground/10 hover:border-couture-red/40")}
-            >
-              {inner}
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Collection rail ─────────────────────────────────────────────────
- * Merchandising collections (admin-ordered priority) shown as a visual
- * row above the utilitarian filter bar, instead of living only inside
- * "More filters". Jewelry-only, matching the Collection facet's own
- * existing department gating in FilterBar. */
-export type ShopCollectionTile = {
-  slug: string;
-  name: string;
-  image: string;
-};
-
-function CollectionRail({ collections, onSelectFilters }: { collections: ShopCollectionTile[]; onSelectFilters: (filters: ShopFilters) => void }) {
-  const { t, locale } = useTranslations();
-  if (collections.length === 0) return null;
-
-  return (
-    <div data-component="CollectionRail" className="mb-8 md:mb-10">
-      <p className="label-mono mb-3 text-muted/60">{t("shop.collectionNav")}</p>
-      <div className="flex gap-4 overflow-x-auto pb-1">
-        {collections.map((collection) => (
-          <Link
-            key={collection.slug}
-            href={localePath(locale, `/shop?collection=${collection.slug}`)}
-            onClick={(event) => {
-              event.preventDefault();
-              onSelectFilters({ collection: collection.slug });
-            }}
-            className="group relative flex h-36 w-48 shrink-0 flex-col justify-end overflow-hidden border border-foreground/10 p-4 transition-colors hover:border-couture-red/40"
-          >
-            {collection.image ? (
-              <Image
-                src={collection.image}
-                alt=""
-                fill
-                sizes="192px"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            ) : null}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" aria-hidden="true" />
-            <span className="relative z-10 font-serif text-xl leading-tight text-white">{collection.name}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -491,12 +361,10 @@ export type ShopPageProps = {
   heroImage?: string;
   archiveCount: number;
   filterProps: Omit<FilterBarProps, "totalCount">;
-  departmentTiles: ShopDepartmentTile[];
-  collectionTiles: ShopCollectionTile[];
   categoryTiles: ShopCategoryTile[];
 };
 
-export function ShopPage({ products, popularProductSlugs, heroImage, archiveCount, filterProps, departmentTiles, collectionTiles, categoryTiles }: ShopPageProps) {
+export function ShopPage({ products, popularProductSlugs, heroImage, archiveCount, filterProps, categoryTiles }: ShopPageProps) {
   const { t, locale } = useTranslations();
   const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
   const productsBySlug = useMemo(
@@ -518,8 +386,6 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
     () => filterAndSortShopProducts(products, activeFilters, popularProductSlugs ?? [], locale),
     [activeFilters, locale, popularProductSlugs, products],
   );
-  const activeDepartment = activeFilters.department;
-
   const selectDiscoveryFilters = (filters: ShopFilters) => {
     setActiveFilters(filters);
     const qs = buildSearchParams(filters);
@@ -553,9 +419,6 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
           aria-hidden="true"
         />
         <div className="site-shell">
-          <DepartmentStrip departments={departmentTiles} activeSlug={activeDepartment} onSelectFilters={selectDiscoveryFilters} />
-          {isJewelryDepartment(activeDepartment) && <CollectionRail collections={collectionTiles} onSelectFilters={selectDiscoveryFilters} />}
-
           <FilterSection
             filterProps={{
               ...filterProps,

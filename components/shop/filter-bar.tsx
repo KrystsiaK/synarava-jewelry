@@ -279,13 +279,6 @@ export function FilterBar({
         <div className="flex items-center justify-between gap-5 px-5 py-4 lg:px-6">
           <div className="flex min-w-0 flex-wrap items-center gap-2.5">
             <FilterDropdown
-              label={t("shop.filters.department")}
-              options={departments}
-              value={filters.department ?? ""}
-              onChange={(v) => setFilter("department", v)}
-              allLabel={t("shop.filters.allDepartments")}
-            />
-            <FilterDropdown
               label={t("shop.filters.category")}
               options={categories}
               value={filters.category ?? ""}
@@ -440,7 +433,6 @@ export function FilterBar({
       <MobileFilterSheet
         key={mobileSession}
         open={mobileOpen}
-        departments={departments}
         categories={categories}
         collections={collections}
         tags={tags}
@@ -463,7 +455,6 @@ export function FilterBar({
 
 type MobileFilterSheetProps = {
   open: boolean;
-  departments?: FilterOption[];
   categories: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
@@ -477,7 +468,6 @@ type MobileFilterSheetProps = {
 
 function MobileFilterSheet({
   open,
-  departments = [],
   categories,
   collections,
   tags,
@@ -494,7 +484,6 @@ function MobileFilterSheet({
   const localActiveCount = countActiveFilters(local);
 
   const sections: { key: keyof ShopFilters; label: string; options: FilterOption[] }[] = [
-    { key: "department", label: t("shop.filters.department"), options: departments },
     { key: "category", label: t("shop.filters.category"), options: categories },
     { key: "availability", label: t("shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
     ...(isJewelryDepartment(local.department)

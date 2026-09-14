@@ -64,8 +64,6 @@
     "heroTitleLead": "Loja",
     "heroTitleAccent": "selecionada",
     "heroDescription": "Joalharia, acessórios para animais, produtos criativos para crianças e ferramentas para criar à mão.",
-    "departmentNav": "Comprar por departamento",
-    "collectionNav": "Comprar por coleção",
     "availableCount": {
       "one": "produto disponível",
       "other": "produtos disponíveis"
@@ -104,7 +102,7 @@
     },
     "filters": {
       "eyebrow": "Encontre o produto certo",
-      "description": "Comece pelo departamento, categoria ou disponibilidade. Abra mais filtros apenas quando precisar.",
+      "description": "Comece pela categoria ou disponibilidade. Abra mais filtros apenas quando precisar.",
       "showing": "A mostrar",
       "productCount": {
         "one": "{count} produto",
@@ -128,7 +126,6 @@
       "origin": "Origem",
       "compliance": "Conformidade",
       "certification": "Certificação",
-      "allDepartments": "Todos os departamentos",
       "allCategories": "Todas as categorias",
       "allAvailability": "Toda a disponibilidade",
       "allCollections": "Todas as coleções",

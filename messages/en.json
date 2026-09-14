@@ -64,8 +64,6 @@
     "heroTitleLead": "Curated",
     "heroTitleAccent": "shop",
     "heroDescription": "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
-    "departmentNav": "Shop by department",
-    "collectionNav": "Shop by collection",
     "availableCount": {
       "one": "product available",
       "other": "products available"
@@ -104,7 +102,7 @@
     },
     "filters": {
       "eyebrow": "Find the right product",
-      "description": "Start with a department, category, or availability. Open more filters only when you need them.",
+      "description": "Start with a category or availability. Open more filters only when you need them.",
       "showing": "Showing",
       "productCount": {
         "one": "{count} product",
@@ -128,7 +126,6 @@
       "origin": "Origin",
       "compliance": "Compliance",
       "certification": "Certification",
-      "allDepartments": "All departments",
       "allCategories": "All categories",
       "allAvailability": "All availability",
       "allCollections": "All collections",

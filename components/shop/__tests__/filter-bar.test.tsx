@@ -42,7 +42,6 @@ describe("FilterBar", () => {
   it("keeps primary filters visible and progressively reveals contextual filters", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
-    expect(screen.getByRole("button", { name: /^department$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^category$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^availability$/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^collection$/i })).not.toBeInTheDocument();
@@ -218,9 +217,9 @@ describe("FilterBar", () => {
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog");
-    // Department is the first section; click "All" in the Category section.
+    // Category is the first section; click its "All" button.
     const allBtns = within(dialog).getAllByRole("button", { name: "All" });
-    await user.click(allBtns[1]);
+    await user.click(allBtns[0]);
     await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
     await waitFor(() => expect(historyPush).toHaveBeenCalled());
   });

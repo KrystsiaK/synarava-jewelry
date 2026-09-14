@@ -6,7 +6,6 @@ import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
-import { storefrontMedia } from "@/lib/content/media-fallbacks";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("shop")]);
@@ -54,20 +53,6 @@ export default async function Page({ searchParams }: Props) {
     getPageBySlug("shop"),
   ]);
 
-  const departmentTiles = departments.map((department) => {
-    const departmentProducts = archiveProducts.filter((product) => product.departmentSlug === department.slug);
-    return {
-      slug: department.slug,
-      name: department.name,
-      count: departmentProducts.length,
-      image: departmentProducts[0]?.image ?? "",
-    };
-  });
-  const collectionTiles = collections.slice(0, 6).map((collection) => ({
-    slug: collection.slug,
-    name: collection.name,
-    image: storefrontMedia(collection.heroImageUrl, collection.slug),
-  }));
   const categoryTiles = categories.flatMap((category) => {
     const categoryProducts = archiveProducts.filter((product) => product.categorySlug === category.slug);
     const image = categoryProducts[0]?.image;
@@ -89,8 +74,6 @@ export default async function Page({ searchParams }: Props) {
       popularProductSlugs={popularProductSlugs}
       heroImage={page?.content.heroImage}
       archiveCount={archiveProducts.length}
-      departmentTiles={departmentTiles}
-      collectionTiles={collectionTiles}
       categoryTiles={categoryTiles}
       filterProps={{
         departments: departments.map((department) => {
