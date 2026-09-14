@@ -33,14 +33,16 @@ describe("pageStatusLabel", () => {
 });
 
 describe("isProtectedPage", () => {
-  it("protects the built-in home, about, and manifesto slugs", () => {
+  it("protects built-in page slugs", () => {
     expect(isProtectedPage("home")).toBe(true);
     expect(isProtectedPage("about")).toBe(true);
     expect(isProtectedPage("manifesto")).toBe(true);
+    expect(isProtectedPage("journal")).toBe(true);
+    expect(isProtectedPage("privacy")).toBe(true);
   });
 
   it("does not protect custom slugs", () => {
-    expect(isProtectedPage("journal")).toBe(false);
+    expect(isProtectedPage("atelier")).toBe(false);
   });
 });
 
