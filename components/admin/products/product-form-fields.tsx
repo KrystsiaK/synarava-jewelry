@@ -7,6 +7,7 @@ import {
   type AdminFormValidation,
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
@@ -426,14 +427,19 @@ export function ProductFormFields({
           <span className="adm-label">Product name (PT)</span>
           <input name="ptTitle" defaultValue={draft.pt.title} className="adm-field" />
         </label>
-        <label className="grid gap-2">
-          <span className="adm-label">Short description (PT)</span>
-          <textarea name="ptShortDescription" rows={3} defaultValue={draft.pt.shortDescription} className="adm-field" />
-        </label>
-        <label className="grid gap-2">
-          <span className="adm-label">Description (PT)</span>
-          <textarea name="ptDescription" rows={4} defaultValue={draft.pt.description} className="adm-field" />
-        </label>
+        <AdminLongTextField
+          name="ptShortDescription"
+          label={<span className="adm-label">Short description (PT)</span>}
+          dialogLabel="Short description (PT)"
+          defaultValue={draft.pt.shortDescription}
+          rows={8}
+        />
+        <AdminLongTextField
+          name="ptDescription"
+          label={<span className="adm-label">Description (PT)</span>}
+          dialogLabel="Description (PT)"
+          defaultValue={draft.pt.description}
+        />
         <label className="grid gap-2">
           <span className="adm-label">Material line (PT)</span>
           <input name="ptMaterialLine" defaultValue={draft.pt.materialLine} className="adm-field" />
@@ -442,11 +448,11 @@ export function ProductFormFields({
           <label className="grid gap-2"><span className="adm-label">Symbolism label (PT)</span><input name="ptSymbolismLabel" defaultValue={draft.pt.symbolismLabel} className="adm-field" /></label>
           <label className="grid gap-2"><span className="adm-label">Symbolism title (PT)</span><input name="ptSymbolismTitle" defaultValue={draft.pt.symbolismTitle} className="adm-field" /></label>
         </div>
-        <label className="grid gap-2"><span className="adm-label">Symbolism body (PT)</span><textarea name="ptSymbolismBody" rows={4} defaultValue={draft.pt.symbolismBody} className="adm-field" /></label>
-        <label className="grid gap-2"><span className="adm-label">Symbolism continuation (PT)</span><textarea name="ptSymbolismBody2" rows={3} defaultValue={draft.pt.symbolismBody2} className="adm-field" /></label>
+        <AdminLongTextField name="ptSymbolismBody" label={<span className="adm-label">Symbolism body (PT)</span>} dialogLabel="Symbolism body (PT)" defaultValue={draft.pt.symbolismBody} />
+        <AdminLongTextField name="ptSymbolismBody2" label={<span className="adm-label">Symbolism continuation (PT)</span>} dialogLabel="Symbolism continuation (PT)" defaultValue={draft.pt.symbolismBody2} rows={8} />
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2"><span className="adm-label">SEO title (PT)</span><input name="ptSeoTitle" defaultValue={draft.pt.seoTitle} className="adm-field" /></label>
-          <label className="grid gap-2"><span className="adm-label">SEO description (PT)</span><textarea name="ptSeoDescription" rows={2} defaultValue={draft.pt.seoDescription} className="adm-field" /></label>
+          <AdminLongTextField name="ptSeoDescription" label={<span className="adm-label">SEO description (PT)</span>} dialogLabel="SEO description (PT)" defaultValue={draft.pt.seoDescription} rows={7} />
         </div>
         <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
           <input type="checkbox" name="ptReviewed" defaultChecked={draft.pt.reviewed} />
@@ -454,8 +460,8 @@ export function ProductFormFields({
         </label>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="grid gap-2" hidden={activeLocale !== "EN"}>
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        <div className="grid content-start gap-2" hidden={activeLocale !== "EN"}>
           <label htmlFor={validation.fieldId("name")}>
             <OwnershipLabel owner="Shopify">Name *</OwnershipLabel>
           </label>
@@ -470,7 +476,7 @@ export function ProductFormFields({
           />
           <AdminFieldError id={validation.fieldErrorId("name")} message={fieldErrors.name} />
         </div>
-        <div className="grid gap-2">
+        <div className="grid content-start gap-2">
           <label htmlFor={validation.fieldId("slug")}>
             <OwnershipLabel owner="Shopify">Slug *</OwnershipLabel>
           </label>
@@ -487,8 +493,8 @@ export function ProductFormFields({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="grid gap-2">
+      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid content-start gap-2">
           <label htmlFor={validation.fieldId("sku")}>
             <OwnershipLabel owner="Shopify">SKU *</OwnershipLabel>
           </label>
@@ -502,11 +508,11 @@ export function ProductFormFields({
           />
           <AdminFieldError id={validation.fieldErrorId("sku")} message={fieldErrors.sku} />
         </div>
-        <label className="grid gap-2">
+        <label className="grid content-start gap-2">
           <OwnershipLabel owner="Synarava">Series label</OwnershipLabel>
           <input name="seriesLabel" defaultValue={draft.seriesLabel} className="adm-field" />
         </label>
-        <div className="grid gap-2">
+        <div className="grid content-start gap-2">
           <label htmlFor={validation.fieldId("price")}>
             <OwnershipLabel owner="Shopify">Price EUR *</OwnershipLabel>
           </label>
@@ -524,43 +530,45 @@ export function ProductFormFields({
           />
           <AdminFieldError id={validation.fieldErrorId("price")} message={fieldErrors.price} />
         </div>
-        <label className="grid gap-2">
+        <label className="grid content-start gap-2">
           <OwnershipLabel owner="Shopify">Available quantity</OwnershipLabel>
           <input name="stockOnHand" type="number" min="0" step="1" inputMode="numeric" defaultValue={draft.stockOnHand} className="adm-field" />
           <span className="text-xs text-[var(--adm-subtle)]">{variantExists ? "Primary variant inventory synced with Shopify." : "No variant record yet. Enter quantity and save to create the primary variant."}</span>
         </label>
       </div>
 
-      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-        <OwnershipLabel owner="Synarava">Short description</OwnershipLabel>
-        <textarea
+      <div hidden={activeLocale !== "EN"}>
+        <AdminLongTextField
           name="shortDescription"
-          rows={3}
+          label={<OwnershipLabel owner="Synarava">Short description</OwnershipLabel>}
+          dialogLabel="Short description"
           defaultValue={draft.shortDescription}
-          className="adm-field"
+          rows={8}
         />
-      </label>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
         <label className="grid gap-2">
           <OwnershipLabel owner="Shopify">SEO title</OwnershipLabel>
           <input name="seoTitle" defaultValue={draft.seoTitle} className="adm-field" />
         </label>
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">SEO description</OwnershipLabel>
-          <textarea name="seoDescription" rows={2} defaultValue={draft.seoDescription} className="adm-field" />
-        </label>
+        <AdminLongTextField
+          name="seoDescription"
+          label={<OwnershipLabel owner="Shopify">SEO description</OwnershipLabel>}
+          dialogLabel="SEO description"
+          defaultValue={draft.seoDescription}
+          rows={7}
+        />
       </div>
 
-      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-        <OwnershipLabel owner="Shopify">Description</OwnershipLabel>
-        <textarea
+      <div hidden={activeLocale !== "EN"}>
+        <AdminLongTextField
           name="description"
-          rows={4}
+          label={<OwnershipLabel owner="Shopify">Description</OwnershipLabel>}
+          dialogLabel="Description"
           defaultValue={draft.description}
-          className="adm-field"
         />
-      </label>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2" hidden={activeLocale !== "EN"}>
@@ -602,23 +610,13 @@ export function ProductFormFields({
             className="adm-field"
           />
         </div>
-        <textarea
-          name="symbolismBody"
-          rows={4}
-          defaultValue={draft.symbolismBody}
-          className="adm-field"
-        />
-        <textarea
-          name="symbolismBody2"
-          rows={3}
-          defaultValue={draft.symbolismBody2}
-          className="adm-field"
-        />
+        <AdminLongTextField name="symbolismBody" label={<span className="adm-label">Symbolism body</span>} dialogLabel="Symbolism body" defaultValue={draft.symbolismBody} />
+        <AdminLongTextField name="symbolismBody2" label={<span className="adm-label">Symbolism continuation</span>} dialogLabel="Symbolism continuation" defaultValue={draft.symbolismBody2} rows={8} />
       </div>
 
       {/* Taxonomy + state */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div id="field-taxonomy-category" className="grid gap-2">
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <div id="field-taxonomy-category" className="grid content-start gap-2">
           <OwnershipLabel owner="Shopify">Product category</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-category")} />
           <ShopifyCategoryField
@@ -626,7 +624,7 @@ export function ProductFormFields({
             initialName={draft.shopifyCategoryName}
           />
         </div>
-        <div id="field-taxonomy-collection" className="grid gap-2">
+        <div id="field-taxonomy-collection" className="grid content-start gap-2">
           <OwnershipLabel owner="Synarava">Collection</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-collection")} />
           <select name="collectionSlug" defaultValue={draft.collectionSlug} className="adm-field">
@@ -638,7 +636,7 @@ export function ProductFormFields({
             ))}
           </select>
         </div>
-        <div id="field-taxonomy-tags" className="grid gap-2">
+        <div id="field-taxonomy-tags" className="grid content-start gap-2">
           <OwnershipLabel owner="Shopify push">Tags</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-tags")} />
           <input

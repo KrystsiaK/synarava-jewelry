@@ -101,7 +101,7 @@ export default async function AdminLayout({
         </aside>
 
         {/* Content */}
-          <main className="admin-content p-4 md:p-6 lg:p-8">
+          <main className="admin-content p-4 md:p-6 xl:p-8">
             {children}
           </main>
         </div>

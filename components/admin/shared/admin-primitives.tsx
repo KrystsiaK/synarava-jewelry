@@ -289,7 +289,7 @@ export function AdminMobileMenu({
       </button>
 
       {open && portalTarget ? createPortal(
-        <div className="adm-menu-overlay lg:hidden" role="presentation" onMouseDown={() => setOpen(false)}>
+        <div className="adm-menu-overlay xl:hidden" role="presentation" onMouseDown={() => setOpen(false)}>
           <aside
             className="adm-menu-drawer"
             role="dialog"
