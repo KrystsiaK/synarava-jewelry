@@ -3,15 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { KeyboardEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { X } from "lucide-react";
 
 import type { ShopifyCustomerProfile } from "@/lib/shopify/customer-account/api";
+import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 
-const tabs = ["overview", "orders", "addresses", "security"] as const;
+const tabs = ["overview", "wishlist", "orders", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
 
 function tabHref(tab: Tab, locale: Locale) {
@@ -46,18 +49,30 @@ function initials(name: string) {
 export function ShopifyProfileShell({
   customer,
   activeTab,
+  wishlistProducts,
 }: {
   customer: ShopifyCustomerProfile;
   activeTab: Tab;
+  wishlistProducts: ProductSummary[];
 }) {
   const router = useRouter();
   const { locale } = useTranslations();
+  const [wishlist, setWishlist] = useState(wishlistProducts);
   const email = customer.emailAddress?.emailAddress ?? "No email address available";
   const totalSpent = customer.orders.nodes.reduce(
     (sum, order) => sum + Number(order.totalPrice.amount),
     0,
   );
   const currency = customer.orders.nodes[0]?.totalPrice.currencyCode ?? "EUR";
+
+  function removeFromWishlist(productSlug: string) {
+    setWishlist((current) => current.filter((product) => product.slug !== productSlug));
+    fetch("/api/wishlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productSlug }),
+    }).catch(() => undefined);
+  }
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLAnchorElement>, tab: Tab) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -172,6 +187,45 @@ export function ShopifyProfileShell({
                     Current cart
                   </Link>
                 </div>
+              </div>
+            ) : null}
+
+            {activeTab === "wishlist" ? (
+              <div className="space-y-5">
+                <div className="flex items-end justify-between">
+                  <h2 className="font-serif text-2xl">Saved products</h2>
+                  <span className="label-caps text-foreground/35">{wishlist.length} saved</span>
+                </div>
+                {wishlist.length === 0 ? (
+                  <div className="border border-stroke p-8">
+                    <p className="font-serif text-xl">Nothing saved yet.</p>
+                    <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">Explore the shop →</Link>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {wishlist.map((product) => (
+                      <div key={product.slug} className="group relative border border-stroke p-4">
+                        <button
+                          type="button"
+                          onClick={() => removeFromWishlist(product.slug)}
+                          aria-label={`Remove ${product.title} from wishlist`}
+                          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center bg-background/85 text-foreground/60 transition-colors hover:text-couture-red"
+                        >
+                          <X className="size-4" aria-hidden="true" />
+                        </button>
+                        <Link href={localePath(locale, `/products/${product.slug}`)} className="block">
+                          <div className="relative mb-4 aspect-square overflow-hidden bg-foreground/5">
+                            {product.image ? (
+                              <Image src={product.image} alt={product.title} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
+                            ) : null}
+                          </div>
+                          <p className="truncate font-serif text-lg">{product.title}</p>
+                          <p className="mt-1 text-sm text-foreground/50">{product.price}</p>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : null}
 

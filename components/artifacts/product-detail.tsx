@@ -28,6 +28,7 @@ import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
+import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
 
@@ -66,7 +67,15 @@ function ShareButton({ title }: { title: string }) {
 }
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
-function ProductHero({ product, reviews }: { product: ProductSummary; reviews: ShopifyProductReviews | null }) {
+function ProductHero({
+  product,
+  reviews,
+  isSignedIn,
+}: {
+  product: ProductSummary;
+  reviews: ShopifyProductReviews | null;
+  isSignedIn: boolean;
+}) {
   const { locale, plural } = useTranslations();
   const words = product.title.split(" ");
   const heroDescription = product.shortDescription.trim() || product.description.trim();
@@ -175,6 +184,7 @@ function ProductHero({ product, reviews }: { product: ProductSummary; reviews: S
                 </a>
               ) : null}
               <ShareButton title={product.title} />
+              <WishlistHeartButton productSlug={product.slug} isSignedIn={isSignedIn} />
             </motion.div>
 
             {product.materialLine ? (
@@ -959,7 +969,7 @@ export function ProductDetail({
     <main data-component="ProductDetail"
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
-      <ProductHero product={product} reviews={reviews ?? null} />
+      <ProductHero product={product} reviews={reviews ?? null} isSignedIn={isSignedIn} />
       <ProductDescription product={product} />
       <ProductSpecifications product={product} />
       <MaterialsSection product={product} />

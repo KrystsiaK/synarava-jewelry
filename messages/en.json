@@ -365,7 +365,11 @@
     "viewCart": "View cart",
     "checkout": "Checkout",
     "share": "Share",
-    "linkCopied": "Link copied"
+    "linkCopied": "Link copied",
+    "save": "Save",
+    "saved": "Saved",
+    "addToWishlist": "Save to wishlist",
+    "removeFromWishlist": "Remove from wishlist"
   },
   "reviews": {
     "title": "Customer reviews",

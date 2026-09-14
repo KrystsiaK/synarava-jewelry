@@ -365,7 +365,11 @@
     "viewCart": "Ver carrinho",
     "checkout": "Checkout",
     "share": "Partilhar",
-    "linkCopied": "Link copiado"
+    "linkCopied": "Link copiado",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "addToWishlist": "Guardar nos favoritos",
+    "removeFromWishlist": "Remover dos favoritos"
   },
   "reviews": {
     "title": "Avaliações de clientes",
