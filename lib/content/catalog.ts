@@ -11,6 +11,7 @@ import { characteristicDisplayValue, type ProductCharacteristicValue } from "@/l
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
+import { getCachedShopifyCollectionBestSelling } from "@/lib/shopify/collection-order";
 import { formatCurrency } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
@@ -456,6 +457,27 @@ function formatCollectionEyebrow(sortOrder: number | null | undefined) {
   return `Collection ${String(sortOrder).padStart(2, "0")}`;
 }
 
+/**
+ * Real Shopify sales ranking (Collection.products sortKey: BEST_SELLING) for
+ * the whole catalog, read off the same `isStorefrontDefault` collection used
+ * for global priority. Returns null — falling back to the default sort —
+ * when that collection isn't configured yet or Shopify can't be reached, so
+ * a live storefront request never 500s on this.
+ */
+async function getBestSellingProductRank(): Promise<Map<string, number> | null> {
+  const collection = await db.collection.findFirst({
+    where: { isStorefrontDefault: true, shopifyCollectionId: { not: null } },
+    select: { shopifyCollectionId: true },
+  });
+  if (!collection?.shopifyCollectionId) return null;
+  try {
+    const orderedIds = await getCachedShopifyCollectionBestSelling(collection.shopifyCollectionId);
+    return new Map(orderedIds.map((id, index) => [id, index]));
+  } catch {
+    return null;
+  }
+}
+
 export async function listShopProducts(filters: ShopFilters = {}) {
   const locale = await getRequestLocale();
   const contentLocale = storefrontLocaleToContentLocale(locale);
@@ -567,10 +589,19 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     orderBy,
   });
 
-  const orderedProducts = sort !== "featured" ? products : [...products].sort((left, right) => (
-    featuredCollectionPosition(left.collections, filters.collection)
-    - featuredCollectionPosition(right.collections, filters.collection)
-  ));
+  const bestSellingRank = sort === "popular" ? await getBestSellingProductRank() : null;
+
+  const orderedProducts = sort === "featured"
+    ? [...products].sort((left, right) => (
+        featuredCollectionPosition(left.collections, filters.collection)
+        - featuredCollectionPosition(right.collections, filters.collection)
+      ))
+    : bestSellingRank
+      ? [...products].sort((left, right) => (
+          (bestSellingRank.get(left.shopifyProductId ?? "") ?? Number.POSITIVE_INFINITY)
+          - (bestSellingRank.get(right.shopifyProductId ?? "") ?? Number.POSITIVE_INFINITY)
+        ))
+      : products;
 
   const localizedProducts = orderedProducts
     .map((product) => toSummary(product, locale))

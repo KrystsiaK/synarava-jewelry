@@ -150,6 +150,7 @@ export function FilterBar({
 
   const activeCount = countActiveFilters(filters);
   const sortOptions: FilterOption[] = [
+    { value: "popular", label: t("shop.filters.popular") },
     { value: "newest", label: t("shop.filters.newest") },
     { value: "price-asc", label: t("shop.filters.priceAsc") },
     { value: "price-desc", label: t("shop.filters.priceDesc") },

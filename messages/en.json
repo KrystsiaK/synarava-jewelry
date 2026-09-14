@@ -99,6 +99,7 @@
       },
       "sort": "Sort",
       "featured": "Featured",
+      "popular": "Most popular",
       "newest": "Newest",
       "priceAsc": "Price · low to high",
       "priceDesc": "Price · high to low",

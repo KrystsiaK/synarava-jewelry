@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
 import { waitForShopifyJobCompletion, type ShopifyJob } from "@/lib/shopify/collection-membership";
 
@@ -81,6 +83,53 @@ async function fetchShopifyCollectionOrder(collectionId: string) {
 
   return ids;
 }
+
+/**
+ * Shopify's real best-selling ranking for a collection (`Collection.products`
+ * with `sortKey: BEST_SELLING`) — actual sales data, not something we
+ * compute ourselves. Works on any collection regardless of its own manual
+ * sortOrder; callers cache this since it's a live read against Shopify.
+ */
+export async function fetchShopifyCollectionBestSelling(collectionId: string) {
+  type CollectionBestSellingPage = {
+    collection: {
+      products: {
+        nodes: Array<{ id: string }>;
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } | null;
+  };
+  const ids: string[] = [];
+  let after: string | null = null;
+
+  do {
+    const data: CollectionBestSellingPage = await shopifyAdminRequest<CollectionBestSellingPage>(
+      `query SynaravaCollectionBestSelling($id: ID!, $after: String) {
+        collection(id: $id) {
+          products(first: 250, after: $after, sortKey: BEST_SELLING) {
+            nodes { id }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }`,
+      { id: collectionId, after },
+    );
+    if (!data.collection) throw new ShopifyAdminError("Shopify collection was not found.");
+    ids.push(...data.collection.products.nodes.map((product) => product.id));
+    after = data.collection.products.pageInfo.hasNextPage
+      ? data.collection.products.pageInfo.endCursor
+      : null;
+  } while (after);
+
+  return ids;
+}
+
+/** Best-selling order, refetched from Shopify at most once an hour per collection. */
+export const getCachedShopifyCollectionBestSelling = unstable_cache(
+  fetchShopifyCollectionBestSelling,
+  ["shopify-collection-best-selling"],
+  { tags: ["shopify-best-selling"], revalidate: 3600 },
+);
 
 export async function reorderShopifyCollectionProduct(input: {
   collectionId: string;

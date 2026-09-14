@@ -9,7 +9,7 @@ vi.mock("@/lib/shopify/admin", async () => {
   return { ...actual, shopifyAdminRequest };
 });
 
-import { reorderShopifyCollectionProduct } from "../collection-order";
+import { fetchShopifyCollectionBestSelling, reorderShopifyCollectionProduct } from "../collection-order";
 
 describe("reorderShopifyCollectionProduct", () => {
   beforeEach(() => {
@@ -69,5 +69,39 @@ describe("reorderShopifyCollectionProduct", () => {
 
     expect(shopifyAdminRequest).toHaveBeenCalledTimes(3);
     expect(String(shopifyAdminRequest.mock.calls[1]?.[0])).toContain("collectionReorderProducts");
+  });
+});
+
+describe("fetchShopifyCollectionBestSelling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("pages through Shopify's real best-selling order for the collection", async () => {
+    shopifyAdminRequest
+      .mockResolvedValueOnce({
+        collection: {
+          products: {
+            nodes: [{ id: "gid://shopify/Product/1" }],
+            pageInfo: { hasNextPage: true, endCursor: "cursor-1" },
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        collection: {
+          products: {
+            nodes: [{ id: "gid://shopify/Product/2" }],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      });
+
+    await expect(fetchShopifyCollectionBestSelling("gid://shopify/Collection/1")).resolves.toEqual([
+      "gid://shopify/Product/1",
+      "gid://shopify/Product/2",
+    ]);
+    expect(shopifyAdminRequest.mock.calls[0]?.[1]).toEqual({ id: "gid://shopify/Collection/1", after: null });
+    expect(shopifyAdminRequest.mock.calls[1]?.[1]).toEqual({ id: "gid://shopify/Collection/1", after: "cursor-1" });
+    expect(String(shopifyAdminRequest.mock.calls[0]?.[0])).toContain("sortKey: BEST_SELLING");
   });
 });

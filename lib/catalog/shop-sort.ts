@@ -1,5 +1,6 @@
 export const SHOP_SORT_OPTIONS = [
   { value: "featured", label: "Featured" },
+  { value: "popular", label: "Most popular" },
   { value: "newest", label: "Newest" },
   { value: "price-asc", label: "Price · low to high" },
   { value: "price-desc", label: "Price · high to low" },
