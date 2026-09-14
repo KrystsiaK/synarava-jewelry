@@ -24,6 +24,11 @@ import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection"
 import { parseTags } from "@/lib/text/parse-tags";
 import { validateProductPublication } from "@/lib/products/localization";
 import {
+  syncDepartmentCollectionMembership,
+  syncScopedCollectionMembership,
+  syncStorefrontPriorityMembership,
+} from "@/lib/admin/collection-membership-sync";
+import {
   asRecord,
   createDraftToken,
   formValue,
@@ -116,6 +121,7 @@ export type SavedProductPayload = {
       slug: string;
       name: string;
       isPrimaryNav: boolean;
+      isStorefrontDefault: boolean;
     };
   }[];
   tags: {
@@ -211,6 +217,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
               slug: true,
               name: true,
               isPrimaryNav: true,
+              isStorefrontDefault: true,
             },
           },
         },
@@ -454,31 +461,6 @@ const saveProductFieldsSchema = z.object({
   workflowState: z.string().trim().default("DRAFT"),
 });
 
-/**
- * Keeps a product's storefront-navigation membership (its "department")
- * in sync with the admin's department select, without touching any other
- * collection membership (e.g. the marketing collection set below). Only
- * `isPrimaryNav` collections are ever added or removed here.
- */
-async function syncDepartmentCollectionMembership(productId: string, departmentSlug: string) {
-  const existingNavMemberships = await db.productCollection.findMany({
-    where: { productId, collection: { isPrimaryNav: true } },
-    select: { id: true, collectionId: true },
-  });
-  const target = departmentSlug
-    ? await db.collection.findFirst({ where: { slug: departmentSlug, isPrimaryNav: true }, select: { id: true } })
-    : null;
-
-  const staleIds = existingNavMemberships
-    .filter((item) => item.collectionId !== target?.id)
-    .map((item) => item.id);
-  if (staleIds.length) {
-    await db.productCollection.deleteMany({ where: { id: { in: staleIds } } });
-  }
-  if (target && !existingNavMemberships.some((item) => item.collectionId === target.id)) {
-    await db.productCollection.create({ data: { productId, collectionId: target.id } });
-  }
-}
 
 /**
  * Publishing never blocks on incomplete content — the storefront already
@@ -860,20 +842,13 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
   }
 
-  await db.productCollection.deleteMany({
-    where: { productId: product.id },
-  });
-
-  if (collection) {
-    await db.productCollection.create({
-      data: {
-        productId: product.id,
-        collectionId: collection.id,
-      },
-    });
-  }
-
+  await syncScopedCollectionMembership(
+    product.id,
+    { isPrimaryNav: false, isStorefrontDefault: false },
+    collection?.id ?? null,
+  );
   await syncDepartmentCollectionMembership(product.id, department);
+  await syncStorefrontPriorityMembership(product.id, isPublished);
 
   await db.productTag.deleteMany({
     where: { productId: product.id },

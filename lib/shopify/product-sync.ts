@@ -216,6 +216,12 @@ async function upsertCollectionIdentity(remote: {
  * `collections(first: 100)` for that product. Every referenced collection
  * is linked/created via `upsertCollectionIdentity` first so membership
  * never points at a collection Shopify no longer reports.
+ *
+ * Only ever creates missing rows — an existing membership's `sortOrder`
+ * (the product's collection-priority position, moved via
+ * reorderCollectionProductAction) is never touched here. It used to be
+ * overwritten with this product's own collection-list index on every pull,
+ * silently resetting priority ordering back to ~0 on every Shopify sync.
  */
 async function syncProductCollectionMembership(productId: string, remoteCollections: ShopifyProduct["collections"]["nodes"]) {
   const membershipCollectionIds: string[] = [];
@@ -228,16 +234,12 @@ async function syncProductCollectionMembership(productId: string, remoteCollecti
     await db.productCollection.deleteMany({
       where: { productId, collectionId: { notIn: membershipCollectionIds } },
     });
+    await db.productCollection.createMany({
+      data: membershipCollectionIds.map((collectionId) => ({ productId, collectionId })),
+      skipDuplicates: true,
+    });
   } else {
     await db.productCollection.deleteMany({ where: { productId } });
-  }
-
-  for (const [index, collectionId] of membershipCollectionIds.entries()) {
-    await db.productCollection.upsert({
-      where: { productId_collectionId: { productId, collectionId } },
-      update: { sortOrder: index },
-      create: { productId, collectionId, sortOrder: index },
-    });
   }
 }
 

@@ -64,6 +64,7 @@ model Collection {
   lastSyncedAt          DateTime?
   isPrimaryNav          Boolean             @default(false)
   navSortOrder          Int                 @default(0)
+  isStorefrontDefault   Boolean             @default(false)
   status                CollectionStatus    @default(DRAFT)
   visibility            ContentVisibility   @default(PRIVATE)
   heroAssetId           String?

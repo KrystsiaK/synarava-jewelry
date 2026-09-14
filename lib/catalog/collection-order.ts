@@ -20,3 +20,18 @@ export function productCollectionPosition(
   return product.collections.find((item) => item.collection.id === collectionId)?.sortOrder
     ?? Number.POSITIVE_INFINITY;
 }
+
+/**
+ * Storefront "Featured" ordering: within a chosen collection, its manual
+ * sortOrder; browsing the whole catalog (no collection picked), the one
+ * collection flagged `isStorefrontDefault` — the global product priority.
+ */
+export function featuredCollectionPosition(
+  collections: Array<{ sortOrder: number; collection: { slug: string; isStorefrontDefault: boolean } }>,
+  collectionSlug?: string,
+) {
+  const membership = collectionSlug
+    ? collections.find((item) => item.collection.slug === collectionSlug)
+    : collections.find((item) => item.collection.isStorefrontDefault);
+  return membership?.sortOrder ?? Number.POSITIVE_INFINITY;
+}

@@ -10,6 +10,7 @@ import {
 import { characteristicDisplayValue, type ProductCharacteristicValue } from "@/lib/products/characteristics";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
+import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
 import { formatCurrency } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
@@ -222,6 +223,7 @@ function toSummary(product: {
       symbolismBody: string | null;
       symbolismBody2: string | null;
       isPrimaryNav: boolean;
+      isStorefrontDefault: boolean;
     };
   }[];
   characteristics: Array<{
@@ -249,7 +251,9 @@ function toSummary(product: {
   // "Collection" (curated/marketing grouping) and "department" (top-level
   // storefront navigation) are both ProductCollection membership now —
   // isPrimaryNav distinguishes which one a given membership row is.
-  const leadCollection = product.collections.find((item) => !item.collection.isPrimaryNav)?.collection;
+  const leadCollection = product.collections.find(
+    (item) => !item.collection.isPrimaryNav && !item.collection.isStorefrontDefault,
+  )?.collection;
   const primaryNavCollection = product.collections.find((item) => item.collection.isPrimaryNav)?.collection ?? null;
   const localized = resolveProductCopy(product, locale);
   const details = parseProductDetails(localized.details);
@@ -380,7 +384,7 @@ export async function getShopFilterData() {
       orderBy: { name: "asc" },
     }),
     db.collection.findMany({
-      where: { status: "ACTIVE", visibility: "PUBLIC", isPrimaryNav: false },
+      where: { status: "ACTIVE", visibility: "PUBLIC", isPrimaryNav: false, isStorefrontDefault: false },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
     db.productCharacteristic.findMany({
@@ -547,6 +551,7 @@ export async function listShopProducts(filters: ShopFilters = {}) {
               symbolismBody: true,
               symbolismBody2: true,
               isPrimaryNav: true,
+              isStorefrontDefault: true,
             },
           },
         },
@@ -562,14 +567,10 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     orderBy,
   });
 
-  const orderedProducts = sort === "featured" && filters.collection
-    ? [...products].sort((left, right) => {
-        const position = (product: typeof left) => product.collections.find(
-          (membership) => membership.collection.slug === filters.collection,
-        )?.sortOrder ?? Number.POSITIVE_INFINITY;
-        return position(left) - position(right);
-      })
-    : products;
+  const orderedProducts = sort !== "featured" ? products : [...products].sort((left, right) => (
+    featuredCollectionPosition(left.collections, filters.collection)
+    - featuredCollectionPosition(right.collections, filters.collection)
+  ));
 
   const localizedProducts = orderedProducts
     .map((product) => toSummary(product, locale))
@@ -602,6 +603,7 @@ export async function getProductBySlug(slug: string) {
               symbolismBody: true,
               symbolismBody2: true,
               isPrimaryNav: true,
+              isStorefrontDefault: true,
             },
           },
         },

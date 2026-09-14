@@ -420,7 +420,7 @@ export function ProductsCms({
               <option value="ALL">All collections</option>
               {collections.map((collection) => (
                 <option key={collection.id} value={collection.id}>
-                  {collection.name}
+                  {collection.name}{collection.isStorefrontDefault ? " (global priority)" : ""}
                 </option>
               ))}
             </select>

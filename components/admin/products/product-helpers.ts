@@ -92,7 +92,9 @@ export function productToDraft(product: ProductRecord): ProductDraft {
   // membership mixes marketing collections with the primary-nav
   // ("department") one in the same array — exclude isPrimaryNav here too.
   const primaryVariant = product.variants[0];
-  const marketingCollection = product.collections.find((item) => !item.collection.isPrimaryNav)?.collection;
+  const marketingCollection = product.collections.find(
+    (item) => !item.collection.isPrimaryNav && !item.collection.isStorefrontDefault,
+  )?.collection;
   const pt = product.translations?.find((translation) => translation.locale === "PT");
   return {
     name: product.name,

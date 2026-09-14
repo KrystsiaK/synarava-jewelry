@@ -10,6 +10,7 @@ export type CollectionOption = {
   name: string;
   isPrimaryNav: boolean;
   navSortOrder: number;
+  isStorefrontDefault: boolean;
   shopifyCollectionId: string | null;
 };
 export type ProductRecord = SavedProductPayload;
