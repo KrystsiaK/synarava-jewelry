@@ -23,7 +23,13 @@ const HERO_SCROLL_SPRING = {
   mass: 0.85,
 } as const;
 
-function CollectionsHero({ collections }: { collections: CollectionSummary[] }) {
+export function CollectionsHero({
+  collections,
+  heroImage,
+}: {
+  collections: CollectionSummary[];
+  heroImage?: string;
+}) {
   const heroRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
   const leadCollection = collections[0];
@@ -51,26 +57,29 @@ function CollectionsHero({ collections }: { collections: CollectionSummary[] }) 
         className="storefront-theme-grid pointer-events-none absolute inset-0"
       />
 
-      {leadCollection ? (
+      {heroImage ? (
         <motion.div
           className="absolute left-0 top-24 h-[58svh] w-[96%] overflow-hidden md:left-[3vw] md:top-28 md:h-[76vh] md:w-[64%] md:[clip-path:polygon(8%_0,100%_0,93%_100%,0_91%)]"
           style={reduceMotion ? undefined : { y: mediaY, scale: mediaScale }}
         >
           <Image
-            src={leadCollection.heroImage}
+            data-testid="collections-hero-media"
+            src={heroImage}
             alt=""
             fill
             preload
-            quality={90}
+            quality={75}
             sizes="(min-width: 768px) 64vw, 96vw"
             className="collections-hero-media object-cover"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,4,5,.08),rgba(4,4,5,.28)_70%,rgba(4,4,5,.75))]" />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,4,5,.08),rgba(4,4,5,.16)_56%,rgba(4,4,5,.82))]" />
           <div className="absolute inset-[6%] border border-white/15" />
-          <span className="absolute bottom-[11%] left-[9%] hidden text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-white/65 md:block">
-            Opening world / {leadCollection.name}
-          </span>
+          {leadCollection ? (
+            <span className="absolute bottom-[11%] left-[9%] hidden text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-white/65 md:block">
+              Opening world / {leadCollection.name}
+            </span>
+          ) : null}
         </motion.div>
       ) : null}
 
@@ -268,14 +277,16 @@ function CollectionsFooter() {
 /* ─── Root Export ────────────────────────────────────────────────── */
 export function CollectionsPage({
   collections,
+  heroImage,
 }: {
   collections: CollectionSummary[];
+  heroImage?: string;
 }) {
   return (
     <main data-component="CollectionsPage"
       className="collections-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
     >
-      <CollectionsHero collections={collections} />
+      <CollectionsHero collections={collections} heroImage={heroImage} />
       <div className="relative bg-background py-4 md:py-12">
         <div
           aria-hidden="true"
