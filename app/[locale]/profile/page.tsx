@@ -29,7 +29,13 @@ export default async function ProfilePage({ searchParams }: Props) {
   const requestedSection = (await searchParams)?.section;
   const activeSection = accountSections.find((section) => section === requestedSection) ?? "overview";
 
-  const wishlistIds = await getShopifyCustomerWishlistIds(customer.id);
+  const wishlistIds = await getShopifyCustomerWishlistIds(customer.id).catch((error): string[] => {
+    console.error(
+      "[shopify-customer-wishlist] Wishlist unavailable:",
+      error instanceof Error ? error.message : "Unknown Shopify error",
+    );
+    return [];
+  });
   const wishlistProducts = wishlistIds.length
     ? (await listShopProducts({})).filter(
         (product) => product.shopifyProductId && wishlistIds.includes(product.shopifyProductId),

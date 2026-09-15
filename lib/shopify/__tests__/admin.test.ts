@@ -177,7 +177,7 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingReviewScopes).toEqual([
       "write_product_reviews", "read_metaobjects", "read_customers", "read_orders", "read_products",
     ]);
-    expect(connection.missingWishlistScopes).toEqual(["write_customers"]);
+    expect(connection.missingWishlistScopes).toEqual(["read_customers", "write_customers"]);
     expect(connection.portuguesePublished).toBe(false);
   });
 

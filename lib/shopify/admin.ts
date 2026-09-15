@@ -182,8 +182,8 @@ const REVIEW_SCOPES = [
   "read_products",
 ] as const;
 
-/** Needed to write the `synarava.wishlist` metafield on a Customer via metafieldsSet. */
-const WISHLIST_SCOPES = ["write_customers"] as const;
+/** Needed to read and write the `synarava.wishlist` Customer metafield. */
+const WISHLIST_SCOPES = ["read_customers", "write_customers"] as const;
 
 export async function fetchShopifyShopIdentity() {
   const data = await shopifyAdminRequest<{

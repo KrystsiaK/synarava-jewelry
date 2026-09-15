@@ -89,6 +89,7 @@ Railpack должен использовать стандартную устан
 - [ ] Создать вебхук в Shopify Admin → Settings → Notifications → Webhooks (или через **Reconcile** в `/admin`, которая регистрирует их автоматически при заданном `APP_URL`)
   - Events: `products/create`, `products/update`, `products/delete`, `inventory_levels/update`
 - [ ] Для отзывов получить approval Shopify Product Review Syndication и выдать scopes: `write_product_reviews`, `read_metaobjects`, `read_customers`, `read_orders`, `read_products`
+- [ ] Для wishlist выдать Admin API scopes `read_customers` и `write_customers`; без них профиль работает, но сохранение товаров недоступно
 - [ ] Запустить **Test Shopify connection**: он включает стандартный `product_review` metaobject и регистрирует отфильтрованные `metaobjects/create`, `metaobjects/update`, `metaobjects/delete` webhooks
 - [ ] Скопировать секрет подписи вебхука в `SHOPIFY_WEBHOOK_SECRET`
 - [ ] Прогнать **Reconcile** в `/admin` и убедиться, что каталог совпал по Shopify product ID/SKU/handle без конфликтов

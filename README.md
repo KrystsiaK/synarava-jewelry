@@ -142,6 +142,10 @@ standard definition and registers filtered `metaobjects/create`, `metaobjects/up
 The storefront uses Shopify's official **Verified by Shop** badge only when syndicated reviews are
 actually present.
 
+Customer wishlists are stored in the Shopify Customer `synarava.wishlist` metafield and require the
+Admin API `read_customers` and `write_customers` scopes. Missing wishlist access degrades to an empty
+wishlist instead of preventing the authenticated customer profile from loading.
+
 English product content is synchronized as Shopify's base product content. Reviewed Portuguese
 product content is registered through Shopify's Translation API, and Portuguese edits made in
 Shopify Translate & Adapt are read back during **Pull**, **Preview sync**, or **Reconcile**. Shopify
