@@ -32,6 +32,7 @@ type CartShellProps = {
   subtotalCents: number;
   subtotal: string;
   currency: string;
+  isSignedIn: boolean;
 };
 
 function EmptyCart() {
@@ -86,6 +87,7 @@ export function CartShell({
   subtotalCents,
   subtotal,
   currency,
+  isSignedIn,
 }: CartShellProps) {
   const { t, locale } = useTranslations();
   return (
@@ -96,6 +98,20 @@ export function CartShell({
         <div className="border-b border-foreground/10 pb-10 pt-8 md:pb-14 md:pt-12">
           <div className="site-shell grid gap-6 md:grid-cols-12 md:items-end">
             <div className="md:col-span-7">
+              {isSignedIn ? (
+                <motion.div
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, ease }}
+                >
+                  <Link
+                    href={localePath(locale, "/profile")}
+                    className="label-mono mb-4 inline-block border-b border-foreground/15 pb-1 text-foreground/45 transition-colors hover:border-couture-red hover:text-couture-red"
+                  >
+                    {t("cart.backToAccount")}
+                  </Link>
+                </motion.div>
+              ) : null}
               <motion.p
                 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-couture-red"
                 initial={{ opacity: 0, x: -16 }}

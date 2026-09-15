@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
+  CUSTOMER_SESSION_ABSOLUTE_TTL_SECONDS,
   getShopifyCustomerAccountConfig,
   SHOPIFY_CUSTOMER_OAUTH_COOKIE,
   SHOPIFY_CUSTOMER_SESSION_COOKIE,
@@ -104,12 +105,14 @@ export async function GET(request: NextRequest) {
     });
 
     const sessionId = randomBytes(32).toString("base64url");
+    const now = Date.now();
     await createStoredCustomerSession({
       id: sessionId,
       accessToken: encryptCustomerSecret(tokens.access_token),
       refreshToken: encryptCustomerSecret(tokens.refresh_token),
       idToken: encryptCustomerSecret(tokens.id_token),
-      expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+      accessTokenExpiresAt: new Date(now + tokens.expires_in * 1000),
+      sessionExpiresAt: new Date(now + CUSTOMER_SESSION_ABSOLUTE_TTL_SECONDS * 1000),
     });
 
     const response = NextResponse.redirect(
@@ -124,7 +127,7 @@ export async function GET(request: NextRequest) {
     });
     response.cookies.set(SHOPIFY_CUSTOMER_SESSION_COOKIE, sessionId, {
       httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60,
+      maxAge: CUSTOMER_SESSION_ABSOLUTE_TTL_SECONDS,
       path: "/",
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

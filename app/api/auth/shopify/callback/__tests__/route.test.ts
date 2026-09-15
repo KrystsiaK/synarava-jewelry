@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/shopify/customer-account/config", () => ({
+  CUSTOMER_SESSION_ABSOLUTE_TTL_SECONDS: 30 * 24 * 60 * 60,
   getShopifyCustomerAccountConfig: mocks.getConfig,
   SHOPIFY_CUSTOMER_OAUTH_COOKIE: "synarava-shopify-customer-oauth",
   SHOPIFY_CUSTOMER_SESSION_COOKIE: "synarava-shopify-customer-session",

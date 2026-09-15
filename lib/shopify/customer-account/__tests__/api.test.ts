@@ -1,13 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const mocks = vi.hoisted(() => ({
+  deleteStoredCustomerSession: vi.fn().mockResolvedValue(undefined),
+  getShopifyCustomerSession: vi.fn().mockResolvedValue({
+    accessToken: "customer-token",
+    id: "session-1",
+  }),
+}));
+
 vi.mock("../session", () => ({
-  getShopifyCustomerSession: vi.fn().mockResolvedValue({ accessToken: "customer-token" }),
+  getShopifyCustomerSession: mocks.getShopifyCustomerSession,
 }));
 vi.mock("../discovery", () => ({
   getCustomerApiDiscovery: vi.fn().mockResolvedValue({ graphql_api: "https://accounts.example/graphql" }),
 }));
+vi.mock("../session-store", () => ({
+  deleteStoredCustomerSession: mocks.deleteStoredCustomerSession,
+}));
 
-import { findShopifyCustomerOrderForProduct, requestShopifyOrderReturn } from "../api";
+import {
+  findShopifyCustomerOrderForProduct,
+  getShopifyCustomerProfile,
+  requestShopifyOrderReturn,
+} from "../api";
 
 function response(data: unknown) {
   return new Response(JSON.stringify({ data }), {
@@ -15,6 +30,18 @@ function response(data: unknown) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+describe("Shopify customer profile", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("deletes the local session when Shopify rejects its access token", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(null, { status: 401 }));
+
+    await expect(getShopifyCustomerProfile()).resolves.toBeNull();
+
+    expect(mocks.deleteStoredCustomerSession).toHaveBeenCalledWith("session-1");
+  });
+});
 
 describe("Shopify customer purchase lookup", () => {
   beforeEach(() => vi.clearAllMocks());

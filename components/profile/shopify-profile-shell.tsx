@@ -18,8 +18,26 @@ import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 const tabs = ["overview", "wishlist", "orders", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
 
+const tabLabels: Record<Tab, string> = {
+  overview: "overview",
+  wishlist: "wishlist",
+  orders: "orders",
+  addresses: "addresses",
+  security: "Sign-in & security",
+};
+
 function tabHref(tab: Tab, locale: Locale) {
   return tab === "overview" ? localePath(locale, "/profile") : localePath(locale, `/profile?section=${tab}`);
+}
+
+function sessionExpiryLabel(sessionExpiresAt: string) {
+  const days = Math.max(
+    0,
+    Math.ceil((new Date(sessionExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
+  );
+  if (days === 0) return "Your session renews the next time you sign in.";
+  if (days === 1) return "You'll be asked to sign in again in 1 day.";
+  return `You'll be asked to sign in again in ${days} days, sooner if this device is inactive for 14 days.`;
 }
 
 function money(amount: string, currency: string) {
@@ -51,10 +69,12 @@ export function ShopifyProfileShell({
   customer,
   activeTab,
   wishlistProducts,
+  sessionExpiresAt,
 }: {
   customer: ShopifyCustomerProfile;
   activeTab: Tab;
   wishlistProducts: ProductSummary[];
+  sessionExpiresAt: string;
 }) {
   const router = useRouter();
   const { locale } = useTranslations();
@@ -142,7 +162,7 @@ export function ShopifyProfileShell({
                 onKeyDown={(event) => handleTabKeyDown(event, tab)}
                 className={`relative px-4 py-4 md:px-7 ${activeTab === tab ? "text-foreground" : "text-foreground/40"}`}
               >
-                <span className="label-caps capitalize">{tab}</span>
+                <span className="label-caps">{tabLabels[tab]}</span>
                 {activeTab === tab ? (
                   <motion.span
                     layoutId="shopify-account-tab"
@@ -330,7 +350,12 @@ export function ShopifyProfileShell({
                 <p className="label-caps mb-3 text-couture-red">Secure access</p>
                 <h2 className="font-serif text-2xl">Passwordless customer account</h2>
                 <p className="mt-4 max-w-2xl leading-7 text-foreground/55">
-                  Sign-in codes are sent to your email. No customer password is created or stored by Synarava.
+                  Sign-in codes are sent to your email and your account is managed entirely by Shopify.
+                  No customer password is created or stored by Synarava, and this sign-in is separate
+                  from any Google account in your browser.
+                </p>
+                <p className="mt-3 max-w-2xl leading-7 text-foreground/55">
+                  {sessionExpiryLabel(sessionExpiresAt)}
                 </p>
                 <form action="/api/auth/shopify/logout" method="get">
                   <button type="submit" className="label-caps mt-7 inline-block border border-stroke px-6 py-4 hover:border-couture-red hover:text-couture-red">

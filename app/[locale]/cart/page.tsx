@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getStorefrontCartViewModel } from "@/lib/commerce/storefront-cart";
+import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { CartShell } from "@/components/commerce/cart-shell";
 
 export const metadata: Metadata = {
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default async function CartPage() {
-  const cart = await getStorefrontCartViewModel();
+  const [cart, isSignedIn] = await Promise.all([
+    getStorefrontCartViewModel(),
+    hasShopifyCustomerSession(),
+  ]);
 
   return (
     <CartShell
@@ -18,6 +22,7 @@ export default async function CartPage() {
       subtotalCents={cart.subtotalCents}
       subtotal={cart.subtotal}
       currency={cart.currency}
+      isSignedIn={isSignedIn}
     />
   );
 }

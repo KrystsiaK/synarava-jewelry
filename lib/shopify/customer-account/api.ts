@@ -3,7 +3,11 @@ import "server-only";
 import { z } from "zod";
 
 import { getCustomerApiDiscovery } from "./discovery";
-import { getShopifyCustomerSession } from "./session";
+import {
+  getShopifyCustomerSession,
+  type ActiveShopifyCustomerSession,
+} from "./session";
+import { deleteStoredCustomerSession } from "./session-store";
 
 const moneySchema = z.object({
   amount: z.string(),
@@ -189,8 +193,10 @@ const lineItemLookupSchema = z.object({
   errors: z.array(z.object({ message: z.string() }).passthrough()).optional(),
 });
 
-export async function getShopifyCustomerProfile(): Promise<ShopifyCustomerProfile | null> {
-  const session = await getShopifyCustomerSession();
+export async function getShopifyCustomerProfile(
+  resolvedSession?: ActiveShopifyCustomerSession,
+): Promise<ShopifyCustomerProfile | null> {
+  const session = resolvedSession ?? await getShopifyCustomerSession();
   if (!session) return null;
 
   const { graphql_api } = await getCustomerApiDiscovery();
@@ -209,7 +215,10 @@ export async function getShopifyCustomerProfile(): Promise<ShopifyCustomerProfil
     cache: "no-store",
   });
 
-  if (response.status === 401) return null;
+  if (response.status === 401) {
+    await deleteStoredCustomerSession(session.id).catch(() => undefined);
+    return null;
+  }
   if (!response.ok) {
     throw new Error(`Shopify Customer Account API failed (${response.status}).`);
   }
@@ -243,6 +252,9 @@ async function customerAccountQuery(
     body: JSON.stringify({ operationName, query, variables }),
     cache: "no-store",
   });
+  if (response.status === 401) {
+    await deleteStoredCustomerSession(session.id).catch(() => undefined);
+  }
   if (!response.ok) throw new Error(`Shopify Customer Account API failed (${response.status}).`);
   return response.json() as Promise<unknown>;
 }

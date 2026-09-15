@@ -3,12 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getCustomerProfile: vi.fn(),
+  getSession: vi.fn(),
   getWishlistIds: vi.fn(),
   listProducts: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/customer-account/api", () => ({
   getShopifyCustomerProfile: mocks.getCustomerProfile,
+}));
+
+vi.mock("@/lib/shopify/customer-account/session", () => ({
+  getShopifyCustomerSession: mocks.getSession,
 }));
 
 vi.mock("@/lib/shopify/wishlist", () => ({
@@ -34,6 +39,7 @@ import ProfilePage from "../page";
 describe("ProfilePage", () => {
   beforeEach(() => {
     mocks.getCustomerProfile.mockResolvedValue({ id: "gid://shopify/Customer/1" });
+    mocks.getSession.mockResolvedValue({ sessionExpiresAt: new Date("2026-10-15T00:00:00.000Z") });
     mocks.getWishlistIds.mockRejectedValue(
       new Error("Access denied: missing read_customers"),
     );
@@ -49,5 +55,19 @@ describe("ProfilePage", () => {
       "0",
     );
     expect(mocks.listProducts).not.toHaveBeenCalled();
+  });
+
+  it("loads the profile with the already-resolved customer session", async () => {
+    const session = {
+      accessToken: "customer-token",
+      id: "session-1",
+      idToken: "id-token",
+      sessionExpiresAt: new Date("2026-10-15T00:00:00.000Z"),
+    };
+    mocks.getSession.mockResolvedValue(session);
+
+    render(await ProfilePage({ searchParams: Promise.resolve({}) }));
+
+    expect(mocks.getCustomerProfile).toHaveBeenCalledWith(session);
   });
 });

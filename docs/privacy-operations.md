@@ -53,3 +53,21 @@ Marketing email must remain off until a chosen email provider records source,
 policy version, consent timestamp, and withdrawal/unsubscribe evidence. The local
 `marketingOptIn` boolean alone is not sufficient evidence and is not used as an
 email-send authorization.
+
+## Customer session retention
+
+`ShopifyCustomerSession` rows hold encrypted Shopify tokens and are retained
+only for the lifetime of the session:
+
+- Absolute lifetime: 30 days from sign-in (`sessionExpiresAt`), independent of
+  how often the Shopify access token is refreshed. Refreshing never extends it.
+- Idle timeout: a session with no activity for 14 days is treated as
+  abandoned and invalidated even if the absolute TTL has not elapsed.
+- Expired rows are deleted opportunistically on the next sign-in
+  (`cleanupExpiredCustomerSessions` in `lib/shopify/customer-account/session-store.ts`)
+  rather than on a platform schedule, since this deployment has no cron runner.
+- A session is deleted immediately (not just treated as signed-out) when its
+  tokens fail to decrypt, when a Shopify token refresh fails, or when Shopify
+  confirms the access token is no longer valid (`401`).
+- Session records never appear in logs; failures are logged without the
+  session id, access token, refresh token, or ID token.

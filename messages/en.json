@@ -246,6 +246,7 @@
     "emptyBody": "Explore the shop and choose a product that feels right. You can return here and continue as a guest—no account required.",
     "browse": "Browse products",
     "eyebrow": "Selection",
+    "backToAccount": "Back to My Account",
     "titleLead": "Your",
     "titleAccent": "Cart",
     "description": "Guests can continue to delivery without registering, and signed-in users keep the same cart after login.",

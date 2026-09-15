@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { ShopifyProfileShell } from "@/components/profile/shopify-profile-shell";
 import { getShopifyCustomerProfile } from "@/lib/shopify/customer-account/api";
+import { getShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { getShopifyCustomerWishlistIds } from "@/lib/shopify/wishlist";
 import { listShopProducts } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -22,7 +23,14 @@ type Props = {
 const accountSections = ["overview", "wishlist", "orders", "addresses", "security"] as const;
 
 export default async function ProfilePage({ searchParams }: Props) {
-  const [customer, locale] = await Promise.all([getShopifyCustomerProfile(), getRequestLocale()]);
+  const [locale, session] = await Promise.all([
+    getRequestLocale(),
+    getShopifyCustomerSession(),
+  ]);
+  if (!session) {
+    redirect(`/api/auth/shopify?returnTo=${encodeURIComponent(localePath(locale, "/profile"))}`);
+  }
+  const customer = await getShopifyCustomerProfile(session);
   if (!customer) {
     redirect(`/api/auth/shopify?returnTo=${encodeURIComponent(localePath(locale, "/profile"))}`);
   }
@@ -42,5 +50,12 @@ export default async function ProfilePage({ searchParams }: Props) {
       ).reverse()
     : [];
 
-  return <ShopifyProfileShell customer={customer} activeTab={activeSection} wishlistProducts={wishlistProducts} />;
+  return (
+    <ShopifyProfileShell
+      customer={customer}
+      activeTab={activeSection}
+      wishlistProducts={wishlistProducts}
+      sessionExpiresAt={session.sessionExpiresAt.toISOString()}
+    />
+  );
 }

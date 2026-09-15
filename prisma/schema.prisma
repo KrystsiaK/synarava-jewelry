@@ -31,15 +31,18 @@ model RateLimitBucket {
 }
 
 model ShopifyCustomerSession {
-  id           String   @id
-  accessToken  String
-  refreshToken String
-  idToken      String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                   String   @id
+  accessToken          String
+  refreshToken         String
+  idToken              String
+  accessTokenExpiresAt DateTime
+  sessionExpiresAt     DateTime
+  lastSeenAt           DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  @@index([expiresAt])
+  @@index([accessTokenExpiresAt])
+  @@index([sessionExpiresAt])
 }
 
 model Collection {
