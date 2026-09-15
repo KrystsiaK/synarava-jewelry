@@ -9,7 +9,7 @@ export const SHOPIFY_CUSTOMER_SESSION_COOKIE =
 export const SHOPIFY_CUSTOMER_OAUTH_COOKIE = "synarava-shopify-customer-oauth";
 
 export function getShopifyCustomerAccountConfig() {
-  const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.NEXTAUTH_URL;
+  const appUrl = env.APP_URL ?? env.NEXTAUTH_URL;
 
   if (
     !env.SHOPIFY_STORE_DOMAIN ||
@@ -20,7 +20,7 @@ export function getShopifyCustomerAccountConfig() {
     throw new Error(
       "Shopify customer accounts require SHOPIFY_STORE_DOMAIN, " +
         "SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID, " +
-        "SHOPIFY_CUSTOMER_SESSION_SECRET, and NEXT_PUBLIC_APP_URL.",
+        "SHOPIFY_CUSTOMER_SESSION_SECRET, and APP_URL.",
     );
   }
 

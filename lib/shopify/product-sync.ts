@@ -1080,10 +1080,10 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const shopifyImageUrl = (source: string | null) => {
       if (!source) return null;
       try {
-        const url = new URL(source, env.NEXT_PUBLIC_APP_URL);
+        const url = new URL(source, env.APP_URL);
         if (["localhost", "127.0.0.1", "::1"].includes(url.hostname)) return null;
         const allowedOrigins = new Set(
-          [env.NEXT_PUBLIC_APP_URL, env.S3_PUBLIC_URL, env.S3_ENDPOINT]
+          [env.APP_URL, env.S3_PUBLIC_URL, env.S3_ENDPOINT]
             .filter(Boolean)
             .map((value) => new URL(value!).origin),
         );

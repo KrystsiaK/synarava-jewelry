@@ -44,8 +44,8 @@ export async function reconcileProductsAction() {
   if (!isShopifyConfigured()) return { error: "Shopify is not configured." };
   try {
     await assertConfiguredShopifyStore();
-    if (env.NEXT_PUBLIC_APP_URL) {
-      await ensureProductWebhookSubscriptions(env.NEXT_PUBLIC_APP_URL);
+    if (env.APP_URL) {
+      await ensureProductWebhookSubscriptions(env.APP_URL);
     }
     const result = await reconcileShopifyProducts();
     revalidateStorefront();
@@ -104,11 +104,11 @@ export async function testShopifyConnectionAction() {
     let reviewNotice = connection.missingReviewScopes.length > 0
       ? ` Product review publishing is unavailable: missing ${connection.missingReviewScopes.join(", ")}.`
       : "";
-    if (!reviewNotice && (!env.NEXT_PUBLIC_APP_URL || !env.SHOPIFY_WEBHOOK_SECRET)) {
-      reviewNotice = " Product review publishing is unavailable until NEXT_PUBLIC_APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.";
-    } else if (!reviewNotice && env.NEXT_PUBLIC_APP_URL) {
+    if (!reviewNotice && (!env.APP_URL || !env.SHOPIFY_WEBHOOK_SECRET)) {
+      reviewNotice = " Product review publishing is unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.";
+    } else if (!reviewNotice && env.APP_URL) {
       try {
-        await ensureProductReviewWebhookSubscriptions(env.NEXT_PUBLIC_APP_URL);
+        await ensureProductReviewWebhookSubscriptions(env.APP_URL);
       } catch (error) {
         reviewNotice = ` Product review webhooks could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`;
       }

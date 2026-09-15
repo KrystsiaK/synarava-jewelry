@@ -22,7 +22,7 @@
 |-----------|----------|
 | `SHOPIFY_STORE_DOMAIN` | Постоянный домен `your-store.myshopify.com` |
 | `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` | Private Storefront API token (только server-side) |
-| `NEXT_PUBLIC_APP_URL` | Полный URL приложения (`https://synarava.com`). Нужен для Shopify OAuth callback |
+| `APP_URL` | Полный URL приложения (`https://synarava.com`). Нужен для Shopify OAuth callback |
 
 Без этих трёх переменных корзина и чекаут падают с явной ошибкой конфигурации — Shopify единственный commerce backend, локального фолбэка нет.
 
@@ -43,7 +43,7 @@
 
 | Переменная | Описание |
 |-----------|----------|
-| `NEXTAUTH_URL` | Базовый URL (если не задан `NEXT_PUBLIC_APP_URL`) |
+| `NEXTAUTH_URL` | Базовый URL (если не задан `APP_URL`) |
 | `DEEPL_API_KEY` | API ключ DeepL для машинного перевода |
 
 ---
@@ -86,7 +86,7 @@ Railpack должен использовать стандартную устан
 
 ## Shopify
 
-- [ ] Создать вебхук в Shopify Admin → Settings → Notifications → Webhooks (или через **Reconcile** в `/admin`, которая регистрирует их автоматически при заданном `NEXT_PUBLIC_APP_URL`)
+- [ ] Создать вебхук в Shopify Admin → Settings → Notifications → Webhooks (или через **Reconcile** в `/admin`, которая регистрирует их автоматически при заданном `APP_URL`)
   - Events: `products/create`, `products/update`, `products/delete`, `inventory_levels/update`
 - [ ] Для отзывов получить approval Shopify Product Review Syndication и выдать scopes: `write_product_reviews`, `read_metaobjects`, `read_customers`, `read_orders`, `read_products`
 - [ ] Запустить **Test Shopify connection**: он включает стандартный `product_review` metaobject и регистрирует отфильтрованные `metaobjects/create`, `metaobjects/update`, `metaobjects/delete` webhooks

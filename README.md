@@ -54,7 +54,7 @@ Fill in local/production variables as needed:
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD_HASH` (generate with `pnpm auth:hash`)
 - `ADMIN_SESSION_SECRET`
-- `NEXT_PUBLIC_APP_URL`
+- `APP_URL`
 - `SHOPIFY_STORE_DOMAIN` — the permanent `your-store.myshopify.com` domain
 - `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` — private Storefront API token; server-only
 - `SHOPIFY_STOREFRONT_API_VERSION` — optional, defaults to `2026-07`
@@ -107,7 +107,7 @@ the studio pushes title, handle, description, status, price, SKU, primary image,
 `synarava.*` characteristic metafields through the Shopify Admin GraphQL API. Shopify
 `products/create`, `products/update`, `products/delete`, and `inventory_levels/update` webhooks pull commerce changes back into
 the local database. The **Reconcile** action registers those webhook subscriptions (when
-`NEXT_PUBLIC_APP_URL` is set) and imports the full Shopify catalog, matching by Shopify product ID,
+`APP_URL` is set) and imports the full Shopify catalog, matching by Shopify product ID,
 then SKU, then handle. Ambiguous identities are recorded as conflicts instead of being overwritten.
 
 The Admin API token needs
@@ -138,7 +138,7 @@ Product reviews use Shopify's standard `product_review` metaobject plus the stan
 approval for product-review syndication and the `write_product_reviews`, `read_metaobjects`,
 `read_customers`, `read_orders`, and `read_products` scopes. **Test Shopify connection** enables the
 standard definition and registers filtered `metaobjects/create`, `metaobjects/update`, and
-`metaobjects/delete` webhooks when `NEXT_PUBLIC_APP_URL` and `SHOPIFY_WEBHOOK_SECRET` are configured.
+`metaobjects/delete` webhooks when `APP_URL` and `SHOPIFY_WEBHOOK_SECRET` are configured.
 The storefront uses Shopify's official **Verified by Shop** badge only when syndicated reviews are
 actually present.
 
