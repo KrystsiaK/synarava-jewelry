@@ -19,14 +19,18 @@ const claimsSchema = z.object({
 const jwksSchema = z.object({
   keys: z.array(
     z.object({
-      alg: z.string().optional(),
-      e: z.string(),
-      kid: z.string(),
-      kty: z.literal("RSA"),
-      n: z.string(),
-      use: z.string().optional(),
-    }),
+      kid: z.string().min(1),
+    }).passthrough(),
   ),
+});
+
+const rsaSigningKeySchema = z.object({
+  alg: z.literal("RS256"),
+  e: z.string().min(1),
+  kid: z.string().min(1),
+  kty: z.literal("RSA"),
+  n: z.string().min(1),
+  use: z.literal("sig").optional(),
 });
 
 function decodeJsonPart(value: string) {
@@ -72,8 +76,9 @@ export async function verifyShopifyIdToken({
   if (!jwksResponse.ok) throw new Error("Unable to load Shopify signing keys.");
 
   const jwks = jwksSchema.parse(await jwksResponse.json());
-  const jwk = jwks.keys.find((candidate) => candidate.kid === header.kid);
-  if (!jwk) throw new Error("Shopify signing key was not found.");
+  const candidate = jwks.keys.find((key) => key.kid === header.kid);
+  if (!candidate) throw new Error("Shopify signing key was not found.");
+  const jwk = rsaSigningKeySchema.parse(candidate);
 
   const publicKey = createPublicKey({
     format: "jwk",

@@ -13,7 +13,7 @@ describe("verifyShopifyIdToken", () => {
     vi.restoreAllMocks();
   });
 
-  it("accepts a valid Customer Account ID token without an unused sub claim", async () => {
+  it("selects the matching RSA key from Shopify's mixed JWKS", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("rsa", {
       modulusLength: 2048,
     });
@@ -34,7 +34,25 @@ describe("verifyShopifyIdToken", () => {
     const jwk = publicKey.export({ format: "jwk" });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({
-        keys: [{ ...jwk, alg: "RS256", kid: "shopify-key", use: "sig" }],
+        keys: [
+          {
+            alg: "ED25519",
+            crv: "Ed25519",
+            kid: "0",
+            kty: "OKP",
+            use: "sig",
+            x: "unrelated-public-key",
+          },
+          { ...jwk, alg: "RS256", kid: "shopify-key", use: "sig" },
+          {
+            alg: "ED25519",
+            crv: "Ed25519",
+            kid: "shop_0",
+            kty: "OKP",
+            use: "sig",
+            x: "another-unrelated-public-key",
+          },
+        ],
       }),
     );
 
