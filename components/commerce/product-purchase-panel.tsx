@@ -34,6 +34,7 @@ function selectionForVariant(variant: ProductSummary["variantDetails"][number]) 
 export function ProductPurchasePanel({ product, compact = false }: ProductPurchasePanelProps) {
   const { t, plural, locale } = useTranslations();
   const presentation = getProductPresentation(product.departmentSlug);
+  const careInstructions = product.characteristics.find((item) => item.key === "care_instructions")?.textValue?.trim() || "";
   const purchasableVariants = useMemo(
     () => product.variantDetails.filter((variant) => variant.merchandiseId),
     [product.variantDetails],
@@ -154,7 +155,7 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
               {presentation.buyingTitle}
             </p>
             <p className="text-sm leading-6 text-foreground/62">
-              {presentation.buyingBody}
+              {careInstructions || presentation.buyingBody}
             </p>
           </div>
 

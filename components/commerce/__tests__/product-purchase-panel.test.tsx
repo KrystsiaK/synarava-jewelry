@@ -13,6 +13,7 @@ vi.mock("@/components/commerce/add-to-cart-button", () => ({
 const product = {
   slug: "woven-collar",
   price: "€30.00",
+  characteristics: [],
   options: [{ name: "Size", values: ["Small", "Large"] }],
   variantDetails: [
     {
@@ -134,5 +135,28 @@ describe("ProductPurchasePanel", () => {
   it("keeps the repeated compact purchase action free of duplicate service navigation", () => {
     render(<ProductPurchasePanel product={product} compact />);
     expect(screen.queryByRole("navigation", { name: "Purchase information" })).not.toBeInTheDocument();
+  });
+
+  it("shows the product's own care instructions instead of the generic blurb when set", () => {
+    const withCare = {
+      ...product,
+      characteristics: [{
+        key: "care_instructions",
+        label: "Care instructions",
+        group: "Care & fulfilment",
+        valueType: "TEXT" as const,
+        textValue: "Wipe with a soft cloth. Avoid water.",
+        numberValue: null,
+        booleanValue: null,
+        unit: null,
+        certificateUrl: null,
+        sortOrder: 0,
+      }],
+    } as ProductSummary;
+
+    render(<ProductPurchasePanel product={withCare} />);
+
+    expect(screen.getByText("Wipe with a soft cloth. Avoid water.")).toBeInTheDocument();
+    expect(screen.queryByText(/Care guidance is included with every piece/)).not.toBeInTheDocument();
   });
 });
