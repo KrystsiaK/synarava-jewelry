@@ -143,6 +143,13 @@ export type PageContent = {
   archiveSectionLabel?: string;
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
+  materialLexicon?: Array<{
+    name?: string;
+    category?: string;
+    description?: string;
+    image?: string;
+    properties?: string;
+  }>;
   manifestoSectionLabel?: string;
   manifestoSectionAttribution?: string;
   finalCtaLabel?: string;

@@ -157,7 +157,7 @@ export function PageEditor({
             <div>
               <h3 id="collection-sections-heading" className="adm-title-sm">Collection-led sections</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                Images, names, and descriptions come from the first three published collections. These labels control the home-page presentation.
+                The archive background label reuses the first three published collections. Lexicon materials below are edited directly here — leave a material blank to fall back to the first three collections instead.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
@@ -174,6 +174,43 @@ export function PageEditor({
                 <input name="materialSectionTitle" defaultValue={content.materialSectionTitle ?? ""} placeholder="Lexicon" className="adm-field" />
               </label>
             </div>
+
+            {[0, 1, 2].map((index) => {
+              const material = content.materialLexicon?.[index];
+              return (
+                <div key={index} className="grid gap-4 border border-[var(--adm-border)] p-4">
+                  <p className="adm-section-tag">LEXICON MATERIAL {index + 1}</p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="grid gap-2">
+                      <span className="adm-label">Name (EN)</span>
+                      <input name={`material${index + 1}Name`} defaultValue={material?.name ?? ""} className="adm-field" />
+                    </label>
+                    <label className="grid gap-2">
+                      <span className="adm-label">Category (EN)</span>
+                      <input name={`material${index + 1}Category`} defaultValue={material?.category ?? ""} className="adm-field" />
+                    </label>
+                  </div>
+                  <label className="grid gap-2">
+                    <span className="adm-label">Description (EN)</span>
+                    <textarea name={`material${index + 1}Description`} defaultValue={material?.description ?? ""} rows={3} className="adm-field" />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className="adm-label">Properties (EN, comma-separated, up to 3)</span>
+                    <input name={`material${index + 1}Properties`} defaultValue={material?.properties ?? ""} placeholder="Recycled, Hypoallergenic, Handmade" className="adm-field" />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className="adm-label">Image</span>
+                    <ImageFileField
+                      name={`material${index + 1}ImageFile`}
+                      currentImageUrl={material?.image}
+                      currentImageAlt={material?.name || `Material ${index + 1}`}
+                      currentImageLabel="Current image"
+                      removeFieldName={`removeMaterial${index + 1}Image`}
+                    />
+                  </label>
+                </div>
+              );
+            })}
           </section>
         ) : null}
 
@@ -272,6 +309,36 @@ export function PageEditor({
                 <label className="grid gap-2"><span className="adm-label">Footer statement (PT)</span><textarea name="ptFinalFooterTitle" defaultValue={ptContent.finalFooterTitle ?? ""} rows={2} className="adm-field" /></label>
                 <label className="grid gap-2"><span className="adm-label">Contact label (PT)</span><input name="ptFinalContactLabel" defaultValue={ptContent.finalContactLabel ?? ""} className="adm-field" /></label>
               </div>
+            </div>
+          ) : null}
+          {isHomePage ? (
+            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
+              <p className="adm-section-tag">LEXICON MATERIALS / PT</p>
+              {[0, 1, 2].map((index) => {
+                const material = ptContent.materialLexicon?.[index];
+                return (
+                  <div key={index} className="grid gap-4 border-t border-[var(--adm-border)] pt-4 first:border-t-0 first:pt-0">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="grid gap-2">
+                        <span className="adm-label">Material {index + 1} name (PT)</span>
+                        <input name={`ptMaterial${index + 1}Name`} defaultValue={material?.name ?? ""} className="adm-field" />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="adm-label">Material {index + 1} category (PT)</span>
+                        <input name={`ptMaterial${index + 1}Category`} defaultValue={material?.category ?? ""} className="adm-field" />
+                      </label>
+                    </div>
+                    <label className="grid gap-2">
+                      <span className="adm-label">Material {index + 1} description (PT)</span>
+                      <textarea name={`ptMaterial${index + 1}Description`} defaultValue={material?.description ?? ""} rows={3} className="adm-field" />
+                    </label>
+                    <label className="grid gap-2">
+                      <span className="adm-label">Material {index + 1} properties (PT, comma-separated)</span>
+                      <input name={`ptMaterial${index + 1}Properties`} defaultValue={material?.properties ?? ""} className="adm-field" />
+                    </label>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
           <div className="grid gap-4 md:grid-cols-2">

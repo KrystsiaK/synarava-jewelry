@@ -62,6 +62,26 @@ export async function getSavedPagePayload(pageIdOrSlug: string): Promise<SavedPa
   return page;
 }
 
+function existingMaterialImage(existingContent: Record<string, unknown>, index: number): string {
+  const list = existingContent.materialLexicon;
+  if (!Array.isArray(list)) return "";
+  const entry = list[index] as Record<string, unknown> | undefined;
+  return entry && typeof entry.image === "string" ? entry.image : "";
+}
+
+function buildMaterialLexiconEntries(
+  entries: Array<{ name: string; category: string; description: string; properties: string }>,
+  images: Array<string | undefined> = [],
+) {
+  return entries.map((entry, index) => ({
+    name: entry.name,
+    category: entry.category,
+    description: entry.description,
+    properties: entry.properties,
+    image: images[index],
+  }));
+}
+
 async function uploadOptionalPageAsset(input: {
   formData: FormData;
   fieldName: string;
@@ -123,6 +143,18 @@ const pageContentFieldsSchema = z.object({
   archiveSectionLabel: z.string().trim().default(""),
   materialSectionEyebrow: z.string().trim().default(""),
   materialSectionTitle: z.string().trim().default(""),
+  material1Name: z.string().trim().default(""),
+  material1Category: z.string().trim().default(""),
+  material1Description: z.string().trim().default(""),
+  material1Properties: z.string().trim().default(""),
+  material2Name: z.string().trim().default(""),
+  material2Category: z.string().trim().default(""),
+  material2Description: z.string().trim().default(""),
+  material2Properties: z.string().trim().default(""),
+  material3Name: z.string().trim().default(""),
+  material3Category: z.string().trim().default(""),
+  material3Description: z.string().trim().default(""),
+  material3Properties: z.string().trim().default(""),
   manifestoSectionLabel: z.string().trim().default(""),
   manifestoSectionAttribution: z.string().trim().default(""),
   finalCtaLabel: z.string().trim().default(""),
@@ -149,6 +181,18 @@ const pageContentFieldsSchema = z.object({
   ptArchiveSectionLabel: z.string().trim().default(""),
   ptMaterialSectionEyebrow: z.string().trim().default(""),
   ptMaterialSectionTitle: z.string().trim().default(""),
+  ptMaterial1Name: z.string().trim().default(""),
+  ptMaterial1Category: z.string().trim().default(""),
+  ptMaterial1Description: z.string().trim().default(""),
+  ptMaterial1Properties: z.string().trim().default(""),
+  ptMaterial2Name: z.string().trim().default(""),
+  ptMaterial2Category: z.string().trim().default(""),
+  ptMaterial2Description: z.string().trim().default(""),
+  ptMaterial2Properties: z.string().trim().default(""),
+  ptMaterial3Name: z.string().trim().default(""),
+  ptMaterial3Category: z.string().trim().default(""),
+  ptMaterial3Description: z.string().trim().default(""),
+  ptMaterial3Properties: z.string().trim().default(""),
   ptManifestoSectionLabel: z.string().trim().default(""),
   ptManifestoSectionAttribution: z.string().trim().default(""),
   ptFinalCtaLabel: z.string().trim().default(""),
@@ -174,12 +218,18 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     ptQuote, ptSecondaryTitle, ptSecondaryBody, heroSectionEnabled, departmentSectionEnabled,
     archiveSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, materialSectionEyebrow, materialSectionTitle,
+    material1Name, material1Category, material1Description, material1Properties,
+    material2Name, material2Category, material2Description, material2Properties,
+    material3Name, material3Category, material3Description, material3Properties,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail,
     departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
     departmentSectionCtaLabel, ptDepartmentSectionTitle, ptDepartmentSectionBody,
     ptDepartmentSectionImageCaption, ptDepartmentSectionCtaLabel,
     ptArchiveSectionLabel, ptMaterialSectionEyebrow, ptMaterialSectionTitle,
+    ptMaterial1Name, ptMaterial1Category, ptMaterial1Description, ptMaterial1Properties,
+    ptMaterial2Name, ptMaterial2Category, ptMaterial2Description, ptMaterial2Properties,
+    ptMaterial3Name, ptMaterial3Category, ptMaterial3Description, ptMaterial3Properties,
     ptManifestoSectionLabel, ptManifestoSectionAttribution, ptFinalCtaLabel,
     ptFinalFooterTitle, ptFinalContactLabel,
   } = parsed.data;
@@ -200,6 +250,24 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     pageSlug: slug,
     uploadedByUsername: currentUser?.username,
   });
+  const materialImages = await Promise.all([0, 1, 2].map((index) => uploadOptionalPageAsset({
+    formData,
+    fieldName: `material${index + 1}ImageFile`,
+    existingValue: existingMaterialImage(existingContent, index),
+    removeFieldName: `removeMaterial${index + 1}Image`,
+    pageSlug: slug,
+    uploadedByUsername: currentUser?.username,
+  })));
+  const materialLexicon = buildMaterialLexiconEntries([
+    { name: material1Name, category: material1Category, description: material1Description, properties: material1Properties },
+    { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
+    { name: material3Name, category: material3Category, description: material3Description, properties: material3Properties },
+  ], materialImages);
+  const ptMaterialLexicon = buildMaterialLexiconEntries([
+    { name: ptMaterial1Name, category: ptMaterial1Category, description: ptMaterial1Description, properties: ptMaterial1Properties },
+    { name: ptMaterial2Name, category: ptMaterial2Category, description: ptMaterial2Description, properties: ptMaterial2Properties },
+    { name: ptMaterial3Name, category: ptMaterial3Category, description: ptMaterial3Description, properties: ptMaterial3Properties },
+  ], materialImages);
   const pageData = {
     slug,
     title,
@@ -221,6 +289,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       archiveSectionLabel,
       materialSectionEyebrow,
       materialSectionTitle,
+      materialLexicon,
       manifestoSectionLabel,
       manifestoSectionAttribution,
       finalCtaLabel,
@@ -251,6 +320,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
           archiveSectionLabel: ptArchiveSectionLabel,
           materialSectionEyebrow: ptMaterialSectionEyebrow,
           materialSectionTitle: ptMaterialSectionTitle,
+          materialLexicon: ptMaterialLexicon,
           manifestoSectionLabel: ptManifestoSectionLabel,
           manifestoSectionAttribution: ptManifestoSectionAttribution,
           finalCtaLabel: ptFinalCtaLabel,
@@ -343,16 +413,32 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     ptQuote, ptSecondaryTitle, ptSecondaryBody, heroSectionEnabled, departmentSectionEnabled,
     archiveSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, materialSectionEyebrow, materialSectionTitle,
+    material1Name, material1Category, material1Description, material1Properties,
+    material2Name, material2Category, material2Description, material2Properties,
+    material3Name, material3Category, material3Description, material3Properties,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail,
     departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
     departmentSectionCtaLabel, ptDepartmentSectionTitle, ptDepartmentSectionBody,
     ptDepartmentSectionImageCaption, ptDepartmentSectionCtaLabel,
     ptArchiveSectionLabel, ptMaterialSectionEyebrow, ptMaterialSectionTitle,
+    ptMaterial1Name, ptMaterial1Category, ptMaterial1Description, ptMaterial1Properties,
+    ptMaterial2Name, ptMaterial2Category, ptMaterial2Description, ptMaterial2Properties,
+    ptMaterial3Name, ptMaterial3Category, ptMaterial3Description, ptMaterial3Properties,
     ptManifestoSectionLabel, ptManifestoSectionAttribution, ptFinalCtaLabel,
     ptFinalFooterTitle, ptFinalContactLabel,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
+  const draftMaterialLexicon = buildMaterialLexiconEntries([
+    { name: material1Name, category: material1Category, description: material1Description, properties: material1Properties },
+    { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
+    { name: material3Name, category: material3Category, description: material3Description, properties: material3Properties },
+  ]);
+  const draftPtMaterialLexicon = buildMaterialLexiconEntries([
+    { name: ptMaterial1Name, category: ptMaterial1Category, description: ptMaterial1Description, properties: ptMaterial1Properties },
+    { name: ptMaterial2Name, category: ptMaterial2Category, description: ptMaterial2Description, properties: ptMaterial2Properties },
+    { name: ptMaterial3Name, category: ptMaterial3Category, description: ptMaterial3Description, properties: ptMaterial3Properties },
+  ]);
 
   const pageData = {
     slug,
@@ -376,6 +462,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       archiveSectionLabel,
       materialSectionEyebrow,
       materialSectionTitle,
+      materialLexicon: draftMaterialLexicon,
       manifestoSectionLabel,
       manifestoSectionAttribution,
       finalCtaLabel,
@@ -405,6 +492,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
           archiveSectionLabel: ptArchiveSectionLabel,
           materialSectionEyebrow: ptMaterialSectionEyebrow,
           materialSectionTitle: ptMaterialSectionTitle,
+          materialLexicon: draftPtMaterialLexicon,
           manifestoSectionLabel: ptManifestoSectionLabel,
           manifestoSectionAttribution: ptManifestoSectionAttribution,
           finalCtaLabel: ptFinalCtaLabel,
