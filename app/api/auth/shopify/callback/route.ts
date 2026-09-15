@@ -36,9 +36,9 @@ function equalSecret(left: string, right: string) {
   );
 }
 
-function loginError(request: NextRequest) {
+function loginError(appOrigin: string) {
   const response = NextResponse.redirect(
-    new URL("/login?error=shopify", request.url),
+    new URL("/login?error=shopify", appOrigin),
   );
   response.cookies.set(SHOPIFY_CUSTOMER_OAUTH_COOKIE, "", {
     httpOnly: true,
@@ -51,13 +51,24 @@ function loginError(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const config = getShopifyCustomerAccountConfig();
   const code = request.nextUrl.searchParams.get("code");
   const returnedState = request.nextUrl.searchParams.get("state");
   const storedTransaction = request.cookies.get(
     SHOPIFY_CUSTOMER_OAUTH_COOKIE,
   )?.value;
 
-  if (!code || !returnedState || !storedTransaction) return loginError(request);
+  if (!code || !returnedState || !storedTransaction) {
+    const missing = [
+      !code && "code",
+      !returnedState && "state",
+      !storedTransaction && "OAuth transaction cookie",
+    ].filter(Boolean);
+    console.error(
+      `[shopify-customer-auth] Callback rejected: missing ${missing.join(", ")}.`,
+    );
+    return loginError(config.appOrigin);
+  }
 
   try {
     const transaction = transactionSchema.parse(
@@ -67,10 +78,12 @@ export async function GET(request: NextRequest) {
       Date.now() - transaction.createdAt > 10 * 60 * 1000 ||
       !equalSecret(transaction.state, returnedState)
     ) {
-      return loginError(request);
+      console.error(
+        "[shopify-customer-auth] Callback rejected: OAuth transaction expired or state mismatch.",
+      );
+      return loginError(config.appOrigin);
     }
 
-    const config = getShopifyCustomerAccountConfig();
     const discovery = await getCustomerAuthorizationDiscovery();
     const body = new URLSearchParams({
       client_id: config.clientId,
@@ -122,6 +135,6 @@ export async function GET(request: NextRequest) {
       "[shopify-customer-auth] Callback failed:",
       error instanceof Error ? error.message : "Unknown error",
     );
-    return loginError(request);
+    return loginError(config.appOrigin);
   }
 }
