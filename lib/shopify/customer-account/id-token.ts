@@ -14,7 +14,6 @@ const claimsSchema = z.object({
   iat: z.number(),
   iss: z.string().url(),
   nonce: z.string(),
-  sub: z.string().min(1),
 });
 
 const jwksSchema = z.object({
