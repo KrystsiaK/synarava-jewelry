@@ -15,6 +15,7 @@ import Link from "next/link";
 
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { ProductMediaGallery } from "@/components/artifacts/product-media-gallery";
+import { ProductHeroDescription } from "@/components/artifacts/product-hero-description";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { PrimaryCtaButton } from "@/components/ui";
@@ -158,14 +159,16 @@ function ProductHero({
             </h1>
 
             {heroDescription ? (
-              <motion.p
-                className="mt-4 max-w-[60ch] text-pretty text-sm leading-[1.65] text-foreground/76 md:mt-6 md:text-base md:leading-[1.75]"
+              <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease, delay: 0.55 }}
               >
-                {heroDescription}
-              </motion.p>
+                <ProductHeroDescription
+                  summary={heroDescription}
+                  description={product.description}
+                />
+              </motion.div>
             ) : null}
 
             <motion.div

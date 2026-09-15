@@ -60,6 +60,27 @@ describe("product characteristics", () => {
     expect(values.find((item) => item.key === "made_to_order")?.booleanValue).toBe(true);
   });
 
+  it("parses neck/wrist fit notes and overall length", () => {
+    const form = new FormData();
+    form.set("characteristic_neck_fit", "Approx. 42–45 cm");
+    form.set("characteristic_wrist_fit", "Approx. 16–18 cm");
+    form.set("characteristic_overall_length", "46.5");
+
+    const values = parseCharacteristicsForm(form);
+    expect(values.find((item) => item.key === "neck_fit")).toMatchObject({
+      textValue: "Approx. 42–45 cm",
+      filterable: false,
+    });
+    expect(values.find((item) => item.key === "wrist_fit")).toMatchObject({
+      textValue: "Approx. 16–18 cm",
+      filterable: false,
+    });
+    expect(values.find((item) => item.key === "overall_length")).toMatchObject({
+      numberValue: 46.5,
+      unit: "cm",
+    });
+  });
+
   it("parses department-specific safety and compatibility fields", () => {
     const form = new FormData();
     form.set("characteristic_neck_circumference", "32");

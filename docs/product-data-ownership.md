@@ -59,9 +59,9 @@ Structured characteristics are searchable, filterable, grouped, and mirrored to 
 ### Dimensions and fit
 
 - internal and external diameter;
-- length, width, height, chain length, adjustable length;
+- length, width, height, overall length, chain length, adjustable length;
 - pendant length and width;
-- size and fit notes;
+- size, fit notes, neck fit, wrist fit;
 - unit weight (Shopify variant weight is preferred when available).
 
 ### Materials and construction

@@ -367,8 +367,13 @@
     "checkout": "Checkout",
     "share": "Partilhar",
     "linkCopied": "Link copiado",
+    "readFullStory": "Ler a história completa",
+    "showLess": "Mostrar menos",
     "save": "Guardar",
     "saved": "Guardado",
+    "saving": "A guardar…",
+    "wishlistSaveFailed": "Não foi possível guardar esta peça. Tente novamente.",
+    "dismissWishlistError": "Fechar erro dos favoritos",
     "addToWishlist": "Guardar nos favoritos",
     "removeFromWishlist": "Remover dos favoritos",
     "relatedTitle": "Também pode gostar"

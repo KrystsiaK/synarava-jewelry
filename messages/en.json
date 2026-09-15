@@ -367,8 +367,13 @@
     "checkout": "Checkout",
     "share": "Share",
     "linkCopied": "Link copied",
+    "readFullStory": "Read full story",
+    "showLess": "Show less",
     "save": "Save",
     "saved": "Saved",
+    "saving": "Saving…",
+    "wishlistSaveFailed": "This piece could not be saved. Please try again.",
+    "dismissWishlistError": "Dismiss wishlist error",
     "addToWishlist": "Save to wishlist",
     "removeFromWishlist": "Remove from wishlist",
     "relatedTitle": "You may also like"
