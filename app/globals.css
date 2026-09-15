@@ -644,13 +644,15 @@ html[data-theme="dark"] .home-final-surface {
   background: linear-gradient(
     to top,
     color-mix(in srgb, var(--color-background) 96%, transparent) 4%,
-    color-mix(in srgb, var(--color-background) 82%, transparent) 36%,
+    color-mix(in srgb, var(--color-background) 90%, transparent) 30%,
     transparent 100%
   );
 }
 
 html[data-theme="dark"] .home-hero-fade {
-  background: linear-gradient(to top, transparent 0%, rgba(9, 9, 10, 0.88) 34%, transparent 100%);
+  /* Holds near-full darkness at the bottom, where the subtitle and CTA sit,
+     instead of peaking mid-band and fading out before reaching them. */
+  background: linear-gradient(to top, rgba(9, 9, 10, 0.92) 0%, rgba(9, 9, 10, 0.88) 30%, transparent 100%);
 }
 
 .home-theme-grid {

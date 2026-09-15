@@ -29,6 +29,7 @@ import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
+import { truncateText } from "@/lib/text/truncate";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
 
@@ -78,7 +79,7 @@ function ProductHero({
 }) {
   const { locale, plural } = useTranslations();
   const words = product.title.split(" ");
-  const heroDescription = product.shortDescription.trim() || product.description.trim();
+  const heroDescription = product.shortDescription.trim() || truncateText(product.description.trim(), 220);
   const availability = product.stockOnHand > 0
     ? `${product.stockOnHand} in stock`
     : "Currently unavailable";
@@ -331,10 +332,13 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
 }
 
 function ProductDescription({ product }: { product: ProductSummary }) {
+  const [expanded, setExpanded] = useState(false);
   const presentation = getProductPresentation(product.departmentSlug);
   const description = product.description.trim();
   const shortDescription = product.shortDescription.trim();
-  if (!description || !shortDescription || description === shortDescription) return null;
+  if (!description || description === shortDescription) return null;
+
+  const isLong = description.length > 320;
 
   return (
     <section data-component="ProductDescription" className="bg-background py-20 md:py-28">
@@ -346,9 +350,19 @@ function ProductDescription({ product }: { product: ProductSummary }) {
           </h2>
         </div>
         <div className="md:col-span-7 md:col-start-6">
-          <p className="max-w-[68ch] text-pretty text-base leading-[1.9] text-foreground/72 md:text-lg">
+          <p className={`max-w-[68ch] text-pretty text-base leading-[1.9] text-foreground/72 md:text-lg ${isLong && !expanded ? "line-clamp-6" : ""}`}>
             {description}
           </p>
+          {isLong ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((current) => !current)}
+              className="label-caps mt-4 text-couture-red underline-offset-4 hover:underline"
+              aria-expanded={expanded}
+            >
+              {expanded ? "Show less" : "Read more"}
+            </button>
+          ) : null}
           <div className="mt-10 flex items-center gap-4" aria-hidden="true">
             <span className="h-px w-16 bg-couture-red/70" />
             <span className="h-2 w-2 rotate-45 border border-couture-red" />

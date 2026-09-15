@@ -32,8 +32,12 @@ import {
   resolveHomeSectionVisibility,
   type HomeSectionVisibilityFields,
 } from "@/lib/content/home-sections";
+import {
+  resolveLexiconMaterials,
+  type HomeLexiconSectionFields,
+} from "@/lib/content/home-lexicon-section";
 
-type HomePageContent = HomeDepartmentSectionFields & HomeSectionVisibilityFields & {
+type HomePageContent = HomeDepartmentSectionFields & HomeSectionVisibilityFields & HomeLexiconSectionFields & {
   eyebrow?: string;
   heroTitle?: string;
   heroBody?: string;
@@ -414,7 +418,7 @@ function HeroSection({
         ) : null}
 
         {excerpt ? (
-          <p className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige/80 md:mt-8 md:text-base">
+          <p className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige md:mt-8 md:text-base">
             {excerpt}
           </p>
         ) : null}
@@ -944,7 +948,7 @@ function MaterialPlate({
 }
 
 // 4. MATERIAL EXPOSITION — scroll-controlled cubist specimen carousel
-function MaterialLab({ collections, eyebrow, title }: { collections: CollectionItem[]; eyebrow?: string; title?: string }) {
+function MaterialLab({ materials: rawMaterials, eyebrow, title }: { materials: Omit<LexiconMaterial, "symbol">[]; eyebrow?: string; title?: string }) {
   const ref = useRef<HTMLElement>(null);
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
   const scrollContext = useContext(HomeScrollContext);
@@ -956,19 +960,8 @@ function MaterialLab({ collections, eyebrow, title }: { collections: CollectionI
   const progressScale = useTransform(progress, [0, 1], [0, 1]);
   const usesDiscreteIOSSteps = scrollContext?.isIOSWebKit ?? false;
   const materials = useMemo<LexiconMaterial[]>(
-    () =>
-      collections
-        .filter((item) => item.image)
-        .slice(0, 3)
-        .map((item, index) => ({
-          name: item.title,
-          category: item.series,
-          description: item.description,
-          image: item.image,
-          symbol: String(index + 1).padStart(2, "0"),
-          properties: [],
-        })),
-    [collections],
+    () => rawMaterials.slice(0, 3).map((item, index) => ({ ...item, symbol: String(index + 1).padStart(2, "0") })),
+    [rawMaterials],
   );
 
   useEffect(() => {
@@ -1468,6 +1461,13 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
   const departmentSection = resolveHomeDepartmentSection(content, departments.length > 0);
   const visibility = resolveHomeSectionVisibility(content);
+  const configuredLexiconMaterials = resolveLexiconMaterials(content);
+  const lexiconMaterials = configuredLexiconMaterials.length > 0
+    ? configuredLexiconMaterials
+    : collections
+      .filter((item) => item.image)
+      .slice(0, 3)
+      .map((item) => ({ name: item.title, category: item.series, description: item.description, image: item.image, properties: [] }));
 
   return (
     <HomeScrollProvider>
@@ -1493,7 +1493,7 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
       /> : null}
       {visibility.department && departmentSection ? <DepartmentPathway departments={departments} section={departmentSection} /> : null}
       {visibility.archive ? <ArchivePathway collections={collections} sectionLabel={content?.archiveSectionLabel} /> : null}
-      {visibility.material ? <MaterialLab collections={collections} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} /> : null}
+      {visibility.material ? <MaterialLab materials={lexiconMaterials} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} /> : null}
       {visibility.manifesto ? <ManifestoQuote quote={content?.quote} label={content?.manifestoSectionLabel} attribution={content?.manifestoSectionAttribution} /> : null}
       {visibility.finalCta ? <FinalCTA
         collections={collections}
