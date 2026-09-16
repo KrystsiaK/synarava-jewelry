@@ -25,6 +25,8 @@ export type ProductCmsProps = {
 
 export type ProductDraft = {
   name: string;
+  vendor: string;
+  productType: string;
   slug: string;
   sku: string;
   price: string;

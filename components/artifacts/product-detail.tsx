@@ -207,23 +207,6 @@ function ProductHero({
             <ProductPurchasePanel product={product} />
           </motion.div>
 
-          {product.tagNames.length > 0 && (
-            <motion.div
-              className="mt-6 hidden flex-wrap items-center gap-x-3 gap-y-2 sm:flex"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.7, ease, delay: 1 }}
-            >
-              {product.tagNames.map((tag, index) => (
-                <span key={tag} className="contents">
-                  {index > 0 && <span className="text-couture-red/55">◆</span>}
-                  <span className="font-sans text-[0.65rem] uppercase tracking-[0.18em] text-foreground/42">
-                    {tag}
-                  </span>
-                </span>
-              ))}
-            </motion.div>
-          )}
           <motion.dl
             className="mt-8 grid grid-cols-2 border-y border-foreground/18"
             initial={{ opacity: 0, y: 18 }}
@@ -274,6 +257,15 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     if (product.attributes.length === 0 && product.materialLine) {
       add("Materials & construction", { label: "Material composition", value: product.materialLine });
     }
+  }
+  if (product.vendor) add("Product details", { label: "Brand", value: product.vendor });
+  if (product.productType) add("Product details", { label: "Product type", value: product.productType });
+  if (product.sku) add("Product details", { label: "SKU", value: product.sku });
+  const primaryVariant = product.variantDetails[0];
+  if (primaryVariant?.barcode) add("Product details", { label: "Barcode", value: primaryVariant.barcode });
+  if (primaryVariant?.weightGrams != null) add("Dimensions & fit", { label: "Weight", value: `${primaryVariant.weightGrams} g` });
+  for (const field of product.publicMetafields ?? []) {
+    add("Additional details", field);
   }
 
   const priorityIndex = new Map(

@@ -103,8 +103,11 @@ SHOPIFY_WEBHOOK_SECRET=...
 ### Product synchronization
 
 The local catalog is the storefront read model. Saving a product in
-the studio pushes title, handle, description, status, price, SKU, primary image, inventory, tags, and
-`synarava.*` characteristic metafields through the Shopify Admin GraphQL API. Shopify
+the studio stores the draft locally; **Push to Shopify** sends title, handle, description, vendor,
+product type, status, price, SKU, primary image, inventory, tags, and
+`synarava.*` characteristic metafields through the Shopify Admin GraphQL API. The product editor
+also shows the pulled variants, metafields, and stored Shopify snapshot; **Pull from Shopify**
+refreshes those values. Shopify
 `products/create`, `products/update`, `products/delete`, and `inventory_levels/update` webhooks pull commerce changes back into
 the local database. The **Reconcile** action registers those webhook subscriptions (when
 `APP_URL` is set) and imports the full Shopify catalog, matching by Shopify product ID,

@@ -537,6 +537,17 @@ export function ProductFormFields({
         </label>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2">
+          <OwnershipLabel owner="Shopify">Vendor / brand</OwnershipLabel>
+          <input name="vendor" defaultValue={draft.vendor} className="adm-field" />
+        </label>
+        <label className="grid gap-2">
+          <OwnershipLabel owner="Shopify">Product type</OwnershipLabel>
+          <input name="productType" defaultValue={draft.productType} className="adm-field" />
+        </label>
+      </div>
+
       <div hidden={activeLocale !== "EN"}>
         <AdminLongTextField
           name="shortDescription"

@@ -57,6 +57,9 @@ export type SavedProductPayload = {
   slug: string;
   sku: string;
   name: string;
+  vendor: string | null;
+  productType: string | null;
+  shopifySnapshot: unknown;
   seriesLabel: string | null;
   shortDescription: string | null;
   description: string | null;
@@ -178,6 +181,9 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       slug: true,
       sku: true,
       name: true,
+      vendor: true,
+      productType: true,
+      shopifySnapshot: true,
       seriesLabel: true,
       shortDescription: true,
       description: true,
@@ -429,6 +435,8 @@ const saveProductFieldsSchema = z.object({
   slug: z.string().trim().default(""),
   sku: z.string().trim().default(""),
   name: z.string().trim().default(""),
+  vendor: z.string().trim().default(""),
+  productType: z.string().trim().default(""),
   seriesLabel: z.string().trim().default(""),
   shortDescription: z.string().trim().default(""),
   description: z.string().trim().default(""),
@@ -502,7 +510,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     return { error: "Name, slug, SKU, and price are required." };
   }
   const {
-    productId, sku, name, seriesLabel, shortDescription, description, seoTitle, seoDescription, materialLine,
+    productId, sku, name, vendor, productType, seriesLabel, shortDescription, description, seoTitle, seoDescription, materialLine,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
     ptTitle, ptShortDescription, ptDescription, ptMaterialLine,
     ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
@@ -679,6 +687,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     slug,
     sku,
     name,
+    vendor: vendor || null,
+    productType: productType || null,
     seriesLabel,
     shortDescription,
     description,

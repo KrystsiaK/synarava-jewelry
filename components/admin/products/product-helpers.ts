@@ -72,7 +72,7 @@ export function getProductEditorDetails(details: unknown, characteristics: Produ
 
 export function emptyDraft(): ProductDraft {
   return {
-    name: "", slug: "", sku: "", price: "", seriesLabel: "",
+    name: "", vendor: "", productType: "", slug: "", sku: "", price: "", seriesLabel: "",
     shortDescription: "", description: "", seoTitle: "", seoDescription: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
@@ -98,6 +98,8 @@ export function productToDraft(product: ProductRecord): ProductDraft {
   const pt = product.translations?.find((translation) => translation.locale === "PT");
   return {
     name: product.name,
+    vendor: product.vendor ?? "",
+    productType: product.productType ?? "",
     slug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
     price: centsToPrice(primaryVariant?.priceCents ?? product.priceCents),

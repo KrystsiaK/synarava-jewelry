@@ -8,6 +8,7 @@ import {
   type ProductProcessStory,
 } from "@/lib/content/product-details";
 import { characteristicDisplayValue, type ProductCharacteristicValue } from "@/lib/products/characteristics";
+import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
@@ -63,6 +64,7 @@ export type ProductSummary = {
   searchText: string;
   variantCount: number;
   vendor: string;
+  productType: string;
   shopifyCategoryName: string;
   commerceMedia: Array<{ src: string; alt: string; width: number | null; height: number | null }>;
   options: Array<{ name: string; values: string[] }>;
@@ -92,6 +94,7 @@ export type ProductSummary = {
   categoryName: string | null;
   tagSlugs: string[];
   tagNames: string[];
+  publicMetafields: Array<{ label: string; value: string }>;
   symbolismLabel: string;
   symbolismTitle: string;
   symbolismBody: string;
@@ -210,6 +213,7 @@ function shopifyProjection(value: unknown) {
         values: Array.isArray(row.values) ? row.values.filter((value): value is string => typeof value === "string") : [],
       }];
     }),
+    publicMetafields: projectPublicProductMetafields(snapshot.metafields),
   };
 }
 
@@ -228,6 +232,7 @@ function toSummary(product: {
   createdAt: Date;
   updatedAt: Date;
   vendor: string | null;
+  productType: string | null;
   shopifyCategoryId: string | null;
   shopifyCategoryName: string | null;
   shopifySnapshot: unknown;
@@ -343,6 +348,7 @@ function toSummary(product: {
     ].filter(Boolean).join(" "),
     variantCount: product.variants.length,
     vendor: product.vendor ?? "",
+    productType: product.productType ?? "",
     shopifyCategoryName: product.shopifyCategoryName ?? "",
     commerceMedia: combinedMedia,
     options: projection.options.filter((option) => option.name !== "Title" || option.values.some((value) => value !== "Default Title")),
@@ -384,6 +390,7 @@ function toSummary(product: {
     categoryName: categoryLeafLabel(product.shopifyCategoryName),
     tagSlugs: product.tags.map((item) => item.tag.slug),
     tagNames: product.tags.map((item) => item.tag.name),
+    publicMetafields: projection.publicMetafields,
     symbolismLabel: localized.symbolismLabel || leadCollection?.symbolismLabel || "",
     symbolismTitle: localized.symbolismTitle || leadCollection?.symbolismTitle || "",
     symbolismBody: localized.symbolismBody || leadCollection?.symbolismBody || "",

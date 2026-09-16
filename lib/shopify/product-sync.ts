@@ -46,7 +46,14 @@ import {
 } from "@/lib/shopify/translations";
 
 type UserError = { field?: string[]; message: string };
-type ShopifyMetafield = { namespace: string; key: string; type: string; value: string };
+type ShopifyMetafield = {
+  namespace: string;
+  key: string;
+  type: string;
+  value: string;
+  definition: { name: string; access: { storefront: "PUBLIC_READ" | "NONE" | null } } | null;
+};
+type ShopifyPageInfo = { hasNextPage: boolean; endCursor: string | null };
 type ShopifyProduct = {
   id: string;
   title: string;
@@ -70,19 +77,19 @@ type ShopifyProduct = {
     image?: { url: string; width: number | null; height: number | null } | null;
   }> };
   options: Array<{ id: string; name: string; position: number; values: string[] }>;
-  collections: { nodes: Array<{
+  collections: { pageInfo: ShopifyPageInfo; nodes: Array<{
     id: string;
     handle: string;
     title: string;
     sources: ShopifyCollectionSource[];
   }> };
-  resourcePublicationsV2: { nodes: Array<{
+  resourcePublicationsV2: { pageInfo: ShopifyPageInfo; nodes: Array<{
     isPublished: boolean;
     publishDate: string | null;
     publication: { id: string; name: string };
   }> };
   featuredMedia?: { id: string; preview?: { image?: { url: string } | null } | null } | null;
-  variants: { nodes: Array<{
+  variants: { pageInfo: ShopifyPageInfo; nodes: Array<{
     id: string;
     title: string;
     sku: string | null;
@@ -105,7 +112,7 @@ type ShopifyProduct = {
       } | null;
     } | null;
   }> };
-  metafields: { nodes: ShopifyMetafield[] };
+  metafields: { pageInfo: ShopifyPageInfo; nodes: ShopifyMetafield[] };
 };
 
 type ShopifyReconciliationProduct = {
@@ -113,8 +120,22 @@ type ShopifyReconciliationProduct = {
   title: string;
   handle: string;
   updatedAt: string;
-  variants: { nodes: RemoteCommerceVariant[] };
+  variants: { pageInfo: ShopifyPageInfo; nodes: RemoteCommerceVariant[] };
 };
+
+const COLLECTION_FIELDS = `
+  id handle title
+  sources {
+    __typename id title
+    ... on CollectionConditionsSource { targetType }
+  }
+`;
+
+const VARIANT_FIELDS = `
+  id title sku barcode price compareAtPrice inventoryPolicy taxable inventoryQuantity
+  selectedOptions { name value }
+  inventoryItem { id requiresShipping tracked measurement { weight { value unit } } }
+`;
 
 const PRODUCT_FIELDS = `
   id title handle descriptionHtml vendor productType tags status updatedAt totalInventory
@@ -123,24 +144,16 @@ const PRODUCT_FIELDS = `
   ${SHOPIFY_PRODUCT_MEDIA_FRAGMENT}
   options { id name position values }
   collections(first: 100) {
-    nodes {
-      id handle title
-      sources {
-        __typename id title
-        ... on CollectionConditionsSource { targetType }
-      }
-    }
+    pageInfo { hasNextPage endCursor }
+    nodes { ${COLLECTION_FIELDS} }
   }
-  resourcePublicationsV2(first: 100) { nodes { isPublished publishDate publication { id name } } }
+  resourcePublicationsV2(first: 100) { pageInfo { hasNextPage endCursor } nodes { isPublished publishDate publication { id name } } }
   featuredMedia { id preview { image { url } } }
   variants(first: 100) {
-    nodes {
-      id title sku barcode price compareAtPrice inventoryPolicy taxable inventoryQuantity
-      selectedOptions { name value }
-      inventoryItem { id requiresShipping tracked measurement { weight { value unit } } }
-    }
+    pageInfo { hasNextPage endCursor }
+    nodes { ${VARIANT_FIELDS} }
   }
-  metafields(first: 100, namespace: "synarava") { nodes { namespace key type value } }
+  metafields(first: 100) { pageInfo { hasNextPage endCursor } nodes { namespace key type value definition { name access { storefront } } } }
 `;
 
 function userErrors(errors: UserError[]) {
@@ -275,12 +288,18 @@ function weightInGrams(weight: NonNullable<NonNullable<ShopifyProduct["variants"
 function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify({
     id: remote.id,
+    title: remote.title,
+    handle: remote.handle,
+    descriptionHtml: remote.descriptionHtml,
+    tags: remote.tags,
+    status: remote.status,
     vendor: remote.vendor,
     productType: remote.productType,
     category: remote.category,
     seo: remote.seo,
     media: remote.media.nodes,
     options: remote.options,
+    metafields: remote.metafields.nodes,
     collections: remote.collections.nodes,
     publications: remote.resourcePublicationsV2.nodes,
     totalInventory: remote.totalInventory,
@@ -331,12 +350,56 @@ async function getInventoryLocationId() {
   return data.locations.nodes[0]?.id ?? null;
 }
 
+async function fetchRemainingProductConnection<T>(
+  id: string,
+  connection: "variants" | "metafields" | "collections" | "resourcePublicationsV2",
+  fields: string,
+  firstPage: { nodes: T[]; pageInfo: ShopifyPageInfo },
+): Promise<T[]> {
+  const nodes = [...firstPage.nodes];
+  let pageInfo = firstPage.pageInfo;
+  while (pageInfo.hasNextPage) {
+    if (!pageInfo.endCursor) throw new ShopifyAdminError(`Shopify omitted the ${connection} pagination cursor.`);
+    const data = await shopifyAdminRequest<{
+      product: Record<string, { nodes: T[]; pageInfo: ShopifyPageInfo }> | null;
+    }>(
+      `query SynaravaProductConnection($id: ID!, $after: String!) {
+        product(id: $id) {
+          ${connection}(first: 100, after: $after) {
+            pageInfo { hasNextPage endCursor }
+            nodes { ${fields} }
+          }
+        }
+      }`,
+      { id, after: pageInfo.endCursor },
+    );
+    const page = data.product?.[connection];
+    if (!page) throw new ShopifyAdminError(`Shopify did not return the ${connection} page.`);
+    nodes.push(...page.nodes);
+    pageInfo = page.pageInfo;
+  }
+  return nodes;
+}
+
 async function fetchShopifyProduct(id: string) {
+  const shopifyId = shopifyNumericId(id);
   const data = await shopifyAdminRequest<{ product: ShopifyProduct | null }>(
     `query SynaravaProduct($id: ID!) { product(id: $id) { ${PRODUCT_FIELDS} } }`,
-    { id: shopifyNumericId(id) },
+    { id: shopifyId },
   );
-  return data.product;
+  const product = data.product;
+  if (!product) return null;
+  const [variants, metafields, collections, publications] = await Promise.all([
+    fetchRemainingProductConnection(shopifyId, "variants", VARIANT_FIELDS, product.variants),
+    fetchRemainingProductConnection(shopifyId, "metafields", "namespace key type value definition { name access { storefront } }", product.metafields),
+    fetchRemainingProductConnection(shopifyId, "collections", COLLECTION_FIELDS, product.collections),
+    fetchRemainingProductConnection(shopifyId, "resourcePublicationsV2", "isPublished publishDate publication { id name }", product.resourcePublicationsV2),
+  ]);
+  product.variants.nodes = variants;
+  product.metafields.nodes = metafields;
+  product.collections.nodes = collections;
+  product.resourcePublicationsV2.nodes = publications;
+  return product;
 }
 
 type LocalProductAsset = StagedProductMedia & {
@@ -800,7 +863,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   await syncProductCollectionMembership(product.id, remote.collections.nodes);
 
   const definitions = new Map<string, (typeof PRODUCT_CHARACTERISTICS)[number] & { sortOrder: number }>(PRODUCT_CHARACTERISTICS.map((item, index) => [item.key, { ...item, sortOrder: index }]));
-  const reachCertificate = remote.metafields.nodes.find((item) => item.key === "reach_certified_certificate")?.value ?? null;
+  const reachCertificate = remote.metafields.nodes.find((item) => item.namespace === "synarava" && item.key === "reach_certified_certificate")?.value ?? null;
   // Structured characteristics belong to the Synarava CMS layer. Shopify
   // metafields can seed or update them, but an absent metafield must never
   // erase a locally curated value during a commerce pull.
@@ -823,6 +886,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
     });
   }
   for (const metafield of remote.metafields.nodes) {
+    if (metafield.namespace !== "synarava") continue;
     const definition = definitions.get(metafield.key);
     if (!definition) continue;
     const valueType = definition.type;
@@ -946,7 +1010,9 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     remote.tags.map(tagSlug).filter(Boolean).sort().join(", "),
   );
 
-  const remoteMetafields = new Map(remote.metafields.nodes.map((item) => [item.key, item.value]));
+  const remoteMetafields = new Map(remote.metafields.nodes
+    .filter((item) => item.namespace === "synarava")
+    .map((item) => [item.key, item.value]));
   const localCharacteristics = new Map(local.characteristics.map((item) => [item.key, item]));
   const remotePrimaryWeight = weightInGrams(remoteVariant?.inventoryItem?.measurement?.weight);
   for (const definition of PRODUCT_CHARACTERISTICS) {
@@ -1257,7 +1323,12 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       userErrors(metafieldData.metafieldsSet.userErrors);
     }
     const desiredKeys = new Set(metafields.map((item) => item.key));
-    const staleMetafields = remote.metafields.nodes.filter((item) => !desiredKeys.has(item.key));
+    const managedKeys = new Set<string>(PRODUCT_CHARACTERISTICS.flatMap((item) =>
+      "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
+    ));
+    const staleMetafields = remote.metafields.nodes.filter((item) =>
+      item.namespace === "synarava" && managedKeys.has(item.key) && !desiredKeys.has(item.key),
+    );
     if (staleMetafields.length) {
       const deleted = await shopifyAdminRequest<{
         metafieldsDelete: { userErrors: UserError[] };
@@ -1455,19 +1526,21 @@ export async function reconcileShopifyProducts() {
   const seenRemoteIds = new Set<string>();
   let cursor: string | null = null;
   do {
-    const data: { products: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: ShopifyProduct[] } } = await shopifyAdminRequest(
+    const data: { products: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: Array<{ id: string }> } } = await shopifyAdminRequest(
       `query SynaravaProducts($after: String) {
         products(first: 100, after: $after, sortKey: UPDATED_AT) {
           pageInfo { hasNextPage endCursor }
-          nodes { ${PRODUCT_FIELDS} }
+          nodes { id }
         }
       }`,
       { after: cursor },
     );
-    for (const remote of data.products.nodes) {
-      seenRemoteIds.add(remote.id);
-      const event = await db.productSyncEvent.create({ data: { shopifyProductId: remote.id, direction: "RECONCILE", status: "PROCESSING", attemptCount: 1 } });
+    for (const item of data.products.nodes) {
+      seenRemoteIds.add(item.id);
+      const event = await db.productSyncEvent.create({ data: { shopifyProductId: item.id, direction: "RECONCILE", status: "PROCESSING", attemptCount: 1 } });
       try {
+        const remote = await fetchShopifyProduct(item.id);
+        if (!remote) throw new ShopifyAdminError(`Shopify product ${item.id} disappeared during reconciliation.`);
         const result = await savePulledProduct(remote, event.id);
         // Portuguese being unreadable (missing read_translations scope) or in
         // conflict never blocks the commerce pull that already succeeded here
@@ -1541,6 +1614,7 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
           nodes {
             id title handle updatedAt
             variants(first: 100) {
+              pageInfo { hasNextPage endCursor }
               nodes { id title sku price compareAtPrice inventoryQuantity }
             }
           }
@@ -1548,7 +1622,15 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
       }`,
       { after: cursor },
     );
-    remoteProducts.push(...data.products.nodes);
+    for (const product of data.products.nodes) {
+      product.variants.nodes = await fetchRemainingProductConnection(
+        product.id,
+        "variants",
+        "id title sku price compareAtPrice inventoryQuantity",
+        product.variants,
+      );
+      remoteProducts.push(product);
+    }
     cursor = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;
   } while (cursor);
 

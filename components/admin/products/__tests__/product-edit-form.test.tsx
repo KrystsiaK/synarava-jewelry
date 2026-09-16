@@ -99,6 +99,24 @@ describe("EditProductForm", () => {
     expect(mocks.inspectProductSyncAction).toHaveBeenCalledWith("product-1");
   });
 
+  it("shows editable Shopify fields and the pulled metafields", async () => {
+    mocks.inspectProductSyncAction.mockResolvedValue({
+      inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
+    });
+    render(<EditProductForm product={makeProduct({
+      shopifyProductId: "gid://shopify/Product/1",
+      vendor: "Synarava",
+      productType: "Necklace",
+      shopifySnapshot: { metafields: [{ namespace: "custom", key: "pearl_grade", type: "single_line_text_field", value: "AAA" }] },
+    })} collections={[]} />);
+
+    expect(screen.getByLabelText(/Vendor \/ brand/)).toHaveValue("Synarava");
+    expect(screen.getByLabelText(/Product type/)).toHaveValue("Necklace");
+    expect(screen.getByText("custom.pearl_grade")).toBeInTheDocument();
+    expect(screen.getByText("AAA")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
   it("opens the delete confirmation and calls the delete action on confirm", async () => {
     mocks.deleteProductAction.mockResolvedValue({ success: "Deleted.", deletedProductId: "product-1" });
     const onDeleted = vi.fn();

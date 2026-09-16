@@ -33,7 +33,9 @@ cleared by that decision.
 - **Collection** is the only product-grouping model. The local record projects Shopify identity and membership while retaining Synarava-owned editorial presentation.
 - **Primary navigation group** is a collection with `isPrimaryNav`; the legacy `department` query parameter and admin label are compatibility vocabulary, not a separate entity or product field.
 - **Tags** are Shopify product tags edited on the product. Local tag rows are a synchronized read projection, not standalone admin-managed records.
+- Tags power search and filters; they are not printed as a keyword list in the product purchase area.
 - **Product type** is Shopify's free-form value and must round-trip without translation into a local enum.
+- The product editor exposes vendor and product type as editable Shopify-owned fields. A read-only Shopify data section displays synchronized variants, their commerce values, product metafields, and the stored snapshot; Pull refreshes it.
 
 The September 2026 migration and its deliberate compatibility remnants are
 recorded in [`history/admin-shopify-refactor-2026-09.md`](./history/admin-shopify-refactor-2026-09.md).
@@ -90,6 +92,8 @@ Structured characteristics are searchable, filterable, grouped, and mirrored to 
 
 - The hero exposes essential commerce facts immediately: description, price, SKU, availability, variants, compare-at price, and composition.
 - The product passport groups populated specifications by meaning. Empty facts are not fabricated and are not rendered.
+- Brand, product type, SKU, barcode, and primary-variant weight appear in the factual passport when populated.
+- Simple product metafields with a Shopify definition explicitly marked `PUBLIC_READ` appear under Additional details. Private definitions and unresolved reference/JSON values remain in the admin snapshot only.
 - Certificates are linked from the related compliance row.
 - Editorial modules follow the factual passport: material meaning, symbolism, craftsmanship, lookbook, care, and related products.
 

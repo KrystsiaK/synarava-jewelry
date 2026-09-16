@@ -23,6 +23,7 @@ import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-ty
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
+import { ShopifyProductMirror } from "@/components/admin/products/shopify-product-mirror";
 import { ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
 import {
   getProductEditorDetails,
@@ -235,6 +236,7 @@ export function EditProductForm({
             issues={issues}
             collections={collections}
           />
+          <ShopifyProductMirror product={currentProduct} />
 
           <div
             className="flex items-center justify-between gap-4 pt-4"
