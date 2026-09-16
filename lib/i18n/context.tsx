@@ -20,7 +20,6 @@ type TranslationContextValue = {
 type TranslationValues = Record<string, string | number>;
 
 const STORAGE_LOCALE_KEY = "synarava-locale";
-const STORAGE_CACHE_PREFIX = "synarava-t-v5-";
 
 const enFlat = flattenMessages(en as Record<string, unknown>);
 
@@ -34,15 +33,17 @@ const TranslationContext = createContext<TranslationContextValue>({
 
 export function TranslationProvider({
   initialLocale = "en",
+  initialOverrides,
   children,
 }: {
   initialLocale?: string;
+  initialOverrides?: { en: Record<string, string>; pt: Record<string, string> };
   children: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [locale, setLocaleState] = useState<Locale>(() => normalizeLocale(initialLocale));
-  const [messages, setMessages] = useState<Record<string, string>>(enFlat);
+  const [messages, setMessages] = useState<Record<string, string>>(() => ({ ...enFlat, ...initialOverrides?.[normalizeLocale(initialLocale)] }));
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -63,20 +64,10 @@ export function TranslationProvider({
 
     if (newLocale === "en") {
       setLocaleState("en");
-      setMessages(enFlat);
+      setMessages({ ...enFlat, ...initialOverrides?.en });
       persist("en");
       document.documentElement.lang = "en";
       if (navigate) navigateToLocale("en");
-      return;
-    }
-
-    const cached = readCache(newLocale);
-    if (cached) {
-      setLocaleState(newLocale);
-      setMessages(cached);
-      persist(newLocale);
-      document.documentElement.lang = newLocale;
-      if (navigate) navigateToLocale(newLocale);
       return;
     }
 
@@ -85,8 +76,7 @@ export function TranslationProvider({
       const res = await fetch(`/api/translate?locale=${encodeURIComponent(newLocale)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: Record<string, string> = await res.json();
-      writeCache(newLocale, data);
-      setMessages(data);
+      setMessages({ ...data, ...initialOverrides?.[newLocale] });
       setLocaleState(newLocale);
       persist(newLocale);
       document.documentElement.lang = newLocale;
@@ -136,20 +126,5 @@ function persist(locale: Locale) {
   try {
     localStorage.setItem(STORAGE_LOCALE_KEY, locale);
     document.cookie = `synarava-locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;
-  } catch {}
-}
-
-function readCache(locale: Locale): Record<string, string> | null {
-  try {
-    const raw = localStorage.getItem(`${STORAGE_CACHE_PREFIX}${locale}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(locale: Locale, data: Record<string, string>) {
-  try {
-    localStorage.setItem(`${STORAGE_CACHE_PREFIX}${locale}`, JSON.stringify(data));
   } catch {}
 }
