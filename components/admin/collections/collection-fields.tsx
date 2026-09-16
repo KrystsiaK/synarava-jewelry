@@ -123,7 +123,7 @@ export function CollectionFields({
             onChange={(e) => onChange("name", e.target.value)}
             className={fieldClass(fieldErrors?.name)}
             aria-invalid={Boolean(fieldErrors?.name)}
-            placeholder="Belarus Heritage"
+            placeholder="Earth Rituals"
           />
           <FieldError message={fieldErrors?.name} />
         </label>
@@ -139,7 +139,7 @@ export function CollectionFields({
             onChange={(e) => onChange("slug", e.target.value)}
             className={fieldClass(fieldErrors?.slug)}
             aria-invalid={Boolean(fieldErrors?.slug)}
-            placeholder="belarus-heritage"
+            placeholder="earth-rituals"
           />
           <FieldError message={fieldErrors?.slug} />
         </label>

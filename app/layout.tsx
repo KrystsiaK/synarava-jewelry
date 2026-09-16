@@ -13,6 +13,7 @@ import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
 import { getStorefrontNavigation } from "@/lib/content/catalog";
+import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { isJournalNavVisible } from "@/lib/content/journal-visibility";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
@@ -39,7 +40,7 @@ const organizationJsonLd = {
   name: "Synarava",
   url: siteUrl,
   description:
-    "Handcrafted Belarusian couture jewelry rooted in folk symbolism and contemporary design.",
+    "Handcrafted couture jewelry rooted in folk symbolism and contemporary design.",
   sameAs: [],
 };
 
@@ -58,7 +59,6 @@ export const metadata: Metadata = {
     "creative products for kids",
     "jewelry making tools",
     "handcrafted jewelry",
-    "Belarusian jewelry",
     "couture jewelry",
     "lava stone bracelet",
     "folk jewelry",
@@ -123,11 +123,12 @@ export default async function RootLayout({
     storefrontRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ROOT_DOMAIN,
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
-  const [cartCount, isLoggedIn, departments, journalVisible] = await Promise.all([
+  const [cartCount, isLoggedIn, departments, journalVisible, storefrontCopy] = await Promise.all([
     getStorefrontCartCount(),
     hasShopifyCustomerSession(),
     getStorefrontNavigation(),
     isJournalNavVisible(),
+    getStorefrontCopy(),
   ]);
 
   return (
@@ -153,7 +154,7 @@ export default async function RootLayout({
         <a href="#main-content" className="skip-link">
           {initialLocale === "pt" ? "Saltar para o conteúdo principal" : "Skip to main content"}
         </a>
-        <TranslationProvider initialLocale={initialLocale}>
+        <TranslationProvider initialLocale={initialLocale} initialOverrides={storefrontCopy}>
           <PrivacyConsentManager
             initialConsent={cookieStore.get(PRIVACY_CONSENT_COOKIE)?.value}
             shopifyConfig={shopifyPrivacyEnabled ? {

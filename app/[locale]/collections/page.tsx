@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Collections",
     description:
-      "Browse Synarava jewelry collections — Belarus Heritage, Earth Rituals, and Dark Symbols. Enter each story-world before choosing your piece.",
+      "Browse Synarava's curated collections. Enter each story-world before choosing your piece.",
     alternates: buildAlternates(locale, "/collections"),
     openGraph: {
       url: localePath(locale, "/collections"),
