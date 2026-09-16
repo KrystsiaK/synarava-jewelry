@@ -50,7 +50,7 @@ The supported commerce projection should include, where available:
 - primary media and ordered gallery media with alt text;
 - product options and all variants;
 - variant title, selected options, SKU, barcode, price, compare-at price, inventory policy, quantity, taxable state, shipping requirement, weight, country of origin, harmonized system code, and variant media;
-- inventory item and location references required for stock reconciliation.
+- inventory item and location references, including available, committed, on-hand, and unavailable quantities by location in the stored Shopify snapshot. Unavailable is calculated as on-hand minus available minus committed.
 
 Shopify contains additional operational and analytical API fields. “All Shopify fields” in Synarava means all fields needed to reproduce the customer-facing product and reconcile its sellable state, not internal analytics or unrelated platform metadata.
 

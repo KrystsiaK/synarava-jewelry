@@ -107,6 +107,10 @@ type ShopifyProduct = {
       tracked: boolean;
       countryCodeOfOrigin: string | null;
       harmonizedSystemCode: string | null;
+      inventoryLevels?: Array<{
+        location: { id: string; name: string };
+        quantities: Array<{ name: string; quantity: number }>;
+      }>;
       measurement?: {
         weight?: {
           value: number;
@@ -425,6 +429,42 @@ async function fetchTaxonomyMetafieldValues(productId: string, key: string): Pro
   return [...new Set(names)];
 }
 
+async function fetchInventoryLevels(inventoryItemId: string) {
+  const levels: Array<{
+    location: { id: string; name: string };
+    quantities: Array<{ name: string; quantity: number }>;
+  }> = [];
+  let after: string | null = null;
+  do {
+    const data: {
+      inventoryItem: {
+        inventoryLevels: { pageInfo: ShopifyPageInfo; nodes: typeof levels };
+      } | null;
+    } = await shopifyAdminRequest(
+      `query SynaravaInventoryLevels($id: ID!, $after: String) {
+        inventoryItem(id: $id) {
+          inventoryLevels(first: 100, after: $after) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              location { id name }
+              quantities(names: ["available", "committed", "on_hand", "reserved", "damaged", "quality_control", "safety_stock"]) { name quantity }
+            }
+          }
+        }
+      }`,
+      { id: inventoryItemId, after },
+    );
+    if (!data.inventoryItem) break;
+    levels.push(...data.inventoryItem.inventoryLevels.nodes);
+    const pageInfo = data.inventoryItem.inventoryLevels.pageInfo;
+    if (pageInfo.hasNextPage && !pageInfo.endCursor) {
+      throw new ShopifyAdminError(`Shopify omitted the inventory levels cursor for ${inventoryItemId}.`);
+    }
+    after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
+  } while (after);
+  return levels;
+}
+
 async function fetchShopifyProduct(id: string) {
   const shopifyId = shopifyNumericId(id);
   const data = await shopifyAdminRequest<{ product: ShopifyProduct | null }>(
@@ -446,6 +486,10 @@ async function fetchShopifyProduct(id: string) {
   for (const metafield of product.metafields.nodes) {
     if (metafield.namespace !== "shopify" || !metafield.type.includes("product_taxonomy_value_reference")) continue;
     metafield.resolvedValues = await fetchTaxonomyMetafieldValues(shopifyId, metafield.key);
+  }
+  for (const variant of product.variants.nodes) {
+    if (!variant.inventoryItem?.tracked) continue;
+    variant.inventoryItem.inventoryLevels = await fetchInventoryLevels(variant.inventoryItem.id);
   }
   return product;
 }

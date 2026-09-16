@@ -92,6 +92,7 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
             {product.variants.map((variant) => {
               const remote = remoteVariants.find((item) => item.id === variant.shopifyVariantId);
               const inventoryItem = record(remote?.inventoryItem);
+              const inventoryLevels = rows(inventoryItem.inventoryLevels);
               return <dl key={variant.id} className="grid gap-2 border border-[var(--adm-border)] p-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
                 <div><dt className="adm-label">Title</dt><dd>{variant.title}</dd></div>
                 <div><dt className="adm-label">SKU</dt><dd>{variant.sku}</dd></div>
@@ -104,6 +105,29 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
                 <div><dt className="adm-label">Selected options</dt><dd>{rows(variant.selectedOptions).map((option) => `${string(option.name)}: ${string(option.value)}`).filter((value) => value !== ": ").join(", ") || "—"}</dd></div>
                 <div><dt className="adm-label">Country of origin</dt><dd>{string(inventoryItem.countryCodeOfOrigin) || "—"}</dd></div>
                 <div><dt className="adm-label">HS code</dt><dd>{string(inventoryItem.harmonizedSystemCode) || "—"}</dd></div>
+                {inventoryLevels.length > 0 && <div className="overflow-x-auto sm:col-span-2 xl:col-span-4">
+                  <dt className="adm-label">Inventory by location</dt>
+                  <dd>
+                    <table className="mt-2 w-full min-w-[36rem] text-left text-sm">
+                      <thead><tr className="border-b border-[var(--adm-border)]"><th className="py-2">Location</th><th>Unavailable</th><th>Committed</th><th>Available</th><th>On hand</th></tr></thead>
+                      <tbody>{inventoryLevels.map((level) => {
+                        const quantities = rows(level.quantities);
+                        const quantity = (name: string) => quantities.find((entry) => entry.name === name)?.quantity;
+                        const available = quantity("available");
+                        const committed = quantity("committed");
+                        const onHand = quantity("on_hand");
+                        const unavailable = typeof onHand === "number" && typeof available === "number" && typeof committed === "number"
+                          ? onHand - available - committed : null;
+                        const location = record(level.location);
+                        return <tr key={string(location.id)} className="border-b border-[var(--adm-border)]">
+                          <td className="py-2">{string(location.name) || string(location.id)}</td>
+                          <td>{unavailable ?? "—"}</td><td>{typeof committed === "number" ? committed : "—"}</td>
+                          <td>{typeof available === "number" ? available : "—"}</td><td>{typeof onHand === "number" ? onHand : "—"}</td>
+                        </tr>;
+                      })}</tbody>
+                    </table>
+                  </dd>
+                </div>}
               </dl>;
             })}
           </div>
