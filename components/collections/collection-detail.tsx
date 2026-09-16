@@ -31,7 +31,7 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.7], [0.52, 0.78]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.7], [0.68, 0.86]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
   const words = collection.name.split(" ");
@@ -54,10 +54,14 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
         />
       </motion.div>
 
-      {/* Gradient overlay */}
+      {/* Gradient overlay — strong through the text block (bottom ~55%), not just the bottom edge */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-background/10"
-        style={{ opacity: overlayOpacity }}
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to top, var(--color-background) 0%, var(--color-background) 40%, color-mix(in srgb, var(--color-background) 58%, transparent) 66%, transparent 100%)",
+          opacity: overlayOpacity,
+        }}
       />
 
       <div
