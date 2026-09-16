@@ -123,10 +123,10 @@ describe("ProductPurchasePanel", () => {
     );
   });
 
-  it("keeps delivery, returns, and category guidance beside the primary purchase action", () => {
+  it("keeps service links beside the purchase action without invented care copy", () => {
     render(<ProductPurchasePanel product={{ ...product, departmentSlug: "pets" }} />);
 
-    expect(screen.getByText("Choose the right fit")).toBeInTheDocument();
+    expect(screen.queryByText("Choose the right fit")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Delivery/ })).toHaveAttribute("href", "/en/shipping");
     expect(screen.getByRole("link", { name: /Returns/ })).toHaveAttribute("href", "/en/returns");
     expect(screen.getByRole("link", { name: /Care & safety/ })).toHaveAttribute("href", "/en/care");

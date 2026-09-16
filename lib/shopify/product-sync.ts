@@ -52,6 +52,7 @@ type ShopifyMetafield = {
   type: string;
   value: string;
   definition: { name: string; access: { storefront: "PUBLIC_READ" | "NONE" | null } } | null;
+  resolvedValues?: string[];
 };
 type ShopifyPageInfo = { hasNextPage: boolean; endCursor: string | null };
 type ShopifyProduct = {
@@ -104,6 +105,8 @@ type ShopifyProduct = {
       id: string;
       requiresShipping: boolean;
       tracked: boolean;
+      countryCodeOfOrigin: string | null;
+      harmonizedSystemCode: string | null;
       measurement?: {
         weight?: {
           value: number;
@@ -134,7 +137,7 @@ const COLLECTION_FIELDS = `
 const VARIANT_FIELDS = `
   id title sku barcode price compareAtPrice inventoryPolicy taxable inventoryQuantity
   selectedOptions { name value }
-  inventoryItem { id requiresShipping tracked measurement { weight { value unit } } }
+  inventoryItem { id requiresShipping tracked countryCodeOfOrigin harmonizedSystemCode measurement { weight { value unit } } }
 `;
 
 const PRODUCT_FIELDS = `
@@ -381,6 +384,47 @@ async function fetchRemainingProductConnection<T>(
   return nodes;
 }
 
+async function fetchTaxonomyMetafieldValues(productId: string, key: string): Promise<string[]> {
+  const names: string[] = [];
+  let after: string | null = null;
+  do {
+    const data: {
+      product: {
+        metafield: {
+          reference: { name?: string } | null;
+          references: {
+            nodes: Array<{ name?: string }>;
+            pageInfo: ShopifyPageInfo;
+          } | null;
+        } | null;
+      } | null;
+    } = await shopifyAdminRequest(
+      `query SynaravaTaxonomyMetafield($id: ID!, $key: String!, $after: String) {
+        product(id: $id) {
+          metafield(namespace: "shopify", key: $key) {
+            reference { ... on TaxonomyValue { name } }
+            references(first: 100, after: $after) {
+              pageInfo { hasNextPage endCursor }
+              nodes { ... on TaxonomyValue { name } }
+            }
+          }
+        }
+      }`,
+      { id: productId, key, after },
+    );
+    const metafield = data.product?.metafield;
+    if (!metafield) break;
+    if (metafield.reference?.name) names.push(metafield.reference.name);
+    names.push(...(metafield.references?.nodes.flatMap((node) => node.name ? [node.name] : []) ?? []));
+    const pageInfo = metafield.references?.pageInfo;
+    if (pageInfo?.hasNextPage && !pageInfo.endCursor) {
+      throw new ShopifyAdminError(`Shopify omitted the taxonomy values cursor for ${key}.`);
+    }
+    after = pageInfo?.hasNextPage ? pageInfo.endCursor : null;
+  } while (after);
+  return [...new Set(names)];
+}
+
 async function fetchShopifyProduct(id: string) {
   const shopifyId = shopifyNumericId(id);
   const data = await shopifyAdminRequest<{ product: ShopifyProduct | null }>(
@@ -399,6 +443,10 @@ async function fetchShopifyProduct(id: string) {
   product.metafields.nodes = metafields;
   product.collections.nodes = collections;
   product.resourcePublicationsV2.nodes = publications;
+  for (const metafield of product.metafields.nodes) {
+    if (metafield.namespace !== "shopify" || !metafield.type.includes("product_taxonomy_value_reference")) continue;
+    metafield.resolvedValues = await fetchTaxonomyMetafieldValues(shopifyId, metafield.key);
+  }
   return product;
 }
 

@@ -34,7 +34,9 @@ function selectionForVariant(variant: ProductSummary["variantDetails"][number]) 
 export function ProductPurchasePanel({ product, compact = false }: ProductPurchasePanelProps) {
   const { t, plural, locale } = useTranslations();
   const presentation = getProductPresentation(product.departmentSlug);
-  const careInstructions = product.characteristics.find((item) => item.key === "care_instructions")?.textValue?.trim() || "";
+  const careInstructions = product.characteristics.find((item) => item.key === "care_instructions")?.textValue?.trim()
+    || product.publicMetafields?.find((item) => item.label.toLowerCase() === "care instructions")?.value.trim()
+    || "";
   const purchasableVariants = useMemo(
     () => product.variantDetails.filter((variant) => variant.merchandiseId),
     [product.variantDetails],
@@ -150,16 +152,16 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
 
       {!compact ? (
         <div className="mt-6 border-t border-foreground/12 pt-5">
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] sm:gap-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/78">
-              {presentation.buyingTitle}
-            </p>
-            <p className="text-sm leading-6 text-foreground/62">
-              {careInstructions || presentation.buyingBody}
-            </p>
-          </div>
+          {careInstructions ? (
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] sm:gap-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/78">
+                {presentation.buyingTitle}
+              </p>
+              <p className="text-sm leading-6 text-foreground/62">{careInstructions}</p>
+            </div>
+          ) : null}
 
-          <nav className="mt-5 grid border-y border-foreground/12 sm:grid-cols-3" aria-label={t("product.purchaseInformation")}>
+          <nav className={`${careInstructions ? "mt-5 " : ""}grid border-y border-foreground/12 sm:grid-cols-3`} aria-label={t("product.purchaseInformation")}>
             {[
               { href: "/shipping", label: t("product.delivery"), detail: t("product.deliveryDetail") },
               { href: "/returns", label: t("product.returns"), detail: t("product.returnsDetail") },

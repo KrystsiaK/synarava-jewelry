@@ -49,7 +49,7 @@ The supported commerce projection should include, where available:
 - tags, collections, publication channels;
 - primary media and ordered gallery media with alt text;
 - product options and all variants;
-- variant title, selected options, SKU, barcode, price, compare-at price, inventory policy, quantity, taxable state, shipping requirement, weight, and variant media;
+- variant title, selected options, SKU, barcode, price, compare-at price, inventory policy, quantity, taxable state, shipping requirement, weight, country of origin, harmonized system code, and variant media;
 - inventory item and location references required for stock reconciliation.
 
 Shopify contains additional operational and analytical API fields. “All Shopify fields” in Synarava means all fields needed to reproduce the customer-facing product and reconcile its sellable state, not internal analytics or unrelated platform metadata.
@@ -93,7 +93,8 @@ Structured characteristics are searchable, filterable, grouped, and mirrored to 
 - The hero exposes essential commerce facts immediately: description, price, SKU, availability, variants, compare-at price, and composition.
 - The product passport groups populated specifications by meaning. Empty facts are not fabricated and are not rendered.
 - Brand, product type, SKU, barcode, and primary-variant weight appear in the factual passport when populated.
-- Simple product metafields with a Shopify definition explicitly marked `PUBLIC_READ` appear under Additional details. Private definitions and unresolved reference/JSON values remain in the admin snapshot only.
+- Simple product metafields with a Shopify definition explicitly marked `PUBLIC_READ` appear under Additional details. Shopify category metafield taxonomy references are resolved to their names and appear there as product facts. Other private definitions and unresolved reference/JSON values remain in the admin snapshot only.
+- Care guidance beside the purchase action uses the product's own care instructions when present; no generic care statement is fabricated.
 - Certificates are linked from the related compliance row.
 - Editorial modules follow the factual passport: material meaning, symbolism, craftsmanship, lookbook, care, and related products.
 

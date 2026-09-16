@@ -18,13 +18,19 @@ export function projectPublicProductMetafields(value: unknown): Array<{ label: s
   return value.flatMap((item) => {
     const field = record(item);
     const definition = record(field.definition);
+    const label = typeof definition.name === "string" && definition.name.trim()
+      ? definition.name.trim()
+      : typeof field.key === "string" ? field.key.replace(/_/g, " ") : "";
+    if (field.namespace === "shopify" && typeof field.type === "string" && field.type.includes("product_taxonomy_value_reference")) {
+      const resolvedValues = Array.isArray(field.resolvedValues)
+        ? field.resolvedValues.filter((entry): entry is string => typeof entry === "string" && Boolean(entry.trim()))
+        : [];
+      return label && resolvedValues.length ? [{ label, value: resolvedValues.join(", ") }] : [];
+    }
     if (record(definition.access).storefront !== "PUBLIC_READ") return [];
     if (typeof field.key !== "string" || typeof field.type !== "string" || typeof field.value !== "string") return [];
     if (!SUPPORTED_TYPES.has(field.type)) return [];
     if (field.namespace === "synarava" && MANAGED_KEYS.has(field.key)) return [];
-    const label = typeof definition.name === "string" && definition.name.trim()
-      ? definition.name.trim()
-      : field.key.replace(/_/g, " ");
     const value = field.type === "boolean" ? field.value === "true" ? "Yes" : "No" : field.value.trim();
     return value ? [{ label, value }] : [];
   });

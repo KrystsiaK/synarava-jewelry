@@ -1,6 +1,6 @@
 import type { ProductRecord } from "@/components/admin/products/product-types";
 
-type Metafield = { namespace: string; key: string; type: string; value: string };
+type Metafield = { namespace: string; key: string; type: string; value: string; resolvedValues?: string[] };
 
 function record(value: unknown): Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value)
@@ -36,6 +36,7 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
   const collections = rows(snapshot.collections);
   const publications = rows(snapshot.publications);
   const media = rows(snapshot.media);
+  const remoteVariants = rows(snapshot.variants);
 
   return (
     <section aria-labelledby={`shopify-mirror-${product.id}`} className="grid gap-5 border border-[var(--adm-border)] p-4">
@@ -88,8 +89,10 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
         <div className="grid gap-2">
           <h4 className="adm-label">Variants and inventory</h4>
           <div className="grid gap-2">
-            {product.variants.map((variant) => (
-              <dl key={variant.id} className="grid gap-2 border border-[var(--adm-border)] p-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+            {product.variants.map((variant) => {
+              const remote = remoteVariants.find((item) => item.id === variant.shopifyVariantId);
+              const inventoryItem = record(remote?.inventoryItem);
+              return <dl key={variant.id} className="grid gap-2 border border-[var(--adm-border)] p-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
                 <div><dt className="adm-label">Title</dt><dd>{variant.title}</dd></div>
                 <div><dt className="adm-label">SKU</dt><dd>{variant.sku}</dd></div>
                 <div><dt className="adm-label">Barcode</dt><dd>{variant.barcode || "—"}</dd></div>
@@ -99,8 +102,10 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
                 <div><dt className="adm-label">Weight</dt><dd>{variant.weightGrams == null ? "—" : `${variant.weightGrams} g`}</dd></div>
                 <div><dt className="adm-label">Taxable / shipping / tracked</dt><dd>{[variant.taxable, variant.requiresShipping, variant.tracked].map((flag) => flag ? "Yes" : "No").join(" / ")}</dd></div>
                 <div><dt className="adm-label">Selected options</dt><dd>{rows(variant.selectedOptions).map((option) => `${string(option.name)}: ${string(option.value)}`).filter((value) => value !== ": ").join(", ") || "—"}</dd></div>
-              </dl>
-            ))}
+                <div><dt className="adm-label">Country of origin</dt><dd>{string(inventoryItem.countryCodeOfOrigin) || "—"}</dd></div>
+                <div><dt className="adm-label">HS code</dt><dd>{string(inventoryItem.harmonizedSystemCode) || "—"}</dd></div>
+              </dl>;
+            })}
           </div>
         </div>
       )}
@@ -112,7 +117,7 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
             {metafields.map((field) => (
               <div key={`${field.namespace}.${field.key}`} className="grid gap-1 border-b border-[var(--adm-border)] py-2 text-sm sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:gap-4">
                 <dt className="break-all font-medium">{field.namespace}.{field.key} <span className="font-normal text-[var(--adm-muted)]">({field.type})</span></dt>
-                <dd className="break-words whitespace-pre-wrap">{field.value}</dd>
+                <dd className="break-words whitespace-pre-wrap">{field.resolvedValues?.length ? field.resolvedValues.join(", ") : field.value}</dd>
               </div>
             ))}
           </dl>

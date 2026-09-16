@@ -4,7 +4,6 @@ export type ProductPresentation = {
   descriptionLabel: string;
   descriptionTitle: string;
   buyingTitle: string;
-  buyingBody: string;
   priorityCharacteristicKeys: string[];
 };
 
@@ -18,28 +17,24 @@ const PRESENTATION_BY_DEPARTMENT: Record<ShopDepartmentSlug, ProductPresentation
     descriptionLabel: "Object notes",
     descriptionTitle: "The piece, in full",
     buyingTitle: "Fit and care",
-    buyingBody: "Check the dimensions and materials before ordering. Care guidance is included with every piece.",
     priorityCharacteristicKeys: ["size", "fit_notes", "chain_length", "adjustable_length", "material", "metal", "stone_type", "care_instructions"],
   },
   pets: {
     descriptionLabel: "Everyday use",
     descriptionTitle: "Designed around care",
     buyingTitle: "Choose the right fit",
-    buyingBody: "Measure your pet before ordering and review the intended use, hardware, and care instructions.",
     priorityCharacteristicKeys: ["intended_pet", "neck_circumference", "chest_circumference", "fit_notes", "hardware", "washable", "care_instructions", "safety_disclosure"],
   },
   kids: {
     descriptionLabel: "How it works",
     descriptionTitle: "Made for curious hands",
     buyingTitle: "Age and supervision",
-    buyingBody: "Review the recommended age, set contents, and any supervision or small-parts guidance before ordering.",
     priorityCharacteristicKeys: ["recommended_age", "activity_type", "skill_level", "set_contents", "adult_supervision", "small_parts_warning", "safety_disclosure"],
   },
   "jewelry-making": {
     descriptionLabel: "Maker notes",
     descriptionTitle: "What the tool enables",
     buyingTitle: "Contents and compatibility",
-    buyingBody: "Check the sold unit, dimensions, skill level, and compatibility with your existing tools or components.",
     priorityCharacteristicKeys: ["tool_type", "skill_level", "tool_compatibility", "component_size", "pack_quantity", "set_contents", "safety_disclosure"],
   },
 };
