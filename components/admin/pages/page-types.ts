@@ -36,6 +36,9 @@ export type EditablePageCopy = {
   finalFooterTitle?: string;
   finalContactLabel?: string;
   finalContactEmail?: string;
+  legalIntro?: string;
+  legalLastUpdated?: string;
+  legalSections?: Record<string, { title?: string; body?: string }>;
 };
 
 export type EditablePageContent = EditablePageCopy & {

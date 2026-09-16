@@ -1253,6 +1253,87 @@ html[data-theme="dark"] .etched-glass {
   letter-spacing: 0.2em;
 }
 
+/* Admin-authored Markdown on /offer and /privacy (see legal-document-page.tsx) */
+.legal-markdown {
+  display: grid;
+  gap: 1rem;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: color-mix(in srgb, var(--color-foreground) 75%, transparent);
+}
+
+.legal-markdown strong {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
+.legal-markdown a {
+  color: var(--color-accent);
+  text-underline-offset: 4px;
+  text-decoration: underline;
+}
+
+.legal-markdown h3 {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-foreground);
+}
+
+.legal-markdown ul {
+  display: grid;
+  gap: 0.5rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.legal-markdown li {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.legal-markdown li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 0.4rem;
+  height: 0.4rem;
+  transform: rotate(45deg);
+  background: var(--color-accent);
+}
+
+.legal-markdown table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.legal-markdown th,
+.legal-markdown td {
+  padding: 0.9rem;
+  border-bottom: 1px solid var(--color-stroke);
+  vertical-align: top;
+}
+
+.legal-markdown th {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-foreground);
+  background: color-mix(in srgb, var(--color-foreground) 4%, transparent);
+}
+
+.legal-markdown td {
+  color: color-mix(in srgb, var(--color-foreground) 68%, transparent);
+}
+
 @layer base {
   code,
   kbd,

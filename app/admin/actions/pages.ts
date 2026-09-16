@@ -11,6 +11,8 @@ import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { savePageImageUpload } from "@/lib/media/local-upload";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
+import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
+import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
 import {
   asRecord,
   createDraftToken,
@@ -67,6 +69,21 @@ function existingMaterialImage(existingContent: Record<string, unknown>, index: 
   if (!Array.isArray(list)) return "";
   const entry = list[index] as Record<string, unknown> | undefined;
   return entry && typeof entry.image === "string" ? entry.image : "";
+}
+
+const LEGAL_SECTION_IDS = [...OFFER_SECTIONS, ...PRIVACY_SECTIONS_EN].map((s) => s.id);
+
+// Dynamic per-section fields (`legal:{id}:title` / `legal:{id}:body`, `pt`-prefixed
+// for the translation) aren't worth exploding into the zod schema one property at a
+// time — same approach as the storefront-copy admin action.
+function readLegalSections(formData: FormData, prefix: "legal" | "ptLegal") {
+  const sections: Record<string, { title: string; body: string }> = {};
+  for (const id of LEGAL_SECTION_IDS) {
+    const title = String(formData.get(`${prefix}:${id}:title`) ?? "").trim();
+    const body = String(formData.get(`${prefix}:${id}:body`) ?? "").trim();
+    if (title || body) sections[id] = { title, body };
+  }
+  return sections;
 }
 
 function buildMaterialLexiconEntries(
@@ -166,6 +183,9 @@ const pageContentFieldsSchema = z.object({
   departmentSectionBody: z.string().trim().default(""),
   departmentSectionImageCaption: z.string().trim().default(""),
   departmentSectionCtaLabel: z.string().trim().default(""),
+  legalIntro: z.string().trim().default(""),
+  legalLastUpdated: z.string().trim().default(""),
+  ptLegalIntro: z.string().trim().default(""),
   ptTitle: z.string().trim().default(""),
   ptExcerpt: z.string().trim().default(""),
   ptEyebrow: z.string().trim().default(""),
@@ -232,8 +252,11 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     ptMaterial3Name, ptMaterial3Category, ptMaterial3Description, ptMaterial3Properties,
     ptManifestoSectionLabel, ptManifestoSectionAttribution, ptFinalCtaLabel,
     ptFinalFooterTitle, ptFinalContactLabel,
+    legalIntro, legalLastUpdated, ptLegalIntro,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
+  const legalSections = readLegalSections(formData, "legal");
+  const ptLegalSections = readLegalSections(formData, "ptLegal");
 
   if (!slug || !title) {
     return { error: "Page slug and title are required." };
@@ -301,6 +324,9 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       departmentSectionBody,
       departmentSectionImageCaption,
       departmentSectionCtaLabel,
+      legalIntro,
+      legalLastUpdated,
+      legalSections,
       heroImage,
       translations: {
         pt: {
@@ -328,6 +354,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
           finalFooterTitle: ptFinalFooterTitle,
           finalContactLabel: ptFinalContactLabel,
           finalContactEmail,
+          legalIntro: ptLegalIntro,
+          legalSections: ptLegalSections,
         },
       },
     },
@@ -427,8 +455,11 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     ptMaterial3Name, ptMaterial3Category, ptMaterial3Description, ptMaterial3Properties,
     ptManifestoSectionLabel, ptManifestoSectionAttribution, ptFinalCtaLabel,
     ptFinalFooterTitle, ptFinalContactLabel,
+    legalIntro, legalLastUpdated, ptLegalIntro,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
+  const legalSections = readLegalSections(formData, "legal");
+  const ptLegalSections = readLegalSections(formData, "ptLegal");
   const draftMaterialLexicon = buildMaterialLexiconEntries([
     { name: material1Name, category: material1Category, description: material1Description, properties: material1Properties },
     { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
@@ -474,6 +505,9 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       departmentSectionBody,
       departmentSectionImageCaption,
       departmentSectionCtaLabel,
+      legalIntro,
+      legalLastUpdated,
+      legalSections,
       translations: {
         pt: {
           title: ptTitle,
@@ -500,6 +534,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
           finalFooterTitle: ptFinalFooterTitle,
           finalContactLabel: ptFinalContactLabel,
           finalContactEmail,
+          legalIntro: ptLegalIntro,
+          legalSections: ptLegalSections,
         },
       },
     },

@@ -160,6 +160,9 @@ export type PageContent = {
   finalFooterTitle?: string;
   finalContactLabel?: string;
   finalContactEmail?: string;
+  legalIntro?: string;
+  legalLastUpdated?: string;
+  legalSections?: Record<string, { title?: string; body?: string }>;
   translations?: {
     pt?: Omit<PageContent,
       | "translations"

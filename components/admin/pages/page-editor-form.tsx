@@ -15,6 +15,8 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import type { EditablePageContent } from "@/components/admin/pages/page-types";
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
+import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
+import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
 
 export function PageEditor({
   page,
@@ -31,6 +33,9 @@ export function PageEditor({
   const ptContent = content.translations?.pt ?? {};
   const isHomePage = page.slug === "home";
   const isAboutPage = page.slug === "about";
+  const isOfferPage = page.slug === "offer";
+  const isPrivacyPage = page.slug === "privacy";
+  const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
   const { pushToast } = useAdminToast();
 
   function formAction(formData: FormData) {
@@ -121,6 +126,47 @@ export function PageEditor({
             <input name="ctaHref" defaultValue={content.ctaHref ?? ""} className="adm-field" />
           </label>
         </div>
+
+        {isOfferPage || isPrivacyPage ? (
+          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="legal-copy-heading">
+            <div>
+              <h3 id="legal-copy-heading" className="adm-title-sm">Legal document</h3>
+              <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+                Section order, numbering, and anchors are fixed. Leave a title or body empty to fall back to the
+                shipped default text. Body supports Markdown (paragraphs, **bold**, lists, links, and tables).
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {isOfferPage ? (
+                <label className="grid gap-2 md:col-span-2">
+                  <span className="adm-label">Intro paragraph (EN)</span>
+                  <textarea name="legalIntro" defaultValue={content.legalIntro ?? ""} rows={2} className="adm-field" />
+                </label>
+              ) : null}
+              <label className="grid gap-2">
+                <span className="adm-label">Last updated</span>
+                <input name="legalLastUpdated" defaultValue={content.legalLastUpdated ?? ""} placeholder="e.g. 1 June 2025" className="adm-field" />
+              </label>
+            </div>
+
+            {legalSections.map((section) => {
+              const value = content.legalSections?.[section.id];
+              return (
+                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
+                  <p className="adm-section-tag">{section.label}</p>
+                  <label className="grid gap-2">
+                    <span className="adm-label">Title (EN)</span>
+                    <input name={`legal:${section.id}:title`} defaultValue={value?.title ?? ""} className="adm-field" />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className="adm-label">Body (EN, Markdown)</span>
+                    <textarea name={`legal:${section.id}:body`} defaultValue={value?.body ?? ""} rows={6} className="adm-field font-mono text-xs" />
+                  </label>
+                </div>
+              );
+            })}
+          </section>
+        ) : null}
 
         {isHomePage ? (
           <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="department-copy-heading">
@@ -335,6 +381,35 @@ export function PageEditor({
                     <label className="grid gap-2">
                       <span className="adm-label">Material {index + 1} properties (PT, comma-separated)</span>
                       <input name={`ptMaterial${index + 1}Properties`} defaultValue={material?.properties ?? ""} className="adm-field" />
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+          {isOfferPage || isPrivacyPage ? (
+            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
+              <p className="adm-section-tag">LEGAL DOCUMENT / PT</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {isOfferPage ? (
+                  <label className="grid gap-2 md:col-span-2">
+                    <span className="adm-label">Intro paragraph (PT)</span>
+                    <textarea name="ptLegalIntro" defaultValue={ptContent.legalIntro ?? ""} rows={2} className="adm-field" />
+                  </label>
+                ) : null}
+              </div>
+              {legalSections.map((section) => {
+                const value = ptContent.legalSections?.[section.id];
+                return (
+                  <div key={section.id} className="grid gap-4 border-t border-[var(--adm-border)] pt-4 first:border-t-0 first:pt-0">
+                    <p className="adm-section-tag">{section.label} / PT</p>
+                    <label className="grid gap-2">
+                      <span className="adm-label">Title (PT)</span>
+                      <input name={`ptLegal:${section.id}:title`} defaultValue={value?.title ?? ""} className="adm-field" />
+                    </label>
+                    <label className="grid gap-2">
+                      <span className="adm-label">Body (PT, Markdown)</span>
+                      <textarea name={`ptLegal:${section.id}:body`} defaultValue={value?.body ?? ""} rows={6} className="adm-field font-mono text-xs" />
                     </label>
                   </div>
                 );
