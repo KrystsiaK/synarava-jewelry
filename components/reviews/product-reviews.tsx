@@ -155,7 +155,7 @@ export function ProductReviews({
                   <button
                     type="submit"
                     disabled={pending}
-                    className="label-caps w-fit bg-couture-red px-6 py-3 text-linen transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-55"
+                    className="label-caps w-fit bg-couture-red px-6 py-3 text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-55"
                   >
                     {pending ? t("reviews.publishing") : t("reviews.publish")}
                   </button>

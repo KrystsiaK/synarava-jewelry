@@ -107,7 +107,7 @@ export function ReturnRequestPanel({
               type="button"
               onClick={submit}
               disabled={pending || Object.keys(selected).length === 0}
-              className="label-caps bg-couture-red px-5 py-3 text-linen transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+              className="label-caps bg-couture-red px-5 py-3 text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
             >
               {pending ? "Submitting…" : "Submit return request"}
             </button>

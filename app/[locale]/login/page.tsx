@@ -45,7 +45,7 @@ export default async function LoginPage({ searchParams }: Props) {
         ) : null}
         <a
           href={shopifyAuthHref}
-          className="label-caps inline-flex w-full items-center justify-center bg-couture-red px-6 py-4 text-linen transition-opacity hover:opacity-90"
+          className="label-caps inline-flex w-full items-center justify-center bg-couture-red px-6 py-4 text-white transition-opacity hover:opacity-90"
         >
           Sign in or create account
         </a>

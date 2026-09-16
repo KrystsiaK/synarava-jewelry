@@ -125,7 +125,7 @@ export function ShopifyProfileShell({
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           />
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-8">
-            <div className="flex size-16 shrink-0 items-center justify-center bg-couture-red text-linen md:size-20">
+            <div className="flex size-16 shrink-0 items-center justify-center bg-couture-red text-white md:size-20">
               <span className="font-serif text-xl md:text-2xl">
                 {initials(customer.displayName)}
               </span>
@@ -201,7 +201,7 @@ export function ShopifyProfileShell({
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Link href={tabHref("orders", locale)} className="label-caps bg-couture-red px-6 py-4 text-linen">
+                  <Link href={tabHref("orders", locale)} className="label-caps bg-couture-red px-6 py-4 text-white">
                     View orders
                   </Link>
                   <Link href={localePath(locale, "/cart")} className="label-caps border border-stroke px-6 py-4 hover:border-foreground/50">
