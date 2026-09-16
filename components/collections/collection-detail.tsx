@@ -390,8 +390,8 @@ function ProductCard({
         </motion.div>
 
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="label-mono mb-1 text-[0.72rem] text-muted-ink">{product.materialLine}</p>
+          <div className="min-w-0">
+            <p className="label-mono mb-1 truncate text-[0.72rem] text-muted-ink">{product.materialLine}</p>
             <h3
               className="font-serif transition-colors duration-300 group-hover:text-couture-red"
               style={{ fontSize: "clamp(1.1rem,1.6vw,1.4rem)" }}
