@@ -154,6 +154,7 @@ export function ProductsCms({
       const result = await testShopifyConnectionAction();
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.warning) pushToast({ message: result.warning, tone: "info" });
       setShopifyStoreMismatch(result.storeMismatch ?? null);
     });
   }
@@ -337,7 +338,7 @@ export function ProductsCms({
               disabled={isConnectionPending}
             >
               <RefreshCw className={`size-4 ${isConnectionPending ? "animate-spin" : ""}`} />
-              {isConnectionPending ? "Testing Shopify..." : "Test Shopify connection"}
+              {isConnectionPending ? "Checking Shopify..." : "Check Shopify link"}
             </button>
             {shopifyStoreMismatch ? (
               <button
@@ -356,13 +357,16 @@ export function ProductsCms({
               disabled={isPreviewPending}
             >
               <Eye className="size-4" />
-              {isPreviewPending ? "Reading catalogs..." : "Preview sync"}
+              {isPreviewPending ? "Comparing catalogs..." : "Compare catalogs"}
             </button>
             <Link href="/admin/products/new" className="adm-btn-primary">
               New product
             </Link>
           </div>
         </div>
+        <p className="py-3 text-xs leading-5 text-[var(--adm-muted)]">
+          Check Shopify link verifies access and links this catalog to the store on first use; it can also register review webhooks. Compare catalogs shows differences without saving products. Apply all changes imports or pushes only the safe differences below. To reload every field of a product marked up to date, open it and choose Refresh from Shopify.
+        </p>
 
         <div
           className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_9rem_10rem_10rem_11rem]"
@@ -491,10 +495,10 @@ export function ProductsCms({
                   onClick={() => confirmSync(
                     syncPreview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").map((item) => item.shopifyProductId),
                     syncPreview.pushToShopify.map((item) => item.productId),
-                    "Sync all safe catalog changes",
+                    "Apply all previewed catalog changes",
                   )}
                 >
-                  {isSyncPending ? "Syncing..." : "Sync all"}
+                  {isSyncPending ? "Applying..." : "Apply all changes"}
                 </button>
               </div>
             </div>
@@ -864,7 +868,7 @@ export function ProductsCms({
         <AdminConfirmModal
           open={confirmStoreRebind}
           title="Rebind catalog to another Shopify store"
-          description={`Synarava is linked to ${shopifyStoreMismatch.boundShopDomain}. Rebinding to ${shopifyStoreMismatch.currentShopDomain} clears only the old store-specific product, variant, inventory, and collection IDs. It does not delete local content or Shopify products. Afterward, run Preview sync to match the duplicated catalog by SKU or handle.`}
+          description={`Synarava is linked to ${shopifyStoreMismatch.boundShopDomain}. Rebinding to ${shopifyStoreMismatch.currentShopDomain} clears only the old store-specific product, variant, inventory, and collection IDs. It does not delete local content or Shopify products. Afterward, run Compare catalogs to match the duplicated catalog by SKU or handle.`}
           confirmLabel="Rebind store IDs"
           tone="danger"
           pending={isStoreRebindPending}

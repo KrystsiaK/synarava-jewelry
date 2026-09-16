@@ -1,5 +1,7 @@
 import "server-only";
 
+import { fetchInventoryLevels, type ShopifyInventoryLevel } from "@/lib/shopify/inventory-levels";
+
 import { createHash, randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
@@ -107,10 +109,7 @@ type ShopifyProduct = {
       tracked: boolean;
       countryCodeOfOrigin: string | null;
       harmonizedSystemCode: string | null;
-      inventoryLevels?: Array<{
-        location: { id: string; name: string };
-        quantities: Array<{ name: string; quantity: number }>;
-      }>;
+      inventoryLevels?: ShopifyInventoryLevel[];
       measurement?: {
         weight?: {
           value: number;
@@ -427,42 +426,6 @@ async function fetchTaxonomyMetafieldValues(productId: string, key: string): Pro
     after = pageInfo?.hasNextPage ? pageInfo.endCursor : null;
   } while (after);
   return [...new Set(names)];
-}
-
-async function fetchInventoryLevels(inventoryItemId: string) {
-  const levels: Array<{
-    location: { id: string; name: string };
-    quantities: Array<{ name: string; quantity: number }>;
-  }> = [];
-  let after: string | null = null;
-  do {
-    const data: {
-      inventoryItem: {
-        inventoryLevels: { pageInfo: ShopifyPageInfo; nodes: typeof levels };
-      } | null;
-    } = await shopifyAdminRequest(
-      `query SynaravaInventoryLevels($id: ID!, $after: String) {
-        inventoryItem(id: $id) {
-          inventoryLevels(first: 100, after: $after) {
-            pageInfo { hasNextPage endCursor }
-            nodes {
-              location { id name }
-              quantities(names: ["available", "committed", "on_hand", "reserved", "damaged", "quality_control", "safety_stock"]) { name quantity }
-            }
-          }
-        }
-      }`,
-      { id: inventoryItemId, after },
-    );
-    if (!data.inventoryItem) break;
-    levels.push(...data.inventoryItem.inventoryLevels.nodes);
-    const pageInfo = data.inventoryItem.inventoryLevels.pageInfo;
-    if (pageInfo.hasNextPage && !pageInfo.endCursor) {
-      throw new ShopifyAdminError(`Shopify omitted the inventory levels cursor for ${inventoryItemId}.`);
-    }
-    after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
-  } while (after);
-  return levels;
 }
 
 async function fetchShopifyProduct(id: string) {

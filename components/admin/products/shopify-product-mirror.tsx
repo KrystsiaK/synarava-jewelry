@@ -120,7 +120,7 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
                           ? onHand - available - committed : null;
                         const location = record(level.location);
                         return <tr key={string(location.id)} className="border-b border-[var(--adm-border)]">
-                          <td className="py-2">{string(location.name) || string(location.id)}</td>
+                          <td className="py-2">{string(location.name) || `Location ${string(location.id).split("/").pop()}`}</td>
                           <td>{unavailable ?? "—"}</td><td>{typeof committed === "number" ? committed : "—"}</td>
                           <td>{typeof available === "number" ? available : "—"}</td><td>{typeof onHand === "number" ? onHand : "—"}</td>
                         </tr>;

@@ -118,8 +118,10 @@ export async function testShopifyConnectionAction() {
       ? ` Customer wishlist saving is unavailable: missing ${connection.missingWishlistScopes.join(", ")}.`
       : "";
 
+    const optionalNotices = [translationNotice, reviewNotice, wishlistNotice].filter(Boolean);
     return {
-      success: `Connected to ${connection.shopName}: ${connection.productCount} Shopify products, ${connection.locations.length} locations, ${connection.publications.length} publications.${translationNotice}${reviewNotice}${wishlistNotice}`,
+      success: `Connected to ${connection.shopName}. Catalog access is ready: ${connection.productCount} products, ${connection.locations.length} locations, ${connection.publications.length} publications. Product data was not changed.`,
+      warning: optionalNotices.length ? `Optional features: ${optionalNotices.join(" ").trim()}` : undefined,
       connection,
     };
   } catch (error) {
@@ -136,8 +138,10 @@ export async function previewShopifyReconciliationAction() {
   try {
     await assertConfiguredShopifyStore();
     const preview = await previewShopifyReconciliation();
+    const pullCount = preview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").length;
+    const conflictCount = preview.remote.filter((item) => item.action === "CONFLICT").length;
     return {
-      success: `Preview ready: ${preview.remote.length} Shopify products read, ${preview.pushToShopify.length} local products would be pushed, ${preview.archiveLocal.length} local products would be archived.`,
+      success: `Compared ${preview.remote.length} Shopify products: ${pullCount} to import or update, ${preview.pushToShopify.length} to push, ${conflictCount} conflicts. Nothing was changed.`,
       preview,
     };
   } catch (error) {
@@ -363,7 +367,7 @@ export async function archiveMissingShopifyProductsAction(productIds: string[]) 
     const confirmedMissingIds = new Set(beforePreview.archiveLocal.map((item) => item.productId));
     const safeIds = selectedIds.filter((id) => confirmedMissingIds.has(id));
     if (safeIds.length !== selectedIds.length) {
-      return { error: "The catalog changed after preview. Run Preview sync again before archiving." };
+      return { error: "The catalog changed after preview. Run Compare catalogs again before archiving." };
     }
 
     for (const productId of safeIds) {

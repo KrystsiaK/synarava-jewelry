@@ -180,10 +180,10 @@
 
 | ID | Название | Предусловия | Шаги | Ожидаемый результат | Приоритет |
 |----|----------|-------------|------|----------------------|-----------|
-| SYNC-01 | Проверка подключения — успех | Shopify настроен | «Test Shopify connection» | Имя магазина, число товаров, локаций, публикаций | P2 |
-| SYNC-02 | Проверка подключения — не настроено | Переменные не заданы | «Test Shopify connection» | Ошибка со списком отсутствующих переменных | P2 |
-| SYNC-03 | Недостаточно прав токена | Токен без нужных scope | «Test Shopify connection» | Перечислены недостающие scope | P3 |
-| SYNC-04 | Preview sync ничего не меняет | Shopify настроен | «Preview sync» | Три списка (From Shopify / Push / Archive), данные не изменены | P2 |
+| SYNC-01 | Проверка подключения — успех | Shopify настроен | «Check Shopify link» | Имя магазина, число товаров, локаций, публикаций | P2 |
+| SYNC-02 | Проверка подключения — не настроено | Переменные не заданы | «Check Shopify link» | Ошибка со списком отсутствующих переменных | P2 |
+| SYNC-03 | Недостаточно прав токена | Токен без нужных scope | «Check Shopify link» | Перечислены недостающие scope | P3 |
+| SYNC-04 | Compare catalogs ничего не меняет | Shopify настроен | «Compare catalogs» | Три списка (From Shopify / Push / Archive), данные не изменены | P2 |
 | SYNC-05 | Push нового товара | Товар не привязан | «Create in Shopify» | Появляется в Shopify, локально сохраняются id и handle, статус `SYNCED` | P1 |
 | SYNC-06 | Pull изменений | В Shopify изменена цена/остаток | «Refresh from Shopify» | Shopify-поля обновились, редакторский слой Synarava (материалы, символизм) не тронут | P1 |
 | SYNC-07 | Конфликт | Правки и локально, и в Shopify | «Check Shopify» | Статус `CONFLICT`, push/pull без подтверждения заблокированы | P2 |
@@ -193,7 +193,8 @@
 | SYNC-11 | Массовый импорт | Несколько изменённых товаров | «Import all Shopify changes» | Неконфликтные импортируются, конфликтные попадают в ошибки, а не пропускаются молча | P2 |
 | SYNC-12 | Массовый push | Несколько новых локальных товаров | «Push all local products» | Все появляются в Shopify | P2 |
 | SYNC-13 | Архивация пропавших | Preview показал кандидатов | «Archive selected», подтвердить | Переходят в `ARCHIVED` с пометкой `syncError` | P2 |
-| SYNC-14 | Архивация по устаревшему preview | Каталог изменился после preview | Подтвердить архивацию | «The catalog changed after preview. Run Preview sync again before archiving.» | P3 |
+| SYNC-14 | Архивация по устаревшему preview | Каталог изменился после preview | Подтвердить архивацию | «The catalog changed after preview. Run Compare catalogs again before archiving.» | P3 |
+| SYNC-15 | Импорт без `read_locations` | Есть `read_inventory`, но нет `read_locations`; товар хранится на локации | «Compare catalogs» → «Apply all changes» | Импорт и остатки проходят без ошибки чтения `Location.name`; локация отображается по ID | P1 |
 | SYNC-15 🤖 | Push без вариантов | Товар создан автосохранением, варианта нет | Открыть карточку | Кнопка показывает «Save core fields first» и недоступна | P3 |
 | SYNC-16 | Каталог без настроенного Shopify | Shopify не настроен | Открыть `/admin/products`, создать/отредактировать товар | Панель синхронизации показывает «не привязано», обычный CRUD работает без ошибок | P1 |
 
