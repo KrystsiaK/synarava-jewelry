@@ -4,12 +4,14 @@ import { useEffect, useRef } from "react";
 
 type DraftAutosaveResult = {
   recordId?: string;
+  error?: string;
 };
 
 type DraftAutosaveOptions<T extends DraftAutosaveResult> = {
   formRef: React.RefObject<HTMLFormElement | null>;
   saveDraft: (formData: FormData) => Promise<T>;
   onSaved?: (result: T) => void;
+  onError?: (error: unknown) => void;
   recordIdField?: string;
   debounceMs?: number;
 };
@@ -32,20 +34,24 @@ export function useDraftAutosave<T extends DraftAutosaveResult>({
   formRef,
   saveDraft,
   onSaved,
+  onError,
   recordIdField,
   debounceMs = 700,
 }: DraftAutosaveOptions<T>) {
   const dirtyRef = useRef(false);
   const queuedRef = useRef(false);
   const savingRef = useRef(false);
+  const failureCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveDraftRef = useRef(saveDraft);
   const onSavedRef = useRef(onSaved);
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
     saveDraftRef.current = saveDraft;
     onSavedRef.current = onSaved;
-  }, [onSaved, saveDraft]);
+    onErrorRef.current = onError;
+  }, [onError, onSaved, saveDraft]);
 
   useEffect(() => {
     async function flushDraft() {
@@ -62,12 +68,22 @@ export function useDraftAutosave<T extends DraftAutosaveResult>({
       dirtyRef.current = false;
       savingRef.current = true;
 
+      let failed = false;
       try {
         const result = await saveDraftRef.current(buildDraftFormData(form));
 
         // A queued autosave can flush before React commits the state update made
         // by onSaved. Persist the identity in the live form first so the next
         // request updates the draft instead of attempting a duplicate create.
+        if (result.error) {
+          dirtyRef.current = true;
+          failed = true;
+          onSavedRef.current?.(result);
+          return;
+        }
+
+        failureCountRef.current = 0;
+
         if (result.recordId && recordIdField) {
           const field = form.elements.namedItem(recordIdField);
           if (field instanceof HTMLInputElement) {
@@ -76,18 +92,29 @@ export function useDraftAutosave<T extends DraftAutosaveResult>({
         }
 
         onSavedRef.current?.(result);
+      } catch (error) {
+        dirtyRef.current = true;
+        failed = true;
+        onErrorRef.current?.(error);
       } finally {
         savingRef.current = false;
 
-        if (queuedRef.current || dirtyRef.current) {
+        if (queuedRef.current) {
           queuedRef.current = false;
           void flushDraft();
+        } else if (failed && failureCountRef.current < 3) {
+          failureCountRef.current += 1;
+          timerRef.current = setTimeout(() => {
+            timerRef.current = null;
+            void flushDraft();
+          }, 2000 * failureCountRef.current);
         }
       }
     }
 
     function scheduleDraftSave() {
       dirtyRef.current = true;
+      failureCountRef.current = 0;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         timerRef.current = null;
@@ -133,15 +160,39 @@ export function useDraftAutosave<T extends DraftAutosaveResult>({
       }
       dirtyRef.current = false;
       queuedRef.current = false;
+      failureCountRef.current = 0;
+    };
+
+    const hasUnsavedChanges = () => dirtyRef.current || savingRef.current || queuedRef.current;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges()) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const warnBeforeInternalNavigation = (event: MouseEvent) => {
+      if (!hasUnsavedChanges() || event.defaultPrevented) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest("a[href]");
+      if (!link || link.closest("form") === form || !link.getAttribute("href")?.startsWith("/")) return;
+      if (!window.confirm("Your latest draft changes have not been saved. Leave this page?")) {
+        event.preventDefault();
+      }
     };
 
     form.addEventListener("input", handleInput);
     form.addEventListener("change", handleInput);
+    form.addEventListener("reset", cancelPendingSave);
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    document.addEventListener("click", warnBeforeInternalNavigation, true);
     window.addEventListener("pagehide", cancelPendingSave);
 
     return () => {
       form.removeEventListener("input", handleInput);
       form.removeEventListener("change", handleInput);
+      form.removeEventListener("reset", cancelPendingSave);
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      document.removeEventListener("click", warnBeforeInternalNavigation, true);
       window.removeEventListener("pagehide", cancelPendingSave);
       cancelPendingSave();
     };

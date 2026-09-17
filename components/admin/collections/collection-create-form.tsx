@@ -38,9 +38,11 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
   useDraftAutosave({
     formRef,
     saveDraft: autosaveCollectionDraftAction,
+    onError: () => pushToast({ message: "Draft could not be saved. Please try again.", tone: "error" }),
     recordIdField: "collectionId",
     onSaved: (result) => {
       if (result.recordId) setDraftId(result.recordId);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
     },
   });
 

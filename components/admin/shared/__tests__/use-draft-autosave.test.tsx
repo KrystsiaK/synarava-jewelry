@@ -141,4 +141,35 @@ describe("useDraftAutosave", () => {
     expect(saveDraft).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
+
+  it("keeps a failed draft dirty and retries it without another edit", async () => {
+    vi.useFakeTimers();
+    const onError = vi.fn();
+    const saveDraft = vi.fn()
+      .mockRejectedValueOnce(new Error("network unavailable"))
+      .mockResolvedValueOnce({ recordId: "draft-1" });
+
+    function TestForm() {
+      const formRef = useRef<HTMLFormElement>(null);
+      useDraftAutosave({ formRef, saveDraft, onError });
+      return <form ref={formRef}><input name="name" /></form>;
+    }
+
+    const { container } = render(<TestForm />);
+    const input = container.querySelector<HTMLInputElement>('input[name="name"]')!;
+    fireEvent.input(input, { target: { value: "First" } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(700); });
+    expect(onError).toHaveBeenCalledTimes(1);
+    const unload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(saveDraft).toHaveBeenCalledTimes(2);
+    expect(saveDraft.mock.calls[1]?.[0].get("name")).toBe("First");
+    const savedUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(savedUnload);
+    expect(savedUnload.defaultPrevented).toBe(false);
+    vi.useRealTimers();
+  });
 });

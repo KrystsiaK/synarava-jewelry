@@ -46,6 +46,7 @@ export function CreateProductForm({
   useDraftAutosave({
     formRef,
     saveDraft: autosaveProductDraftAction,
+    onError: () => pushToast({ message: "Draft could not be saved. Please try again.", tone: "error" }),
     recordIdField: "productId",
     onSaved: (result) => {
       if (result.recordId) setDraftId(result.recordId);

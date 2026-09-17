@@ -22,9 +22,11 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
   useDraftAutosave({
     formRef,
     saveDraft: autosavePageDraftAction,
+    onError: () => pushToast({ message: "Draft could not be saved. Please try again.", tone: "error" }),
     recordIdField: "pageId",
     onSaved: (result) => {
       if (result.recordId) setDraftId(result.recordId);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
     },
   });
 
