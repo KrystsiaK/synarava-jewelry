@@ -15,8 +15,6 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { safeRedirectPath } from "@/lib/security/safe-redirect";
 
-const MAX_LINE_QUANTITY = 10;
-
 const addToCartSchema = z.object({
   productSlug: z.string().trim().min(1),
   redirectTo: z.string().trim().default(""),
@@ -55,8 +53,11 @@ export async function increaseCartItemAction(formData: FormData) {
   const parsed = parseFormData(formData, cartItemSchema);
   if (!parsed.success) return;
 
+  // No arbitrary line cap here (REV-10) — Shopify's own stock/inventoryPolicy is
+  // the one limit, already what disables the "+" button (cart-item-row.tsx) and
+  // what a cartLinesAdd warning (REV-09) reports if it caps the actual increase.
   const quantity = await currentLineQuantity(parsed.data.itemId);
-  if (quantity === null || quantity >= MAX_LINE_QUANTITY) return;
+  if (quantity === null) return;
 
   await updateStorefrontCartItemQuantity(parsed.data.itemId, quantity + 1);
   refreshCommerce();
