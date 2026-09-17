@@ -54,7 +54,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
           alt={item.title}
           src={item.imageUrl}
           fill
-          sizes="8rem"
+          sizes="(min-width: 768px) 8rem, calc(100vw - 2rem)"
           className="object-cover"
         />
       </Link>
