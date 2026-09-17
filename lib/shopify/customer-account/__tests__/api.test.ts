@@ -20,6 +20,7 @@ vi.mock("../session-store", () => ({
 
 import {
   findShopifyCustomerOrderForProduct,
+  getShopifyCustomerOrdersPage,
   getShopifyCustomerProfile,
   requestShopifyOrderReturn,
 } from "../api";
@@ -74,6 +75,33 @@ describe("Shopify customer purchase lookup", () => {
 
     await expect(findShopifyCustomerOrderForProduct("product-target")).resolves.toBe("order-large");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Shopify customer orders page (REV-13)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("fetches the next page of orders past the profile's initial 50", async () => {
+    const order = {
+      id: "gid://shopify/Order/2",
+      name: "#1002",
+      processedAt: "2026-01-01T00:00:00.000Z",
+      financialStatus: "PAID",
+      fulfillmentStatus: "FULFILLED",
+      statusPageUrl: "https://shop.example/orders/2",
+      totalPrice: { amount: "20.00", currencyCode: "EUR" },
+      fulfillments: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+      returnInformation: { returnableLineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } },
+      lineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+    };
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(response({
+      customer: { orders: { nodes: [order], pageInfo: { hasNextPage: false, endCursor: null } } },
+    }));
+
+    await expect(getShopifyCustomerOrdersPage("cursor-1")).resolves.toEqual({
+      nodes: [order],
+      pageInfo: { hasNextPage: false, endCursor: null },
+    });
   });
 });
 

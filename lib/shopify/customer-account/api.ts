@@ -47,6 +47,77 @@ const returnableLineItemSchema = z.object({
   lineItem: z.object({ id: z.string(), name: z.string() }),
 });
 
+const pageInfoSchema = z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() });
+
+// Shared between the initial profile fetch and getShopifyCustomerOrdersPage()
+// (REV-13's "load more orders") so both read the exact same order shape.
+const orderSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  processedAt: z.string(),
+  financialStatus: z.string().nullable(),
+  fulfillmentStatus: z.string(),
+  statusPageUrl: z.string(),
+  totalPrice: moneySchema,
+  fulfillments: z.object({ nodes: z.array(fulfillmentSchema), pageInfo: pageInfoSchema }),
+  returnInformation: z.object({
+    returnableLineItems: z.object({ nodes: z.array(returnableLineItemSchema), pageInfo: pageInfoSchema }),
+  }),
+  lineItems: z.object({
+    nodes: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        productId: z.string().nullable(),
+        quantity: z.number().int(),
+        image: z
+          .object({ altText: z.string().nullable(), url: z.string() })
+          .nullable(),
+        totalPrice: moneySchema.nullable(),
+      }),
+    ),
+    pageInfo: pageInfoSchema,
+  }),
+});
+
+const ORDER_FIELDS = `#graphql
+  id
+  name
+  processedAt
+  financialStatus
+  fulfillmentStatus
+  statusPageUrl
+  totalPrice { amount currencyCode }
+  fulfillments(first: 5) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      status
+      latestShipmentStatus
+      estimatedDeliveryAt
+      trackingInformation { company number url }
+    }
+  }
+  returnInformation {
+    returnableLineItems(first: 20) {
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        quantity
+        lineItem { id name }
+      }
+    }
+  }
+  lineItems(first: 20) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id productId
+      name
+      quantity
+      image { altText url }
+      totalPrice { amount currencyCode }
+    }
+  }
+`;
+
 const profileSchema = z.object({
   customer: z.object({
     id: z.string(),
@@ -59,38 +130,8 @@ const profileSchema = z.object({
       .object({ emailAddress: z.string().nullable() })
       .nullable(),
     defaultAddress: addressSchema.nullable(),
-    addresses: z.object({ nodes: z.array(addressSchema) }),
-    orders: z.object({
-      nodes: z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          processedAt: z.string(),
-          financialStatus: z.string().nullable(),
-          fulfillmentStatus: z.string(),
-          statusPageUrl: z.string(),
-          totalPrice: moneySchema,
-          fulfillments: z.object({ nodes: z.array(fulfillmentSchema) }),
-          returnInformation: z.object({
-            returnableLineItems: z.object({ nodes: z.array(returnableLineItemSchema) }),
-          }),
-          lineItems: z.object({
-            nodes: z.array(
-              z.object({
-                id: z.string(),
-                name: z.string(),
-                productId: z.string().nullable(),
-                quantity: z.number().int(),
-                image: z
-                  .object({ altText: z.string().nullable(), url: z.string() })
-                  .nullable(),
-                totalPrice: moneySchema.nullable(),
-              }),
-            ),
-          }),
-        }),
-      ),
-    }),
+    addresses: z.object({ nodes: z.array(addressSchema), pageInfo: pageInfoSchema }),
+    orders: z.object({ nodes: z.array(orderSchema), pageInfo: pageInfoSchema }),
   }),
 });
 
@@ -116,46 +157,15 @@ const CUSTOMER_PROFILE_QUERY = `#graphql
         territoryCode phoneNumber formatted(withName: true, withCompany: true)
       }
       addresses(first: 20) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           id name company address1 address2 city province zip country
           territoryCode phoneNumber formatted(withName: true, withCompany: true)
         }
       }
       orders(first: 50, sortKey: PROCESSED_AT, reverse: true) {
-        nodes {
-          id
-          name
-          processedAt
-          financialStatus
-          fulfillmentStatus
-          statusPageUrl
-          totalPrice { amount currencyCode }
-          fulfillments(first: 5) {
-            nodes {
-              status
-              latestShipmentStatus
-              estimatedDeliveryAt
-              trackingInformation { company number url }
-            }
-          }
-          returnInformation {
-            returnableLineItems(first: 20) {
-              nodes {
-                quantity
-                lineItem { id name }
-              }
-            }
-          }
-          lineItems(first: 20) {
-            nodes {
-              id productId
-              name
-              quantity
-              image { altText url }
-              totalPrice { amount currencyCode }
-            }
-          }
-        }
+        pageInfo { hasNextPage endCursor }
+        nodes { ${ORDER_FIELDS} }
       }
     }
   }
@@ -257,6 +267,35 @@ async function customerAccountQuery(
   }
   if (!response.ok) throw new Error(`Shopify Customer Account API failed (${response.status}).`);
   return response.json() as Promise<unknown>;
+}
+
+const ordersPageSchema = z.object({
+  data: z.object({
+    customer: z.object({ orders: z.object({ nodes: z.array(orderSchema), pageInfo: pageInfoSchema }) }),
+  }).optional(),
+  errors: z.array(z.object({ message: z.string() }).passthrough()).optional(),
+});
+
+export type ShopifyCustomerOrder = z.infer<typeof orderSchema>;
+
+/** The next page of orders past the profile's initial 50 (REV-13's "load more orders"). */
+export async function getShopifyCustomerOrdersPage(after: string) {
+  const payload = ordersPageSchema.parse(await customerAccountQuery(
+    "SynaravaCustomerOrdersPage",
+    `query SynaravaCustomerOrdersPage($after: String) {
+      customer {
+        orders(first: 50, after: $after, sortKey: PROCESSED_AT, reverse: true) {
+          pageInfo { hasNextPage endCursor }
+          nodes { ${ORDER_FIELDS} }
+        }
+      }
+    }`,
+    { after },
+  ));
+  if (payload.errors?.length || !payload.data) {
+    throw new Error(payload.errors?.map((error) => error.message).join("; ") || "Shopify returned no order data.");
+  }
+  return payload.data.customer.orders;
 }
 
 /** Exhaustively checks the signed-in buyer's orders without treating connection pages as complete. */

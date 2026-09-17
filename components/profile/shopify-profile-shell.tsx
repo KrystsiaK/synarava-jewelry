@@ -79,12 +79,43 @@ export function ShopifyProfileShell({
   const router = useRouter();
   const { locale } = useTranslations();
   const [wishlist, setWishlist] = useState(wishlistProducts);
+  // REV-13: the profile query only fetches the 50 most recent orders — orders
+  // beyond that page are loaded on demand instead of being silently absent.
+  const [orders, setOrders] = useState(customer.orders.nodes);
+  const [ordersPageInfo, setOrdersPageInfo] = useState(customer.orders.pageInfo);
+  const [isLoadingMoreOrders, setIsLoadingMoreOrders] = useState(false);
+  const [loadMoreOrdersError, setLoadMoreOrdersError] = useState<string | null>(null);
   const email = customer.emailAddress?.emailAddress ?? "No email address available";
-  const totalSpent = customer.orders.nodes.reduce(
+  const totalSpent = orders.reduce(
     (sum, order) => sum + Number(order.totalPrice.amount),
     0,
   );
-  const currency = customer.orders.nodes[0]?.totalPrice.currencyCode ?? "EUR";
+  const currency = orders[0]?.totalPrice.currencyCode ?? "EUR";
+  const ordersCountLabel = ordersPageInfo.hasNextPage ? `${orders.length}+` : String(orders.length);
+
+  async function loadMoreOrders() {
+    if (!ordersPageInfo.endCursor) return;
+    setIsLoadingMoreOrders(true);
+    setLoadMoreOrdersError(null);
+    try {
+      const response = await fetch(`/api/profile/orders?after=${encodeURIComponent(ordersPageInfo.endCursor)}`);
+      const payload = (await response.json()) as {
+        ok: boolean;
+        nodes?: typeof orders;
+        pageInfo?: typeof ordersPageInfo;
+        error?: string;
+      };
+      if (!response.ok || !payload.ok || !payload.nodes || !payload.pageInfo) {
+        throw new Error(payload.error || "Couldn't load more orders.");
+      }
+      setOrders((current) => [...current, ...payload.nodes!]);
+      setOrdersPageInfo(payload.pageInfo);
+    } catch (error) {
+      setLoadMoreOrdersError(error instanceof Error ? error.message : "Couldn't load more orders.");
+    } finally {
+      setIsLoadingMoreOrders(false);
+    }
+  }
 
   function removeFromWishlist(productSlug: string) {
     setWishlist((current) => current.filter((product) => product.slug !== productSlug));
@@ -190,7 +221,7 @@ export function ShopifyProfileShell({
               <div className="space-y-10">
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
-                    ["Orders", customer.orders.nodes.length],
+                    ["Orders", ordersCountLabel],
                     ["Total spent", money(String(totalSpent), currency)],
                     ["Member since", date(customer.creationDate)],
                   ].map(([label, value]) => (
@@ -254,15 +285,15 @@ export function ShopifyProfileShell({
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
                   <h2 className="font-serif text-2xl">Order history</h2>
-                  <span className="label-caps text-foreground/35">{customer.orders.nodes.length} orders</span>
+                  <span className="label-caps text-foreground/35">{ordersCountLabel} orders</span>
                 </div>
-                {customer.orders.nodes.length === 0 ? (
+                {orders.length === 0 ? (
                   <div className="border border-stroke p-8">
                     <p className="font-serif text-xl">No purchases yet.</p>
                     <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">Explore the shop →</Link>
                   </div>
                 ) : (
-                  customer.orders.nodes.map((order) => (
+                  orders.map((order) => (
                     <article key={order.id} className="border border-stroke p-5 md:p-7">
                       <div className="flex flex-col gap-4 border-b border-stroke pb-5 md:flex-row md:items-center md:justify-between">
                         <div>
@@ -287,6 +318,11 @@ export function ShopifyProfileShell({
                           </div>
                         ))}
                       </div>
+                      {order.lineItems.pageInfo.hasNextPage ? (
+                        <p className="mt-3 text-sm text-foreground/45">
+                          Showing the first {order.lineItems.nodes.length} items — see order details for the full list.
+                        </p>
+                      ) : null}
                       {order.fulfillments.nodes.map((fulfillment, index) => {
                         const tracking = fulfillment.trackingInformation[0];
                         if (!tracking && !fulfillment.estimatedDeliveryAt) return null;
@@ -311,16 +347,41 @@ export function ShopifyProfileShell({
                           </div>
                         );
                       })}
+                      {order.fulfillments.pageInfo.hasNextPage ? (
+                        <p className="mt-3 text-sm text-foreground/45">
+                          More shipments than shown here — see order details for the full list.
+                        </p>
+                      ) : null}
                       <ReturnRequestPanel
                         orderId={order.id}
                         returnableLineItems={order.returnInformation.returnableLineItems.nodes}
                       />
+                      {order.returnInformation.returnableLineItems.pageInfo.hasNextPage ? (
+                        <p className="mt-2 text-sm text-foreground/45">
+                          Only the first {order.returnInformation.returnableLineItems.nodes.length} returnable items are listed above — see order details for the rest.
+                        </p>
+                      ) : null}
                       <a href={order.statusPageUrl} className="label-caps mt-6 inline-block text-couture-red">
                         Order details →
                       </a>
                     </article>
                   ))
                 )}
+                {ordersPageInfo.hasNextPage ? (
+                  <div className="flex flex-col items-start gap-2">
+                    <button
+                      type="button"
+                      onClick={loadMoreOrders}
+                      disabled={isLoadingMoreOrders}
+                      className="label-caps border border-stroke px-6 py-4 transition-colors hover:border-foreground/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isLoadingMoreOrders ? "Loading…" : "Load more orders"}
+                    </button>
+                    {loadMoreOrdersError ? (
+                      <p role="alert" className="text-sm text-couture-red">{loadMoreOrdersError}</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -328,6 +389,9 @@ export function ShopifyProfileShell({
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
                   <h2 className="font-serif text-2xl">Saved addresses</h2>
+                  {customer.addresses.pageInfo.hasNextPage ? (
+                    <span className="label-caps text-foreground/35">Showing the first {customer.addresses.nodes.length}</span>
+                  ) : null}
                 </div>
                 {customer.addresses.nodes.length === 0 ? (
                   <div className="border border-stroke p-8 text-foreground/50">No saved addresses yet. An address can be added during checkout.</div>
