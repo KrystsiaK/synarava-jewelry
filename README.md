@@ -87,7 +87,7 @@ fail with a clear configuration error rather than falling back to another flow.
 
 1. In Shopify Admin, install/open the **Headless** sales channel and create a storefront.
 2. Create a **private Storefront API token** with product and cart access.
-3. Ensure every Shopify product handle matches the corresponding local product slug. Until a variant selector is added, the site chooses the first available Shopify variant.
+3. Ensure every Shopify product handle matches the corresponding local product slug. The product page lets customers choose among available Shopify variants.
 4. Add these values locally and to Railway variables. Never expose the private token through a `NEXT_PUBLIC_` variable:
 
 ```dotenv
@@ -164,8 +164,7 @@ changed to a duplicated Shopify store, **Check Shopify link** offers an explicit
 Rebinding clears only old store-specific IDs, then **Compare catalogs** matches the duplicated products
 and collections by SKU/handle before any data is applied. The new store still needs its own app
 installation/token, required scopes, published `pt-PT` locale, publication ID, and inventory
-location ID. Journal posts remain owned by this
-application and are stored locally in both English and Portuguese; they are not synchronized to
+location ID. Editorial pages remain owned by this application; they are not synchronized to
 Shopify. The public app URL must be
 HTTPS so Shopify can deliver signed webhooks.
 

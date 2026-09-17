@@ -1,39 +1,15 @@
 # Synarava Architecture
 
-## Screen mapping from Stitch
+## Current routes
 
-- `SYNARAVA | Artifact Detail`
-  - product detail page for a single artifact
-  - consumes `Product`, `ProductVariant`, `ProductMedia`, `Collection`, `Page(manifesto links)`
-- `SYNARAVA | Belarus Heritage Collection`
-  - collection detail page
-  - consumes `Collection`, `CollectionSection`, `ProductCollection`, `Product`
-- `SYNARAVA | Collections`
-  - discovery/search surface for products and collections
-  - consumes `Collection`, `Product`, search metadata, filters, future search index
-- `SYNARAVA | Home`
-  - editorial landing / world-building page
-  - backed by `Page(template=HOME)` JSON content with six independently visible, localized sections
-- `SYNARAVA | The Manifesto`
-  - editorial page / brand doctrine
-  - should be backed by `Page(template=MANIFESTO)`
-
-## Route plan
-
-- `/`
-  - home editorial page
-- `/manifesto`
-  - brand manifesto
-- `/collections`
-  - search/discovery index for products and collections
-- `/collections/[slug]`
-  - collection detail page
-- `/products/[slug]`
-  - artifact detail page
-- `/account`
-  - customer profile and orders
-- `/admin`
-  - CMS and commerce back-office
+Public pages use `/en` or `/pt` prefixes. `/[locale]` is the home page;
+`/[locale]/shop` loads the published catalog and runs search, filters, and sorting
+in the browser; `/[locale]/collections` and `/[locale]/collections/[slug]` present
+curated groups; `/[locale]/products/[slug]` contains the product gallery, variant
+selector, reviews, and purchase controls. `/[locale]/profile` shows Shopify-owned
+customer data and orders. `/[locale]/about`, `/[locale]/about/manifesto`, service
+pages, and CMS pages provide editorial content. `/admin` is the separate CMS and
+commerce studio.
 
 ## Data model strategy
 
@@ -65,7 +41,7 @@ its models were removed once Shopify covered the same ground.
 ### CMS
 
 - `Page`
-  - editorial pages like `Home` and `Manifesto`
+  - editorial pages like `Home`, `About`, and `Manifesto`
   - `content: Json` keeps the first CMS light while still supporting rich composition
   - the Home page uses explicit fields for Hero, Department pathway, Featured collections,
     Material lexicon, Manifesto, and Final CTA; visibility is shared across locales while copy is localized
@@ -107,7 +83,6 @@ The implemented admin is intentionally small and task-focused:
 - `Overview` — content/catalog summary and QA entry point;
 - `Home` and `About` — dedicated editorial surfaces;
 - `Pages` — generic editorial pages;
-- `Posts` — long-form editorial stories with preview and publishing workflows;
 - `Videos` — shared S3-backed storefront video assets;
 - `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;
 - `Collections` — Shopify-linked grouping, merchandising, and primary storefront navigation;
@@ -120,23 +95,15 @@ admin authentication has one operator role. The completed restructuring and
 catalog cutover are recorded in
 [`history/admin-shopify-refactor-2026-09.md`](./history/admin-shopify-refactor-2026-09.md).
 
-## Search strategy
+## Search and rendering
 
-Stage 1:
+`/shop` loads the published product listing from PostgreSQL, then searches,
+filters, and sorts in the browser while reflecting selections in the URL. The
+server also supports filtered catalog queries for targeted views. Collection
+membership and product availability come from the local Shopify projection.
 
-- Postgres `ILIKE` + indexed slugs/names/search summaries
-- unified `/collections` page returns both products and collections
-
-Stage 2:
-
-- dedicated search document per product/collection
-- optional Meilisearch / Typesense / Postgres full-text
-
-## Delivery strategy
-
-- storefront editorial pages:
-  - SSG/ISR where possible
-- account/admin/order screens:
-  - dynamic SSR
-- product and collection pages:
-  - ISR with tag-based invalidation after CMS publish
+The root layout reads cookies and request headers for locale, session, cart,
+privacy, theme, and CSP nonce, so it renders per request. Admin and customer
+account pages also render with request-specific data. CMS and Shopify mutations
+revalidate affected localized storefront paths through
+`lib/content/revalidate-storefront.ts`.
