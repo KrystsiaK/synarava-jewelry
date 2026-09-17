@@ -306,8 +306,11 @@ function toSummary(product: {
   };
   // Commerce fields (SKU, price, compare-at) are owned by the variant —
   // Product's own copies exist only as an identity anchor for Shopify
-  // pull's by-SKU matching, not as a display source of truth.
-  const primaryVariant = product.variants[0];
+  // pull's by-SKU matching, not as a display source of truth. The card
+  // price must match what the PDP opens on, so this prefers the first
+  // purchasable variant over the literal first-created one (REV-07);
+  // ProductPurchasePanel's own initialVariant selection mirrors this.
+  const primaryVariant = product.variants.find((variant) => isVariantPurchasable(variant)) ?? product.variants[0];
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
   const inStock = product.variants.some((variant) => isVariantPurchasable(variant));
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
@@ -682,9 +685,17 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     .filter((product) => product.image)
     .filter((product) => !filters.department || product.departmentSlug === filters.department);
 
+  // price-asc/desc re-sort here rather than trusting the DB-level orderBy above:
+  // Product.priceCents is a snapshot from the last Shopify pull's first variant,
+  // while ProductSummary.priceAmount reflects the first *purchasable* variant
+  // (REV-07) — the two can disagree once a cheaper variant sells out.
   return sort === "name-asc"
     ? localizedProducts.sort((left, right) => left.title.localeCompare(right.title, locale))
-    : localizedProducts;
+    : sort === "price-asc"
+      ? localizedProducts.sort((left, right) => left.priceAmount - right.priceAmount)
+      : sort === "price-desc"
+        ? localizedProducts.sort((left, right) => right.priceAmount - left.priceAmount)
+        : localizedProducts;
 }
 
 export async function getProductBySlug(slug: string) {
