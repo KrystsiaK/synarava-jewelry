@@ -366,6 +366,7 @@
     "share": "Share",
     "linkCopied": "Link copied",
     "readFullStory": "Read full story",
+    "readMore": "Read more",
     "showLess": "Show less",
     "save": "Save",
     "saved": "Saved",
@@ -374,7 +375,105 @@
     "dismissWishlistError": "Dismiss wishlist error",
     "addToWishlist": "Save to wishlist",
     "removeFromWishlist": "Remove from wishlist",
-    "relatedTitle": "You may also like"
+    "relatedTitle": "You may also like",
+    "presentation": {
+      "jewelry": { "descriptionLabel": "Object notes", "descriptionTitle": "The piece, in full", "buyingTitle": "Fit and care" },
+      "pets": { "descriptionLabel": "Everyday use", "descriptionTitle": "Designed around care", "buyingTitle": "Choose the right fit" },
+      "kids": { "descriptionLabel": "How it works", "descriptionTitle": "Made for curious hands", "buyingTitle": "Age and supervision" },
+      "jewelry-making": { "descriptionLabel": "Maker notes", "descriptionTitle": "What the tool enables", "buyingTitle": "Contents and compatibility" }
+    },
+    "hero": {
+      "department": "Department",
+      "category": "Category",
+      "availability": "Availability",
+      "variants": "Variants",
+      "composition": "Composition"
+    },
+    "specifications": {
+      "eyebrow": "Product information",
+      "title": "Details that matter",
+      "productDetails": "Product details",
+      "materialsConstruction": "Materials & construction",
+      "dimensionsFit": "Dimensions & fit",
+      "additionalDetails": "Additional details",
+      "materialComposition": "Material composition",
+      "brand": "Brand",
+      "productType": "Product type",
+      "sku": "SKU",
+      "barcode": "Barcode",
+      "weight": "Weight",
+      "certificate": "Certificate",
+      "yes": "✓ Yes"
+    }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Overview",
+      "wishlist": "Wishlist",
+      "orders": "Orders",
+      "addresses": "Addresses",
+      "security": "Sign-in & security"
+    },
+    "sectionsAriaLabel": "Account sections",
+    "customerAccount": "Customer account",
+    "noEmail": "No email address available",
+    "signOut": "Sign out",
+    "overview": {
+      "orders": "Orders",
+      "totalSpent": "Total spent",
+      "memberSince": "Member since",
+      "viewOrders": "View orders",
+      "currentCart": "Current cart"
+    },
+    "wishlist": {
+      "title": "Saved products",
+      "saved": { "one": "{count} saved", "other": "{count} saved" },
+      "empty": "Nothing saved yet.",
+      "exploreShop": "Explore the shop →",
+      "removeAria": "Remove {title} from wishlist"
+    },
+    "orders": {
+      "title": "Order history",
+      "countLabel": "orders",
+      "empty": "No purchases yet.",
+      "qty": "Qty {count}",
+      "itemsTruncated": "Showing the first {count} items — see order details for the full list.",
+      "shipmentsTruncated": "More shipments than shown here — see order details for the full list.",
+      "trackPackage": "Track package →",
+      "estimatedDelivery": "Estimated delivery: {date}",
+      "returnableTruncated": "Only the first {count} returnable items are listed above — see order details for the rest.",
+      "orderDetails": "Order details →",
+      "loading": "Loading…",
+      "loadMore": "Load more orders",
+      "loadMoreFailed": "Couldn’t load more orders.",
+      "requiresLogin": "Your session has expired — sign in again to see more orders."
+    },
+    "addresses": {
+      "title": "Saved addresses",
+      "showingFirst": "Showing the first {count}",
+      "empty": "No saved addresses yet. An address can be added during checkout.",
+      "default": "Default"
+    },
+    "security": {
+      "eyebrow": "Secure access",
+      "title": "Passwordless customer account",
+      "body": "Sign-in codes are sent to your email and your account is managed entirely by Shopify. No customer password is created or stored by Synarava, and this sign-in is separate from any Google account in your browser.",
+      "signOutDevice": "Sign out on this device",
+      "renewsNextSignIn": "Your session renews the next time you sign in.",
+      "expiresInOneDay": "You’ll be asked to sign in again in 1 day.",
+      "expiresInDays": "You’ll be asked to sign in again in {days} days, sooner if this device is inactive for 14 days."
+    },
+    "returns": {
+      "request": "Request a return",
+      "quantityAria": "Quantity to return for {name}",
+      "submitting": "Submitting…",
+      "submit": "Submit return request",
+      "cancel": "Cancel",
+      "success": "Return requested. We’ll follow up by email.",
+      "genericFailed": "Could not submit the return request.",
+      "rateLimited": "Too many return requests. Please try again shortly.",
+      "selectAtLeastOne": "Select at least one item to return."
+    }
   },
   "reviews": {
     "title": "Customer reviews",

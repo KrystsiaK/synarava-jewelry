@@ -5,7 +5,7 @@ import { getProductBySlug, listShopProducts } from "@/lib/content/catalog";
 import { getShopifyRelatedProductIds } from "@/lib/shopify/recommendations";
 import { pickRelatedProducts } from "@/lib/catalog/related-products";
 import { getSiteVideos } from "@/lib/site-videos";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { ProductDetail } from "@/components/artifacts/product-detail";
@@ -66,7 +66,8 @@ export default async function ProductDetailPage({ params }: Props) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const productJsonLd = buildProductJsonLd(product, siteUrl, reviews);
 
-  const breadcrumbs = getProductBreadcrumbs(product);
+  const { t } = await getServerTranslations();
+  const breadcrumbs = getProductBreadcrumbs(product, t);
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

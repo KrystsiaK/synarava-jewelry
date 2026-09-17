@@ -366,6 +366,7 @@
     "share": "Partilhar",
     "linkCopied": "Link copiado",
     "readFullStory": "Ler a história completa",
+    "readMore": "Ler mais",
     "showLess": "Mostrar menos",
     "save": "Guardar",
     "saved": "Guardado",
@@ -374,7 +375,105 @@
     "dismissWishlistError": "Fechar erro dos favoritos",
     "addToWishlist": "Guardar nos favoritos",
     "removeFromWishlist": "Remover dos favoritos",
-    "relatedTitle": "Também pode gostar"
+    "relatedTitle": "Também pode gostar",
+    "presentation": {
+      "jewelry": { "descriptionLabel": "Notas sobre a peça", "descriptionTitle": "A peça, por completo", "buyingTitle": "Ajuste e cuidados" },
+      "pets": { "descriptionLabel": "Uso diário", "descriptionTitle": "Pensado para o bem-estar", "buyingTitle": "Escolha o ajuste certo" },
+      "kids": { "descriptionLabel": "Como funciona", "descriptionTitle": "Feito para mãos curiosas", "buyingTitle": "Idade e supervisão" },
+      "jewelry-making": { "descriptionLabel": "Notas do artesão", "descriptionTitle": "Para que serve a ferramenta", "buyingTitle": "Conteúdo e compatibilidade" }
+    },
+    "hero": {
+      "department": "Departamento",
+      "category": "Categoria",
+      "availability": "Disponibilidade",
+      "variants": "Variantes",
+      "composition": "Composição"
+    },
+    "specifications": {
+      "eyebrow": "Informações do produto",
+      "title": "Detalhes que importam",
+      "productDetails": "Detalhes do produto",
+      "materialsConstruction": "Materiais e construção",
+      "dimensionsFit": "Dimensões e ajuste",
+      "additionalDetails": "Detalhes adicionais",
+      "materialComposition": "Composição do material",
+      "brand": "Marca",
+      "productType": "Tipo de produto",
+      "sku": "SKU",
+      "barcode": "Código de barras",
+      "weight": "Peso",
+      "certificate": "Certificado",
+      "yes": "✓ Sim"
+    }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Visão geral",
+      "wishlist": "Favoritos",
+      "orders": "Encomendas",
+      "addresses": "Moradas",
+      "security": "Início de sessão e segurança"
+    },
+    "sectionsAriaLabel": "Secções da conta",
+    "customerAccount": "Conta de cliente",
+    "noEmail": "Nenhum endereço de email disponível",
+    "signOut": "Terminar sessão",
+    "overview": {
+      "orders": "Encomendas",
+      "totalSpent": "Total gasto",
+      "memberSince": "Cliente desde",
+      "viewOrders": "Ver encomendas",
+      "currentCart": "Carrinho atual"
+    },
+    "wishlist": {
+      "title": "Produtos guardados",
+      "saved": { "one": "{count} guardado", "other": "{count} guardados" },
+      "empty": "Ainda não guardou nada.",
+      "exploreShop": "Explorar a loja →",
+      "removeAria": "Remover {title} dos favoritos"
+    },
+    "orders": {
+      "title": "Histórico de encomendas",
+      "countLabel": "encomendas",
+      "empty": "Ainda não fez compras.",
+      "qty": "Qtd. {count}",
+      "itemsTruncated": "A mostrar os primeiros {count} artigos — consulte os detalhes da encomenda para a lista completa.",
+      "shipmentsTruncated": "Existem mais envios do que os apresentados aqui — consulte os detalhes da encomenda para a lista completa.",
+      "trackPackage": "Seguir encomenda →",
+      "estimatedDelivery": "Entrega estimada: {date}",
+      "returnableTruncated": "Apenas os primeiros {count} artigos devolvíveis estão listados acima — consulte os detalhes da encomenda para os restantes.",
+      "orderDetails": "Detalhes da encomenda →",
+      "loading": "A carregar…",
+      "loadMore": "Carregar mais encomendas",
+      "loadMoreFailed": "Não foi possível carregar mais encomendas.",
+      "requiresLogin": "A sua sessão expirou — inicie sessão novamente para ver mais encomendas."
+    },
+    "addresses": {
+      "title": "Moradas guardadas",
+      "showingFirst": "A mostrar as primeiras {count}",
+      "empty": "Ainda não há moradas guardadas. Pode adicionar uma morada durante o checkout.",
+      "default": "Predefinida"
+    },
+    "security": {
+      "eyebrow": "Acesso seguro",
+      "title": "Conta de cliente sem palavra-passe",
+      "body": "Os códigos de início de sessão são enviados para o seu email e a sua conta é gerida inteiramente pela Shopify. Nenhuma palavra-passe de cliente é criada ou armazenada pela Synarava, e este início de sessão é independente de qualquer conta Google no seu navegador.",
+      "signOutDevice": "Terminar sessão neste dispositivo",
+      "renewsNextSignIn": "A sua sessão é renovada na próxima vez que iniciar sessão.",
+      "expiresInOneDay": "Ser-lhe-á pedido que inicie sessão novamente dentro de 1 dia.",
+      "expiresInDays": "Ser-lhe-á pedido que inicie sessão novamente dentro de {days} dias, ou antes se este dispositivo estiver inativo durante 14 dias."
+    },
+    "returns": {
+      "request": "Pedir uma devolução",
+      "quantityAria": "Quantidade a devolver de {name}",
+      "submitting": "A submeter…",
+      "submit": "Submeter pedido de devolução",
+      "cancel": "Cancelar",
+      "success": "Devolução pedida. Entraremos em contacto por email.",
+      "genericFailed": "Não foi possível submeter o pedido de devolução.",
+      "rateLimited": "Demasiados pedidos de devolução. Tente novamente dentro de momentos.",
+      "selectAtLeastOne": "Selecione pelo menos um artigo para devolver."
+    }
   },
   "reviews": {
     "title": "Avaliações de clientes",

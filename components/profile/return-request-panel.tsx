@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useTranslations } from "@/lib/i18n/context";
+
 type ReturnableLineItem = {
   quantity: number;
   lineItem: { id: string; name: string };
@@ -14,6 +16,7 @@ export function ReturnRequestPanel({
   orderId: string;
   returnableLineItems: ReturnableLineItem[];
 }) {
+  const { t } = useTranslations();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [pending, setPending] = useState(false);
@@ -49,14 +52,17 @@ export function ReturnRequestPanel({
       });
       const payload = (await response.json()) as { ok: boolean; error?: string };
       if (!response.ok || !payload.ok) {
-        setResult({ ok: false, message: payload.error || "Could not submit the return request." });
+        // payload.error may be Shopify's own dynamic rejection reason (e.g. "This
+        // item is not eligible for return"), which has no stable code to map to a
+        // translation — shown as-is, with our own generic message as the fallback.
+        setResult({ ok: false, message: payload.error || t("profile.returns.genericFailed") });
         return;
       }
-      setResult({ ok: true, message: "Return requested. We'll follow up by email." });
+      setResult({ ok: true, message: t("profile.returns.success") });
       setSelected({});
       setOpen(false);
     } catch {
-      setResult({ ok: false, message: "Could not submit the return request." });
+      setResult({ ok: false, message: t("profile.returns.genericFailed") });
     } finally {
       setPending(false);
     }
@@ -70,7 +76,7 @@ export function ReturnRequestPanel({
     <div className="mt-4 border-t border-stroke pt-4">
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} className="label-caps text-couture-red">
-          Request a return
+          {t("profile.returns.request")}
         </button>
       ) : (
         <div className="space-y-3">
@@ -95,7 +101,7 @@ export function ReturnRequestPanel({
                     value={selected[lineItem.id]}
                     onChange={(event) => setQuantity(lineItem.id, Number(event.target.value), maxQuantity)}
                     className="w-16 border border-stroke px-2 py-1 text-sm"
-                    aria-label={`Quantity to return for ${lineItem.name}`}
+                    aria-label={t("profile.returns.quantityAria", { name: lineItem.name })}
                   />
                 ) : null}
               </div>
@@ -109,14 +115,14 @@ export function ReturnRequestPanel({
               disabled={pending || Object.keys(selected).length === 0}
               className="label-caps bg-couture-red px-5 py-3 text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {pending ? "Submitting…" : "Submit return request"}
+              {pending ? t("profile.returns.submitting") : t("profile.returns.submit")}
             </button>
             <button
               type="button"
               onClick={() => { setOpen(false); setSelected({}); setResult(null); }}
               className="label-caps border border-stroke px-5 py-3 hover:border-foreground/50"
             >
-              Cancel
+              {t("profile.returns.cancel")}
             </button>
           </div>
         </div>

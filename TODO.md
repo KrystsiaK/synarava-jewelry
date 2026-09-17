@@ -127,7 +127,7 @@
   - navigateToLocale использует только usePathname. Пропадают поиск/фильтры `/shop?q=...&collection=...`, секция профиля `?section=orders` и якорь.
   - Исправить: сохранять совместимые search params и hash при замене locale segment. Проверка: переключение языка из отфильтрованного каталога и вкладки заказов сохраняет контекст.
 
-- [ ] **REV-23. Существенные пользовательские разделы не локализованы.**
+- [x] **REV-23. Существенные пользовательские разделы не локализованы.**
   - Код: `components/profile/shopify-profile-shell.tsx:43`, `components/profile/shopify-profile-shell.tsx:193`, `components/profile/return-request-panel.tsx:68`, `lib/catalog/product-presentation.ts:17`, `components/artifacts/product-detail.tsx:342`.
   - Профиль, возвраты и department-specific подписи PDP содержат английские строки. Форматирование профиля жёстко использует en-IE. API cart/wishlist/returns также отдаёт английские тексты, которые UI показывает напрямую.
   - Исправить: translation keys для пользовательского copy, locale-aware форматирование и стабильные error codes API. Проверка: весь путь `/pt` от товара до возврата, включая ошибки.

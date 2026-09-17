@@ -78,24 +78,24 @@ function ProductHero({
   reviews: ShopifyProductReviews | null;
   isSignedIn: boolean;
 }) {
-  const { locale, plural } = useTranslations();
+  const { t, locale, plural } = useTranslations();
   const words = product.title.split(" ");
   const heroDescription = product.shortDescription.trim() || truncateText(product.description.trim(), 220);
   const availability = product.stockOnHand > 0
-    ? `${product.stockOnHand} in stock`
-    : "Currently unavailable";
+    ? plural("product.stock", product.stockOnHand)
+    : t("product.currentlyUnavailable");
   const quickFacts = [
-    ...(product.departmentName ? [{ label: "Department", value: product.departmentName }] : []),
-    ...(product.categoryName ? [{ label: "Category", value: product.categoryName }] : []),
-    { label: "Availability", value: availability },
+    ...(product.departmentName ? [{ label: t("product.hero.department"), value: product.departmentName }] : []),
+    ...(product.categoryName ? [{ label: t("product.hero.category"), value: product.categoryName }] : []),
+    { label: t("product.hero.availability"), value: availability },
     ...(product.variantCount > 1
-      ? [{ label: "Variants", value: String(product.variantCount) }]
+      ? [{ label: t("product.hero.variants"), value: String(product.variantCount) }]
       : []),
     ...(product.materialLine
-      ? [{ label: "Composition", value: product.materialLine }]
+      ? [{ label: t("product.hero.composition"), value: product.materialLine }]
       : []),
   ];
-  const breadcrumbs = getProductBreadcrumbs(product);
+  const breadcrumbs = getProductBreadcrumbs(product, t);
 
   return (
     <header data-component="ProductHero" className="bg-background pt-24 text-foreground md:pt-28">
@@ -234,7 +234,8 @@ function ProductHero({
 }
 
 function ProductSpecifications({ product }: { product: ProductSummary }) {
-  const presentation = getProductPresentation(product.departmentSlug);
+  const { t } = useTranslations();
+  const presentation = getProductPresentation(product.departmentSlug, t);
   type SpecificationRow = {
     label: string;
     value: string;
@@ -253,19 +254,19 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     add(characteristic.group, { ...attribute, key: characteristic.key, characteristic });
   });
   if (product.characteristics.length === 0) {
-    for (const attribute of product.attributes) add("Product details", attribute);
+    for (const attribute of product.attributes) add(t("product.specifications.productDetails"), attribute);
     if (product.attributes.length === 0 && product.materialLine) {
-      add("Materials & construction", { label: "Material composition", value: product.materialLine });
+      add(t("product.specifications.materialsConstruction"), { label: t("product.specifications.materialComposition"), value: product.materialLine });
     }
   }
-  if (product.vendor) add("Product details", { label: "Brand", value: product.vendor });
-  if (product.productType) add("Product details", { label: "Product type", value: product.productType });
-  if (product.sku) add("Product details", { label: "SKU", value: product.sku });
+  if (product.vendor) add(t("product.specifications.productDetails"), { label: t("product.specifications.brand"), value: product.vendor });
+  if (product.productType) add(t("product.specifications.productDetails"), { label: t("product.specifications.productType"), value: product.productType });
+  if (product.sku) add(t("product.specifications.productDetails"), { label: t("product.specifications.sku"), value: product.sku });
   const primaryVariant = product.variantDetails[0];
-  if (primaryVariant?.barcode) add("Product details", { label: "Barcode", value: primaryVariant.barcode });
-  if (primaryVariant?.weightGrams != null) add("Dimensions & fit", { label: "Weight", value: `${primaryVariant.weightGrams} g` });
+  if (primaryVariant?.barcode) add(t("product.specifications.productDetails"), { label: t("product.specifications.barcode"), value: primaryVariant.barcode });
+  if (primaryVariant?.weightGrams != null) add(t("product.specifications.dimensionsFit"), { label: t("product.specifications.weight"), value: `${primaryVariant.weightGrams} g` });
   for (const field of product.publicMetafields ?? []) {
-    add("Additional details", field);
+    add(t("product.specifications.additionalDetails"), field);
   }
 
   const priorityIndex = new Map(
@@ -283,9 +284,9 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     <section data-component="ProductSpecifications" className="border-y border-foreground/10 bg-surface py-16 md:py-20">
       <div className="site-shell grid gap-10 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div>
-          <p className="label-mono text-couture-red">Product information</p>
+          <p className="label-mono text-couture-red">{t("product.specifications.eyebrow")}</p>
           <h2 className="mt-4 max-w-sm font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none">
-            Details that matter
+            {t("product.specifications.title")}
           </h2>
           {product.departmentName ? (
             <p className="mt-5 text-sm uppercase tracking-[0.16em] text-foreground/50">
@@ -307,10 +308,10 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
                     <div key={`${row.label}-${row.value}`} className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6 border-b border-foreground/12 py-4">
                       <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/45">{row.label}</dt>
                       <dd className="flex items-start justify-between gap-4 text-sm leading-6 text-foreground/82">
-                        <span>{row.characteristic?.valueType === "BOOLEAN" && row.characteristic.booleanValue ? "✓ Yes" : row.value}</span>
+                        <span>{row.characteristic?.valueType === "BOOLEAN" && row.characteristic.booleanValue ? t("product.specifications.yes") : row.value}</span>
                         {row.characteristic?.certificateUrl ? (
                           <a href={row.characteristic.certificateUrl} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-couture-red underline-offset-4 hover:underline">
-                            Certificate
+                            {t("product.specifications.certificate")}
                           </a>
                         ) : null}
                       </dd>
@@ -327,8 +328,9 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
 }
 
 function ProductDescription({ product }: { product: ProductSummary }) {
+  const { t } = useTranslations();
   const [expanded, setExpanded] = useState(false);
-  const presentation = getProductPresentation(product.departmentSlug);
+  const presentation = getProductPresentation(product.departmentSlug, t);
   const description = product.description.trim();
   const shortDescription = product.shortDescription.trim();
   if (!description || description === shortDescription) return null;
@@ -355,7 +357,7 @@ function ProductDescription({ product }: { product: ProductSummary }) {
               className="label-caps mt-4 text-couture-red underline-offset-4 hover:underline"
               aria-expanded={expanded}
             >
-              {expanded ? "Show less" : "Read more"}
+              {expanded ? t("product.showLess") : t("product.readMore")}
             </button>
           ) : null}
           <div className="mt-10 flex items-center gap-4" aria-hidden="true">

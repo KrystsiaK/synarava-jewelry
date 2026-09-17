@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import type { ShopifyCustomerProfile } from "@/lib/shopify/customer-account/api";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
+import { localeTag } from "@/lib/i18n/format";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
@@ -18,37 +19,31 @@ import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 const tabs = ["overview", "wishlist", "orders", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
 
-const tabLabels: Record<Tab, string> = {
-  overview: "overview",
-  wishlist: "wishlist",
-  orders: "orders",
-  addresses: "addresses",
-  security: "Sign-in & security",
-};
-
 function tabHref(tab: Tab, locale: Locale) {
   return tab === "overview" ? localePath(locale, "/profile") : localePath(locale, `/profile?section=${tab}`);
 }
 
-function sessionExpiryLabel(sessionExpiresAt: string) {
+// REV-23: this used to always return English regardless of locale, and the
+// caller formatted money/dates with a hardcoded en-IE Intl locale tag.
+function sessionExpiryLabel(sessionExpiresAt: string, t: (key: string, values?: Record<string, string | number>) => string) {
   const days = Math.max(
     0,
     Math.ceil((new Date(sessionExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
   );
-  if (days === 0) return "Your session renews the next time you sign in.";
-  if (days === 1) return "You'll be asked to sign in again in 1 day.";
-  return `You'll be asked to sign in again in ${days} days, sooner if this device is inactive for 14 days.`;
+  if (days === 0) return t("profile.security.renewsNextSignIn");
+  if (days === 1) return t("profile.security.expiresInOneDay");
+  return t("profile.security.expiresInDays", { days });
 }
 
-function money(amount: string, currency: string) {
-  return new Intl.NumberFormat("en-IE", {
+function money(amount: string, currency: string, locale: Locale) {
+  return new Intl.NumberFormat(localeTag(locale), {
     style: "currency",
     currency,
   }).format(Number(amount));
 }
 
-function date(value: string) {
-  return new Intl.DateTimeFormat("en-IE", {
+function date(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(localeTag(locale), {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -77,7 +72,14 @@ export function ShopifyProfileShell({
   sessionExpiresAt: string;
 }) {
   const router = useRouter();
-  const { locale } = useTranslations();
+  const { t, plural, locale } = useTranslations();
+  const tabLabels: Record<Tab, string> = {
+    overview: t("profile.tabs.overview"),
+    wishlist: t("profile.tabs.wishlist"),
+    orders: t("profile.tabs.orders"),
+    addresses: t("profile.tabs.addresses"),
+    security: t("profile.tabs.security"),
+  };
   const [wishlist, setWishlist] = useState(wishlistProducts);
   // REV-13: the profile query only fetches the 50 most recent orders — orders
   // beyond that page are loaded on demand instead of being silently absent.
@@ -85,7 +87,7 @@ export function ShopifyProfileShell({
   const [ordersPageInfo, setOrdersPageInfo] = useState(customer.orders.pageInfo);
   const [isLoadingMoreOrders, setIsLoadingMoreOrders] = useState(false);
   const [loadMoreOrdersError, setLoadMoreOrdersError] = useState<string | null>(null);
-  const email = customer.emailAddress?.emailAddress ?? "No email address available";
+  const email = customer.emailAddress?.emailAddress ?? t("profile.noEmail");
   // Summed per currency rather than blindly added together (mixed-currency
   // orders would otherwise read as one nonsensical total), and net of
   // totalRefunded so a refunded/cancelled order doesn't inflate the figure —
@@ -97,8 +99,8 @@ export function ShopifyProfileShell({
     return totals;
   }, {});
   const totalSpentLabel = Object.entries(spendByCurrency)
-    .map(([currencyCode, amount]) => money(String(amount), currencyCode))
-    .join(" + ") || money("0", "EUR");
+    .map(([currencyCode, amount]) => money(String(amount), currencyCode, locale))
+    .join(" + ") || money("0", "EUR", locale);
   const ordersCountLabel = ordersPageInfo.hasNextPage ? `${orders.length}+` : String(orders.length);
 
   async function loadMoreOrders() {
@@ -111,15 +113,19 @@ export function ShopifyProfileShell({
         ok: boolean;
         nodes?: typeof orders;
         pageInfo?: typeof ordersPageInfo;
-        error?: string;
+        errorCode?: "requires_login" | "invalid_cursor" | "upstream_failed";
       };
       if (!response.ok || !payload.ok || !payload.nodes || !payload.pageInfo) {
-        throw new Error(payload.error || "Couldn't load more orders.");
+        // A stable errorCode (REV-23) drives the translated message, rather than
+        // this route's own English `error` text leaking onto a PT page.
+        throw new Error(
+          payload.errorCode === "requires_login" ? t("profile.orders.requiresLogin") : t("profile.orders.loadMoreFailed"),
+        );
       }
       setOrders((current) => [...current, ...payload.nodes!]);
       setOrdersPageInfo(payload.pageInfo);
     } catch (error) {
-      setLoadMoreOrdersError(error instanceof Error ? error.message : "Couldn't load more orders.");
+      setLoadMoreOrdersError(error instanceof Error ? error.message : t("profile.orders.loadMoreFailed"));
     } finally {
       setIsLoadingMoreOrders(false);
     }
@@ -170,7 +176,7 @@ export function ShopifyProfileShell({
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="label-caps mb-2 text-foreground/35">Customer account</p>
+              <p className="label-caps mb-2 text-foreground/35">{t("profile.customerAccount")}</p>
               <h1 className="truncate font-serif text-[clamp(1.8rem,4vw,3rem)]">
                 {customer.displayName}
               </h1>
@@ -181,14 +187,14 @@ export function ShopifyProfileShell({
                 type="submit"
                 className="label-caps border border-stroke px-5 py-3 transition-colors hover:border-couture-red hover:text-couture-red"
               >
-                Sign out
+                {t("profile.signOut")}
               </button>
             </form>
           </div>
         </section>
 
-        <nav aria-label="Account sections" className="mb-10 overflow-x-auto border-b border-stroke">
-          <div className="flex min-w-max" role="tablist" aria-label="Account sections">
+        <nav aria-label={t("profile.sectionsAriaLabel")} className="mb-10 overflow-x-auto border-b border-stroke">
+          <div className="flex min-w-max" role="tablist" aria-label={t("profile.sectionsAriaLabel")}>
             {tabs.map((tab) => (
               <Link
                 key={tab}
@@ -229,9 +235,9 @@ export function ShopifyProfileShell({
               <div className="space-y-10">
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
-                    ["Orders", ordersCountLabel],
-                    ["Total spent", totalSpentLabel],
-                    ["Member since", date(customer.creationDate)],
+                    [t("profile.overview.orders"), ordersCountLabel],
+                    [t("profile.overview.totalSpent"), totalSpentLabel],
+                    [t("profile.overview.memberSince"), date(customer.creationDate, locale)],
                   ].map(([label, value]) => (
                     <div key={label} className="border border-stroke p-6">
                       <p className="label-caps mb-3 text-foreground/35">{label}</p>
@@ -241,10 +247,10 @@ export function ShopifyProfileShell({
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Link href={tabHref("orders", locale)} className="label-caps bg-couture-red px-6 py-4 text-white">
-                    View orders
+                    {t("profile.overview.viewOrders")}
                   </Link>
                   <Link href={localePath(locale, "/cart")} className="label-caps border border-stroke px-6 py-4 hover:border-foreground/50">
-                    Current cart
+                    {t("profile.overview.currentCart")}
                   </Link>
                 </div>
               </div>
@@ -253,13 +259,13 @@ export function ShopifyProfileShell({
             {activeTab === "wishlist" ? (
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
-                  <h2 className="font-serif text-2xl">Saved products</h2>
-                  <span className="label-caps text-foreground/35">{wishlist.length} saved</span>
+                  <h2 className="font-serif text-2xl">{t("profile.wishlist.title")}</h2>
+                  <span className="label-caps text-foreground/35">{plural("profile.wishlist.saved", wishlist.length)}</span>
                 </div>
                 {wishlist.length === 0 ? (
                   <div className="border border-stroke p-8">
-                    <p className="font-serif text-xl">Nothing saved yet.</p>
-                    <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">Explore the shop →</Link>
+                    <p className="font-serif text-xl">{t("profile.wishlist.empty")}</p>
+                    <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">{t("profile.wishlist.exploreShop")}</Link>
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -268,7 +274,7 @@ export function ShopifyProfileShell({
                         <button
                           type="button"
                           onClick={() => removeFromWishlist(product.slug)}
-                          aria-label={`Remove ${product.title} from wishlist`}
+                          aria-label={t("profile.wishlist.removeAria", { title: product.title })}
                           className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center bg-background/85 text-foreground/60 transition-colors hover:text-couture-red"
                         >
                           <X className="size-4" aria-hidden="true" />
@@ -292,13 +298,13 @@ export function ShopifyProfileShell({
             {activeTab === "orders" ? (
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
-                  <h2 className="font-serif text-2xl">Order history</h2>
-                  <span className="label-caps text-foreground/35">{ordersCountLabel} orders</span>
+                  <h2 className="font-serif text-2xl">{t("profile.orders.title")}</h2>
+                  <span className="label-caps text-foreground/35">{ordersCountLabel} {t("profile.orders.countLabel")}</span>
                 </div>
                 {orders.length === 0 ? (
                   <div className="border border-stroke p-8">
-                    <p className="font-serif text-xl">No purchases yet.</p>
-                    <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">Explore the shop →</Link>
+                    <p className="font-serif text-xl">{t("profile.orders.empty")}</p>
+                    <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">{t("profile.wishlist.exploreShop")}</Link>
                   </div>
                 ) : (
                   orders.map((order) => (
@@ -306,11 +312,11 @@ export function ShopifyProfileShell({
                       <div className="flex flex-col gap-4 border-b border-stroke pb-5 md:flex-row md:items-center md:justify-between">
                         <div>
                           <p className="font-serif text-xl">{order.name}</p>
-                          <p className="mt-1 text-sm text-foreground/45">{date(order.processedAt)}</p>
+                          <p className="mt-1 text-sm text-foreground/45">{date(order.processedAt, locale)}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="label-caps text-foreground/45">{order.fulfillmentStatus.replaceAll("_", " ")}</span>
-                          <strong className="font-serif text-lg">{money(order.totalPrice.amount, order.totalPrice.currencyCode)}</strong>
+                          <strong className="font-serif text-lg">{money(order.totalPrice.amount, order.totalPrice.currencyCode, locale)}</strong>
                         </div>
                       </div>
                       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -321,14 +327,14 @@ export function ShopifyProfileShell({
                             </div>
                             <div className="min-w-0">
                               <p className="truncate text-sm">{item.name}</p>
-                              <p className="label-caps mt-1 text-foreground/35">Qty {item.quantity}</p>
+                              <p className="label-caps mt-1 text-foreground/35">{t("profile.orders.qty", { count: item.quantity })}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                       {order.lineItems.pageInfo.hasNextPage ? (
                         <p className="mt-3 text-sm text-foreground/45">
-                          Showing the first {order.lineItems.nodes.length} items — see order details for the full list.
+                          {t("profile.orders.itemsTruncated", { count: order.lineItems.nodes.length })}
                         </p>
                       ) : null}
                       {order.fulfillments.nodes.map((fulfillment, index) => {
@@ -344,20 +350,20 @@ export function ShopifyProfileShell({
                                 {[tracking.company, tracking.number].filter(Boolean).join(" · ")}
                                 {tracking.url ? (
                                   <a href={tracking.url} className="ml-2 text-couture-red underline-offset-4 hover:underline">
-                                    Track package →
+                                    {t("profile.orders.trackPackage")}
                                   </a>
                                 ) : null}
                               </p>
                             ) : null}
                             {fulfillment.estimatedDeliveryAt ? (
-                              <p className="mt-1">Estimated delivery: {date(fulfillment.estimatedDeliveryAt)}</p>
+                              <p className="mt-1">{t("profile.orders.estimatedDelivery", { date: date(fulfillment.estimatedDeliveryAt, locale) })}</p>
                             ) : null}
                           </div>
                         );
                       })}
                       {order.fulfillments.pageInfo.hasNextPage ? (
                         <p className="mt-3 text-sm text-foreground/45">
-                          More shipments than shown here — see order details for the full list.
+                          {t("profile.orders.shipmentsTruncated")}
                         </p>
                       ) : null}
                       <ReturnRequestPanel
@@ -366,11 +372,11 @@ export function ShopifyProfileShell({
                       />
                       {order.returnInformation.returnableLineItems.pageInfo.hasNextPage ? (
                         <p className="mt-2 text-sm text-foreground/45">
-                          Only the first {order.returnInformation.returnableLineItems.nodes.length} returnable items are listed above — see order details for the rest.
+                          {t("profile.orders.returnableTruncated", { count: order.returnInformation.returnableLineItems.nodes.length })}
                         </p>
                       ) : null}
                       <a href={order.statusPageUrl} className="label-caps mt-6 inline-block text-couture-red">
-                        Order details →
+                        {t("profile.orders.orderDetails")}
                       </a>
                     </article>
                   ))
@@ -383,7 +389,7 @@ export function ShopifyProfileShell({
                       disabled={isLoadingMoreOrders}
                       className="label-caps border border-stroke px-6 py-4 transition-colors hover:border-foreground/50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {isLoadingMoreOrders ? "Loading…" : "Load more orders"}
+                      {isLoadingMoreOrders ? t("profile.orders.loading") : t("profile.orders.loadMore")}
                     </button>
                     {loadMoreOrdersError ? (
                       <p role="alert" className="text-sm text-couture-red">{loadMoreOrdersError}</p>
@@ -396,18 +402,18 @@ export function ShopifyProfileShell({
             {activeTab === "addresses" ? (
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
-                  <h2 className="font-serif text-2xl">Saved addresses</h2>
+                  <h2 className="font-serif text-2xl">{t("profile.addresses.title")}</h2>
                   {customer.addresses.pageInfo.hasNextPage ? (
-                    <span className="label-caps text-foreground/35">Showing the first {customer.addresses.nodes.length}</span>
+                    <span className="label-caps text-foreground/35">{t("profile.addresses.showingFirst", { count: customer.addresses.nodes.length })}</span>
                   ) : null}
                 </div>
                 {customer.addresses.nodes.length === 0 ? (
-                  <div className="border border-stroke p-8 text-foreground/50">No saved addresses yet. An address can be added during checkout.</div>
+                  <div className="border border-stroke p-8 text-foreground/50">{t("profile.addresses.empty")}</div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
                     {customer.addresses.nodes.map((address) => (
                       <address key={address.id} className="not-italic border border-stroke p-6">
-                        {address.id === customer.defaultAddress?.id ? <p className="label-caps mb-4 text-couture-red">Default</p> : null}
+                        {address.id === customer.defaultAddress?.id ? <p className="label-caps mb-4 text-couture-red">{t("profile.addresses.default")}</p> : null}
                         {address.formatted.map((line) => <p key={line} className="leading-7 text-foreground/70">{line}</p>)}
                         {address.phoneNumber ? <p className="mt-3 text-sm text-foreground/45">{address.phoneNumber}</p> : null}
                       </address>
@@ -419,19 +425,17 @@ export function ShopifyProfileShell({
 
             {activeTab === "security" ? (
               <div className="max-w-3xl border border-stroke p-7 md:p-9">
-                <p className="label-caps mb-3 text-couture-red">Secure access</p>
-                <h2 className="font-serif text-2xl">Passwordless customer account</h2>
+                <p className="label-caps mb-3 text-couture-red">{t("profile.security.eyebrow")}</p>
+                <h2 className="font-serif text-2xl">{t("profile.security.title")}</h2>
                 <p className="mt-4 max-w-2xl leading-7 text-foreground/55">
-                  Sign-in codes are sent to your email and your account is managed entirely by Shopify.
-                  No customer password is created or stored by Synarava, and this sign-in is separate
-                  from any Google account in your browser.
+                  {t("profile.security.body")}
                 </p>
                 <p className="mt-3 max-w-2xl leading-7 text-foreground/55">
-                  {sessionExpiryLabel(sessionExpiresAt)}
+                  {sessionExpiryLabel(sessionExpiresAt, t)}
                 </p>
                 <form action="/api/auth/shopify/logout" method="get">
                   <button type="submit" className="label-caps mt-7 inline-block border border-stroke px-6 py-4 hover:border-couture-red hover:text-couture-red">
-                    Sign out on this device
+                    {t("profile.security.signOutDevice")}
                   </button>
                 </form>
               </div>

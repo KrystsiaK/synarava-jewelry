@@ -1,8 +1,31 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import en from "@/messages/en.json";
+import { flattenMessages } from "@/lib/i18n/utils";
+
+const enFlat = flattenMessages(en as Record<string, unknown>);
+function interpolate(message: string, values?: Record<string, string | number>) {
+  if (!values) return message;
+  return message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
+    Object.hasOwn(values, key) ? String(values[key]) : match
+  ));
+}
+
+// A real dictionary lookup (rather than a stub returning the key) so these
+// tests exercise the actual English copy a user sees, the same way the app's
+// TranslationProvider does — REV-23 moved this component's copy into i18n
+// keys, so a bare `t: (key) => key` mock would make every assertion below
+// meaningless.
 vi.mock("@/lib/i18n/context", () => ({
-  useTranslations: () => ({ locale: "en" }),
+  useTranslations: () => ({
+    locale: "en",
+    t: (key: string, values?: Record<string, string | number>) => interpolate(enFlat[key] ?? key, values),
+    plural: (key: string, count: number, values?: Record<string, string | number>) => {
+      const category = new Intl.PluralRules("en").select(count);
+      return interpolate(enFlat[`${key}.${category}`] ?? enFlat[`${key}.other`] ?? key, { ...values, count });
+    },
+  }),
 }));
 
 import { ShopifyProfileShell } from "../shopify-profile-shell";
