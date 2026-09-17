@@ -1,14 +1,12 @@
 const mocks = vi.hoisted(() => ({
   addShopifyProductToCart: vi.fn(),
   findFirst: vi.fn(),
-  findUnique: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
     product: {
       findFirst: mocks.findFirst,
-      findUnique: mocks.findUnique,
     },
   },
 }));
@@ -27,20 +25,19 @@ import { addStorefrontProductToCart } from "@/lib/commerce/storefront-cart";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.findFirst.mockResolvedValue({ shopifyHandle: "local-slug" });
 });
 
 describe("addStorefrontProductToCart", () => {
-  it("uses the Shopify identity saved during product sync", async () => {
-    mocks.findUnique.mockResolvedValue({
+  it("uses the Shopify identity saved during product sync when no merchandiseId is given", async () => {
+    mocks.findFirst.mockResolvedValue({
       shopifyHandle: "shopify-handle",
       variants: [{ shopifyVariantId: "gid://shopify/ProductVariant/123" }],
     });
 
     await addStorefrontProductToCart("local-slug", 1);
 
-    expect(mocks.findUnique).toHaveBeenCalledWith(expect.objectContaining({
-      where: { slug: "local-slug" },
+    expect(mocks.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ slug: "local-slug" }),
     }));
     expect(mocks.addShopifyProductToCart).toHaveBeenCalledWith(
       "shopify-handle",
@@ -49,19 +46,30 @@ describe("addStorefrontProductToCart", () => {
     );
   });
 
-  it("falls back to Storefront lookup for an unlinked product", async () => {
-    mocks.findUnique.mockResolvedValue(null);
+  it("refuses to add a product that isn't locally visible, even without a merchandiseId (REV-08)", async () => {
+    mocks.findFirst.mockResolvedValue(null);
 
-    await addStorefrontProductToCart("local-slug", 2);
+    await expect(addStorefrontProductToCart("hidden-slug", 2)).rejects.toThrow("Product not available.");
 
-    expect(mocks.addShopifyProductToCart).toHaveBeenCalledWith(
-      "local-slug",
-      2,
-      undefined,
-    );
+    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
   });
 
-  it("keeps an explicitly selected merchandise id", async () => {
+  it("refuses an explicit merchandiseId that isn't visible locally", async () => {
+    mocks.findFirst.mockResolvedValue(null);
+
+    await expect(
+      addStorefrontProductToCart("hidden-slug", 1, "gid://shopify/ProductVariant/selected"),
+    ).rejects.toThrow("Product not available.");
+
+    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
+  });
+
+  it("keeps an explicitly selected merchandise id and checks it against the same visibility policy", async () => {
+    mocks.findFirst.mockResolvedValue({
+      shopifyHandle: "local-slug",
+      variants: [],
+    });
+
     await addStorefrontProductToCart(
       "local-slug",
       1,

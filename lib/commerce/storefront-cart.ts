@@ -33,47 +33,37 @@ export async function addStorefrontProductToCart(
   quantity = 1,
   merchandiseId?: string,
 ) {
-  if (merchandiseId) {
-    const product = await db.product.findFirst({
-      where: {
-        slug: productSlug,
-        OR: [
-          { status: "ACTIVE", visibility: "PUBLIC" },
-          { status: "UNLISTED", visibility: "UNLISTED" },
-        ],
-        variants: {
-          some: { shopifyVariantId: merchandiseId, status: { in: ["ACTIVE", "UNLISTED"] } },
-        },
-      },
-      select: { shopifyHandle: true },
-    });
-    if (!product) throw new Error("Product not available.");
-    return addShopifyProductToCart(product.shopifyHandle || productSlug, quantity, merchandiseId);
-  }
-
-  const product = await db.product.findUnique({
-    where: { slug: productSlug },
+  // One visibility policy for every entry point (REV-08): the merchandiseId
+  // branch used to check local status/visibility while the handle-only branch
+  // didn't check anything, so a locally hidden/archived — or entirely local-only
+  // — slug could still add a still-published Shopify product via that branch.
+  const product = await db.product.findFirst({
+    where: {
+      slug: productSlug,
+      OR: [
+        { status: "ACTIVE", visibility: "PUBLIC" },
+        { status: "UNLISTED", visibility: "UNLISTED" },
+      ],
+      ...(merchandiseId
+        ? { variants: { some: { shopifyVariantId: merchandiseId, status: { in: ["ACTIVE", "UNLISTED"] } } } }
+        : {}),
+    },
     select: {
       shopifyHandle: true,
       variants: {
-        where: {
-          shopifyVariantId: { not: null },
-          status: { in: ["ACTIVE", "UNLISTED"] },
-        },
-        orderBy: [
-          { stockOnHand: "desc" },
-          { createdAt: "asc" },
-        ],
+        where: { shopifyVariantId: { not: null }, status: { in: ["ACTIVE", "UNLISTED"] } },
+        orderBy: [{ stockOnHand: "desc" }, { createdAt: "asc" }],
         take: 1,
         select: { shopifyVariantId: true },
       },
     },
   });
+  if (!product) throw new Error("Product not available.");
 
   return addShopifyProductToCart(
-    product?.shopifyHandle || productSlug,
+    product.shopifyHandle || productSlug,
     quantity,
-    product?.variants[0]?.shopifyVariantId ?? undefined,
+    merchandiseId ?? product.variants[0]?.shopifyVariantId ?? undefined,
   );
 }
 
