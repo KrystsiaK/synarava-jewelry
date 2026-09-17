@@ -32,9 +32,14 @@ vi.mock("../discovery", () => ({
   })),
 }));
 
-vi.mock("../tokens", () => ({
-  requestCustomerTokens: mocks.requestCustomerTokens,
-}));
+vi.mock("../tokens", async () => {
+  const actual = await vi.importActual<typeof import("../tokens")>("../tokens");
+  return {
+    ShopifyCustomerTokenError: actual.ShopifyCustomerTokenError,
+    isTerminalCustomerTokenError: actual.isTerminalCustomerTokenError,
+    requestCustomerTokens: mocks.requestCustomerTokens,
+  };
+});
 
 vi.mock("../session-store", () => ({
   findStoredCustomerSession: mocks.findStoredCustomerSession,
@@ -44,6 +49,7 @@ vi.mock("../session-store", () => ({
 }));
 
 import { getShopifyCustomerSession } from "../session";
+import { ShopifyCustomerTokenError } from "../tokens";
 
 const SESSION_ID = "session-1";
 const NOW = Date.parse("2026-09-15T12:00:00.000Z");
@@ -146,14 +152,62 @@ describe("getShopifyCustomerSession", () => {
     expect(mocks.deleteStoredCustomerSession).toHaveBeenCalledWith(SESSION_ID);
   });
 
-  it("deletes the session when a refresh attempt fails", async () => {
+  it("deletes the session when Shopify rejects the refresh token itself (REV-17)", async () => {
     const session = baseSession({ accessTokenExpiresAt: new Date(NOW + 10_000) });
-    mocks.findStoredCustomerSession.mockResolvedValue(session);
-    mocks.requestCustomerTokens.mockRejectedValue(new Error("refresh failed"));
+    mocks.findStoredCustomerSession
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(session); // re-read inside recoverFromFailedRefresh sees the same row
+    mocks.requestCustomerTokens.mockRejectedValue(new ShopifyCustomerTokenError("invalid_grant", 400));
 
     const result = await getShopifyCustomerSession();
 
     expect(result).toBeNull();
     expect(mocks.deleteStoredCustomerSession).toHaveBeenCalledWith(SESSION_ID);
+  });
+
+  it("keeps the session and serves the still-valid access token through a transient refresh failure (REV-17)", async () => {
+    const session = baseSession({ accessTokenExpiresAt: new Date(NOW + 10_000) });
+    mocks.findStoredCustomerSession
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(session);
+    mocks.requestCustomerTokens.mockRejectedValue(new Error("fetch failed"));
+
+    const result = await getShopifyCustomerSession();
+
+    expect(result?.accessToken).toBe("decrypted:enc-access");
+    expect(mocks.deleteStoredCustomerSession).not.toHaveBeenCalled();
+  });
+
+  it("returns null for this request without deleting the session when a transient failure hits an already-expired token", async () => {
+    const session = baseSession({ accessTokenExpiresAt: new Date(NOW - 1_000) });
+    mocks.findStoredCustomerSession
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(session);
+    mocks.requestCustomerTokens.mockRejectedValue(new ShopifyCustomerTokenError("Shopify token request failed (503).", 503));
+
+    const result = await getShopifyCustomerSession();
+
+    expect(result).toBeNull();
+    expect(mocks.deleteStoredCustomerSession).not.toHaveBeenCalled();
+  });
+
+  it("picks up a concurrent request's successful refresh instead of deleting or re-writing over it", async () => {
+    const startingSession = baseSession({ accessTokenExpiresAt: new Date(NOW + 10_000) });
+    const refreshedByOtherRequest = baseSession({
+      accessToken: "enc-access-from-other-request",
+      idToken: "enc-id-from-other-request",
+      accessTokenExpiresAt: new Date(NOW + 3600_000),
+      updatedAt: new Date(NOW), // newer than startingSession.updatedAt
+    });
+    mocks.findStoredCustomerSession
+      .mockResolvedValueOnce(startingSession)
+      .mockResolvedValueOnce(refreshedByOtherRequest);
+    mocks.requestCustomerTokens.mockRejectedValue(new ShopifyCustomerTokenError("invalid_grant", 400));
+
+    const result = await getShopifyCustomerSession();
+
+    expect(result?.accessToken).toBe("decrypted:enc-access-from-other-request");
+    expect(mocks.deleteStoredCustomerSession).not.toHaveBeenCalled();
+    expect(mocks.updateStoredCustomerSessionTokens).not.toHaveBeenCalled();
   });
 });

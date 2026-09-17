@@ -93,7 +93,7 @@
   - GET и POST вызывают тяжёлый CUSTOMER_PROFILE_QUERY ради customer.id, включая историю, адреса, fulfillments и returns. POST проверяет rate limit только после этого внешнего запроса; GET не ограничен.
   - Исправить: отдельный минимальный identity query/проверенная session projection, ограничение запросов до дорогого вызова. Проверка: toggle не запрашивает orders/addresses и не зависит от их доступности.
 
-- [ ] **REV-17. Временный сбой refresh уничтожает действующую customer session.**
+- [x] **REV-17. Временный сбой refresh уничтожает действующую customer session.**
   - Код: `lib/shopify/customer-account/session.ts:40`, `lib/shopify/customer-account/session.ts:72`.
   - Любая ошибка discovery, сети, token endpoint или записи новых токенов приводит к deleteStoredCustomerSession. Пользователь разлогинивается при временном 5xx. React cache дедуплицирует только один render, а межзапросной координации refresh нет.
   - Исправить: различать окончательный отказ refresh и временную ошибку; координировать ротацию по session ID и повторно читать обновлённую запись после конфликта.

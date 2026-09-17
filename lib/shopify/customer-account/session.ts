@@ -10,7 +10,7 @@ import {
 } from "./config";
 import { decryptCustomerSecret, encryptCustomerSecret } from "./crypto";
 import { getCustomerAuthorizationDiscovery } from "./discovery";
-import { requestCustomerTokens } from "./tokens";
+import { isTerminalCustomerTokenError, requestCustomerTokens } from "./tokens";
 import {
   deleteStoredCustomerSession,
   findStoredCustomerSession,
@@ -69,8 +69,49 @@ async function refreshCustomerSession(
       idToken,
       sessionExpiresAt: session.sessionExpiresAt,
     };
+  } catch (error) {
+    return recoverFromFailedRefresh(session, error);
+  }
+}
+
+/**
+ * A failed refresh isn't necessarily proof the session is dead: a concurrent
+ * request may have already refreshed successfully — re-reading picks that up
+ * instead of deleting a session out from under a fresher write — or the
+ * failure may be a passing Shopify/network outage rather than a rejected
+ * refresh token. Only deletes the session when the stored row is still
+ * exactly what we started with AND the failure was a genuine rejection of the
+ * refresh grant (REV-17).
+ */
+async function recoverFromFailedRefresh(
+  session: StoredShopifyCustomerSession,
+  error: unknown,
+): Promise<ActiveShopifyCustomerSession | null> {
+  const current = await findStoredCustomerSession(session.id);
+  if (!current) return null;
+
+  const refreshedConcurrently = current.updatedAt.getTime() !== session.updatedAt.getTime();
+  const row = refreshedConcurrently ? current : session;
+
+  if (!refreshedConcurrently) {
+    if (isTerminalCustomerTokenError(error)) {
+      await deleteStoredCustomerSession(session.id).catch(() => undefined);
+      return null;
+    }
+    // Transient failure, nothing changed underneath us: keep the stored
+    // session for a later request to retry, but only serve this request if
+    // the still-stored access token hasn't actually expired yet.
+    if (row.accessTokenExpiresAt.getTime() <= Date.now()) return null;
+  }
+
+  try {
+    return {
+      accessToken: decryptCustomerSecret(row.accessToken),
+      id: row.id,
+      idToken: decryptCustomerSecret(row.idToken),
+      sessionExpiresAt: row.sessionExpiresAt,
+    };
   } catch {
-    await deleteStoredCustomerSession(session.id).catch(() => undefined);
     return null;
   }
 }
