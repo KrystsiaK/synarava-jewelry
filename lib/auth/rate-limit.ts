@@ -37,6 +37,38 @@ function checkFallbackRateLimit(
   return { ok: true };
 }
 
+// A read-then-write inside a (default READ COMMITTED) transaction doesn't
+// serialize two concurrent requests: both can read the same pre-increment
+// count and both decide "ok", letting the true count exceed `max` (REV-18).
+// This is one atomic INSERT .. ON CONFLICT .. DO UPDATE statement instead —
+// Postgres row-locks the conflicting row for the duration of the statement,
+// so concurrent callers are serialized by the database itself. The WHERE
+// clause on the DO UPDATE both decides whether this call is allowed (an
+// expired bucket resets to 1; a live one increments only while under `max`)
+// and, via RETURNING, reports back whether it actually happened — a skipped
+// update (already at cap) returns zero rows.
+async function atomicCheckAndIncrement(key: string, now: number, opts: { max: number; windowMs: number }) {
+  const resetAt = new Date(now + opts.windowMs);
+  const nowDate = new Date(now);
+  const rows = await db.$queryRaw<Array<{ resetAt: Date }>>`
+    INSERT INTO "RateLimitBucket" ("keyHash", "count", "resetAt", "updatedAt")
+    VALUES (${key}, 1, ${resetAt}, NOW())
+    ON CONFLICT ("keyHash") DO UPDATE
+    SET
+      "count" = CASE WHEN "RateLimitBucket"."resetAt" <= ${nowDate} THEN 1 ELSE "RateLimitBucket"."count" + 1 END,
+      "resetAt" = CASE WHEN "RateLimitBucket"."resetAt" <= ${nowDate} THEN ${resetAt} ELSE "RateLimitBucket"."resetAt" END,
+      "updatedAt" = NOW()
+    WHERE "RateLimitBucket"."resetAt" <= ${nowDate} OR "RateLimitBucket"."count" < ${opts.max}
+    RETURNING "resetAt"
+  `;
+  if (rows.length > 0) return { limited: false as const };
+
+  // Skipped: the bucket exists, hasn't expired, and is already at cap.
+  const existing = await db.rateLimitBucket.findUnique({ where: { keyHash: key } });
+  const retryAfterSeconds = Math.max(1, Math.ceil(((existing?.resetAt.getTime() ?? resetAt.getTime()) - now) / 1000));
+  return { limited: true as const, retryAfterSeconds };
+}
+
 export async function checkRateLimit(
   action: string,
   identifier: string,
@@ -49,27 +81,9 @@ export async function checkRateLimit(
       lastDatabaseCleanupAt = now;
       await db.rateLimitBucket.deleteMany({ where: { resetAt: { lte: new Date(now) } } });
     }
-    const result = await db.$transaction(async (tx) => {
-      const existing = await tx.rateLimitBucket.findUnique({ where: { keyHash: key } });
-      if (!existing || existing.resetAt.getTime() <= now) {
-        const bucket = await tx.rateLimitBucket.upsert({
-          where: { keyHash: key },
-          create: { keyHash: key, count: 1, resetAt: new Date(now + opts.windowMs) },
-          update: { count: 1, resetAt: new Date(now + opts.windowMs) },
-        });
-        return { bucket, limited: false };
-      }
-      if (existing.count >= opts.max) return { bucket: existing, limited: true };
-      const bucket = await tx.rateLimitBucket.update({
-        where: { keyHash: key },
-        data: { count: { increment: 1 } },
-      });
-      return { bucket, limited: false };
-    });
-
+    const result = await atomicCheckAndIncrement(key, now, opts);
     if (result.limited) {
-      const retryAfterSeconds = Math.max(1, Math.ceil((result.bucket.resetAt.getTime() - now) / 1000));
-      return { ok: false, error: `Too many attempts. Try again in ${retryAfterSeconds}s.`, retryAfterSeconds };
+      return { ok: false, error: `Too many attempts. Try again in ${result.retryAfterSeconds}s.`, retryAfterSeconds: result.retryAfterSeconds };
     }
     return { ok: true };
   } catch {
