@@ -87,6 +87,38 @@ describe("ProductPurchasePanel", () => {
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
 
+  it("shows only the selected variant's own discount, not a sibling variant's compare-at (REV-06)", () => {
+    const discountedFirstVariant = {
+      ...product,
+      price: "€100.00",
+      priceAmount: 100,
+      compareAtPrice: "€200.00",
+      compareAtAmount: 200,
+      variantDetails: [
+        {
+          ...product.variantDetails[0],
+          price: "€100.00",
+          priceAmount: 100,
+          compareAtPrice: "€200.00",
+          compareAtAmount: 200,
+        },
+        {
+          ...product.variantDetails[1],
+          price: "€100.00",
+          priceAmount: 100,
+          compareAtPrice: "",
+          compareAtAmount: null,
+        },
+      ],
+    } as ProductSummary;
+
+    render(<ProductPurchasePanel product={discountedFirstVariant} />);
+    fireEvent.click(screen.getByRole("button", { name: "Large" }));
+
+    expect(screen.queryByText("€200.00")).not.toBeInTheDocument();
+    expect(screen.queryByText("−50%")).not.toBeInTheDocument();
+  });
+
   it("moves to an available combination instead of trapping multi-option selection", () => {
     const multiOptionProduct = {
       ...product,

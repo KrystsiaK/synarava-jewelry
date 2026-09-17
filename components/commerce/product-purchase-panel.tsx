@@ -52,11 +52,14 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
       variant.selectedOptions.every((option) => selection[option.name] === option.value),
     ) ?? (product.options.length === 0 ? initialVariant : undefined);
   const isAvailable = Boolean(selectedVariant?.merchandiseId && selectedVariant.available);
-  const price = selectedVariant?.price || product.price;
-  const compareAtPrice = selectedVariant?.compareAtPrice || product.compareAtPrice;
+  // A selected variant's own price/compare-at is authoritative, including when it
+  // has none — falling back to product.compareAtPrice (the first variant's) here
+  // used to show a different variant's discount on the selected one (REV-06).
+  const price = selectedVariant ? selectedVariant.price : product.price;
+  const compareAtPrice = selectedVariant ? selectedVariant.compareAtPrice : product.compareAtPrice;
   const discount = discountPercent(
-    selectedVariant?.priceAmount ?? product.priceAmount,
-    selectedVariant?.compareAtAmount ?? product.compareAtAmount,
+    selectedVariant ? selectedVariant.priceAmount : product.priceAmount,
+    selectedVariant ? selectedVariant.compareAtAmount : product.compareAtAmount,
   );
 
   function chooseOption(name: string, value: string) {
