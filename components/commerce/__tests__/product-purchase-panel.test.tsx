@@ -24,6 +24,7 @@ const product = {
       price: "€30.00",
       compareAtPrice: "",
       stockOnHand: 2,
+      available: true,
       weightGrams: null,
       selectedOptions: [{ name: "Size", value: "Small" }],
     },
@@ -35,6 +36,7 @@ const product = {
       price: "€34.00",
       compareAtPrice: "",
       stockOnHand: 1,
+      available: true,
       weightGrams: null,
       selectedOptions: [{ name: "Size", value: "Large" }],
     },
@@ -66,7 +68,7 @@ describe("ProductPurchasePanel", () => {
     const unavailable = {
       ...product,
       variantDetails: product.variantDetails.map((variant) =>
-        variant.title === "Large" ? { ...variant, stockOnHand: 0 } : variant,
+        variant.title === "Large" ? { ...variant, stockOnHand: 0, available: false } : variant,
       ),
     };
     render(<ProductPurchasePanel product={unavailable} />);
@@ -76,7 +78,7 @@ describe("ProductPurchasePanel", () => {
   it("blocks purchase when every variant is out of stock", () => {
     const unavailable = {
       ...product,
-      variantDetails: product.variantDetails.map((variant) => ({ ...variant, stockOnHand: 0 })),
+      variantDetails: product.variantDetails.map((variant) => ({ ...variant, stockOnHand: 0, available: false })),
     };
 
     render(<ProductPurchasePanel product={unavailable} />);

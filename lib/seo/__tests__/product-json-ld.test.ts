@@ -18,6 +18,7 @@ describe("product JSON-LD", () => {
       priceAmount: 129.5,
       currency: "EUR",
       stockOnHand: 2,
+      inStock: true,
     } as ProductSummary;
 
     expect(buildProductJsonLd(product, "https://synarava.com/")).toMatchObject({
@@ -47,6 +48,7 @@ describe("product JSON-LD", () => {
       priceAmount: 129.5,
       currency: "EUR",
       stockOnHand: 2,
+      inStock: true,
     } as ProductSummary;
 
     expect(buildProductJsonLd(product, "https://synarava.com", {
@@ -72,6 +74,28 @@ describe("product JSON-LD", () => {
         reviewRating: { "@type": "Rating", ratingValue: 5, bestRating: 5, worstRating: 1 },
         author: { "@type": "Person", name: "Ana" },
       }],
+    });
+  });
+
+  it("reports OutOfStock for a product with no purchasable variant, even with stale stockOnHand", () => {
+    const product = {
+      slug: "silver-ring",
+      sku: "RING-01",
+      title: "Silver Ring",
+      shortDescription: "A handmade silver ring.",
+      description: "",
+      image: "",
+      commerceMedia: [],
+      vendor: "Synarava",
+      categoryName: "Rings",
+      priceAmount: 129.5,
+      currency: "EUR",
+      stockOnHand: 2,
+      inStock: false,
+    } as ProductSummary;
+
+    expect(buildProductJsonLd(product, "https://synarava.com")).toMatchObject({
+      offers: { availability: "https://schema.org/OutOfStock" },
     });
   });
 });

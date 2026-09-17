@@ -19,6 +19,7 @@ import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
 import { combineProductGallery } from "@/lib/media/product-gallery";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
+import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
 import {
   resolveProductCopy,
   type ProductTranslationRecord,
@@ -78,6 +79,7 @@ export type ProductSummary = {
     compareAtPrice: string;
     compareAtAmount: number | null;
     stockOnHand: number;
+    available: boolean;
     weightGrams: number | null;
     selectedOptions: Array<{ name: string; value: string }>;
   }>;
@@ -274,6 +276,8 @@ function toSummary(product: {
     sku: string;
     barcode: string | null;
     stockOnHand: number;
+    inventoryPolicy: string;
+    tracked: boolean;
     priceCents: number;
     compareAtCents: number | null;
     weightGrams: { toString(): string } | null;
@@ -305,7 +309,7 @@ function toSummary(product: {
   // pull's by-SKU matching, not as a display source of truth.
   const primaryVariant = product.variants[0];
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
-  const inStock = product.variants.some((variant) => variant.status === "ACTIVE" && variant.stockOnHand > 0);
+  const inStock = product.variants.some((variant) => isVariantPurchasable(variant));
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   const projection = shopifyProjection(product.shopifySnapshot);
@@ -374,6 +378,7 @@ function toSummary(product: {
         compareAtPrice: variant.compareAtCents == null ? "" : priceFromCents(variant.compareAtCents, product.currency, locale),
         compareAtAmount: variant.compareAtCents == null ? null : variant.compareAtCents / 100,
         stockOnHand: variant.stockOnHand,
+        available: isVariantPurchasable(variant),
         weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
         selectedOptions,
       };
@@ -561,7 +566,14 @@ export async function listShopProducts(filters: ShopFilters = {}) {
       visibility: "PUBLIC",
       ...(filters.category ? { shopifyCategoryId: filters.category } : {}),
       ...(filters.availability === "in-stock"
-        ? { variants: { some: { status: "ACTIVE", stockOnHand: { gt: 0 } } } }
+        ? {
+            variants: {
+              some: {
+                status: "ACTIVE",
+                OR: [{ stockOnHand: { gt: 0 } }, { inventoryPolicy: "CONTINUE" }, { tracked: false }],
+              },
+            },
+          }
         : {}),
       ...(filters.tag
         ? {

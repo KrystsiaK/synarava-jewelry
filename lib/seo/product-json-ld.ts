@@ -52,7 +52,7 @@ export function buildProductJsonLd(
       url: productUrl,
       priceCurrency: product.currency,
       price: product.priceAmount.toFixed(2),
-      availability: product.stockOnHand > 0
+      availability: product.inStock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",

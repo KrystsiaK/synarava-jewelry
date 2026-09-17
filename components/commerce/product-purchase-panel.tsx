@@ -42,7 +42,7 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
     [product.variantDetails],
   );
   const initialVariant =
-    purchasableVariants.find((variant) => variant.stockOnHand > 0) ?? purchasableVariants[0];
+    purchasableVariants.find((variant) => variant.available) ?? purchasableVariants[0];
   const [selection, setSelection] = useState<Record<string, string>>(() =>
     initialVariant ? selectionForVariant(initialVariant) : {},
   );
@@ -51,7 +51,7 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
     purchasableVariants.find((variant) =>
       variant.selectedOptions.every((option) => selection[option.name] === option.value),
     ) ?? (product.options.length === 0 ? initialVariant : undefined);
-  const isAvailable = Boolean(selectedVariant?.merchandiseId && selectedVariant.stockOnHand > 0);
+  const isAvailable = Boolean(selectedVariant?.merchandiseId && selectedVariant.available);
   const price = selectedVariant?.price || product.price;
   const compareAtPrice = selectedVariant?.compareAtPrice || product.compareAtPrice;
   const discount = discountPercent(
@@ -63,10 +63,10 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
     setSelection((current) => {
       const requestedSelection = { ...current, [name]: value };
       const exactVariant = purchasableVariants.find(
-        (variant) => variant.stockOnHand > 0 && matchesSelection(variant, requestedSelection),
+        (variant) => variant.available && matchesSelection(variant, requestedSelection),
       );
       const availableVariant = exactVariant ?? purchasableVariants.find(
-        (variant) => variant.stockOnHand > 0 && variant.selectedOptions.some(
+        (variant) => variant.available && variant.selectedOptions.some(
           (option) => option.name === name && option.value === value,
         ),
       );
@@ -110,7 +110,7 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
             <div className="flex flex-wrap gap-2">
               {option.values.map((value) => {
                 const compatible = purchasableVariants.some(
-                  (variant) => variant.stockOnHand > 0 && variant.selectedOptions.some(
+                  (variant) => variant.available && variant.selectedOptions.some(
                     (selectedOption) => selectedOption.name === option.name && selectedOption.value === value,
                   ),
                 );
