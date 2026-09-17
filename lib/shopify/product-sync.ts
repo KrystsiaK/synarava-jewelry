@@ -1,6 +1,6 @@
 import "server-only";
 
-import { fetchInventoryLevels, type ShopifyInventoryLevel } from "@/lib/shopify/inventory-levels";
+import { fetchInventoryLevels, selectStockOnHand, type ShopifyInventoryLevel } from "@/lib/shopify/inventory-levels";
 
 import { createHash, randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -855,6 +855,10 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   const pulledVariantIds: string[] = [];
   for (const variant of remote.variants.nodes) {
     const sku = variant.sku?.trim() || `${remoteSku}-${variant.id.split("/").pop()}`;
+    // Same Shopify-compatible stock contract as the inventory_levels/update webhook
+    // (REV-05) — otherwise a multi-location product's stock flips depending on
+    // whether it was last touched by a full pull or the webhook.
+    const stockOnHand = selectStockOnHand(variant.inventoryItem?.inventoryLevels ?? [], env.SHOPIFY_LOCATION_ID);
     const byRemoteId = await db.productVariant.findUnique({ where: { shopifyVariantId: variant.id } });
     const pulledVariant = await db.productVariant.upsert({
       where: byRemoteId ? { id: byRemoteId.id } : { sku },
@@ -865,7 +869,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         title: variant.title,
         priceCents: shopifyAmountToCents(variant.price),
         compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
-        stockOnHand: variant.inventoryQuantity ?? 0,
+        stockOnHand,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,
         taxable: variant.taxable,
@@ -883,7 +887,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         title: variant.title,
         priceCents: shopifyAmountToCents(variant.price),
         compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
-        stockOnHand: variant.inventoryQuantity ?? 0,
+        stockOnHand,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,
         taxable: variant.taxable,
@@ -1116,12 +1120,7 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
     { id: inventoryItemId },
   );
   if (!data.inventoryItem) throw new ShopifyAdminError(`Inventory item ${inventoryItemId} was not found.`);
-  const configuredLocation = env.SHOPIFY_LOCATION_ID;
-  const levels = data.inventoryItem.inventoryLevels.nodes;
-  const selectedLevel = configuredLocation
-    ? levels.find((level) => level.location.id === configuredLocation)
-    : levels[0];
-  const stockOnHand = selectedLevel?.quantities.find((item) => item.name === "available")?.quantity ?? 0;
+  const stockOnHand = selectStockOnHand(data.inventoryItem.inventoryLevels.nodes, env.SHOPIFY_LOCATION_ID);
   const variant = await db.productVariant.findUnique({ where: { shopifyInventoryItemId: inventoryItemId } });
   if (!variant) {
     if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { status: "IGNORED", completedAt: new Date() } });

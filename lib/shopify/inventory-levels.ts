@@ -9,6 +9,20 @@ export type ShopifyInventoryLevel = {
   quantities: Array<{ name: string; quantity: number }>;
 };
 
+/**
+ * The one Shopify-compatible stock contract: available quantity at the
+ * configured location, or the first reported location when none is
+ * configured. Used identically by the full product pull and the
+ * inventory_levels/update webhook so a multi-location product doesn't
+ * report a different stock depending on which sync path touched it last.
+ */
+export function selectStockOnHand(levels: ShopifyInventoryLevel[], configuredLocationId?: string | null): number {
+  const selectedLevel = configuredLocationId
+    ? levels.find((level) => level.location.id === configuredLocationId)
+    : levels[0];
+  return selectedLevel?.quantities.find((item) => item.name === "available")?.quantity ?? 0;
+}
+
 export async function fetchInventoryLevels(inventoryItemId: string): Promise<ShopifyInventoryLevel[]> {
   const levels: ShopifyInventoryLevel[] = [];
   let after: string | null = null;
