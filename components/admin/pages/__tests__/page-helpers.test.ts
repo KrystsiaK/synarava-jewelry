@@ -37,7 +37,6 @@ describe("isProtectedPage", () => {
     expect(isProtectedPage("home")).toBe(true);
     expect(isProtectedPage("about")).toBe(true);
     expect(isProtectedPage("manifesto")).toBe(true);
-    expect(isProtectedPage("journal")).toBe(true);
     expect(isProtectedPage("privacy")).toBe(true);
   });
 

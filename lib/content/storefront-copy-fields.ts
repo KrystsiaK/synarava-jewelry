@@ -23,7 +23,6 @@ const NAV_GROUP: StorefrontCopyGroup = {
     { key: "nav.home", label: "Home" },
     { key: "nav.shop", label: "Shop" },
     { key: "nav.collections", label: "Collections" },
-    { key: "nav.journal", label: "Journal" },
     { key: "nav.about", label: "About" },
   ],
 };

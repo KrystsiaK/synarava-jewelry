@@ -67,11 +67,11 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
           <span className="adm-label">Title</span>
-          <input name="title" placeholder="Journal" className="adm-field" />
+          <input name="title" placeholder="Lookbook" className="adm-field" />
         </label>
         <label className="grid gap-2">
           <span className="adm-label">Slug</span>
-          <input name="slug" placeholder="journal" className="adm-field" />
+          <input name="slug" placeholder="lookbook" className="adm-field" />
         </label>
         <label className="grid gap-2">
           <span className="adm-label">Eyebrow</span>

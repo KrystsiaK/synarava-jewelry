@@ -3,7 +3,6 @@ export const BUILT_IN_PAGE_DEFINITIONS = [
   { slug: "about", title: "About", template: "STATIC_PAGE" },
   { slug: "shop", title: "Shop", template: "STATIC_PAGE" },
   { slug: "collections", title: "Collections", template: "COLLECTION_INDEX" },
-  { slug: "journal", title: "Journal", template: "STATIC_PAGE" },
   { slug: "care", title: "Care Guide", template: "STATIC_PAGE" },
   { slug: "shipping", title: "Shipping", template: "STATIC_PAGE" },
   { slug: "returns", title: "Returns", template: "STATIC_PAGE" },

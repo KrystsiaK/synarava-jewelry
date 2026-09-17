@@ -21,10 +21,9 @@ type SiteHeaderProps = {
   initialCartCount: number;
   isLoggedIn?: boolean;
   departments?: Array<{ slug: string; name: string }>;
-  journalVisible?: boolean;
 };
 
-export function SiteHeader({ initialCartCount, isLoggedIn = false, departments = [], journalVisible = false }: SiteHeaderProps) {
+export function SiteHeader({ initialCartCount, isLoggedIn = false, departments = [] }: SiteHeaderProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname.replace(/^\/(en|pt)(?=\/|$)/, "") || "/";
   const { resolvedTheme } = useTheme();
@@ -49,7 +48,6 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
     { href: "/", label: t("nav.home"), match: "/" },
     { href: "/shop", label: t("nav.shop"), match: "/shop" },
     { href: "/collections", label: t("nav.collections"), match: "/collections" },
-    ...(journalVisible ? [{ href: "/journal", label: t("nav.journal"), match: "/journal" }] : []),
     { href: "/about", label: t("nav.about"), match: "/about" },
   ];
 

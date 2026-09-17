@@ -9,7 +9,6 @@ describe("built-in page definitions", () => {
       "about",
       "shop",
       "collections",
-      "journal",
       "care",
       "shipping",
       "returns",
