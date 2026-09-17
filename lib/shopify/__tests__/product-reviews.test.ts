@@ -1,17 +1,24 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const shopifyAdminRequestMock = vi.hoisted(() => vi.fn());
+const revalidateTagMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../admin", async () => {
   const actual = await vi.importActual<typeof import("../admin")>("../admin");
   return { ...actual, shopifyAdminRequest: shopifyAdminRequestMock };
 });
 
+vi.mock("next/cache", () => ({
+  revalidateTag: revalidateTagMock,
+  unstable_cache: (fn: unknown) => fn,
+}));
+
 import {
   buildProductReviewInput,
   ensureProductReviewWebhookSubscriptions,
   parseProductReviewMetaobject,
   productReviewAggregate,
+  refreshShopifyProductReviewAggregates,
 } from "../product-reviews";
 
 describe("Shopify standard product reviews", () => {
@@ -122,5 +129,39 @@ describe("Shopify standard product reviews", () => {
       { topic: "METAOBJECTS_UPDATE", subscription: { uri: "https://synarava.com/api/shopify/webhooks/reviews", format: "JSON", filter: "type:product_review" } },
       { topic: "METAOBJECTS_DELETE", subscription: { uri: "https://synarava.com/api/shopify/webhooks/reviews", format: "JSON", filter: "type:product_review" } },
     ]);
+  });
+
+  describe("refreshShopifyProductReviewAggregates sweep (REV-19)", () => {
+    beforeEach(() => shopifyAdminRequestMock.mockReset());
+
+    it("resets a product's stale aggregate to zero once its last review is deleted, even without a product reference from the webhook", async () => {
+      shopifyAdminRequestMock
+        // fetchProductReviewMetaobjects: no reviews left anywhere relevant
+        .mockResolvedValueOnce({ metaobjects: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } })
+        // fetchProductIdsWithStoredReviewAggregate: this product still shows a stale nonzero rating_count
+        .mockResolvedValueOnce({ products: { nodes: [{ id: "gid://shopify/Product/10" }], pageInfo: { hasNextPage: false, endCursor: null } } })
+        // setProductReviewAggregates
+        .mockResolvedValueOnce({ metafieldsSet: { userErrors: [] } });
+
+      const result = await refreshShopifyProductReviewAggregates();
+
+      expect(result).toEqual([{
+        productId: "gid://shopify/Product/10",
+        aggregate: expect.objectContaining({ count: 0, average: 0 }),
+      }]);
+      expect(revalidateTagMock).toHaveBeenCalled();
+    });
+
+    it("still invalidates the cache when nothing needs to change", async () => {
+      shopifyAdminRequestMock
+        .mockResolvedValueOnce({ metaobjects: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } })
+        .mockResolvedValueOnce({ products: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } });
+
+      const result = await refreshShopifyProductReviewAggregates();
+
+      expect(result).toEqual([]);
+      expect(revalidateTagMock).toHaveBeenCalled();
+      expect(shopifyAdminRequestMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

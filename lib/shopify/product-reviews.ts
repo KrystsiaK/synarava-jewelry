@@ -314,19 +314,52 @@ async function setProductReviewAggregates(
   }
 }
 
+/**
+ * Products still carrying a nonzero `reviews.rating_count` metafield from a
+ * previous aggregate. Shopify's `metaobjects/delete` webhook carries no
+ * product reference, so a product whose *last* review was just deleted won't
+ * appear in a fresh metaobjects fetch at all — this is how the shop-wide
+ * sweep (REV-19) finds it anyway and resets it to zero instead of leaving a
+ * stale rating displayed forever.
+ */
+async function fetchProductIdsWithStoredReviewAggregate(): Promise<string[]> {
+  const productIds: string[] = [];
+  let after: string | null = null;
+  do {
+    type ProductPage = {
+      products: { nodes: Array<{ id: string }>; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
+    };
+    const data: ProductPage = await shopifyAdminRequest<ProductPage>(
+      `query SynaravaProductsWithReviewAggregate($after: String) {
+        products(first: 250, after: $after, query: "metafields.reviews.rating_count:>0") {
+          nodes { id }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      { after },
+    );
+    productIds.push(...data.products.nodes.map((node) => node.id));
+    after = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;
+  } while (after);
+  return productIds;
+}
+
 export async function refreshShopifyProductReviewAggregates(productIds?: string[]) {
   const metaobjects = await fetchProductReviewMetaobjects();
-  // ponytail: when productIds is omitted (Shopify's metaobjects/delete payload carries no
-  // product reference), we only refresh products that still have a review. A product whose
-  // last review was just deleted keeps its stale rating metafield until its next review event
-  // or a full Reconcile — add a periodic sweep if that staleness becomes a real complaint.
+  const staleAggregateProductIds = productIds ? [] : await fetchProductIdsWithStoredReviewAggregate();
   const uniqueProductIds = productIds
     ? [...new Set(productIds)]
-    : [...new Set(metaobjects.flatMap((metaobject) => (
-        metaobject.capabilities.publishable?.status === "ACTIVE" && metaobject.product?.value
-          ? [metaobject.product.value]
-          : []
-      )))];
+    : [...new Set([
+        ...metaobjects.flatMap((metaobject) => (
+          metaobject.capabilities.publishable?.status === "ACTIVE" && metaobject.product?.value
+            ? [metaobject.product.value]
+            : []
+        )),
+        ...staleAggregateProductIds,
+      ])];
+  // Always invalidate: even a shop with zero reviews left must stop serving a
+  // cached stale review list (REV-19) rather than skipping this on an early return.
+  invalidateProductReviewCache();
   if (!uniqueProductIds.length) return [];
   const aggregates = uniqueProductIds.map((productId) => ({
     productId,
@@ -336,7 +369,6 @@ export async function refreshShopifyProductReviewAggregates(productIds?: string[
     })),
   }));
   await setProductReviewAggregates(aggregates);
-  invalidateProductReviewCache();
   return aggregates;
 }
 
