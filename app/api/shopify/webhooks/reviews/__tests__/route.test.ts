@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   verifyShopifyWebhook: vi.fn(),
   refreshAggregates: vi.fn(),
-  createEvent: vi.fn(),
+  claimWebhookEvent: vi.fn(),
   updateEvent: vi.fn(),
   findProducts: vi.fn(),
   revalidatePath: vi.fn(),
@@ -15,6 +15,7 @@ vi.mock("@/lib/shopify/webhooks", () => ({ verifyShopifyWebhook: mocks.verifySho
 vi.mock("@/lib/shopify/product-reviews", () => ({
   refreshShopifyProductReviewAggregates: mocks.refreshAggregates,
 }));
+vi.mock("@/lib/shopify/webhook-event", () => ({ claimWebhookEvent: mocks.claimWebhookEvent }));
 vi.mock("@/lib/content/revalidate-storefront", () => ({
   revalidateStorefrontPath: mocks.revalidatePath,
   revalidateStorefrontTemplate: mocks.revalidateTemplate,
@@ -22,7 +23,7 @@ vi.mock("@/lib/content/revalidate-storefront", () => ({
 vi.mock("@/lib/db", () => ({
   db: {
     product: { findMany: mocks.findProducts },
-    productSyncEvent: { create: mocks.createEvent, update: mocks.updateEvent },
+    productSyncEvent: { update: mocks.updateEvent },
   },
 }));
 
@@ -44,7 +45,7 @@ describe("Shopify product review webhooks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.verifyShopifyWebhook.mockReturnValue(true);
-    mocks.createEvent.mockResolvedValue({ id: "event-1" });
+    mocks.claimWebhookEvent.mockResolvedValue({ id: "event-1" });
     mocks.updateEvent.mockResolvedValue({});
     mocks.refreshAggregates.mockResolvedValue([]);
   });
@@ -89,6 +90,20 @@ describe("Shopify product review webhooks", () => {
     const response = await POST(request({ id: "review", type: "product_review" }));
 
     expect(response.status).toBe(401);
-    expect(mocks.createEvent).not.toHaveBeenCalled();
+    expect(mocks.claimWebhookEvent).not.toHaveBeenCalled();
+  });
+
+  it("reports a duplicate without reprocessing when the event can't be claimed", async () => {
+    mocks.claimWebhookEvent.mockResolvedValue(null);
+
+    const response = await POST(request({
+      id: "gid://shopify/Metaobject/1",
+      type: "product_review",
+      fields: { product: "gid://shopify/Product/10" },
+    }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, duplicate: true });
+    expect(mocks.refreshAggregates).not.toHaveBeenCalled();
   });
 });

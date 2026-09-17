@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { refreshShopifyProductReviewAggregates } from "@/lib/shopify/product-reviews";
+import { claimWebhookEvent } from "@/lib/shopify/webhook-event";
 import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 
 export const runtime = "nodejs";
@@ -37,24 +38,15 @@ export async function POST(request: Request) {
 
   const webhookId = request.headers.get("x-shopify-webhook-id");
   const topic = request.headers.get("x-shopify-topic") ?? "unknown";
-  let event;
-  try {
-    event = await db.productSyncEvent.create({
-      data: {
-        shopifyWebhookId: webhookId,
-        shopifyProductId: payload.fields?.product ?? null,
-        direction: "PULL",
-        status: "PROCESSING",
-        topic,
-        payload: payload as Prisma.InputJsonValue,
-        attemptCount: 1,
-      },
-    });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return NextResponse.json({ ok: true, duplicate: true });
-    }
-    throw error;
+  const event = await claimWebhookEvent({
+    webhookId,
+    shopifyProductId: payload.fields?.product ?? null,
+    direction: "PULL",
+    topic,
+    payload: payload as Prisma.InputJsonValue,
+  });
+  if (!event) {
+    return NextResponse.json({ ok: true, duplicate: true });
   }
 
   try {
