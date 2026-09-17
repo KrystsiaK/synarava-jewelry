@@ -89,6 +89,7 @@ function buildOrder(id: string) {
     fulfillmentStatus: "FULFILLED",
     statusPageUrl: `https://shop.example/orders/${id}`,
     totalPrice: { amount: "10.00", currencyCode: "EUR" },
+    totalRefunded: { amount: "0.00", currencyCode: "EUR" },
     fulfillments: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
     returnInformation: { returnableLineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } },
     lineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
@@ -176,5 +177,56 @@ describe("ShopifyProfileShell orders tab pagination (REV-13)", () => {
     );
 
     expect(screen.getByText(/Showing the first 1 items/)).toBeInTheDocument();
+  });
+});
+
+describe("ShopifyProfileShell total spent (REV-14)", () => {
+  it("sums each currency separately instead of mixing them into one number", () => {
+    const customerWithMixedCurrencies = {
+      ...customer,
+      orders: {
+        nodes: [
+          { ...buildOrder("1"), totalPrice: { amount: "100.00", currencyCode: "USD" }, totalRefunded: { amount: "0.00", currencyCode: "USD" } },
+          { ...buildOrder("2"), totalPrice: { amount: "100.00", currencyCode: "EUR" }, totalRefunded: { amount: "0.00", currencyCode: "EUR" } },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    } as unknown as ShopifyCustomerProfile;
+
+    render(
+      <ShopifyProfileShell
+        customer={customerWithMixedCurrencies}
+        activeTab="overview"
+        wishlistProducts={[]}
+        sessionExpiresAt="2026-10-15T00:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText("US$100.00 + €100.00")).toBeInTheDocument();
+    expect(screen.queryByText("US$200.00")).not.toBeInTheDocument();
+    expect(screen.queryByText("€200.00")).not.toBeInTheDocument();
+  });
+
+  it("subtracts refunded amounts from the total instead of counting the full order price", () => {
+    const customerWithRefund = {
+      ...customer,
+      orders: {
+        nodes: [
+          { ...buildOrder("1"), totalPrice: { amount: "100.00", currencyCode: "EUR" }, totalRefunded: { amount: "40.00", currencyCode: "EUR" } },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    } as unknown as ShopifyCustomerProfile;
+
+    render(
+      <ShopifyProfileShell
+        customer={customerWithRefund}
+        activeTab="overview"
+        wishlistProducts={[]}
+        sessionExpiresAt="2026-10-15T00:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText("€60.00")).toBeInTheDocument();
   });
 });

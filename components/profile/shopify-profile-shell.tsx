@@ -86,11 +86,19 @@ export function ShopifyProfileShell({
   const [isLoadingMoreOrders, setIsLoadingMoreOrders] = useState(false);
   const [loadMoreOrdersError, setLoadMoreOrdersError] = useState<string | null>(null);
   const email = customer.emailAddress?.emailAddress ?? "No email address available";
-  const totalSpent = orders.reduce(
-    (sum, order) => sum + Number(order.totalPrice.amount),
-    0,
-  );
-  const currency = orders[0]?.totalPrice.currencyCode ?? "EUR";
+  // Summed per currency rather than blindly added together (mixed-currency
+  // orders would otherwise read as one nonsensical total), and net of
+  // totalRefunded so a refunded/cancelled order doesn't inflate the figure —
+  // totalPrice alone only nets out formally *returned* line items (REV-14).
+  const spendByCurrency = orders.reduce<Record<string, number>>((totals, order) => {
+    const net = Number(order.totalPrice.amount) - Number(order.totalRefunded.amount);
+    const currencyCode = order.totalPrice.currencyCode;
+    totals[currencyCode] = (totals[currencyCode] ?? 0) + net;
+    return totals;
+  }, {});
+  const totalSpentLabel = Object.entries(spendByCurrency)
+    .map(([currencyCode, amount]) => money(String(amount), currencyCode))
+    .join(" + ") || money("0", "EUR");
   const ordersCountLabel = ordersPageInfo.hasNextPage ? `${orders.length}+` : String(orders.length);
 
   async function loadMoreOrders() {
@@ -222,7 +230,7 @@ export function ShopifyProfileShell({
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
                     ["Orders", ordersCountLabel],
-                    ["Total spent", money(String(totalSpent), currency)],
+                    ["Total spent", totalSpentLabel],
                     ["Member since", date(customer.creationDate)],
                   ].map(([label, value]) => (
                     <div key={label} className="border border-stroke p-6">

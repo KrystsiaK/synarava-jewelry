@@ -90,6 +90,7 @@ describe("Shopify customer orders page (REV-13)", () => {
       fulfillmentStatus: "FULFILLED",
       statusPageUrl: "https://shop.example/orders/2",
       totalPrice: { amount: "20.00", currencyCode: "EUR" },
+      totalRefunded: { amount: "0.00", currencyCode: "EUR" },
       fulfillments: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
       returnInformation: { returnableLineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } },
       lineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },

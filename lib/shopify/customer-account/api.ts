@@ -59,6 +59,10 @@ const orderSchema = z.object({
   fulfillmentStatus: z.string(),
   statusPageUrl: z.string(),
   totalPrice: moneySchema,
+  // totalPrice already nets out formally-returned line items, but not a
+  // manual/non-return refund — totalRefunded lets "Total spent" subtract those
+  // too (REV-14) without mixing currencies together.
+  totalRefunded: moneySchema,
   fulfillments: z.object({ nodes: z.array(fulfillmentSchema), pageInfo: pageInfoSchema }),
   returnInformation: z.object({
     returnableLineItems: z.object({ nodes: z.array(returnableLineItemSchema), pageInfo: pageInfoSchema }),
@@ -88,6 +92,7 @@ const ORDER_FIELDS = `#graphql
   fulfillmentStatus
   statusPageUrl
   totalPrice { amount currencyCode }
+  totalRefunded { amount currencyCode }
   fulfillments(first: 5) {
     pageInfo { hasNextPage endCursor }
     nodes {
