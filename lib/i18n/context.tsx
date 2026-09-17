@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
@@ -53,22 +53,26 @@ export function TranslationProvider({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [locale, setLocaleState] = useState<Locale>(() => normalizeLocale(initialLocale));
-  const [messages, setMessages] = useState<Record<string, string>>(() => (
-    { ...dictionaries[normalizeLocale(initialLocale)], ...initialOverrides?.[normalizeLocale(initialLocale)] }
-  ));
+  // The URL is the single source of truth for locale (REV-21) — a useState here
+  // survives client-side navigation (root layout never remounts), so browser
+  // back/forward or a plain Link to a /pt/... route used to leave the previous
+  // locale's dictionary in place. Deriving from pathname on every render means
+  // there's no stored locale to go stale: it's re-read on every navigation.
+  const pathLocale = pathname.match(/^\/(en|pt)(?=\/|$)/)?.[1];
+  const locale = normalizeLocale(pathLocale ?? initialLocale);
+  const messages = useMemo(
+    () => ({ ...dictionaries[locale], ...initialOverrides?.[locale] }),
+    [locale, initialOverrides],
+  );
 
-  function navigateToLocale(newLocale: Locale) {
-    const rest = pathname.replace(/^\/(en|pt)(?=\/|$)/, "");
-    router.push(localePath(newLocale, rest === "" ? "/" : rest));
-  }
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    persist(locale);
+  }, [locale]);
 
   function setLocale(newLocale: Locale) {
-    setLocaleState(newLocale);
-    setMessages({ ...dictionaries[newLocale], ...initialOverrides?.[newLocale] });
-    persist(newLocale);
-    document.documentElement.lang = newLocale;
-    navigateToLocale(newLocale);
+    const rest = pathname.replace(/^\/(en|pt)(?=\/|$)/, "");
+    router.push(localePath(newLocale, rest === "" ? "/" : rest));
   }
 
   const t = useCallback(

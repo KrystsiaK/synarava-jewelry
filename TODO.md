@@ -117,7 +117,7 @@
   - Подтверждено SSR исходного provider: для initialLocale=pt получено `Secure checkout`, хотя PT-словарь содержит `Checkout seguro`.
   - Исправить: передавать готовый локализованный словарь с сервера. Проверка: HTML `/pt` уже португальский без JS и при недоступном translate API.
 
-- [ ] **REV-21. Locale state не синхронизируется с навигацией назад/вперёд.**
+- [x] **REV-21. Locale state не синхронизируется с навигацией назад/вперёд.**
   - Код: `lib/i18n/context.tsx:45`, `lib/i18n/context.tsx:49`.
   - Provider в root layout сохраняет useState; effect запускается только при mount. После переключения EN→PT и browser Back к `/en/...` состояние переводов может остаться PT. Прямой client-side переход между locale routes тоже не обновляет state из pathname/initialLocale.
   - Исправить: URL должен быть источником locale, словарь и document.lang должны синхронно следовать ему. Проверка: EN→PT→Back→Forward, включая серверный контент и ссылки.
