@@ -41,12 +41,14 @@ type ShopifyCartLine = {
   };
 };
 
+type ShopifyPageInfo = { hasNextPage: boolean; endCursor: string | null };
+
 type ShopifyCart = {
   id: string;
   checkoutUrl: string;
   totalQuantity: number;
   cost: { subtotalAmount: Money };
-  lines: { nodes: ShopifyCartLine[] };
+  lines: { pageInfo: ShopifyPageInfo; nodes: ShopifyCartLine[] };
 };
 
 type CartUserError = {
@@ -61,7 +63,37 @@ type CartMutationPayload = {
   warnings?: Array<{ message: string }>;
 };
 
+// A cart can hold more distinct lines than one page — totalQuantity/subtotal
+// below are Shopify-computed cart-level aggregates that already cover every
+// line regardless of pagination, but the individual `nodes` a query returns
+// are capped at `first`. fetchRemainingCartLines() (REV-12) walks pageInfo to
+// collect every line rather than silently listing only the first 100.
+const CART_LINE_FIELDS = `#graphql
+  fragment SynaravaCartLine on CartLine {
+    id
+    quantity
+    cost { totalAmount { amount currencyCode } }
+    merchandise {
+      ... on ProductVariant {
+        id
+        sku
+        title
+        price { amount currencyCode }
+        image { url altText }
+        quantityAvailable
+        currentlyNotInStock
+        product {
+          handle
+          title
+          featuredImage { url altText }
+        }
+      }
+    }
+  }
+`;
+
 const CART_FRAGMENT = `#graphql
+  ${CART_LINE_FIELDS}
   fragment SynaravaCart on Cart {
     id
     checkoutUrl
@@ -70,27 +102,8 @@ const CART_FRAGMENT = `#graphql
       subtotalAmount { amount currencyCode }
     }
     lines(first: 100) {
-      nodes {
-        id
-        quantity
-        cost { totalAmount { amount currencyCode } }
-        merchandise {
-          ... on ProductVariant {
-            id
-            sku
-            title
-            price { amount currencyCode }
-            image { url altText }
-            quantityAvailable
-            currentlyNotInStock
-            product {
-              handle
-              title
-              featuredImage { url altText }
-            }
-          }
-        }
-      }
+      pageInfo { hasNextPage endCursor }
+      nodes { ...SynaravaCartLine }
     }
   }
 `;
@@ -161,26 +174,66 @@ async function loadShopifyCart(cartId: string, buyerIp: string | null, locale: L
   return data.cart;
 }
 
+async function fetchRemainingCartLines(
+  cartId: string,
+  buyerIp: string | null,
+  language: string,
+  firstPage: ShopifyCart["lines"],
+): Promise<ShopifyCartLine[]> {
+  const lines = [...firstPage.nodes];
+  let pageInfo = firstPage.pageInfo;
+  while (pageInfo.hasNextPage && pageInfo.endCursor) {
+    const data = await shopifyStorefrontRequest<{
+      cart: { lines: { pageInfo: ShopifyPageInfo; nodes: ShopifyCartLine[] } } | null;
+    }>(
+      `#graphql
+        ${CART_LINE_FIELDS}
+        query SynaravaCartLinesPage($cartId: ID!, $after: String, $language: LanguageCode!) @inContext(language: $language) {
+          cart(id: $cartId) {
+            lines(first: 100, after: $after) {
+              pageInfo { hasNextPage endCursor }
+              nodes { ...SynaravaCartLine }
+            }
+          }
+        }
+      `,
+      { cartId, after: pageInfo.endCursor, language },
+      { buyerIp },
+    );
+    if (!data.cart) break;
+    lines.push(...data.cart.lines.nodes);
+    pageInfo = data.cart.lines.pageInfo;
+  }
+  return lines;
+}
+
 export async function getShopifyCartLineQuantity(lineId: string): Promise<number | null> {
   const cartId = await getCartId();
   if (!cartId) return null;
 
   const buyerIp = await getShopifyBuyerIp();
-  const data = await shopifyStorefrontRequest<{
-    cart: { lines: { nodes: Array<{ id: string; quantity: number }> } } | null;
-  }>(
-    `#graphql
-      query SynaravaCartLineQuantities($cartId: ID!) {
-        cart(id: $cartId) {
-          lines(first: 100) { nodes { id quantity } }
+  let after: string | null = null;
+  for (;;) {
+    const data: {
+      cart: { lines: { pageInfo: ShopifyPageInfo; nodes: Array<{ id: string; quantity: number }> } } | null;
+    } = await shopifyStorefrontRequest(
+      `#graphql
+        query SynaravaCartLineQuantities($cartId: ID!, $after: String) {
+          cart(id: $cartId) {
+            lines(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { id quantity } }
+          }
         }
-      }
-    `,
-    { cartId },
-    { buyerIp },
-  );
-
-  return data.cart?.lines.nodes.find((line) => line.id === lineId)?.quantity ?? null;
+      `,
+      { cartId, after },
+      { buyerIp },
+    );
+    if (!data.cart) return null;
+    const match = data.cart.lines.nodes.find((line) => line.id === lineId);
+    if (match) return match.quantity;
+    if (!data.cart.lines.pageInfo.hasNextPage) return null;
+    after = data.cart.lines.pageInfo.endCursor;
+    if (!after) return null;
+  }
 }
 
 async function resolveMerchandiseId(productHandle: string, buyerIp: string | null) {
@@ -244,7 +297,11 @@ export async function getShopifyCartViewModel() {
   const cart = await loadShopifyCart(cartId, buyerIp, locale);
   if (!cart) return emptyCartViewModel(locale);
 
-  const items = cart.lines.nodes.map((line) => {
+  const allLines = cart.lines.pageInfo.hasNextPage
+    ? await fetchRemainingCartLines(cartId, buyerIp, shopifyLanguage(locale), cart.lines)
+    : cart.lines.nodes;
+
+  const items = allLines.map((line) => {
     const variantTitle =
       line.merchandise.title && line.merchandise.title !== "Default Title"
         ? line.merchandise.title

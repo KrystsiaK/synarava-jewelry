@@ -44,6 +44,7 @@ describe("getShopifyCartLineQuantity", () => {
     mocks.shopifyStorefrontRequest.mockResolvedValue({
       cart: {
         lines: {
+          pageInfo: { hasNextPage: false, endCursor: null },
           nodes: [
             { id: "line-1", quantity: 2 },
             { id: "line-2", quantity: 4 },
@@ -58,8 +59,23 @@ describe("getShopifyCartLineQuantity", () => {
     expect(query).toContain("nodes { id quantity }");
     expect(query).not.toContain("checkoutUrl");
     expect(query).not.toContain("merchandise");
-    expect(variables).toEqual({ cartId: "gid://shopify/Cart/1" });
+    expect(variables).toEqual({ cartId: "gid://shopify/Cart/1", after: null });
     expect(options).toEqual({ buyerIp: "203.0.113.4" });
+  });
+
+  it("pages past the first 100 lines to find a line beyond the first page (REV-12)", async () => {
+    mocks.shopifyStorefrontRequest
+      .mockResolvedValueOnce({
+        cart: { lines: { pageInfo: { hasNextPage: true, endCursor: "cursor-1" }, nodes: [{ id: "line-1", quantity: 1 }] } },
+      })
+      .mockResolvedValueOnce({
+        cart: { lines: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [{ id: "line-101", quantity: 9 }] } },
+      });
+
+    await expect(getShopifyCartLineQuantity("line-101")).resolves.toBe(9);
+    expect(mocks.shopifyStorefrontRequest).toHaveBeenCalledTimes(2);
+    const [, secondCallVariables] = mocks.shopifyStorefrontRequest.mock.calls[1];
+    expect(secondCallVariables).toEqual({ cartId: "gid://shopify/Cart/1", after: "cursor-1" });
   });
 
   it("requests translated cart product copy in the active locale", async () => {
@@ -70,7 +86,7 @@ describe("getShopifyCartLineQuantity", () => {
         checkoutUrl: "https://checkout.example",
         totalQuantity: 0,
         cost: { subtotalAmount: { amount: "0.00", currencyCode: "EUR" } },
-        lines: { nodes: [] },
+        lines: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
       },
     });
 
@@ -79,6 +95,44 @@ describe("getShopifyCartLineQuantity", () => {
     const [query, variables] = mocks.shopifyStorefrontRequest.mock.calls[0];
     expect(query).toContain("@inContext(language: $language)");
     expect(variables).toEqual({ cartId: "gid://shopify/Cart/1", language: "PT_PT" });
+  });
+
+  it("collects every line past the first page instead of truncating the cart at 100 (REV-12)", async () => {
+    const merchandise = {
+      id: "gid://shopify/ProductVariant/1",
+      sku: "SKU-1",
+      title: "Default Title",
+      price: { amount: "10.00", currencyCode: "EUR" },
+      image: null,
+      quantityAvailable: 5,
+      currentlyNotInStock: false,
+      product: { handle: "ring", title: "Ring", featuredImage: null },
+    };
+    const line = (id: string) => ({
+      id,
+      quantity: 1,
+      cost: { totalAmount: { amount: "10.00", currencyCode: "EUR" } },
+      merchandise,
+    });
+
+    mocks.shopifyStorefrontRequest
+      .mockResolvedValueOnce({
+        cart: {
+          id: "cart-1",
+          checkoutUrl: "https://checkout.example",
+          totalQuantity: 101,
+          cost: { subtotalAmount: { amount: "1010.00", currencyCode: "EUR" } },
+          lines: { pageInfo: { hasNextPage: true, endCursor: "cursor-1" }, nodes: [line("line-1")] },
+        },
+      })
+      .mockResolvedValueOnce({
+        cart: { lines: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [line("line-101")] } },
+      });
+
+    const result = await getShopifyCartViewModel();
+
+    expect(result.items.map((item) => item.id)).toEqual(["line-1", "line-101"]);
+    expect(mocks.shopifyStorefrontRequest).toHaveBeenCalledTimes(2);
   });
 });
 
