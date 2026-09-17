@@ -20,6 +20,7 @@ vi.mock("../session-store", () => ({
 
 import {
   findShopifyCustomerOrderForProduct,
+  getShopifyCustomerId,
   getShopifyCustomerOrdersPage,
   getShopifyCustomerProfile,
   requestShopifyOrderReturn,
@@ -41,6 +42,23 @@ describe("Shopify customer profile", () => {
     await expect(getShopifyCustomerProfile()).resolves.toBeNull();
 
     expect(mocks.deleteStoredCustomerSession).toHaveBeenCalledWith("session-1");
+  });
+});
+
+describe("Shopify customer identity (REV-16)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("fetches only the customer id, not the full profile query", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      response({ customer: { id: "gid://shopify/Customer/1" } }),
+    );
+
+    await expect(getShopifyCustomerId()).resolves.toBe("gid://shopify/Customer/1");
+
+    const [, requestInit] = fetchMock.mock.calls[0];
+    const body = JSON.parse(String(requestInit?.body));
+    expect(body.query).not.toContain("orders");
+    expect(body.query).not.toContain("addresses");
   });
 });
 

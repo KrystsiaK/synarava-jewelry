@@ -249,6 +249,57 @@ export async function getShopifyCustomerProfile(
   return payload.data.customer;
 }
 
+const identitySchema = z.object({
+  data: z.object({ customer: z.object({ id: z.string() }).nullable() }).optional(),
+  errors: z.array(z.object({ message: z.string() }).passthrough()).optional(),
+});
+
+/**
+ * Just the signed-in customer's id — for callers (REV-16: the wishlist toggle)
+ * that only need to confirm identity, not the full profile query's orders,
+ * addresses, and returns.
+ */
+export async function getShopifyCustomerId(
+  resolvedSession?: ActiveShopifyCustomerSession,
+): Promise<string | null> {
+  const session = resolvedSession ?? await getShopifyCustomerSession();
+  if (!session) return null;
+
+  const { graphql_api } = await getCustomerApiDiscovery();
+  const response = await fetch(graphql_api, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: session.accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      operationName: "SynaravaCustomerIdentity",
+      query: `query SynaravaCustomerIdentity { customer { id } }`,
+      variables: {},
+    }),
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    await deleteStoredCustomerSession(session.id).catch(() => undefined);
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`Shopify Customer Account API failed (${response.status}).`);
+  }
+
+  const payload = identitySchema.parse(await response.json());
+  if (payload.errors?.length || !payload.data) {
+    throw new Error(
+      payload.errors?.map((error) => error.message).join("; ") ??
+        "Shopify returned no customer data.",
+    );
+  }
+
+  return payload.data.customer?.id ?? null;
+}
+
 async function customerAccountQuery(
   operationName: string,
   query: string,

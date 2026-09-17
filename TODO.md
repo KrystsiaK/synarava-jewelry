@@ -88,7 +88,7 @@
   - Read-modify-write целого metafield не использует compareDigest. Изолированное конкурентное воспроизведение на исходной функции: два успешных добавления A и B оставили только `[B]`.
   - Исправить: Shopify compare-and-set с повтором после конфликта; предпочтительно идемпотентное desired state вместо toggle. Проверка: параллельные вкладки сохраняют оба изменения. [Shopify: compareDigest](https://shopify.dev/docs/api/admin-graphql/unstable/mutations/metafieldsSet).
 
-- [ ] **REV-16. Проверка одного сердечка wishlist загружает полный профиль с заказами.**
+- [x] **REV-16. Проверка одного сердечка wishlist загружает полный профиль с заказами.**
   - Код: `app/api/wishlist/route.ts:10`, `app/api/wishlist/route.ts:30`, `lib/shopify/customer-account/api.ts:107`.
   - GET и POST вызывают тяжёлый CUSTOMER_PROFILE_QUERY ради customer.id, включая историю, адреса, fulfillments и returns. POST проверяет rate limit только после этого внешнего запроса; GET не ограничен.
   - Исправить: отдельный минимальный identity query/проверенная session projection, ограничение запросов до дорогого вызова. Проверка: toggle не запрашивает orders/addresses и не зависит от их доступности.
