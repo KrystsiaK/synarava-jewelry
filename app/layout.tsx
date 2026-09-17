@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
+import { MotionConfig } from "motion/react";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -187,9 +188,15 @@ export default async function RootLayout({
             </defs>
           </svg>
           <ThemeProvider initialPreference={themePreference}>
-            <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} departments={departments} />
-            <div id="main-content" tabIndex={-1}>{children}</div>
-            <SiteFooter />
+            {/* REV-25: one shared motion policy for every motion.* component in the
+                tree, so prefers-reduced-motion is honored even by a component (e.g.
+                ProductCard, CartShell, ShopFooter) that never checks useReducedMotion()
+                itself — a per-component audit isn't needed for new motion usage either. */}
+            <MotionConfig reducedMotion="user">
+              <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} departments={departments} />
+              <div id="main-content" tabIndex={-1}>{children}</div>
+              <SiteFooter />
+            </MotionConfig>
           </ThemeProvider>
         </TranslationProvider>
       </body>
