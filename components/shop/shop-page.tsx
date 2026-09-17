@@ -16,7 +16,7 @@ import { PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 import { ShopDiscovery, type ShopCategoryTile } from "./shop-discovery";
-import type { ProductSummary } from "@/lib/content/catalog";
+import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { filterAndSortShopProducts } from "./shop-product-filtering";
@@ -224,10 +224,12 @@ function EmptyState({ filters, departments = [], categories, collections, tags, 
 }
 
 /* ─── Product grid ───────────────────────────────────────────────── */
-function ProductGrid({ products, sort }: { products: ProductSummary[]; sort?: string }) {
+function ProductGrid({ products, sort }: { products: ShopListingProduct[]; sort?: string }) {
+  const { t } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-6%" });
   const reduceMotion = useReducedMotion() ?? false;
+  const [visibleCount, setVisibleCount] = useState(24);
 
   /* Editorial offset rules matching the original grid */
   function offsetClass(index: number) {
@@ -237,14 +239,16 @@ function ProductGrid({ products, sort }: { products: ProductSummary[]; sort?: st
   }
 
   return (
+    <>
     <motion.div
+      id="shop-product-grid"
       ref={ref}
       layout
       className="grid grid-cols-1 gap-x-4 gap-y-10 sm:grid-cols-2 md:gap-x-6 md:gap-y-20 lg:grid-cols-3"
       transition={{ layout: reduceMotion ? { duration: 0 } : { duration: 0.52, ease } }}
     >
       <AnimatePresence initial={false} mode="popLayout">
-        {products.map((product, index) => {
+        {products.slice(0, visibleCount).map((product, index) => {
           const isFeatured = (sort === undefined || sort === "featured") && index === 0;
           return (
             <motion.div
@@ -277,6 +281,19 @@ function ProductGrid({ products, sort }: { products: ProductSummary[]; sort?: st
         })}
       </AnimatePresence>
     </motion.div>
+    {visibleCount < products.length ? (
+      <div className="mt-12 flex justify-center">
+        <button
+          type="button"
+          aria-controls="shop-product-grid"
+          onClick={() => setVisibleCount((count) => Math.min(count + 24, products.length))}
+          className="min-h-11 border border-foreground/30 px-8 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-foreground transition-colors hover:border-couture-red hover:text-couture-red"
+        >
+          {t("shop.loadMoreProducts")}
+        </button>
+      </div>
+    ) : null}
+    </>
   );
 }
 
@@ -356,7 +373,7 @@ function ShopFooter() {
 
 /* ─── Root ───────────────────────────────────────────────────────── */
 export type ShopPageProps = {
-  products: ProductSummary[];
+  products: ShopListingProduct[];
   popularProductSlugs: string[] | null;
   heroImage?: string;
   archiveCount: number;
@@ -449,7 +466,7 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
                     />
                   </motion.div>
                 ) : (
-                  <ProductGrid key="products" products={filteredProducts} sort={activeFilters.sort} />
+                  <ProductGrid key={JSON.stringify(activeFilters)} products={filteredProducts} sort={activeFilters.sort} />
                 )}
               </AnimatePresence>
             </LayoutGroup>

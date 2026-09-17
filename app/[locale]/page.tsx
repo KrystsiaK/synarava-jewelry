@@ -3,9 +3,9 @@ import {
   getPageBySlug,
   getStorefrontNavigation,
   listCollections,
-  listShopProducts,
   type PageContent,
 } from "@/lib/content/catalog";
+import { listShopListingProducts } from "@/lib/content/shop-listing";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -36,7 +36,7 @@ export default async function Page() {
     getPageBySlug("home"),
     listCollections(),
     getSiteVideos(),
-    listShopProducts({}),
+    listShopListingProducts(),
     getRequestLocale(),
     getStorefrontNavigation(),
   ]);

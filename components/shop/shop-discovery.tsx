@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import type { ProductSummary } from "@/lib/content/catalog";
+import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { buildSearchParams, type ShopFilters } from "./types";
@@ -15,7 +15,7 @@ export type ShopCategoryTile = {
   count: number;
 };
 
-function DiscoveryProductCard({ product }: { product: ProductSummary }) {
+function DiscoveryProductCard({ product }: { product: ShopListingProduct }) {
   const { locale } = useTranslations();
 
   return (
@@ -49,8 +49,8 @@ export function ShopDiscovery({
   categories,
   onSelectFilters,
 }: {
-  newestProducts: ProductSummary[];
-  popularProducts: ProductSummary[];
+  newestProducts: ShopListingProduct[];
+  popularProducts: ShopListingProduct[];
   showPopular?: boolean;
   categories: ShopCategoryTile[];
   onSelectFilters?: (filters: ShopFilters) => void;

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
-import type { ProductSummary } from "@/lib/content/catalog";
+import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { discountPercent } from "@/lib/shopify/money";
@@ -12,7 +12,7 @@ import { discountPercent } from "@/lib/shopify/money";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 interface ProductCardProps {
-  product: ProductSummary;
+  product: ShopListingProduct;
   index: number;
   isFeatured?: boolean;
   isParentInView: boolean;
@@ -36,7 +36,7 @@ export function ProductCard({
       className={offsetClass}
       initial={{ opacity: 0, y: 48 }}
       animate={isParentInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.9, ease, delay: 0.06 + index * 0.11 }}
+      transition={{ duration: 0.9, ease, delay: Math.min(index, 5) * 0.11 + 0.06 }}
     >
       <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
         <motion.div

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { getPageBySlug, getShopFilterData, listBestSellingShopifyProductIds, listShopProducts } from "@/lib/content/catalog";
+import { getPageBySlug, getShopFilterData, listBestSellingShopifyProductIds } from "@/lib/content/catalog";
+import { listShopListingProducts } from "@/lib/content/shop-listing";
 import { ShopPage } from "@/components/shop/shop-page";
 import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
@@ -47,7 +48,7 @@ export default async function Page({ searchParams }: Props) {
   };
   const [{ departments, categories, tags, collections, materials, finishes, origins }, archiveProducts, bestSellingShopifyProductIds, { t }, page] = await Promise.all([
     getShopFilterData(),
-    listShopProducts({}),
+    listShopListingProducts(),
     listBestSellingShopifyProductIds(),
     getServerTranslations(),
     getPageBySlug("shop"),

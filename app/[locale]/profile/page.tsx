@@ -45,9 +45,7 @@ export default async function ProfilePage({ searchParams }: Props) {
     return [];
   });
   const wishlistProducts = wishlistIds.length
-    ? (await listShopProducts({})).filter(
-        (product) => product.shopifyProductId && wishlistIds.includes(product.shopifyProductId),
-      ).reverse()
+    ? (await listShopProducts({}, { shopifyProductIds: wishlistIds, limit: wishlistIds.length })).reverse()
     : [];
 
   return (

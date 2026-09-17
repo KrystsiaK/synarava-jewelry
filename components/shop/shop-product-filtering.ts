@@ -1,7 +1,8 @@
-import type { ProductSummary, ShopFilters } from "@/lib/content/catalog";
+import type { ShopListingProduct } from "@/lib/content/shop-listing";
+import type { ShopFilters } from "@/lib/content/catalog";
 
 function hasCharacteristic(
-  product: ProductSummary,
+  product: ShopListingProduct,
   key: string,
   value?: string,
 ) {
@@ -12,7 +13,7 @@ function hasCharacteristic(
 }
 
 export function filterAndSortShopProducts(
-  products: ProductSummary[],
+  products: ShopListingProduct[],
   filters: ShopFilters,
   popularProductSlugs: string[],
   locale: string,

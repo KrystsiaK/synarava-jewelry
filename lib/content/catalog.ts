@@ -548,7 +548,11 @@ export async function listBestSellingShopifyProductIds(): Promise<string[] | nul
   return rank ? [...rank.keys()] : null;
 }
 
-export async function listShopProducts(filters: ShopFilters = {}) {
+export async function listShopProducts(
+  filters: ShopFilters = {},
+  options: { shopifyProductIds?: string[]; limit?: number } = {},
+) {
+  if (options.shopifyProductIds?.length === 0) return [];
   const locale = await getRequestLocale();
   const contentLocale = storefrontLocaleToContentLocale(locale);
   const q = filters.q?.trim();
@@ -567,6 +571,7 @@ export async function listShopProducts(filters: ShopFilters = {}) {
     where: {
       status: "ACTIVE",
       visibility: "PUBLIC",
+      ...(options.shopifyProductIds ? { shopifyProductId: { in: options.shopifyProductIds } } : {}),
       ...(filters.category ? { shopifyCategoryId: filters.category } : {}),
       ...(filters.availability === "in-stock"
         ? {
@@ -664,6 +669,7 @@ export async function listShopProducts(filters: ShopFilters = {}) {
       translations: true,
     },
     orderBy,
+    ...(options.limit ? { take: options.limit } : {}),
   });
 
   const bestSellingRank = sort === "popular" ? await getBestSellingProductRank() : null;
