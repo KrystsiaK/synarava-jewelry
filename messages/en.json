@@ -11,6 +11,10 @@
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu"
   },
+  "media": {
+    "playBackgroundVideo": "Play background video",
+    "pauseBackgroundVideo": "Pause background video"
+  },
   "footer": {
     "tagline": "Objects with character, chosen to last.",
     "navigationHeading": "Navigation",

@@ -4,7 +4,9 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 
 import { PerformanceVideo } from "@/components/media/performance-video";
+import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { PrimaryCtaButton } from "@/components/ui";
+import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -35,6 +37,7 @@ function AboutHero({
   "title" | "excerpt" | "eyebrow" | "ctaHref" | "ctaLabel" | "heroVideoSrc" | "heroImage"
 >) {
   const reduceMotion = useReducedMotion();
+  const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
 
   return (
     <header data-component="AboutHero" className="about-hero relative flex min-h-[100svh] items-end overflow-hidden bg-background text-foreground">
@@ -57,6 +60,7 @@ function AboutHero({
           />
         ) : heroVideoSrc ? (
           <PerformanceVideo
+            ref={videoRef}
             src={heroVideoSrc}
             eager
             className="h-full w-full object-cover"
@@ -64,10 +68,17 @@ function AboutHero({
             muted
             loop
             playsInline
+            preload="metadata"
             aria-hidden="true"
+            onPlay={onPlay}
+            onPause={onPause}
           />
         ) : null}
       </motion.div>
+
+      {!heroImage && heroVideoSrc ? (
+        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-28 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+      ) : null}
 
       <div className="about-hero-overlay absolute inset-0" />
 
@@ -143,20 +154,26 @@ function MovementStory({
   videoSrc?: string;
 }) {
   const reduceMotion = useReducedMotion();
+  const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
   if (!title || !videoSrc) return null;
 
   return (
     <section data-component="MovementStory" className="about-movement relative min-h-[100svh] overflow-hidden bg-background text-foreground">
       <PerformanceVideo
+        ref={videoRef}
         src={videoSrc}
         className="absolute inset-0 h-full w-full object-cover"
         autoPlay={!reduceMotion}
         muted
         loop
         playsInline
+        preload="metadata"
         aria-hidden="true"
+        onPlay={onPlay}
+        onPause={onPause}
       />
       <div className="about-movement-overlay absolute inset-0" />
+      <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-4 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
       <div className="site-shell relative z-10 flex min-h-[100svh] items-end py-28 md:py-36">
         <h2 className="max-w-4xl font-serif text-[clamp(3rem,7vw,7rem)] leading-[0.88] tracking-[-0.04em]">
           {title}

@@ -11,6 +11,10 @@
     "openMenu": "Abrir menu de navegação",
     "closeMenu": "Fechar menu de navegação"
   },
+  "media": {
+    "playBackgroundVideo": "Reproduzir vídeo de fundo",
+    "pauseBackgroundVideo": "Pausar vídeo de fundo"
+  },
   "footer": {
     "tagline": "Peças com caráter, feitas para durar.",
     "navigationHeading": "Navegação",

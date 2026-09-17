@@ -22,6 +22,8 @@ import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
+import { VideoPlaybackButton } from "@/components/media/video-playback-button";
+import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
 import { buildFinalCtaImages } from "@/lib/content/home-media";
 import {
   resolveHomeDepartmentSection,
@@ -329,6 +331,7 @@ function HeroSection({
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const reduceMotion = useReducedMotion();
+  const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
   const videoSources = heroVideoSrc
     ? Array.isArray(heroVideoSrc)
       ? heroVideoSrc.filter(Boolean)
@@ -376,8 +379,9 @@ function HeroSection({
           ) : activeVideoSrc ? (
             <PerformanceVideo
               key={activeVideoSrc}
+              ref={videoRef}
               eager
-              autoPlay
+              autoPlay={!reduceMotion}
               muted
               loop={videoSources.length === 1}
               playsInline
@@ -385,7 +389,9 @@ function HeroSection({
               src={activeVideoSrc}
               className="home-hero-media h-full w-full object-cover"
               aria-hidden="true"
-              onEnded={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
+              onPlay={onPlay}
+              onPause={onPause}
+              onEnded={() => { onPause(); setActiveVideoIndex((index) => (index + 1) % videoSources.length); }}
               onError={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
             />
           ) : null}
@@ -395,6 +401,13 @@ function HeroSection({
         <div className="pointer-events-none absolute inset-[5%] border border-linen/20 [clip-path:polygon(7%_0,100%_0,100%_82%,78%_100%,0_89%,0_21%)]" />
         <div className="pointer-events-none absolute -bottom-[14%] left-[23%] h-[46%] w-[18%] -rotate-[18deg] border-x border-linen/15 bg-linen/[0.035] backdrop-blur-[2px]" aria-hidden="true" />
       </motion.div>
+
+      {/* Positioned against the section, not the media div above — that div's
+          diagonal clip-path excludes its own bottom-right corner, which would
+          clip this button's default placement there. */}
+      {activeVideoSrc ? (
+        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute bottom-6 right-6 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:bottom-10 md:right-[6%]" />
+      ) : null}
 
       <div className="home-hero-fade pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[58%]" aria-hidden="true" />
 
