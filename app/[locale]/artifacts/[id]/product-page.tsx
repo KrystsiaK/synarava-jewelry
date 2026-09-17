@@ -13,6 +13,7 @@ import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { buildProductJsonLd } from "@/lib/seo/product-json-ld";
 import { safeJsonLd } from "@/lib/seo/json-ld";
+import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getProductReviewsBySlug } from "@/lib/content/product-reviews";
 import { submitProductReviewAction } from "@/app/actions/product-reviews";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
@@ -29,8 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!product) return { title: "Product" };
 
   return {
-    title: product.title,
-    description: product.shortDescription,
+    title: product.seoTitle || product.title,
+    description: product.seoDescription || product.shortDescription || product.description,
     alternates: buildAlternates(locale, `/products/${product.slug}`),
     openGraph: {
       url: localePath(locale, `/products/${product.slug}`),
@@ -55,16 +56,17 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
-  const [relatedIds, catalog] = await Promise.all([
-    product.shopifyProductId
-      ? getShopifyRelatedProductIds(product.shopifyProductId).catch(() => [])
-      : Promise.resolve([]),
-    listShopProducts({}),
+  const relatedIds = product.shopifyProductId
+    ? await getShopifyRelatedProductIds(product.shopifyProductId).catch(() => [])
+    : [];
+  const [rankedProducts, categoryProducts] = await Promise.all([
+    relatedIds.length ? listShopProducts({}, { shopifyProductIds: relatedIds, limit: relatedIds.length }) : Promise.resolve([]),
+    product.categorySlug ? listShopProducts({ category: product.categorySlug }, { limit: 9 }) : Promise.resolve([]),
   ]);
-  const relatedProducts = pickRelatedProducts(product, catalog, relatedIds);
+  const relatedProducts = pickRelatedProducts(product, [...rankedProducts, ...categoryProducts], relatedIds);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const productJsonLd = buildProductJsonLd(product, siteUrl, reviews);
+  const siteUrl = getPublicSiteUrl();
+  const productJsonLd = buildProductJsonLd(product, siteUrl, reviews, locale);
 
   const { t } = await getServerTranslations();
   const breadcrumbs = getProductBreadcrumbs(product, t);

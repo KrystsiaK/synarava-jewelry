@@ -55,6 +55,8 @@ export type ProductSummary = {
   title: string;
   shortDescription: string;
   description: string;
+  seoTitle: string;
+  seoDescription: string;
   price: string;
   priceAmount: number;
   currency: string;
@@ -335,6 +337,8 @@ function toSummary(product: {
     title: localized.title,
     shortDescription: localized.shortDescription,
     description: localized.description,
+    seoTitle: localized.seoTitle,
+    seoDescription: localized.seoDescription,
     price: priceFromCents(priceCents, product.currency, locale),
     priceAmount: priceCents / 100,
     currency: product.currency,

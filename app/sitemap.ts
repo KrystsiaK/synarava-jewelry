@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { listCollections, listShopProducts } from "@/lib/content/catalog";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
+import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
 type RouteEntry = {
   path: string;
@@ -25,7 +26,7 @@ function withLocales(baseUrl: string, entry: RouteEntry): MetadataRoute.Sitemap 
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const baseUrl = getPublicSiteUrl();
 
   const staticEntries: RouteEntry[] = [
     { path: "", changeFrequency: "weekly", priority: 1.0 },

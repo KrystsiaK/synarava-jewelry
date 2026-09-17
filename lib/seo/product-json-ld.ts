@@ -1,13 +1,16 @@
 import type { ProductSummary } from "@/lib/content/catalog";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
+import { localePath } from "@/lib/i18n/routing";
+import type { Locale } from "@/lib/i18n/locales";
 
 export function buildProductJsonLd(
   product: ProductSummary,
   siteUrl: string,
   reviews?: ShopifyProductReviews | null,
+  locale: Locale = "en",
 ) {
   const baseUrl = siteUrl.replace(/\/$/, "");
-  const productUrl = `${baseUrl}/products/${encodeURIComponent(product.slug)}`;
+  const productUrl = `${baseUrl}${localePath(locale, `/products/${encodeURIComponent(product.slug)}`)}`;
   const images = Array.from(new Set([
     product.image,
     ...product.commerceMedia.map((media) => media.src),

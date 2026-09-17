@@ -23,7 +23,7 @@ describe("product JSON-LD", () => {
 
     expect(buildProductJsonLd(product, "https://synarava.com/")).toMatchObject({
       "@type": "Product",
-      "@id": "https://synarava.com/products/silver-ring#product",
+      "@id": "https://synarava.com/en/products/silver-ring#product",
       sku: "RING-01",
       image: ["https://cdn.example.com/ring.jpg"],
       offers: {
@@ -32,6 +32,21 @@ describe("product JSON-LD", () => {
         availability: "https://schema.org/InStock",
       },
     });
+  });
+
+  it("uses the Portuguese canonical URL for product and offer structured data", () => {
+    const product = {
+      slug: "silver-ring",
+      title: "Anel de prata",
+      image: "",
+      commerceMedia: [],
+      priceAmount: 129.5,
+      currency: "EUR",
+      inStock: true,
+    } as ProductSummary;
+    const data = buildProductJsonLd(product, "https://synarava.com", null, "pt");
+    expect(data.url).toBe("https://synarava.com/pt/products/silver-ring");
+    expect(data.offers.url).toBe(data.url);
   });
 
   it("adds Shopify review aggregate and published reviews when available", () => {

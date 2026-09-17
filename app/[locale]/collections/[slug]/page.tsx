@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getCollectionBySlug, getProductsByCollection } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
+import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { safeJsonLd } from "@/lib/seo/json-ld";
 import { CollectionDetail } from "@/components/collections/collection-detail";
@@ -47,7 +48,7 @@ export default async function Page({ params }: Props) {
 
   if (!collection) notFound();
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = getPublicSiteUrl();
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

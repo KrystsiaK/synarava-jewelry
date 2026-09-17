@@ -18,6 +18,7 @@ import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
 import { safeJsonLd } from "@/lib/seo/json-ld";
+import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
 import "./globals.css";
 
@@ -33,7 +34,7 @@ const serif = Playfair_Display({
   style: ["normal", "italic"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = getPublicSiteUrl();
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",

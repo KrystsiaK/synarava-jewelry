@@ -55,6 +55,7 @@ Fill in local/production variables as needed:
 - `ADMIN_PASSWORD_HASH` (generate with `pnpm auth:hash`)
 - `ADMIN_SESSION_SECRET`
 - `APP_URL`
+  — public origin used by Shopify callbacks and SEO metadata; required in production
 - `SHOPIFY_STORE_DOMAIN` — the permanent `your-store.myshopify.com` domain
 - `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` — private Storefront API token; server-only
 - `SHOPIFY_STOREFRONT_API_VERSION` — optional, defaults to `2026-07`
