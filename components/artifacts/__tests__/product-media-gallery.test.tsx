@@ -41,4 +41,33 @@ describe("ProductMediaGallery", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close expanded image" }));
     expect(screen.getByRole("dialog", { name: "Expanded product image" })).toHaveClass("is-closing");
   });
+
+  it("replaces the click-to-toggle overlay with a scrollable pan area once zoomed in (REV-24)", () => {
+    render(<ProductMediaGallery product={product} />);
+    fireEvent.click(screen.getByRole("button", { name: /Enlarge image 1 of 3/ }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+
+    expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
+    const zoomOutButton = screen.getByRole("button", { name: "Zoom out" });
+    expect(zoomOutButton).toBeInTheDocument();
+    // The zoomed image sits inside a focusable, overflow-scrollable container
+    // (native drag/touch/keyboard panning) rather than a static centered scale.
+    const panRegion = document.querySelector('[tabindex="0"].overflow-auto');
+    expect(panRegion).toBeInTheDocument();
+
+    fireEvent.click(zoomOutButton);
+    expect(screen.getByRole("button", { name: "Zoom in" })).toBeInTheDocument();
+  });
+
+  it("stops arrow keys from switching photos while zoomed, so they pan instead", () => {
+    render(<ProductMediaGallery product={product} />);
+    fireEvent.click(screen.getByRole("button", { name: /Enlarge image 1 of 3/ }));
+    const dialog = screen.getByRole("dialog", { name: "Expanded product image" });
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+
+    fireEvent.keyDown(dialog, { key: "ArrowRight" });
+
+    expect(within(dialog).getByText("01 / 03")).toBeInTheDocument();
+  });
 });

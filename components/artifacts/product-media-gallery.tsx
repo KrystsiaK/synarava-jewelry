@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 import { AnimatedModal } from "@/components/ui/animated-modal";
@@ -28,8 +28,21 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [failedSources, setFailedSources] = useState<Set<string>>(() => new Set());
+  const zoomScrollRef = useRef<HTMLDivElement>(null);
   const active = media[activeIndex] ?? media[0];
   const count = media.length;
+
+  // Zooming in centers the pan area instead of leaving it scrolled to the
+  // top-left corner (REV-24) — the browser's own scroll handles the actual
+  // panning (touch drag, mouse drag via native scrollbar/trackpad, and arrow
+  // keys once focused), so no custom gesture tracking is needed.
+  useEffect(() => {
+    const node = zoomScrollRef.current;
+    if (!zoomed || !node) return;
+    node.scrollLeft = (node.scrollWidth - node.clientWidth) / 2;
+    node.scrollTop = (node.scrollHeight - node.clientHeight) / 2;
+    node.focus({ preventScroll: true });
+  }, [zoomed, activeIndex]);
 
   if (!active) return null;
 
@@ -122,40 +135,75 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
         <div
           className="relative h-full w-full"
           onKeyDown={(event) => {
+            // Arrow keys pan the zoomed image (native scroll) instead of
+            // switching photos while zoomed (REV-24).
+            if (zoomed) return;
             if (event.key === "ArrowLeft" && count > 1) move(-1);
             if (event.key === "ArrowRight" && count > 1) move(1);
           }}
         >
-          <button
-            type="button"
-            onClick={() => setZoomed((value) => !value)}
-            aria-label={zoomed ? t("product.zoomOut") : t("product.zoomIn")}
-            className={`absolute inset-0 ${zoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
-          >
-            <Image
-              key={`expanded-${active.src}`}
-              src={active.src}
-              alt={active.alt || product.title}
-              fill
-              sizes="100vw"
-              quality={75}
-              className={`object-contain transition-transform duration-300 ease-out motion-reduce:transition-none ${zoomed ? "scale-[1.7]" : "scale-100"}`}
-            />
-          </button>
+          {zoomed ? (
+            <div
+              ref={zoomScrollRef}
+              tabIndex={0}
+              className="absolute inset-0 cursor-grab overflow-auto focus:outline-none active:cursor-grabbing"
+            >
+              <div className="relative h-[170%] w-[170%]">
+                <Image
+                  key={`expanded-${active.src}`}
+                  src={active.src}
+                  alt={active.alt || product.title}
+                  fill
+                  sizes="170vw"
+                  quality={75}
+                  className="object-contain"
+                />
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setZoomed(true)}
+              aria-label={t("product.zoomIn")}
+              className="absolute inset-0 cursor-zoom-in"
+            >
+              <Image
+                key={`expanded-${active.src}`}
+                src={active.src}
+                alt={active.alt || product.title}
+                fill
+                sizes="100vw"
+                quality={75}
+                className="object-contain"
+              />
+            </button>
+          )}
 
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/65 to-transparent p-4 pb-12 md:p-6 md:pb-16">
             <span className="text-xs font-semibold tracking-[0.18em] text-white/82">{position}</span>
-            <button
-              type="button"
-              onClick={() => { setLightboxOpen(false); setZoomed(false); }}
-              className="pointer-events-auto flex min-h-11 items-center gap-2 border border-white/35 bg-black/25 px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              aria-label={t("product.closeExpandedImage")}
-            >
-              <CloseIcon /> <span className="hidden sm:inline">{t("product.close")}</span>
-            </button>
+            <div className="pointer-events-auto flex items-center gap-2">
+              {zoomed ? (
+                <button
+                  type="button"
+                  onClick={() => setZoomed(false)}
+                  aria-label={t("product.zoomOut")}
+                  className="flex min-h-11 items-center gap-2 border border-white/35 bg-black/25 px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  <ZoomIcon />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => { setLightboxOpen(false); setZoomed(false); }}
+                className="flex min-h-11 items-center gap-2 border border-white/35 bg-black/25 px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                aria-label={t("product.closeExpandedImage")}
+              >
+                <CloseIcon /> <span className="hidden sm:inline">{t("product.close")}</span>
+              </button>
+            </div>
           </div>
 
-          {count > 1 ? (
+          {count > 1 && !zoomed ? (
             <div className="pointer-events-none absolute inset-x-3 top-1/2 flex -translate-y-1/2 justify-between md:inset-x-6">
               <GalleryArrow label={t("product.previousImage")} direction="left" onClick={() => move(-1)} />
               <GalleryArrow label={t("product.nextImage")} direction="right" onClick={() => move(1)} />
