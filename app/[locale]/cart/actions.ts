@@ -44,40 +44,70 @@ export async function addToCartAction(formData: FormData) {
 // The line's current quantity is read back from the cart rather than trusted
 // from the submitted form field, so a stale or tampered client value can
 // only ever move the real server-side quantity by one step, never set it
-// to an arbitrary number.
+// to an arbitrary number. This still leaves a window between the read and
+// the write — two tabs incrementing at once can lose one of the two steps —
+// but CartItemRow disables its buttons while a request is in flight, and
+// refreshCommerce() always brings the row back to Shopify's authoritative
+// count afterward rather than trusting an optimistic local bump.
 async function currentLineQuantity(itemId: string): Promise<number | null> {
   return getStorefrontCartLineQuantity(itemId);
 }
 
-export async function increaseCartItemAction(formData: FormData) {
+export type CartItemActionState = { ok: boolean; error?: string };
+
+export async function increaseCartItemAction(
+  _prevState: CartItemActionState,
+  formData: FormData,
+): Promise<CartItemActionState> {
   const parsed = parseFormData(formData, cartItemSchema);
-  if (!parsed.success) return;
+  if (!parsed.success) return { ok: false, error: "This item is no longer in your cart." };
 
   // No arbitrary line cap here (REV-10) — Shopify's own stock/inventoryPolicy is
   // the one limit, already what disables the "+" button (cart-item-row.tsx) and
-  // what a cartLinesAdd warning (REV-09) reports if it caps the actual increase.
+  // what a cartLinesUpdate warning reports if it caps the actual increase.
   const quantity = await currentLineQuantity(parsed.data.itemId);
-  if (quantity === null) return;
+  if (quantity === null) return { ok: false, error: "This item is no longer in your cart." };
 
-  await updateStorefrontCartItemQuantity(parsed.data.itemId, quantity + 1);
+  try {
+    await updateStorefrontCartItemQuantity(parsed.data.itemId, quantity + 1);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't update this item." };
+  }
   refreshCommerce();
+  return { ok: true };
 }
 
-export async function decreaseCartItemAction(formData: FormData) {
+export async function decreaseCartItemAction(
+  _prevState: CartItemActionState,
+  formData: FormData,
+): Promise<CartItemActionState> {
   const parsed = parseFormData(formData, cartItemSchema);
-  if (!parsed.success) return;
+  if (!parsed.success) return { ok: false, error: "This item is no longer in your cart." };
 
   const quantity = await currentLineQuantity(parsed.data.itemId);
-  if (quantity === null || quantity < 1) return;
+  if (quantity === null || quantity < 1) return { ok: false, error: "This item is no longer in your cart." };
 
-  await updateStorefrontCartItemQuantity(parsed.data.itemId, quantity - 1);
+  try {
+    await updateStorefrontCartItemQuantity(parsed.data.itemId, quantity - 1);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't update this item." };
+  }
   refreshCommerce();
+  return { ok: true };
 }
 
-export async function removeCartItemAction(formData: FormData) {
+export async function removeCartItemAction(
+  _prevState: CartItemActionState,
+  formData: FormData,
+): Promise<CartItemActionState> {
   const parsed = parseFormData(formData, cartItemSchema);
-  if (!parsed.success) return;
+  if (!parsed.success) return { ok: false, error: "This item is no longer in your cart." };
 
-  await removeStorefrontCartItem(parsed.data.itemId);
+  try {
+    await removeStorefrontCartItem(parsed.data.itemId);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't remove this item." };
+  }
   refreshCommerce();
+  return { ok: true };
 }

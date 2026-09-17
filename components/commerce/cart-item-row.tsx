@@ -2,15 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useActionState } from "react";
 
 import {
   decreaseCartItemAction,
   increaseCartItemAction,
   removeCartItemAction,
+  type CartItemActionState,
 } from "@/app/[locale]/cart/actions";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { Tooltip } from "@/components/ui/tooltip";
+
+const initialActionState: CartItemActionState = { ok: true };
 
 type CartItemRowProps = {
   item: {
@@ -31,8 +35,20 @@ export function CartItemRow({ item }: CartItemRowProps) {
   const isAtStockLimit =
     item.maxQuantity != null && item.quantity >= item.maxQuantity;
 
+  const [decreaseState, decreaseAction, isDecreasing] = useActionState(decreaseCartItemAction, initialActionState);
+  const [increaseState, increaseAction, isIncreasing] = useActionState(increaseCartItemAction, initialActionState);
+  const [removeState, removeAction, isRemoving] = useActionState(removeCartItemAction, initialActionState);
+  const isBusy = isDecreasing || isIncreasing || isRemoving;
+  const error = !removeState.ok
+    ? removeState.error
+    : !increaseState.ok
+      ? increaseState.error
+      : !decreaseState.ok
+        ? decreaseState.error
+        : null;
+
   return (
-    <article data-component="CartItemRow" className="grid gap-5 border-t border-stroke py-6 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
+    <article data-component="CartItemRow" className="grid gap-5 border-t border-stroke py-6 md:grid-cols-[8rem_minmax(0,1fr)_auto]" aria-busy={isBusy}>
       <Link href={localePath(locale, `/products/${item.slug}`)} className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
         <Image
           alt={item.title}
@@ -50,13 +66,13 @@ export function CartItemRow({ item }: CartItemRowProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <form action={decreaseCartItemAction}>
+          <form action={decreaseAction}>
             <input type="hidden" name="itemId" value={item.id} />
-            <input type="hidden" name="quantity" value={item.quantity} />
             <button
               type="submit"
+              disabled={isBusy}
               aria-label={t("cart.decrease")}
-              className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span aria-hidden="true">−</span>
             </button>
@@ -76,26 +92,30 @@ export function CartItemRow({ item }: CartItemRowProps) {
               </button>
             </Tooltip>
           ) : (
-            <form action={increaseCartItemAction}>
+            <form action={increaseAction}>
               <input type="hidden" name="itemId" value={item.id} />
-              <input type="hidden" name="quantity" value={item.quantity} />
               <button
                 type="submit"
+                disabled={isBusy}
                 aria-label={t("cart.increase")}
-                className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span aria-hidden="true">+</span>
               </button>
             </form>
           )}
 
-          <form action={removeCartItemAction} className="ml-2">
+          <form action={removeAction} className="ml-2">
             <input type="hidden" name="itemId" value={item.id} />
-            <button type="submit" className="label-caps text-muted transition-colors hover:text-accent">
+            <button type="submit" disabled={isBusy} className="label-caps text-muted transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-50">
               {t("cart.remove")}
             </button>
           </form>
         </div>
+
+        {error ? (
+          <p role="alert" className="text-sm text-couture-red">{error}</p>
+        ) : null}
       </div>
 
       <div className="space-y-1 text-left md:text-right">

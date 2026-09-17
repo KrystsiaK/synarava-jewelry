@@ -1,10 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-vi.mock("@/app/[locale]/cart/actions", () => ({
+const mocks = vi.hoisted(() => ({
   decreaseCartItemAction: vi.fn(),
   increaseCartItemAction: vi.fn(),
   removeCartItemAction: vi.fn(),
 }));
+
+vi.mock("@/app/[locale]/cart/actions", () => mocks);
 
 import { CartItemRow } from "../cart-item-row";
 
@@ -20,6 +23,13 @@ const item = {
 };
 
 describe("CartItemRow", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.decreaseCartItemAction.mockResolvedValue({ ok: true });
+    mocks.increaseCartItemAction.mockResolvedValue({ ok: true });
+    mocks.removeCartItemAction.mockResolvedValue({ ok: true });
+  });
+
   it("renders item title", () => {
     render(<CartItemRow item={item} />);
     expect(screen.getByText("Birch Bracelet")).toBeInTheDocument();
@@ -67,5 +77,31 @@ describe("CartItemRow", () => {
     );
     fireEvent.focus(increaseButton);
     expect(screen.getByRole("tooltip")).toHaveTextContent("No more items available");
+  });
+
+  it("disables the other controls while a change is in flight (REV-11)", async () => {
+    let resolveRemove!: (state: { ok: boolean }) => void;
+    mocks.removeCartItemAction.mockReturnValue(new Promise((resolve) => { resolveRemove = resolve; }));
+    const user = userEvent.setup();
+    render(<CartItemRow item={item} />);
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(screen.getByRole("button", { name: "Increase quantity" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Decrease quantity" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove" })).toBeDisabled();
+
+    resolveRemove({ ok: true });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Remove" })).not.toBeDisabled());
+  });
+
+  it("surfaces an action failure instead of failing silently (REV-11)", async () => {
+    mocks.increaseCartItemAction.mockResolvedValue({ ok: false, error: "Couldn't update this item." });
+    const user = userEvent.setup();
+    render(<CartItemRow item={item} />);
+
+    await user.click(screen.getByRole("button", { name: "Increase quantity" }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Couldn't update this item."));
   });
 });
