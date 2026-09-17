@@ -38,6 +38,7 @@ graphify-out/
 # photo-editing scratch output (unreferenced by app code — do not commit)
 /artifacts/product-photo/
 /edited-product-photos/
+/review-assets/videos/
 
 # Claude Code & Codex local tooling
 .claude/skills/

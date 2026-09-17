@@ -59,3 +59,38 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  storefront-smoke:
+    name: Storefront smoke (desktop and mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: synarava_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synarava_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
+      APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma:push
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke

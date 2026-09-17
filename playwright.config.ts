@@ -35,6 +35,11 @@ export default defineConfig({
       testMatch: ADMIN_CRUD_SPEC_PATTERN,
       dependencies: ["setup"],
     },
+    {
+      name: "mobile-webkit-smoke",
+      use: { ...devices["iPhone 13"] },
+      testMatch: /e2e\/smoke\.spec\.ts$/,
+    },
   ],
   webServer: {
     command: "pnpm dev",
