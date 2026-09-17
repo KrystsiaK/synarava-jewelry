@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Invalid cart request." }, { status: 400 });
     }
 
-    await addStorefrontProductToCart(
+    const { warnings } = await addStorefrontProductToCart(
       productSlug,
       quantity,
       body.merchandiseId?.trim() || undefined,
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       count: cart.itemCount,
+      warnings,
       ecommerce: {
         currency: cart.currency,
         value: cart.subtotalCents / 100,

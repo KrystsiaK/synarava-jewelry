@@ -116,14 +116,19 @@ function emptyCartViewModel(locale: Locale) {
   };
 }
 
-function assertCartMutation(payload: CartMutationPayload) {
+type CartMutationResult = { cart: ShopifyCart; warnings: string[] };
+
+// Shopify silently adjusts a mutation (e.g. capping quantity to available stock)
+// instead of raising a userError, and reports that adjustment only via
+// `warnings` — callers must surface these rather than reporting plain success.
+function assertCartMutation(payload: CartMutationPayload): CartMutationResult {
   if (payload.userErrors.length) {
     throw new Error(payload.userErrors.map((error) => error.message).join("; "));
   }
   if (!payload.cart) {
     throw new Error("Shopify did not return a cart.");
   }
-  return payload.cart;
+  return { cart: payload.cart, warnings: payload.warnings?.map((warning) => warning.message) ?? [] };
 }
 
 async function getCartId() {
@@ -225,9 +230,9 @@ async function createShopifyCart(
     { input: { lines: [{ merchandiseId, quantity }] }, language },
     { buyerIp },
   );
-  const cart = assertCartMutation(data.cartCreate);
-  await rememberCart(cart.id);
-  return cart;
+  const result = assertCartMutation(data.cartCreate);
+  await rememberCart(result.cart.id);
+  return result;
 }
 
 export async function getShopifyCartViewModel() {

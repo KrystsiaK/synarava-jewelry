@@ -36,6 +36,7 @@ export function AddToCartButton({
   const [isError, setIsError] = useState(false);
   const [recentCount, setRecentCount] = useState<number | null>(null);
   const [recentEcommerce, setRecentEcommerce] = useState<CommerceEcommerce | null>(null);
+  const [recentWarnings, setRecentWarnings] = useState<string[]>([]);
 
   async function handleAdd() {
     setIsError(false);
@@ -52,6 +53,7 @@ export function AddToCartButton({
         ok: boolean;
         count?: number;
         ecommerce?: CommerceEcommerce;
+        warnings?: string[];
         error?: string;
       };
 
@@ -65,26 +67,34 @@ export function AddToCartButton({
         }),
       );
 
-      trackCommerceEvent("add_to_cart", {
-        ecommerce: {
-          value,
-          currency,
-          items: [{
-            item_id: sku || merchandiseId || productSlug,
-            item_name: itemName,
-            item_variant: merchandiseId,
-            price: value,
-            quantity: 1,
-          }],
-        },
-        metadata: {
-          productSlug,
-          cartCount: payload.count ?? 0,
-        },
-      });
+      // Shopify reports a capped/adjusted quantity (e.g. hit the available stock)
+      // as a warning rather than an error — reporting a clean "added" success and
+      // a confirmed add_to_cart for the requested quantity would be a false
+      // confirmation in that case (REV-09).
+      const warnings = payload.warnings ?? [];
+      if (warnings.length === 0) {
+        trackCommerceEvent("add_to_cart", {
+          ecommerce: {
+            value,
+            currency,
+            items: [{
+              item_id: sku || merchandiseId || productSlug,
+              item_name: itemName,
+              item_variant: merchandiseId,
+              price: value,
+              quantity: 1,
+            }],
+          },
+          metadata: {
+            productSlug,
+            cartCount: payload.count ?? 0,
+          },
+        });
+      }
 
       setRecentCount(payload.count ?? 0);
       setRecentEcommerce(payload.ecommerce ?? null);
+      setRecentWarnings(warnings);
       setMessage(t("product.added"));
     } catch (error) {
       setIsError(true);
@@ -100,6 +110,7 @@ export function AddToCartButton({
     setMessage(null);
     setRecentCount(null);
     setRecentEcommerce(null);
+    setRecentWarnings([]);
   }
 
   const confirmation = showPanel ? (
@@ -136,7 +147,9 @@ export function AddToCartButton({
             </span>
             <div>
               <p className="font-serif text-[1.45rem] leading-none text-white">{t("product.addedTitle")}</p>
-              {recentCount !== null ? (
+              {recentWarnings.length > 0 ? (
+                <p className="mt-2 text-sm text-white/72">{recentWarnings.join(" ")}</p>
+              ) : recentCount !== null ? (
                 <p className="mt-2 text-sm text-white/58">
                   {plural("product.cartCount", recentCount)}
                 </p>

@@ -21,7 +21,7 @@ vi.mock("@/lib/i18n/server", () => ({
   getRequestLocale: mocks.getRequestLocale,
 }));
 
-import { getShopifyCartLineQuantity, getShopifyCartViewModel } from "@/lib/shopify/cart";
+import { addShopifyProductToCart, getShopifyCartLineQuantity, getShopifyCartViewModel } from "@/lib/shopify/cart";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -79,5 +79,50 @@ describe("getShopifyCartLineQuantity", () => {
     const [query, variables] = mocks.shopifyStorefrontRequest.mock.calls[0];
     expect(query).toContain("@inContext(language: $language)");
     expect(variables).toEqual({ cartId: "gid://shopify/Cart/1", language: "PT_PT" });
+  });
+});
+
+describe("addShopifyProductToCart", () => {
+  const existingCart = {
+    id: "gid://shopify/Cart/1",
+    checkoutUrl: "https://checkout.example",
+    totalQuantity: 1,
+    cost: { subtotalAmount: { amount: "10.00", currencyCode: "EUR" } },
+    lines: { nodes: [] },
+  };
+
+  it("surfaces Shopify's cart warnings instead of dropping them (REV-09)", async () => {
+    mocks.shopifyStorefrontRequest
+      .mockResolvedValueOnce({ cart: existingCart })
+      .mockResolvedValueOnce({
+        cartLinesAdd: {
+          cart: existingCart,
+          userErrors: [],
+          warnings: [{ message: "Only 1 left — we added what's available." }],
+        },
+      });
+
+    const result = await addShopifyProductToCart(
+      "birch-bracelet",
+      1,
+      "gid://shopify/ProductVariant/1",
+    );
+
+    expect(result.warnings).toEqual(["Only 1 left — we added what's available."]);
+    expect(result.cart).toEqual(existingCart);
+  });
+
+  it("returns no warnings for a clean mutation", async () => {
+    mocks.shopifyStorefrontRequest
+      .mockResolvedValueOnce({ cart: existingCart })
+      .mockResolvedValueOnce({ cartLinesAdd: { cart: existingCart, userErrors: [], warnings: [] } });
+
+    const result = await addShopifyProductToCart(
+      "birch-bracelet",
+      1,
+      "gid://shopify/ProductVariant/1",
+    );
+
+    expect(result.warnings).toEqual([]);
   });
 });

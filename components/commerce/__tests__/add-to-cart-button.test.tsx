@@ -1,5 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
+const mocks = vi.hoisted(() => ({ trackCommerceEvent: vi.fn() }));
+vi.mock("@/lib/analytics/commerce", () => ({ trackCommerceEvent: mocks.trackCommerceEvent }));
+
 import { AddToCartButton } from "../add-to-cart-button";
 
 function setupFetch(payload: object, ok = true) {
@@ -15,6 +19,7 @@ function setupFetch(payload: object, ok = true) {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  mocks.trackCommerceEvent.mockClear();
 });
 
 describe("AddToCartButton", () => {
@@ -86,6 +91,17 @@ describe("AddToCartButton", () => {
     render(<AddToCartButton productSlug="birch-bracelet" />);
     await user.click(screen.getByRole("button"));
     await waitFor(() => expect(screen.getByText("Out of stock")).toBeInTheDocument());
+  });
+
+  it("surfaces a Shopify cart warning instead of claiming plain success (REV-09)", async () => {
+    setupFetch({ ok: true, count: 1, warnings: ["Only 1 left — we added what's available."] });
+    const user = userEvent.setup();
+    render(<AddToCartButton productSlug="birch-bracelet" />);
+    await user.click(screen.getByRole("button"));
+
+    await waitFor(() => expect(screen.getByText("Only 1 left — we added what's available.")).toBeInTheDocument());
+    expect(screen.queryByText("1 product in cart")).not.toBeInTheDocument();
+    expect(mocks.trackCommerceEvent).not.toHaveBeenCalledWith("add_to_cart", expect.anything());
   });
 
   it("re-enables button after response", async () => {
