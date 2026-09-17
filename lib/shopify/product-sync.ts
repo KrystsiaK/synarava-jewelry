@@ -1127,8 +1127,10 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
     if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { status: "IGNORED", completedAt: new Date() } });
     return { ignored: true as const };
   }
+  // Inventory-only: touches stockOnHand alone. It must not mark the product SYNCED —
+  // that would erase a still-pending commerce/editorial change or an unresolved
+  // CONFLICT that has nothing to do with this webhook (REV-04).
   await db.productVariant.update({ where: { id: variant.id }, data: { stockOnHand } });
-  await db.product.update({ where: { id: variant.productId }, data: { lastSyncedAt: new Date(), syncStatus: "SYNCED", syncError: null } });
   if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { productId: variant.productId, status: "SUCCEEDED", completedAt: new Date() } });
   return { ignored: false as const, productId: variant.productId, stockOnHand };
 }
