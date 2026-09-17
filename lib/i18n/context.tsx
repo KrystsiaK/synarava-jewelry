@@ -71,8 +71,15 @@ export function TranslationProvider({
   }, [locale]);
 
   function setLocale(newLocale: Locale) {
+    // Keeps the filtered/sectioned context the user is in (e.g. a shop query
+    // string or a profile tab anchor) across the switch instead of dropping it
+    // (REV-22). Read directly from window rather than useSearchParams(), which
+    // would force this whole subtree (the root layout wraps every page) out of
+    // static rendering — setLocale only ever runs from a click handler, never
+    // during render, so this is safe.
     const rest = pathname.replace(/^\/(en|pt)(?=\/|$)/, "");
-    router.push(localePath(newLocale, rest === "" ? "/" : rest));
+    const { search, hash } = window.location;
+    router.push(`${localePath(newLocale, rest === "" ? "/" : rest)}${search}${hash}`);
   }
 
   const t = useCallback(

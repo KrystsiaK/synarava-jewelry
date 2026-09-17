@@ -122,7 +122,7 @@
   - Provider в root layout сохраняет useState; effect запускается только при mount. После переключения EN→PT и browser Back к `/en/...` состояние переводов может остаться PT. Прямой client-side переход между locale routes тоже не обновляет state из pathname/initialLocale.
   - Исправить: URL должен быть источником locale, словарь и document.lang должны синхронно следовать ему. Проверка: EN→PT→Back→Forward, включая серверный контент и ссылки.
 
-- [ ] **REV-22. Переключение языка удаляет query string и hash.**
+- [x] **REV-22. Переключение языка удаляет query string и hash.**
   - Код: `lib/i18n/context.tsx:57`.
   - navigateToLocale использует только usePathname. Пропадают поиск/фильтры `/shop?q=...&collection=...`, секция профиля `?section=orders` и якорь.
   - Исправить: сохранять совместимые search params и hash при замене locale segment. Проверка: переключение языка из отфильтрованного каталога и вкладки заказов сохраняет контекст.
