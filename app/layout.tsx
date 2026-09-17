@@ -123,7 +123,9 @@ export default async function RootLayout({
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
   const [cartCount, isLoggedIn, departments, storefrontCopy] = await Promise.all([
-    getStorefrontCartCount(),
+    // An unreachable/slow Shopify Storefront API must not block rendering of the
+    // whole app (admin included) for a header badge that isn't essential to any page.
+    getStorefrontCartCount().catch(() => null),
     hasShopifyCustomerSession(),
     getStorefrontNavigation(),
     getStorefrontCopy(),

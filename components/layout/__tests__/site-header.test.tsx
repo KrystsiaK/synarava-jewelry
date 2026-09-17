@@ -47,6 +47,12 @@ describe("SiteHeader", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
+  it("hides the badge and omits an item count from the label when the cart count is unknown", () => {
+    render(<SiteHeader initialCartCount={null} />, { wrapper: Wrapper });
+    expect(screen.getByRole("link", { name: "Cart" })).toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
   it("opens mobile menu on hamburger click", async () => {
     const user = userEvent.setup();
     renderHeader();

@@ -18,7 +18,9 @@ import { localePath } from "@/lib/i18n/routing";
 import { hasDepartmentTranslation, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
 
 type SiteHeaderProps = {
-  initialCartCount: number;
+  // null means the cart count couldn't be fetched (e.g. Shopify unavailable) —
+  // treated as "unknown", never rendered as an empty cart.
+  initialCartCount: number | null;
   isLoggedIn?: boolean;
   departments?: Array<{ slug: string; name: string }>;
 };
@@ -31,7 +33,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
   const reduceMotion = useReducedMotion() ?? false;
   const [cartCountOverride, setCartCountOverride] = useState<{
     count: number;
-    sourceCount: number;
+    sourceCount: number | null;
   } | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isShopMenuOpen, setIsShopMenuOpen] = useState(false);
@@ -42,7 +44,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
     cartCountOverride?.sourceCount === initialCartCount
       ? cartCountOverride.count
       : initialCartCount;
-  const hasCartItems = cartCount > 0;
+  const hasCartItems = cartCount != null && cartCount > 0;
 
   const navItems = [
     { href: "/", label: t("nav.home"), match: "/" },
@@ -240,7 +242,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
 
           <Link
             href={localePath(locale, "/cart")}
-            aria-label={`${t("nav.cart")}${cartCount > 0 ? `, ${cartCount} items` : ""}`}
+            aria-label={`${t("nav.cart")}${hasCartItems ? `, ${cartCount} items` : ""}`}
             className={`relative inline-flex min-h-11 items-center gap-2 px-3 py-2 transition-[background-color,color,transform] hover:text-accent ${
               /* c8 ignore next 4 */
               isActive("/cart")

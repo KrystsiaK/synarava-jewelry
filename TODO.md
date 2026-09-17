@@ -18,7 +18,7 @@
   - Исправить: единая проекция Shopify-доступности с учётом статуса, tracking и policy; использовать её в карточках, фильтрах, PDP и structured data.
   - Проверка: `CONTINUE + 0`, untracked, `DENY + 0`, inactive + положительный остаток. [Shopify: условия доступности вариантов](https://shopify.dev/docs/api/liquid/objects/product).
 
-- [ ] **REV-03. Ошибка Shopify-корзины ломает весь root layout, включая административные страницы.**
+- [x] **REV-03. Ошибка Shopify-корзины ломает весь root layout, включая административные страницы.**
   - Код: `app/layout.tsx:126`, `lib/shopify/cart.ts:280`, `lib/shopify/storefront.ts:49`.
   - При наличии cart cookie layout ждёт `getStorefrontCartCount()` без обработки ошибки. Недоступность Shopify или ошибка cart query отклоняет общий Promise.all до отрисовки любой страницы, в том числе `/admin`. В Storefront fetch также нет прикладного timeout.
   - Исправить: изолировать необязательный счётчик от основного рендера, ограничить время запроса, отделить зависимости storefront от admin; показывать недоступность корзины без ложного утверждения, что она пуста.

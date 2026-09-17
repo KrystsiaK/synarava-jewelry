@@ -29,6 +29,10 @@ export class ShopifyStorefrontError extends Error {
   }
 }
 
+// Without a timeout, a stalled Shopify Storefront API leaves any caller (including
+// non-commerce pages that only need a cart count) hanging indefinitely.
+const STOREFRONT_REQUEST_TIMEOUT_MS = 8_000;
+
 export async function shopifyStorefrontRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
@@ -52,6 +56,7 @@ export async function shopifyStorefrontRequest<T>(
       body: JSON.stringify({ query, variables }),
       cache: options.cache ?? "no-store",
       next: options.tags?.length ? { tags: options.tags } : undefined,
+      signal: AbortSignal.timeout(STOREFRONT_REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
     throw new ShopifyStorefrontError(
