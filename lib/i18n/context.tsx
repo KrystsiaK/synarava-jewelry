@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import en from "@/messages/en.json";
+import pt from "@/messages/pt.json";
 import { flattenMessages } from "./utils";
 import { normalizeLocale, type Locale } from "./locales";
 import { localePath } from "./routing";
@@ -11,7 +12,7 @@ export type { Locale } from "./locales";
 
 type TranslationContextValue = {
   locale: Locale;
-  setLocale: (locale: Locale) => Promise<void>;
+  setLocale: (locale: Locale) => void;
   t: (key: string, values?: TranslationValues) => string;
   plural: (key: string, count: number, values?: TranslationValues) => string;
   loading: boolean;
@@ -22,10 +23,20 @@ type TranslationValues = Record<string, string | number>;
 const STORAGE_LOCALE_KEY = "synarava-locale";
 
 const enFlat = flattenMessages(en as Record<string, unknown>);
+// Both supported dictionaries ship in the client bundle already (the same
+// source the old /api/translate route re-served over the network), so a
+// locale switch — and, critically, the very first SSR render — never has to
+// wait on a fetch. REV-20: SSR used to seed `messages` from enFlat
+// unconditionally and only fetch the PT dictionary in a post-mount effect,
+// so a PT page's initial HTML was English until that fetch resolved.
+const dictionaries: Record<Locale, Record<string, string>> = {
+  en: enFlat,
+  pt: flattenMessages(pt as Record<string, unknown>),
+};
 
 const TranslationContext = createContext<TranslationContextValue>({
   locale: "en",
-  setLocale: async () => {},
+  setLocale: () => {},
   t: (key, values) => interpolate(enFlat[key] ?? key, values),
   plural: (key, count, values) => interpolate(enFlat[`${key}.${count === 1 ? "one" : "other"}`] ?? key, { ...values, count }),
   loading: false,
@@ -43,49 +54,21 @@ export function TranslationProvider({
   const router = useRouter();
   const pathname = usePathname();
   const [locale, setLocaleState] = useState<Locale>(() => normalizeLocale(initialLocale));
-  const [messages, setMessages] = useState<Record<string, string>>(() => ({ ...enFlat, ...initialOverrides?.[normalizeLocale(initialLocale)] }));
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const normalizedLocale = normalizeLocale(initialLocale);
-    if (normalizedLocale !== "en") {
-      loadLocale(normalizedLocale, { navigate: false });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [messages, setMessages] = useState<Record<string, string>>(() => (
+    { ...dictionaries[normalizeLocale(initialLocale)], ...initialOverrides?.[normalizeLocale(initialLocale)] }
+  ));
 
   function navigateToLocale(newLocale: Locale) {
     const rest = pathname.replace(/^\/(en|pt)(?=\/|$)/, "");
     router.push(localePath(newLocale, rest === "" ? "/" : rest));
   }
 
-  async function loadLocale(newLocale: Locale, options: { navigate?: boolean } = {}): Promise<void> {
-    const navigate = options.navigate ?? true;
-
-    if (newLocale === "en") {
-      setLocaleState("en");
-      setMessages({ ...enFlat, ...initialOverrides?.en });
-      persist("en");
-      document.documentElement.lang = "en";
-      if (navigate) navigateToLocale("en");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/translate?locale=${encodeURIComponent(newLocale)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: Record<string, string> = await res.json();
-      setMessages({ ...data, ...initialOverrides?.[newLocale] });
-      setLocaleState(newLocale);
-      persist(newLocale);
-      document.documentElement.lang = newLocale;
-      if (navigate) navigateToLocale(newLocale);
-    } catch (err) {
-      console.error("[i18n] Failed to load translations:", err);
-    } finally {
-      setLoading(false);
-    }
+  function setLocale(newLocale: Locale) {
+    setLocaleState(newLocale);
+    setMessages({ ...dictionaries[newLocale], ...initialOverrides?.[newLocale] });
+    persist(newLocale);
+    document.documentElement.lang = newLocale;
+    navigateToLocale(newLocale);
   }
 
   const t = useCallback(
@@ -105,7 +88,7 @@ export function TranslationProvider({
   );
 
   return (
-    <TranslationContext.Provider value={{ locale, setLocale: loadLocale, t, plural, loading }}>
+    <TranslationContext.Provider value={{ locale, setLocale, t, plural, loading: false }}>
       {children}
     </TranslationContext.Provider>
   );
