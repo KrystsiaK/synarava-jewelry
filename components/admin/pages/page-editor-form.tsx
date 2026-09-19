@@ -14,7 +14,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import { AdminLocaleTabs, useAdminActiveLocale } from "@/components/admin/shared/admin-locale-workspace";
-import type { EditablePageContent } from "@/components/admin/pages/page-types";
+import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
@@ -31,7 +31,10 @@ export function PageEditor({
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const content = (page.content ?? {}) as EditablePageContent;
-  const ptContent = content.translations?.pt ?? {};
+  const normalizedPortuguese = page.translations?.find((translation) => translation.locale === "PT");
+  const ptContent = normalizedPortuguese
+    ? { ...(normalizedPortuguese.content as EditablePageCopy ?? {}), title: normalizedPortuguese.title, excerpt: normalizedPortuguese.excerpt ?? "" }
+    : content.translations?.pt ?? {};
   const isHomePage = page.slug === "home";
   const isAboutPage = page.slug === "about";
   const isOfferPage = page.slug === "offer";

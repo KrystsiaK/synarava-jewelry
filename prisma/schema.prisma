@@ -46,9 +46,9 @@ model ShopifyCustomerSession {
 }
 
 model Collection {
-  id                    String              @id @default(cuid())
-  slug                  String              @unique
-  code                  String?             @unique
+  id                    String                  @id @default(cuid())
+  slug                  String                  @unique
+  code                  String?                 @unique
   name                  String
   subtitle              String?
   description           String?
@@ -61,23 +61,23 @@ model Collection {
   seoTitle              String?
   seoDescription        String?
   heroImageUrl          String?
-  shopifyCollectionId   String?             @unique
-  shopifyManualSourceId String?             @unique
+  shopifyCollectionId   String?                 @unique
+  shopifyManualSourceId String?                 @unique
   shopifyHandle         String?
   lastSyncedAt          DateTime?
-  isPrimaryNav          Boolean             @default(false)
-  navSortOrder          Int                 @default(0)
-  isStorefrontDefault   Boolean             @default(false)
-  status                CollectionStatus    @default(DRAFT)
-  visibility            ContentVisibility   @default(PRIVATE)
+  isPrimaryNav          Boolean                 @default(false)
+  navSortOrder          Int                     @default(0)
+  isStorefrontDefault   Boolean                 @default(false)
+  status                CollectionStatus        @default(DRAFT)
+  visibility            ContentVisibility       @default(PRIVATE)
   heroAssetId           String?
   coverAssetId          String?
-  sortOrder             Int                 @default(0)
+  sortOrder             Int                     @default(0)
   publishedAt           DateTime?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  heroAsset             MediaAsset?         @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
-  coverAsset            MediaAsset?         @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  heroAsset             MediaAsset?             @relation("CollectionHeroAsset", fields: [heroAssetId], references: [id], onDelete: SetNull)
+  coverAsset            MediaAsset?             @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
   products              ProductCollection[]
   sections              CollectionSection[]
   translations          CollectionTranslation[]
@@ -86,29 +86,29 @@ model Collection {
 }
 
 model CollectionTranslation {
-  id                  String                  @id @default(cuid())
-  locale              ContentLocale
-  name                String
-  subtitle            String?
-  description         String?
-  manifesto           String?
-  symbolismLabel      String?
-  symbolismTitle      String?
-  symbolismBody       String?
-  symbolismBody2      String?
-  searchSummary       String?
-  seoTitle            String?
-  seoDescription      String?
-  reviewStatus        TranslationReviewStatus @default(DRAFT)
-  reviewedAt          DateTime?
-  syncStatus          TranslationSyncStatus   @default(NOT_APPLICABLE)
-  syncError           String?
-  contentHash         String?
-  lastSyncedAt        DateTime?
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-  collectionId        String
-  collection          Collection              @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  id             String                  @id @default(cuid())
+  locale         ContentLocale
+  name           String
+  subtitle       String?
+  description    String?
+  manifesto      String?
+  symbolismLabel String?
+  symbolismTitle String?
+  symbolismBody  String?
+  symbolismBody2 String?
+  searchSummary  String?
+  seoTitle       String?
+  seoDescription String?
+  reviewStatus   TranslationReviewStatus @default(DRAFT)
+  reviewedAt     DateTime?
+  syncStatus     TranslationSyncStatus   @default(NOT_APPLICABLE)
+  syncError      String?
+  contentHash    String?
+  lastSyncedAt   DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  collectionId   String
+  collection     Collection              @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, locale])
   @@index([locale, reviewStatus])
@@ -187,29 +187,29 @@ model Product {
 }
 
 model ProductTranslation {
-  id                  String                  @id @default(cuid())
-  locale              ContentLocale
-  title               String
-  shortDescription    String?
-  description         String?
-  materialLine        String?
-  symbolismLabel      String?
-  symbolismTitle      String?
-  symbolismBody       String?
-  symbolismBody2      String?
-  details             Json?
-  seoTitle            String?
-  seoDescription      String?
-  reviewStatus        TranslationReviewStatus @default(DRAFT)
-  reviewedAt          DateTime?
-  syncStatus          TranslationSyncStatus   @default(NOT_APPLICABLE)
-  syncError           String?
-  contentHash         String?
-  lastSyncedAt        DateTime?
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
-  productId           String
-  product             Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id               String                  @id @default(cuid())
+  locale           ContentLocale
+  title            String
+  shortDescription String?
+  description      String?
+  materialLine     String?
+  symbolismLabel   String?
+  symbolismTitle   String?
+  symbolismBody    String?
+  symbolismBody2   String?
+  details          Json?
+  seoTitle         String?
+  seoDescription   String?
+  reviewStatus     TranslationReviewStatus @default(DRAFT)
+  reviewedAt       DateTime?
+  syncStatus       TranslationSyncStatus   @default(NOT_APPLICABLE)
+  syncError        String?
+  contentHash      String?
+  lastSyncedAt     DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  productId        String
+  product          Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, locale])
   @@index([locale, reviewStatus])
@@ -436,6 +436,33 @@ model Page {
   updatedAt          DateTime          @updatedAt
   // Admin operator username at authoring time — see MediaAsset.uploadedByUsername.
   authoredByUsername String?
+  shopifyPageId      String?           @unique
+  shopifyHandle      String?
+  translations       PageTranslation[]
+}
+
+model PageTranslation {
+  id             String                  @id @default(cuid())
+  locale         ContentLocale
+  title          String
+  excerpt        String?
+  content        Json?
+  seoTitle       String?
+  seoDescription String?
+  reviewStatus   TranslationReviewStatus @default(DRAFT)
+  reviewedAt     DateTime?
+  syncStatus     TranslationSyncStatus   @default(NOT_APPLICABLE)
+  syncError      String?
+  contentHash    String?
+  lastSyncedAt   DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  pageId         String
+  page           Page                    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, locale])
+  @@index([locale, reviewStatus])
+  @@index([syncStatus, locale])
 }
 
 model SiteSetting {
@@ -612,18 +639,18 @@ enum PageStatus {
 // from ProductSyncEvent, which is commerce (inventory/price/catalog) sync,
 // not translations. See tasks/plan.md "Persistence и миграция".
 model ShopifyTranslationBinding {
-  id                   String                   @id @default(cuid())
-  resourceType         TranslationResourceType
-  entityId             String
-  shopifyResourceId    String
+  id                 String                  @id @default(cuid())
+  resourceType       TranslationResourceType
+  entityId           String
+  shopifyResourceId  String
   // PT field values (registry key -> value) as of the last successful push
   // or pull — the "base" a three-way reconcile diffs local/remote against.
   // Null before the first sync (nothing to diff yet, so reconcile treats
   // any local or remote content as a first push/pull, never a conflict).
-  lastSyncedSnapshot   Json?
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
-  syncEvents           TranslationSyncEvent[]
+  lastSyncedSnapshot Json?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  syncEvents         TranslationSyncEvent[]
 
   @@unique([resourceType, entityId])
   @@unique([resourceType, shopifyResourceId])

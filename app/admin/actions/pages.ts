@@ -1,7 +1,8 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { ContentVisibility, PageStatus, PageTemplate } from "@prisma/client";
+import { ContentVisibility, PageStatus, PageTemplate, Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
@@ -39,22 +40,47 @@ export type SavedPagePayload = {
   content: unknown;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
+  shopifyPageId: string | null;
+  shopifyHandle: string | null;
+  translations: Array<{
+    id: string;
+    locale: "EN" | "PT";
+    title: string;
+    excerpt: string | null;
+    content: unknown;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    reviewStatus: "DRAFT" | "REVIEWED";
+    syncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+    syncError: string | null;
+  }>;
 };
+
+const savedPageSelect = {
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  slug: true,
+  title: true,
+  excerpt: true,
+  content: true,
+  status: true,
+  visibility: true,
+  shopifyPageId: true,
+  shopifyHandle: true,
+  translations: {
+    select: {
+      id: true, locale: true, title: true, excerpt: true, content: true,
+      seoTitle: true, seoDescription: true, reviewStatus: true, syncStatus: true, syncError: true,
+    },
+    orderBy: { locale: "asc" },
+  },
+} satisfies Prisma.PageSelect;
 
 export async function getSavedPagePayload(pageIdOrSlug: string): Promise<SavedPagePayload> {
   const page = await db.page.findFirst({
     where: { OR: [{ id: pageIdOrSlug }, { slug: pageIdOrSlug }] },
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      slug: true,
-      title: true,
-      excerpt: true,
-      content: true,
-      status: true,
-      visibility: true,
-    },
+    select: savedPageSelect,
   });
 
   if (!page) {
@@ -293,6 +319,39 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     { name: ptMaterial2Name, category: ptMaterial2Category, description: ptMaterial2Description, properties: ptMaterial2Properties },
     { name: ptMaterial3Name, category: ptMaterial3Category, description: ptMaterial3Description, properties: ptMaterial3Properties },
   ], materialImages);
+  const englishTranslationContent = {
+    eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
+    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
+    departmentSectionCtaLabel, archiveSectionLabel, materialSectionEyebrow,
+    materialSectionTitle, materialSectionNoteLabel, materialLexicon,
+    manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
+    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections,
+  };
+  const portugueseTranslationContent = {
+    eyebrow: ptEyebrow,
+    body: ptBody,
+    ctaLabel: ptCtaLabel,
+    quote: ptQuote,
+    secondaryTitle: ptSecondaryTitle,
+    secondaryBody: ptSecondaryBody,
+    departmentSectionTitle: ptDepartmentSectionTitle,
+    departmentSectionBody: ptDepartmentSectionBody,
+    departmentSectionImageCaption: ptDepartmentSectionImageCaption,
+    departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
+    archiveSectionLabel: ptArchiveSectionLabel,
+    materialSectionEyebrow: ptMaterialSectionEyebrow,
+    materialSectionTitle: ptMaterialSectionTitle,
+    materialSectionNoteLabel: ptMaterialSectionNoteLabel,
+    materialLexicon: ptMaterialLexicon,
+    manifestoSectionLabel: ptManifestoSectionLabel,
+    manifestoSectionAttribution: ptManifestoSectionAttribution,
+    finalCtaLabel: ptFinalCtaLabel,
+    finalFooterTitle: ptFinalFooterTitle,
+    finalContactLabel: ptFinalContactLabel,
+    legalIntro: ptLegalIntro,
+    legalLastUpdated,
+    legalSections: ptLegalSections,
+  };
   const pageData = {
     slug,
     title,
@@ -335,31 +394,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
         pt: {
           title: ptTitle,
           excerpt: ptExcerpt,
-          eyebrow: ptEyebrow,
-          body: ptBody,
-          ctaLabel: ptCtaLabel,
           ctaHref,
-          quote: ptQuote,
-          secondaryTitle: ptSecondaryTitle,
-          secondaryBody: ptSecondaryBody,
-          departmentSectionTitle: ptDepartmentSectionTitle,
-          departmentSectionBody: ptDepartmentSectionBody,
-          departmentSectionImageCaption: ptDepartmentSectionImageCaption,
-          departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
-          archiveSectionLabel: ptArchiveSectionLabel,
-          materialSectionEyebrow: ptMaterialSectionEyebrow,
-          materialSectionTitle: ptMaterialSectionTitle,
-          materialSectionNoteLabel: ptMaterialSectionNoteLabel,
-          materialLexicon: ptMaterialLexicon,
-          manifestoSectionLabel: ptManifestoSectionLabel,
-          manifestoSectionAttribution: ptManifestoSectionAttribution,
-          finalCtaLabel: ptFinalCtaLabel,
           finalCtaHref,
-          finalFooterTitle: ptFinalFooterTitle,
-          finalContactLabel: ptFinalContactLabel,
           finalContactEmail,
-          legalIntro: ptLegalIntro,
-          legalSections: ptLegalSections,
+          ...portugueseTranslationContent,
         },
       },
     },
@@ -373,17 +411,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     ? await db.page.update({
         where: { id: pageId },
         data: pageData,
-        select: {
-          id: true,
-          createdAt: true,
-          updatedAt: true,
-          slug: true,
-          title: true,
-          excerpt: true,
-          content: true,
-          status: true,
-          visibility: true,
-        },
+        select: savedPageSelect,
       })
     : await (async () => {
         const existing = await db.page.findUnique({
@@ -399,19 +427,39 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
             template: existing?.template ?? PageTemplate.STATIC_PAGE,
             searchSummary: excerpt || title,
           },
-          select: {
-            id: true,
-            createdAt: true,
-            updatedAt: true,
-            slug: true,
-            title: true,
-            excerpt: true,
-            content: true,
-            status: true,
-            visibility: true,
-          },
+          select: savedPageSelect,
         });
       })();
+
+  const ptContentHash = createHash("sha256")
+    .update(JSON.stringify({ title: ptTitle, excerpt: ptExcerpt, ...portugueseTranslationContent }))
+    .digest("hex");
+  await Promise.all([
+    db.pageTranslation.upsert({
+      where: { pageId_locale: { pageId: page.id, locale: "EN" } },
+      update: {
+        title, excerpt: excerpt || null, content: englishTranslationContent,
+        reviewStatus: "REVIEWED", reviewedAt: new Date(),
+      },
+      create: {
+        pageId: page.id, locale: "EN", title, excerpt: excerpt || null,
+        content: englishTranslationContent, reviewStatus: "REVIEWED", reviewedAt: new Date(),
+      },
+    }),
+    db.pageTranslation.upsert({
+      where: { pageId_locale: { pageId: page.id, locale: "PT" } },
+      update: {
+        title: ptTitle || title, excerpt: ptExcerpt || null, content: portugueseTranslationContent,
+        contentHash: ptContentHash,
+        syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
+      },
+      create: {
+        pageId: page.id, locale: "PT", title: ptTitle || title, excerpt: ptExcerpt || null,
+        content: portugueseTranslationContent, contentHash: ptContentHash,
+        syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
+      },
+    }),
+  ]);
 
   await writeAuditLog({
     action: before ? "UPDATE" : "CREATE",
@@ -565,6 +613,48 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
         select: { id: true },
       });
 
+  const englishTranslationContent = {
+    eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
+    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
+    departmentSectionCtaLabel, archiveSectionLabel, materialSectionEyebrow,
+    materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,
+    manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
+    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections,
+  };
+  const portugueseTranslationContent = {
+    eyebrow: ptEyebrow, body: ptBody, ctaLabel: ptCtaLabel, quote: ptQuote,
+    secondaryTitle: ptSecondaryTitle, secondaryBody: ptSecondaryBody,
+    departmentSectionTitle: ptDepartmentSectionTitle,
+    departmentSectionBody: ptDepartmentSectionBody,
+    departmentSectionImageCaption: ptDepartmentSectionImageCaption,
+    departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
+    archiveSectionLabel: ptArchiveSectionLabel,
+    materialSectionEyebrow: ptMaterialSectionEyebrow,
+    materialSectionTitle: ptMaterialSectionTitle,
+    materialSectionNoteLabel: ptMaterialSectionNoteLabel,
+    materialLexicon: draftPtMaterialLexicon,
+    manifestoSectionLabel: ptManifestoSectionLabel,
+    manifestoSectionAttribution: ptManifestoSectionAttribution,
+    finalCtaLabel: ptFinalCtaLabel,
+    finalFooterTitle: ptFinalFooterTitle,
+    finalContactLabel: ptFinalContactLabel,
+    legalIntro: ptLegalIntro,
+    legalLastUpdated,
+    legalSections: ptLegalSections,
+  };
+  await Promise.all([
+    db.pageTranslation.upsert({
+      where: { pageId_locale: { pageId: page.id, locale: "EN" } },
+      update: { title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
+      create: { pageId: page.id, locale: "EN", title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
+    }),
+    db.pageTranslation.upsert({
+      where: { pageId_locale: { pageId: page.id, locale: "PT" } },
+      update: { title: ptTitle || pageData.title, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
+      create: { pageId: page.id, locale: "PT", title: ptTitle || pageData.title, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
+    }),
+  ]);
+
   revalidatePath("/admin/pages");
   revalidatePath("/admin");
   return { recordId: page.id };
@@ -602,17 +692,7 @@ export async function updatePageStatusAction(formData: FormData): Promise<PageAc
   const page = await db.page.update({
     where: { slug },
     data: state,
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      slug: true,
-      title: true,
-      excerpt: true,
-      content: true,
-      status: true,
-      visibility: true,
-    },
+    select: savedPageSelect,
   });
 
   await writeAuditLog({

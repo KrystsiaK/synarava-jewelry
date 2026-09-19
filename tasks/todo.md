@@ -247,10 +247,16 @@
 
 **Description:** Вынести Page/Home/About/Legal locale copy в records с validated template payload и sync metadata.
 
-**Deliberately deferred, not started this session.** `Page.content` is the largest, most varied JSON shape in the app (4 templates — HOME/MANIFESTO/COLLECTION_INDEX/STATIC_PAGE — dynamic `legalSections` records, `materialLexicon` arrays) and its existing `Page.content.translations.pt` JSON storage **already works** and is already tested (`lib/content/__tests__/page-localization.test.ts`, pre-existing, covers `getPageBySlug`'s field-by-field EN/PT fallback). A full relational migration carries real regression risk across every page template, and this session has no reachable database to apply or verify a migration against (see Task 6/11 notes) — attempting it blind, on the riskiest and most template-varied content in the app, was judged worse than shipping the real, safe UX win instead: Task 15's sticky tabs on top of the existing (working) JSON storage. Revisit this task when a real dev database is available to test the migration and dual-read against actual Home/About/Offer/Privacy content, not fixtures.
+**Completed:** `PageTranslation` now stores EN/PT title, excerpt, validated template content, SEO copy, review state and sync metadata. Migration `20260919150000_page_translations` backfills EN and legacy PT JSON. Page saves/autosaves dual-write normalized rows plus the legacy JSON rollback layer; storefront reads normalized PT first and falls back to legacy JSON only when no row exists. Shared assets, links, flags and ordering remain on `Page`.
+
+**Verification:**
+- [x] Resolver tests cover shared-field stripping, normalized-row priority and legacy fallback.
+- [x] Page action test proves PT normalized persistence; Page editor tests prove existing EN/PT workspace behavior remains intact.
+- [x] Prisma schema validates; focused Page suite passes (6 files / 22 tests).
+- [ ] Migration apply against the real dev database remains part of the Task 22 staging gate because PostgreSQL is not reachable in this environment.
 
 **Dependencies:** Tasks 2, 6  
-**Files likely touched:** none this session.
+**Files:** `prisma/schema.prisma`, `prisma/migrations/20260919150000_page_translations/migration.sql`, `lib/pages/localization.ts`, `app/admin/actions/pages.ts`, `lib/content/catalog.ts`, Page admin/tests.
 
 ### Task 15: Перевести Page/Home/About/Legal editor
 

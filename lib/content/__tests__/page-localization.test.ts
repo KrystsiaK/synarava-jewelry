@@ -58,4 +58,22 @@ describe("getPageBySlug localization", () => {
     await expect(getPageBySlug("shop", "pt")).resolves.toMatchObject({ title: "Loja", excerpt: "Resumo" });
     expect(mocks.getRequestLocale).not.toHaveBeenCalled();
   });
+
+  it("prefers the normalized PageTranslation row over legacy content JSON", async () => {
+    mocks.findUniquePage.mockResolvedValue({
+      slug: "about",
+      title: "About",
+      excerpt: "English",
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      content: { body: "English body", translations: { pt: { title: "Legacy", body: "Legacy body" } } },
+      translations: [{ locale: "PT", title: "Sobre", excerpt: "Resumo", content: { body: "Corpo normalizado" } }],
+    });
+
+    await expect(getPageBySlug("about", "pt")).resolves.toMatchObject({
+      title: "Sobre",
+      excerpt: "Resumo",
+      content: { body: "Corpo normalizado" },
+    });
+  });
 });

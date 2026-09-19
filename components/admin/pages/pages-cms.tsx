@@ -56,9 +56,9 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
       <div className="adm-panel flex items-start gap-3 p-4">
         <span style={{ color: "var(--adm-accent)", fontSize: "0.8rem" }}>◆</span>
         <div className="adm-label-row">
-          <span className="adm-title-sm">Locale status: EN only</span>
+          <span className="adm-title-sm">Locale workspace: EN / PT</span>
           <AdminHelp>
-            Edits here affect the EN locale only. BE and RU translation support is planned and will be wired in a future release.
+            Each page stores independent EN and PT copy. Media, visibility, links, and section ordering remain shared.
           </AdminHelp>
         </div>
       </div>

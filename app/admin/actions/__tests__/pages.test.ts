@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   findFirstPage: vi.fn(),
   findUniquePage: vi.fn(),
   upsertPage: vi.fn(),
+  upsertPageTranslation: vi.fn(),
   createAuditLog: vi.fn(),
 }));
 
@@ -23,6 +24,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: mocks.findUniquePage,
       upsert: mocks.upsertPage,
     },
+    pageTranslation: { upsert: mocks.upsertPageTranslation },
     mediaAsset: { create: vi.fn() },
     auditLog: { create: mocks.createAuditLog },
   },
@@ -47,7 +49,9 @@ beforeEach(() => {
     content: {},
     status: "PUBLISHED",
     visibility: "PUBLIC",
+    translations: [],
   });
+  mocks.upsertPageTranslation.mockResolvedValue({ id: "pt-home" });
 });
 
 describe("savePageAction", () => {
@@ -106,6 +110,18 @@ describe("savePageAction", () => {
               materialSectionNoteLabel: "Notas de materiais",
             }),
           },
+        }),
+      }),
+    }));
+    expect(mocks.upsertPageTranslation).toHaveBeenCalledWith(expect.objectContaining({
+      where: { pageId_locale: { pageId: "home-page", locale: "PT" } },
+      create: expect.objectContaining({
+        pageId: "home-page",
+        locale: "PT",
+        title: "Home",
+        content: expect.objectContaining({
+          departmentSectionTitle: "Escolha por onde começar.",
+          materialSectionNoteLabel: "Notas de materiais",
         }),
       }),
     }));

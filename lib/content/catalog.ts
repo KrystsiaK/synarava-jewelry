@@ -26,6 +26,7 @@ import {
 } from "@/lib/products/localization";
 import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/localization";
 import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
+import { resolvePageLocalizedCopy } from "@/lib/pages/localization";
 
 // Shopify's Standard Product Taxonomy name is a " > "-delimited full path
 // (e.g. "Apparel & Accessories > Jewelry > Brooches & Lapel Pins >
@@ -818,6 +819,11 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
   const locale = requestedLocale ?? await getRequestLocale();
   const page = await db.page.findUnique({
     where: { slug },
+    include: {
+      translations: {
+        where: { locale: storefrontLocaleToContentLocale(locale) },
+      },
+    },
   });
 
   if (!page || page.status !== "PUBLISHED" || page.visibility !== "PUBLIC") {
@@ -825,26 +831,26 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
   }
 
   const content = (page.content ?? {}) as PageContent;
-  const translation = locale === "pt" ? content.translations?.pt : undefined;
-  const populatedTranslation = translation
-    ? Object.fromEntries(Object.entries(translation).filter(([, value]) => (
-        typeof value !== "string" || value.trim().length > 0
-      )))
-    : undefined;
+  const normalizedTranslation = page.translations?.[0] ?? null;
+  const resolved = resolvePageLocalizedCopy({
+    locale,
+    source: { title: page.title, excerpt: page.excerpt, content: content as Record<string, unknown> },
+    translation: normalizedTranslation,
+    legacyTranslation: locale === "pt" ? content.translations?.pt as Record<string, unknown> | undefined : undefined,
+  });
 
   return {
     slug: page.slug,
-    title: translation?.title || page.title,
-    excerpt: translation?.excerpt || page.excerpt || "",
-    content: populatedTranslation
-      ? { ...content, ...populatedTranslation, translations: content.translations }
-      : content,
+    title: resolved.title,
+    excerpt: resolved.excerpt,
+    content: resolved.content as PageContent,
   };
 }
 
 export async function getAdminCatalogData() {
   const [pages, rawProducts, categoryRows, tags, collections, issues] = await Promise.all([
     db.page.findMany({
+      include: { translations: { orderBy: { locale: "asc" } } },
       orderBy: { slug: "asc" },
     }),
     db.product.findMany({
