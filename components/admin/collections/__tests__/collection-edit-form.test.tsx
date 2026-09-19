@@ -42,6 +42,9 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The active-locale tab is remembered in sessionStorage per collection slug, so
+  // tests sharing a slug would otherwise leak their tab state across `it()` blocks.
+  sessionStorage.clear();
 });
 
 describe("EditCollectionForm", () => {
@@ -53,9 +56,9 @@ describe("EditCollectionForm", () => {
     expect(screen.getByLabelText(/^Collection summary\*/)).toHaveValue("A summer story.");
   });
 
-  it("switches to the Portuguese panel and preserves independent EN/PT input", async () => {
+  it("switches the same Name field's value with the locale tab, preserving independent EN/PT input", async () => {
     const user = userEvent.setup();
-    render(<EditCollectionForm collection={makeCollection({
+    const { container } = render(<EditCollectionForm collection={makeCollection({
       translations: [{
         id: "translation-pt", locale: "PT", name: "Rituais de Verão",
         description: null, manifesto: null, symbolismLabel: null, symbolismTitle: null,
@@ -64,14 +67,18 @@ describe("EditCollectionForm", () => {
       }],
     })} />);
 
-    expect(screen.getByLabelText(/^Name\*/)).toBeVisible();
+    expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
     await user.click(screen.getByRole("tab", { name: "Português" }));
 
-    expect(screen.getByLabelText(/^Name\*/)).not.toBeVisible();
-    expect(screen.getByLabelText("Name (PT)")).toHaveValue("Rituais de Verão");
+    // Same field, no longer required outside EN, now showing the PT value.
+    expect(screen.getByLabelText("Name")).toHaveValue("Rituais de Verão");
 
     await user.click(screen.getByRole("tab", { name: "English" }));
     expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
+
+    // Both locales' real values are always in the hidden fields the server reads.
+    expect(container.querySelector<HTMLInputElement>('input[type="hidden"][name="name"]')?.value).toBe("Wanderlust");
+    expect(container.querySelector<HTMLInputElement>('input[type="hidden"][name="ptName"]')?.value).toBe("Rituais de Verão");
   });
 
   it("saves through saveCollectionAction when the existing hero image is kept", async () => {

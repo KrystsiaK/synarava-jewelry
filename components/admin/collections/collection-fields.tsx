@@ -93,6 +93,37 @@ export function WorkflowStateField({
   );
 }
 
+// One physical field per concept (Name, Subtitle, Collection summary, ...),
+// not one copy per language: the field's *value* switches with the active
+// locale tab, everything else about it (label, position, layout) stays put.
+// The always-present hidden mirrors below carry both locales' real values on
+// submit regardless of which tab is active. Adding a third language later is
+// a matter of extending AdminLocale + these mirrors, not this JSX.
+function HiddenLocaleFields({ draft }: { draft: CollectionDraft }) {
+  return (
+    <div hidden>
+      <input type="hidden" readOnly name="name" value={draft.name} />
+      <input type="hidden" readOnly name="ptName" value={draft.pt.name} />
+      <input type="hidden" readOnly name="subtitle" value={draft.subtitle} />
+      <input type="hidden" readOnly name="ptSubtitle" value={draft.pt.subtitle} />
+      <input type="hidden" readOnly name="description" value={draft.description} />
+      <input type="hidden" readOnly name="ptDescription" value={draft.pt.description} />
+      <input type="hidden" readOnly name="manifesto" value={draft.manifesto} />
+      <input type="hidden" readOnly name="ptManifesto" value={draft.pt.manifesto} />
+      <input type="hidden" readOnly name="searchSummary" value={draft.searchSummary} />
+      <input type="hidden" readOnly name="ptSearchSummary" value={draft.pt.searchSummary} />
+      <input type="hidden" readOnly name="symbolismLabel" value={draft.symbolismLabel} />
+      <input type="hidden" readOnly name="ptSymbolismLabel" value={draft.pt.symbolismLabel} />
+      <input type="hidden" readOnly name="symbolismTitle" value={draft.symbolismTitle} />
+      <input type="hidden" readOnly name="ptSymbolismTitle" value={draft.pt.symbolismTitle} />
+      <input type="hidden" readOnly name="symbolismBody" value={draft.symbolismBody} />
+      <input type="hidden" readOnly name="ptSymbolismBody" value={draft.pt.symbolismBody} />
+      <input type="hidden" readOnly name="symbolismBody2" value={draft.symbolismBody2} />
+      <input type="hidden" readOnly name="ptSymbolismBody2" value={draft.pt.symbolismBody2} />
+    </div>
+  );
+}
+
 export function CollectionFields({
   draft,
   onChange,
@@ -111,52 +142,32 @@ export function CollectionFields({
   fileInputKey?: string | number;
 }) {
   const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, "EN");
+  const isEn = locale === "EN";
   return (
     <>
       <AdminLocaleTabs active={locale} onSelect={selectLocale} ptStatus={draft.pt.syncStatus as AdminLocaleStatus} />
+      <HiddenLocaleFields draft={draft} />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-2" hidden={locale !== "EN"}>
-          <FieldLabel required>Name</FieldLabel>
+        <label className="grid gap-2">
+          <FieldLabel required={isEn}>Name</FieldLabel>
           <input
-            name="name"
-            required
-            value={draft.name}
-            onChange={(e) => onChange("name", e.target.value)}
-            className={fieldClass(fieldErrors?.name)}
-            aria-invalid={Boolean(fieldErrors?.name)}
-            placeholder="Earth Rituals"
+            required={isEn}
+            value={isEn ? draft.name : draft.pt.name}
+            onChange={(e) => (isEn ? onChange("name", e.target.value) : onChangePt("name", e.target.value))}
+            className={fieldClass(isEn ? fieldErrors?.name : undefined)}
+            aria-invalid={isEn && Boolean(fieldErrors?.name)}
+            placeholder={isEn ? "Earth Rituals" : "Rituais da Terra"}
           />
-          <FieldError message={fieldErrors?.name} />
+          <FieldError message={isEn ? fieldErrors?.name : undefined} />
         </label>
-        <label className="grid gap-2" hidden={locale !== "PT"}>
-          <FieldLabel>Name (PT)</FieldLabel>
-          <input
-            name="ptName"
-            value={draft.pt.name}
-            onChange={(e) => onChangePt("name", e.target.value)}
-            className="adm-field"
-            placeholder="Rituais da Terra"
-          />
-        </label>
-        <label className="grid gap-2" hidden={locale !== "EN"}>
+        <label className="grid gap-2">
           <FieldLabel>Subtitle</FieldLabel>
           <input
-            name="subtitle"
-            value={draft.subtitle}
-            onChange={(e) => onChange("subtitle", e.target.value)}
+            value={isEn ? draft.subtitle : draft.pt.subtitle}
+            onChange={(e) => (isEn ? onChange("subtitle", e.target.value) : onChangePt("subtitle", e.target.value))}
             className="adm-field"
-            placeholder="A short editorial line"
-          />
-        </label>
-        <label className="grid gap-2" hidden={locale !== "PT"}>
-          <FieldLabel>Subtitle (PT)</FieldLabel>
-          <input
-            name="ptSubtitle"
-            value={draft.pt.subtitle}
-            onChange={(e) => onChangePt("subtitle", e.target.value)}
-            className="adm-field"
-            placeholder="Optional — shows the English subtitle until filled in."
+            placeholder={isEn ? "A short editorial line" : "Optional — shows the English subtitle until filled in."}
           />
         </label>
         <label className="grid gap-2" hidden={locale !== "PT"}>
@@ -229,82 +240,46 @@ export function CollectionFields({
         </label>
       </div>
 
-      <label className="grid gap-2" hidden={locale !== "EN"}>
-        <FieldLabel required>Collection summary</FieldLabel>
+      <label className="grid gap-2">
+        <FieldLabel required={isEn}>Collection summary</FieldLabel>
         <textarea
-          name="description"
           rows={3}
-          required
-          value={draft.description}
-          onChange={(e) => onChange("description", e.target.value)}
-          className={fieldClass(fieldErrors?.description)}
-          aria-invalid={Boolean(fieldErrors?.description)}
-          placeholder="This text appears on the collection card and collection hero."
+          required={isEn}
+          value={isEn ? draft.description : draft.pt.description}
+          onChange={(e) => (isEn ? onChange("description", e.target.value) : onChangePt("description", e.target.value))}
+          className={fieldClass(isEn ? fieldErrors?.description : undefined)}
+          aria-invalid={isEn && Boolean(fieldErrors?.description)}
+          placeholder={isEn ? "This text appears on the collection card and collection hero." : "Optional — shows the English summary until filled in."}
         />
-        <FieldError message={fieldErrors?.description} />
-      </label>
-      <label className="grid gap-2" hidden={locale !== "PT"}>
-        <FieldLabel>Collection summary (PT)</FieldLabel>
-        <textarea
-          name="ptDescription"
-          rows={3}
-          value={draft.pt.description}
-          onChange={(e) => onChangePt("description", e.target.value)}
-          className="adm-field"
-          placeholder="Optional — shows the English summary until filled in."
-        />
+        <FieldError message={isEn ? fieldErrors?.description : undefined} />
       </label>
 
-      <label className="grid gap-2" hidden={locale !== "EN"}>
-        <FieldLabel required>Manifesto</FieldLabel>
+      <label className="grid gap-2">
+        <FieldLabel required={isEn}>Manifesto</FieldLabel>
         <textarea
-          name="manifesto"
           rows={4}
-          required
-          value={draft.manifesto}
-          onChange={(e) => onChange("manifesto", e.target.value)}
-          className={fieldClass(fieldErrors?.manifesto)}
-          aria-invalid={Boolean(fieldErrors?.manifesto)}
-          placeholder="This text powers the manifesto strip on the collection page."
+          required={isEn}
+          value={isEn ? draft.manifesto : draft.pt.manifesto}
+          onChange={(e) => (isEn ? onChange("manifesto", e.target.value) : onChangePt("manifesto", e.target.value))}
+          className={fieldClass(isEn ? fieldErrors?.manifesto : undefined)}
+          aria-invalid={isEn && Boolean(fieldErrors?.manifesto)}
+          placeholder={isEn ? "This text powers the manifesto strip on the collection page." : "Optional — shows the English manifesto until filled in."}
         />
-        <FieldError message={fieldErrors?.manifesto} />
-      </label>
-      <label className="grid gap-2" hidden={locale !== "PT"}>
-        <FieldLabel>Manifesto (PT)</FieldLabel>
-        <textarea
-          name="ptManifesto"
-          rows={4}
-          value={draft.pt.manifesto}
-          onChange={(e) => onChangePt("manifesto", e.target.value)}
-          className="adm-field"
-          placeholder="Optional — shows the English manifesto until filled in."
-        />
+        <FieldError message={isEn ? fieldErrors?.manifesto : undefined} />
       </label>
 
-      <label className="grid gap-2" hidden={locale !== "EN"}>
-        <FieldLabel required>Search summary</FieldLabel>
+      <label className="grid gap-2">
+        <FieldLabel required={isEn}>Search summary</FieldLabel>
         <textarea
-          name="searchSummary"
           rows={2}
-          required
-          value={draft.searchSummary}
-          onChange={(e) => onChange("searchSummary", e.target.value)}
-          className={fieldClass(fieldErrors?.searchSummary)}
-          aria-invalid={Boolean(fieldErrors?.searchSummary)}
-          placeholder="Short search/discovery helper text."
+          required={isEn}
+          value={isEn ? draft.searchSummary : draft.pt.searchSummary}
+          onChange={(e) => (isEn ? onChange("searchSummary", e.target.value) : onChangePt("searchSummary", e.target.value))}
+          className={fieldClass(isEn ? fieldErrors?.searchSummary : undefined)}
+          aria-invalid={isEn && Boolean(fieldErrors?.searchSummary)}
+          placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}
         />
-        <FieldError message={fieldErrors?.searchSummary} />
-      </label>
-      <label className="grid gap-2" hidden={locale !== "PT"}>
-        <FieldLabel>Search summary (PT)</FieldLabel>
-        <textarea
-          name="ptSearchSummary"
-          rows={2}
-          value={draft.pt.searchSummary}
-          onChange={(e) => onChangePt("searchSummary", e.target.value)}
-          className="adm-field"
-          placeholder="Optional — shows the English summary until filled in."
-        />
+        <FieldError message={isEn ? fieldErrors?.searchSummary : undefined} />
       </label>
 
       <div
@@ -318,9 +293,8 @@ export function CollectionFields({
         />
       </div>
 
-      {/* Default symbolism */}
+      {/* Default symbolism — shared layout, value switches with the locale tab */}
       <div
-        hidden={locale !== "EN"}
         className="grid gap-4 pt-4"
         style={{ borderTop: "1px solid var(--adm-border)" }}
       >
@@ -329,6 +303,7 @@ export function CollectionFields({
             <span className="adm-section-tag">[ DEFAULT PRODUCT SYMBOLISM ]</span>
             <AdminHelp>
               Products in this collection inherit these values when their own symbolism override is empty.
+              {isEn ? "" : " Optional — leave blank to show the English text to Portuguese visitors."}
             </AdminHelp>
           </p>
         </div>
@@ -337,21 +312,19 @@ export function CollectionFields({
           <label className="grid gap-2">
             <FieldLabel>Symbolism label</FieldLabel>
             <input
-              name="symbolismLabel"
-              value={draft.symbolismLabel}
-              onChange={(e) => onChange("symbolismLabel", e.target.value)}
+              value={isEn ? draft.symbolismLabel : draft.pt.symbolismLabel}
+              onChange={(e) => (isEn ? onChange("symbolismLabel", e.target.value) : onChangePt("symbolismLabel", e.target.value))}
               className="adm-field"
-              placeholder="Symbolic Language"
+              placeholder={isEn ? "Symbolic Language" : undefined}
             />
           </label>
           <label className="grid gap-2">
             <FieldLabel>Symbolism title</FieldLabel>
             <input
-              name="symbolismTitle"
-              value={draft.symbolismTitle}
-              onChange={(e) => onChange("symbolismTitle", e.target.value)}
+              value={isEn ? draft.symbolismTitle : draft.pt.symbolismTitle}
+              onChange={(e) => (isEn ? onChange("symbolismTitle", e.target.value) : onChangePt("symbolismTitle", e.target.value))}
               className="adm-field"
-              placeholder="Wood, Lava, Embroidery"
+              placeholder={isEn ? "Wood, Lava, Embroidery" : undefined}
             />
           </label>
         </div>
@@ -359,10 +332,9 @@ export function CollectionFields({
         <label className="grid gap-2">
           <FieldLabel>Symbolism body</FieldLabel>
           <textarea
-            name="symbolismBody"
             rows={4}
-            value={draft.symbolismBody}
-            onChange={(e) => onChange("symbolismBody", e.target.value)}
+            value={isEn ? draft.symbolismBody : draft.pt.symbolismBody}
+            onChange={(e) => (isEn ? onChange("symbolismBody", e.target.value) : onChangePt("symbolismBody", e.target.value))}
             className="adm-field"
           />
         </label>
@@ -370,16 +342,15 @@ export function CollectionFields({
         <label className="grid gap-2">
           <FieldLabel>Symbolism secondary body</FieldLabel>
           <textarea
-            name="symbolismBody2"
             rows={3}
-            value={draft.symbolismBody2}
-            onChange={(e) => onChange("symbolismBody2", e.target.value)}
+            value={isEn ? draft.symbolismBody2 : draft.pt.symbolismBody2}
+            onChange={(e) => (isEn ? onChange("symbolismBody2", e.target.value) : onChangePt("symbolismBody2", e.target.value))}
             className="adm-field"
           />
         </label>
       </div>
 
-      {/* Default symbolism (PT) */}
+      {/* PT-only translation status — no EN counterpart, so this stays locale-gated */}
       <div
         hidden={locale !== "PT"}
         className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
@@ -395,50 +366,7 @@ export function CollectionFields({
           ) : null}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <FieldLabel>Symbolism label (PT)</FieldLabel>
-            <input
-              name="ptSymbolismLabel"
-              value={draft.pt.symbolismLabel}
-              onChange={(e) => onChangePt("symbolismLabel", e.target.value)}
-              className="adm-field"
-            />
-          </label>
-          <label className="grid gap-2">
-            <FieldLabel>Symbolism title (PT)</FieldLabel>
-            <input
-              name="ptSymbolismTitle"
-              value={draft.pt.symbolismTitle}
-              onChange={(e) => onChangePt("symbolismTitle", e.target.value)}
-              className="adm-field"
-            />
-          </label>
-        </div>
-
-        <label className="grid gap-2">
-          <FieldLabel>Symbolism body (PT)</FieldLabel>
-          <textarea
-            name="ptSymbolismBody"
-            rows={4}
-            value={draft.pt.symbolismBody}
-            onChange={(e) => onChangePt("symbolismBody", e.target.value)}
-            className="adm-field"
-          />
-        </label>
-
-        <label className="grid gap-2">
-          <FieldLabel>Symbolism secondary body (PT)</FieldLabel>
-          <textarea
-            name="ptSymbolismBody2"
-            rows={3}
-            value={draft.pt.symbolismBody2}
-            onChange={(e) => onChangePt("symbolismBody2", e.target.value)}
-            className="adm-field"
-          />
-        </label>
-
-        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
+        <label className="flex items-center gap-3 text-sm">
           <input
             type="checkbox"
             name="ptReviewed"
