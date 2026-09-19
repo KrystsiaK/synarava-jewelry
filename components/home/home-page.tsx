@@ -25,6 +25,7 @@ import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
 import { buildFinalCtaImages } from "@/lib/content/home-media";
+import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import {
   resolveHomeDepartmentSection,
   type HomeDepartmentSectionFields,
@@ -53,6 +54,10 @@ type HomePageContent = HomeDepartmentSectionFields & HomeSectionVisibilityFields
   secondaryTitle?: string;
   secondaryBody?: string;
   archiveSectionLabel?: string;
+  editSectionEyebrow?: string;
+  editSectionTitle?: string;
+  editSectionBody?: string;
+  editSectionCtaLabel?: string;
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   manifestoSectionLabel?: string;
@@ -78,6 +83,7 @@ export interface HomePageProps {
   excerpt?: string;
   content?: HomePageContent;
   collections: CollectionItem[];
+  products?: Pick<ShopListingProduct, "slug" | "title" | "price" | "image" | "series" | "categoryName">[];
   departments: DepartmentItem[];
   heroVideoSrc?: string | string[];
 }
@@ -840,6 +846,105 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
   );
 }
 
+function EditShowcase({
+  products,
+  eyebrow,
+  title,
+  body,
+  ctaLabel,
+}: {
+  products: NonNullable<HomePageProps["products"]>;
+  eyebrow?: string;
+  title?: string;
+  body?: string;
+  ctaLabel?: string;
+}) {
+  const { locale } = useTranslations();
+  const items = products.filter((product) => product.image).slice(0, 4);
+  const defaults = locale === "pt"
+    ? {
+        eyebrow: "Algumas peças para começar / Descubra a seleção",
+        title: "A Seleção",
+        body: "Quatro peças para descobrir a coleção — dos gestos quotidianos ao objeto contemplativo.",
+        ctaLabel: "Ver peça",
+      }
+    : {
+        eyebrow: "A few to start with / Shop the edit",
+        title: "The Edit",
+        body: "Four pieces to read the range — from everyday gestures to the considered object.",
+        ctaLabel: "View piece",
+      };
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      data-component="EditShowcase"
+      aria-labelledby="edit-showcase-title"
+      className="relative z-20 overflow-hidden px-5 pb-28 pt-12 text-linen md:px-[4vw] md:pb-40 md:pt-24"
+    >
+      <div className="mx-auto max-w-[90rem]">
+        <header className="mb-12 flex flex-col gap-4 border-b border-linen/20 pb-7 md:mb-16 md:flex-row md:items-end md:justify-between md:gap-8">
+          <div>
+            <p className="mb-3 font-sans text-[0.62rem] font-bold uppercase tracking-[0.28em] text-couture-red">
+              {eyebrow || defaults.eyebrow}
+            </p>
+            <h2 id="edit-showcase-title" className="font-serif text-[clamp(3.6rem,9vw,8.8rem)] font-bold uppercase leading-[0.82] tracking-[-0.045em] text-linen">
+              {title || defaults.title}
+            </h2>
+          </div>
+          <p className="max-w-[28ch] font-sans text-[0.68rem] font-semibold uppercase leading-[1.6] tracking-[0.12em] text-stone-beige/75 md:pb-1 md:text-right">
+            {body || defaults.body}
+          </p>
+        </header>
+
+        <div className="grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 md:gap-x-5 md:gap-y-0">
+          {items.map((product, index) => {
+            const kind = [product.series, product.categoryName].filter(Boolean).join(" · ");
+            const productCta = ctaLabel || defaults.ctaLabel;
+
+            return (
+              <Link
+                key={product.slug}
+                href={localePath(locale, `/products/${product.slug}`)}
+                aria-label={`${productCta}: ${product.title}`}
+                className={`group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red ${index % 2 === 1 ? "md:mt-16" : ""}`}
+              >
+                <div className="relative aspect-[0.78] overflow-hidden bg-black/10">
+                  <Image
+                    src={product.image}
+                    alt={product.title}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(9,9,10,0.78),transparent_42%)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
+                  <span className="absolute bottom-4 right-4 inline-flex translate-y-2 items-center gap-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.18em] text-white opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+                    {productCta} <ArrowRight className="size-3.5" aria-hidden="true" />
+                  </span>
+                </div>
+                <div className="mt-4 flex items-start justify-between gap-3 border-t border-linen/20 pt-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-serif text-[1.15rem] uppercase leading-none text-linen md:text-[1.35rem]">
+                      {product.title}
+                    </h3>
+                    {kind ? <p className="mt-2 truncate font-sans text-[0.55rem] font-bold uppercase tracking-[0.16em] text-stone-beige/70">{kind}</p> : null}
+                  </div>
+                  <span className="shrink-0 font-sans text-[0.72rem] font-bold uppercase tracking-[0.08em] text-linen">
+                    {product.price}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function MaterialPlate({
   material,
   noteLabel,
@@ -1482,7 +1587,7 @@ function FinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, co
     : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />;
 }
 
-export function HomePage({ collections, departments, heroVideoSrc, content }: HomePageProps) {
+export function HomePage({ collections, products = [], departments, heroVideoSrc, content }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
   const departmentSection = resolveHomeDepartmentSection(content, departments.length > 0);
   const visibility = resolveHomeSectionVisibility(content);
@@ -1518,6 +1623,13 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
       /> : null}
       {visibility.department && departmentSection ? <DepartmentPathway departments={departments} section={departmentSection} /> : null}
       {visibility.archive ? <ArchivePathway collections={collections} sectionLabel={content?.archiveSectionLabel} /> : null}
+      {visibility.edit ? <EditShowcase
+        products={products}
+        eyebrow={content?.editSectionEyebrow}
+        title={content?.editSectionTitle}
+        body={content?.editSectionBody}
+        ctaLabel={content?.editSectionCtaLabel}
+      /> : null}
       {visibility.material ? <MaterialLab materials={lexiconMaterials} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} noteLabel={content?.materialSectionNoteLabel} /> : null}
       {visibility.manifesto ? <ManifestoQuote quote={content?.quote} label={content?.manifestoSectionLabel} attribution={content?.manifestoSectionAttribution} /> : null}
       {visibility.finalCta ? <FinalCTA

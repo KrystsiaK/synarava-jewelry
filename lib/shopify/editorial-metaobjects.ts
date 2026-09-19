@@ -79,9 +79,35 @@ async function ensureDefinition({
     const available = new Set(definitionRecord.fieldDefinitions.map((field) => field.key));
     const missing = fieldKeys.filter((key) => !available.has(key));
     if (missing.length > 0) {
-      throw new ShopifyAdminError(
-        `Metaobject definition ${type} is missing fields: ${missing.join(", ")}.`,
+      const update = await shopifyAdminRequest<{
+        metaobjectDefinitionUpdate: {
+          metaobjectDefinition: { id: string } | null;
+          userErrors: UserError[];
+        };
+      }>(
+        `mutation SynaravaEditorialMetaobjectDefinitionUpdate($id: ID!, $definition: MetaobjectDefinitionUpdateInput!) {
+          metaobjectDefinitionUpdate(id: $id, definition: $definition) {
+            metaobjectDefinition { id }
+            userErrors { field message }
+          }
+        }`,
+        {
+          id: definitionRecord.id,
+          definition: {
+            fieldDefinitions: missing.map((key) => ({
+              create: {
+                key,
+                name: key.replaceAll("_", " "),
+                type: "multi_line_text_field",
+              },
+            })),
+          },
+        },
       );
+      throwOnUserErrors("Unable to extend editorial metaobject definition", update.metaobjectDefinitionUpdate.userErrors);
+      if (!update.metaobjectDefinitionUpdate.metaobjectDefinition) {
+        throw new ShopifyAdminError(`Shopify did not return the updated metaobject definition ${type}.`);
+      }
     }
     return definitionRecord.id;
   }

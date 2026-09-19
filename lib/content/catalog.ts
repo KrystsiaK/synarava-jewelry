@@ -146,6 +146,7 @@ export type PageContent = {
   heroSectionEnabled?: boolean;
   departmentSectionEnabled?: boolean;
   archiveSectionEnabled?: boolean;
+  editSectionEnabled?: boolean;
   materialSectionEnabled?: boolean;
   manifestoSectionEnabled?: boolean;
   finalCtaSectionEnabled?: boolean;
@@ -154,6 +155,10 @@ export type PageContent = {
   departmentSectionImageCaption?: string;
   departmentSectionCtaLabel?: string;
   archiveSectionLabel?: string;
+  editSectionEyebrow?: string;
+  editSectionTitle?: string;
+  editSectionBody?: string;
+  editSectionCtaLabel?: string;
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   materialSectionNoteLabel?: string;
@@ -181,6 +186,7 @@ export type PageContent = {
       | "heroSectionEnabled"
       | "departmentSectionEnabled"
       | "archiveSectionEnabled"
+      | "editSectionEnabled"
       | "materialSectionEnabled"
       | "manifestoSectionEnabled"
       | "finalCtaSectionEnabled"

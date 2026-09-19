@@ -106,11 +106,15 @@ describe("PageEditor", () => {
         departmentSectionBody: "A considered way into the collection.",
         departmentSectionImageCaption: "One point of view.",
         departmentSectionCtaLabel: "Explore the shop",
+        editSectionTitle: "The Edit",
+        editSectionCtaLabel: "View piece",
         materialSectionNoteLabel: "Material notes",
         translations: {
           pt: {
             departmentSectionTitle: "Escolha por onde começar.",
             departmentSectionBody: "Uma entrada cuidada na coleção.",
+            editSectionTitle: "A Seleção",
+            editSectionCtaLabel: "Ver peça",
             materialSectionNoteLabel: "Notas de materiais",
           },
         },
@@ -130,6 +134,8 @@ describe("PageEditor", () => {
     expect(screen.getByRole("checkbox", { name: "Show manifesto" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show final call to action" })).toBeChecked();
     expect(screen.getByLabelText("Archive background label")).toBeInTheDocument();
+    expect(screen.getByLabelText("The Edit title")).toHaveValue("The Edit");
+    expect(screen.getByLabelText("The Edit product CTA")).toHaveValue("View piece");
     expect(screen.getByLabelText("Material section title")).toBeInTheDocument();
     expect(screen.getByLabelText("Material note label")).toHaveValue("Material notes");
     expect(screen.getByLabelText("Manifesto attribution")).toBeInTheDocument();
@@ -138,9 +144,12 @@ describe("PageEditor", () => {
 
     // The Portuguese values exist too, just under the PT tab, not a second copy of every field.
     expect(hiddenFieldValue(container, "ptDepartmentSectionTitle")).toBe("Escolha por onde começar.");
+    expect(hiddenFieldValue(container, "ptEditSectionTitle")).toBe("A Seleção");
     expect(hiddenFieldValue(container, "ptMaterialSectionNoteLabel")).toBe("Notas de materiais");
     await user.click(screen.getByRole("tab", { name: "Português" }));
     expect(screen.getByLabelText("Department headline")).toHaveValue("Escolha por onde começar.");
+    expect(screen.getByLabelText("The Edit title")).toHaveValue("A Seleção");
+    expect(screen.getByLabelText("The Edit product CTA")).toHaveValue("Ver peça");
     expect(screen.getByLabelText("Material note label")).toHaveValue("Notas de materiais");
   });
 
@@ -180,6 +189,7 @@ describe("PageEditor", () => {
       expect(formData.get("heroSectionEnabled")).toBe("1");
       expect(formData.get("departmentSectionEnabled")).toBeNull();
       expect(formData.get("archiveSectionEnabled")).toBe("1");
+      expect(formData.get("editSectionEnabled")).toBeNull();
       expect(formData.get("materialSectionEnabled")).toBeNull();
       expect(formData.get("manifestoSectionEnabled")).toBe("1");
       expect(formData.get("finalCtaSectionEnabled")).toBe("1");
@@ -189,6 +199,7 @@ describe("PageEditor", () => {
     render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
 
     await user.click(screen.getByRole("checkbox", { name: "Show material lexicon" }));
+    await user.click(screen.getByRole("checkbox", { name: "Show The Edit" }));
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
     await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
 

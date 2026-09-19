@@ -9,6 +9,7 @@ const HOME_SECTION_CONTROLS = [
   { key: "hero", name: "heroSectionEnabled", label: "Hero", ariaLabel: "Show hero", description: "Opening media, headline, introduction, and primary action." },
   { key: "department", name: "departmentSectionEnabled", label: "Department pathway", ariaLabel: "Show department pathway", description: "Department links and imagery from primary navigation collections." },
   { key: "archive", name: "archiveSectionEnabled", label: "Featured collections", ariaLabel: "Show featured collections", description: "The first three published collections and their editorial cards." },
+  { key: "edit", name: "editSectionEnabled", label: "The Edit", ariaLabel: "Show The Edit", description: "A four-piece product edit with prices, materials, and direct product links." },
   { key: "material", name: "materialSectionEnabled", label: "Material lexicon", ariaLabel: "Show material lexicon", description: "A scroll-led material view generated from featured collections." },
   { key: "manifesto", name: "manifestoSectionEnabled", label: "Manifesto", ariaLabel: "Show manifesto", description: "The single editorial principle displayed between catalog and CTA." },
   { key: "finalCta", name: "finalCtaSectionEnabled", label: "Final call to action", ariaLabel: "Show final call to action", description: "Closing shop portal with collection imagery and contact footer." },
@@ -27,7 +28,7 @@ export function HomeSectionVisibilityEditor({ content }: { content: EditablePage
           </p>
         </div>
         <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }} aria-live="polite">
-          {Object.values(visibility).filter(Boolean).length} of {HOME_SECTION_CONTROLS.length} enabled
+          {HOME_SECTION_CONTROLS.filter((section) => visibility[section.key]).length} of {HOME_SECTION_CONTROLS.length} enabled
         </span>
       </div>
 

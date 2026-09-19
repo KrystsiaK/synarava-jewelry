@@ -43,6 +43,10 @@ type PageLocaleDraft = {
   departmentSectionImageCaption: string;
   departmentSectionCtaLabel: string;
   archiveSectionLabel: string;
+  editSectionEyebrow: string;
+  editSectionTitle: string;
+  editSectionBody: string;
+  editSectionCtaLabel: string;
   materialSectionEyebrow: string;
   materialSectionTitle: string;
   materialSectionNoteLabel: string;
@@ -73,6 +77,10 @@ function draftFromCopy(copy: EditablePageCopy): PageLocaleDraft {
     departmentSectionImageCaption: copy.departmentSectionImageCaption ?? "",
     departmentSectionCtaLabel: copy.departmentSectionCtaLabel ?? "",
     archiveSectionLabel: copy.archiveSectionLabel ?? "",
+    editSectionEyebrow: copy.editSectionEyebrow ?? "",
+    editSectionTitle: copy.editSectionTitle ?? "",
+    editSectionBody: copy.editSectionBody ?? "",
+    editSectionCtaLabel: copy.editSectionCtaLabel ?? "",
     materialSectionEyebrow: copy.materialSectionEyebrow ?? "",
     materialSectionTitle: copy.materialSectionTitle ?? "",
     materialSectionNoteLabel: copy.materialSectionNoteLabel ?? "",
@@ -133,6 +141,10 @@ function HiddenLocaleFields({
           field("departmentSectionImageCaption", draft.departmentSectionImageCaption),
           field("departmentSectionCtaLabel", draft.departmentSectionCtaLabel),
           field("archiveSectionLabel", draft.archiveSectionLabel),
+          field("editSectionEyebrow", draft.editSectionEyebrow),
+          field("editSectionTitle", draft.editSectionTitle),
+          field("editSectionBody", draft.editSectionBody),
+          field("editSectionCtaLabel", draft.editSectionCtaLabel),
           field("materialSectionEyebrow", draft.materialSectionEyebrow),
           field("materialSectionTitle", draft.materialSectionTitle),
           field("materialSectionNoteLabel", draft.materialSectionNoteLabel),
@@ -253,7 +265,7 @@ export function PageEditor({
         <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} />
         <AuthMessage error={state.error} />
 
-        {isHomePage ? <HomeSectionVisibilityEditor content={content} /> : null}
+        {isHomePage ? <HomeSectionVisibilityEditor key={page.updatedAt.toISOString()} content={content} /> : null}
 
         <label className="grid gap-2" hidden={activeLocale === "EN" || isBuiltInPage(page.slug)}>
           <span className="adm-label">URL handle ({activeLocale}, optional)</span>
@@ -395,6 +407,22 @@ export function PageEditor({
               <label className="grid gap-2">
                 <span className="adm-label">Archive background label</span>
                 <input value={draft.archiveSectionLabel} onChange={(event) => updateField("archiveSectionLabel", event.target.value)} placeholder="Recorded" className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">The Edit eyebrow</span>
+                <input value={draft.editSectionEyebrow} onChange={(event) => updateField("editSectionEyebrow", event.target.value)} placeholder="A few to start with / Shop the edit" className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">The Edit title</span>
+                <input value={draft.editSectionTitle} onChange={(event) => updateField("editSectionTitle", event.target.value)} placeholder="The Edit" className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">The Edit product CTA</span>
+                <input value={draft.editSectionCtaLabel} onChange={(event) => updateField("editSectionCtaLabel", event.target.value)} placeholder="View piece" className="adm-field" />
+              </label>
+              <label className="grid gap-2 md:col-span-2">
+                <span className="adm-label">The Edit description</span>
+                <textarea value={draft.editSectionBody} onChange={(event) => updateField("editSectionBody", event.target.value)} rows={2} placeholder="Four pieces to read the range…" className="adm-field" />
               </label>
               <label className="grid gap-2">
                 <span className="adm-label">Material eyebrow</span>

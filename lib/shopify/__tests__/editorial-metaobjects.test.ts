@@ -74,4 +74,48 @@ describe("editorial metaobjects", () => {
       translations: [expect.objectContaining({ key: "eyebrow", value: "Arquivo" })],
     });
   });
+
+  it("extends an existing definition before upserting newly registered fields", async () => {
+    mocks.shopifyAdminRequest
+      .mockResolvedValueOnce({
+        metaobjectDefinitionByType: {
+          id: "gid://shopify/MetaobjectDefinition/1",
+          capabilities: { translatable: { enabled: true } },
+          fieldDefinitions: [{ key: "eyebrow" }],
+        },
+      })
+      .mockResolvedValueOnce({
+        metaobjectDefinitionUpdate: {
+          metaobjectDefinition: { id: "gid://shopify/MetaobjectDefinition/1" },
+          userErrors: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        metaobjectUpsert: {
+          metaobject: { id: "gid://shopify/Metaobject/1", handle: "home" },
+          userErrors: [],
+        },
+      });
+
+    await ensureEditorialMetaobject({
+      definition: "page_section_copy",
+      name: "Page section copy",
+      handle: "home",
+      values: { eyebrow: "Archive", editSectionTitle: "The Edit" },
+      fieldKeys: ["eyebrow", "edit_section_title"],
+    });
+
+    expect(mocks.shopifyAdminRequest.mock.calls[1]?.[1]).toEqual({
+      id: "gid://shopify/MetaobjectDefinition/1",
+      definition: {
+        fieldDefinitions: [{
+          create: {
+            key: "edit_section_title",
+            name: "edit section title",
+            type: "multi_line_text_field",
+          },
+        }],
+      },
+    });
+  });
 });

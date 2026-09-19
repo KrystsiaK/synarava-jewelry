@@ -72,6 +72,14 @@ describe("savePageAction", () => {
     formData.set("manifestoSectionEnabled", "1");
     formData.set("finalCtaSectionEnabled", "1");
     formData.set("archiveSectionLabel", "Recorded");
+    formData.set("editSectionEyebrow", "Shop the edit");
+    formData.set("editSectionTitle", "The Edit");
+    formData.set("editSectionBody", "Four pieces to begin.");
+    formData.set("editSectionCtaLabel", "View piece");
+    formData.set("ptEditSectionEyebrow", "Descubra a seleção");
+    formData.set("ptEditSectionTitle", "A Seleção");
+    formData.set("ptEditSectionBody", "Quatro peças para começar.");
+    formData.set("ptEditSectionCtaLabel", "Ver peça");
     formData.set("materialSectionTitle", "Lexicon");
     formData.set("materialSectionNoteLabel", "Material notes");
     formData.set("ptMaterialSectionNoteLabel", "Notas de materiais");
@@ -92,10 +100,15 @@ describe("savePageAction", () => {
           departmentSectionCtaLabel: "Explore the shop",
           heroSectionEnabled: true,
           archiveSectionEnabled: true,
+          editSectionEnabled: false,
           materialSectionEnabled: false,
           manifestoSectionEnabled: true,
           finalCtaSectionEnabled: true,
           archiveSectionLabel: "Recorded",
+          editSectionEyebrow: "Shop the edit",
+          editSectionTitle: "The Edit",
+          editSectionBody: "Four pieces to begin.",
+          editSectionCtaLabel: "View piece",
           materialSectionTitle: "Lexicon",
           materialSectionNoteLabel: "Material notes",
           manifestoSectionAttribution: "The Synarava Manifesto",
@@ -107,6 +120,8 @@ describe("savePageAction", () => {
             pt: expect.objectContaining({
               departmentSectionTitle: "Escolha por onde começar.",
               departmentSectionBody: "Uma entrada cuidada na coleção.",
+              editSectionTitle: "A Seleção",
+              editSectionCtaLabel: "Ver peça",
               materialSectionNoteLabel: "Notas de materiais",
             }),
           },
@@ -121,6 +136,8 @@ describe("savePageAction", () => {
         title: "Home",
         content: expect.objectContaining({
           departmentSectionTitle: "Escolha por onde começar.",
+          editSectionTitle: "A Seleção",
+          editSectionCtaLabel: "Ver peça",
           materialSectionNoteLabel: "Notas de materiais",
         }),
       }),

@@ -10,7 +10,7 @@ Edit English and Portuguese in the same admin editor. The sticky locale tabs onl
 
 - Portuguese (`pt-PT`) must be published in Shopify Markets.
 - The app needs `read_translations`, `write_translations`, `read_locales` (or `read_markets_home`), `read_metaobjects`, `write_metaobjects`, `read_metaobject_definitions`, and `write_metaobject_definitions`.
-- Page sync uses Shopify `PAGE`; structured Page and Storefront Copy fields use `$app:page_section_copy` and `$app:storefront_copy` metaobjects with the translatable capability.
+- Page sync uses Shopify `PAGE`; structured Page (including The Edit copy) and Storefront Copy fields use `$app:page_section_copy` and `$app:storefront_copy` metaobjects with the translatable capability. Sync idempotently adds newly registered fields to an existing app-owned definition before writing values.
 
 Run `pnpm translations:backfill --dry-run --strict` before enabling writes. Review the machine report and resolve missing identity, unsupported targets, draft translations, and binding conflicts. Apply only after approval, then run the same report again; a clean second run must plan no new bindings.
 

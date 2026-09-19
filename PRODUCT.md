@@ -16,7 +16,7 @@ Synarava is a couture jewelry storefront with a lightweight CMS. The admin exist
 
 ## Home Page CMS
 
-The Home editor controls the storefront as six explicit sections: Hero, Department pathway, Featured collections, Material lexicon, Manifesto, and Final call to action. Every section has an independent visibility control. Hiding a section removes it from the storefront without deleting its saved content.
+The Home editor controls the storefront as seven explicit sections: Hero, Department pathway, Featured collections, The Edit product showcase, Material lexicon, Manifesto, and Final call to action. Every section has an independent visibility control. Hiding a section removes it from the storefront without deleting its saved content.
 
 Editors can maintain the localized English and Portuguese copy used by these sections, including labels, headings, body copy, calls to action, manifesto attribution, footer statement, and contact details. Collection- and navigation-driven imagery and cards continue to come from the corresponding catalog records.
 

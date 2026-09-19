@@ -20,6 +20,10 @@ export type EditablePageCopy = {
   departmentSectionImageCaption?: string;
   departmentSectionCtaLabel?: string;
   archiveSectionLabel?: string;
+  editSectionEyebrow?: string;
+  editSectionTitle?: string;
+  editSectionBody?: string;
+  editSectionCtaLabel?: string;
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   materialSectionNoteLabel?: string;
@@ -47,6 +51,7 @@ export type EditablePageContent = EditablePageCopy & {
   heroSectionEnabled?: boolean;
   departmentSectionEnabled?: boolean;
   archiveSectionEnabled?: boolean;
+  editSectionEnabled?: boolean;
   materialSectionEnabled?: boolean;
   manifestoSectionEnabled?: boolean;
   finalCtaSectionEnabled?: boolean;
