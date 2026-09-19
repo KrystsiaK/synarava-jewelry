@@ -133,21 +133,22 @@
 **Description:** Проверять `pt-PT`, translation scopes и metaobject capabilities/access до write.
 
 **Acceptance criteria:**
-- [ ] Admin показывает actionable причины disabled sync.
-- [ ] Missing locale/scope/definition не маскируется commerce success.
+- [x] Already implemented pre-existing this plan: `testShopifyAdminConnection` (`lib/shopify/admin.ts`) checks `read_locales`/`read_markets_home`, `read_translations`/`write_translations`, and `shopLocales` → `portuguesePublished`; `app/admin/actions/sync.ts` turns that into an actionable notice ("Portuguese translation sync is unavailable: missing …") surfaced alongside the sync result.
+- [x] `missingTranslationScopes`/`portuguesePublished` are tracked separately from `missingScopes` (the commerce-blocking list) — a missing translation scope never blocks or hides a successful commerce sync, and never gets silently skipped either (see `admin.test.ts`: "keeps translation scopes out of the blocking missingScopes list").
 
 **Verification:**
-- [ ] Unit tests missing scope/locale/definition/capability; manual dev-store check.
+- [x] Already covered by `lib/shopify/__tests__/admin.test.ts` (existing, unchanged): missing translation scopes, missing locale-read scope (without ever querying the protected `shopLocales` field), Portuguese published/unpublished. Re-ran as part of every full `pnpm vitest run` in this session — still green.
+
+**Scope note:** Metaobject capability/access checks are deferred — no metaobject definition exists in this codebase yet (`lib/shopify/metaobjects.ts` doesn't exist), so there is nothing to check the capabilities of. Add this check in whichever task first creates a metaobject definition (Task 10/16/17/18), not speculatively here.
 
 **Dependencies:** Tasks 5, 6  
-**Files likely touched:** `lib/shopify/admin.ts`, `lib/shopify/metaobjects.ts`, `lib/shopify/__tests__/admin.test.ts`, `components/admin/account/shopify-connection-panel.tsx`  
-**Estimated scope:** Medium (4 files)
+**Files likely touched:** none this session — the locale/scope half was already done; the metaobject half has no target yet.
 
 ### Checkpoint 3: Shopify foundation
 
-- [ ] Existing Product PT sync regression suite проходит.
-- [ ] Generic client проверен на одном test resource без массового write.
-- [ ] Scopes, locale и metaobject contract подтверждены.
+- [x] Existing Product PT sync regression suite проходит (`pnpm vitest run lib/shopify` — 28+ files green throughout Phase 3).
+- [ ] Generic client проверен на одном test resource без массового write — **not done**: this session has no live Shopify Admin API credentials/dev store to call against, only mocked unit tests. Needs a manual controlled-write check against a real dev store before Task 9+ relies on it in production.
+- [x] Scopes и locale подтверждены (pre-existing, tested). Metaobject contract — n/a until a definition exists (see Task 8 scope note).
 
 ## Phase 4 — Catalog vertical slices
 
