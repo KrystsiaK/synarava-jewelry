@@ -1,16 +1,21 @@
 const mocks = vi.hoisted(() => ({
   findUniquePage: vi.fn(),
+  findRedirect: vi.fn(),
   getRequestLocale: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
-  db: { page: { findFirst: mocks.findUniquePage, findUnique: mocks.findUniquePage } },
+  db: {
+    page: { findFirst: mocks.findUniquePage, findUnique: mocks.findUniquePage },
+    localizedHandleRedirect: { findUnique: mocks.findRedirect },
+  },
 }));
 vi.mock("@/lib/i18n/server", () => ({ getRequestLocale: mocks.getRequestLocale }));
 
 import { getPageBySlug } from "@/lib/content/catalog";
 
 describe("getPageBySlug localization", () => {
+  beforeEach(() => mocks.findRedirect.mockResolvedValue(null));
   it("uses Portuguese department copy and falls back field-by-field for empty translations", async () => {
     mocks.getRequestLocale.mockResolvedValue("pt");
     mocks.findUniquePage.mockResolvedValue({
@@ -74,6 +79,22 @@ describe("getPageBySlug localization", () => {
       title: "Sobre",
       excerpt: "Resumo",
       content: { body: "Corpo normalizado" },
+    });
+  });
+
+  it("resolves the active Portuguese handle and follows a persisted previous handle", async () => {
+    const row = {
+      id: "page-1", slug: "journal", title: "Journal", excerpt: null,
+      status: "PUBLISHED", visibility: "PUBLIC", content: {},
+      translations: [{ locale: "PT", title: "Diário", localizedHandle: "caderno", content: {} }],
+    };
+    mocks.findUniquePage.mockResolvedValueOnce(null).mockResolvedValueOnce(row);
+    mocks.findRedirect.mockResolvedValue({ entityId: "page-1" });
+
+    await expect(getPageBySlug("diario", "pt")).resolves.toMatchObject({
+      slug: "caderno",
+      sourceSlug: "journal",
+      title: "Diário",
     });
   });
 });
