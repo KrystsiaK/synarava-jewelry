@@ -129,7 +129,7 @@ export default async function RootLayout({
     // whole app (admin included) for a header badge that isn't essential to any page.
     getStorefrontCartCount().catch(() => null),
     hasShopifyCustomerSession(),
-    getStorefrontNavigation(),
+    getStorefrontNavigation(initialLocale),
     getStorefrontCopy(),
   ]);
 

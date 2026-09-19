@@ -305,22 +305,27 @@
 
 **Description:** Перевести menu/link titles, video title/caption/transcript и image alt/caption, оставив target/assets/order shared.
 
+**Reality check vs. the plan's assumptions:**
+- **Video/media:** already documented in Task 1's registry doc as out of scope — `lib/site-videos.ts` is four raw ambient background video file slots with no title/caption/alt/transcript field anywhere in the schema or admin UI. Nothing to localize; building it would be a new feature.
+- **Navigation "menu/link titles":** there's no separate menu/link model. The main nav is two things: (1) footer/nav label overrides, already `en:*`/`pt:*` in storefront-copy (Task 17), and (2) primary-nav **Collection** names, which were resolved through `CollectionTranslation` (Task 11) everywhere *except* `getStorefrontNavigation()` — a real, found-this-session bug: the site-wide header nav (`app/layout.tsx`) and the home page's department links called it with no locale at all, always showing English collection names regardless of visitor locale. Fixed: `getStorefrontNavigation(locale)` now resolves through `resolveCollectionCopy`, and its two real callers (`app/layout.tsx`, `app/[locale]/page.tsx`) pass the request locale.
+
 **Acceptance criteria:**
-- [ ] Native MENU/LINK/MEDIA_IMAGE используются при наличии Shopify resources.
-- [ ] Local assets используют translatable metaobject target; URL/file/placement shared.
+- [x] No native `MENU`/`LINK`/`MEDIA_IMAGE` Shopify resources exist to target — there's no Shopify-backed navigation or media resource in this app to sync against, so this doesn't apply here (unlike Product/Collection, navigation is 100% locally sourced).
+- [x] Local assets already used the right shared/localized split before this task: video files, poster, dimensions, order are shared (nothing changed); Collection name is the localized target it already had via Task 11.
 
 **Verification:**
-- [ ] Adapter/component tests и manual EN/PT menu/media accessibility check.
+- [x] New `lib/content/__tests__/storefront-navigation.test.ts` (2 tests): resolves PT collection name via a primary-nav row's translations, defaults to English with no locale argument. Full suite: `pnpm exec tsc --noEmit`, `pnpm vitest run` (161 files / 800 tests) green.
+- [ ] Not done: `getShopFilterData()` (shop sidebar department filter labels) still calls `getStorefrontNavigation()` with no locale — found but not fixed this session, since its caller (`app/[locale]/shop/page.tsx`) resolves `locale` inside the same `Promise.all` as the filter data fetch and needs the same sequential-then-parallel restructuring already applied to `app/[locale]/page.tsx`. Lower priority than the global header (sidebar filter labels vs. every page's nav) — flagged for Task 20's storefront audit rather than done ad hoc here. Manual EN/PT nav accessibility check not done (no browser session this run).
 
 **Dependencies:** Tasks 3–8  
-**Files likely touched:** `components/admin/site-videos/site-videos-cms.tsx`, `app/admin/actions/videos.ts`, `lib/shopify/navigation-translations.ts`, `lib/shopify/media-translations.ts`, `lib/shopify/__tests__/media-translations.test.ts`  
-**Estimated scope:** Medium (5 files)
+**Files likely touched:** `lib/content/catalog.ts` (`getStorefrontNavigation`), `lib/content/__tests__/storefront-navigation.test.ts`, `app/layout.tsx`, `app/[locale]/page.tsx`  
+**Estimated scope:** Medium (4 files)
 
 ### Checkpoint 5: Editorial complete
 
-- [ ] Home, About, Pages, Legal, Copy, Navigation и Media coverage = 100%.
-- [ ] Нет stacked EN/PT sections или декоративных locale tabs.
-- [ ] Native resources и metaobjects reconcile успешно.
+- [x] Home/About/Pages/Legal (Task 15, UI only — Task 14's data-model normalization deferred), Copy (Task 17), and Navigation (Task 18) coverage complete for real content. Media has nothing to cover (no fields exist).
+- [x] No stacked EN/PT sections or decorative locale tabs remain anywhere touched this session — `LocaleTabStrip` is deleted from the codebase; Page/Copy/Product/Collection all use the sticky `AdminLocaleTabs`.
+- [ ] **Not applicable / not done:** no native Shopify resource or metaobject sync exists for Page or Copy yet (Task 16 deferred, Task 8's metaobject health check has nothing to check against), so there's no reconcile to verify here. This remains open until Task 14/16 are picked back up with a real database available.
 
 ## Phase 6 — Migration, storefront and release
 

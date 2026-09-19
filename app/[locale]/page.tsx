@@ -38,7 +38,7 @@ export default async function Page() {
     listCollections(locale),
     getSiteVideos(),
     listShopListingProducts(),
-    getStorefrontNavigation(),
+    getStorefrontNavigation(locale),
   ]);
 
   const collections = collectionData

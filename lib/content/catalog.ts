@@ -435,13 +435,16 @@ function toSummary(product: {
  * `20260907223000_add_collection_primary_navigation`; admin can add more
  * by marking another collection primary-nav.
  */
-export async function getStorefrontNavigation() {
+export async function getStorefrontNavigation(locale: Locale = "en") {
   const collections = await db.collection.findMany({
     where: { isPrimaryNav: true, status: "ACTIVE", visibility: "PUBLIC" },
     orderBy: [{ navSortOrder: "asc" }, { name: "asc" }],
-    select: { slug: true, name: true },
+    include: { translations: true },
   });
-  return collections;
+  return collections.map((collection) => ({
+    slug: collection.slug,
+    name: resolveCollectionCopy(collection, locale).name,
+  }));
 }
 
 export async function getShopFilterData() {
