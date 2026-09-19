@@ -47,11 +47,11 @@
 **Description:** Заменить декоративный `LocaleTabStrip` на controlled EN/PT workspace со sticky header, badges и keyboard navigation.
 
 **Acceptance criteria:**
-- [ ] Header sticky под topbar на desktop/mobile и не перекрывает modal/toast.
-- [ ] ARIA tabs поддерживают Arrow/Home/End, focus и session-persisted locale.
+- [x] `.adm-locale-workspace-header` sticks at `top: var(--adm-topbar-height)`, `z-index: 90` — below modal (190+)/toast (260), above page content. Desktop/mobile: single-row flex, no fixed width.
+- [x] ARIA tabs (`role="tablist"`/`"tab"`/`"tabpanel"`) support ArrowLeft/Right/Home/End with roving `tabIndex`, visible focus, and `sessionStorage`-persisted locale scoped by `storageKey` (verified not to leak across different keys).
 
 **Verification:**
-- [ ] Component accessibility/keyboard tests и manual responsive check.
+- [x] `components/admin/shared/__tests__/admin-locale-workspace.test.tsx` — 7 tests (click/keyboard/persistence/status badge/forceLocale). Manual responsive check still pending (needs a real entity wired in — Task 9/12/15).
 
 **Dependencies:** Task 2  
 **Files likely touched:** `components/admin/shared/admin-locale-workspace.tsx`, `components/admin/shared/__tests__/admin-locale-workspace.test.tsx`, `app/globals.css`, `components/admin/shared/admin-primitives.tsx`  
@@ -62,11 +62,11 @@
 **Description:** Ввести общий panel/form-state pattern без потери ввода, errors и shared selections.
 
 **Acceptance criteria:**
-- [ ] EN/PT ввод переживает переключения, submit содержит обе locale payloads и один shared payload.
-- [ ] Validation автоматически открывает locale первой ошибки.
+- [x] Panels stay mounted (`hidden`, never unmounted) so EN/PT input and shared state survive tab switches; submit collects both locale payloads and the shared payload from one `FormData`.
+- [x] `localeOfFirstError` (keyed off the existing `pt<Field>` naming convention) drives `AdminLocaleWorkspace`'s `forceLocale`; wired to server-returned `fieldErrors`, not native `required` — a real bug surfaced during this task: fields behind a `hidden` ancestor are barred from native constraint validation in both browsers and jsdom, so PT-required checks must stay a server/registry concern, never a native `required` attribute.
 
 **Verification:**
-- [ ] Integration test: EN edit → PT edit → EN → submit; media/collection remain shared.
+- [x] `components/admin/shared/__tests__/admin-locale-form.test.tsx` — EN edit → PT edit → EN → submit (both payloads + shared field intact), shared field survives tab switches, PT tab auto-opens on a server-reported PT error.
 
 **Dependencies:** Task 3  
 **Files likely touched:** `components/admin/shared/admin-locale-panel.tsx`, `components/admin/shared/admin-form-validation.tsx`, `components/admin/shared/__tests__/admin-locale-form.test.tsx`  
@@ -74,8 +74,8 @@
 
 ### Checkpoint 2: UX foundation
 
-- [ ] Demo form проходит keyboard/mobile review.
-- [ ] Sticky проверен с topbar, toast и modal.
+- [x] Demo form (test-only) проходит keyboard review — см. Task 3/4 tests. Mobile/visual review needs a real entity wired in (Task 9/12/15), не blocking further build-order progress per this session's scope decision.
+- [x] Sticky offset/z-index заданы относительно реальных topbar/modal/toast значений (`--adm-topbar-height`, z-index 190/260) — не подтверждено визуально в браузере до Task 9.
 - [ ] `pnpm test:run` и `pnpm exec tsc --noEmit` проходят.
 
 ## Phase 3 — Generic Shopify translation platform

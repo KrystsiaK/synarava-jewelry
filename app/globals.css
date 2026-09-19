@@ -2368,6 +2368,36 @@ body.admin-mode .ui-tooltip {
   white-space: nowrap;
 }
 
+.adm-badge-error {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--adm-danger);
+  border: 1px solid rgba(185, 74, 72, 0.4);
+  background: var(--adm-danger-soft);
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  white-space: nowrap;
+}
+
+/* Stays visible under the admin topbar while a long EN/PT form scrolls —
+   offset by the topbar's own height so it never overlaps it, and kept below
+   modal/toast (z-index 190+) so those still layer on top. */
+.adm-locale-workspace-header {
+  position: sticky;
+  top: var(--adm-topbar-height);
+  z-index: 90;
+  background: color-mix(in srgb, var(--adm-bg-soft) 94%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--adm-border);
+  padding-top: 0.75rem;
+  margin-inline: -1px;
+}
+
 .adm-stat-card {
   border: 1px solid var(--adm-border);
   border-radius: 10px;
