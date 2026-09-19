@@ -397,11 +397,11 @@
 - [x] Tab switch is local state only (no submit/network save, panels remain mounted); rollback/recovery and Shopify prerequisites are documented.
 
 **Verification:**
-- [ ] `pnpm lint`
-- [ ] `pnpm exec tsc --noEmit`
-- [ ] `pnpm test:run`
-- [ ] `pnpm test:e2e:admin` и locale storefront suite
-- [ ] `pnpm build`
+- [x] `pnpm lint` — clean.
+- [x] `pnpm exec tsc --noEmit` — clean.
+- [x] `pnpm test:run` — 170 files / 831 tests green.
+- [ ] `pnpm test:e2e:admin` и locale storefront suite — not run; no dev server/database in this environment (specs exist: `e2e/admin-sticky-locale.spec.ts`, `e2e/localized-handles.spec.ts`, plus the pre-existing admin/storefront suites).
+- [ ] `pnpm build` — `next build` compiles and type-checks successfully; static generation then fails on a pre-existing, unrelated guard (`APP_URL must be set to the public site URL in production`, `lib/seo/site-url.ts`) that has nothing to do with this work and needs a real production env var this environment doesn't have.
 
 **Dependencies:** Tasks 19–21  
 **Files likely touched:** `e2e/admin-translations.spec.ts`, `e2e/admin-sticky-locale.spec.ts`, `docs/translation-operations.md`, `DEPLOY.md`  
