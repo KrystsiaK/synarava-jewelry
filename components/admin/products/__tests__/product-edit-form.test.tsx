@@ -143,7 +143,9 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     await user.clear(screen.getByLabelText(/Name/));
-    await user.click(screen.getByRole("tab", { name: "Português" }));
+    // Two locale tab strips render on this page (commerce/copy and the
+    // extended details section) — this exercises the first.
+    await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
     expect(screen.getByLabelText(/Name/)).not.toBeVisible();
 
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);

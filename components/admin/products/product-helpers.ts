@@ -10,48 +10,50 @@ export function centsToPrice(cents: number) {
   return (cents / 100).toFixed(2);
 }
 
-export function getProductEditorDetails(details: unknown, characteristics: ProductRecord["characteristics"] = [], department = "") {
+/**
+ * The buyer-facing text inside `details` (attributes, materials, process,
+ * lookbook) with fixed slot counts — no images/src, those stay shared
+ * between locales. Used for both the English editor (via
+ * `getProductEditorDetails`, which adds shared image fields back in) and
+ * the Portuguese translation editor, which has no images to show at all.
+ */
+export function getProductDetailsTranslation(details: unknown) {
   const parsed = parseProductDetails(details);
-  const attributes = Array.from({ length: 8 }, (_, index) => {
-    const source = parsed.attributes?.[index];
-    return { label: source?.label ?? "", value: source?.value ?? "" };
-  });
-
-  const materialsEyebrow = parsed.materialsEyebrow ?? "";
-  const materialsTitle = parsed.materialsTitle ?? "";
-  const materials = Array.from({ length: 3 }, (_, index) => {
-    const source = parsed.materials?.[index];
-    return {
-      title: source?.title ?? "",
-      body: source?.body ?? "",
-      image: source?.image ?? "",
-    };
-  });
-
-  const process = {
-    eyebrow: parsed.process?.eyebrow ?? "",
-    title: parsed.process?.title ?? "",
-    mediaImage: parsed.process?.mediaImage ?? "",
-    stats: Array.from({ length: 4 }, (_, index) => {
-      const source = parsed.process?.stats?.[index];
-      return { value: source?.value ?? "", label: source?.label ?? "" };
+  return {
+    attributes: Array.from({ length: 8 }, (_, index) => {
+      const source = parsed.attributes?.[index];
+      return { label: source?.label ?? "", value: source?.value ?? "" };
+    }),
+    materialsEyebrow: parsed.materialsEyebrow ?? "",
+    materialsTitle: parsed.materialsTitle ?? "",
+    materials: Array.from({ length: 3 }, (_, index) => {
+      const source = parsed.materials?.[index];
+      return { title: source?.title ?? "", body: source?.body ?? "" };
+    }),
+    process: {
+      eyebrow: parsed.process?.eyebrow ?? "",
+      title: parsed.process?.title ?? "",
+      stats: Array.from({ length: 4 }, (_, index) => {
+        const source = parsed.process?.stats?.[index];
+        return { value: source?.value ?? "", label: source?.label ?? "" };
+      }),
+    },
+    lookbookEyebrow: parsed.lookbookEyebrow ?? "",
+    lookbookTitle: parsed.lookbookTitle ?? "",
+    lookbook: Array.from({ length: 4 }, (_, index) => {
+      const source = parsed.lookbook?.[index];
+      return { label: source?.label ?? "" };
     }),
   };
+}
 
-  const lookbookEyebrow = parsed.lookbookEyebrow ?? "";
-  const lookbookTitle = parsed.lookbookTitle ?? "";
-  const lookbook = Array.from({ length: 4 }, (_, index) => {
-    const source = parsed.lookbook?.[index];
-    return {
-      src: source?.src ?? "",
-      label: source?.label ?? "",
-      featured: Boolean(source?.featured),
-    };
-  });
+export function getProductEditorDetails(details: unknown, characteristics: ProductRecord["characteristics"] = [], department = "") {
+  const parsed = parseProductDetails(details);
+  const translation = getProductDetailsTranslation(details);
 
   return {
     department,
-    attributes,
+    attributes: translation.attributes,
     characteristics: Object.fromEntries(characteristics.map((item) => [item.key, {
       value: item.valueType === "BOOLEAN"
         ? Boolean(item.booleanValue)
@@ -60,13 +62,23 @@ export function getProductEditorDetails(details: unknown, characteristics: Produ
           : item.textValue ?? "",
       certificateUrl: item.certificateUrl ?? "",
     }])),
-    materialsEyebrow,
-    materialsTitle,
-    materials,
-    process,
-    lookbookEyebrow,
-    lookbookTitle,
-    lookbook,
+    materialsEyebrow: translation.materialsEyebrow,
+    materialsTitle: translation.materialsTitle,
+    materials: translation.materials.map((material, index) => ({
+      ...material,
+      image: parsed.materials?.[index]?.image ?? "",
+    })),
+    process: {
+      ...translation.process,
+      mediaImage: parsed.process?.mediaImage ?? "",
+    },
+    lookbookEyebrow: translation.lookbookEyebrow,
+    lookbookTitle: translation.lookbookTitle,
+    lookbook: translation.lookbook.map((item, index) => ({
+      ...item,
+      src: parsed.lookbook?.[index]?.src ?? "",
+      featured: Boolean(parsed.lookbook?.[index]?.featured),
+    })),
   };
 }
 
@@ -81,6 +93,7 @@ export function emptyDraft(): ProductDraft {
       title: "", shortDescription: "", description: "", materialLine: "",
       symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
       seoTitle: "", seoDescription: "",
+      details: getProductDetailsTranslation(null),
       reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
     },
   };
@@ -135,6 +148,7 @@ export function productToDraft(product: ProductRecord): ProductDraft {
       symbolismBody2: pt?.symbolismBody2 ?? "",
       seoTitle: pt?.seoTitle ?? "",
       seoDescription: pt?.seoDescription ?? "",
+      details: getProductDetailsTranslation(pt?.details),
       reviewed: pt?.reviewStatus === "REVIEWED",
       syncStatus: pt?.syncStatus ?? "NOT_APPLICABLE",
       syncError: pt?.syncError ?? "",

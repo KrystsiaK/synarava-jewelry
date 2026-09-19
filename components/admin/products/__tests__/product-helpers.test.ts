@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   centsToPrice,
   emptyDraft,
+  getProductDetailsTranslation,
+  getProductEditorDetails,
   issuesForField,
   normalizeProducts,
   productActionCopy,
@@ -180,6 +182,49 @@ describe("productToDraft", () => {
     expect(draft.pt.reviewed).toBe(true);
   });
 
+  it("maps the Portuguese translation's details into the locale draft, text-only", () => {
+    const draft = productToDraft(makeProduct({
+      translations: [{
+        id: "translation-pt",
+        locale: "PT",
+        title: "Anel de Lava",
+        shortDescription: "",
+        description: "",
+        materialLine: null,
+        symbolismLabel: null,
+        symbolismTitle: null,
+        symbolismBody: null,
+        symbolismBody2: null,
+        details: {
+          materialsEyebrow: "Materiais",
+          materials: [{ title: "Pedra de Lava", body: "Extraída de vulcões ativos." }],
+          process: { eyebrow: "Processo", title: "Precisão Humana", stats: [{ value: "12", label: "Horas de tecelagem" }] },
+          lookbook: [{ label: "01 / O Conjunto" }],
+        },
+        seoTitle: null,
+        seoDescription: null,
+        reviewStatus: "DRAFT",
+        reviewedAt: null,
+        syncStatus: "NOT_APPLICABLE",
+        syncError: null,
+        contentHash: null,
+        lastSyncedAt: null,
+        createdAt: new Date("2026-01-01"),
+        updatedAt: new Date("2026-01-01"),
+        productId: "product-1",
+      }],
+    }));
+
+    expect(draft.pt.details.materialsEyebrow).toBe("Materiais");
+    expect(draft.pt.details.materials[0]).toEqual({ title: "Pedra de Lava", body: "Extraída de vulcões ativos." });
+    expect(draft.pt.details.process.stats[0]).toEqual({ value: "12", label: "Horas de tecelagem" });
+    expect(draft.pt.details.lookbook[0]).toEqual({ label: "01 / O Conjunto" });
+    // Fixed slot counts, same as the English editor's details.
+    expect(draft.pt.details.materials).toHaveLength(3);
+    expect(draft.pt.details.process.stats).toHaveLength(4);
+    expect(draft.pt.details.lookbook).toHaveLength(4);
+  });
+
   it("prefers the primary variant's commerce fields over the product's own mirror columns", () => {
     const product = makeProduct({
       priceCents: 1000,
@@ -233,6 +278,42 @@ describe("emptyDraft", () => {
   it("returns a blank draft defaulting to DRAFT state", () => {
     expect(emptyDraft().workflowState).toBe("DRAFT");
     expect(emptyDraft().name).toBe("");
+  });
+
+  it("gives the PT locale draft the same fixed-slot details shape as English, with no data yet", () => {
+    expect(emptyDraft().pt.details).toEqual(getProductDetailsTranslation(null));
+  });
+});
+
+describe("getProductDetailsTranslation", () => {
+  it("carries only buyer-facing text — no image/src/mediaImage/featured, which stay shared with English", () => {
+    const translation = getProductDetailsTranslation({
+      materials: [{ title: "Lava Stone", body: "...", image: "https://example.com/a.jpg" }],
+      process: { eyebrow: "Process", title: "Human Precision", mediaImage: "https://example.com/b.jpg", stats: [] },
+      lookbook: [{ src: "https://example.com/c.jpg", label: "01", featured: true }],
+    });
+
+    expect(translation.materials[0]).toEqual({ title: "Lava Stone", body: "..." });
+    expect(translation.process).not.toHaveProperty("mediaImage");
+    expect(translation.lookbook[0]).toEqual({ label: "01" });
+  });
+
+  it("is a strict subset of getProductEditorDetails for the same input — the two never disagree on text", () => {
+    const details = {
+      materialsEyebrow: "Materials", materialsTitle: "Our Materials",
+      materials: [{ title: "Lava Stone", body: "Forged in fire.", image: "https://example.com/a.jpg" }],
+      process: { eyebrow: "Process", title: "Human Precision", mediaImage: "https://example.com/b.jpg", stats: [{ value: "12", label: "Hours" }] },
+      lookbookEyebrow: "Lookbook", lookbookTitle: "Pairing guide",
+      lookbook: [{ src: "https://example.com/c.jpg", label: "01", featured: false }],
+    };
+    const translation = getProductDetailsTranslation(details);
+    const editor = getProductEditorDetails(details);
+
+    expect(editor.materialsEyebrow).toBe(translation.materialsEyebrow);
+    expect(editor.materials.map((m) => ({ title: m.title, body: m.body }))).toEqual(translation.materials);
+    expect(editor.process.eyebrow).toBe(translation.process.eyebrow);
+    expect(editor.process.stats).toEqual(translation.process.stats);
+    expect(editor.lookbook.map((l) => ({ label: l.label }))).toEqual(translation.lookbook);
   });
 });
 

@@ -675,6 +675,35 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     lookbook: lookbookEntries.filter((item) => item.src),
   };
 
+  // Portuguese text only — images/src/mediaImage are shared with English
+  // (see details above) and are never re-uploaded per locale.
+  const ptMaterialEntries = [1, 2, 3].map((index) => ({
+    title: formValue(formData, `ptMaterialTitle${index}`),
+    body: formValue(formData, `ptMaterialBody${index}`),
+  }));
+  const ptProcessStats = [1, 2, 3, 4]
+    .map((index) => ({
+      value: formValue(formData, `ptProcessStatValue${index}`),
+      label: formValue(formData, `ptProcessStatLabel${index}`),
+    }))
+    .filter((item) => item.value && item.label);
+  const ptLookbookEntries = [1, 2, 3, 4]
+    .map((index) => ({ label: formValue(formData, `ptLookbookLabel${index}`) }))
+    .filter((item) => item.label);
+  const ptDetails = {
+    materialsEyebrow: formValue(formData, "ptMaterialsEyebrow"),
+    materialsTitle: formValue(formData, "ptMaterialsTitle"),
+    materials: ptMaterialEntries.filter((item) => item.title && item.body),
+    process: {
+      eyebrow: formValue(formData, "ptProcessEyebrow"),
+      title: formValue(formData, "ptProcessTitle"),
+      stats: ptProcessStats,
+    },
+    lookbookEyebrow: formValue(formData, "ptLookbookEyebrow"),
+    lookbookTitle: formValue(formData, "ptLookbookTitle"),
+    lookbook: ptLookbookEntries,
+  };
+
   const collection = collectionSlug
     ? await db.collection.findUnique({ where: { slug: collectionSlug }, select: { id: true } })
     : null;
@@ -747,6 +776,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     symbolismBody2: ptSymbolismBody2 || null,
     seoTitle: ptSeoTitle || null,
     seoDescription: ptSeoDescription || null,
+    details: ptDetails as Prisma.InputJsonValue,
   };
   const ptContentHash = createHash("sha256").update(JSON.stringify(ptCopy)).digest("hex");
   const ptReviewed = parsed.data.ptReviewed === "on"

@@ -232,6 +232,8 @@ export function EditProductForm({
           <ProductDetailFields
             key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
             details={details}
+            ptDetails={draft.pt.details}
+            sku={draft.sku}
             mode="edit"
             issues={issues}
             collections={collections}

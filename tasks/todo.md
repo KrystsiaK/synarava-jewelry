@@ -173,14 +173,19 @@
 **Description:** Добавить detail labels/text, option names/values и media alt/caption в registry, persistence и Shopify adapters.
 
 **Acceptance criteria:**
-- [ ] Все buyer-facing nested поля имеют EN/PT; assets/order остаются shared.
-- [ ] Options/values/media используют native Shopify IDs, где доступны.
+- [x] Materials/process/lookbook text (title/body, eyebrow/title, stat value/label, lookbook label) now has independent EN/PT, stored in `ProductTranslation.details` (same JSON home EN already used) with its own sticky `AdminLocaleTabs` in `ProductDetailFields`. Images (material image, process media, lookbook src) stay shared — never re-uploaded per locale, exactly per registry.
+- [ ] **Option name/value labels and media alt/caption are NOT built** — discovered mid-task that neither has an existing EN admin editing surface to extend: `ProductMedia.alt` is auto-derived from the uploaded filename (never a text field), `ProductMedia.caption` is never set anywhere in the admin, and `ProductOption`/`ProductOptionValue` have no admin UI at all (the storefront reads options straight from `shopifySnapshot`, not these local rows). Building PT-only editors for content nobody can edit in EN yet would be inventing a new feature past this task's "translate what exists" scope. Left as `optionName`/`optionValueLabel`/`mediaAlt`/`mediaCaption` in the Task 1 registry (targets already assigned) for whoever builds the EN editing UI first.
+
+**Root cause fix found and applied first:** `resolveLocalizedContent`'s optional-field fallback (`hasText`) treated any non-string value as blank, so `details` (a JSON object) could never resolve to its PT translation — always fell back to English regardless of saved PT content. Fixed in `lib/i18n/localized-content.ts` (`hasContent`, replacing the old check) before building on top of it; this also fixes the same bug in the Task 2 generic contract for any future `rich-text` registry field (`materialLexicon`, `legalSections`).
+
+**Known pre-existing gap, not introduced by this task:** materials/process-stats/lookbook are stored as filtered arrays (blank slots dropped before saving), so skipping a middle slot (e.g. filling material 1 and 3 but not 2) shifts entry 3 into slot 2 on reload. This already exists for English and applies identically to the new PT fields — not a regression, but worth a real fix if it ever surfaces as a support issue.
 
 **Verification:**
-- [ ] Adapter tests и sandbox PT storefront check.
+- [x] `components/admin/products/__tests__/product-helpers.test.ts` (+4 tests): `getProductDetailsTranslation` carries text only (no image/src/mediaImage/featured) and never disagrees with `getProductEditorDetails` on the fields both share; `productToDraft` maps a populated PT `details` object correctly. `product-edit-form.test.tsx`/`product-create-form.test.tsx` updated for the second locale tab strip this added (scoped queries) — full suite still 33/33.
+- [ ] Not done: a `saveProductAction` integration test asserting the exact PT `details` JSON persisted (the existing `app/admin/actions/__tests__/products.test.ts` only covers early-exit/conflict paths, none reach the transaction — extending it needs mocking `product.create`/`$transaction`/`productTranslation.upsert` that isn't set up yet). Sandbox PT storefront check not done (no reachable DB/Shopify store this session).
 
 **Dependencies:** Task 9  
-**Files likely touched:** `prisma/schema.prisma`, `app/admin/actions/products.ts`, `components/admin/products/product-form-fields.tsx`, `lib/shopify/product-sync.ts`, `lib/shopify/__tests__/product-sync.test.ts`  
+**Files likely touched:** `lib/i18n/localized-content.ts` (root-cause fix), `components/admin/products/product-helpers.ts`, `components/admin/products/product-types.ts`, `components/admin/products/product-form-fields.tsx`, `components/admin/products/product-edit-form.tsx`, `components/admin/products/product-create-form.tsx`, `app/admin/actions/products.ts`  
 **Estimated scope:** Medium (5 files)
 
 ### Task 11: Добавить CollectionTranslation и sync adapter

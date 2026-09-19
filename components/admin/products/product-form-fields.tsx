@@ -21,7 +21,7 @@ import {
   type ProductFieldName,
 } from "@/lib/products/product-form-validation";
 import { getProductEditorDetails, issuesForField } from "@/components/admin/products/product-helpers";
-import type { CollectionOption, ProductDraft } from "@/components/admin/products/product-types";
+import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 
 export function OwnershipLabel({ children, owner }: { children: React.ReactNode; owner: "Shopify" | "Synarava" | "Shopify push" }) {
   return (
@@ -34,11 +34,15 @@ export function OwnershipLabel({ children, owner }: { children: React.ReactNode;
 
 export function ProductDetailFields({
   details,
+  ptDetails,
+  sku,
   mode,
   issues = [],
   collections,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
+  ptDetails: ProductLocaleDetailsDraft;
+  sku: string;
   mode: "create" | "edit";
   issues?: AdminIssueSummary[];
   collections: CollectionOption[];
@@ -46,6 +50,7 @@ export function ProductDetailFields({
   const departmentCollections = collections
     .filter((collection) => collection.isPrimaryNav)
     .sort((a, b) => a.navSortOrder - b.navSortOrder);
+  const [detailsLocale, selectDetailsLocale] = useAdminActiveLocale(`product-details:${sku || "new"}`, "EN");
   return (
     <div data-component="ProductDetailFields"
       className="grid gap-6 pt-5"
@@ -60,6 +65,59 @@ export function ProductDetailFields({
         </p>
         <p className="mt-2 text-xs text-[var(--adm-muted)]">Characteristics are mirrored to Shopify metafields. Editorial photography, materials, process, and lookbook remain managed by Synarava.</p>
       </div>
+
+      <AdminLocaleTabs active={detailsLocale} onSelect={selectDetailsLocale} />
+
+      <section
+        role="tabpanel"
+        aria-label="Portuguese materials, process, and lookbook copy"
+        hidden={detailsLocale !== "PT"}
+        className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
+      >
+        <p className="adm-section-tag">[ PT — MATERIALS / PROCESS / LOOKBOOK ]</p>
+        <p className="text-xs text-[var(--adm-muted)]">
+          Optional — blank fields show the English text to Portuguese visitors instead. Images stay
+          shared with English and are not repeated here.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <input name="ptMaterialsEyebrow" defaultValue={ptDetails.materialsEyebrow} placeholder="Section eyebrow" className="adm-field" />
+          <input name="ptMaterialsTitle" defaultValue={ptDetails.materialsTitle} placeholder="Section title" className="adm-field" />
+        </div>
+        <div className="grid gap-3 xl:grid-cols-3">
+          {ptDetails.materials.map((material, index) => (
+            <div key={`pt-material-${index}`} className="grid gap-2 p-3" style={{ border: "1px solid var(--adm-border)" }}>
+              <p className="adm-section-tag">MATERIAL {index + 1} (PT)</p>
+              <input name={`ptMaterialTitle${index + 1}`} defaultValue={material.title} placeholder="Pedra de Lava" className="adm-field" />
+              <textarea name={`ptMaterialBody${index + 1}`} rows={4} defaultValue={material.body} placeholder="Descreva a história do material." className="adm-field" />
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <input name="ptProcessEyebrow" defaultValue={ptDetails.process.eyebrow} placeholder="Processo" className="adm-field" />
+          <input name="ptProcessTitle" defaultValue={ptDetails.process.title} placeholder="Precisão Humana" className="adm-field" />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {ptDetails.process.stats.map((stat, index) => (
+            <div key={`pt-process-stat-${index}`} className="grid gap-2 p-3" style={{ border: "1px solid var(--adm-border)" }}>
+              <p className="adm-section-tag">STAT {index + 1} (PT)</p>
+              <input name={`ptProcessStatValue${index + 1}`} defaultValue={stat.value} placeholder="12" className="adm-field" />
+              <input name={`ptProcessStatLabel${index + 1}`} defaultValue={stat.label} placeholder="Horas de tecelagem" className="adm-field" />
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <input name="ptLookbookEyebrow" defaultValue={ptDetails.lookbookEyebrow} placeholder="Section eyebrow" className="adm-field" />
+          <input name="ptLookbookTitle" defaultValue={ptDetails.lookbookTitle} placeholder="Section title" className="adm-field" />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {ptDetails.lookbook.map((item, index) => (
+            <label key={`pt-lookbook-${index}`} className="grid gap-2">
+              <span className="adm-label">Lookbook {index + 1} label (PT)</span>
+              <input name={`ptLookbookLabel${index + 1}`} defaultValue={item.label} placeholder="01 / O Conjunto" className="adm-field" />
+            </label>
+          ))}
+        </div>
+      </section>
 
       <section
         className="grid gap-4 p-4"
@@ -129,6 +187,7 @@ export function ProductDetailFields({
 
       {/* Materials */}
       <section
+        hidden={detailsLocale !== "EN"}
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
       >
@@ -194,6 +253,7 @@ export function ProductDetailFields({
 
       {/* Process */}
       <section
+        hidden={detailsLocale !== "EN"}
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
       >
@@ -260,6 +320,7 @@ export function ProductDetailFields({
 
       {/* Lookbook */}
       <section
+        hidden={detailsLocale !== "EN"}
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
       >

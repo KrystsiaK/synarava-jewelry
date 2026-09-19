@@ -50,6 +50,17 @@ export type ProductDraft = {
   pt: ProductLocaleDraft;
 };
 
+export type ProductLocaleDetailsDraft = {
+  attributes: Array<{ label: string; value: string }>;
+  materialsEyebrow: string;
+  materialsTitle: string;
+  materials: Array<{ title: string; body: string }>;
+  process: { eyebrow: string; title: string; stats: Array<{ value: string; label: string }> };
+  lookbookEyebrow: string;
+  lookbookTitle: string;
+  lookbook: Array<{ label: string }>;
+};
+
 export type ProductLocaleDraft = {
   title: string;
   shortDescription: string;
@@ -61,6 +72,7 @@ export type ProductLocaleDraft = {
   symbolismBody2: string;
   seoTitle: string;
   seoDescription: string;
+  details: ProductLocaleDetailsDraft;
   reviewed: boolean;
   syncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
   syncError: string;

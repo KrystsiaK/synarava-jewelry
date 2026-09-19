@@ -145,7 +145,13 @@ export function CreateProductForm({
             setDraftProduct(product);
           }}
         />
-        <ProductDetailFields details={getProductEditorDetails(null)} mode="create" collections={collections} />
+        <ProductDetailFields
+          details={getProductEditorDetails(null)}
+          ptDetails={draft.pt.details}
+          sku={draft.sku}
+          mode="create"
+          collections={collections}
+        />
 
         <div
           className="flex items-center justify-end pt-4"
