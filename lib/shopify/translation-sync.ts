@@ -35,6 +35,7 @@ export async function recordSyncEvent({
   status,
   fieldConflicts,
   error,
+  actorUsername,
 }: {
   bindingId: string;
   locale: ContentLocale;
@@ -42,6 +43,7 @@ export async function recordSyncEvent({
   status: SyncEventStatus;
   fieldConflicts?: FieldConflict[];
   error?: string;
+  actorUsername?: string | null;
 }) {
   return db.translationSyncEvent.create({
     data: {
@@ -51,6 +53,7 @@ export async function recordSyncEvent({
       status,
       fieldConflicts: fieldConflicts as unknown as Prisma.InputJsonValue | undefined,
       error,
+      ...(actorUsername ? { actorUsername } : {}),
       completedAt: TERMINAL_STATUSES.includes(status) ? new Date() : null,
     },
   });

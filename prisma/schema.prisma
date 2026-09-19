@@ -665,6 +665,7 @@ model TranslationSyncEvent {
   status         SyncEventStatus           @default(PENDING)
   fieldConflicts Json?
   error          String?
+  actorUsername  String?
   attemptCount   Int                       @default(0)
   createdAt      DateTime                  @default(now())
   updatedAt      DateTime                  @updatedAt

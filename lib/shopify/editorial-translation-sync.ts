@@ -55,26 +55,27 @@ const PAGE_METAOBJECT_FIELDS = localizedFields(PAGE_FIELD_REGISTRY).flatMap((fie
   field.shopifyTarget?.kind === "metaobject" ? [field.shopifyTarget.key] : [],
 );
 
-async function recordTargetFailure(bindingId: string, error: unknown) {
+async function recordTargetFailure(bindingId: string, error: unknown, actorUsername?: string | null) {
   await recordSyncEvent({
     bindingId,
     locale: "PT",
     direction: "PUSH",
     status: "FAILED",
     error: errorMessage(error),
+    actorUsername,
   });
 }
 
-async function completeTarget(bindingId: string, snapshot: Record<string, unknown>) {
+async function completeTarget(bindingId: string, snapshot: Record<string, unknown>, actorUsername?: string | null) {
   await db.shopifyTranslationBinding.update({
     where: { id: bindingId },
     data: { lastSyncedSnapshot: snapshot as Prisma.InputJsonValue },
   });
-  await recordSyncEvent({ bindingId, locale: "PT", direction: "PUSH", status: "SUCCEEDED" });
+  await recordSyncEvent({ bindingId, locale: "PT", direction: "PUSH", status: "SUCCEEDED", actorUsername });
 }
 
 /** Syncs PAGE-native copy and structured page copy independently so one target can be retried without replaying the other. */
-export async function syncPageEditorialTranslation(pageId: string): Promise<TargetResult[]> {
+export async function syncPageEditorialTranslation(pageId: string, actorUsername?: string | null): Promise<TargetResult[]> {
   const page = await db.page.findUnique({
     where: { id: pageId },
     include: { translations: true },
@@ -120,10 +121,10 @@ export async function syncPageEditorialTranslation(pageId: string): Promise<Targ
       seoTitle: nativeSnapshot.seoTitle,
       seoDescription: nativeSnapshot.seoDescription,
     });
-    await completeTarget(nativeBinding.id, nativeSnapshot);
+    await completeTarget(nativeBinding.id, nativeSnapshot, actorUsername);
     results.push({ target: "PAGE", status: "SUCCEEDED" });
   } catch (error) {
-    await recordTargetFailure(nativeBinding.id, error);
+    await recordTargetFailure(nativeBinding.id, error, actorUsername);
     results.push({ target: "PAGE", status: "FAILED", error: errorMessage(error) });
   }
 
@@ -144,10 +145,10 @@ export async function syncPageEditorialTranslation(pageId: string): Promise<Targ
   });
   try {
     await registerEditorialMetaobjectTranslation(metaobject.id, ptStructured);
-    await completeTarget(structuredBinding.id, ptStructured);
+    await completeTarget(structuredBinding.id, ptStructured, actorUsername);
     results.push({ target: "METAOBJECT", status: "SUCCEEDED" });
   } catch (error) {
-    await recordTargetFailure(structuredBinding.id, error);
+    await recordTargetFailure(structuredBinding.id, error, actorUsername);
     results.push({ target: "METAOBJECT", status: "FAILED", error: errorMessage(error) });
   }
 
@@ -163,7 +164,7 @@ export async function syncPageEditorialTranslation(pageId: string): Promise<Targ
   return results;
 }
 
-export async function syncStorefrontCopyTranslation(): Promise<TargetResult[]> {
+export async function syncStorefrontCopyTranslation(actorUsername?: string | null): Promise<TargetResult[]> {
   const setting = await db.siteSetting.findUnique({ where: { key: STOREFRONT_COPY_KEY } });
   const value = setting?.value as StorefrontCopy | null;
   if (!setting || !value?.en || !value?.pt) throw new Error("Storefront copy is missing.");
@@ -185,10 +186,10 @@ export async function syncStorefrontCopyTranslation(): Promise<TargetResult[]> {
   });
   try {
     await registerEditorialMetaobjectTranslation(metaobject.id, value.pt);
-    await completeTarget(binding.id, value.pt);
+    await completeTarget(binding.id, value.pt, actorUsername);
     return [{ target: "METAOBJECT", status: "SUCCEEDED" }];
   } catch (error) {
-    await recordTargetFailure(binding.id, error);
+    await recordTargetFailure(binding.id, error, actorUsername);
     return [{ target: "METAOBJECT", status: "FAILED", error: errorMessage(error) }];
   }
 }

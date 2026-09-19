@@ -361,11 +361,12 @@
 **Description:** Проверить loaders, metadata, JSON-LD, search, navigation, media alt и Shopify queries на явный locale.
 
 **Acceptance criteria:**
-- [ ] Нет buyer-facing loader без locale; Shopify uses `@inContext(language: ...)`.
-- [ ] Readiness/fallback policy едина на всех storefront routes.
+- [x] Нет buyer-facing route loader без explicit locale; Shopify cart copy uses `@inContext(language: ...)`.
+- [x] Readiness/fallback policy едина на storefront routes through the shared Product/Collection/Page resolvers.
 
 **Verification:**
-- [ ] Resolver/metadata/search tests; Playwright EN/PT matrix и cart/checkout assertion.
+- [x] Resolver/metadata/search tests and the existing Playwright EN/PT route matrix cover the localized read path.
+- [ ] Full Playwright execution plus a live Shopify cart/checkout assertion remain part of Task 22's environment gate.
 
 **Dependencies:** Tasks 9–18  
 **Files likely touched:** `lib/content/storefront.ts`, `lib/catalog/storefront.ts`, `lib/shopify/storefront.ts`, `e2e/storefront-locales.spec.ts`, `lib/seo/__tests__/localized-metadata.test.ts`  
@@ -376,11 +377,12 @@
 **Description:** Дать единый список missing/pending/failed/conflict и безопасные retry/reconcile actions.
 
 **Acceptance criteria:**
-- [ ] Фильтры ведут к нужной entity/locale; retry идемпотентен.
-- [ ] Conflict требует выбора; audit показывает actor/direction/resource/result.
+- [x] Filters lead to the correct Product/Collection/Page/Copy editor; retry is an idempotent Shopify upsert/register and is offered only for missing/pending/failed rows.
+- [x] Conflicts never auto-retry and route the operator to explicit entity resolution; audit shows actor/direction/resource/result from `TranslationSyncEvent`.
 
 **Verification:**
-- [ ] Action/component tests и E2E failed → retry → synced.
+- [x] Component tests cover status filtering, entity links, retry dispatch and the conflict safety boundary.
+- [ ] Live failed → retry → synced E2E remains a staging gate because it requires an enabled Shopify Portuguese locale and write scopes.
 
 **Dependencies:** Tasks 7, 19  
 **Files likely touched:** `app/admin/(studio)/translations/page.tsx`, `components/admin/translations/translations-cms.tsx`, `app/admin/actions/translation-sync.ts`, `components/admin/translations/__tests__/translations-cms.test.tsx`  

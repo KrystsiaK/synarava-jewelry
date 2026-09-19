@@ -111,6 +111,7 @@ const NAV_ITEMS = [
   { href: "/admin/products", label: "Catalog", code: "CAT" },
   { href: "/admin/issues", label: "Problems", code: "QA" },
   { href: "/admin/collections", label: "Collections", code: "COL" },
+  { href: "/admin/translations", label: "Localization", code: "I18N" },
   { href: "/admin/account", label: "Account", code: "ACC" },
 ] as const;
 
@@ -172,17 +173,6 @@ export function AdminNav({
           </Link>
         );
       })}
-
-      <div className="adm-nav-item opacity-45 pointer-events-none select-none">
-        <span className="adm-nav-arrow">·</span>
-        <span className="flex-1">Localization</span>
-        <span
-          className="text-[0.58rem] font-bold uppercase tracking-[0.08em] opacity-100"
-          style={{ color: "var(--adm-success)" }}
-        >
-          PLANNED
-        </span>
-      </div>
 
       <hr className="adm-divider my-2" />
 
