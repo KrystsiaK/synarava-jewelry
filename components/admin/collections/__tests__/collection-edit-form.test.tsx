@@ -35,6 +35,7 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     sortOrder: 0,
     status: "DRAFT",
     visibility: "PRIVATE",
+    translations: [],
     ...overrides,
   };
 }
@@ -48,8 +49,29 @@ describe("EditCollectionForm", () => {
     render(<EditCollectionForm collection={makeCollection()} />);
 
     expect(screen.getByRole("heading", { name: "Wanderlust" })).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Name/)).toHaveValue("Wanderlust");
-    expect(screen.getByLabelText(/^Collection summary/)).toHaveValue("A summer story.");
+    expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
+    expect(screen.getByLabelText(/^Collection summary\*/)).toHaveValue("A summer story.");
+  });
+
+  it("switches to the Portuguese panel and preserves independent EN/PT input", async () => {
+    const user = userEvent.setup();
+    render(<EditCollectionForm collection={makeCollection({
+      translations: [{
+        id: "translation-pt", locale: "PT", name: "Rituais de Verão",
+        description: null, manifesto: null, symbolismLabel: null, symbolismTitle: null,
+        symbolismBody: null, symbolismBody2: null, searchSummary: null,
+        reviewStatus: "DRAFT", syncStatus: "NOT_APPLICABLE", syncError: null,
+      }],
+    })} />);
+
+    expect(screen.getByLabelText(/^Name\*/)).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+
+    expect(screen.getByLabelText(/^Name\*/)).not.toBeVisible();
+    expect(screen.getByLabelText("Name (PT)")).toHaveValue("Rituais de Verão");
+
+    await user.click(screen.getByRole("tab", { name: "English" }));
+    expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
   });
 
   it("saves through saveCollectionAction when the existing hero image is kept", async () => {

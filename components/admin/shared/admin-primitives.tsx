@@ -7,7 +7,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { Tooltip } from "@/components/ui/tooltip";
 
 export function AdminThemeShell() {
   useEffect(() => {
@@ -101,36 +100,6 @@ export function AdminTopbarIssueLink({
   );
 }
 
-const LOCALES = [
-  { code: "EN", label: "English" },
-  { code: "BE", label: "Беларуская" },
-  { code: "RU", label: "Русский" },
-] as const;
-
-export function LocaleTabStrip() {
-  const [active, setActive] = useState<string>("EN");
-
-  return (
-    <div data-component="LocaleTabStrip" className="flex flex-wrap items-center gap-1.5 border-b border-[var(--adm-border)] pb-4">
-      <span className="adm-section-tag mr-1">LOCALE /</span>
-      {LOCALES.map((locale) => (
-        <Tooltip key={locale.code} content={locale.label}>
-          <button
-            type="button"
-            onClick={() => setActive(locale.code)}
-            data-active={active === locale.code ? "true" : undefined}
-            className="adm-locale-tab"
-          >
-            {locale.code}
-          </button>
-        </Tooltip>
-      ))}
-      <span className="adm-section-tag ml-2">
-        {active === "EN" ? "// EN — ACTIVE" : "// TRANSLATION UI — COMING SOON"}
-      </span>
-    </div>
-  );
-}
 
 const NAV_ITEMS = [
   { href: "/admin", exact: true, label: "Overview", code: "CTRL" },

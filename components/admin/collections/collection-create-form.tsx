@@ -130,6 +130,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
             if (key === "code") setCodeLocked(Boolean(String(value).trim()));
             updateDraft(key, value);
           }}
+          onChangePt={(key, value) => setDraft((current) => ({ ...current, pt: { ...current.pt, [key]: value } }))}
           fieldErrors={state.fieldErrors}
           fileInputKey={fileInputKey}
         />

@@ -32,12 +32,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [page, collectionData, videos, products, locale, navigation] = await Promise.all([
+  const locale = await getRequestLocale();
+  const [page, collectionData, videos, products, navigation] = await Promise.all([
     getPageBySlug("home"),
-    listCollections(),
+    listCollections(locale),
     getSiteVideos(),
     listShopListingProducts(),
-    getRequestLocale(),
     getStorefrontNavigation(),
   ]);
 

@@ -2,6 +2,20 @@ import type { SavedCollectionPayload } from "@/app/admin/actions/collections";
 
 export type AdminCollection = SavedCollectionPayload;
 
+export type CollectionLocaleDraft = {
+  name: string;
+  description: string;
+  manifesto: string;
+  searchSummary: string;
+  symbolismLabel: string;
+  symbolismTitle: string;
+  symbolismBody: string;
+  symbolismBody2: string;
+  reviewed: boolean;
+  syncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+  syncError: string;
+};
+
 export type CollectionDraft = {
   name: string;
   slug: string;
@@ -14,6 +28,7 @@ export type CollectionDraft = {
   symbolismBody: string;
   symbolismBody2: string;
   workflowState: "DRAFT" | "PUBLISHED";
+  pt: CollectionLocaleDraft;
 };
 
 export type CollectionRowAction = {

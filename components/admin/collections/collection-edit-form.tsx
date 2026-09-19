@@ -128,6 +128,10 @@ export function EditCollectionForm({
     });
   }
 
+  function updateDraftPt<K extends keyof CollectionDraft["pt"]>(key: K, value: CollectionDraft["pt"][K]) {
+    setDraft((current) => ({ ...current, pt: { ...current.pt, [key]: value } }));
+  }
+
   return (
     <>
       <div className="adm-panel grid gap-4 p-5">
@@ -167,6 +171,7 @@ export function EditCollectionForm({
               if (key === "code") setCodeLocked(Boolean(String(value).trim()));
               updateDraft(key, value);
             }}
+            onChangePt={updateDraftPt}
             fieldErrors={state.fieldErrors}
             currentHeroImageUrl={collection.heroImageUrl}
             currentHeroImageLabel={collection.name}

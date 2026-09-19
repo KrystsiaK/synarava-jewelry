@@ -22,8 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
+  const locale = await getRequestLocale();
   const [collections, page] = await Promise.all([
-    listCollections(),
+    listCollections(locale),
     getPageBySlug("collections"),
   ]);
   return <CollectionsPage collections={collections} heroImage={page?.content.heroImage} />;

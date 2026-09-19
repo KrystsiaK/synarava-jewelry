@@ -193,30 +193,32 @@
 **Description:** Создать EN/PT model для collection copy/sections и `COLLECTION`/`COLLECTION_IMAGE`/metaobject mapping.
 
 **Acceptance criteria:**
-- [ ] Existing EN backfill не меняет storefront output; PT имеет review/sync state.
-- [ ] Membership/order/status/image identity не дублируются.
+- [x] `CollectionTranslation` mirrors `ProductTranslation`'s shape (locale, copy fields, review/sync state, `@@unique([collectionId, locale])`). No existing collection has a translation row until first save, so `resolveCollectionCopy(collection, "en")` returns the same output as reading `Collection`'s own columns directly — EN backfill is a no-op by construction, not by a separate script.
+- [x] `lib/collections/localization.ts` routes through the generic Task 2 contract (`resolveEntityLocale`/`entityLocaleReadiness`/`missingRequiredForPublish` + `COLLECTION_FIELD_REGISTRY`) instead of hand-rolling a second copy of Product's bespoke resolver — first real consumer of that contract. Membership/order/status/image identity live on `Collection` itself, untouched by any of this.
 
 **Verification:**
-- [ ] Migration/backfill/adapter tests; membership regression tests зелёные.
+- [x] `lib/collections/__tests__/localization.test.ts` (5 tests) and `lib/shopify/__tests__/collection-translations.test.ts` (4 tests, register/fetch/index against the generic Shopify client). **Not done:** a migration/backfill script test — there is no separate backfill for Collection (same "create on first save" approach as Product), so nothing to test there; a real Prisma migration apply against a live DB is still pending for the same reason as Task 6 (no reachable DB this session).
 
 **Dependencies:** Tasks 5–7  
-**Files likely touched:** `prisma/schema.prisma`, `prisma/migrations/<timestamp>_collection_translations/migration.sql`, `lib/collections/localization.ts`, `lib/shopify/collection-translations.ts`, `lib/shopify/__tests__/collection-translations.test.ts`  
-**Estimated scope:** Medium (5 files)
+**Files likely touched:** `prisma/schema.prisma`, `prisma/migrations/20260919140000_collection_translations/migration.sql`, `lib/collections/localization.ts`, `lib/collections/__tests__/localization.test.ts`, `lib/shopify/collection-translations.ts`, `lib/shopify/__tests__/collection-translations.test.ts`  
+**Estimated scope:** Medium (6 files)
 
 ### Task 12: Перевести Collection editor на общий workspace
 
 **Description:** Удалить декоративные EN/BE/RU tabs и добавить полноценные EN/PT panels с единым shared разделом.
 
 **Acceptance criteria:**
-- [ ] Copy/symbolism/sections/SEO переключаются; code/slug/image/membership/workflow shared.
-- [ ] Save/reload и validation независимы для обеих локалей.
+- [x] Decorative `LocaleTabStrip` (EN/BE/RU, switched nothing) removed from the codebase entirely — no other callers existed. Replaced with `AdminLocaleTabs`/`useAdminActiveLocale` (same primitives Task 9 extracted for Product's interleaved layout — Collection's `name`/`slug`/`code` row has the same constraint, so it uses the tab-strip-only pattern too, not the full three-slot `AdminLocaleWorkspace`). Name, collection summary, manifesto, search summary, and the symbolism block switch; code/slug/hero image/workflow state render once, shared.
+- [x] Save/reload independent for both locales: `CollectionDraft`/`CollectionLocaleDraft` are plain controlled state (not DOM-derived), so switching tabs can never lose input regardless of `hidden`. `saveCollectionAction` now upserts both an EN mirror row and the PT `CollectionTranslation` row in one transaction, mirroring Product's pattern (content hash, review/sync status, "Portuguese translation reviewed" checkbox).
+- [x] **Bonus, not originally scoped here:** wired the storefront read path too (`getCollectionBySlug`/`listCollections` in `lib/content/catalog.ts` now take a `Locale` and resolve through `resolveCollectionCopy`) — without this, PT content saved in the admin would have had nowhere to ever appear. Updated the three home/collections-index/collection-detail page callers to pass the request locale.
 
 **Verification:**
-- [ ] Create/edit tests, E2E и Shopify localized collection check.
+- [x] `pnpm exec tsc --noEmit` and `pnpm vitest run` (159 files / 792 tests) green. `collection-edit-form.test.tsx`/`collection-create-form.test.tsx` updated for the new required-field-vs-PT-field label collision (`/^Name\*/` vs `"Name (PT)"`) plus a new test switching EN→PT→EN and asserting independent values. `collection-helpers.test.ts` covers `collectionToDraft`/`emptyCollectionDraft` PT mapping.
+- [ ] Not done: E2E, a Shopify localized-collection sandbox check (no live store this session), and a `saveCollectionAction` integration test for the transaction itself — there is no `app/admin/actions/__tests__/collections.ts` test file yet at all (same gap noted for `saveProductAction` in Task 10).
 
 **Dependencies:** Tasks 3, 4, 11  
-**Files likely touched:** `components/admin/collections/collection-fields.tsx`, `components/admin/collections/collection-types.ts`, `app/admin/actions/collections.ts`, `components/admin/collections/__tests__/collection-edit-form.test.tsx`  
-**Estimated scope:** Medium (4 files)
+**Files likely touched:** `components/admin/collections/collection-fields.tsx`, `components/admin/collections/collection-types.ts`, `components/admin/collections/collection-helpers.ts`, `components/admin/collections/collection-edit-form.tsx`, `components/admin/collections/collection-create-form.tsx`, `app/admin/actions/collections.ts`, `lib/content/catalog.ts`, `components/admin/shared/admin-primitives.tsx` (dead code removal)  
+**Estimated scope:** Medium (8 files)
 
 ### Task 13: Локализовать customer-visible taxonomy
 

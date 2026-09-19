@@ -27,7 +27,7 @@ describe("CreateCollectionForm", () => {
     const { container } = render(<CreateCollectionForm />);
 
     expect(screen.getByRole("heading", { name: "Create collection" })).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/^Name/), "Lava Heritage");
+    await user.type(screen.getByLabelText(/^Name\*/), "Lava Heritage");
 
     expect(container.querySelector('input[name="slug"]')).toHaveValue("lava-heritage");
     expect(container.querySelector('input[name="code"]')).not.toHaveValue("");
@@ -43,7 +43,7 @@ describe("CreateCollectionForm", () => {
     const user = userEvent.setup();
     const { container } = render(<CreateCollectionForm onCreated={onCreated} />);
 
-    await user.type(screen.getByLabelText(/^Name/), "Lava Heritage");
+    await user.type(screen.getByLabelText(/^Name\*/), "Lava Heritage");
     const heroImageInput = container.querySelector<HTMLInputElement>('input[name="heroImageFile"]');
     expect(heroImageInput).not.toBeNull();
     await user.upload(
@@ -56,9 +56,9 @@ describe("CreateCollectionForm", () => {
     // File. The assertions above cover the upload; disable only that incomplete
     // validity implementation so requestSubmit can exercise the React action.
     heroImageInput!.required = false;
-    await user.type(screen.getByLabelText(/^Collection summary/), "A collection summary.");
-    await user.type(screen.getByLabelText(/^Manifesto/), "A collection manifesto.");
-    await user.type(screen.getByLabelText(/^Search summary/), "A search summary.");
+    await user.type(screen.getByLabelText(/^Collection summary\*/), "A collection summary.");
+    await user.type(screen.getByLabelText(/^Manifesto\*/), "A collection manifesto.");
+    await user.type(screen.getByLabelText(/^Search summary\*/), "A search summary.");
 
     const invalidRequiredFields = Array.from(
       container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[required]"),

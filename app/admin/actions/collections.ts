@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -37,6 +38,22 @@ export type CollectionFieldName =
   | "workflowState"
   | "heroImageFile";
 
+export type SavedCollectionTranslationPayload = {
+  id: string;
+  locale: "EN" | "PT";
+  name: string;
+  description: string | null;
+  manifesto: string | null;
+  symbolismLabel: string | null;
+  symbolismTitle: string | null;
+  symbolismBody: string | null;
+  symbolismBody2: string | null;
+  searchSummary: string | null;
+  reviewStatus: "DRAFT" | "REVIEWED";
+  syncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+  syncError: string | null;
+};
+
 export type SavedCollectionPayload = {
   id: string;
   createdAt: Date;
@@ -56,6 +73,7 @@ export type SavedCollectionPayload = {
   sortOrder: number;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
+  translations: SavedCollectionTranslationPayload[];
 };
 
 const savedCollectionSelect = {
@@ -77,6 +95,14 @@ const savedCollectionSelect = {
   sortOrder: true,
   status: true,
   visibility: true,
+  translations: {
+    select: {
+      id: true, locale: true, name: true, description: true, manifesto: true,
+      symbolismLabel: true, symbolismTitle: true, symbolismBody: true, symbolismBody2: true,
+      searchSummary: true, reviewStatus: true, syncStatus: true, syncError: true,
+    },
+    orderBy: { locale: "asc" },
+  },
 } satisfies Prisma.CollectionSelect;
 
 async function listSavedCollections(client: Prisma.TransactionClient | typeof db = db) {
@@ -176,6 +202,15 @@ const collectionFieldsSchema = z.object({
   symbolismTitle: z.string().trim().default(""),
   symbolismBody: z.string().trim().default(""),
   symbolismBody2: z.string().trim().default(""),
+  ptName: z.string().trim().default(""),
+  ptDescription: z.string().trim().default(""),
+  ptManifesto: z.string().trim().default(""),
+  ptSearchSummary: z.string().trim().default(""),
+  ptSymbolismLabel: z.string().trim().default(""),
+  ptSymbolismTitle: z.string().trim().default(""),
+  ptSymbolismBody: z.string().trim().default(""),
+  ptSymbolismBody2: z.string().trim().default(""),
+  ptReviewed: z.string().trim().default(""),
   removeHeroImage: z.string().trim().default(""),
   existingHeroImageUrl: z.string().trim().default(""),
   workflowState: z.string().trim().default("DRAFT"),
@@ -194,6 +229,8 @@ export async function saveCollectionAction(
   const {
     collectionId, code, name, description, manifesto, searchSummary,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, workflowState,
+    ptName, ptDescription, ptManifesto, ptSearchSummary,
+    ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
   } = parsed.data;
   const slug = slugify(parsed.data.slug);
   const removeHeroImage = parsed.data.removeHeroImage === "1";
@@ -301,6 +338,62 @@ export async function saveCollectionAction(
         });
       });
 
+  const ptCopy = {
+    name: ptName || name,
+    description: ptDescription || null,
+    manifesto: ptManifesto || null,
+    searchSummary: ptSearchSummary || null,
+    symbolismLabel: ptSymbolismLabel || null,
+    symbolismTitle: ptSymbolismTitle || null,
+    symbolismBody: ptSymbolismBody || null,
+    symbolismBody2: ptSymbolismBody2 || null,
+  };
+  const ptContentHash = createHash("sha256").update(JSON.stringify(ptCopy)).digest("hex");
+  const ptReviewed = parsed.data.ptReviewed === "on" && Boolean(ptName);
+  // Collection has no Shopify translation push wired up yet (Task 16/21) —
+  // a reviewed PT edit is a pending change to surface once that exists,
+  // never silently marked SYNCED before anything has actually synced it.
+  const ptSyncStatus = ptReviewed ? "PENDING" as const : "NOT_APPLICABLE" as const;
+
+  await db.$transaction([
+    db.collectionTranslation.upsert({
+      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "EN" } },
+      update: {
+        name, description: description || null, manifesto: manifesto || null,
+        symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
+        symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
+        searchSummary: searchSummary || null,
+        reviewStatus: "REVIEWED", reviewedAt: new Date(),
+      },
+      create: {
+        collectionId: savedCollection.id, locale: "EN",
+        name, description: description || null, manifesto: manifesto || null,
+        symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
+        symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
+        searchSummary: searchSummary || null,
+        reviewStatus: "REVIEWED", reviewedAt: new Date(),
+      },
+    }),
+    db.collectionTranslation.upsert({
+      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "PT" } },
+      update: {
+        ...ptCopy,
+        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: ptReviewed ? new Date() : null,
+        contentHash: ptContentHash,
+        syncStatus: ptSyncStatus,
+      },
+      create: {
+        collectionId: savedCollection.id, locale: "PT",
+        ...ptCopy,
+        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: ptReviewed ? new Date() : null,
+        contentHash: ptContentHash,
+        syncStatus: ptSyncStatus,
+      },
+    }),
+  ]);
+
   await writeAuditLog({
     action: collectionId ? "UPDATE" : "CREATE",
     entityType: "COLLECTION",
@@ -310,10 +403,11 @@ export async function saveCollectionAction(
   });
 
   revalidateStorefront();
+  const finalCollection = await getSavedCollectionPayload(savedCollection.id);
   return {
     success: collectionId ? "Collection updated." : "Collection created.",
     resetKey: collectionId ? undefined : Date.now(),
-    collection: savedCollection,
+    collection: finalCollection,
   };
 }
 

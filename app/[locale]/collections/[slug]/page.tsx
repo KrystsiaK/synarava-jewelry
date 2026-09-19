@@ -15,7 +15,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
-  const collection = await getCollectionBySlug(slug);
+  const collection = await getCollectionBySlug(slug, locale);
 
   if (!collection) {
     return { title: "Collection" };
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
   const [collection, products] = await Promise.all([
-    getCollectionBySlug(slug),
+    getCollectionBySlug(slug, locale),
     getProductsByCollection(slug),
   ]);
 

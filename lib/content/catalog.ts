@@ -24,6 +24,7 @@ import {
   resolveProductCopy,
   type ProductTranslationRecord,
 } from "@/lib/products/localization";
+import { resolveCollectionCopy } from "@/lib/collections/localization";
 import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 
 // Shopify's Standard Product Taxonomy name is a " > "-delimited full path
@@ -474,47 +475,53 @@ export async function getShopFilterData() {
   return { departments, categories, tags, collections, materials: values("material"), finishes: values("finish"), origins: values("origin") };
 }
 
-export async function listCollections() {
+export async function listCollections(locale: Locale = "en") {
   const collections = await db.collection.findMany({
     where: {
       status: "ACTIVE",
       visibility: "PUBLIC",
     },
+    include: { translations: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 
-  return collections.map((collection) => ({
-    slug: collection.slug,
-    name: collection.name,
-    eyebrow: formatCollectionEyebrow(collection.sortOrder),
-    summary: collection.description ?? "",
-    heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
-    accent: collection.code ?? "",
-    updatedAt: collection.updatedAt,
-  }));
+  return collections.map((collection) => {
+    const copy = resolveCollectionCopy(collection, locale);
+    return {
+      slug: collection.slug,
+      name: copy.name,
+      eyebrow: formatCollectionEyebrow(collection.sortOrder),
+      summary: copy.description,
+      heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
+      accent: collection.code ?? "",
+      updatedAt: collection.updatedAt,
+    };
+  });
 }
 
-export async function getCollectionBySlug(slug: string) {
+export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
   const collection = await db.collection.findUnique({
     where: { slug },
+    include: { translations: true },
   });
 
   if (!collection || collection.status !== "ACTIVE" || collection.visibility !== "PUBLIC") {
     return null;
   }
 
+  const copy = resolveCollectionCopy(collection, locale);
   return {
     slug: collection.slug,
-    name: collection.name,
+    name: copy.name,
     eyebrow: formatCollectionEyebrow(collection.sortOrder),
-    summary: collection.description ?? "",
+    summary: copy.description,
     heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
     accent: collection.code ?? "",
-    manifesto: collection.manifesto ?? "",
-    symbolismLabel: collection.symbolismLabel ?? "",
-    symbolismTitle: collection.symbolismTitle ?? "",
-    symbolismBody: collection.symbolismBody ?? "",
-    symbolismBody2: collection.symbolismBody2 ?? "",
+    manifesto: copy.manifesto,
+    symbolismLabel: copy.symbolismLabel,
+    symbolismTitle: copy.symbolismTitle,
+    symbolismBody: copy.symbolismBody,
+    symbolismBody2: copy.symbolismBody2,
     updatedAt: collection.updatedAt,
   };
 }
@@ -821,6 +828,7 @@ export async function getAdminCatalogData() {
       orderBy: { name: "asc" },
     }),
     db.collection.findMany({
+      include: { translations: { orderBy: { locale: "asc" } } },
       orderBy: { name: "asc" },
     }),
     db.adminIssue.findMany({

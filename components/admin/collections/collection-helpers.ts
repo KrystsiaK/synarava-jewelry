@@ -1,10 +1,19 @@
-import type { AdminCollection, CollectionDraft, CollectionRowAction } from "@/components/admin/collections/collection-types";
+import type { AdminCollection, CollectionDraft, CollectionLocaleDraft, CollectionRowAction } from "@/components/admin/collections/collection-types";
+
+function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
+  return {
+    name: "", description: "", manifesto: "", searchSummary: "",
+    symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
+    reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
+  };
+}
 
 export function emptyCollectionDraft(): CollectionDraft {
   return {
     name: "", slug: "", code: "", description: "",
     manifesto: "", searchSummary: "", symbolismLabel: "", symbolismTitle: "",
     symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT",
+    pt: emptyCollectionLocaleDraft(),
   };
 }
 
@@ -94,6 +103,7 @@ export function collectionActionCopy(target: CollectionRowAction) {
 }
 
 export function collectionToDraft(collection: AdminCollection): CollectionDraft {
+  const pt = collection.translations?.find((translation) => translation.locale === "PT");
   return {
     name: collection.name,
     slug: collection.slug,
@@ -106,6 +116,19 @@ export function collectionToDraft(collection: AdminCollection): CollectionDraft 
     symbolismBody: collection.symbolismBody ?? "",
     symbolismBody2: collection.symbolismBody2 ?? "",
     workflowState: workflowStateFromCollection(collection),
+    pt: {
+      name: pt?.name ?? "",
+      description: pt?.description ?? "",
+      manifesto: pt?.manifesto ?? "",
+      searchSummary: pt?.searchSummary ?? "",
+      symbolismLabel: pt?.symbolismLabel ?? "",
+      symbolismTitle: pt?.symbolismTitle ?? "",
+      symbolismBody: pt?.symbolismBody ?? "",
+      symbolismBody2: pt?.symbolismBody2 ?? "",
+      reviewed: pt?.reviewStatus === "REVIEWED",
+      syncStatus: pt?.syncStatus ?? "NOT_APPLICABLE",
+      syncError: pt?.syncError ?? "",
+    },
   };
 }
 

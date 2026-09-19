@@ -80,8 +80,39 @@ model Collection {
   coverAsset            MediaAsset?         @relation("CollectionCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
   products              ProductCollection[]
   sections              CollectionSection[]
+  translations          CollectionTranslation[]
 
   @@index([status, visibility, sortOrder])
+}
+
+model CollectionTranslation {
+  id                  String                  @id @default(cuid())
+  locale              ContentLocale
+  name                String
+  subtitle            String?
+  description         String?
+  manifesto           String?
+  symbolismLabel      String?
+  symbolismTitle      String?
+  symbolismBody       String?
+  symbolismBody2      String?
+  searchSummary       String?
+  seoTitle            String?
+  seoDescription      String?
+  reviewStatus        TranslationReviewStatus @default(DRAFT)
+  reviewedAt          DateTime?
+  syncStatus          TranslationSyncStatus   @default(NOT_APPLICABLE)
+  syncError           String?
+  contentHash         String?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  collectionId        String
+  collection          Collection              @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, locale])
+  @@index([locale, reviewStatus])
+  @@index([syncStatus, locale])
 }
 
 model CollectionSection {

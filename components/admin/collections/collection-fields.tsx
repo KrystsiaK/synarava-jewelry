@@ -3,9 +3,9 @@
 import type { CollectionFieldName } from "@/app/admin/actions/collections";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
-import { LocaleTabStrip } from "@/components/admin/shared/admin-primitives";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 import { fieldClass } from "@/components/admin/collections/collection-helpers";
-import type { CollectionDraft } from "@/components/admin/collections/collection-types";
+import type { CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
 
 export function FieldLabel({
   children,
@@ -96,6 +96,7 @@ export function WorkflowStateField({
 export function CollectionFields({
   draft,
   onChange,
+  onChangePt,
   fieldErrors,
   currentHeroImageUrl,
   currentHeroImageLabel,
@@ -103,18 +104,19 @@ export function CollectionFields({
 }: {
   draft: CollectionDraft;
   onChange: <K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) => void;
+  onChangePt: <K extends keyof CollectionLocaleDraft>(key: K, value: CollectionLocaleDraft[K]) => void;
   fieldErrors?: Partial<Record<CollectionFieldName, string>>;
   currentHeroImageUrl?: string | null;
   currentHeroImageLabel?: string;
   fileInputKey?: string | number;
 }) {
+  const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, "EN");
   return (
     <>
-      {/* i18n groundwork */}
-      <LocaleTabStrip />
+      <AdminLocaleTabs active={locale} onSelect={selectLocale} ptStatus={draft.pt.syncStatus as AdminLocaleStatus} />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={locale !== "EN"}>
           <FieldLabel required>Name</FieldLabel>
           <input
             name="name"
@@ -126,6 +128,16 @@ export function CollectionFields({
             placeholder="Earth Rituals"
           />
           <FieldError message={fieldErrors?.name} />
+        </label>
+        <label className="grid gap-2" hidden={locale !== "PT"}>
+          <FieldLabel>Name (PT)</FieldLabel>
+          <input
+            name="ptName"
+            value={draft.pt.name}
+            onChange={(e) => onChangePt("name", e.target.value)}
+            className="adm-field"
+            placeholder="Rituais da Terra"
+          />
         </label>
 
         <label className="grid gap-2">
@@ -187,7 +199,7 @@ export function CollectionFields({
         </label>
       </div>
 
-      <label className="grid gap-2">
+      <label className="grid gap-2" hidden={locale !== "EN"}>
         <FieldLabel required>Collection summary</FieldLabel>
         <textarea
           name="description"
@@ -201,8 +213,19 @@ export function CollectionFields({
         />
         <FieldError message={fieldErrors?.description} />
       </label>
+      <label className="grid gap-2" hidden={locale !== "PT"}>
+        <FieldLabel>Collection summary (PT)</FieldLabel>
+        <textarea
+          name="ptDescription"
+          rows={3}
+          value={draft.pt.description}
+          onChange={(e) => onChangePt("description", e.target.value)}
+          className="adm-field"
+          placeholder="Optional — shows the English summary until filled in."
+        />
+      </label>
 
-      <label className="grid gap-2">
+      <label className="grid gap-2" hidden={locale !== "EN"}>
         <FieldLabel required>Manifesto</FieldLabel>
         <textarea
           name="manifesto"
@@ -216,8 +239,19 @@ export function CollectionFields({
         />
         <FieldError message={fieldErrors?.manifesto} />
       </label>
+      <label className="grid gap-2" hidden={locale !== "PT"}>
+        <FieldLabel>Manifesto (PT)</FieldLabel>
+        <textarea
+          name="ptManifesto"
+          rows={4}
+          value={draft.pt.manifesto}
+          onChange={(e) => onChangePt("manifesto", e.target.value)}
+          className="adm-field"
+          placeholder="Optional — shows the English manifesto until filled in."
+        />
+      </label>
 
-      <label className="grid gap-2">
+      <label className="grid gap-2" hidden={locale !== "EN"}>
         <FieldLabel required>Search summary</FieldLabel>
         <textarea
           name="searchSummary"
@@ -230,6 +264,17 @@ export function CollectionFields({
           placeholder="Short search/discovery helper text."
         />
         <FieldError message={fieldErrors?.searchSummary} />
+      </label>
+      <label className="grid gap-2" hidden={locale !== "PT"}>
+        <FieldLabel>Search summary (PT)</FieldLabel>
+        <textarea
+          name="ptSearchSummary"
+          rows={2}
+          value={draft.pt.searchSummary}
+          onChange={(e) => onChangePt("searchSummary", e.target.value)}
+          className="adm-field"
+          placeholder="Optional — shows the English summary until filled in."
+        />
       </label>
 
       <div
@@ -245,6 +290,7 @@ export function CollectionFields({
 
       {/* Default symbolism */}
       <div
+        hidden={locale !== "EN"}
         className="grid gap-4 pt-4"
         style={{ borderTop: "1px solid var(--adm-border)" }}
       >
@@ -300,6 +346,76 @@ export function CollectionFields({
             onChange={(e) => onChange("symbolismBody2", e.target.value)}
             className="adm-field"
           />
+        </label>
+      </div>
+
+      {/* Default symbolism (PT) */}
+      <div
+        hidden={locale !== "PT"}
+        className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
+      >
+        <div>
+          <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
+          <p className="mt-2 text-xs text-[var(--adm-muted)]">
+            Optional — publishing never blocks on this. Whatever is left blank here shows the English
+            text to Portuguese visitors instead, until it&apos;s filled in.
+          </p>
+          {draft.pt.syncError ? (
+            <p className="mt-2 text-xs text-[var(--adm-danger)]">{draft.pt.syncError}</p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2">
+            <FieldLabel>Symbolism label (PT)</FieldLabel>
+            <input
+              name="ptSymbolismLabel"
+              value={draft.pt.symbolismLabel}
+              onChange={(e) => onChangePt("symbolismLabel", e.target.value)}
+              className="adm-field"
+            />
+          </label>
+          <label className="grid gap-2">
+            <FieldLabel>Symbolism title (PT)</FieldLabel>
+            <input
+              name="ptSymbolismTitle"
+              value={draft.pt.symbolismTitle}
+              onChange={(e) => onChangePt("symbolismTitle", e.target.value)}
+              className="adm-field"
+            />
+          </label>
+        </div>
+
+        <label className="grid gap-2">
+          <FieldLabel>Symbolism body (PT)</FieldLabel>
+          <textarea
+            name="ptSymbolismBody"
+            rows={4}
+            value={draft.pt.symbolismBody}
+            onChange={(e) => onChangePt("symbolismBody", e.target.value)}
+            className="adm-field"
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <FieldLabel>Symbolism secondary body (PT)</FieldLabel>
+          <textarea
+            name="ptSymbolismBody2"
+            rows={3}
+            value={draft.pt.symbolismBody2}
+            onChange={(e) => onChangePt("symbolismBody2", e.target.value)}
+            className="adm-field"
+          />
+        </label>
+
+        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
+          <input
+            type="checkbox"
+            name="ptReviewed"
+            checked={draft.pt.reviewed}
+            onChange={(e) => onChangePt("reviewed", e.target.checked)}
+          />
+          <span>Portuguese translation reviewed</span>
         </label>
       </div>
     </>

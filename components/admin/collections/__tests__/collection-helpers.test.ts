@@ -33,6 +33,7 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     sortOrder: 0,
     status: "DRAFT",
     visibility: "PRIVATE",
+    translations: [],
     ...overrides,
   };
 }
@@ -40,6 +41,14 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
 describe("emptyCollectionDraft", () => {
   it("defaults to a blank draft in DRAFT state", () => {
     expect(emptyCollectionDraft()).toMatchObject({ name: "", slug: "", workflowState: "DRAFT" });
+  });
+
+  it("gives the PT locale draft blank fields and NOT_APPLICABLE sync status", () => {
+    expect(emptyCollectionDraft().pt).toEqual({
+      name: "", description: "", manifesto: "", searchSummary: "",
+      symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
+      reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
+    });
   });
 });
 
@@ -87,6 +96,35 @@ describe("collectionToDraft", () => {
     const draft = collectionToDraft(makeCollection({ code: null, description: null }));
     expect(draft.code).toBe("");
     expect(draft.description).toBe("");
+  });
+
+  it("maps the Portuguese translation into an independent locale draft", () => {
+    const draft = collectionToDraft(makeCollection({
+      translations: [{
+        id: "translation-pt",
+        locale: "PT",
+        name: "Rituais da Terra",
+        description: "Peças fundamentadas.",
+        manifesto: null,
+        symbolismLabel: null,
+        symbolismTitle: null,
+        symbolismBody: null,
+        symbolismBody2: null,
+        searchSummary: null,
+        reviewStatus: "REVIEWED",
+        syncStatus: "PENDING",
+        syncError: null,
+      }],
+    }));
+
+    expect(draft.pt.name).toBe("Rituais da Terra");
+    expect(draft.pt.description).toBe("Peças fundamentadas.");
+    expect(draft.pt.reviewed).toBe(true);
+    expect(draft.pt.syncStatus).toBe("PENDING");
+  });
+
+  it("defaults the PT locale draft when no translation exists yet", () => {
+    expect(collectionToDraft(makeCollection()).pt).toMatchObject({ name: "", reviewed: false, syncStatus: "NOT_APPLICABLE" });
   });
 });
 
