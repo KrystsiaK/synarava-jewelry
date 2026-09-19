@@ -36,9 +36,9 @@
 
 ### Checkpoint 1: Contract review
 
-- [ ] Field inventory просмотрен человеком.
-- [ ] Shared/localized и Shopify destination согласованы для каждого поля.
-- [ ] Open questions из `tasks/plan.md` решены до schema changes.
+- [x] Field inventory reviewed by the user (2026-09-19, in conversation) before implementation began.
+- [x] Shared/localized split and Shopify destination agreed per field — see `docs/translation-field-registry.md`; gaps found later (Task 10/13/18) were reconciled against reality, not assumed.
+- [x] Open questions from `tasks/plan.md` resolved by the user before schema changes: PT required post-backfill, dual-editor with conflict UI, localized handles in scope — see "Open questions — решено 2026-09-19" in `tasks/plan.md`.
 
 ## Phase 2 — Shared sticky locale workspace
 
@@ -76,7 +76,7 @@
 
 - [x] Demo form (test-only) проходит keyboard review — см. Task 3/4 tests. Mobile/visual review needs a real entity wired in (Task 9/12/15), не blocking further build-order progress per this session's scope decision.
 - [x] Sticky offset/z-index заданы относительно реальных topbar/modal/toast значений (`--adm-topbar-height`, z-index 190/260) — не подтверждено визуально в браузере до Task 9.
-- [ ] `pnpm test:run` и `pnpm exec tsc --noEmit` проходят.
+- [x] `pnpm test:run` и `pnpm exec tsc --noEmit` проходят (reconfirmed at the end of the session: 170 files / 832 tests, clean typecheck).
 
 ## Phase 3 — Generic Shopify translation platform
 
