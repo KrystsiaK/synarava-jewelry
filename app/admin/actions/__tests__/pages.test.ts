@@ -69,6 +69,8 @@ describe("savePageAction", () => {
     formData.set("finalCtaSectionEnabled", "1");
     formData.set("archiveSectionLabel", "Recorded");
     formData.set("materialSectionTitle", "Lexicon");
+    formData.set("materialSectionNoteLabel", "Material notes");
+    formData.set("ptMaterialSectionNoteLabel", "Notas de materiais");
     formData.set("manifestoSectionAttribution", "The Synarava Manifesto");
     formData.set("finalCtaLabel", "Enter the shop");
     formData.set("finalCtaHref", "/shop");
@@ -91,6 +93,7 @@ describe("savePageAction", () => {
           finalCtaSectionEnabled: true,
           archiveSectionLabel: "Recorded",
           materialSectionTitle: "Lexicon",
+          materialSectionNoteLabel: "Material notes",
           manifestoSectionAttribution: "The Synarava Manifesto",
           finalCtaLabel: "Enter the shop",
           finalCtaHref: "/shop",
@@ -100,6 +103,7 @@ describe("savePageAction", () => {
             pt: expect.objectContaining({
               departmentSectionTitle: "Escolha por onde começar.",
               departmentSectionBody: "Uma entrada cuidada na coleção.",
+              materialSectionNoteLabel: "Notas de materiais",
             }),
           },
         }),

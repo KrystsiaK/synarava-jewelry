@@ -36,6 +36,7 @@ import {
 } from "@/lib/content/home-sections";
 import {
   resolveLexiconMaterials,
+  resolveLexiconNoteLabel,
   type HomeLexiconSectionFields,
 } from "@/lib/content/home-lexicon-section";
 
@@ -841,12 +842,14 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
 
 function MaterialPlate({
   material,
+  noteLabel,
   index,
   progress,
   reduceMotion,
   activeIndex,
 }: {
   material: LexiconMaterial;
+  noteLabel: string;
   index: number;
   progress: MotionValue<number>;
   reduceMotion: boolean;
@@ -929,7 +932,7 @@ function MaterialPlate({
         <div className="relative z-10 flex h-full flex-col">
           <div className="flex items-start justify-between gap-4 border-b border-linen/15 pb-4 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70">
             <span>{material.category}</span>
-            <span className="text-couture-red">Archive verified</span>
+            <span className="text-couture-red">{noteLabel}</span>
           </div>
 
           <div className="flex flex-1 flex-col justify-center py-5 md:py-8">
@@ -961,7 +964,7 @@ function MaterialPlate({
 }
 
 // 4. MATERIAL EXPOSITION — scroll-controlled cubist specimen carousel
-function MaterialLab({ materials: rawMaterials, eyebrow, title }: { materials: Omit<LexiconMaterial, "symbol">[]; eyebrow?: string; title?: string }) {
+function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { materials: Omit<LexiconMaterial, "symbol">[]; eyebrow?: string; title?: string; noteLabel?: string }) {
   const ref = useRef<HTMLElement>(null);
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
   const scrollContext = useContext(HomeScrollContext);
@@ -1068,6 +1071,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title }: { materials: O
               <MaterialPlate
                 key={material.name}
                 material={material}
+                noteLabel={resolveLexiconNoteLabel(noteLabel)}
                 index={index}
                 progress={progress}
                 reduceMotion={reduceMotion}
@@ -1076,7 +1080,11 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title }: { materials: O
             ))}
           </div>
 
-          <p className="absolute bottom-2 right-2 z-20 hidden origin-bottom-right rotate-90 font-sans text-[0.5rem] font-bold uppercase tracking-[0.32em] text-linen/60 lg:block">
+          <p
+            data-lexicon-archive-rail
+            className="absolute bottom-6 right-8 z-20 hidden origin-bottom-right rotate-90 font-sans text-[0.5rem] font-bold uppercase tracking-[0.32em] text-linen/60 lg:block xl:right-24"
+            aria-hidden="true"
+          >
             Synarava material archive · Vol. I
           </p>
         </div>
@@ -1096,7 +1104,11 @@ function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?:
       <div className="home-theme-grid pointer-events-none absolute inset-0 select-none opacity-50" />
       <div className="home-manifesto-glow pointer-events-none absolute inset-0 select-none" />
 
-      <div className="absolute left-10 top-10 hidden origin-left rotate-90 select-none font-sans text-[10px] tracking-[0.4em] text-couture-red opacity-60 md:block">
+      <div
+        data-manifesto-rail
+        className="absolute left-10 top-10 hidden origin-left rotate-90 select-none font-sans text-[10px] tracking-[0.4em] text-couture-red opacity-60 md:block xl:left-24"
+        aria-hidden="true"
+      >
         DIRECTIVE // 099
       </div>
 
@@ -1439,13 +1451,13 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
 
         <motion.div
           data-final-footer
-          className="absolute inset-0 z-[8] flex flex-col pt-10 md:pt-0"
+          className="absolute inset-0 z-[8] flex flex-col pr-10 pt-10 md:pr-12 md:pt-0"
           style={{ y: footerY, opacity: footerOpacity }}
         >
           <FinalFooter title={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
         </motion.div>
 
-        <div className="absolute bottom-0 right-0 h-20 w-px bg-linen/15" aria-hidden="true">
+        <div data-final-progress-rail className="absolute bottom-0 right-0 h-20 w-px bg-linen/15" aria-hidden="true">
           <motion.div className="absolute inset-0 bg-couture-red" style={{ scaleY: progressScale, transformOrigin: "top" }} />
         </div>
         </div>
@@ -1488,10 +1500,10 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
       className="home-experience relative min-h-screen overflow-x-clip text-linen selection:bg-couture-red selection:text-white"
     >
       {/* Fixed Technical Serials in margins */}
-      <div className="fixed top-1/4 left-10 z-40 font-sans text-[10px] tracking-[0.2em] text-stone-beige/60 select-none pointer-events-none hidden xl:block" style={{ writingMode: "vertical-rl" }}>
+      <div data-home-fixed-rail="left" className="fixed top-1/4 left-10 z-40 font-sans text-[10px] tracking-[0.2em] text-stone-beige/60 select-none pointer-events-none hidden xl:block" style={{ writingMode: "vertical-rl" }} aria-hidden="true">
         REF_ID // 001-SYN ⧫ 53.90° N, 27.56° E
       </div>
-      <div className="fixed bottom-20 right-10 z-40 font-sans text-[10px] tracking-[0.2em] text-couture-red select-none pointer-events-none hidden xl:block rotate-180" style={{ writingMode: "vertical-rl" }}>
+      <div data-home-fixed-rail="right" className="fixed bottom-20 right-10 z-40 font-sans text-[10px] tracking-[0.2em] text-couture-red select-none pointer-events-none hidden xl:block rotate-180" style={{ writingMode: "vertical-rl" }} aria-hidden="true">
         ✧ DOC.VER 9.4.1 // SECURE_ARCHIVE
       </div>
 
@@ -1506,7 +1518,7 @@ export function HomePage({ collections, departments, heroVideoSrc, content }: Ho
       /> : null}
       {visibility.department && departmentSection ? <DepartmentPathway departments={departments} section={departmentSection} /> : null}
       {visibility.archive ? <ArchivePathway collections={collections} sectionLabel={content?.archiveSectionLabel} /> : null}
-      {visibility.material ? <MaterialLab materials={lexiconMaterials} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} /> : null}
+      {visibility.material ? <MaterialLab materials={lexiconMaterials} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} noteLabel={content?.materialSectionNoteLabel} /> : null}
       {visibility.manifesto ? <ManifestoQuote quote={content?.quote} label={content?.manifestoSectionLabel} attribution={content?.manifestoSectionAttribution} /> : null}
       {visibility.finalCta ? <FinalCTA
         collections={collections}

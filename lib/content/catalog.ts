@@ -150,6 +150,7 @@ export type PageContent = {
   archiveSectionLabel?: string;
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
+  materialSectionNoteLabel?: string;
   materialLexicon?: Array<{
     name?: string;
     category?: string;

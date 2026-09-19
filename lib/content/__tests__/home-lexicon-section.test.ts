@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveLexiconMaterials } from "@/lib/content/home-lexicon-section";
+import {
+  resolveLexiconMaterials,
+  resolveLexiconNoteLabel,
+} from "@/lib/content/home-lexicon-section";
+
+describe("resolveLexiconNoteLabel", () => {
+  it("uses Material notes when the admin field is empty", () => {
+    expect(resolveLexiconNoteLabel(undefined)).toBe("Material notes");
+    expect(resolveLexiconNoteLabel("   ")).toBe("Material notes");
+  });
+
+  it("uses the trimmed admin label when configured", () => {
+    expect(resolveLexiconNoteLabel("  Material details  ")).toBe("Material details");
+  });
+});
 
 describe("resolveLexiconMaterials", () => {
   it("returns an empty list when nothing is configured", () => {

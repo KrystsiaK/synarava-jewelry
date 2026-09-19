@@ -206,7 +206,7 @@ export function PageEditor({
                 The archive background label reuses the first three published collections. Lexicon materials below are edited directly here — leave a material blank to fall back to the first three collections instead.
               </p>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2">
                 <span className="adm-label">Archive background label (EN)</span>
                 <input name="archiveSectionLabel" defaultValue={content.archiveSectionLabel ?? ""} placeholder="Recorded" className="adm-field" />
@@ -218,6 +218,10 @@ export function PageEditor({
               <label className="grid gap-2">
                 <span className="adm-label">Material section title (EN)</span>
                 <input name="materialSectionTitle" defaultValue={content.materialSectionTitle ?? ""} placeholder="Lexicon" className="adm-field" />
+              </label>
+              <label className="grid gap-2">
+                <span className="adm-label">Material note label (EN)</span>
+                <input name="materialSectionNoteLabel" defaultValue={content.materialSectionNoteLabel ?? ""} placeholder="Material notes" className="adm-field" />
               </label>
             </div>
 
@@ -349,6 +353,7 @@ export function PageEditor({
                 <label className="grid gap-2"><span className="adm-label">Archive background label (PT)</span><input name="ptArchiveSectionLabel" defaultValue={ptContent.archiveSectionLabel ?? ""} className="adm-field" /></label>
                 <label className="grid gap-2"><span className="adm-label">Material eyebrow (PT)</span><input name="ptMaterialSectionEyebrow" defaultValue={ptContent.materialSectionEyebrow ?? ""} className="adm-field" /></label>
                 <label className="grid gap-2"><span className="adm-label">Material section title (PT)</span><input name="ptMaterialSectionTitle" defaultValue={ptContent.materialSectionTitle ?? ""} className="adm-field" /></label>
+                <label className="grid gap-2"><span className="adm-label">Material note label (PT)</span><input name="ptMaterialSectionNoteLabel" defaultValue={ptContent.materialSectionNoteLabel ?? ""} placeholder="Notas de materiais" className="adm-field" /></label>
                 <label className="grid gap-2"><span className="adm-label">Manifesto label (PT)</span><input name="ptManifestoSectionLabel" defaultValue={ptContent.manifestoSectionLabel ?? ""} className="adm-field" /></label>
                 <label className="grid gap-2"><span className="adm-label">Manifesto attribution (PT)</span><input name="ptManifestoSectionAttribution" defaultValue={ptContent.manifestoSectionAttribution ?? ""} className="adm-field" /></label>
                 <label className="grid gap-2"><span className="adm-label">Final CTA label (PT)</span><input name="ptFinalCtaLabel" defaultValue={ptContent.finalCtaLabel ?? ""} className="adm-field" /></label>

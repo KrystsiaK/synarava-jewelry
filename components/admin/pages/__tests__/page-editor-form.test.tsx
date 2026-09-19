@@ -51,10 +51,12 @@ describe("PageEditor", () => {
         departmentSectionBody: "A considered way into the collection.",
         departmentSectionImageCaption: "One point of view.",
         departmentSectionCtaLabel: "Explore the shop",
+        materialSectionNoteLabel: "Material notes",
         translations: {
           pt: {
             departmentSectionTitle: "Escolha por onde começar.",
             departmentSectionBody: "Uma entrada cuidada na coleção.",
+            materialSectionNoteLabel: "Notas de materiais",
           },
         },
       },
@@ -76,6 +78,8 @@ describe("PageEditor", () => {
     expect(screen.getByRole("checkbox", { name: "Show final call to action" })).toBeChecked();
     expect(screen.getByLabelText("Archive background label (EN)")).toBeInTheDocument();
     expect(screen.getByLabelText("Material section title (EN)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Material note label (EN)")).toHaveValue("Material notes");
+    expect(screen.getByLabelText("Material note label (PT)")).toHaveValue("Notas de materiais");
     expect(screen.getByLabelText("Manifesto attribution (EN)")).toBeInTheDocument();
     expect(screen.getByLabelText("Final CTA label (EN)")).toBeInTheDocument();
     expect(screen.getByLabelText("Contact email")).toBeInTheDocument();

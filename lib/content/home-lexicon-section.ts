@@ -7,6 +7,7 @@ export type HomeLexiconMaterialFields = {
 };
 
 export type HomeLexiconSectionFields = {
+  materialSectionNoteLabel?: string;
   materialLexicon?: HomeLexiconMaterialFields[];
 };
 
@@ -21,6 +22,10 @@ export type ResolvedLexiconMaterial = {
 function optionalTrimmed(value: string | undefined) {
   const trimmed = value?.trim();
   return trimmed || undefined;
+}
+
+export function resolveLexiconNoteLabel(value: string | undefined) {
+  return optionalTrimmed(value) ?? "Material notes";
 }
 
 /**
