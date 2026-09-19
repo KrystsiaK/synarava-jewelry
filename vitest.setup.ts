@@ -33,6 +33,13 @@ global.IntersectionObserver = vi.fn().mockImplementation((cb) => ({
   _cb: cb,
 })) as unknown as typeof IntersectionObserver;
 
+// ── scrollIntoView ───────────────────────────────────────────────────────────
+// jsdom doesn't implement layout, so it has no scrollIntoView at all — any
+// validate()-triggered focusFirstInvalidField() call throws without this.
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+}
+
 // ── matchMedia ───────────────────────────────────────────────────────────────
 Object.defineProperty(window, "matchMedia", {
   writable: true,

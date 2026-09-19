@@ -11,7 +11,8 @@ import { useAdminFormValidation } from "@/components/admin/shared/admin-form-val
 // exactly the way Task 9/12/15 forms will wire the real thing. Like those
 // forms, PT requiredness is a server-side (publish-state-dependent) concern
 // reported back via showFieldErrors — not a native `required` attribute,
-// which browsers skip for fields inside a `hidden` ancestor.
+// since whether PT is required at all depends on publish state (the
+// registry's "when-published"), which a static `required` can't express.
 function DemoForm({
   onSubmit,
   serverFieldErrors,

@@ -137,6 +137,28 @@ describe("EditProductForm", () => {
     expect(onDeleted).toHaveBeenCalledWith("product-1");
   });
 
+  it("reopens the EN tab and blocks the confirm dialog when a required EN field is blank while PT is active", async () => {
+    const user = userEvent.setup();
+    render(<EditProductForm product={makeProduct()} collections={[]} />);
+    await act(async () => {});
+
+    await user.clear(screen.getByLabelText(/Name/));
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(screen.getByLabelText(/Name/)).not.toBeVisible();
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+
+    // Client-side validate() catches the blank required Name even while its
+    // panel is hidden (jsdom, like real browsers, computes `validity` from
+    // the constraint itself, not from whether the field is rendered) — so
+    // the confirm dialog never opens...
+    expect(screen.queryByRole("button", { name: "Yes, save changes" })).not.toBeInTheDocument();
+    expect(mocks.saveProductAction).not.toHaveBeenCalled();
+    // ...and the EN tab reopens so the user can actually see the error
+    // instead of being stuck looking at the PT panel.
+    expect(await screen.findByLabelText(/Name/)).toBeVisible();
+  });
+
   it("keeps the editor available when the save action rejects", async () => {
     mocks.saveProductAction.mockRejectedValue(new Error("Database write failed"));
     const user = userEvent.setup();

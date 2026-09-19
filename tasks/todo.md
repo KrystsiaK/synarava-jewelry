@@ -63,7 +63,7 @@
 
 **Acceptance criteria:**
 - [x] Panels stay mounted (`hidden`, never unmounted) so EN/PT input and shared state survive tab switches; submit collects both locale payloads and the shared payload from one `FormData`.
-- [x] `localeOfFirstError` (keyed off the existing `pt<Field>` naming convention) drives `AdminLocaleWorkspace`'s `forceLocale`; wired to server-returned `fieldErrors`, not native `required` — a real bug surfaced during this task: fields behind a `hidden` ancestor are barred from native constraint validation in both browsers and jsdom, so PT-required checks must stay a server/registry concern, never a native `required` attribute.
+- [x] `localeOfFirstError` (keyed off the existing `pt<Field>` naming convention) drives `AdminLocaleWorkspace`'s `forceLocale`; wired to server-returned `fieldErrors`, not a native `required` attribute — PT requiredness depends on publish state (the registry's `"when-published"`), which a static `required` can't express, so it has to be a server/registry-driven check either way. (Correction: an earlier draft of this note claimed hidden-ancestor fields are skipped by native constraint validation in jsdom — verified empirically in Task 9 that they are **not**: `.validity`/`.willValidate` in jsdom, like the `.validity` property in real browsers, is rendering-independent. That claim was wrong; the design choice above stands on its own merits regardless.)
 
 **Verification:**
 - [x] `components/admin/shared/__tests__/admin-locale-form.test.tsx` — EN edit → PT edit → EN → submit (both payloads + shared field intact), shared field survives tab switches, PT tab auto-opens on a server-reported PT error.
@@ -157,14 +157,15 @@
 **Description:** Сохранить ProductTranslation/sync, заменив локальный tabs/form adapter на shared foundation.
 
 **Acceptance criteria:**
-- [ ] EN/PT имеют одинаковую структуру localized fields.
-- [ ] Commerce, collections и media assets показаны один раз; statuses/conflict actions сохранены.
+- [x] EN/PT localized fields unchanged in structure — this task only replaced the tab/header mechanism, not the field set (that's Task 10). Because Product's shared fields (slug, sku, price, stock, taxonomy, workflow state, image) are interleaved with EN-only fields inside the same grids, `ProductFormFields` uses `useAdminActiveLocale` + `AdminLocaleTabs` directly (extracted from `AdminLocaleWorkspace` in this task) rather than its three-slot `sharedHeader/en/pt` shape, which would force splitting those grids apart. `AdminLocaleWorkspace` itself is unchanged externally — Task 3/4 tests pass unmodified against the refactor.
+- [x] Commerce/collections/media still render once (no restructure needed, see above); Shopify sync status badge now lives once on the sticky tab strip — the old PT-panel copy of the same badge was removed to avoid showing it twice when the PT tab is active.
 
 **Verification:**
-- [ ] Product component tests и E2E save/reload обеих локалей/shared selections.
+- [x] Existing `product-edit-form.test.tsx`/`product-create-form.test.tsx` (10 tests) pass unchanged — behavior preserved. Added a new regression test: switching to PT with a blank required EN field blocks the confirm dialog (client `validate()` correctly reads `.validity` regardless of the field's hidden ancestor — verified empirically, see note on Task 4 above) and now auto-reopens the EN tab via `localeOfFirstError`, instead of leaving the user stranded on PT with no visible error. Also fixed a missing `scrollIntoView` polyfill in `vitest.setup.ts` that this test's validation path exposed. Full suite: `pnpm exec tsc --noEmit`, `pnpm vitest run` (157 files / 771 tests) green.
+- [ ] E2E save/reload for both locales — not run this session (no reachable dev DB in this environment, see Task 6 note); needs a real `pnpm test:e2e` pass before shipping.
 
 **Dependencies:** Tasks 3–7  
-**Files likely touched:** `components/admin/products/product-form-fields.tsx`, `components/admin/products/product-types.ts`, `components/admin/products/__tests__/product-edit-form.test.tsx`, `app/admin/actions/products.ts`  
+**Files likely touched:** `components/admin/products/product-form-fields.tsx`, `components/admin/products/__tests__/product-edit-form.test.tsx`, `components/admin/shared/admin-locale-workspace.tsx` (extracted `AdminLocaleTabs`/`useAdminActiveLocale`), `vitest.setup.ts`  
 **Estimated scope:** Medium (4 files)
 
 ### Task 10: Покрыть Product nested localized content

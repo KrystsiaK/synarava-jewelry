@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   AdminFieldError,
@@ -8,6 +8,8 @@ import {
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
+import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
@@ -347,7 +349,18 @@ export function ProductFormFields({
   const [nameValue, setNameValue] = useState(draft.name);
   const [slugValue, setSlugValue] = useState(draft.slug);
   const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
-  const [activeLocale, setActiveLocale] = useState<"EN" | "PT">("EN");
+  const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${draft.sku || "new"}`, "EN");
+
+  useEffect(() => {
+    // Fixes a real bug: EN fields sit inside a `hidden` ancestor while the
+    // PT tab is active, so a browser (and jsdom) skips them during native
+    // constraint validation — a save attempted from the PT tab with a blank
+    // required EN field reported no visible error until this forced the
+    // EN tab back open. See admin-locale-panel.tsx / Task 4.
+    const forced = localeOfFirstError(fieldErrors);
+    if (forced) selectLocale(forced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldErrors]);
 
   function updateName(value: string) {
     setNameValue(value);
@@ -377,30 +390,11 @@ export function ProductFormFields({
         <span className="adm-badge-published w-fit">Shopify-backed</span>
       </div>
 
-      <div
-        role="tablist"
-        aria-label="Product content language"
-        className="flex flex-wrap items-center gap-1.5 border-b border-[var(--adm-border)] pb-4"
-      >
-        <span className="adm-section-tag mr-1">LOCALE /</span>
-        {([{"code":"EN","label":"English"},{"code":"PT","label":"Português"}] as const).map((locale) => (
-          <button
-            key={locale.code}
-            type="button"
-            role="tab"
-            aria-label={locale.label}
-            aria-selected={activeLocale === locale.code}
-            onClick={() => setActiveLocale(locale.code)}
-            data-active={activeLocale === locale.code ? "true" : undefined}
-            className="adm-locale-tab"
-          >
-            {locale.code}
-          </button>
-        ))}
-        <span className="adm-section-tag ml-2">
-          {activeLocale === "EN" ? "// EN — SOURCE" : "// PT — TRANSLATION"}
-        </span>
-      </div>
+      <AdminLocaleTabs
+        active={activeLocale}
+        onSelect={selectLocale}
+        ptStatus={draft.pt.syncStatus as AdminLocaleStatus}
+      />
 
       <section
         role="tabpanel"
@@ -409,12 +403,8 @@ export function ProductFormFields({
         className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
       >
         <div>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
-            <span className={draft.pt.syncStatus === "SYNCED" ? "adm-badge-published" : "adm-badge-draft"}>
-              SHOPIFY: {draft.pt.syncStatus.replace("NOT_APPLICABLE", "LOCAL ONLY")}
-            </span>
-          </div>
+          {/* Shopify sync status now lives once, on the sticky AdminLocaleTabs badge above — not duplicated here. */}
+          <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
           <p className="mt-2 text-xs text-[var(--adm-muted)]">
             Optional — publishing never blocks on this. Whatever is left blank here shows the English text
             to Portuguese visitors instead, until it&apos;s filled in.

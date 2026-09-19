@@ -35,19 +35,108 @@ function readStoredLocale(storageKey: string): AdminLocale | null {
   }
 }
 
-function useActiveLocale(storageKey: string, initial: AdminLocale) {
-  const [active, setActive] = useState<AdminLocale>(() => readStoredLocale(storageKey) ?? initial);
+/**
+ * The session-persisted locale + activation, usable on its own by forms
+ * whose shared and localized fields are interleaved in the same layout
+ * (e.g. the Product editor's commerce grid) and so can't adopt
+ * `AdminLocaleWorkspace`'s three-slot (sharedHeader/en/pt) render shape
+ * without an unrelated visual restructure. Those forms pair this with
+ * `<AdminLocaleTabs>` and their own `hidden={active !== "EN"}` markup.
+ */
+export function useAdminActiveLocale(storageKey: string, defaultLocale: AdminLocale = "EN") {
+  const scopedKey = `adm-locale:${storageKey}`;
+  const [active, setActive] = useState<AdminLocale>(() => readStoredLocale(scopedKey) ?? defaultLocale);
 
   function select(locale: AdminLocale) {
     setActive(locale);
     try {
-      sessionStorage.setItem(storageKey, locale);
+      sessionStorage.setItem(scopedKey, locale);
     } catch {
       // best-effort only
     }
   }
 
   return [active, select] as const;
+}
+
+export type AdminLocaleTabsProps = {
+  active: AdminLocale;
+  onSelect: (locale: AdminLocale) => void;
+  /** Sync/readiness status shown next to the tabs (Shopify push/pull state). English has no sync status — it's the source. */
+  ptStatus?: AdminLocaleStatus;
+  /** Content rendered once, sharing the sticky band with the tabs (e.g. a commerce-core banner). */
+  sharedHeader?: ReactNode;
+  /** ids for the panels this tab strip controls, so aria-controls/aria-labelledby line up when a caller renders its own panels instead of using AdminLocaleWorkspace. */
+  tabId?: (locale: AdminLocale) => string;
+  panelId?: (locale: AdminLocale) => string;
+};
+
+/**
+ * The sticky EN/PT tab strip on its own, for forms whose shared and
+ * localized fields are interleaved in one layout (see `useAdminActiveLocale`
+ * above) and so render their own panels/`hidden` markup instead of using
+ * `AdminLocaleWorkspace`'s three-slot shape.
+ */
+export function AdminLocaleTabs({ active, onSelect, ptStatus, sharedHeader, tabId, panelId }: AdminLocaleTabsProps) {
+  const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({ EN: null, PT: null });
+  const fallbackId = useId();
+  const idFor = tabId ?? ((locale: AdminLocale) => `${fallbackId}-tab-${locale}`);
+  const panelIdFor = panelId ?? ((locale: AdminLocale) => `${fallbackId}-panel-${locale}`);
+
+  function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const lastIndex = LOCALE_TABS.length - 1;
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") nextIndex = index === lastIndex ? 0 : index + 1;
+    else if (event.key === "ArrowLeft") nextIndex = index === 0 ? lastIndex : index - 1;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = lastIndex;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const next = LOCALE_TABS[nextIndex];
+    onSelect(next.code);
+    tabRefs.current[next.code]?.focus();
+  }
+
+  return (
+    <div className="adm-locale-workspace-header">
+      {sharedHeader}
+      <div
+        role="tablist"
+        aria-label="Content language"
+        className="flex flex-wrap items-center gap-1.5 pb-4"
+      >
+        <span className="adm-section-tag mr-1">LOCALE /</span>
+        {LOCALE_TABS.map((locale, index) => (
+          <button
+            key={locale.code}
+            ref={(node) => { tabRefs.current[locale.code] = node; }}
+            type="button"
+            role="tab"
+            id={idFor(locale.code)}
+            aria-controls={panelIdFor(locale.code)}
+            aria-selected={active === locale.code}
+            aria-label={locale.label}
+            tabIndex={active === locale.code ? 0 : -1}
+            onClick={() => onSelect(locale.code)}
+            onKeyDown={(event) => onTabKeyDown(event, index)}
+            data-active={active === locale.code ? "true" : undefined}
+            className="adm-locale-tab"
+          >
+            {locale.code}
+          </button>
+        ))}
+        <span className="adm-section-tag ml-2">
+          {active === "EN" ? "// EN — SOURCE" : "// PT — TRANSLATION"}
+        </span>
+        {ptStatus ? (
+          <span className={`${statusBadgeClass(ptStatus)} ml-auto`}>
+            SHOPIFY: {statusLabel(ptStatus)}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 export type AdminLocaleWorkspaceProps = {
@@ -68,10 +157,16 @@ export type AdminLocaleWorkspaceProps = {
 };
 
 /**
- * Sticky EN/PT tab header + panels. Both panels always render (as `hidden`,
- * not unmounted) so uncontrolled inputs keep their value and any shared
- * controlled draft state survives switching tabs — see tasks/plan.md
- * "Скрытие panel не размонтирует uncontrolled inputs".
+ * Sticky EN/PT tab header + panels, for a form whose shared fields are
+ * cleanly separable from its localized ones. Both panels always render (as
+ * `hidden`, not unmounted) so uncontrolled inputs keep their value and any
+ * shared controlled draft state survives switching tabs — see
+ * tasks/plan.md "Скрытие panel не размонтирует uncontrolled inputs".
+ *
+ * A form whose shared and localized fields are interleaved in one layout
+ * (Product's commerce grid) can't adopt this three-slot shape without an
+ * unrelated visual restructure — use `useAdminActiveLocale` + `AdminLocaleTabs`
+ * directly instead, and keep its own `hidden={active !== "EN"}` markup.
  */
 export function AdminLocaleWorkspace({
   storageKey,
@@ -83,8 +178,7 @@ export function AdminLocaleWorkspace({
   pt,
   onLocaleChange,
 }: AdminLocaleWorkspaceProps) {
-  const [active, select] = useActiveLocale(`adm-locale:${storageKey}`, defaultLocale);
-  const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({ EN: null, PT: null });
+  const [active, select] = useAdminActiveLocale(storageKey, defaultLocale);
   const tablistId = useId();
 
   useEffect(() => {
@@ -98,61 +192,16 @@ export function AdminLocaleWorkspace({
     onLocaleChange?.(locale);
   }
 
-  function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const lastIndex = LOCALE_TABS.length - 1;
-    let nextIndex: number | null = null;
-    if (event.key === "ArrowRight") nextIndex = index === lastIndex ? 0 : index + 1;
-    else if (event.key === "ArrowLeft") nextIndex = index === 0 ? lastIndex : index - 1;
-    else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = lastIndex;
-    if (nextIndex === null) return;
-
-    event.preventDefault();
-    const next = LOCALE_TABS[nextIndex];
-    activate(next.code);
-    tabRefs.current[next.code]?.focus();
-  }
-
   return (
     <div data-component="AdminLocaleWorkspace">
-      <div className="adm-locale-workspace-header">
-        {sharedHeader}
-        <div
-          role="tablist"
-          aria-label="Content language"
-          id={tablistId}
-          className="flex flex-wrap items-center gap-1.5 pb-4"
-        >
-          <span className="adm-section-tag mr-1">LOCALE /</span>
-          {LOCALE_TABS.map((locale, index) => (
-            <button
-              key={locale.code}
-              ref={(node) => { tabRefs.current[locale.code] = node; }}
-              type="button"
-              role="tab"
-              id={`${tablistId}-tab-${locale.code}`}
-              aria-controls={`${tablistId}-panel-${locale.code}`}
-              aria-selected={active === locale.code}
-              aria-label={locale.label}
-              tabIndex={active === locale.code ? 0 : -1}
-              onClick={() => activate(locale.code)}
-              onKeyDown={(event) => onTabKeyDown(event, index)}
-              data-active={active === locale.code ? "true" : undefined}
-              className="adm-locale-tab"
-            >
-              {locale.code}
-            </button>
-          ))}
-          <span className="adm-section-tag ml-2">
-            {active === "EN" ? "// EN — SOURCE" : "// PT — TRANSLATION"}
-          </span>
-          {ptStatus ? (
-            <span className={`${statusBadgeClass(ptStatus)} ml-auto`}>
-              SHOPIFY: {statusLabel(ptStatus)}
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <AdminLocaleTabs
+        active={active}
+        onSelect={activate}
+        ptStatus={ptStatus}
+        sharedHeader={sharedHeader}
+        tabId={(locale) => `${tablistId}-tab-${locale}`}
+        panelId={(locale) => `${tablistId}-panel-${locale}`}
+      />
 
       <div
         role="tabpanel"
