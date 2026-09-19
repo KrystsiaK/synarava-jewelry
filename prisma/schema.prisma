@@ -581,13 +581,18 @@ enum PageStatus {
 // from ProductSyncEvent, which is commerce (inventory/price/catalog) sync,
 // not translations. See tasks/plan.md "Persistence и миграция".
 model ShopifyTranslationBinding {
-  id                String                   @id @default(cuid())
-  resourceType      TranslationResourceType
-  entityId          String
-  shopifyResourceId String
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  syncEvents        TranslationSyncEvent[]
+  id                   String                   @id @default(cuid())
+  resourceType         TranslationResourceType
+  entityId             String
+  shopifyResourceId    String
+  // PT field values (registry key -> value) as of the last successful push
+  // or pull — the "base" a three-way reconcile diffs local/remote against.
+  // Null before the first sync (nothing to diff yet, so reconcile treats
+  // any local or remote content as a first push/pull, never a conflict).
+  lastSyncedSnapshot   Json?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  syncEvents           TranslationSyncEvent[]
 
   @@unique([resourceType, entityId])
   @@unique([resourceType, shopifyResourceId])

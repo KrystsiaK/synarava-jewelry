@@ -116,14 +116,16 @@
 **Description:** Сравнивать base snapshot, current local и Shopify по каждому field и выдавать PUSH/PULL/CONFLICT/NOOP.
 
 **Acceptance criteria:**
-- [ ] Remote-only, local-only и two-sided edits определяются детерминированно.
-- [ ] Conflict хранит field-level local/remote; dry reconcile ничего не пишет.
+- [x] `planReconcile` (pure, table-driven) classifies push/pull/conflict/noop off a base/local/remote three-way diff; remote-only and local-only changes resolve cleanly, two-sided changes to the same field always conflict (including with no base yet — see code comment on why "first sync" still conflicts when both sides already disagree).
+- [x] `diffFieldConflicts` returns local/remote per differing field; `reconcileResourceType` only reads (`fetchTranslatableResourceIndex` + `db.shopifyTranslationBinding.findMany` + a caller-supplied `loadLocal`) — no write call anywhere in this file.
 
 **Verification:**
-- [ ] Table-driven tests, включая partial multi-field conflict и pagination.
+- [x] `lib/shopify/__tests__/translation-reconciliation.test.ts` — 9 tests: table-driven push/pull/conflict/noop (incl. partial multi-field conflict, no-base case), Shopify-key projection, a 2-page sweep matching bindings across pages, and a missing-local-entity skip.
+
+**Scope note:** `app/admin/actions/translation-sync.ts` (listed as likely-touched) is deferred to Task 21, which builds the overview UI that would actually call it — adding a server action with no caller yet would be dead code. `reconcileResourceType` is written so Task 21 can call it directly.
 
 **Dependencies:** Task 6  
-**Files likely touched:** `lib/shopify/translation-reconciliation.ts`, `lib/shopify/__tests__/translation-reconciliation.test.ts`, `app/admin/actions/translation-sync.ts`  
+**Files likely touched:** `lib/shopify/translation-reconciliation.ts`, `lib/shopify/__tests__/translation-reconciliation.test.ts`  
 **Estimated scope:** Medium (3 files)
 
 ### Task 8: Добавить locale/scopes/metaobject health checks
