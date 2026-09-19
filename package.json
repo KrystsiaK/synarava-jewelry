@@ -16,6 +16,7 @@
     "auth:hash": "node scripts/hash-password.mjs",
     "media:migrate-s3": "node scripts/migrate-local-uploads-to-s3.mjs",
     "catalog:backfill-departments": "node scripts/backfill-department-collections.mjs",
+    "translations:backfill": "node scripts/backfill-translations.mjs",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",

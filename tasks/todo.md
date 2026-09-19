@@ -334,11 +334,14 @@
 **Description:** Связать записи с Shopify targets, перенести PT и показать gaps/conflicts до writes.
 
 **Acceptance criteria:**
-- [ ] `--dry-run` ничего не меняет и выдаёт human + machine report.
-- [ ] Apply идемпотентен; unsupported/missing identity блокирует enforcement.
+- [x] `--dry-run` ничего не меняет и выдаёт human + versioned machine report (`--json`); dry-run is the default and the CLI never writes translated copy to Shopify.
+- [x] Apply идемпотентен; it creates only missing, non-conflicting `ShopifyTranslationBinding` rows, while unsupported fields, missing identity, missing/review-draft PT and binding conflicts block enforcement.
 
 **Verification:**
-- [ ] Script fixtures и два последовательных staging runs; human approval report.
+- [x] Pure report/planning fixtures cover gaps, unsupported fields, binding conflicts and a second idempotent planning run (`scripts/__tests__/translation-coverage.test.ts`, 5 tests).
+- [ ] Two sequential staging runs and human approval report remain an environment gate: the local PostgreSQL endpoint at `127.0.0.1:55432` was unavailable on 2026-09-19, so no database write was attempted and this item is intentionally not marked complete.
+
+**Implementation note:** `pnpm translations:backfill --dry-run|--apply [--json] [--strict]`; operating procedure and rollback boundaries are documented in `docs/translation-migration.md`. PAGE/METAOBJECT remain explicitly deferred in the report until Tasks 14/16 provide real Shopify adapters, preventing a false 100% coverage result.
 
 **Dependencies:** Tasks 9–18  
 **Files likely touched:** `scripts/backfill-translations.mjs`, `scripts/lib/translation-backfill.mjs`, `scripts/__tests__/translation-backfill.test.ts`, `docs/translation-migration.md`  
