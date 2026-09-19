@@ -13,6 +13,7 @@ import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
+import { AdminLocaleTabs, useAdminActiveLocale } from "@/components/admin/shared/admin-locale-workspace";
 import type { EditablePageContent } from "@/components/admin/pages/page-types";
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
@@ -37,6 +38,7 @@ export function PageEditor({
   const isPrivacyPage = page.slug === "privacy";
   const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
   const { pushToast } = useAdminToast();
+  const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, "EN");
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -75,12 +77,12 @@ export function PageEditor({
           </button>
         </div>
 
-        <p className="adm-section-tag border-b border-[var(--adm-border)] pb-4">LOCALE / EN — SOURCE</p>
+        <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} />
         <AuthMessage error={state.error} />
 
         {isHomePage ? <HomeSectionVisibilityEditor content={content} /> : null}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Hero headline" : "Title"}</span>
             <input name="title" defaultValue={page.title} className="adm-field" />
@@ -91,7 +93,7 @@ export function PageEditor({
           </label>
         </div>
 
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
           <span className="adm-label">{isHomePage ? "Search summary" : "Excerpt"}</span>
           <textarea name="excerpt" defaultValue={page.excerpt ?? ""} rows={3} className="adm-field" />
         </label>
@@ -111,13 +113,13 @@ export function PageEditor({
           />
         </div>
 
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
           <span className="adm-label">{isHomePage ? "Hero description" : isAboutPage ? "Studio introduction" : "Body"}</span>
           <textarea name="body" defaultValue={content.body ?? ""} rows={5} className="adm-field" />
         </label>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
+          <label className="grid gap-2" hidden={activeLocale !== "EN"}>
             <span className="adm-label">CTA label</span>
             <input name="ctaLabel" defaultValue={content.ctaLabel ?? ""} className="adm-field" />
           </label>
@@ -138,7 +140,7 @@ export function PageEditor({
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {isOfferPage ? (
-                <label className="grid gap-2 md:col-span-2">
+                <label className="grid gap-2 md:col-span-2" hidden={activeLocale !== "EN"}>
                   <span className="adm-label">Intro paragraph (EN)</span>
                   <textarea name="legalIntro" defaultValue={content.legalIntro ?? ""} rows={2} className="adm-field" />
                 </label>
@@ -152,7 +154,7 @@ export function PageEditor({
             {legalSections.map((section) => {
               const value = content.legalSections?.[section.id];
               return (
-                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
+                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4" hidden={activeLocale !== "EN"}>
                   <p className="adm-section-tag">{section.label}</p>
                   <label className="grid gap-2">
                     <span className="adm-label">Title (EN)</span>
@@ -169,7 +171,7 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? (
-          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="department-copy-heading">
+          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="department-copy-heading" hidden={activeLocale !== "EN"}>
             <div>
               <p id="department-copy-heading" className="adm-section-tag">HOME / DEPARTMENT PATHWAY</p>
               <p className="mt-2 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
@@ -206,7 +208,7 @@ export function PageEditor({
                 The archive background label reuses the first three published collections. Lexicon materials below are edited directly here — leave a material blank to fall back to the first three collections instead.
               </p>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
               <label className="grid gap-2">
                 <span className="adm-label">Archive background label (EN)</span>
                 <input name="archiveSectionLabel" defaultValue={content.archiveSectionLabel ?? ""} placeholder="Recorded" className="adm-field" />
@@ -230,7 +232,7 @@ export function PageEditor({
               return (
                 <div key={index} className="grid gap-4 border border-[var(--adm-border)] p-4">
                   <p className="adm-section-tag">LEXICON MATERIAL {index + 1}</p>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
                     <label className="grid gap-2">
                       <span className="adm-label">Name (EN)</span>
                       <input name={`material${index + 1}Name`} defaultValue={material?.name ?? ""} className="adm-field" />
@@ -240,11 +242,11 @@ export function PageEditor({
                       <input name={`material${index + 1}Category`} defaultValue={material?.category ?? ""} className="adm-field" />
                     </label>
                   </div>
-                  <label className="grid gap-2">
+                  <label className="grid gap-2" hidden={activeLocale !== "EN"}>
                     <span className="adm-label">Description (EN)</span>
                     <textarea name={`material${index + 1}Description`} defaultValue={material?.description ?? ""} rows={3} className="adm-field" />
                   </label>
-                  <label className="grid gap-2">
+                  <label className="grid gap-2" hidden={activeLocale !== "EN"}>
                     <span className="adm-label">Properties (EN, comma-separated, up to 3)</span>
                     <input name={`material${index + 1}Properties`} defaultValue={material?.properties ?? ""} placeholder="Recycled, Hypoallergenic, Handmade" className="adm-field" />
                   </label>
@@ -265,13 +267,13 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Manifesto</h3> : null}
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
           <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
           <textarea name="quote" defaultValue={content.quote ?? ""} rows={4} className="adm-field" />
         </label>
 
         {isHomePage ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
             <label className="grid gap-2">
               <span className="adm-label">Manifesto label (EN)</span>
               <input name="manifestoSectionLabel" defaultValue={content.manifestoSectionLabel ?? ""} placeholder="A principle to keep" className="adm-field" />
@@ -284,7 +286,7 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Final call to action</h3> : null}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : "Secondary title"}</span>
             <input name="secondaryTitle" defaultValue={content.secondaryTitle ?? ""} className="adm-field" />
@@ -297,7 +299,7 @@ export function PageEditor({
 
         {isHomePage ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2">
+            <label className="grid gap-2" hidden={activeLocale !== "EN"}>
               <span className="adm-label">Final CTA label (EN)</span>
               <input name="finalCtaLabel" defaultValue={content.finalCtaLabel ?? content.ctaLabel ?? ""} className="adm-field" />
             </label>
@@ -305,12 +307,12 @@ export function PageEditor({
               <span className="adm-label">Final CTA href</span>
               <input name="finalCtaHref" defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""} className="adm-field" />
             </label>
-            <label className="grid gap-2">
+            <label className="grid gap-2" hidden={activeLocale !== "EN"}>
               <span className="adm-label">Footer statement (EN)</span>
               <textarea name="finalFooterTitle" defaultValue={content.finalFooterTitle ?? ""} placeholder={"Objects shaped slowly,\nkept for a lifetime."} rows={2} className="adm-field" />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2">
+              <label className="grid gap-2" hidden={activeLocale !== "EN"}>
                 <span className="adm-label">Contact label (EN)</span>
                 <input name="finalContactLabel" defaultValue={content.finalContactLabel ?? ""} placeholder="studio@synarava.com" className="adm-field" />
               </label>
@@ -322,9 +324,14 @@ export function PageEditor({
           </div>
         ) : null}
 
-        <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="pt-copy-heading">
+        <section
+          role="tabpanel"
+          aria-label="Portuguese page copy"
+          hidden={activeLocale !== "PT"}
+          className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
+        >
           <div>
-            <p id="pt-copy-heading" className="adm-section-tag">LOCALE / PT — PORTUGUÊS</p>
+            <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
             <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>
               Empty fields fall back to the English source on the storefront.
             </p>

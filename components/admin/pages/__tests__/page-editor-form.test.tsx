@@ -41,6 +41,26 @@ describe("PageEditor", () => {
     expect(screen.getByLabelText("Body")).toHaveValue("Body copy.");
   });
 
+  it("switches to the sticky Portuguese panel, hiding EN-only fields but keeping shared CTA href visible", async () => {
+    const user = userEvent.setup();
+    render(<PageEditor page={makePage({
+      content: { body: "Body copy.", ctaHref: "/shop", translations: { pt: { title: "Diário", body: "Corpo." } } },
+    })} />);
+
+    expect(screen.getByLabelText("Title")).toBeVisible();
+    expect(screen.getByLabelText("CTA href")).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+
+    expect(screen.getByLabelText("Title")).not.toBeVisible();
+    expect(screen.getByLabelText("CTA href")).toBeVisible();
+    expect(screen.getByLabelText("Title (PT)")).toHaveValue("Diário");
+    expect(screen.getByLabelText("Body (PT)")).toHaveValue("Corpo.");
+
+    await user.click(screen.getByRole("tab", { name: "English" }));
+    expect(screen.getByLabelText("Title")).toHaveValue("Journal");
+  });
+
   it("uses the home-page-specific labels for the protected home slug", () => {
     render(<PageEditor page={makePage({
       slug: "home",

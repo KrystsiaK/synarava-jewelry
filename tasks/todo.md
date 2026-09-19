@@ -247,31 +247,28 @@
 
 **Description:** Вынести Page/Home/About/Legal locale copy в records с validated template payload и sync metadata.
 
-**Acceptance criteria:**
-- [ ] EN/PT backfill идемпотентен; Home/Legal payload валидируется.
-- [ ] Dual-read безопасен, новые writes идут в новую model.
-
-**Verification:**
-- [ ] Migration fixtures для Home/About/custom/Offer/Privacy; storefront output equivalent.
+**Deliberately deferred, not started this session.** `Page.content` is the largest, most varied JSON shape in the app (4 templates — HOME/MANIFESTO/COLLECTION_INDEX/STATIC_PAGE — dynamic `legalSections` records, `materialLexicon` arrays) and its existing `Page.content.translations.pt` JSON storage **already works** and is already tested (`lib/content/__tests__/page-localization.test.ts`, pre-existing, covers `getPageBySlug`'s field-by-field EN/PT fallback). A full relational migration carries real regression risk across every page template, and this session has no reachable database to apply or verify a migration against (see Task 6/11 notes) — attempting it blind, on the riskiest and most template-varied content in the app, was judged worse than shipping the real, safe UX win instead: Task 15's sticky tabs on top of the existing (working) JSON storage. Revisit this task when a real dev database is available to test the migration and dual-read against actual Home/About/Offer/Privacy content, not fixtures.
 
 **Dependencies:** Tasks 2, 6  
-**Files likely touched:** `prisma/schema.prisma`, `prisma/migrations/<timestamp>_page_translations/migration.sql`, `components/admin/pages/page-types.ts`, `lib/content/page-localization.ts`, `lib/content/__tests__/page-localization.test.ts`  
-**Estimated scope:** Medium (5 files)
+**Files likely touched:** none this session.
 
 ### Task 15: Перевести Page/Home/About/Legal editor
 
 **Description:** Свести EN/PT в одинаковые panels; visibility/media/hrefs/status оставить shared.
 
+**Note:** done against the *existing* JSON storage (Task 14 deferred, see above) — the field set itself is unchanged, only the tab/panel mechanism.
+
 **Acceptance criteria:**
-- [ ] Каждый EN buyer-facing field имеет PT counterpart по registry.
-- [ ] Home lexicon/manifesto/footer и legal sections не пропущены; sticky tabs работают на длинной форме.
+- [x] Every EN buyer-facing field already had a PT counterpart (this form already collected PT copy — see Task 14 note); nothing new needed adding on the field-coverage side. The gap was purely UX: PT fields were dumped into one long section after every EN field, not switched.
+- [x] Home lexicon (3 materials), department pathway, manifesto label/attribution, legal sections (Offer/Privacy, dynamic per page), and final-CTA/footer/contact fields all now switch with the sticky `AdminLocaleTabs` in both `page-editor-form.tsx` and `page-create-form.tsx`. Shared fields (slug, CTA/final-CTA hrefs, contact email, hero image, material images, `legalLastUpdated` — no PT counterpart exists for the last one, left visible in both tabs rather than inventing one) stay visible in both tabs, same split-the-grid pattern as Task 9/12.
 
 **Verification:**
-- [ ] Template component tests; E2E scroll → switch → edit → save → reload.
+- [x] Existing `page-editor-form.test.tsx`/`page-create-form.test.tsx` (9 tests) pass unchanged — behavior preserved despite the large diff (mostly adding `hidden={activeLocale !== "EN"}` to individual fields/sections). Added a new test switching EN→PT→EN and asserting the shared CTA href field stays visible in both tabs while EN-only fields hide. Full suite: `pnpm exec tsc --noEmit`, `pnpm vitest run` (159 files / 796 tests) green.
+- [ ] Not done: E2E scroll→switch→edit→save→reload (no e2e run this session) and a manual sticky-header check against a real long page in a browser.
 
-**Dependencies:** Tasks 3, 4, 14  
-**Files likely touched:** `components/admin/pages/page-editor-form.tsx`, `components/admin/pages/page-create-form.tsx`, `app/admin/actions/pages.ts`, `components/admin/pages/__tests__/page-editor-form.test.tsx`  
-**Estimated scope:** Medium (4 files)
+**Dependencies:** Tasks 3, 4  
+**Files likely touched:** `components/admin/pages/page-editor-form.tsx`, `components/admin/pages/page-create-form.tsx`, `components/admin/pages/__tests__/page-editor-form.test.tsx`  
+**Estimated scope:** Medium (3 files)
 
 ### Task 16: Подключить Page и structured metaobject sync
 

@@ -10,6 +10,7 @@ import {
 } from "@/app/admin/actions/pages";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
+import { AdminLocaleTabs, useAdminActiveLocale } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePayload) => void }) {
@@ -18,6 +19,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
   const [draftId, setDraftId] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const { pushToast } = useAdminToast();
+  const [activeLocale, selectLocale] = useAdminActiveLocale("page:new", "EN");
 
   useDraftAutosave({
     formRef,
@@ -63,11 +65,11 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </button>
       </div>
 
-      <p className="adm-section-tag border-b border-[var(--adm-border)] pb-4">LOCALE / EN + PT</p>
+      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} />
       <AuthMessage error={state.error} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
           <span className="adm-label">Title</span>
           <input name="title" placeholder="Lookbook" className="adm-field" />
         </label>
@@ -75,7 +77,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
           <span className="adm-label">Slug</span>
           <input name="slug" placeholder="lookbook" className="adm-field" />
         </label>
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
           <span className="adm-label">Eyebrow</span>
           <input name="eyebrow" placeholder="Editorial note" className="adm-field" />
         </label>
@@ -88,9 +90,14 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </label>
       </div>
 
-      <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="new-pt-copy-heading">
+      <section
+        role="tabpanel"
+        aria-label="Portuguese page copy"
+        hidden={activeLocale !== "PT"}
+        className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
+      >
         <div>
-          <p id="new-pt-copy-heading" className="adm-section-tag">LOCALE / PT — PORTUGUÊS</p>
+          <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
           <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>Optional. Empty fields use the English source.</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -107,7 +114,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </div>
       </section>
 
-      <label className="grid gap-2">
+      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
         <span className="adm-label">Excerpt</span>
         <textarea
           name="excerpt"
@@ -117,13 +124,13 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         />
       </label>
 
-      <label className="grid gap-2">
+      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
         <span className="adm-label">Body</span>
         <textarea name="body" rows={5} className="adm-field" placeholder="Main editorial body copy." />
       </label>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
           <span className="adm-label">CTA label</span>
           <input name="ctaLabel" placeholder="Shop all products" className="adm-field" />
         </label>
@@ -133,7 +140,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </label>
       </div>
 
-      <label className="grid gap-2">
+      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
         <span className="adm-label">Quote</span>
         <textarea
           name="quote"
@@ -143,7 +150,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         />
       </label>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
         <label className="grid gap-2">
           <span className="adm-label">Secondary title</span>
           <input name="secondaryTitle" placeholder="Further reading" className="adm-field" />
