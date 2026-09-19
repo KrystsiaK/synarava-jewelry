@@ -290,15 +290,16 @@
 **Description:** Сохранить текущие values, но редактировать их через sticky layout и синхронизировать с Shopify targets.
 
 **Acceptance criteria:**
-- [ ] Одинаковый field list в EN/PT; email/URLs/flags shared.
-- [ ] Missing PT и sync status видны на tabs/overview.
+- [x] Field list was already identical between EN/PT (every key already has an `en:<key>`/`pt:<key>` pair, generated from one `STOREFRONT_COPY_GROUPS` loop — no per-field hand-written duplication like Page/Product had). Converted the two-column-per-field layout to the sticky `AdminLocaleTabs` pattern: one small change to the shared render loop (`hidden={activeLocale !== "EN"/"PT"}` on the two existing label wrappers) covers all ~57 keys across nav/footer/4 service pages at once. No email/URL/flag fields exist in this editor to keep shared — every key here is buyer-facing text by design (see `storefront-copy-fields.ts`'s own comment).
+- [ ] **Not done:** sync status on the tabs — storefront copy has no Shopify sync at all yet (local `SiteSetting` JSON only; the registry's `metaobject("storefront_copy", ...)` target from Task 1 is unimplemented, same "target assigned, not yet wired" state as everything else this session that didn't get an actual Shopify write path).
 
 **Verification:**
-- [ ] Component test и EN/PT storefront/metaobject comparison.
+- [x] New `components/admin/settings/__tests__/storefront-copy-editor.test.tsx` (2 tests, file didn't exist before): tab switch hides/shows the right panel with independent PT value, and a save submits both `en:`/`pt:`-prefixed keys in one `FormData`. Full suite: `pnpm exec tsc --noEmit`, `pnpm vitest run` (160 files / 798 tests) green.
+- [ ] Not done: EN/PT storefront comparison against a real metaobject (none exists) or a live store.
 
 **Dependencies:** Tasks 3–8  
-**Files likely touched:** `components/admin/settings/storefront-copy-editor.tsx`, `app/admin/actions/settings.ts`, `lib/content/storefront-copy.ts`, `components/admin/settings/__tests__/storefront-copy-editor.test.tsx`  
-**Estimated scope:** Medium (4 files)
+**Files likely touched:** `components/admin/settings/storefront-copy-editor.tsx`, `components/admin/settings/__tests__/storefront-copy-editor.test.tsx` (no `app/admin/actions/settings.ts`/`lib/content/storefront-copy.ts` change — the persistence layer already handled en/pt correctly, only the editor's layout changed)  
+**Estimated scope:** Medium (2 files)
 
 ### Task 18: Локализовать navigation и media metadata
 

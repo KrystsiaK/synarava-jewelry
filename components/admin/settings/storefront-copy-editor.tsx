@@ -7,6 +7,7 @@ import {
   type StorefrontCopyActionState,
 } from "@/app/admin/actions/storefront-copy";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { AdminLocaleTabs, useAdminActiveLocale } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
@@ -21,6 +22,7 @@ export function StorefrontCopyEditor({
   const [state, setState] = useState<StorefrontCopyActionState>({});
   const [isPending, startTransition] = useTransition();
   const { pushToast } = useAdminToast();
+  const [activeLocale, selectLocale] = useAdminActiveLocale("storefront-copy", "EN");
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -33,6 +35,7 @@ export function StorefrontCopyEditor({
 
   return (
     <form action={formAction} className="grid gap-8">
+      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} />
       <AuthMessage error={state.error} />
       <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
         Leave a field empty to fall back to the shipped default (shown as placeholder text). These
@@ -52,7 +55,7 @@ export function StorefrontCopyEditor({
               const Field = field.area ? "textarea" : "input";
               return (
                 <div key={field.key} className="grid gap-2 md:grid-cols-2">
-                  <label className="grid gap-2">
+                  <label className="grid gap-2" hidden={activeLocale !== "EN"}>
                     <span className="adm-label">{field.label} (EN)</span>
                     <Field
                       name={`en:${field.key}`}
@@ -62,7 +65,7 @@ export function StorefrontCopyEditor({
                       className="adm-field"
                     />
                   </label>
-                  <label className="grid gap-2">
+                  <label className="grid gap-2" hidden={activeLocale !== "PT"}>
                     <span className="adm-label">{field.label} (PT)</span>
                     <Field
                       name={`pt:${field.key}`}
