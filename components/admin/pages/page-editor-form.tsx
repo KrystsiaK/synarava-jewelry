@@ -13,12 +13,150 @@ import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
-import { AdminLocaleTabs, useAdminActiveLocale } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocale } from "@/components/admin/shared/admin-locale-workspace";
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
+
+// One physical field per concept (Title, Body, Department headline, ...),
+// not one copy per language: the field's *value* switches with the active
+// locale tab, everything else about it (label, position, layout) stays put.
+// Adding a third/fourth language later means adding a locale to this draft
+// and to AdminLocaleTabs' locale list — it does not mean touching this JSX
+// again. See tasks/plan.md and the 2026-09-19 conversation that asked for
+// this instead of a duplicated-per-locale layout.
+type MaterialDraft = { name: string; category: string; description: string; properties: string };
+
+type PageLocaleDraft = {
+  title: string;
+  eyebrow: string;
+  excerpt: string;
+  body: string;
+  ctaLabel: string;
+  quote: string;
+  secondaryTitle: string;
+  secondaryBody: string;
+  departmentSectionTitle: string;
+  departmentSectionBody: string;
+  departmentSectionImageCaption: string;
+  departmentSectionCtaLabel: string;
+  archiveSectionLabel: string;
+  materialSectionEyebrow: string;
+  materialSectionTitle: string;
+  materialSectionNoteLabel: string;
+  materials: [MaterialDraft, MaterialDraft, MaterialDraft];
+  manifestoSectionLabel: string;
+  manifestoSectionAttribution: string;
+  finalCtaLabel: string;
+  finalFooterTitle: string;
+  finalContactLabel: string;
+  legalIntro: string;
+  legalSections: Record<string, { title: string; body: string }>;
+};
+
+const emptyMaterial = (): MaterialDraft => ({ name: "", category: "", description: "", properties: "" });
+
+function draftFromCopy(copy: EditablePageCopy): PageLocaleDraft {
+  return {
+    title: copy.title ?? "",
+    eyebrow: copy.eyebrow ?? "",
+    excerpt: copy.excerpt ?? "",
+    body: copy.body ?? "",
+    ctaLabel: copy.ctaLabel ?? "",
+    quote: copy.quote ?? "",
+    secondaryTitle: copy.secondaryTitle ?? "",
+    secondaryBody: copy.secondaryBody ?? "",
+    departmentSectionTitle: copy.departmentSectionTitle ?? "",
+    departmentSectionBody: copy.departmentSectionBody ?? "",
+    departmentSectionImageCaption: copy.departmentSectionImageCaption ?? "",
+    departmentSectionCtaLabel: copy.departmentSectionCtaLabel ?? "",
+    archiveSectionLabel: copy.archiveSectionLabel ?? "",
+    materialSectionEyebrow: copy.materialSectionEyebrow ?? "",
+    materialSectionTitle: copy.materialSectionTitle ?? "",
+    materialSectionNoteLabel: copy.materialSectionNoteLabel ?? "",
+    materials: [0, 1, 2].map((index): MaterialDraft => {
+      const source = copy.materialLexicon?.[index];
+      return source
+        ? { name: source.name ?? "", category: source.category ?? "", description: source.description ?? "", properties: source.properties ?? "" }
+        : emptyMaterial();
+    }) as [MaterialDraft, MaterialDraft, MaterialDraft],
+    manifestoSectionLabel: copy.manifestoSectionLabel ?? "",
+    manifestoSectionAttribution: copy.manifestoSectionAttribution ?? "",
+    finalCtaLabel: copy.finalCtaLabel ?? "",
+    finalFooterTitle: copy.finalFooterTitle ?? "",
+    finalContactLabel: copy.finalContactLabel ?? "",
+    legalIntro: copy.legalIntro ?? "",
+    legalSections: Object.fromEntries(
+      Object.entries(copy.legalSections ?? {}).map(([id, section]) => [id, { title: section.title ?? "", body: section.body ?? "" }]),
+    ),
+  };
+}
+
+/**
+ * Maps a locale + field key to the exact FormData field name savePageAction
+ * already reads: EN uses the bare key, every other locale prefixes it and
+ * capitalizes ("title" -> "ptTitle", "legal:x:title" -> "ptLegal:x:title").
+ * Adding a locale later just needs the server action to read its prefix —
+ * this function doesn't change.
+ */
+function localizedFieldName(locale: AdminLocale, key: string): string {
+  if (locale === "EN") return key;
+  return `${locale.toLowerCase()}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+}
+
+function HiddenLocaleFields({
+  draftByLocale,
+  legalSectionIds,
+}: {
+  draftByLocale: Record<AdminLocale, PageLocaleDraft>;
+  legalSectionIds: string[];
+}) {
+  return (
+    <div hidden>
+      {(Object.keys(draftByLocale) as AdminLocale[]).flatMap((locale) => {
+        const draft = draftByLocale[locale];
+        const name = (key: string) => localizedFieldName(locale, key);
+        const field = (key: string, value: string) => <input key={name(key)} type="hidden" name={name(key)} value={value} readOnly />;
+        return [
+          field("title", draft.title),
+          field("eyebrow", draft.eyebrow),
+          field("excerpt", draft.excerpt),
+          field("body", draft.body),
+          field("ctaLabel", draft.ctaLabel),
+          field("quote", draft.quote),
+          field("secondaryTitle", draft.secondaryTitle),
+          field("secondaryBody", draft.secondaryBody),
+          field("departmentSectionTitle", draft.departmentSectionTitle),
+          field("departmentSectionBody", draft.departmentSectionBody),
+          field("departmentSectionImageCaption", draft.departmentSectionImageCaption),
+          field("departmentSectionCtaLabel", draft.departmentSectionCtaLabel),
+          field("archiveSectionLabel", draft.archiveSectionLabel),
+          field("materialSectionEyebrow", draft.materialSectionEyebrow),
+          field("materialSectionTitle", draft.materialSectionTitle),
+          field("materialSectionNoteLabel", draft.materialSectionNoteLabel),
+          field("manifestoSectionLabel", draft.manifestoSectionLabel),
+          field("manifestoSectionAttribution", draft.manifestoSectionAttribution),
+          field("finalCtaLabel", draft.finalCtaLabel),
+          field("finalFooterTitle", draft.finalFooterTitle),
+          field("finalContactLabel", draft.finalContactLabel),
+          field("legalIntro", draft.legalIntro),
+          ...draft.materials.flatMap((material, index) => [
+            field(`material${index + 1}Name`, material.name),
+            field(`material${index + 1}Category`, material.category),
+            field(`material${index + 1}Description`, material.description),
+            field(`material${index + 1}Properties`, material.properties),
+          ]),
+          ...legalSectionIds.flatMap((id) => {
+            const section = draft.legalSections[id] ?? { title: "", body: "" };
+            return [field(`legal:${id}:title`, section.title), field(`legal:${id}:body`, section.body)];
+          }),
+        ];
+      })}
+    </div>
+  );
+}
 
 export function PageEditor({
   page,
@@ -33,7 +171,7 @@ export function PageEditor({
   const formRef = useRef<HTMLFormElement>(null);
   const content = (page.content ?? {}) as EditablePageContent;
   const normalizedPortuguese = page.translations?.find((translation) => translation.locale === "PT");
-  const ptContent = normalizedPortuguese
+  const ptContent: EditablePageCopy = normalizedPortuguese
     ? { ...(normalizedPortuguese.content as EditablePageCopy ?? {}), title: normalizedPortuguese.title, excerpt: normalizedPortuguese.excerpt ?? "" }
     : content.translations?.pt ?? {};
   const isHomePage = page.slug === "home";
@@ -43,6 +181,36 @@ export function PageEditor({
   const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
   const { pushToast } = useAdminToast();
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, "EN");
+  const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, PageLocaleDraft>>(() => ({
+    EN: draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" }),
+    PT: draftFromCopy(ptContent),
+  }));
+  const draft = draftByLocale[activeLocale];
+
+  function updateField<K extends keyof PageLocaleDraft>(key: K, value: PageLocaleDraft[K]) {
+    setDraftByLocale((prev) => ({ ...prev, [activeLocale]: { ...prev[activeLocale], [key]: value } }));
+  }
+
+  function updateMaterial(index: number, key: keyof MaterialDraft, value: string) {
+    setDraftByLocale((prev) => {
+      const materials = [...prev[activeLocale].materials] as [MaterialDraft, MaterialDraft, MaterialDraft];
+      materials[index] = { ...materials[index], [key]: value };
+      return { ...prev, [activeLocale]: { ...prev[activeLocale], materials } };
+    });
+  }
+
+  function updateLegalSection(sectionId: string, key: "title" | "body", value: string) {
+    setDraftByLocale((prev) => ({
+      ...prev,
+      [activeLocale]: {
+        ...prev[activeLocale],
+        legalSections: {
+          ...prev[activeLocale].legalSections,
+          [sectionId]: { ...(prev[activeLocale].legalSections[sectionId] ?? { title: "", body: "" }), [key]: value },
+        },
+      },
+    }));
+  }
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -59,6 +227,7 @@ export function PageEditor({
     <div data-component="PageEditor" className="adm-panel grid gap-5 p-5 md:p-6">
       <form ref={formRef} action={formAction} className="grid gap-5">
         <input type="hidden" name="slug" value={page.slug} />
+        <HiddenLocaleFields draftByLocale={draftByLocale} legalSectionIds={legalSections.map((section) => section.id)} />
 
         <div
           className="flex flex-wrap items-start justify-between gap-4 pb-5"
@@ -86,32 +255,32 @@ export function PageEditor({
 
         {isHomePage ? <HomeSectionVisibilityEditor content={content} /> : null}
 
-        <label className="grid gap-2" hidden={activeLocale !== "PT" || isBuiltInPage(page.slug)}>
-          <span className="adm-label">URL handle (PT, optional)</span>
+        <label className="grid gap-2" hidden={activeLocale === "EN" || isBuiltInPage(page.slug)}>
+          <span className="adm-label">URL handle ({activeLocale}, optional)</span>
           <input name="ptHandle" defaultValue={normalizedPortuguese?.localizedHandle ?? ""} className="adm-field" placeholder={page.slug} />
           <span className="text-xs" style={{ color: "var(--adm-muted)" }}>Blank uses the English slug.</span>
         </label>
 
-        <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+        <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Hero headline" : "Title"}</span>
-            <input name="title" defaultValue={page.title} className="adm-field" />
+            <input value={draft.title} onChange={(event) => updateField("title", event.target.value)} className="adm-field" />
           </label>
           <label className="grid gap-2">
             <span className="adm-label">Eyebrow</span>
-            <input name="eyebrow" defaultValue={content.eyebrow ?? ""} className="adm-field" />
+            <input value={draft.eyebrow} onChange={(event) => updateField("eyebrow", event.target.value)} className="adm-field" />
           </label>
         </div>
 
-        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2">
           <span className="adm-label">{isHomePage ? "Search summary" : "Excerpt"}</span>
-          <textarea name="excerpt" defaultValue={page.excerpt ?? ""} rows={3} className="adm-field" />
+          <textarea value={draft.excerpt} onChange={(event) => updateField("excerpt", event.target.value)} rows={3} className="adm-field" />
         </label>
 
         <div className="grid gap-2">
           <div className="flex items-center gap-2">
             <span className="adm-label">Hero image</span>
-            <AdminHelp>Optional page-specific hero. Built-in pages show a neutral header when this is empty; uploaded images are converted to optimized WebP.</AdminHelp>
+            <AdminHelp>Optional page-specific hero, shared across languages. Built-in pages show a neutral header when this is empty; uploaded images are converted to optimized WebP.</AdminHelp>
           </div>
           <ImageFileField
             name="heroImageFile"
@@ -123,18 +292,19 @@ export function PageEditor({
           />
         </div>
 
-        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2">
           <span className="adm-label">{isHomePage ? "Hero description" : isAboutPage ? "Studio introduction" : "Body"}</span>
-          <textarea name="body" defaultValue={content.body ?? ""} rows={5} className="adm-field" />
+          <textarea value={draft.body} onChange={(event) => updateField("body", event.target.value)} rows={5} className="adm-field" />
         </label>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+          <label className="grid gap-2">
             <span className="adm-label">CTA label</span>
-            <input name="ctaLabel" defaultValue={content.ctaLabel ?? ""} className="adm-field" />
+            <input value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} className="adm-field" />
           </label>
           <label className="grid gap-2">
             <span className="adm-label">CTA href</span>
+            <AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>
             <input name="ctaHref" defaultValue={content.ctaHref ?? ""} className="adm-field" />
           </label>
         </div>
@@ -144,35 +314,36 @@ export function PageEditor({
             <div>
               <h3 id="legal-copy-heading" className="adm-title-sm">Legal document</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                Section order, numbering, and anchors are fixed. Leave a title or body empty to fall back to the
-                shipped default text. Body supports Markdown (paragraphs, **bold**, lists, links, and tables).
+                Section order, numbering, and anchors are fixed and shared across languages. Leave a title or
+                body empty to fall back to the shipped default text. Body supports Markdown.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {isOfferPage ? (
-                <label className="grid gap-2 md:col-span-2" hidden={activeLocale !== "EN"}>
-                  <span className="adm-label">Intro paragraph (EN)</span>
-                  <textarea name="legalIntro" defaultValue={content.legalIntro ?? ""} rows={2} className="adm-field" />
+                <label className="grid gap-2 md:col-span-2">
+                  <span className="adm-label">Intro paragraph</span>
+                  <textarea value={draft.legalIntro} onChange={(event) => updateField("legalIntro", event.target.value)} rows={2} className="adm-field" />
                 </label>
               ) : null}
               <label className="grid gap-2">
                 <span className="adm-label">Last updated</span>
+                <AdminHelp>Shared across languages — a display date, not translated copy.</AdminHelp>
                 <input name="legalLastUpdated" defaultValue={content.legalLastUpdated ?? ""} placeholder="e.g. 1 June 2025" className="adm-field" />
               </label>
             </div>
 
             {legalSections.map((section) => {
-              const value = content.legalSections?.[section.id];
+              const value = draft.legalSections[section.id];
               return (
-                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4" hidden={activeLocale !== "EN"}>
+                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
                   <p className="adm-section-tag">{section.label}</p>
                   <label className="grid gap-2">
-                    <span className="adm-label">Title (EN)</span>
-                    <input name={`legal:${section.id}:title`} defaultValue={value?.title ?? ""} className="adm-field" />
+                    <span className="adm-label">Title</span>
+                    <input value={value?.title ?? ""} onChange={(event) => updateLegalSection(section.id, "title", event.target.value)} className="adm-field" />
                   </label>
                   <label className="grid gap-2">
-                    <span className="adm-label">Body (EN, Markdown)</span>
-                    <textarea name={`legal:${section.id}:body`} defaultValue={value?.body ?? ""} rows={6} className="adm-field font-mono text-xs" />
+                    <span className="adm-label">Body (Markdown)</span>
+                    <textarea value={value?.body ?? ""} onChange={(event) => updateLegalSection(section.id, "body", event.target.value)} rows={6} className="adm-field font-mono text-xs" />
                   </label>
                 </div>
               );
@@ -181,7 +352,7 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? (
-          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="department-copy-heading" hidden={activeLocale !== "EN"}>
+          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="department-copy-heading">
             <div>
               <p id="department-copy-heading" className="adm-section-tag">HOME / DEPARTMENT PATHWAY</p>
               <p className="mt-2 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
@@ -191,21 +362,21 @@ export function PageEditor({
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2">
-                <span className="adm-label">Department headline (EN)</span>
-                <input name="departmentSectionTitle" defaultValue={content.departmentSectionTitle ?? ""} className="adm-field" />
+                <span className="adm-label">Department headline</span>
+                <input value={draft.departmentSectionTitle} onChange={(event) => updateField("departmentSectionTitle", event.target.value)} className="adm-field" />
               </label>
               <label className="grid gap-2">
-                <span className="adm-label">Department CTA label (EN)</span>
-                <input name="departmentSectionCtaLabel" defaultValue={content.departmentSectionCtaLabel ?? ""} className="adm-field" />
+                <span className="adm-label">Department CTA label</span>
+                <input value={draft.departmentSectionCtaLabel} onChange={(event) => updateField("departmentSectionCtaLabel", event.target.value)} className="adm-field" />
               </label>
             </div>
             <label className="grid gap-2">
-              <span className="adm-label">Department description (EN)</span>
-              <textarea name="departmentSectionBody" defaultValue={content.departmentSectionBody ?? ""} rows={3} className="adm-field" />
+              <span className="adm-label">Department description</span>
+              <textarea value={draft.departmentSectionBody} onChange={(event) => updateField("departmentSectionBody", event.target.value)} rows={3} className="adm-field" />
             </label>
             <label className="grid gap-2">
-              <span className="adm-label">Department image caption (EN)</span>
-              <input name="departmentSectionImageCaption" defaultValue={content.departmentSectionImageCaption ?? ""} className="adm-field" />
+              <span className="adm-label">Department image caption</span>
+              <input value={draft.departmentSectionImageCaption} onChange={(event) => updateField("departmentSectionImageCaption", event.target.value)} className="adm-field" />
             </label>
           </section>
         ) : null}
@@ -215,236 +386,126 @@ export function PageEditor({
             <div>
               <h3 id="collection-sections-heading" className="adm-title-sm">Collection-led sections</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                The archive background label reuses the first three published collections. Lexicon materials below are edited directly here — leave a material blank to fall back to the first three collections instead.
+                The archive background label reuses the first three published collections. Lexicon materials below are
+                edited directly here — leave a material blank to fall back to the first three collections instead.
+                Images are shared across languages.
               </p>
             </div>
-            <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+            <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2">
-                <span className="adm-label">Archive background label (EN)</span>
-                <input name="archiveSectionLabel" defaultValue={content.archiveSectionLabel ?? ""} placeholder="Recorded" className="adm-field" />
+                <span className="adm-label">Archive background label</span>
+                <input value={draft.archiveSectionLabel} onChange={(event) => updateField("archiveSectionLabel", event.target.value)} placeholder="Recorded" className="adm-field" />
               </label>
               <label className="grid gap-2">
-                <span className="adm-label">Material eyebrow (EN)</span>
-                <input name="materialSectionEyebrow" defaultValue={content.materialSectionEyebrow ?? ""} placeholder="Material glossary / scroll to turn" className="adm-field" />
+                <span className="adm-label">Material eyebrow</span>
+                <input value={draft.materialSectionEyebrow} onChange={(event) => updateField("materialSectionEyebrow", event.target.value)} placeholder="Material glossary / scroll to turn" className="adm-field" />
               </label>
               <label className="grid gap-2">
-                <span className="adm-label">Material section title (EN)</span>
-                <input name="materialSectionTitle" defaultValue={content.materialSectionTitle ?? ""} placeholder="Lexicon" className="adm-field" />
+                <span className="adm-label">Material section title</span>
+                <input value={draft.materialSectionTitle} onChange={(event) => updateField("materialSectionTitle", event.target.value)} placeholder="Lexicon" className="adm-field" />
               </label>
               <label className="grid gap-2">
-                <span className="adm-label">Material note label (EN)</span>
-                <input name="materialSectionNoteLabel" defaultValue={content.materialSectionNoteLabel ?? ""} placeholder="Material notes" className="adm-field" />
+                <span className="adm-label">Material note label</span>
+                <input value={draft.materialSectionNoteLabel} onChange={(event) => updateField("materialSectionNoteLabel", event.target.value)} placeholder="Material notes" className="adm-field" />
               </label>
             </div>
 
-            {[0, 1, 2].map((index) => {
-              const material = content.materialLexicon?.[index];
-              return (
-                <div key={index} className="grid gap-4 border border-[var(--adm-border)] p-4">
-                  <p className="adm-section-tag">LEXICON MATERIAL {index + 1}</p>
-                  <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
-                    <label className="grid gap-2">
-                      <span className="adm-label">Name (EN)</span>
-                      <input name={`material${index + 1}Name`} defaultValue={material?.name ?? ""} className="adm-field" />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="adm-label">Category (EN)</span>
-                      <input name={`material${index + 1}Category`} defaultValue={material?.category ?? ""} className="adm-field" />
-                    </label>
-                  </div>
-                  <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-                    <span className="adm-label">Description (EN)</span>
-                    <textarea name={`material${index + 1}Description`} defaultValue={material?.description ?? ""} rows={3} className="adm-field" />
-                  </label>
-                  <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-                    <span className="adm-label">Properties (EN, comma-separated, up to 3)</span>
-                    <input name={`material${index + 1}Properties`} defaultValue={material?.properties ?? ""} placeholder="Recycled, Hypoallergenic, Handmade" className="adm-field" />
+            {draft.materials.map((material, index) => (
+              <div key={index} className="grid gap-4 border border-[var(--adm-border)] p-4">
+                <p className="adm-section-tag">LEXICON MATERIAL {index + 1}</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2">
+                    <span className="adm-label">Name</span>
+                    <input value={material.name} onChange={(event) => updateMaterial(index, "name", event.target.value)} className="adm-field" />
                   </label>
                   <label className="grid gap-2">
-                    <span className="adm-label">Image</span>
-                    <ImageFileField
-                      name={`material${index + 1}ImageFile`}
-                      currentImageUrl={material?.image}
-                      currentImageAlt={material?.name || `Material ${index + 1}`}
-                      currentImageLabel="Current image"
-                      removeFieldName={`removeMaterial${index + 1}Image`}
-                    />
+                    <span className="adm-label">Category</span>
+                    <input value={material.category} onChange={(event) => updateMaterial(index, "category", event.target.value)} className="adm-field" />
                   </label>
                 </div>
-              );
-            })}
+                <label className="grid gap-2">
+                  <span className="adm-label">Description</span>
+                  <textarea value={material.description} onChange={(event) => updateMaterial(index, "description", event.target.value)} rows={3} className="adm-field" />
+                </label>
+                <label className="grid gap-2">
+                  <span className="adm-label">Properties (comma-separated, up to 3)</span>
+                  <input value={material.properties} onChange={(event) => updateMaterial(index, "properties", event.target.value)} placeholder="Recycled, Hypoallergenic, Handmade" className="adm-field" />
+                </label>
+                <label className="grid gap-2">
+                  <span className="adm-label">Image</span>
+                  <AdminHelp>Shared across languages.</AdminHelp>
+                  <ImageFileField
+                    name={`material${index + 1}ImageFile`}
+                    currentImageUrl={content.materialLexicon?.[index]?.image}
+                    currentImageAlt={material.name || `Material ${index + 1}`}
+                    currentImageLabel="Current image"
+                    removeFieldName={`removeMaterial${index + 1}Image`}
+                  />
+                </label>
+              </div>
+            ))}
           </section>
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Manifesto</h3> : null}
-        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2">
           <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
-          <textarea name="quote" defaultValue={content.quote ?? ""} rows={4} className="adm-field" />
+          <textarea value={draft.quote} onChange={(event) => updateField("quote", event.target.value)} rows={4} className="adm-field" />
         </label>
 
         {isHomePage ? (
-          <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+          <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2">
-              <span className="adm-label">Manifesto label (EN)</span>
-              <input name="manifestoSectionLabel" defaultValue={content.manifestoSectionLabel ?? ""} placeholder="A principle to keep" className="adm-field" />
+              <span className="adm-label">Manifesto label</span>
+              <input value={draft.manifestoSectionLabel} onChange={(event) => updateField("manifestoSectionLabel", event.target.value)} placeholder="A principle to keep" className="adm-field" />
             </label>
             <label className="grid gap-2">
-              <span className="adm-label">Manifesto attribution (EN)</span>
-              <input name="manifestoSectionAttribution" defaultValue={content.manifestoSectionAttribution ?? ""} placeholder="The Synarava Manifesto // Vol 1." className="adm-field" />
+              <span className="adm-label">Manifesto attribution</span>
+              <input value={draft.manifestoSectionAttribution} onChange={(event) => updateField("manifestoSectionAttribution", event.target.value)} placeholder="The Synarava Manifesto // Vol 1." className="adm-field" />
             </label>
           </div>
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Final call to action</h3> : null}
-        <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+        <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : "Secondary title"}</span>
-            <input name="secondaryTitle" defaultValue={content.secondaryTitle ?? ""} className="adm-field" />
+            <input value={draft.secondaryTitle} onChange={(event) => updateField("secondaryTitle", event.target.value)} className="adm-field" />
           </label>
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : "Secondary body"}</span>
-            <textarea name="secondaryBody" defaultValue={content.secondaryBody ?? ""} rows={3} className="adm-field" />
+            <textarea value={draft.secondaryBody} onChange={(event) => updateField("secondaryBody", event.target.value)} rows={3} className="adm-field" />
           </label>
         </div>
 
         {isHomePage ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-              <span className="adm-label">Final CTA label (EN)</span>
-              <input name="finalCtaLabel" defaultValue={content.finalCtaLabel ?? content.ctaLabel ?? ""} className="adm-field" />
+            <label className="grid gap-2">
+              <span className="adm-label">Final CTA label</span>
+              <input value={draft.finalCtaLabel} onChange={(event) => updateField("finalCtaLabel", event.target.value)} className="adm-field" />
             </label>
             <label className="grid gap-2">
               <span className="adm-label">Final CTA href</span>
+              <AdminHelp>Shared across languages.</AdminHelp>
               <input name="finalCtaHref" defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""} className="adm-field" />
             </label>
-            <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-              <span className="adm-label">Footer statement (EN)</span>
-              <textarea name="finalFooterTitle" defaultValue={content.finalFooterTitle ?? ""} placeholder={"Objects shaped slowly,\nkept for a lifetime."} rows={2} className="adm-field" />
+            <label className="grid gap-2">
+              <span className="adm-label">Footer statement</span>
+              <textarea value={draft.finalFooterTitle} onChange={(event) => updateField("finalFooterTitle", event.target.value)} placeholder={"Objects shaped slowly,\nkept for a lifetime."} rows={2} className="adm-field" />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-                <span className="adm-label">Contact label (EN)</span>
-                <input name="finalContactLabel" defaultValue={content.finalContactLabel ?? ""} placeholder="studio@synarava.com" className="adm-field" />
+              <label className="grid gap-2">
+                <span className="adm-label">Contact label</span>
+                <input value={draft.finalContactLabel} onChange={(event) => updateField("finalContactLabel", event.target.value)} placeholder="studio@synarava.com" className="adm-field" />
               </label>
               <label className="grid gap-2">
                 <span className="adm-label">Contact email</span>
+                <AdminHelp>Shared across languages — an address, not translated copy.</AdminHelp>
                 <input name="finalContactEmail" type="email" defaultValue={content.finalContactEmail ?? ""} placeholder="studio@synarava.com" className="adm-field" />
               </label>
             </div>
           </div>
         ) : null}
-
-        <section
-          role="tabpanel"
-          aria-label="Portuguese page copy"
-          hidden={activeLocale !== "PT"}
-          className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
-        >
-          <div>
-            <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
-            <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>
-              Empty fields fall back to the English source on the storefront.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2"><span className="adm-label">Title (PT)</span><input name="ptTitle" defaultValue={ptContent.title ?? ""} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Eyebrow (PT)</span><input name="ptEyebrow" defaultValue={ptContent.eyebrow ?? ""} className="adm-field" /></label>
-          </div>
-          <label className="grid gap-2"><span className="adm-label">Excerpt (PT)</span><textarea name="ptExcerpt" defaultValue={ptContent.excerpt ?? ""} rows={3} className="adm-field" /></label>
-          <label className="grid gap-2"><span className="adm-label">Body (PT)</span><textarea name="ptBody" defaultValue={ptContent.body ?? ""} rows={5} className="adm-field" /></label>
-          {isHomePage ? (
-            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
-              <p className="adm-section-tag">DEPARTMENT PATHWAY / PT</p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="grid gap-2"><span className="adm-label">Department headline (PT)</span><input name="ptDepartmentSectionTitle" defaultValue={ptContent.departmentSectionTitle ?? ""} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Department CTA label (PT)</span><input name="ptDepartmentSectionCtaLabel" defaultValue={ptContent.departmentSectionCtaLabel ?? ""} className="adm-field" /></label>
-              </div>
-              <label className="grid gap-2"><span className="adm-label">Department description (PT)</span><textarea name="ptDepartmentSectionBody" defaultValue={ptContent.departmentSectionBody ?? ""} rows={3} className="adm-field" /></label>
-              <label className="grid gap-2"><span className="adm-label">Department image caption (PT)</span><input name="ptDepartmentSectionImageCaption" defaultValue={ptContent.departmentSectionImageCaption ?? ""} className="adm-field" /></label>
-            </div>
-          ) : null}
-          {isHomePage ? (
-            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
-              <p className="adm-section-tag">HOME SECTIONS / PT</p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="grid gap-2"><span className="adm-label">Archive background label (PT)</span><input name="ptArchiveSectionLabel" defaultValue={ptContent.archiveSectionLabel ?? ""} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Material eyebrow (PT)</span><input name="ptMaterialSectionEyebrow" defaultValue={ptContent.materialSectionEyebrow ?? ""} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Material section title (PT)</span><input name="ptMaterialSectionTitle" defaultValue={ptContent.materialSectionTitle ?? ""} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Material note label (PT)</span><input name="ptMaterialSectionNoteLabel" defaultValue={ptContent.materialSectionNoteLabel ?? ""} placeholder="Notas de materiais" className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Manifesto label (PT)</span><input name="ptManifestoSectionLabel" defaultValue={ptContent.manifestoSectionLabel ?? ""} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Manifesto attribution (PT)</span><input name="ptManifestoSectionAttribution" defaultValue={ptContent.manifestoSectionAttribution ?? ""} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Final CTA label (PT)</span><input name="ptFinalCtaLabel" defaultValue={ptContent.finalCtaLabel ?? ""} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Footer statement (PT)</span><textarea name="ptFinalFooterTitle" defaultValue={ptContent.finalFooterTitle ?? ""} rows={2} className="adm-field" /></label>
-                <label className="grid gap-2"><span className="adm-label">Contact label (PT)</span><input name="ptFinalContactLabel" defaultValue={ptContent.finalContactLabel ?? ""} className="adm-field" /></label>
-              </div>
-            </div>
-          ) : null}
-          {isHomePage ? (
-            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
-              <p className="adm-section-tag">LEXICON MATERIALS / PT</p>
-              {[0, 1, 2].map((index) => {
-                const material = ptContent.materialLexicon?.[index];
-                return (
-                  <div key={index} className="grid gap-4 border-t border-[var(--adm-border)] pt-4 first:border-t-0 first:pt-0">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="grid gap-2">
-                        <span className="adm-label">Material {index + 1} name (PT)</span>
-                        <input name={`ptMaterial${index + 1}Name`} defaultValue={material?.name ?? ""} className="adm-field" />
-                      </label>
-                      <label className="grid gap-2">
-                        <span className="adm-label">Material {index + 1} category (PT)</span>
-                        <input name={`ptMaterial${index + 1}Category`} defaultValue={material?.category ?? ""} className="adm-field" />
-                      </label>
-                    </div>
-                    <label className="grid gap-2">
-                      <span className="adm-label">Material {index + 1} description (PT)</span>
-                      <textarea name={`ptMaterial${index + 1}Description`} defaultValue={material?.description ?? ""} rows={3} className="adm-field" />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="adm-label">Material {index + 1} properties (PT, comma-separated)</span>
-                      <input name={`ptMaterial${index + 1}Properties`} defaultValue={material?.properties ?? ""} className="adm-field" />
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-          {isOfferPage || isPrivacyPage ? (
-            <div className="grid gap-4 border border-[var(--adm-border)] p-4">
-              <p className="adm-section-tag">LEGAL DOCUMENT / PT</p>
-              <div className="grid gap-4 md:grid-cols-2">
-                {isOfferPage ? (
-                  <label className="grid gap-2 md:col-span-2">
-                    <span className="adm-label">Intro paragraph (PT)</span>
-                    <textarea name="ptLegalIntro" defaultValue={ptContent.legalIntro ?? ""} rows={2} className="adm-field" />
-                  </label>
-                ) : null}
-              </div>
-              {legalSections.map((section) => {
-                const value = ptContent.legalSections?.[section.id];
-                return (
-                  <div key={section.id} className="grid gap-4 border-t border-[var(--adm-border)] pt-4 first:border-t-0 first:pt-0">
-                    <p className="adm-section-tag">{section.label} / PT</p>
-                    <label className="grid gap-2">
-                      <span className="adm-label">Title (PT)</span>
-                      <input name={`ptLegal:${section.id}:title`} defaultValue={value?.title ?? ""} className="adm-field" />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="adm-label">Body (PT, Markdown)</span>
-                      <textarea name={`ptLegal:${section.id}:body`} defaultValue={value?.body ?? ""} rows={6} className="adm-field font-mono text-xs" />
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2"><span className="adm-label">Hero CTA label (PT)</span><input name="ptCtaLabel" defaultValue={ptContent.ctaLabel ?? ""} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Manifesto quote (PT)</span><textarea name="ptQuote" defaultValue={ptContent.quote ?? ""} rows={3} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Final CTA headline (PT)</span><input name="ptSecondaryTitle" defaultValue={ptContent.secondaryTitle ?? ""} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Final CTA introduction (PT)</span><textarea name="ptSecondaryBody" defaultValue={ptContent.secondaryBody ?? ""} rows={3} className="adm-field" /></label>
-          </div>
-        </section>
 
         <label className="grid gap-2 md:max-w-xs">
           <span className="adm-label">Publishing state after save</span>

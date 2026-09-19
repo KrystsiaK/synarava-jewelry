@@ -28,8 +28,22 @@ function makePage(overrides: Partial<SavedPagePayload> = {}): SavedPagePayload {
   };
 }
 
+function hiddenFieldValue(container: HTMLElement, name: string) {
+  return container.querySelector<HTMLInputElement>(`input[type="hidden"][name="${name}"]`)?.value;
+}
+
+// Fields with an AdminHelp tooltip share their <label> with the tooltip's own
+// labelable trigger button, so getByLabelText can resolve to that button
+// instead of the field. Query these shared fields by name instead.
+function fieldByName(container: HTMLElement, name: string) {
+  return container.querySelector<HTMLInputElement>(`[name="${name}"]`);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  // The active-locale tab is remembered in sessionStorage per page slug, so
+  // tests sharing a slug (e.g. "home") would otherwise leak their tab state.
+  sessionStorage.clear();
 });
 
 describe("PageEditor", () => {
@@ -41,28 +55,49 @@ describe("PageEditor", () => {
     expect(screen.getByLabelText("Body")).toHaveValue("Body copy.");
   });
 
-  it("switches to the sticky Portuguese panel, hiding EN-only fields but keeping shared CTA href visible", async () => {
+  it("switches the same Title field's value with the locale tab, keeping shared CTA href untouched", async () => {
     const user = userEvent.setup();
-    render(<PageEditor page={makePage({
+    const { container } = render(<PageEditor page={makePage({
       content: { body: "Body copy.", ctaHref: "/shop", translations: { pt: { title: "Diário", body: "Corpo." } } },
     })} />);
 
-    expect(screen.getByLabelText("Title")).toBeVisible();
-    expect(screen.getByLabelText("CTA href")).toBeVisible();
+    expect(screen.getByLabelText("Title")).toHaveValue("Journal");
+    expect(fieldByName(container, "ctaHref")).toHaveValue("/shop");
 
     await user.click(screen.getByRole("tab", { name: "Português" }));
-
-    expect(screen.getByLabelText("Title")).not.toBeVisible();
-    expect(screen.getByLabelText("CTA href")).toBeVisible();
-    expect(screen.getByLabelText("Title (PT)")).toHaveValue("Diário");
-    expect(screen.getByLabelText("Body (PT)")).toHaveValue("Corpo.");
+    expect(screen.getByLabelText("Title")).toHaveValue("Diário");
+    expect(screen.getByLabelText("Body")).toHaveValue("Corpo.");
+    expect(fieldByName(container, "ctaHref")).toHaveValue("/shop");
 
     await user.click(screen.getByRole("tab", { name: "English" }));
     expect(screen.getByLabelText("Title")).toHaveValue("Journal");
+
+    // Both locales' real values are always in the hidden fields the server reads, regardless of the active tab.
+    expect(hiddenFieldValue(container, "title")).toBe("Journal");
+    expect(hiddenFieldValue(container, "ptTitle")).toBe("Diário");
   });
 
-  it("uses the home-page-specific labels for the protected home slug", () => {
-    render(<PageEditor page={makePage({
+  it("keeps each locale's edits independent when typing, switching, and switching back", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<PageEditor page={makePage()} />);
+
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Updated EN Title");
+
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(screen.getByLabelText("Title")).toHaveValue("");
+    await user.type(screen.getByLabelText("Title"), "Título PT");
+
+    await user.click(screen.getByRole("tab", { name: "English" }));
+    expect(screen.getByLabelText("Title")).toHaveValue("Updated EN Title");
+
+    expect(hiddenFieldValue(container, "title")).toBe("Updated EN Title");
+    expect(hiddenFieldValue(container, "ptTitle")).toBe("Título PT");
+  });
+
+  it("uses the home-page-specific labels for the protected home slug", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<PageEditor page={makePage({
       slug: "home",
       title: "Home",
       content: {
@@ -85,31 +120,35 @@ describe("PageEditor", () => {
     expect(screen.getByLabelText("Hero headline")).toBeInTheDocument();
     expect(screen.getByLabelText("Search summary")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Show department pathway" })).toBeChecked();
-    expect(screen.getByLabelText("Department headline (EN)")).toHaveValue("Choose where to begin.");
-    expect(screen.getByLabelText("Department description (EN)")).toHaveValue("A considered way into the collection.");
-    expect(screen.getByLabelText("Department image caption (EN)")).toHaveValue("One point of view.");
-    expect(screen.getByLabelText("Department CTA label (EN)")).toHaveValue("Explore the shop");
-    expect(screen.getByLabelText("Department headline (PT)")).toHaveValue("Escolha por onde começar.");
-    expect(screen.getByLabelText("Department description (PT)")).toHaveValue("Uma entrada cuidada na coleção.");
+    expect(screen.getByLabelText("Department headline")).toHaveValue("Choose where to begin.");
+    expect(screen.getByLabelText("Department description")).toHaveValue("A considered way into the collection.");
+    expect(screen.getByLabelText("Department image caption")).toHaveValue("One point of view.");
+    expect(screen.getByLabelText("Department CTA label")).toHaveValue("Explore the shop");
     expect(screen.getByRole("checkbox", { name: "Show hero" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show featured collections" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show material lexicon" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show manifesto" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show final call to action" })).toBeChecked();
-    expect(screen.getByLabelText("Archive background label (EN)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Material section title (EN)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Material note label (EN)")).toHaveValue("Material notes");
-    expect(screen.getByLabelText("Material note label (PT)")).toHaveValue("Notas de materiais");
-    expect(screen.getByLabelText("Manifesto attribution (EN)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Final CTA label (EN)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Contact email")).toBeInTheDocument();
+    expect(screen.getByLabelText("Archive background label")).toBeInTheDocument();
+    expect(screen.getByLabelText("Material section title")).toBeInTheDocument();
+    expect(screen.getByLabelText("Material note label")).toHaveValue("Material notes");
+    expect(screen.getByLabelText("Manifesto attribution")).toBeInTheDocument();
+    expect(screen.getByLabelText("Final CTA label")).toBeInTheDocument();
+    expect(fieldByName(container, "finalContactEmail")).toBeInTheDocument();
+
+    // The Portuguese values exist too, just under the PT tab, not a second copy of every field.
+    expect(hiddenFieldValue(container, "ptDepartmentSectionTitle")).toBe("Escolha por onde começar.");
+    expect(hiddenFieldValue(container, "ptMaterialSectionNoteLabel")).toBe("Notas de materiais");
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(screen.getByLabelText("Department headline")).toHaveValue("Escolha por onde começar.");
+    expect(screen.getByLabelText("Material note label")).toHaveValue("Notas de materiais");
   });
 
   it("does not show home-only department controls for a regular page", () => {
     render(<PageEditor page={makePage()} />);
 
     expect(screen.queryByRole("checkbox", { name: "Show department pathway" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Department headline (EN)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Department headline")).not.toBeInTheDocument();
   });
 
   it("submits the bilingual department pathway settings", async () => {
@@ -125,10 +164,11 @@ describe("PageEditor", () => {
     render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
 
     await user.click(screen.getByRole("checkbox", { name: "Show department pathway" }));
-    await user.type(screen.getByLabelText("Department headline (EN)"), "Choose where to begin.");
-    await user.type(screen.getByLabelText("Department description (EN)"), "A considered way into the collection.");
-    await user.type(screen.getByLabelText("Department headline (PT)"), "Escolha por onde começar.");
-    await user.type(screen.getByLabelText("Department description (PT)"), "Uma entrada cuidada na coleção.");
+    await user.type(screen.getByLabelText("Department headline"), "Choose where to begin.");
+    await user.type(screen.getByLabelText("Department description"), "A considered way into the collection.");
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    await user.type(screen.getByLabelText("Department headline"), "Escolha por onde começar.");
+    await user.type(screen.getByLabelText("Department description"), "Uma entrada cuidada na coleção.");
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
     await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
 
