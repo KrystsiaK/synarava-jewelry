@@ -2,7 +2,7 @@
 //
 // Safe defaults:
 // - no flag means dry-run;
-// - --apply only creates missing Product/Collection translation bindings;
+// - --apply only creates missing Product/Collection/Page translation bindings;
 // - conflicting bindings are reported and never overwritten;
 // - this script never calls Shopify or modifies translated copy.
 import { PrismaClient } from "@prisma/client";
@@ -71,8 +71,19 @@ const collectionTranslationSelect = {
   reviewStatus: true,
 };
 
+const pageTranslationSelect = {
+  locale: true,
+  title: true,
+  localizedHandle: true,
+  excerpt: true,
+  content: true,
+  seoTitle: true,
+  seoDescription: true,
+  reviewStatus: true,
+};
+
 async function loadInput() {
-  const [products, collections, bindings] = await Promise.all([
+  const [products, collections, pages, bindings] = await Promise.all([
     prisma.product.findMany({
       where: { status: { not: "ARCHIVED" } },
       select: {
@@ -94,12 +105,22 @@ async function loadInput() {
       },
       orderBy: [{ name: "asc" }, { id: "asc" }],
     }),
+    prisma.page.findMany({
+      where: { status: { not: "ARCHIVED" } },
+      select: {
+        id: true,
+        title: true,
+        shopifyPageId: true,
+        translations: { where: { locale: "PT" }, select: pageTranslationSelect },
+      },
+      orderBy: [{ title: "asc" }, { id: "asc" }],
+    }),
     prisma.shopifyTranslationBinding.findMany({
-      where: { resourceType: { in: ["PRODUCT", "COLLECTION"] } },
+      where: { resourceType: { in: ["PRODUCT", "COLLECTION", "PAGE"] } },
       select: { resourceType: true, entityId: true, shopifyResourceId: true },
     }),
   ]);
-  return { products, collections, bindings };
+  return { products, collections, pages, bindings };
 }
 
 function blockers(row) {
@@ -123,7 +144,7 @@ function printHuman(payload) {
     console.log(`[translation-backfill] created ${payload.appliedBindings} missing binding(s).`);
   }
 
-  for (const entityType of ["PRODUCT", "COLLECTION"]) {
+  for (const entityType of ["PRODUCT", "COLLECTION", "PAGE"]) {
     const rows = report.rows.filter((row) => row.entityType === entityType);
     const ready = rows.filter((row) => row.enforcementReady).length;
     console.log(`\n${entityType}: ${ready}/${rows.length} enforcement-ready`);
@@ -167,14 +188,11 @@ async function main() {
     generatedAt: new Date().toISOString(),
     mode: options.apply ? "apply" : "dry-run",
     appliedBindings,
-    deferredResourceTypes: [
-      {
-        resourceType: "PAGE",
-        reason: "PageTranslation and Shopify PAGE/METAOBJECT binding are deferred in Tasks 14/16.",
-      },
+    deferredResourceTypes: [],
+    managedOnEntitySync: [
       {
         resourceType: "METAOBJECT",
-        reason: "Storefront-copy and structured editorial metaobject adapters are deferred in Task 16.",
+        reason: "App-owned editorial metaobjects are created idempotently by each entity sync, then tracked by their own binding and event.",
       },
     ],
     report,

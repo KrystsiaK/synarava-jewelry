@@ -44,6 +44,7 @@ export type SavedCollectionTranslationPayload = {
   locale: "EN" | "PT";
   name: string;
   localizedHandle: string | null;
+  subtitle: string | null;
   description: string | null;
   manifesto: string | null;
   symbolismLabel: string | null;
@@ -99,7 +100,7 @@ const savedCollectionSelect = {
   visibility: true,
   translations: {
     select: {
-      id: true, locale: true, name: true, localizedHandle: true, description: true, manifesto: true,
+      id: true, locale: true, name: true, localizedHandle: true, subtitle: true, description: true, manifesto: true,
       symbolismLabel: true, symbolismTitle: true, symbolismBody: true, symbolismBody2: true,
       searchSummary: true, reviewStatus: true, syncStatus: true, syncError: true,
     },
@@ -197,6 +198,7 @@ const collectionFieldsSchema = z.object({
   slug: z.string().trim().default(""),
   code: z.string().trim().default(""),
   name: z.string().trim().default(""),
+  subtitle: z.string().trim().default(""),
   description: z.string().trim().default(""),
   manifesto: z.string().trim().default(""),
   searchSummary: z.string().trim().default(""),
@@ -206,6 +208,7 @@ const collectionFieldsSchema = z.object({
   symbolismBody2: z.string().trim().default(""),
   ptName: z.string().trim().default(""),
   ptHandle: z.string().trim().default(""),
+  ptSubtitle: z.string().trim().default(""),
   ptDescription: z.string().trim().default(""),
   ptManifesto: z.string().trim().default(""),
   ptSearchSummary: z.string().trim().default(""),
@@ -230,9 +233,9 @@ export async function saveCollectionAction(
     return { error: "Please fix the required fields and try again." };
   }
   const {
-    collectionId, code, name, description, manifesto, searchSummary,
+    collectionId, code, name, subtitle, description, manifesto, searchSummary,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, workflowState,
-    ptName, ptHandle, ptDescription, ptManifesto, ptSearchSummary,
+    ptName, ptHandle, ptSubtitle, ptDescription, ptManifesto, ptSearchSummary,
     ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
   } = parsed.data;
   const slug = slugify(parsed.data.slug);
@@ -303,6 +306,7 @@ export async function saveCollectionAction(
     slug,
     code: code || null,
     name,
+    subtitle: subtitle || null,
     description: description || null,
     manifesto: manifesto || null,
     searchSummary: searchSummary || null,
@@ -342,8 +346,9 @@ export async function saveCollectionAction(
       });
 
   const ptCopy = {
-    localizedHandle: ptHandle ? slugify(ptHandle) : null,
+    localizedHandle: slugify(ptHandle) || null,
     name: ptName || name,
+    subtitle: ptSubtitle || null,
     description: ptDescription || null,
     manifesto: ptManifesto || null,
     searchSummary: ptSearchSummary || null,
@@ -354,16 +359,15 @@ export async function saveCollectionAction(
   };
   const ptContentHash = createHash("sha256").update(JSON.stringify(ptCopy)).digest("hex");
   const ptReviewed = parsed.data.ptReviewed === "on" && Boolean(ptName);
-  // Collection has no Shopify translation push wired up yet (Task 16/21) —
-  // a reviewed PT edit is a pending change to surface once that exists,
-  // never silently marked SYNCED before anything has actually synced it.
+  // Saving marks reviewed copy pending; the Localization dashboard owns the
+  // explicit Shopify write/retry so editing never performs a surprise remote mutation.
   const ptSyncStatus = ptReviewed ? "PENDING" as const : "NOT_APPLICABLE" as const;
 
   await db.$transaction([
     db.collectionTranslation.upsert({
       where: { collectionId_locale: { collectionId: savedCollection.id, locale: "EN" } },
       update: {
-        name, description: description || null, manifesto: manifesto || null,
+        name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
         symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
         symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
         searchSummary: searchSummary || null,
@@ -371,7 +375,7 @@ export async function saveCollectionAction(
       },
       create: {
         collectionId: savedCollection.id, locale: "EN",
-        name, description: description || null, manifesto: manifesto || null,
+        name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
         symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
         symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
         searchSummary: searchSummary || null,
@@ -401,7 +405,7 @@ export async function saveCollectionAction(
     entityType: "COLLECTION",
     entityId: savedCollection.id,
     previousHandle: before?.translations.find((translation) => translation.locale === "PT")?.localizedHandle,
-    nextHandle: ptCopy.localizedHandle,
+    nextHandle: ptCopy.localizedHandle ?? slug,
   });
 
   await writeAuditLog({
@@ -440,6 +444,7 @@ export async function autosaveCollectionDraftAction(
   } = parsed.data;
   const slug = slugify(parsed.data.slug) || createDraftToken("draft-collection");
   const name = parsed.data.name || "Untitled collection";
+  const subtitle = parsed.data.subtitle;
   const removeHeroImage = parsed.data.removeHeroImage === "1";
   const existingHeroImageUrl = removeHeroImage ? "" : parsed.data.existingHeroImageUrl;
 
@@ -447,6 +452,7 @@ export async function autosaveCollectionDraftAction(
     slug,
     code: code || null,
     name,
+    subtitle: subtitle || null,
     description: description || null,
     manifesto: manifesto || null,
     searchSummary: searchSummary || null,

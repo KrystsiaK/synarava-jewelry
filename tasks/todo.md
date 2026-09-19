@@ -300,7 +300,7 @@
 
 **Acceptance criteria:**
 - [x] Field list was already identical between EN/PT (every key already has an `en:<key>`/`pt:<key>` pair, generated from one `STOREFRONT_COPY_GROUPS` loop — no per-field hand-written duplication like Page/Product had). Converted the two-column-per-field layout to the sticky `AdminLocaleTabs` pattern: one small change to the shared render loop (`hidden={activeLocale !== "EN"/"PT"}` on the two existing label wrappers) covers all ~57 keys across nav/footer/4 service pages at once. No email/URL/flag fields exist in this editor to keep shared — every key here is buyer-facing text by design (see `storefront-copy-fields.ts`'s own comment).
-- [ ] **Not done:** sync status on the tabs — storefront copy has no Shopify sync at all yet (local `SiteSetting` JSON only; the registry's `metaobject("storefront_copy", ...)` target from Task 1 is unimplemented, same "target assigned, not yet wired" state as everything else this session that didn't get an actual Shopify write path).
+- [x] The Copy locale tabs show the latest Shopify sync status from the Storefront Copy metaobject binding; missing bindings surface as pending and are actionable in Localization.
 
 **Verification:**
 - [x] New `components/admin/settings/__tests__/storefront-copy-editor.test.tsx` (2 tests, file didn't exist before): tab switch hides/shows the right panel with independent PT value, and a save submits both `en:`/`pt:`-prefixed keys in one `FormData`. Full suite: `pnpm exec tsc --noEmit`, `pnpm vitest run` (160 files / 798 tests) green.
@@ -324,7 +324,7 @@
 
 **Verification:**
 - [x] New `lib/content/__tests__/storefront-navigation.test.ts` (2 tests): resolves PT collection name via a primary-nav row's translations, defaults to English with no locale argument. Full suite: `pnpm exec tsc --noEmit`, `pnpm vitest run` (161 files / 800 tests) green.
-- [ ] Not done: `getShopFilterData()` (shop sidebar department filter labels) still calls `getStorefrontNavigation()` with no locale — found but not fixed this session, since its caller (`app/[locale]/shop/page.tsx`) resolves `locale` inside the same `Promise.all` as the filter data fetch and needs the same sequential-then-parallel restructuring already applied to `app/[locale]/page.tsx`. Lower priority than the global header (sidebar filter labels vs. every page's nav) — flagged for Task 20's storefront audit rather than done ad hoc here. Manual EN/PT nav accessibility check not done (no browser session this run).
+- [x] `getShopFilterData(locale)` and all storefront callers pass locale explicitly; department and collection filter labels have PT resolver coverage.
 
 **Dependencies:** Tasks 3–8  
 **Files likely touched:** `lib/content/catalog.ts` (`getStorefrontNavigation`), `lib/content/__tests__/storefront-navigation.test.ts`, `app/layout.tsx`, `app/[locale]/page.tsx`  
@@ -334,7 +334,7 @@
 
 - [x] Home/About/Pages/Legal (Task 15, UI only — Task 14's data-model normalization deferred), Copy (Task 17), and Navigation (Task 18) coverage complete for real content. Media has nothing to cover (no fields exist).
 - [x] No stacked EN/PT sections or decorative locale tabs remain anywhere touched this session — `LocaleTabStrip` is deleted from the codebase; Page/Copy/Product/Collection all use the sticky `AdminLocaleTabs`.
-- [ ] **Not applicable / not done:** no native Shopify resource or metaobject sync exists for Page or Copy yet (Task 16 deferred, Task 8's metaobject health check has nothing to check against), so there's no reconcile to verify here. This remains open until Task 14/16 are picked back up with a real database available.
+- [x] Page native and Page/Copy metaobject sync now exist with independent bindings/events (Task 16); live reconciliation remains a release gate below.
 
 ## Phase 6 — Migration, storefront and release
 
@@ -426,8 +426,8 @@
 
 ### Checkpoint 6: Release approval
 
-- [ ] Registry coverage = 100% buyer-facing admin fields.
-- [ ] Backfill/reconcile report принят.
-- [ ] Один resource каждого типа прошёл controlled Shopify round trip.
-- [ ] Полный quality gate зелёный.
+- [ ] Registry coverage = 100% buyer-facing admin fields — not literally 100%: `optionName`/`optionValueLabel`/`mediaAlt`/`mediaCaption` and `tagName` are registered with a Shopify target but have no EN admin editing surface to translate yet (Task 10/13 notes), by deliberate choice rather than oversight. Everything with a real EN input has a working PT counterpart.
+- [ ] Backfill/reconcile report принят — `pnpm translations:backfill --dry-run` runs and reports correctly (Task 19), but a human hasn't reviewed its output against the real production dataset (no reachable database this session).
+- [ ] Один resource каждого типа прошёл controlled Shopify round trip — blocked on live Shopify Admin API credentials/dev store; none available this session.
+- [ ] Полный quality gate зелёный — `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test:run` (170 files / 833 tests) are all green as of this session's last run; `pnpm build`'s static generation and `pnpm test:e2e` remain blocked by environment (missing `APP_URL`, no dev server/database respectively), not by any known defect.
 - [ ] Human approves staged production rollout.

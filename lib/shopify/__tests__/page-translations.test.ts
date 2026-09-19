@@ -18,12 +18,14 @@ describe("Shopify page translations", () => {
     mocks.shopifyAdminRequest
       .mockResolvedValueOnce({ translationsRemove: { userErrors: [] } })
       .mockResolvedValueOnce({ translatableResource: { translatableContent: [
+        { key: "handle", digest: "handle-digest" },
         { key: "title", digest: "title-digest" },
         { key: "body_html", digest: "body-digest" },
       ] } })
       .mockResolvedValueOnce({ translationsRegister: { userErrors: [], translations: [] } });
 
     await registerPageTranslation("gid://shopify/Page/1", {
+      handle: "manifesto-pt",
       title: "Manifesto",
       bodyHtml: "<p>Feito para ser usado.</p>",
       seoTitle: "",
@@ -33,6 +35,7 @@ describe("Shopify page translations", () => {
     expect(mocks.shopifyAdminRequest.mock.calls[2]?.[1]).toMatchObject({
       resourceId: "gid://shopify/Page/1",
       translations: [
+        expect.objectContaining({ key: "handle", value: "manifesto-pt" }),
         expect.objectContaining({ key: "title", value: "Manifesto" }),
         expect.objectContaining({ key: "body_html", value: "<p>Feito para ser usado.</p>" }),
       ],

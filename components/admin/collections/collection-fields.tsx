@@ -139,6 +139,26 @@ export function CollectionFields({
             placeholder="Rituais da Terra"
           />
         </label>
+        <label className="grid gap-2" hidden={locale !== "EN"}>
+          <FieldLabel>Subtitle</FieldLabel>
+          <input
+            name="subtitle"
+            value={draft.subtitle}
+            onChange={(e) => onChange("subtitle", e.target.value)}
+            className="adm-field"
+            placeholder="A short editorial line"
+          />
+        </label>
+        <label className="grid gap-2" hidden={locale !== "PT"}>
+          <FieldLabel>Subtitle (PT)</FieldLabel>
+          <input
+            name="ptSubtitle"
+            value={draft.pt.subtitle}
+            onChange={(e) => onChangePt("subtitle", e.target.value)}
+            className="adm-field"
+            placeholder="Optional — shows the English subtitle until filled in."
+          />
+        </label>
         <label className="grid gap-2" hidden={locale !== "PT"}>
           <FieldLabel>URL handle (PT, optional)</FieldLabel>
           <input

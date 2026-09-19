@@ -3,13 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   buildCoverageReport,
   collectionCoverage,
+  pageCoverage,
   planBindingCreates,
   productCoverage,
   summarize,
 } from "../lib/translation-coverage.mjs";
 
 describe("translation coverage", () => {
-  it("reports required product gaps, missing identity, and populated fields without a Shopify adapter", () => {
+  it("reports required product gaps and missing identity without false unsupported-field blockers", () => {
     const row = productCoverage({
       id: "product-1",
       sku: "RING-1",
@@ -39,7 +40,7 @@ describe("translation coverage", () => {
       reviewed: false,
       missingFields: ["shortDescription"],
       missingIdentity: true,
-      unsupportedFields: ["materialLine"],
+      unsupportedFields: [],
       translationComplete: false,
       enforcementReady: false,
     });
@@ -67,6 +68,22 @@ describe("translation coverage", () => {
     expect(row.translationComplete).toBe(true);
     expect(row.missingIdentity).toBe(false);
     expect(row.unsupportedFields).toEqual([]);
+  });
+
+  it("covers Page identities now that native Page sync is implemented", () => {
+    const row = pageCoverage({
+      id: "page-1",
+      title: "About",
+      shopifyPageId: "gid://shopify/Page/1",
+      translations: [{ locale: "PT", title: "Sobre", reviewStatus: "REVIEWED" }],
+    });
+
+    expect(row).toMatchObject({
+      entityType: "PAGE",
+      translationComplete: true,
+      missingIdentity: false,
+      unsupportedFields: [],
+    });
   });
 
   it("classifies bindings and creates only missing non-conflicting identities", () => {

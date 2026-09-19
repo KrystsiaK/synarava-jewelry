@@ -4,8 +4,11 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import {
+  COLLECTION_FIELD_REGISTRY,
   PAGE_FIELD_REGISTRY,
+  PRODUCT_FIELD_REGISTRY,
   STOREFRONT_COPY_FIELD_REGISTRY,
+  type EntityFieldRegistry,
   localizedFields,
 } from "@/lib/i18n/admin-field-registry";
 import { normalizePageTranslationContent } from "@/lib/pages/localization";
@@ -18,7 +21,7 @@ import { registerPageTranslation } from "@/lib/shopify/page-translations";
 import { upsertShopifyPage } from "@/lib/shopify/page-resource";
 import { ensureTranslationBinding, recordSyncEvent } from "@/lib/shopify/translation-sync";
 
-type TargetResult = { target: "PAGE" | "METAOBJECT"; status: "SUCCEEDED" | "FAILED"; error?: string };
+export type TargetResult = { target: "PAGE" | "METAOBJECT"; status: "SUCCEEDED" | "FAILED"; error?: string };
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -51,6 +54,24 @@ function pageStructuredValues(excerpt: string | null | undefined, content: unkno
         : [];
     }),
   );
+}
+
+function metaobjectValues(registry: EntityFieldRegistry, source: Record<string, unknown>) {
+  return Object.fromEntries(
+    localizedFields(registry).flatMap((field) => {
+      const target = field.shopifyTarget;
+      return target?.kind === "metaobject" && source[field.key] !== undefined
+        ? [[target.key, source[field.key]]]
+        : [];
+    }),
+  );
+}
+
+function metaobjectFieldKeys(registry: EntityFieldRegistry, definition: string) {
+  return localizedFields(registry).flatMap((field) => {
+    const target = field.shopifyTarget;
+    return target?.kind === "metaobject" && target.definition === definition ? [target.key] : [];
+  });
 }
 
 const PAGE_METAOBJECT_FIELDS = localizedFields(PAGE_FIELD_REGISTRY).flatMap((field) =>
@@ -191,6 +212,129 @@ export async function syncStorefrontCopyTranslation(actorUsername?: string | nul
   try {
     await registerEditorialMetaobjectTranslation(metaobject.id, value.pt);
     await completeTarget(binding.id, value.pt, actorUsername);
+    return [{ target: "METAOBJECT", status: "SUCCEEDED" }];
+  } catch (error) {
+    await recordTargetFailure(binding.id, error, actorUsername);
+    return [{ target: "METAOBJECT", status: "FAILED", error: errorMessage(error) }];
+  }
+}
+
+export async function syncProductEditorialTranslation(
+  productId: string,
+  actorUsername?: string | null,
+): Promise<TargetResult[]> {
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    include: { translations: true },
+  });
+  if (!product) throw new Error("Product not found.");
+
+  const en = product.translations.find((translation) => translation.locale === "EN");
+  const pt = product.translations.find((translation) => translation.locale === "PT");
+  if (!pt) throw new Error("Portuguese product translation is missing.");
+
+  const source = {
+    shortDescription: en?.shortDescription ?? product.shortDescription,
+    materialLine: en?.materialLine ?? product.materialLine,
+    symbolismLabel: en?.symbolismLabel ?? product.symbolismLabel,
+    symbolismTitle: en?.symbolismTitle ?? product.symbolismTitle,
+    symbolismBody: en?.symbolismBody ?? product.symbolismBody,
+    symbolismBody2: en?.symbolismBody2 ?? product.symbolismBody2,
+    details: en?.details ?? product.details,
+  };
+  const translated = {
+    shortDescription: pt.shortDescription,
+    materialLine: pt.materialLine,
+    symbolismLabel: pt.symbolismLabel,
+    symbolismTitle: pt.symbolismTitle,
+    symbolismBody: pt.symbolismBody,
+    symbolismBody2: pt.symbolismBody2,
+    details: pt.details,
+  };
+  return syncMetaobjectTarget({
+    definition: "product_detail_copy",
+    name: "Product detail copy",
+    handle: `product-${product.slug}`,
+    entityId: `${product.id}:product_detail_copy`,
+    source: metaobjectValues(PRODUCT_FIELD_REGISTRY, source),
+    translated: metaobjectValues(PRODUCT_FIELD_REGISTRY, translated),
+    fieldKeys: metaobjectFieldKeys(PRODUCT_FIELD_REGISTRY, "product_detail_copy"),
+    actorUsername,
+  });
+}
+
+export async function syncCollectionEditorialTranslation(
+  collectionId: string,
+  actorUsername?: string | null,
+): Promise<TargetResult[]> {
+  const collection = await db.collection.findUnique({
+    where: { id: collectionId },
+    include: { translations: true },
+  });
+  if (!collection) throw new Error("Collection not found.");
+
+  const en = collection.translations.find((translation) => translation.locale === "EN");
+  const pt = collection.translations.find((translation) => translation.locale === "PT");
+  if (!pt) throw new Error("Portuguese collection translation is missing.");
+
+  const source = {
+    subtitle: en?.subtitle ?? collection.subtitle,
+    manifesto: en?.manifesto ?? collection.manifesto,
+    symbolismLabel: en?.symbolismLabel ?? collection.symbolismLabel,
+    symbolismTitle: en?.symbolismTitle ?? collection.symbolismTitle,
+    symbolismBody: en?.symbolismBody ?? collection.symbolismBody,
+    symbolismBody2: en?.symbolismBody2 ?? collection.symbolismBody2,
+    searchSummary: en?.searchSummary ?? collection.searchSummary,
+  };
+  const translated = {
+    subtitle: pt.subtitle,
+    manifesto: pt.manifesto,
+    symbolismLabel: pt.symbolismLabel,
+    symbolismTitle: pt.symbolismTitle,
+    symbolismBody: pt.symbolismBody,
+    symbolismBody2: pt.symbolismBody2,
+    searchSummary: pt.searchSummary,
+  };
+  return syncMetaobjectTarget({
+    definition: "collection_section_copy",
+    name: "Collection section copy",
+    handle: `collection-${collection.slug}`,
+    entityId: `${collection.id}:collection_section_copy`,
+    source: metaobjectValues(COLLECTION_FIELD_REGISTRY, source),
+    translated: metaobjectValues(COLLECTION_FIELD_REGISTRY, translated),
+    fieldKeys: metaobjectFieldKeys(COLLECTION_FIELD_REGISTRY, "collection_section_copy"),
+    actorUsername,
+  });
+}
+
+async function syncMetaobjectTarget({
+  definition,
+  name,
+  handle,
+  entityId,
+  source,
+  translated,
+  fieldKeys,
+  actorUsername,
+}: {
+  definition: string;
+  name: string;
+  handle: string;
+  entityId: string;
+  source: Record<string, unknown>;
+  translated: Record<string, unknown>;
+  fieldKeys: string[];
+  actorUsername?: string | null;
+}): Promise<TargetResult[]> {
+  const metaobject = await ensureEditorialMetaobject({ definition, name, handle, values: source, fieldKeys });
+  const binding = await ensureTranslationBinding({
+    resourceType: "METAOBJECT",
+    entityId,
+    shopifyResourceId: metaobject.id,
+  });
+  try {
+    await registerEditorialMetaobjectTranslation(metaobject.id, translated);
+    await completeTarget(binding.id, translated, actorUsername);
     return [{ target: "METAOBJECT", status: "SUCCEEDED" }];
   } catch (error) {
     await recordTargetFailure(binding.id, error, actorUsername);

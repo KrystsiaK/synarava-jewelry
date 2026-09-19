@@ -3,9 +3,24 @@ import pt from "@/messages/pt.json";
 import { flattenMessages } from "@/lib/i18n/utils";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
+import { STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy";
+import { db } from "@/lib/db";
+import type { AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 
 export default async function AdminSettingsPage() {
-  const copy = await getStorefrontCopy();
+  const [copy, binding] = await Promise.all([
+    getStorefrontCopy(),
+    db.shopifyTranslationBinding.findUnique({
+      where: { resourceType_entityId: { resourceType: "METAOBJECT", entityId: STOREFRONT_COPY_KEY } },
+      include: { syncEvents: { orderBy: { createdAt: "desc" }, take: 1 } },
+    }),
+  ]);
+  const eventStatus = binding?.syncEvents[0]?.status;
+  const ptStatus: AdminLocaleStatus = eventStatus === "SUCCEEDED"
+    ? "SYNCED"
+    : eventStatus === "FAILED" || eventStatus === "CONFLICT"
+      ? eventStatus
+      : "PENDING";
   const defaults = {
     en: flattenMessages(en as Record<string, unknown>),
     pt: flattenMessages(pt as Record<string, unknown>),
@@ -20,7 +35,7 @@ export default async function AdminSettingsPage() {
           Main menu, footer, and the FAQ / Care / Shipping / Returns pages — text only, no layout changes.
         </p>
       </div>
-      <StorefrontCopyEditor copy={copy} defaults={defaults} />
+      <StorefrontCopyEditor copy={copy} defaults={defaults} ptStatus={ptStatus} />
     </div>
   );
 }

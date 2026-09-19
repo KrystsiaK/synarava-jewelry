@@ -7,7 +7,7 @@ import {
   type StorefrontCopyActionState,
 } from "@/app/admin/actions/storefront-copy";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminLocaleTabs, useAdminActiveLocale } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
@@ -15,9 +15,11 @@ import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 export function StorefrontCopyEditor({
   copy,
   defaults,
+  ptStatus,
 }: {
   copy: StorefrontCopy;
   defaults: { en: Record<string, string>; pt: Record<string, string> };
+  ptStatus?: AdminLocaleStatus;
 }) {
   const [state, setState] = useState<StorefrontCopyActionState>({});
   const [isPending, startTransition] = useTransition();
@@ -35,7 +37,7 @@ export function StorefrontCopyEditor({
 
   return (
     <form action={formAction} className="grid gap-8">
-      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} />
+      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} ptStatus={ptStatus} />
       <AuthMessage error={state.error} />
       <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
         Leave a field empty to fall back to the shipped default (shown as placeholder text). These

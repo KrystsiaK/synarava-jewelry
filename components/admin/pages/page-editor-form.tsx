@@ -18,6 +18,7 @@ import type { EditablePageContent, EditablePageCopy } from "@/components/admin/p
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
+import { isBuiltInPage } from "@/lib/content/built-in-pages";
 
 export function PageEditor({
   page,
@@ -85,7 +86,7 @@ export function PageEditor({
 
         {isHomePage ? <HomeSectionVisibilityEditor content={content} /> : null}
 
-        <label className="grid gap-2" hidden={activeLocale !== "PT"}>
+        <label className="grid gap-2" hidden={activeLocale !== "PT" || isBuiltInPage(page.slug)}>
           <span className="adm-label">URL handle (PT, optional)</span>
           <input name="ptHandle" defaultValue={normalizedPortuguese?.localizedHandle ?? ""} className="adm-field" placeholder={page.slug} />
           <span className="text-xs" style={{ color: "var(--adm-muted)" }}>Blank uses the English slug.</span>

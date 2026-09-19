@@ -8,7 +8,9 @@ import { db } from "@/lib/db";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { registerCollectionTranslation } from "@/lib/shopify/collection-translations";
 import {
+  syncCollectionEditorialTranslation,
   syncPageEditorialTranslation,
+  syncProductEditorialTranslation,
   syncStorefrontCopyTranslation,
 } from "@/lib/shopify/editorial-translation-sync";
 import { pushProductToShopify } from "@/lib/shopify/product-sync";
@@ -49,10 +51,6 @@ async function syncCollection(collectionId: string, actorUsername: string) {
         where: { id: binding.id },
         data: { lastSyncedSnapshot: snapshot as Prisma.InputJsonValue },
       }),
-      db.collectionTranslation.update({
-        where: { id: translation.id },
-        data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
-      }),
       recordSyncEvent({
         bindingId: binding.id, locale: "PT", direction: "PUSH", status: "SUCCEEDED", actorUsername,
       }),
@@ -67,6 +65,68 @@ async function syncCollection(collectionId: string, actorUsername: string) {
     ]);
     throw error;
   }
+
+  const editorialResults = await syncCollectionEditorialTranslation(collection.id, actorUsername);
+  const editorialFailure = editorialResults.find((result) => result.status === "FAILED");
+  if (editorialFailure) {
+    await db.collectionTranslation.update({
+      where: { id: translation.id },
+      data: { syncStatus: "FAILED", syncError: editorialFailure.error },
+    });
+    throw new Error(editorialFailure.error);
+  }
+  await db.collectionTranslation.update({
+    where: { id: translation.id },
+    data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
+  });
+}
+
+async function recordProductTranslationSync(productId: string, actorUsername: string) {
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    select: {
+      shopifyProductId: true,
+      translations: {
+        where: { locale: "PT" },
+        select: {
+          localizedHandle: true,
+          title: true,
+          description: true,
+          seoTitle: true,
+          seoDescription: true,
+        },
+      },
+    },
+  });
+  if (!product?.shopifyProductId) throw new Error("Product is not linked to Shopify.");
+  const translation = product.translations[0];
+  if (!translation) throw new Error("Portuguese product translation is missing.");
+
+  const binding = await ensureTranslationBinding({
+    resourceType: "PRODUCT",
+    entityId: productId,
+    shopifyResourceId: product.shopifyProductId,
+  });
+  const snapshot = {
+    localizedHandle: translation.localizedHandle ?? "",
+    title: translation.title,
+    description: translation.description ?? "",
+    seoTitle: translation.seoTitle ?? "",
+    seoDescription: translation.seoDescription ?? "",
+  };
+  await Promise.all([
+    db.shopifyTranslationBinding.update({
+      where: { id: binding.id },
+      data: { lastSyncedSnapshot: snapshot as Prisma.InputJsonValue },
+    }),
+    recordSyncEvent({
+      bindingId: binding.id,
+      locale: "PT",
+      direction: "PUSH",
+      status: "SUCCEEDED",
+      actorUsername,
+    }),
+  ]);
 }
 
 export async function retryTranslationSyncAction(entityType: TranslationOverviewEntity, entityId: string) {
@@ -78,6 +138,16 @@ export async function retryTranslationSyncAction(entityType: TranslationOverview
       const result = await pushProductToShopify(entityId, false);
       if (!result.ok) throw new Error(result.error);
       if (result.translationError) throw new Error(result.translationError);
+      await recordProductTranslationSync(entityId, session.username);
+      const editorialResults = await syncProductEditorialTranslation(entityId, session.username);
+      const editorialFailure = editorialResults.find((target) => target.status === "FAILED");
+      if (editorialFailure) {
+        await db.productTranslation.update({
+          where: { productId_locale: { productId: entityId, locale: "PT" } },
+          data: { syncStatus: "FAILED", syncError: editorialFailure.error },
+        });
+        throw new Error(editorialFailure.error);
+      }
     } else if (entityType === "COLLECTION") {
       await syncCollection(entityId, session.username);
     } else if (entityType === "PAGE") {

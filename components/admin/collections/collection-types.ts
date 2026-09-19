@@ -5,6 +5,7 @@ export type AdminCollection = SavedCollectionPayload;
 export type CollectionLocaleDraft = {
   localizedHandle: string;
   name: string;
+  subtitle: string;
   description: string;
   manifesto: string;
   searchSummary: string;
@@ -19,6 +20,7 @@ export type CollectionLocaleDraft = {
 
 export type CollectionDraft = {
   name: string;
+  subtitle: string;
   slug: string;
   code: string;
   description: string;

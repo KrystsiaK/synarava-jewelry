@@ -38,7 +38,6 @@ export type EntityFieldRegistry = {
 };
 
 const native = (resource: string, key: string): ShopifyFieldTarget => ({ kind: "native", resource, key });
-const metafield = (namespace: string, key: string): ShopifyFieldTarget => ({ kind: "metafield", namespace, key });
 const metaobject = (definition: string, key: string): ShopifyFieldTarget => ({ kind: "metaobject", definition, key });
 
 export const PRODUCT_FIELD_REGISTRY: EntityFieldRegistry = {
@@ -46,13 +45,13 @@ export const PRODUCT_FIELD_REGISTRY: EntityFieldRegistry = {
   fields: [
     { key: "title", label: "Title", mode: "localized", required: "always", kind: "short-text", shopifyTarget: native("PRODUCT", "title") },
     { key: "localizedHandle", label: "URL handle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: native("PRODUCT", "handle") },
-    { key: "shortDescription", label: "Short description", mode: "localized", required: "always", kind: "short-text", shopifyTarget: metafield("synarava", "short_description") },
+    { key: "shortDescription", label: "Short description", mode: "localized", required: "always", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "short_description") },
     { key: "description", label: "Description", mode: "localized", required: "always", kind: "long-text", shopifyTarget: native("PRODUCT", "body_html") },
-    { key: "materialLine", label: "Material line", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "material_line") },
-    { key: "symbolismLabel", label: "Symbolism — eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "symbolism_label") },
-    { key: "symbolismTitle", label: "Symbolism — title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "symbolism_title") },
-    { key: "symbolismBody", label: "Symbolism — body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metafield("synarava", "symbolism_body") },
-    { key: "symbolismBody2", label: "Symbolism — body (cont.)", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metafield("synarava", "symbolism_body_2") },
+    { key: "materialLine", label: "Material line", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "material_line") },
+    { key: "symbolismLabel", label: "Symbolism — eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "symbolism_label") },
+    { key: "symbolismTitle", label: "Symbolism — title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "symbolism_title") },
+    { key: "symbolismBody", label: "Symbolism — body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("product_detail_copy", "symbolism_body") },
+    { key: "symbolismBody2", label: "Symbolism — body (cont.)", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("product_detail_copy", "symbolism_body_2") },
     { key: "details", label: "Detail labels/stories (materials, process, lookbook)", mode: "localized", required: "optional", kind: "rich-text", shopifyTarget: metaobject("product_detail_copy", "details") },
     { key: "seoTitle", label: "SEO title", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("PRODUCT", "meta_title") },
     { key: "seoDescription", label: "SEO description", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("PRODUCT", "meta_description") },
@@ -80,14 +79,14 @@ export const COLLECTION_FIELD_REGISTRY: EntityFieldRegistry = {
   fields: [
     { key: "name", label: "Name", mode: "localized", required: "always", kind: "short-text", shopifyTarget: native("COLLECTION", "title") },
     { key: "localizedHandle", label: "URL handle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: native("COLLECTION", "handle") },
-    { key: "subtitle", label: "Subtitle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "subtitle") },
+    { key: "subtitle", label: "Subtitle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "subtitle") },
     { key: "description", label: "Description", mode: "localized", required: "when-published", kind: "long-text", shopifyTarget: native("COLLECTION", "body_html") },
-    { key: "manifesto", label: "Manifesto", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metafield("synarava", "manifesto") },
-    { key: "symbolismLabel", label: "Symbolism — eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "symbolism_label") },
-    { key: "symbolismTitle", label: "Symbolism — title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "symbolism_title") },
-    { key: "symbolismBody", label: "Symbolism — body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metafield("synarava", "symbolism_body") },
-    { key: "symbolismBody2", label: "Symbolism — body (cont.)", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metafield("synarava", "symbolism_body_2") },
-    { key: "searchSummary", label: "Search summary", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "search_summary") },
+    { key: "manifesto", label: "Manifesto", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "manifesto") },
+    { key: "symbolismLabel", label: "Symbolism — eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_label") },
+    { key: "symbolismTitle", label: "Symbolism — title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_title") },
+    { key: "symbolismBody", label: "Symbolism — body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_body") },
+    { key: "symbolismBody2", label: "Symbolism — body (cont.)", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_body_2") },
+    { key: "searchSummary", label: "Search summary", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "search_summary") },
     { key: "seoTitle", label: "SEO title", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("COLLECTION", "meta_title") },
     { key: "seoDescription", label: "SEO description", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("COLLECTION", "meta_description") },
     { key: "heroImageAlt", label: "Hero image alt text", mode: "localized", required: "optional", kind: "alt", shopifyTarget: native("COLLECTION_IMAGE", "alt") },

@@ -2,7 +2,7 @@ import type { AdminCollection, CollectionDraft, CollectionLocaleDraft, Collectio
 
 function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
   return {
-    localizedHandle: "", name: "", description: "", manifesto: "", searchSummary: "",
+    localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
     reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
   };
@@ -10,7 +10,7 @@ function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
 
 export function emptyCollectionDraft(): CollectionDraft {
   return {
-    name: "", slug: "", code: "", description: "",
+    name: "", subtitle: "", slug: "", code: "", description: "",
     manifesto: "", searchSummary: "", symbolismLabel: "", symbolismTitle: "",
     symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT",
     pt: emptyCollectionLocaleDraft(),
@@ -106,6 +106,7 @@ export function collectionToDraft(collection: AdminCollection): CollectionDraft 
   const pt = collection.translations?.find((translation) => translation.locale === "PT");
   return {
     name: collection.name,
+    subtitle: collection.subtitle ?? "",
     slug: collection.slug,
     code: collection.code ?? "",
     description: collection.description ?? "",
@@ -119,6 +120,7 @@ export function collectionToDraft(collection: AdminCollection): CollectionDraft 
     pt: {
       localizedHandle: pt?.localizedHandle ?? "",
       name: pt?.name ?? "",
+      subtitle: pt?.subtitle ?? "",
       description: pt?.description ?? "",
       manifesto: pt?.manifesto ?? "",
       searchSummary: pt?.searchSummary ?? "",

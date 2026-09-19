@@ -16,10 +16,11 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | Key | Mode | Required | Shopify target |
 |---|---|---|---|
 | title | localized | always | native `PRODUCT.title` |
-| shortDescription | localized | always | metafield `synarava.short_description` |
+| localizedHandle | localized | optional | native `PRODUCT.handle` (Task 23) |
+| shortDescription | localized | always | metaobject `product_detail_copy.short_description` |
 | description | localized | always | native `PRODUCT.body_html` |
-| materialLine | localized | optional | metafield `synarava.material_line` |
-| symbolismLabel/Title/Body/Body2 | localized | optional | metafield `synarava.symbolism_*` |
+| materialLine | localized | optional | metaobject `product_detail_copy.material_line` |
+| symbolismLabel/Title/Body/Body2 | localized | optional | metaobject `product_detail_copy.symbolism_*` |
 | details (materials/process/lookbook stories) | localized | optional | metaobject `product_detail_copy.details` |
 | seoTitle/seoDescription | localized | when-published | native `PRODUCT.meta_title`/`meta_description` |
 | optionName / optionValueLabel | localized | when-published | native `PRODUCT_OPTION` / `PRODUCT_OPTION_VALUE` |
@@ -27,16 +28,24 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | mediaCaption | localized | optional | metaobject `product_detail_copy.media_caption` |
 | sku, price, compareAt, currency, status, visibility, category, collections, tags, media, variants | shared | — | — |
 
+No field targets a raw Shopify metafield today — every non-native localized
+field went to a translatable `$app:` metaobject once Task 16 built the real
+adapter, since Shopify metafield *translation* support is native-owner-only
+and narrower than the metaobject path this app actually implements. The
+`metafield` target kind still exists in `ShopifyFieldTarget`'s type for a
+future case that needs it, but nothing constructs one right now.
+
 ## Collection
 
 | Key | Mode | Required | Shopify target |
 |---|---|---|---|
 | name | localized | always | native `COLLECTION.title` |
-| subtitle | localized | optional | metafield `synarava.subtitle` |
+| localizedHandle | localized | optional | native `COLLECTION.handle` (Task 23) |
+| subtitle | localized | optional | metaobject `collection_section_copy.subtitle` |
 | description | localized | when-published | native `COLLECTION.body_html` |
-| manifesto | localized | optional | metafield `synarava.manifesto` |
-| symbolismLabel/Title/Body/Body2 | localized | optional | metafield `synarava.symbolism_*` |
-| searchSummary | localized | optional | metafield `synarava.search_summary` |
+| manifesto | localized | optional | metaobject `collection_section_copy.manifesto` |
+| symbolismLabel/Title/Body/Body2 | localized | optional | metaobject `collection_section_copy.symbolism_*` |
+| searchSummary | localized | optional | metaobject `collection_section_copy.search_summary` |
 | seoTitle/seoDescription | localized | when-published | native `COLLECTION.meta_title`/`meta_description` |
 | heroImageAlt | localized | optional | native `COLLECTION_IMAGE.alt` |
 | sectionTitle/Eyebrow/Body (per `CollectionSection`) | localized | optional | metaobject `collection_section_copy.*` |
@@ -51,6 +60,7 @@ page only uses the subset of keys its template renders (keys mirror
 | Key | Mode | Required | Shopify target |
 |---|---|---|---|
 | title | localized | always | native `PAGE.title` |
+| localizedHandle | localized | optional | native `PAGE.handle` (Task 23) |
 | body | localized | when-published | native `PAGE.body_html` |
 | excerpt, eyebrow, ctaLabel, quote, secondaryTitle/Body, department/archive/material/manifesto/final-cta section copy, materialLexicon, legalIntro, legalLastUpdated, legalSections | localized | optional (see code for exceptions) | metaobject `page_section_copy.*` |
 | seoTitle/seoDescription | localized | when-published | native `PAGE.meta_title`/`meta_description` |
@@ -65,9 +75,11 @@ native resource a given page instance binds to).
 
 Derived programmatically from `STOREFRONT_COPY_KEYS`
 (`lib/content/storefront-copy-fields.ts`) so the two lists cannot drift.
-`nav.*` keys target native `LINK`; everything else (footer, FAQ/Care/
-Shipping/Returns page copy) has no native Shopify resource and targets
-metaobject `storefront_copy.<key>`.
+Every key, including `nav.*`, targets metaobject `storefront_copy.<key>` —
+an earlier draft of this registry pointed `nav.*` at a native Shopify `LINK`
+resource, but there is no such resource backing these labels (they're plain
+local strings, not Shopify menu items), so that was corrected once Task 16
+built the real metaobject adapter.
 
 ## Taxonomy (merchant-owned labels only)
 
@@ -88,7 +100,10 @@ source of truth and is out of scope.
 - Site videos (`lib/site-videos.ts`): four ambient background video file
   slots with no title/caption/alt text today — nothing to localize. If
   buyer-facing video copy is added later, register it then.
-- URL/slug/handle: tracked as `shared` for v1 per `tasks/plan.md`; localized
-  slugs are an explicit scope addition agreed 2026-09-19 and land in a
-  dedicated SEO/redirect task (see Task 23 in `tasks/todo.md`), not by
-  changing the `shared` fields above.
+- URL/slug/handle is **no longer out of scope** — Task 23 (2026-09-19) added
+  an optional `localizedHandle` field to Product, Collection, and Page (see
+  their tables above), synced via Shopify's native `handle` translation and
+  resolved on the storefront through `lib/content/handle-localization.ts`
+  with a redirect record on change (`lib/content/handle-redirects.ts`). The
+  base `slug`/`code` columns stay `shared`; only the optional PT override is
+  localized.

@@ -769,7 +769,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
 
   const ptCopy = {
-    localizedHandle: ptHandle ? slugify(ptHandle) : null,
+    localizedHandle: slugify(ptHandle) || null,
     title: ptTitle,
     shortDescription: ptShortDescription || null,
     description: ptDescription || null,
@@ -859,7 +859,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     entityType: "PRODUCT",
     entityId: product.id,
     previousHandle: previousPortuguese?.localizedHandle,
-    nextHandle: ptCopy.localizedHandle,
+    nextHandle: ptCopy.localizedHandle ?? slug,
   });
 
   if (uploadedAssetId) {

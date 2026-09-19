@@ -286,6 +286,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     legalIntro, legalLastUpdated, ptLegalIntro,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
+  const ptLocalizedHandle = isBuiltInPage(slug) ? null : (slugify(ptHandle) || null);
   const legalSections = readLegalSections(formData, "legal");
   const ptLegalSections = readLegalSections(formData, "ptLegal");
 
@@ -435,7 +436,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       })();
 
   const ptContentHash = createHash("sha256")
-    .update(JSON.stringify({ title: ptTitle, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt, ...portugueseTranslationContent }))
+    .update(JSON.stringify({ title: ptTitle, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt, ...portugueseTranslationContent }))
     .digest("hex");
   await Promise.all([
     db.pageTranslation.upsert({
@@ -452,12 +453,12 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "PT" } },
       update: {
-        title: ptTitle || title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null, content: portugueseTranslationContent,
+        title: ptTitle || title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent,
         contentHash: ptContentHash,
         syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
       },
       create: {
-        pageId: page.id, locale: "PT", title: ptTitle || title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null,
+        pageId: page.id, locale: "PT", title: ptTitle || title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null,
         content: portugueseTranslationContent, contentHash: ptContentHash,
         syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
       },
@@ -467,7 +468,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     entityType: "PAGE",
     entityId: page.id,
     previousHandle: before?.translations.find((translation) => translation.locale === "PT")?.localizedHandle,
-    nextHandle: ptHandle ? slugify(ptHandle) : null,
+    nextHandle: ptLocalizedHandle ?? slug,
   });
 
   await writeAuditLog({
@@ -519,6 +520,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     legalIntro, legalLastUpdated, ptLegalIntro,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
+  const ptLocalizedHandle = isBuiltInPage(slug) ? null : (slugify(ptHandle) || null);
   const legalSections = readLegalSections(formData, "legal");
   const ptLegalSections = readLegalSections(formData, "ptLegal");
   const draftMaterialLexicon = buildMaterialLexiconEntries([
@@ -659,8 +661,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     }),
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "PT" } },
-      update: { title: ptTitle || pageData.title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
-      create: { pageId: page.id, locale: "PT", title: ptTitle || pageData.title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
+      update: { title: ptTitle || pageData.title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
+      create: { pageId: page.id, locale: "PT", title: ptTitle || pageData.title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
     }),
   ]);
 

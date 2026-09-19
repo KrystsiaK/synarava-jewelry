@@ -1,25 +1,11 @@
 export const PRODUCT_REQUIRED_PT_FIELDS = ["title", "shortDescription", "description"];
 export const COLLECTION_REQUIRED_PT_FIELDS = ["name"];
+export const PAGE_REQUIRED_PT_FIELDS = ["title"];
 
-// Persisted locally but not wired to a live Shopify adapter yet. Populated
-// values are blockers so the report cannot claim complete synchronization.
-const PRODUCT_UNSUPPORTED_SYNC_FIELDS = [
-  "shortDescription",
-  "materialLine",
-  "symbolismLabel",
-  "symbolismTitle",
-  "symbolismBody",
-  "symbolismBody2",
-  "details",
-];
-const COLLECTION_UNSUPPORTED_SYNC_FIELDS = [
-  "manifesto",
-  "symbolismLabel",
-  "symbolismTitle",
-  "symbolismBody",
-  "symbolismBody2",
-  "searchSummary",
-];
+// Every persisted localized Product/Collection field now has either a
+// Shopify-native target or an app-owned translatable metaobject target.
+const PRODUCT_UNSUPPORTED_SYNC_FIELDS = [];
+const COLLECTION_UNSUPPORTED_SYNC_FIELDS = [];
 
 function hasContent(value) {
   if (typeof value === "string") return value.trim().length > 0;
@@ -99,6 +85,18 @@ export function collectionCoverage(collection) {
   });
 }
 
+export function pageCoverage(page) {
+  return coverageRow({
+    entityType: "PAGE",
+    entityId: page.id,
+    label: `"${page.title}"`,
+    shopifyResourceId: page.shopifyPageId,
+    translations: page.translations,
+    requiredFields: PAGE_REQUIRED_PT_FIELDS,
+    unsupportedSyncFields: [],
+  });
+}
+
 function bindingKey(resourceType, value) {
   return `${resourceType}:${value}`;
 }
@@ -131,9 +129,9 @@ function attachBindingStatus(rows, bindings) {
   });
 }
 
-export function buildCoverageReport({ products, collections, bindings }) {
+export function buildCoverageReport({ products = [], collections = [], pages = [], bindings }) {
   const rows = attachBindingStatus(
-    [...products.map(productCoverage), ...collections.map(collectionCoverage)],
+    [...products.map(productCoverage), ...collections.map(collectionCoverage), ...pages.map(pageCoverage)],
     bindings,
   );
   return {
