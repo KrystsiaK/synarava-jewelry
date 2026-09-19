@@ -1,4 +1,5 @@
 import type { CharacteristicValueType } from "@prisma/client";
+import type { Locale } from "@/lib/i18n/locales";
 
 export const PRODUCT_CHARACTERISTICS = [
   { key: "size", label: "Size", group: "Dimensions & fit", type: "TEXT", filterable: true },
@@ -63,6 +64,93 @@ export const PRODUCT_CHARACTERISTICS = [
 export const PRODUCT_CHARACTERISTIC_GROUPS = Array.from(
   new Set(PRODUCT_CHARACTERISTICS.map((item) => item.group)),
 );
+
+// Merchant-owned characteristic taxonomy is code-defined, not admin-editable
+// (see docs/translation-field-registry.md) — so it translates the same way
+// the built-in department nav labels do (lib/catalog/taxonomy.ts): a static
+// PT map alongside the EN source, not a database row. Values entered per
+// product (textValue/numberValue/booleanValue) are shared/untranslated; only
+// these fixed labels are buyer-facing text.
+const PRODUCT_CHARACTERISTIC_GROUP_LABELS_PT: Record<string, string> = {
+  "Dimensions & fit": "Dimensões e ajuste",
+  "Pet sizing & use": "Tamanho e uso para animais",
+  "Age & activity": "Idade e atividade",
+  "Maker compatibility": "Compatibilidade para artesãos",
+  "Materials & construction": "Materiais e construção",
+  "Care & fulfilment": "Cuidados e envio",
+  "Compliance & sales": "Conformidade e venda",
+};
+
+const PRODUCT_CHARACTERISTIC_LABELS_PT: Record<string, string> = {
+  size: "Tamanho",
+  fit_notes: "Notas de ajuste",
+  neck_fit: "Ajuste ao pescoço",
+  wrist_fit: "Ajuste ao pulso",
+  internal_diameter: "Diâmetro interno",
+  external_diameter: "Diâmetro externo",
+  length: "Comprimento",
+  width: "Largura",
+  height: "Altura",
+  overall_length: "Comprimento total",
+  chain_length: "Comprimento da corrente",
+  adjustable_length: "Comprimento ajustável",
+  pendant_length: "Comprimento do pingente",
+  pendant_width: "Largura do pingente",
+  unit_weight: "Peso unitário",
+  intended_pet: "Animal indicado",
+  neck_circumference: "Circunferência do pescoço",
+  chest_circumference: "Circunferência do peito",
+  hardware: "Acessórios metálicos",
+  washable: "Lavável",
+  recommended_age: "Idade recomendada",
+  activity_type: "Tipo de atividade",
+  skill_level: "Nível de habilidade",
+  adult_supervision: "Supervisão de adulto",
+  small_parts_warning: "Aviso de peças pequenas",
+  tool_type: "Tipo de ferramenta / componente",
+  tool_compatibility: "Compatibilidade",
+  component_size: "Tamanho do componente",
+  pack_quantity: "Quantidade por pacote",
+  material: "Material principal",
+  secondary_material: "Material secundário",
+  metal: "Metal",
+  alloy: "Pureza / liga",
+  stone_type: "Pedra / gema",
+  stone_color: "Cor da pedra",
+  stone_shape: "Formato da pedra",
+  pearl_type: "Tipo de pérola",
+  pearl_size: "Tamanho da pérola",
+  finish: "Acabamento / galvanização",
+  plating: "Banho (revestimento)",
+  color: "Cor",
+  origin: "País / região de origem",
+  production_method: "Método de produção",
+  clasp_type: "Tipo de fecho",
+  care_instructions: "Instruções de cuidado",
+  packaging: "Embalagem",
+  warranty: "Garantia",
+  lead_time: "Prazo de produção",
+  set_contents: "Conteúdo do conjunto / unidade vendida",
+  made_to_order: "Feito por encomenda",
+  reach_certified: "Certificado REACH",
+  lead_free: "Sem chumbo",
+  cadmium_free: "Sem cádmio",
+  nickel_free: "Libertação sem níquel",
+  hypoallergenic: "Hipoalergénico",
+  sold_per_piece: "Vendido por unidade",
+  safety_disclosure: "Aviso de segurança",
+};
+
+/** Locale-aware label for a characteristic key — falls back to the English source (from PRODUCT_CHARACTERISTICS, or the value's own persisted label for a legacy/unrecognized key) when no PT translation is registered. */
+export function characteristicLabel(key: string, fallbackLabel: string, locale: Locale): string {
+  if (locale !== "pt") return fallbackLabel;
+  return PRODUCT_CHARACTERISTIC_LABELS_PT[key] ?? fallbackLabel;
+}
+
+export function characteristicGroupLabel(group: string, locale: Locale): string {
+  if (locale !== "pt") return group;
+  return PRODUCT_CHARACTERISTIC_GROUP_LABELS_PT[group] ?? group;
+}
 
 export type ProductCharacteristicKey = (typeof PRODUCT_CHARACTERISTICS)[number]["key"];
 

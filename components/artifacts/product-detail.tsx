@@ -27,6 +27,7 @@ import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
+import { characteristicGroupLabel } from "@/lib/products/characteristics";
 import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
@@ -234,7 +235,7 @@ function ProductHero({
 }
 
 function ProductSpecifications({ product }: { product: ProductSummary }) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const presentation = getProductPresentation(product.departmentSlug, t);
   type SpecificationRow = {
     label: string;
@@ -251,7 +252,7 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
   product.characteristics.forEach((characteristic, index) => {
     const attribute = product.attributes[index];
     if (!attribute?.value) return;
-    add(characteristic.group, { ...attribute, key: characteristic.key, characteristic });
+    add(characteristicGroupLabel(characteristic.group, locale), { ...attribute, key: characteristic.key, characteristic });
   });
   if (product.characteristics.length === 0) {
     for (const attribute of product.attributes) add(t("product.specifications.productDetails"), attribute);

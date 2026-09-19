@@ -7,7 +7,7 @@ import {
   type ProductMaterialStory,
   type ProductProcessStory,
 } from "@/lib/content/product-details";
-import { characteristicDisplayValue, type ProductCharacteristicValue } from "@/lib/products/characteristics";
+import { characteristicDisplayValue, characteristicLabel, type ProductCharacteristicValue } from "@/lib/products/characteristics";
 import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
@@ -400,9 +400,13 @@ function toSummary(product: {
     departmentSlug: primaryNavCollection?.slug ?? null,
     departmentName: primaryNavCollection?.name ?? "",
     attributes: product.characteristics.length
-      ? product.characteristics.map((item) => ({ label: item.label, value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }) }))
+      ? product.characteristics.map((item) => ({ label: characteristicLabel(item.key, item.label, locale), value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }) }))
       : details.attributes ?? [],
-    characteristics: product.characteristics.map((item) => ({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) })),
+    characteristics: product.characteristics.map((item) => ({
+      ...item,
+      label: characteristicLabel(item.key, item.label, locale),
+      numberValue: item.numberValue == null ? null : Number(item.numberValue),
+    })),
     categorySlug: product.shopifyCategoryId,
     categoryName: categoryLeafLabel(product.shopifyCategoryName),
     tagSlugs: product.tags.map((item) => item.tag.slug),

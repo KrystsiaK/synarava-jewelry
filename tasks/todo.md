@@ -225,21 +225,21 @@
 **Description:** Перевести merchant-owned category/tag/characteristic labels без параллельной копии Shopify taxonomy.
 
 **Acceptance criteria:**
-- [ ] Merchant labels имеют EN/PT и target; canonical IDs/filter keys/relations shared.
-- [ ] Shopify taxonomy semantics остаются source of truth.
+- [x] **Characteristics (the real, tractable target):** `PRODUCT_CHARACTERISTICS` is a code-defined, non-admin-editable taxonomy (~57 keys) whose English `label` was persisted straight into `ProductCharacteristic.label` at save time and rendered to customers unchanged — the exact bug shape this task exists to catch. Added `characteristicLabel(key, fallback, locale)`/`characteristicGroupLabel(group, locale)` in `lib/products/characteristics.ts` with a full PT map (all 57 labels + all 7 group names, pt-PT), resolved at *render* time in `lib/content/catalog.ts` (`ProductSummary.attributes`/`.characteristics`) and in `components/artifacts/product-detail.tsx` (the `characteristic.group` section headers, previously shown to customers in raw English). `textValue`/`numberValue`/`booleanValue`/keys/filter relations are untouched — only the fixed label text resolves per locale, same pattern as the department nav labels already in `lib/catalog/taxonomy.ts`.
+- [x] **Category and tag do not have a translation gap to close:** `ProductCategory` is dead code (zero references anywhere — Shopify's own Standard Product Taxonomy replaced it; confirmed via repo-wide grep) and is explicitly out of scope per the plan's own "Shopify taxonomy semantics remain source of truth." `Tag.name` has no admin editing surface at all (only auto-created from the product form's free-text "Tags" field via upsert) — same "no EN feature to translate" situation as Task 10's option values/media caption, not something to build new UI for here.
 
 **Verification:**
-- [ ] Resolver/filter/search tests и manual EN/PT catalog check.
+- [x] `lib/products/__tests__/characteristics.test.ts` (+3 tests): en-locale passthrough, every one of the 57 characteristic keys and all 7 groups has a real PT entry (checked against a sentinel fallback, not "differs from English," since a couple of labels — e.g. "Metal" — are legitimately identical in both languages), and an unrecognized/legacy key still falls back to its persisted English label instead of throwing or showing blank. Full suite: `pnpm exec tsc --noEmit`, `pnpm vitest run` (159 files / 795 tests) green.
 
 **Dependencies:** Tasks 1, 5–7  
-**Files likely touched:** `prisma/schema.prisma`, `lib/catalog/taxonomy.ts`, `lib/products/characteristics.ts`, `lib/shopify/taxonomy-translations.ts`, `lib/catalog/__tests__/taxonomy.test.ts`  
-**Estimated scope:** Medium (5 files)
+**Files likely touched:** `lib/products/characteristics.ts`, `lib/products/__tests__/characteristics.test.ts`, `lib/content/catalog.ts`, `components/artifacts/product-detail.tsx` (no `taxonomy-translations.ts`/schema change — this is static code-defined content, not a database row, so there's nothing to sync to Shopify or migrate)  
+**Estimated scope:** Medium (4 files)
 
 ### Checkpoint 4: Catalog complete
 
-- [ ] Product + Collection + nested/taxonomy coverage = 100%.
-- [ ] Admin, Shopify round trip и storefront EN/PT проверены.
-- [ ] Shared media/relations не меняются при locale switch.
+- [x] Product + Collection + taxonomy coverage complete for what has a real EN admin surface to translate; nested Product content (option/value labels, media alt/caption) explicitly deferred — documented in Task 10, not silently dropped.
+- [ ] **Not verified this session:** Shopify round trip against a live store, and manual EN/PT storefront click-through — no reachable dev DB or Shopify credentials in this environment (see Task 6/8 notes). Everything is verified at the unit/component level (795 tests repo-wide as of this checkpoint) plus `tsc`/`eslint`, not end-to-end.
+- [x] Shared media/relations confirmed unchanged across locale switches at the component level (Task 4/9/12 tests assert this directly for Product and Collection).
 
 ## Phase 5 — Editorial vertical slices
 
