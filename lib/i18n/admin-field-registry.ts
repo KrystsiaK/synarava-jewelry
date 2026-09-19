@@ -110,7 +110,7 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
   entity: "page",
   fields: [
     { key: "title", label: "Title", mode: "localized", required: "always", kind: "short-text", shopifyTarget: native("PAGE", "title") },
-    { key: "excerpt", label: "Excerpt", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "excerpt") },
+    { key: "excerpt", label: "Excerpt", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "excerpt") },
     { key: "eyebrow", label: "Eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "eyebrow") },
     { key: "body", label: "Body", mode: "localized", required: "when-published", kind: "long-text", shopifyTarget: native("PAGE", "body_html") },
     { key: "ctaLabel", label: "CTA label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "cta_label") },
@@ -159,9 +159,7 @@ function storefrontCopyFields(): LocalizedFieldDefinition[] {
       mode: "localized",
       required: "optional",
       kind: field.area ? "long-text" : "short-text",
-      shopifyTarget: field.key.startsWith("nav.")
-        ? native("LINK", field.key)
-        : metaobject("storefront_copy", field.key),
+      shopifyTarget: metaobject("storefront_copy", field.key),
     })),
   );
 }

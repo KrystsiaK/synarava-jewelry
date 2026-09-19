@@ -128,7 +128,8 @@ describe("Shopify Admin authentication", () => {
           publications: { nodes: [] },
           currentAppInstallation: { accessScopes: [
             "write_products", "write_inventory", "write_publications", "read_translations", "write_translations", "read_locales",
-            "write_product_reviews", "read_metaobjects", "read_customers", "read_orders", "read_products", "write_customers",
+            "write_product_reviews", "read_metaobjects", "write_metaobjects", "read_metaobject_definitions", "write_metaobject_definitions",
+            "read_customers", "read_orders", "read_products", "write_customers",
           ].map((handle) => ({ handle })) },
         } }), { status: 200, headers: { "Content-Type": "application/json" } }),
       )
@@ -146,6 +147,7 @@ describe("Shopify Admin authentication", () => {
 
     expect(connection.missingScopes).toEqual([]);
     expect(connection.missingTranslationScopes).toEqual([]);
+    expect(connection.missingEditorialScopes).toEqual([]);
     expect(connection.missingReviewScopes).toEqual([]);
     expect(connection.missingWishlistScopes).toEqual([]);
     expect(connection.portuguesePublished).toBe(true);
@@ -173,6 +175,9 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingScopes).toEqual([]);
     expect(connection.missingTranslationScopes).toEqual([
       "read_translations", "write_translations", "read_locales or read_markets_home",
+    ]);
+    expect(connection.missingEditorialScopes).toEqual([
+      "read_metaobjects", "write_metaobjects", "read_metaobject_definitions", "write_metaobject_definitions",
     ]);
     expect(connection.missingReviewScopes).toEqual([
       "write_product_reviews", "read_metaobjects", "read_customers", "read_orders", "read_products",

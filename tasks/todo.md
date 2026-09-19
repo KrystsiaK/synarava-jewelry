@@ -280,12 +280,15 @@
 
 **Description:** Flat copy отправлять в `PAGE`/`SHOP_POLICY`, structured blocks — в translatable `$app:` metaobjects.
 
+**Completed:** native Page copy now creates/updates a real Shopify `PAGE`, registers PT `title`/`body_html`/SEO translations and persists the Shopify identity. Page section content and Storefront Copy use app-owned `$app:page_section_copy` / `$app:storefront_copy` metaobjects with translatable capability; definitions are validated before writes and every target gets its own `PAGE` or `METAOBJECT` binding/event/snapshot. The old registry target that pretended local navigation labels were Shopify `LINK` resources was removed — they belong to Storefront Copy.
+
 **Acceptance criteria:**
-- [ ] У каждой Page translation полный target coverage и bindings.
-- [ ] Native/structured targets sync независимо и имеют field-level conflicts.
+- [x] У каждой Page translation полный target coverage и bindings.
+- [x] Native/structured targets sync независимо и имеют separate field snapshots/events; the existing three-way reconcile engine consumes those snapshots for field-level conflicts.
 
 **Verification:**
-- [ ] Contract tests и controlled round trip одной Page/Home metaobject.
+- [x] Contract tests cover PAGE mapping, create/update identity, metaobject definition/upsert/translation serialization, scope health and registry targets.
+- [ ] Controlled round trip одной Page/Home metaobject remains a live-store gate: this environment has no approved dev-store write session. The adapter deliberately fails with an actionable error when required scopes/capabilities/fields are absent instead of inventing a local substitute.
 
 **Dependencies:** Tasks 7, 8, 14  
 **Files likely touched:** `lib/shopify/page-translations.ts`, `lib/shopify/editorial-metaobjects.ts`, `lib/shopify/__tests__/page-translations.test.ts`, `app/admin/actions/translation-sync.ts`  
