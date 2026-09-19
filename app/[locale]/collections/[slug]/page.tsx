@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getCollectionBySlug, getProductsByCollection } from "@/lib/content/catalog";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
@@ -8,6 +8,7 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { safeJsonLd } from "@/lib/seo/json-ld";
 import { CollectionDetail } from "@/components/collections/collection-detail";
+import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -24,7 +25,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: collection.name,
     description: collection.summary,
-    alternates: buildAlternates(locale, `/collections/${slug}`),
+    alternates: buildAlternates(locale, `/collections/${collection.slug}`, {
+      en: `/collections/${collection.sourceSlug}`,
+      pt: `/collections/${collection.slug}`,
+    }),
     openGraph: {
       url: localePath(locale, `/collections/${slug}`),
       images: [
@@ -41,13 +45,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
-  const [{ t }, collection, products] = await Promise.all([
+  const [{ t }, collection] = await Promise.all([
     getServerTranslations(),
     getCollectionBySlug(slug, locale),
-    getProductsByCollection(slug, locale),
   ]);
 
   if (!collection) notFound();
+  if (shouldRedirectLocalizedHandle(locale, slug, collection.slug)) redirect(localePath(locale, `/collections/${collection.slug}`));
+  const products = await getProductsByCollection(collection.sourceSlug, locale);
 
   const siteUrl = getPublicSiteUrl();
   const breadcrumbJsonLd = {
@@ -56,7 +61,7 @@ export default async function Page({ params }: Props) {
     itemListElement: [
       { "@type": "ListItem", position: 1, name: t("nav.home"), item: new URL(localePath(locale, "/"), siteUrl).toString() },
       { "@type": "ListItem", position: 2, name: t("nav.collections"), item: new URL(localePath(locale, "/collections"), siteUrl).toString() },
-      { "@type": "ListItem", position: 3, name: collection.name, item: new URL(localePath(locale, `/collections/${slug}`), siteUrl).toString() },
+      { "@type": "ListItem", position: 3, name: collection.name, item: new URL(localePath(locale, `/collections/${collection.slug}`), siteUrl).toString() },
     ],
   };
 

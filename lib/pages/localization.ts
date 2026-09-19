@@ -50,6 +50,7 @@ export function normalizePageTranslationContent(value: unknown): PageTranslation
 
 type PageTranslationRow = {
   title: string;
+  localizedHandle?: string | null;
   excerpt?: string | null;
   content?: unknown;
 };

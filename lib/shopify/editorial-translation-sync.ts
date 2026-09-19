@@ -25,12 +25,14 @@ function errorMessage(error: unknown) {
 }
 
 function pageNativeSnapshot(input: {
+  localizedHandle?: string | null;
   title: string;
   body: string;
   seoTitle?: string | null;
   seoDescription?: string | null;
 }) {
   return {
+    localizedHandle: input.localizedHandle ?? "",
     title: input.title,
     body: input.body,
     seoTitle: input.seoTitle ?? "",
@@ -109,6 +111,7 @@ export async function syncPageEditorialTranslation(pageId: string, actorUsername
     shopifyResourceId: shopifyPage.id,
   });
   const nativeSnapshot = pageNativeSnapshot({
+    localizedHandle: pt.localizedHandle,
     title: pt.title,
     body: ptContent.body ?? "",
     seoTitle: pt.seoTitle,
@@ -116,6 +119,7 @@ export async function syncPageEditorialTranslation(pageId: string, actorUsername
   });
   try {
     await registerPageTranslation(shopifyPage.id, {
+      handle: nativeSnapshot.localizedHandle,
       title: nativeSnapshot.title,
       bodyHtml: nativeSnapshot.body,
       seoTitle: nativeSnapshot.seoTitle,

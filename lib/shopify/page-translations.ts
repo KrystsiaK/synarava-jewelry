@@ -8,6 +8,7 @@ import {
 } from "@/lib/shopify/translations";
 
 export type ShopifyPageTranslationCopy = {
+  handle?: string;
   title: string;
   bodyHtml: string;
   seoTitle: string;
@@ -20,6 +21,7 @@ export type ShopifyPageTranslationSnapshot = ShopifyPageTranslationCopy & {
 };
 
 const PAGE_TRANSLATION_KEYS = {
+  handle: "handle",
   title: "title",
   bodyHtml: "body_html",
   seoTitle: "meta_title",
@@ -39,6 +41,7 @@ function pageTranslationSnapshot(
   }, null);
 
   return {
+    handle: values.get("handle") ?? "",
     title: values.get("title") ?? "",
     bodyHtml: values.get("body_html") ?? "",
     seoTitle: values.get("meta_title") ?? "",

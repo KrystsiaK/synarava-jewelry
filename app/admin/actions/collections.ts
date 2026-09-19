@@ -9,6 +9,7 @@ import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
+import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import {
   createDraftToken,
@@ -42,6 +43,7 @@ export type SavedCollectionTranslationPayload = {
   id: string;
   locale: "EN" | "PT";
   name: string;
+  localizedHandle: string | null;
   description: string | null;
   manifesto: string | null;
   symbolismLabel: string | null;
@@ -97,7 +99,7 @@ const savedCollectionSelect = {
   visibility: true,
   translations: {
     select: {
-      id: true, locale: true, name: true, description: true, manifesto: true,
+      id: true, locale: true, name: true, localizedHandle: true, description: true, manifesto: true,
       symbolismLabel: true, symbolismTitle: true, symbolismBody: true, symbolismBody2: true,
       searchSummary: true, reviewStatus: true, syncStatus: true, syncError: true,
     },
@@ -203,6 +205,7 @@ const collectionFieldsSchema = z.object({
   symbolismBody: z.string().trim().default(""),
   symbolismBody2: z.string().trim().default(""),
   ptName: z.string().trim().default(""),
+  ptHandle: z.string().trim().default(""),
   ptDescription: z.string().trim().default(""),
   ptManifesto: z.string().trim().default(""),
   ptSearchSummary: z.string().trim().default(""),
@@ -229,7 +232,7 @@ export async function saveCollectionAction(
   const {
     collectionId, code, name, description, manifesto, searchSummary,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, workflowState,
-    ptName, ptDescription, ptManifesto, ptSearchSummary,
+    ptName, ptHandle, ptDescription, ptManifesto, ptSearchSummary,
     ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
   } = parsed.data;
   const slug = slugify(parsed.data.slug);
@@ -339,6 +342,7 @@ export async function saveCollectionAction(
       });
 
   const ptCopy = {
+    localizedHandle: ptHandle ? slugify(ptHandle) : null,
     name: ptName || name,
     description: ptDescription || null,
     manifesto: ptManifesto || null,
@@ -393,6 +397,12 @@ export async function saveCollectionAction(
       },
     }),
   ]);
+  await recordLocalizedHandleRedirect({
+    entityType: "COLLECTION",
+    entityId: savedCollection.id,
+    previousHandle: before?.translations.find((translation) => translation.locale === "PT")?.localizedHandle,
+    nextHandle: ptCopy.localizedHandle,
+  });
 
   await writeAuditLog({
     action: collectionId ? "UPDATE" : "CREATE",

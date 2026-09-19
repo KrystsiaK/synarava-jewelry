@@ -7,6 +7,7 @@ import {
 
 export type ProductTranslationRecord = {
   locale: "EN" | "PT";
+  localizedHandle?: string | null;
   title: string;
   shortDescription?: string | null;
   description?: string | null;

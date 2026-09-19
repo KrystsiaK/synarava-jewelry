@@ -1,5 +1,7 @@
 # Deploy Checklist — Synarava Jewelry
 
+Translation rollout and recovery are documented in `docs/translation-operations.md`; run its dry-run/backfill and live round-trip gates before enabling Shopify translation writes in production.
+
 Список всего что нужно настроить перед деплоем в production.
 Обновляй этот файл по мере того как что-то добавляется или закрывается.
 

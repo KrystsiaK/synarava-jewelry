@@ -9,6 +9,7 @@ import {
 } from "@/lib/shopify/translations";
 
 export type ShopifyCollectionTranslationCopy = {
+  handle?: string;
   name: string;
   descriptionHtml: string;
   seoTitle: string;
@@ -21,6 +22,7 @@ export type ShopifyCollectionTranslationSnapshot = ShopifyCollectionTranslationC
 };
 
 const COLLECTION_TRANSLATION_KEYS = {
+  handle: "handle",
   name: "title",
   descriptionHtml: "body_html",
   seoTitle: "meta_title",
@@ -37,6 +39,7 @@ function collectionTranslationSnapshot(translations: RemoteTranslation[]): Shopi
     return latest;
   }, null);
   return {
+    handle: values.get("handle") ?? "",
     name: values.get("title") ?? "",
     descriptionHtml: values.get("body_html") ?? "",
     seoTitle: values.get("meta_title") ?? "",

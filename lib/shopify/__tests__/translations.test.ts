@@ -72,7 +72,7 @@ describe("Shopify translations", () => {
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[1]).toEqual({
       resourceId: "gid://shopify/Product/1",
       locales: ["pt-PT"],
-      translationKeys: ["body_html", "meta_title", "meta_description"],
+      translationKeys: ["handle", "body_html", "meta_title", "meta_description"],
     });
   });
 
@@ -86,6 +86,7 @@ describe("Shopify translations", () => {
 
     await expect(fetchProductTranslation("gid://shopify/Product/1")).resolves.toEqual({
       title: "Anel",
+      handle: "",
       descriptionHtml: "<p>Feito em Lisboa.</p>",
       seoTitle: "",
       seoDescription: "",

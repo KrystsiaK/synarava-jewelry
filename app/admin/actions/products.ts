@@ -15,6 +15,7 @@ import {
   type ProductFieldErrors,
 } from "@/lib/products/product-form-validation";
 import { slugify } from "@/lib/text/slug";
+import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
@@ -137,6 +138,7 @@ export type SavedProductTranslationPayload = {
   id: string;
   locale: "EN" | "PT";
   title: string;
+  localizedHandle: string | null;
   shortDescription: string | null;
   description: string | null;
   materialLine: string | null;
@@ -448,6 +450,7 @@ const saveProductFieldsSchema = z.object({
   symbolismBody: z.string().trim().default(""),
   symbolismBody2: z.string().trim().default(""),
   ptTitle: z.string().trim().default(""),
+  ptHandle: z.string().trim().default(""),
   ptShortDescription: z.string().trim().default(""),
   ptDescription: z.string().trim().default(""),
   ptMaterialLine: z.string().trim().default(""),
@@ -512,7 +515,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const {
     productId, sku, name, vendor, productType, seriesLabel, shortDescription, description, seoTitle, seoDescription, materialLine,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
-    ptTitle, ptShortDescription, ptDescription, ptMaterialLine,
+    ptTitle, ptHandle, ptShortDescription, ptDescription, ptMaterialLine,
     ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
     ptSeoTitle, ptSeoDescription,
     collectionSlug, workflowState,
@@ -766,6 +769,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
 
   const ptCopy = {
+    localizedHandle: ptHandle ? slugify(ptHandle) : null,
     title: ptTitle,
     shortDescription: ptShortDescription || null,
     description: ptDescription || null,
@@ -851,6 +855,12 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       },
     }),
   ]);
+  await recordLocalizedHandleRedirect({
+    entityType: "PRODUCT",
+    entityId: product.id,
+    previousHandle: previousPortuguese?.localizedHandle,
+    nextHandle: ptCopy.localizedHandle,
+  });
 
   if (uploadedAssetId) {
     await db.$transaction(async (tx) => {

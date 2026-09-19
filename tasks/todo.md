@@ -393,8 +393,8 @@
 **Description:** Проверить sticky UI, длинные формы и sync pipeline перед staged enablement.
 
 **Acceptance criteria:**
-- [ ] Keyboard/focus/mobile проходят; header не перекрывает content и не вызывает layout shift.
-- [ ] Tab switch не делает network save/дорогой full-form rerender; rollback/recovery документированы.
+- [x] Keyboard/focus/mobile contracts pass; the sticky header is pinned to the actual `.admin-content` scroll container, focus targets use scroll margin, and mobile status wrapping cannot cover fields.
+- [x] Tab switch is local state only (no submit/network save, panels remain mounted); rollback/recovery and Shopify prerequisites are documented.
 
 **Verification:**
 - [ ] `pnpm lint`
@@ -412,12 +412,13 @@
 **Description:** Добавить опциональный localized handle для Product/Collection/Page, синхронизировать через Shopify `translationsRegister` на `handle`, и обслуживать старый EN-путь редиректом, когда PT handle отличается. Отдельный трек от content-регистри, чтобы routing-риски (404, дубли, canonical) не блокировали Task 9–18.
 
 **Acceptance criteria:**
-- [ ] PT handle опционален; пустой — использует EN slug (без 404).
-- [ ] Заданный PT handle синхронизируется с Shopify (`PRODUCT`/`COLLECTION` handle translation) и резолвится на storefront по `pt-PT` контексту.
-- [ ] Смена handle создаёт redirect с старого пути, canonical/hreflang указывают на активный handle на верном locale.
+- [x] PT handle опционален в Product/Collection/Page editors; пустой использует EN slug без 404.
+- [x] Заданный PT handle синхронизируется через Shopify `translationsRegister` key `handle`, resolves on storefront, and Shopify merchandise lookup uses `@inContext(language: PT)`.
+- [x] Смена handle creates a persistent redirect record; old/source PT paths redirect to the active handle, while canonical/hreflang use the locale-specific paths.
 
 **Verification:**
-- [ ] Route resolver tests (missing/duplicate/changed handle); Playwright redirect check EN→PT и наоборот.
+- [x] Unit/contract tests cover missing/fallback/changed handles, unique database constraints cover duplicates, and SEO alternates are locale-specific.
+- [ ] Live Playwright redirect check remains part of the Task 22 staging E2E gate because the local database is unavailable in this environment.
 
 **Dependencies:** Tasks 9, 12, 15 (registry/editors для entities, чьи handle локализуются)  
 **Files likely touched:** `lib/content/handle-localization.ts`, `lib/shopify/handle-translations.ts`, `app/[locale]/(shop)/**`, `e2e/localized-handles.spec.ts`  

@@ -7,6 +7,7 @@ import { resolveLocalizedContent, storefrontLocaleToContentLocale } from "@/lib/
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { resolveCollectionName } from "@/lib/collections/localization";
+import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 
 /** Fields used by shop cards, discovery, sorting and client-side filters. */
 export type ShopListingProduct = {
@@ -61,7 +62,7 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
       createdAt: true,
       translations: {
         where: { locale: storefrontLocaleToContentLocale(locale) },
-        select: { title: true, shortDescription: true, description: true, materialLine: true },
+        select: { localizedHandle: true, title: true, shortDescription: true, description: true, materialLine: true },
       },
       variants: {
         orderBy: { createdAt: "asc" },
@@ -121,7 +122,7 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
       const departmentName = department ? resolveCollectionName(department, locale) : "";
       return {
         shopifyProductId: row.shopifyProductId,
-        slug: row.slug,
+        slug: resolveLocalizedHandle(locale, row.slug, translation?.localizedHandle),
         series: row.seriesLabel ?? "",
         title: copy.title,
         shortDescription: copy.shortDescription,

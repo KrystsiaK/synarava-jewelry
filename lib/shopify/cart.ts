@@ -236,14 +236,15 @@ export async function getShopifyCartLineQuantity(lineId: string): Promise<number
   }
 }
 
-async function resolveMerchandiseId(productHandle: string, buyerIp: string | null) {
+async function resolveMerchandiseId(productHandle: string, buyerIp: string | null, locale: Locale) {
+  const language = shopifyLanguage(locale);
   const data = await shopifyStorefrontRequest<{
     product: {
       variants: { nodes: Array<{ id: string; availableForSale: boolean }> };
     } | null;
   }>(
     `#graphql
-      query SynaravaProductMerchandise($handle: String!) {
+      query SynaravaProductMerchandise($handle: String!, $language: LanguageCode!) @inContext(language: $language) {
         product(handle: $handle) {
           variants(first: 20) {
             nodes { id availableForSale }
@@ -251,7 +252,7 @@ async function resolveMerchandiseId(productHandle: string, buyerIp: string | nul
         }
       }
     `,
-    { handle: productHandle },
+    { handle: productHandle, language },
     { buyerIp },
   );
 
@@ -364,7 +365,7 @@ export async function addShopifyProductToCart(
   const buyerIp = await getShopifyBuyerIp();
   const locale = await getRequestLocale();
   const resolvedMerchandiseId =
-    merchandiseId || (await resolveMerchandiseId(productHandle, buyerIp));
+    merchandiseId || (await resolveMerchandiseId(productHandle, buyerIp, locale));
   const cartId = await getCartId();
 
   if (!cartId || !(await loadShopifyCart(cartId, buyerIp, locale))) {

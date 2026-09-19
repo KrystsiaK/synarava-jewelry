@@ -12,6 +12,7 @@ import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { savePageImageUpload } from "@/lib/media/local-upload";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
+import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
 import {
@@ -46,6 +47,7 @@ export type SavedPagePayload = {
     id: string;
     locale: "EN" | "PT";
     title: string;
+    localizedHandle: string | null;
     excerpt: string | null;
     content: unknown;
     seoTitle: string | null;
@@ -70,7 +72,7 @@ const savedPageSelect = {
   shopifyHandle: true,
   translations: {
     select: {
-      id: true, locale: true, title: true, excerpt: true, content: true,
+      id: true, locale: true, title: true, localizedHandle: true, excerpt: true, content: true,
       seoTitle: true, seoDescription: true, reviewStatus: true, syncStatus: true, syncError: true,
     },
     orderBy: { locale: "asc" },
@@ -214,6 +216,7 @@ const pageContentFieldsSchema = z.object({
   legalLastUpdated: z.string().trim().default(""),
   ptLegalIntro: z.string().trim().default(""),
   ptTitle: z.string().trim().default(""),
+  ptHandle: z.string().trim().default(""),
   ptExcerpt: z.string().trim().default(""),
   ptEyebrow: z.string().trim().default(""),
   ptBody: z.string().trim().default(""),
@@ -262,7 +265,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   }
   const {
     pageId, workflowState, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
-    secondaryTitle, secondaryBody, ptTitle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
+    secondaryTitle, secondaryBody, ptTitle, ptHandle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
     ptQuote, ptSecondaryTitle, ptSecondaryBody, heroSectionEnabled, departmentSectionEnabled,
     archiveSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
@@ -432,7 +435,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       })();
 
   const ptContentHash = createHash("sha256")
-    .update(JSON.stringify({ title: ptTitle, excerpt: ptExcerpt, ...portugueseTranslationContent }))
+    .update(JSON.stringify({ title: ptTitle, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt, ...portugueseTranslationContent }))
     .digest("hex");
   await Promise.all([
     db.pageTranslation.upsert({
@@ -449,17 +452,23 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "PT" } },
       update: {
-        title: ptTitle || title, excerpt: ptExcerpt || null, content: portugueseTranslationContent,
+        title: ptTitle || title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null, content: portugueseTranslationContent,
         contentHash: ptContentHash,
         syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
       },
       create: {
-        pageId: page.id, locale: "PT", title: ptTitle || title, excerpt: ptExcerpt || null,
+        pageId: page.id, locale: "PT", title: ptTitle || title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null,
         content: portugueseTranslationContent, contentHash: ptContentHash,
         syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
       },
     }),
   ]);
+  await recordLocalizedHandleRedirect({
+    entityType: "PAGE",
+    entityId: page.id,
+    previousHandle: before?.translations.find((translation) => translation.locale === "PT")?.localizedHandle,
+    nextHandle: ptHandle ? slugify(ptHandle) : null,
+  });
 
   await writeAuditLog({
     action: before ? "UPDATE" : "CREATE",
@@ -489,7 +498,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   }
   const {
     pageId, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
-    secondaryTitle, secondaryBody, ptTitle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
+    secondaryTitle, secondaryBody, ptTitle, ptHandle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
     ptQuote, ptSecondaryTitle, ptSecondaryBody, heroSectionEnabled, departmentSectionEnabled,
     archiveSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
@@ -650,8 +659,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     }),
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "PT" } },
-      update: { title: ptTitle || pageData.title, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
-      create: { pageId: page.id, locale: "PT", title: ptTitle || pageData.title, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
+      update: { title: ptTitle || pageData.title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
+      create: { pageId: page.id, locale: "PT", title: ptTitle || pageData.title, localizedHandle: ptHandle ? slugify(ptHandle) : null, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
     }),
   ]);
 

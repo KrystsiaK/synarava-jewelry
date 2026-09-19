@@ -139,6 +139,16 @@ export function CollectionFields({
             placeholder="Rituais da Terra"
           />
         </label>
+        <label className="grid gap-2" hidden={locale !== "PT"}>
+          <FieldLabel>URL handle (PT, optional)</FieldLabel>
+          <input
+            name="ptHandle"
+            value={draft.pt.localizedHandle}
+            onChange={(e) => onChangePt("localizedHandle", e.target.value)}
+            className="adm-field"
+            placeholder={draft.slug}
+          />
+        </label>
 
         <label className="grid gap-2">
           <FieldLabel required help="Auto-generated from the collection name until you edit it manually. Keep it short, lowercase, and URL-friendly.">

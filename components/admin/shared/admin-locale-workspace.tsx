@@ -81,7 +81,7 @@ export function AdminLocaleTabs({ active, onSelect, ptStatus, sharedHeader, tabI
   const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({ EN: null, PT: null });
   const fallbackId = useId();
   const idFor = tabId ?? ((locale: AdminLocale) => `${fallbackId}-tab-${locale}`);
-  const panelIdFor = panelId ?? ((locale: AdminLocale) => `${fallbackId}-panel-${locale}`);
+  const panelIdFor = panelId;
 
   function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const lastIndex = LOCALE_TABS.length - 1;
@@ -114,7 +114,7 @@ export function AdminLocaleTabs({ active, onSelect, ptStatus, sharedHeader, tabI
             type="button"
             role="tab"
             id={idFor(locale.code)}
-            aria-controls={panelIdFor(locale.code)}
+            aria-controls={panelIdFor?.(locale.code)}
             aria-selected={active === locale.code}
             aria-label={locale.label}
             tabIndex={active === locale.code ? 0 : -1}
@@ -130,7 +130,7 @@ export function AdminLocaleTabs({ active, onSelect, ptStatus, sharedHeader, tabI
           {active === "EN" ? "// EN — SOURCE" : "// PT — TRANSLATION"}
         </span>
         {ptStatus ? (
-          <span className={`${statusBadgeClass(ptStatus)} ml-auto`}>
+          <span className={`${statusBadgeClass(ptStatus)} ml-auto`} role="status" aria-live="polite">
             SHOPIFY: {statusLabel(ptStatus)}
           </span>
         ) : null}

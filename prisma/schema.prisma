@@ -86,29 +86,30 @@ model Collection {
 }
 
 model CollectionTranslation {
-  id             String                  @id @default(cuid())
-  locale         ContentLocale
-  name           String
-  subtitle       String?
-  description    String?
-  manifesto      String?
-  symbolismLabel String?
-  symbolismTitle String?
-  symbolismBody  String?
-  symbolismBody2 String?
-  searchSummary  String?
-  seoTitle       String?
-  seoDescription String?
-  reviewStatus   TranslationReviewStatus @default(DRAFT)
-  reviewedAt     DateTime?
-  syncStatus     TranslationSyncStatus   @default(NOT_APPLICABLE)
-  syncError      String?
-  contentHash    String?
-  lastSyncedAt   DateTime?
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  collectionId   String
-  collection     Collection              @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  id              String                  @id @default(cuid())
+  locale          ContentLocale
+  name            String
+  localizedHandle String?                 @unique
+  subtitle        String?
+  description     String?
+  manifesto       String?
+  symbolismLabel  String?
+  symbolismTitle  String?
+  symbolismBody   String?
+  symbolismBody2  String?
+  searchSummary   String?
+  seoTitle        String?
+  seoDescription  String?
+  reviewStatus    TranslationReviewStatus @default(DRAFT)
+  reviewedAt      DateTime?
+  syncStatus      TranslationSyncStatus   @default(NOT_APPLICABLE)
+  syncError       String?
+  contentHash     String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  collectionId    String
+  collection      Collection              @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, locale])
   @@index([locale, reviewStatus])
@@ -190,6 +191,7 @@ model ProductTranslation {
   id               String                  @id @default(cuid())
   locale           ContentLocale
   title            String
+  localizedHandle  String?                 @unique
   shortDescription String?
   description      String?
   materialLine     String?
@@ -442,23 +444,24 @@ model Page {
 }
 
 model PageTranslation {
-  id             String                  @id @default(cuid())
-  locale         ContentLocale
-  title          String
-  excerpt        String?
-  content        Json?
-  seoTitle       String?
-  seoDescription String?
-  reviewStatus   TranslationReviewStatus @default(DRAFT)
-  reviewedAt     DateTime?
-  syncStatus     TranslationSyncStatus   @default(NOT_APPLICABLE)
-  syncError      String?
-  contentHash    String?
-  lastSyncedAt   DateTime?
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  pageId         String
-  page           Page                    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  id              String                  @id @default(cuid())
+  locale          ContentLocale
+  title           String
+  localizedHandle String?                 @unique
+  excerpt         String?
+  content         Json?
+  seoTitle        String?
+  seoDescription  String?
+  reviewStatus    TranslationReviewStatus @default(DRAFT)
+  reviewedAt      DateTime?
+  syncStatus      TranslationSyncStatus   @default(NOT_APPLICABLE)
+  syncError       String?
+  contentHash     String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  pageId          String
+  page            Page                    @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@unique([pageId, locale])
   @@index([locale, reviewStatus])
@@ -471,6 +474,20 @@ model SiteSetting {
   value     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model LocalizedHandleRedirect {
+  id         String        @id @default(cuid())
+  entityType String
+  entityId   String
+  locale     ContentLocale
+  fromHandle String
+  toHandle   String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([entityType, locale, fromHandle])
+  @@index([entityType, entityId, locale])
 }
 
 model AuditLog {

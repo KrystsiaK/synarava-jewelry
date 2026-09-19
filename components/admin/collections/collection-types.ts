@@ -3,6 +3,7 @@ import type { SavedCollectionPayload } from "@/app/admin/actions/collections";
 export type AdminCollection = SavedCollectionPayload;
 
 export type CollectionLocaleDraft = {
+  localizedHandle: string;
   name: string;
   description: string;
   manifesto: string;

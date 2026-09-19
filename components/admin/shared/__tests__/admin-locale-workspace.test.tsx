@@ -61,6 +61,14 @@ describe("AdminLocaleWorkspace", () => {
     expect(enTab).toHaveFocus();
   });
 
+  it("switches locally without submitting the surrounding form", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault());
+    render(<form onSubmit={onSubmit}><AdminLocaleWorkspace storageKey="network-free" en={<input />} pt={<input />} /></form>);
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("remembers the active locale in sessionStorage per storageKey", async () => {
     const user = userEvent.setup();
     const { unmount } = setup({ storageKey: "product:abc" });

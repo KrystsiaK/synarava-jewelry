@@ -30,6 +30,7 @@ async function syncCollection(collectionId: string, actorUsername: string) {
     shopifyResourceId: collection.shopifyCollectionId,
   });
   const snapshot = {
+    localizedHandle: translation.localizedHandle ?? "",
     name: translation.name,
     description: translation.description ?? "",
     seoTitle: translation.seoTitle ?? "",
@@ -37,6 +38,7 @@ async function syncCollection(collectionId: string, actorUsername: string) {
   };
   try {
     await registerCollectionTranslation(collection.shopifyCollectionId, {
+      handle: snapshot.localizedHandle,
       name: snapshot.name,
       descriptionHtml: snapshot.description,
       seoTitle: snapshot.seoTitle,

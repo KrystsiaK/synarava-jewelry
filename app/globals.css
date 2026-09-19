@@ -2384,18 +2384,41 @@ body.admin-mode .ui-tooltip {
   white-space: nowrap;
 }
 
-/* Stays visible under the admin topbar while a long EN/PT form scrolls —
-   offset by the topbar's own height so it never overlaps it, and kept below
-   modal/toast (z-index 190+) so those still layer on top. */
+/* .admin-content is its own scroll container below the topbar, so `top: 0`
+   pins this band to that container's visible edge without leaving a second
+   topbar-sized gap. It remains below modal/toast layers (z-index 190+). */
 .adm-locale-workspace-header {
   position: sticky;
-  top: var(--adm-topbar-height);
+  top: 0;
   z-index: 90;
   background: color-mix(in srgb, var(--adm-bg-soft) 94%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--adm-border);
   padding-top: 0.75rem;
   margin-inline: -1px;
+  contain: paint;
+}
+
+.admin-content :is(input, textarea, select, button) {
+  scroll-margin-top: 7rem;
+}
+
+@media (max-width: 40rem) {
+  .adm-locale-workspace-header > [role="tablist"] {
+    row-gap: 0.55rem;
+  }
+
+  .adm-locale-workspace-header > [role="tablist"] > [role="status"] {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .adm-locale-workspace-header {
+    background: var(--adm-bg-soft);
+    backdrop-filter: none;
+  }
 }
 
 .adm-stat-card {

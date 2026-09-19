@@ -10,7 +10,7 @@ software only after volume or operational complexity proves the need.
 | --- | --- | --- | --- |
 | Catalog, orders, customers, checkout | Shopify | Already core infrastructure | Never duplicate the source of truth |
 | Operational workflows | Shopify Flow | Use the native app on the current paid plan | A missing trigger/action has measurable operational cost |
-| First email lifecycle | Shopify Email / native marketing automations | Start native; verify the current plan allowance in Admin | Segmentation, deliverability, or revenue attribution materially outgrows it |
+| First email lifecycle | Shopify notifications for transactions; verify marketing automation per sales channel | Start native where supported; verify the current plan allowance in Admin | The headless channel needs a supported recovery path and consent-aware delivery |
 | Storefront behavior | Synarava event contract + consent-aware GTM/GA4 | Our lightweight adapter plus free analytics tier | Data volume or modeling requires a warehouse |
 | Checkout behavior and purchase | Shopify Customer Events / Web Pixel | Native checkout event source | A server-side destination is justified by paid-media volume |
 | Search performance | Search Console | Free | Never replace; optionally export later |
@@ -151,6 +151,10 @@ customers to wait for promotions.
 ### Abandoned checkout
 
 Use Shopify's canonical checkout state rather than a browser-only cart event.
+The current `shop.synarava.com` checkout is attributed to `Synarava Development`;
+the native Messaging automation did not trigger for the observed test checkout.
+Follow [the customer communication plan](customer-communication-plan.md) before
+claiming that recovery email works on the headless storefront.
 
 - first reminder after the shopper has had a reasonable chance to complete;
 - second message only when inventory and consent still allow it;

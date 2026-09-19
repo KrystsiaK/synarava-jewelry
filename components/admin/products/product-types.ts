@@ -62,6 +62,7 @@ export type ProductLocaleDetailsDraft = {
 };
 
 export type ProductLocaleDraft = {
+  localizedHandle: string;
   title: string;
   shortDescription: string;
   description: string;

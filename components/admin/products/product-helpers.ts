@@ -90,7 +90,7 @@ export function emptyDraft(): ProductDraft {
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
     tags: "", workflowState: "DRAFT", imageUrl: "", stockOnHand: "0",
     pt: {
-      title: "", shortDescription: "", description: "", materialLine: "",
+      localizedHandle: "", title: "", shortDescription: "", description: "", materialLine: "",
       symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
       seoTitle: "", seoDescription: "",
       details: getProductDetailsTranslation(null),
@@ -138,6 +138,7 @@ export function productToDraft(product: ProductRecord): ProductDraft {
     imageUrl: product.imageUrl ?? "",
     stockOnHand: String(primaryVariant?.stockOnHand ?? 0),
     pt: {
+      localizedHandle: pt?.localizedHandle ?? "",
       title: pt?.title ?? "",
       shortDescription: pt?.shortDescription ?? "",
       description: pt?.description ?? "",

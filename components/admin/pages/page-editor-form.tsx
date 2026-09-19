@@ -85,6 +85,12 @@ export function PageEditor({
 
         {isHomePage ? <HomeSectionVisibilityEditor content={content} /> : null}
 
+        <label className="grid gap-2" hidden={activeLocale !== "PT"}>
+          <span className="adm-label">URL handle (PT, optional)</span>
+          <input name="ptHandle" defaultValue={normalizedPortuguese?.localizedHandle ?? ""} className="adm-field" placeholder={page.slug} />
+          <span className="text-xs" style={{ color: "var(--adm-muted)" }}>Blank uses the English slug.</span>
+        </label>
+
         <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Hero headline" : "Title"}</span>

@@ -27,6 +27,8 @@ import {
 import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/localization";
 import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 import { resolvePageLocalizedCopy } from "@/lib/pages/localization";
+import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
+import { findLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 
 // Shopify's Standard Product Taxonomy name is a " > "-delimited full path
 // (e.g. "Apparel & Accessories > Jewelry > Brooches & Lapel Pins >
@@ -41,6 +43,7 @@ function categoryLeafLabel(fullName: string | null | undefined) {
 
 export type CollectionSummary = {
   slug: string;
+  sourceSlug: string;
   name: string;
   eyebrow: string;
   summary: string;
@@ -52,6 +55,7 @@ export type CollectionSummary = {
 export type ProductSummary = {
   shopifyProductId: string | null;
   slug: string;
+  sourceSlug: string;
   sku: string;
   series: string;
   title: string;
@@ -322,6 +326,8 @@ function toSummary(product: {
   const leadCollectionCopy = leadCollection ? resolveCollectionCopy(leadCollection, locale) : null;
   const primaryNavCollectionName = primaryNavCollection ? resolveCollectionName(primaryNavCollection, locale) : "";
   const localized = resolveProductCopy(product, locale);
+  const localizedHandle = product.translations.find((translation) => translation.locale === "PT")?.localizedHandle;
+  const activeSlug = resolveLocalizedHandle(locale, product.slug, localizedHandle);
   const details = parseProductDetails(localized.details);
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
@@ -354,7 +360,8 @@ function toSummary(product: {
   );
   return {
     shopifyProductId: product.shopifyProductId,
-    slug: product.slug,
+    slug: activeSlug,
+    sourceSlug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
     series: product.seriesLabel ?? "",
     title: localized.title,
@@ -463,7 +470,7 @@ export async function getStorefrontNavigation(locale: Locale = "en") {
     include: { translations: true },
   });
   return collections.map((collection) => ({
-    slug: collection.slug,
+    slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === "PT")?.localizedHandle),
     name: resolveCollectionCopy(collection, locale).name,
   }));
 }
@@ -528,7 +535,8 @@ export async function listCollections(locale: Locale = "en") {
   return collections.map((collection) => {
     const copy = resolveCollectionCopy(collection, locale);
     return {
-      slug: collection.slug,
+      slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === "PT")?.localizedHandle),
+      sourceSlug: collection.slug,
       name: copy.name,
       eyebrow: formatCollectionEyebrow(collection.sortOrder),
       summary: copy.description,
@@ -540,18 +548,26 @@ export async function listCollections(locale: Locale = "en") {
 }
 
 export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
-  const collection = await db.collection.findUnique({
-    where: { slug },
+  let collection = await db.collection.findFirst({
+    where: locale === "pt"
+      ? { OR: [{ slug }, { translations: { some: { locale: "PT", localizedHandle: slug } } }] }
+      : { slug },
     include: { translations: true },
   });
+  if (!collection && locale === "pt") {
+    const oldHandle = await findLocalizedHandleRedirect("COLLECTION", slug);
+    if (oldHandle) collection = await db.collection.findUnique({ where: { id: oldHandle.entityId }, include: { translations: true } });
+  }
 
   if (!collection || collection.status !== "ACTIVE" || collection.visibility !== "PUBLIC") {
     return null;
   }
 
   const copy = resolveCollectionCopy(collection, locale);
+  const activeSlug = resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === "PT")?.localizedHandle);
   return {
-    slug: collection.slug,
+    slug: activeSlug,
+    sourceSlug: collection.slug,
     name: copy.name,
     eyebrow: formatCollectionEyebrow(collection.sortOrder),
     summary: copy.description,
@@ -764,8 +780,10 @@ export async function listShopProducts(
 
 export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
   const locale = requestedLocale ?? await getRequestLocale();
-  const product = await db.product.findUnique({
-    where: { slug },
+  let product = await db.product.findFirst({
+    where: locale === "pt"
+      ? { OR: [{ slug }, { translations: { some: { locale: "PT", localizedHandle: slug } } }] }
+      : { slug },
     include: {
       tags: {
         include: {
@@ -803,6 +821,22 @@ export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
       translations: true,
     },
   });
+  if (!product && locale === "pt") {
+    const oldHandle = await findLocalizedHandleRedirect("PRODUCT", slug);
+    if (oldHandle) {
+      product = await db.product.findUnique({
+        where: { id: oldHandle.entityId },
+        include: {
+          tags: { include: { tag: true } },
+          collections: { include: { collection: { include: { translations: true } } }, orderBy: { sortOrder: "asc" } },
+          characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
+          variants: { orderBy: { createdAt: "asc" } },
+          media: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } },
+          translations: true,
+        },
+      });
+    }
+  }
 
   if (!product || !isSynaravaProductAccessible(product.status, product.visibility)) {
     return null;
@@ -812,19 +846,32 @@ export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
 }
 
 export async function getProductsByCollection(slug: string, locale?: Locale) {
-  return listShopProducts({ collection: slug }, { locale });
+  const resolvedLocale = locale ?? await getRequestLocale();
+  const collection = await getCollectionBySlug(slug, resolvedLocale);
+  return collection ? listShopProducts({ collection: collection.sourceSlug }, { locale: resolvedLocale }) : [];
 }
 
 export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
   const locale = requestedLocale ?? await getRequestLocale();
-  const page = await db.page.findUnique({
-    where: { slug },
+  let page = await db.page.findFirst({
+    where: locale === "pt"
+      ? { OR: [{ slug }, { translations: { some: { locale: "PT", localizedHandle: slug } } }] }
+      : { slug },
     include: {
       translations: {
         where: { locale: storefrontLocaleToContentLocale(locale) },
       },
     },
   });
+  if (!page && locale === "pt") {
+    const oldHandle = await findLocalizedHandleRedirect("PAGE", slug);
+    if (oldHandle) {
+      page = await db.page.findUnique({
+        where: { id: oldHandle.entityId },
+        include: { translations: { where: { locale: storefrontLocaleToContentLocale(locale) } } },
+      });
+    }
+  }
 
   if (!page || page.status !== "PUBLISHED" || page.visibility !== "PUBLIC") {
     return null;
@@ -840,7 +887,8 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
   });
 
   return {
-    slug: page.slug,
+    slug: resolveLocalizedHandle(locale, page.slug, normalizedTranslation?.localizedHandle),
+    sourceSlug: page.slug,
     title: resolved.title,
     excerpt: resolved.excerpt,
     content: resolved.content as PageContent,

@@ -13,6 +13,7 @@ export type RemoteTranslation = { key: string; value: string; updatedAt: string;
 export type TranslatableResourceType = string;
 
 export type ShopifyProductTranslationCopy = {
+  handle?: string;
   title: string;
   descriptionHtml: string;
   seoTitle: string;
@@ -30,6 +31,7 @@ function normalizedCopy(copy: ShopifyProductTranslationCopy | null) {
   if (!copy) return null;
   return {
     title: copy.title.trim(),
+    handle: copy.handle?.trim() ?? "",
     descriptionHtml: copy.descriptionHtml
       .replace(/<[^>]*>/g, " ")
       .replace(/&nbsp;/gi, " ")
@@ -82,6 +84,7 @@ function productTranslationSnapshot(translations: RemoteTranslation[]): ShopifyP
   }, null);
   return {
     title: values.get("title") ?? "",
+    handle: values.get("handle") ?? "",
     descriptionHtml: values.get("body_html") ?? "",
     seoTitle: values.get("meta_title") ?? "",
     seoDescription: values.get("meta_description") ?? "",
@@ -91,6 +94,7 @@ function productTranslationSnapshot(translations: RemoteTranslation[]): ShopifyP
 }
 
 const PRODUCT_TRANSLATION_KEYS = {
+  handle: "handle",
   title: "title",
   descriptionHtml: "body_html",
   seoTitle: "meta_title",

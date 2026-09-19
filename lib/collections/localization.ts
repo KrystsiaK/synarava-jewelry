@@ -13,6 +13,7 @@ import {
 
 export type CollectionTranslationRecord = {
   locale: "EN" | "PT";
+  localizedHandle?: string | null;
   name: string;
   description?: string | null;
   manifesto?: string | null;

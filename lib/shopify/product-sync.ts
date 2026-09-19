@@ -769,6 +769,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   }
   if (translationAvailable) {
     const localShopifyCopy = localPortuguese ? {
+      handle: localPortuguese.localizedHandle ?? "",
       title: localPortuguese.title,
       descriptionHtml: localPortuguese.description ?? "",
       seoTitle: localPortuguese.seoTitle ?? "",
@@ -796,6 +797,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
     } else if (decision === "APPLY_REMOTE" || decision === "UNCHANGED") {
       if (remotePortuguese || localPortuguese) {
         const mergedCopy = {
+          localizedHandle: remotePortuguese?.handle || null,
           title: remotePortuguese?.title ?? "",
           shortDescription: localPortuguese?.shortDescription ?? null,
           description: remotePortuguese ? stripHtml(remotePortuguese.descriptionHtml) || null : null,
@@ -1508,6 +1510,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     ) {
       try {
         const localCopy = {
+          handle: portuguese.localizedHandle ?? "",
           title: portuguese.title,
           descriptionHtml: portuguese.description
             ? `<p>${portuguese.description.replace(/[<>&]/g, "")}</p>`

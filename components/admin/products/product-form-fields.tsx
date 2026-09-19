@@ -478,6 +478,11 @@ export function ProductFormFields({
           <span className="adm-label">Product name (PT)</span>
           <input name="ptTitle" defaultValue={draft.pt.title} className="adm-field" />
         </label>
+        <label className="grid gap-2">
+          <span className="adm-label">URL handle (PT, optional)</span>
+          <input name="ptHandle" defaultValue={draft.pt.localizedHandle} className="adm-field" placeholder={draft.slug} />
+          <span className="text-xs text-[var(--adm-muted)]">Blank uses the English slug.</span>
+        </label>
         <AdminLongTextField
           name="ptShortDescription"
           label={<span className="adm-label">Short description (PT)</span>}

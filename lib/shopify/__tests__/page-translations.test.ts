@@ -48,6 +48,7 @@ describe("Shopify page translations", () => {
     });
 
     await expect(fetchPageTranslation("gid://shopify/Page/1")).resolves.toEqual({
+      handle: "",
       title: "Manifesto",
       bodyHtml: "<p>Texto.</p>",
       seoTitle: "",

@@ -45,6 +45,7 @@ export const PRODUCT_FIELD_REGISTRY: EntityFieldRegistry = {
   entity: "product",
   fields: [
     { key: "title", label: "Title", mode: "localized", required: "always", kind: "short-text", shopifyTarget: native("PRODUCT", "title") },
+    { key: "localizedHandle", label: "URL handle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: native("PRODUCT", "handle") },
     { key: "shortDescription", label: "Short description", mode: "localized", required: "always", kind: "short-text", shopifyTarget: metafield("synarava", "short_description") },
     { key: "description", label: "Description", mode: "localized", required: "always", kind: "long-text", shopifyTarget: native("PRODUCT", "body_html") },
     { key: "materialLine", label: "Material line", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "material_line") },
@@ -78,6 +79,7 @@ export const COLLECTION_FIELD_REGISTRY: EntityFieldRegistry = {
   entity: "collection",
   fields: [
     { key: "name", label: "Name", mode: "localized", required: "always", kind: "short-text", shopifyTarget: native("COLLECTION", "title") },
+    { key: "localizedHandle", label: "URL handle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: native("COLLECTION", "handle") },
     { key: "subtitle", label: "Subtitle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metafield("synarava", "subtitle") },
     { key: "description", label: "Description", mode: "localized", required: "when-published", kind: "long-text", shopifyTarget: native("COLLECTION", "body_html") },
     { key: "manifesto", label: "Manifesto", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metafield("synarava", "manifesto") },
@@ -110,6 +112,7 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
   entity: "page",
   fields: [
     { key: "title", label: "Title", mode: "localized", required: "always", kind: "short-text", shopifyTarget: native("PAGE", "title") },
+    { key: "localizedHandle", label: "URL handle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: native("PAGE", "handle") },
     { key: "excerpt", label: "Excerpt", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "excerpt") },
     { key: "eyebrow", label: "Eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "eyebrow") },
     { key: "body", label: "Body", mode: "localized", required: "when-published", kind: "long-text", shopifyTarget: native("PAGE", "body_html") },

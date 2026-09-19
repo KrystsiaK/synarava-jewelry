@@ -171,6 +171,59 @@ test.describe("Home page", () => {
     )).toBe(false);
   });
 
+  test("keeps editorial edge labels separated on desktop", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    const fixedLeftRail = page.locator("[data-home-fixed-rail='left']");
+    const manifesto = page.locator('[data-component="ManifestoQuote"]');
+    const manifestoRail = manifesto.locator("[data-manifesto-rail]");
+    await manifesto.scrollIntoViewIfNeeded();
+
+    const [fixedLeftBox, manifestoRailBox] = await Promise.all([
+      fixedLeftRail.boundingBox(),
+      manifestoRail.boundingBox(),
+    ]);
+    expect(fixedLeftBox).not.toBeNull();
+    expect(manifestoRailBox).not.toBeNull();
+    expect(manifestoRailBox!.x - (fixedLeftBox!.x + fixedLeftBox!.width)).toBeGreaterThanOrEqual(32);
+
+    const lexicon = page.locator('section[aria-labelledby="lexicon-title"]');
+    const lexiconPlate = lexicon.getByRole("article").first();
+    const lexiconRail = lexicon.locator("[data-lexicon-archive-rail]");
+    await lexicon.scrollIntoViewIfNeeded();
+
+    const [lexiconPlateBox, lexiconRailBox] = await Promise.all([
+      lexiconPlate.boundingBox(),
+      lexiconRail.boundingBox(),
+    ]);
+    expect(lexiconPlateBox).not.toBeNull();
+    expect(lexiconRailBox).not.toBeNull();
+    expect(
+      lexiconPlateBox!.x + lexiconPlateBox!.width - (lexiconRailBox!.x + lexiconRailBox!.width),
+    ).toBeGreaterThanOrEqual(24);
+
+    const finalScene = page.locator('[data-component="DesktopFinalCTA"]');
+    await finalScene.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      window.scrollTo({
+        top: rect.top + window.scrollY + rect.height - document.documentElement.clientHeight,
+        behavior: "instant",
+      });
+    });
+    const email = finalScene.locator('[data-component="FinalFooter"] a');
+    const progressRail = finalScene.locator("[data-final-progress-rail]");
+    await expect(email).toBeVisible();
+
+    const [emailBox, progressRailBox] = await Promise.all([
+      email.boundingBox(),
+      progressRail.boundingBox(),
+    ]);
+    expect(emailBox).not.toBeNull();
+    expect(progressRailBox).not.toBeNull();
+    expect(progressRailBox!.x - (emailBox!.x + emailBox!.width)).toBeGreaterThanOrEqual(24);
+  });
+
   test("does not remeasure Home targets on every scroll frame", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");

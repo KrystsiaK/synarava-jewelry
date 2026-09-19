@@ -122,6 +122,7 @@ export async function createTestPage(runId: string, input: CreateTestPageInput =
 /** Deletes every record created under this run's prefix. Call in afterAll. */
 export async function cleanupTestData(runId: string) {
   const prefix = testDataPrefix(runId);
+  await db.localizedHandleRedirect.deleteMany({ where: { fromHandle: { startsWith: prefix } } });
   await db.product.deleteMany({ where: { slug: { startsWith: prefix } } });
   await db.collection.deleteMany({ where: { slug: { startsWith: prefix } } });
   await db.page.deleteMany({ where: { slug: { startsWith: prefix } } });

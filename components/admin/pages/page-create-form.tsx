@@ -102,6 +102,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2"><span className="adm-label">Title (PT)</span><input name="ptTitle" className="adm-field" /></label>
+          <label className="grid gap-2"><span className="adm-label">URL handle (PT, optional)</span><input name="ptHandle" className="adm-field" placeholder="diario" /></label>
           <label className="grid gap-2"><span className="adm-label">Eyebrow (PT)</span><input name="ptEyebrow" className="adm-field" /></label>
         </div>
         <label className="grid gap-2"><span className="adm-label">Excerpt (PT)</span><textarea name="ptExcerpt" rows={3} className="adm-field" /></label>

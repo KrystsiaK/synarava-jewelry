@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/db", () => ({
-  db: { page: { findUnique: mocks.findUniquePage } },
+  db: { page: { findFirst: mocks.findUniquePage, findUnique: mocks.findUniquePage } },
 }));
 vi.mock("@/lib/i18n/server", () => ({ getRequestLocale: mocks.getRequestLocale }));
 

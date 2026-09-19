@@ -46,6 +46,7 @@ describe("Shopify collection translations", () => {
     });
 
     await expect(fetchCollectionTranslation("gid://shopify/Collection/1")).resolves.toEqual({
+      handle: "",
       name: "Rituais da Terra",
       descriptionHtml: "<p>Peças.</p>",
       seoTitle: "",

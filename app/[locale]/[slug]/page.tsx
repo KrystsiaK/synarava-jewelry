@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -7,6 +7,7 @@ import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { ArtifactLink } from "@/components/ui/artifact-button";
 import { PageHeroImage } from "@/components/ui/page-hero-image";
+import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -41,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: page.title,
     description: page.excerpt || page.title,
-    alternates: buildAlternates(locale, `/${slug}`),
+    alternates: buildAlternates(locale, `/${page.slug}`, { en: `/${page.sourceSlug}`, pt: `/${page.slug}` }),
     openGraph: {
       url: localePath(locale, `/${slug}`),
       title: page.title,
@@ -62,6 +63,7 @@ export default async function StaticCmsPage({ params }: Props) {
   if (!page || slug === "home" || slug === "about" || slug === "manifesto") {
     notFound();
   }
+  if (shouldRedirectLocalizedHandle(locale, slug, page.slug)) redirect(localePath(locale, `/${page.slug}`));
 
   const content = (page.content ?? {}) as Record<string, string | undefined>;
   const heroImage = content.heroImage;

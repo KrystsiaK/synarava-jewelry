@@ -2,7 +2,7 @@ import type { AdminCollection, CollectionDraft, CollectionLocaleDraft, Collectio
 
 function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
   return {
-    name: "", description: "", manifesto: "", searchSummary: "",
+    localizedHandle: "", name: "", description: "", manifesto: "", searchSummary: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
     reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
   };
@@ -117,6 +117,7 @@ export function collectionToDraft(collection: AdminCollection): CollectionDraft 
     symbolismBody2: collection.symbolismBody2 ?? "",
     workflowState: workflowStateFromCollection(collection),
     pt: {
+      localizedHandle: pt?.localizedHandle ?? "",
       name: pt?.name ?? "",
       description: pt?.description ?? "",
       manifesto: pt?.manifesto ?? "",

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getProductBySlug, listShopProducts } from "@/lib/content/catalog";
 import { getShopifyRelatedProductIds } from "@/lib/shopify/recommendations";
@@ -17,6 +17,7 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getProductReviewsBySlug } from "@/lib/content/product-reviews";
 import { submitProductReviewAction } from "@/app/actions/product-reviews";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
+import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
 
 type Props = {
   params: Promise<{ slug?: string; id?: string }>;
@@ -32,7 +33,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: product.seoTitle || product.title,
     description: product.seoDescription || product.shortDescription || product.description,
-    alternates: buildAlternates(locale, `/products/${product.slug}`),
+    alternates: buildAlternates(locale, `/products/${product.slug}`, {
+      en: `/products/${product.sourceSlug}`,
+      pt: `/products/${product.slug}`,
+    }),
     openGraph: {
       url: localePath(locale, `/products/${product.slug}`),
       images: [
@@ -47,14 +51,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductDetailPage({ params }: Props) {
   const [resolved, locale] = await Promise.all([params, getRequestLocale()]);
   const key = resolved.slug ?? resolved.id ?? "";
-  const [product, videos, reviews, isSignedIn] = await Promise.all([
+  const [product, videos, isSignedIn] = await Promise.all([
     getProductBySlug(key, locale),
     getSiteVideos(),
-    getProductReviewsBySlug(key),
     hasShopifyCustomerSession(),
   ]);
 
   if (!product) notFound();
+  if (shouldRedirectLocalizedHandle(locale, key, product.slug)) redirect(localePath(locale, `/products/${product.slug}`));
+  const reviews = await getProductReviewsBySlug(product.sourceSlug);
 
   const relatedIds = product.shopifyProductId
     ? await getShopifyRelatedProductIds(product.shopifyProductId).catch(() => [])
