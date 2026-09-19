@@ -3,9 +3,14 @@ import "server-only";
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
 import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 
-type TranslatableContent = { key: string; digest: string };
+export type TranslatableContent = { key: string; digest: string };
 type TranslationUserError = { field?: string[] | null; message: string };
-type RemoteTranslation = { key: string; value: string; updatedAt: string; outdated: boolean };
+export type RemoteTranslation = { key: string; value: string; updatedAt: string; outdated: boolean };
+
+// Shopify's TranslatableResourceType enum has ~30 members; kept as a plain
+// string here rather than re-declaring the whole enum, since callers only
+// ever pass one they already know is valid (Shopify errors otherwise).
+export type TranslatableResourceType = string;
 
 export type ShopifyProductTranslationCopy = {
   title: string;
@@ -92,12 +97,13 @@ const PRODUCT_TRANSLATION_KEYS = {
   seoDescription: "meta_description",
 } as const;
 
-export function buildProductTranslationInputs({
+/** Joins field values to the Shopify content digest each needs to be registered against; drops fields with no value or no matching translatable content. */
+export function buildTranslationInputs({
   locale,
   values,
   translatableContent,
 }: {
-  locale: typeof SHOPIFY_PORTUGUESE_ADMIN_LOCALE;
+  locale: string;
   values: Partial<Record<string, string>>;
   translatableContent: TranslatableContent[];
 }) {
@@ -111,17 +117,17 @@ export function buildProductTranslationInputs({
   });
 }
 
-async function fetchProductTranslatableContent(resourceId: string) {
+export async function fetchTranslatableContent(resourceId: string): Promise<TranslatableContent[]> {
   const data = await shopifyAdminRequest<{
     translatableResource: { translatableContent: TranslatableContent[] } | null;
-  }>(`query SynaravaProductTranslatableContent($resourceId: ID!) {
+  }>(`query SynaravaTranslatableContent($resourceId: ID!) {
     translatableResource(resourceId: $resourceId) {
       translatableContent { key digest }
     }
   }`, { resourceId });
 
   if (!data.translatableResource) {
-    throw new ShopifyAdminError("Shopify did not expose this product as a translatable resource.");
+    throw new ShopifyAdminError("Shopify did not expose this resource as translatable.");
   }
   return data.translatableResource.translatableContent;
 }
@@ -130,15 +136,14 @@ function isDigestError(errors: TranslationUserError[]) {
   return errors.some((error) => /digest|outdated|stale/i.test(error.message));
 }
 
-async function removeProductTranslationKeys(resourceId: string, translationKeys: string[]) {
+export async function removeTranslationKeys(resourceId: string, locale: string, translationKeys: string[]) {
   if (translationKeys.length === 0) return;
 
-  const locales = [SHOPIFY_PORTUGUESE_ADMIN_LOCALE];
   const data = await shopifyAdminRequest<{
     translationsRemove: {
       userErrors: TranslationUserError[];
     };
-  }>(`mutation SynaravaRemoveProductTranslations(
+  }>(`mutation SynaravaRemoveTranslations(
     $resourceId: ID!
     $translationKeys: [String!]!
     $locales: [String!]!
@@ -150,7 +155,7 @@ async function removeProductTranslationKeys(resourceId: string, translationKeys:
     ) {
       userErrors { field message }
     }
-  }`, { resourceId, locales, translationKeys });
+  }`, { resourceId, locales: [locale], translationKeys });
 
   const errors = data.translationsRemove.userErrors;
   if (errors.length > 0) {
@@ -158,25 +163,33 @@ async function removeProductTranslationKeys(resourceId: string, translationKeys:
   }
 }
 
-export async function registerProductTranslation(
-  resourceId: string,
-  copy: ShopifyProductTranslationCopy,
-) {
-  const values = Object.fromEntries(
-    Object.entries(PRODUCT_TRANSLATION_KEYS).map(([localKey, shopifyKey]) => [
-      shopifyKey,
-      copy[localKey as keyof ShopifyProductTranslationCopy],
-    ]),
-  );
+/**
+ * Registers non-blank values against `resourceId` for `locale` and clears
+ * (via translationsRemove) any key whose value is blank. Fetches a fresh
+ * digest right before writing and retries once — only once — on a
+ * stale-digest userError; any other error, or a second stale digest, throws
+ * rather than force-writing. This is the primitive Task 7's reconcile
+ * engine and every non-Product resource adapter (Collection, Page,
+ * metaobjects) builds on.
+ */
+export async function registerTranslations({
+  resourceId,
+  locale,
+  values,
+}: {
+  resourceId: string;
+  locale: string;
+  values: Partial<Record<string, string>>;
+}) {
   const clearedKeys = Object.entries(values)
-    .filter(([, value]) => !value.trim())
+    .filter(([, value]) => !value?.trim())
     .map(([key]) => key);
 
-  await removeProductTranslationKeys(resourceId, clearedKeys);
+  await removeTranslationKeys(resourceId, locale, clearedKeys);
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const translatableContent = await fetchProductTranslatableContent(resourceId);
-    const translations = buildProductTranslationInputs({ locale: SHOPIFY_PORTUGUESE_ADMIN_LOCALE, values, translatableContent });
+    const translatableContent = await fetchTranslatableContent(resourceId);
+    const translations = buildTranslationInputs({ locale, values, translatableContent });
     if (translations.length === 0) return { registeredKeys: [] as string[] };
 
     const data = await shopifyAdminRequest<{
@@ -184,7 +197,7 @@ export async function registerProductTranslation(
         userErrors: TranslationUserError[];
         translations: Array<{ key: string; value: string }>;
       };
-    }>(`mutation SynaravaProductTranslations($resourceId: ID!, $translations: [TranslationInput!]!) {
+    }>(`mutation SynaravaRegisterTranslations($resourceId: ID!, $translations: [TranslationInput!]!) {
       translationsRegister(resourceId: $resourceId, translations: $translations) {
         translations { key value }
         userErrors { field message }
@@ -202,23 +215,23 @@ export async function registerProductTranslation(
   throw new ShopifyAdminError("Shopify translation registration failed after refreshing content digests.");
 }
 
-export async function fetchProductTranslation(resourceId: string) {
+export async function fetchResourceTranslation(resourceId: string, locale: string): Promise<RemoteTranslation[] | null> {
   const data = await shopifyAdminRequest<{
     translatableResource: {
       translations: RemoteTranslation[];
     } | null;
-  }>(`query SynaravaProductPortugueseTranslation($resourceId: ID!) {
+  }>(`query SynaravaResourceTranslation($resourceId: ID!) {
     translatableResource(resourceId: $resourceId) {
-      translations(locale: "${SHOPIFY_PORTUGUESE_ADMIN_LOCALE}") { key value updatedAt outdated }
+      translations(locale: "${locale}") { key value updatedAt outdated }
     }
   }`, { resourceId });
 
-  if (!data.translatableResource) return null;
-  return productTranslationSnapshot(data.translatableResource.translations);
+  return data.translatableResource ? data.translatableResource.translations : null;
 }
 
-export async function fetchProductTranslationIndex() {
-  const result = new Map<string, ShopifyProductTranslationSnapshot | null>();
+/** Paginates every resource of `resourceType` and its current translations for `locale`. Used for reconcile sweeps that must cover more than one already-known resource id. */
+export async function fetchTranslatableResourceIndex(resourceType: TranslatableResourceType, locale: string) {
+  const result = new Map<string, RemoteTranslation[]>();
   let cursor: string | null = null;
   do {
     const data: {
@@ -226,21 +239,48 @@ export async function fetchProductTranslationIndex() {
         pageInfo: { hasNextPage: boolean; endCursor: string | null };
         nodes: Array<{ resourceId: string; translations: RemoteTranslation[] }>;
       };
-    } = await shopifyAdminRequest(`query SynaravaProductTranslationIndex($after: String) {
-      translatableResources(first: 100, after: $after, resourceType: PRODUCT) {
+    } = await shopifyAdminRequest(`query SynaravaTranslatableResourceIndex($after: String, $resourceType: TranslatableResourceType!) {
+      translatableResources(first: 100, after: $after, resourceType: $resourceType) {
         pageInfo { hasNextPage endCursor }
         nodes {
           resourceId
-          translations(locale: "${SHOPIFY_PORTUGUESE_ADMIN_LOCALE}") { key value updatedAt outdated }
+          translations(locale: "${locale}") { key value updatedAt outdated }
         }
       }
-    }`, { after: cursor });
+    }`, { after: cursor, resourceType });
     for (const resource of data.translatableResources.nodes) {
-      result.set(resource.resourceId, productTranslationSnapshot(resource.translations));
+      result.set(resource.resourceId, resource.translations);
     }
     cursor = data.translatableResources.pageInfo.hasNextPage
       ? data.translatableResources.pageInfo.endCursor
       : null;
   } while (cursor);
+  return result;
+}
+
+export async function registerProductTranslation(
+  resourceId: string,
+  copy: ShopifyProductTranslationCopy,
+) {
+  const values = Object.fromEntries(
+    Object.entries(PRODUCT_TRANSLATION_KEYS).map(([localKey, shopifyKey]) => [
+      shopifyKey,
+      copy[localKey as keyof ShopifyProductTranslationCopy],
+    ]),
+  );
+  return registerTranslations({ resourceId, locale: SHOPIFY_PORTUGUESE_ADMIN_LOCALE, values });
+}
+
+export async function fetchProductTranslation(resourceId: string) {
+  const translations = await fetchResourceTranslation(resourceId, SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+  return translations ? productTranslationSnapshot(translations) : null;
+}
+
+export async function fetchProductTranslationIndex() {
+  const raw = await fetchTranslatableResourceIndex("PRODUCT", SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+  const result = new Map<string, ShopifyProductTranslationSnapshot | null>();
+  for (const [resourceId, translations] of raw) {
+    result.set(resourceId, productTranslationSnapshot(translations));
+  }
   return result;
 }

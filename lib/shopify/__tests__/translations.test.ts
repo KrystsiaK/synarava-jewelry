@@ -7,18 +7,20 @@ vi.mock("@/lib/shopify/admin", () => ({
 }));
 
 import {
-  buildProductTranslationInputs,
+  buildTranslationInputs,
   decideProductTranslationPull,
   fetchProductTranslation,
   fetchProductTranslationIndex,
+  fetchTranslatableResourceIndex,
   registerProductTranslation,
+  registerTranslations,
 } from "@/lib/shopify/translations";
 
 beforeEach(() => vi.clearAllMocks());
 
 describe("Shopify translations", () => {
   it("joins local product copy to Shopify digests and skips blank values", () => {
-    expect(buildProductTranslationInputs({
+    expect(buildTranslationInputs({
       locale: "pt-PT",
       values: { title: "Anel Lava", body_html: "", meta_title: "Anel de prata" },
       translatableContent: [
@@ -164,6 +166,44 @@ describe("Shopify translations", () => {
     const translations = await fetchProductTranslationIndex();
     expect(translations.get("gid://shopify/Product/1")).toMatchObject({ title: "Anel" });
     expect(translations.get("gid://shopify/Product/2")).toBeNull();
-    expect(mocks.shopifyAdminRequest.mock.calls[1]?.[1]).toEqual({ after: "next" });
+    expect(mocks.shopifyAdminRequest.mock.calls[1]?.[1]).toEqual({ after: "next", resourceType: "PRODUCT" });
+  });
+
+  it("registers translations for a non-Product resource type and locale, generically", async () => {
+    // No blank fields in `values`, so translationsRemove is never called (0
+    // keys to clear) — only fetchTranslatableContent + translationsRegister.
+    mocks.shopifyAdminRequest
+      .mockResolvedValueOnce({ translatableResource: { translatableContent: [{ key: "title", digest: "d1" }] } })
+      .mockResolvedValueOnce({ translationsRegister: { userErrors: [], translations: [{ key: "title", value: "Coleção" }] } });
+
+    await expect(registerTranslations({
+      resourceId: "gid://shopify/Collection/1",
+      locale: "pt-PT",
+      values: { title: "Coleção" },
+    })).resolves.toEqual({ registeredKeys: ["title"] });
+  });
+
+  it("throws immediately on a non-digest userError instead of retrying", async () => {
+    mocks.shopifyAdminRequest
+      .mockResolvedValueOnce({ translatableResource: { translatableContent: [{ key: "title", digest: "d1" }] } })
+      .mockResolvedValueOnce({ translationsRegister: { userErrors: [{ message: "Locale is not enabled on this shop" }] } });
+
+    await expect(registerTranslations({
+      resourceId: "gid://shopify/Collection/1",
+      locale: "pt-PT",
+      values: { title: "Coleção" },
+    })).rejects.toThrow("Locale is not enabled on this shop");
+    expect(mocks.shopifyAdminRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it("paginates a translatable resource index for any resource type", async () => {
+    mocks.shopifyAdminRequest.mockResolvedValueOnce({ translatableResources: {
+      pageInfo: { hasNextPage: false, endCursor: null },
+      nodes: [{ resourceId: "gid://shopify/Collection/1", translations: [] }],
+    } });
+
+    const index = await fetchTranslatableResourceIndex("COLLECTION", "pt-PT");
+    expect(index.get("gid://shopify/Collection/1")).toEqual([]);
+    expect(mocks.shopifyAdminRequest.mock.calls[0]?.[1]).toEqual({ after: null, resourceType: "COLLECTION" });
   });
 });

@@ -85,26 +85,27 @@
 **Description:** Превратить product-only helpers в resource-agnostic query/register/remove client с pagination и normalized errors.
 
 **Acceptance criteria:**
-- [ ] Client принимает resource ID/type, locale и typed key/value map.
-- [ ] Fresh digest обязателен; stale digest получает один refetch/retry; blank использует `translationsRemove`.
+- [x] `registerTranslations`/`fetchResourceTranslation`/`fetchTranslatableResourceIndex`/`removeTranslationKeys` take `resourceId`/`resourceType`/`locale` and a typed key/value map — no Product-specific logic in the transport layer. Product wrappers (`registerProductTranslation`, `fetchProductTranslation`, `fetchProductTranslationIndex`) are now thin callers of the generic functions.
+- [x] Fresh digest fetched immediately before each register call; one retry on a digest-shaped userError, any other error (or a second stale digest) throws; blank values route through `translationsRemove` before the register call.
 
 **Verification:**
-- [ ] Unit tests register/remove/pagination/digest/userErrors; Product regression tests зелёные.
+- [x] `lib/shopify/__tests__/translations.test.ts` — 13 tests: register/remove/pagination/digest-retry/non-digest-userError-throws, plus a non-Product (`COLLECTION`) resource proving genericity. Full `pnpm vitest run lib/shopify` (28 files, 143 tests) and `pnpm exec tsc --noEmit` green — Product regression suite untouched in behavior.
 
 **Dependencies:** Task 2  
-**Files likely touched:** `lib/shopify/translations.ts`, `lib/shopify/translation-types.ts`, `lib/shopify/__tests__/translations.test.ts`  
-**Estimated scope:** Medium (3 files)
+**Files likely touched:** `lib/shopify/translations.ts`, `lib/shopify/__tests__/translations.test.ts` (no separate `translation-types.ts` needed — the existing file's exported types already carry the contract)  
+**Estimated scope:** Medium (2 files)
 
 ### Task 6: Добавить generic bindings и durable sync events
 
 **Description:** Хранить Shopify identity/snapshots и retryable state для Product, Collection, Page и Metaobject отдельно от commerce sync.
 
 **Acceptance criteria:**
-- [ ] Binding уникален по local entity/Shopify target; каждое направление имеет event/audit trail.
-- [ ] Failed event повторяется идемпотентно без потери local copy.
+- [x] `ShopifyTranslationBinding` is unique on `(resourceType, entityId)` and `(resourceType, shopifyResourceId)`; `TranslationSyncEvent` rows (locale + direction + status + fieldConflicts) give every push/pull/reconcile attempt its own audit row, kept apart from `ProductSyncEvent` (commerce sync).
+- [x] `retrySyncEvent` only updates the event row's status/attemptCount around calling `perform()` — it never touches the entity's own translation content, so a failed retry cannot lose local copy.
 
 **Verification:**
-- [ ] Prisma migration на clean/existing DB; state-transition tests.
+- [x] `pnpm exec prisma generate` succeeds against the updated schema (no live DB needed for that step). **Not yet applied to a real database** — this session has no reachable Postgres (Docker daemon not running here) and `.env*` is blocked by the repo's own security hook, so I could not verify `DATABASE_URL`'s target safely enough to run `prisma migrate dev/deploy`. The migration SQL is hand-authored in the same style as the existing migrations (checked against `20260819120000_add_product_sync_and_characteristics`) — **run `pnpm prisma:migrate` locally (with `docker compose up -d postgres`) before relying on these tables**, and diff the result against `prisma/migrations/20260919120000_translation_bindings/migration.sql` in case Prisma's own diff differs from the hand-written version.
+- [x] `lib/shopify/__tests__/translation-sync.test.ts` — 6 tests covering upsert/find/audit-row creation/idempotent retry (success + failure paths), against a mocked `@/lib/db`.
 
 **Dependencies:** Tasks 2, 5  
 **Files likely touched:** `prisma/schema.prisma`, `prisma/migrations/<timestamp>_translation_bindings/migration.sql`, `lib/shopify/translation-sync.ts`, `lib/shopify/__tests__/translation-sync.test.ts`  

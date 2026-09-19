@@ -575,6 +575,49 @@ enum PageStatus {
   ARCHIVED
 }
 
+// Generic Shopify identity + retryable sync history for the translation
+// platform, shared by every entity (Product, Collection, Page, and
+// structured content synced through an app-owned metaobject) — kept apart
+// from ProductSyncEvent, which is commerce (inventory/price/catalog) sync,
+// not translations. See tasks/plan.md "Persistence и миграция".
+model ShopifyTranslationBinding {
+  id                String                   @id @default(cuid())
+  resourceType      TranslationResourceType
+  entityId          String
+  shopifyResourceId String
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  syncEvents        TranslationSyncEvent[]
+
+  @@unique([resourceType, entityId])
+  @@unique([resourceType, shopifyResourceId])
+}
+
+model TranslationSyncEvent {
+  id             String                    @id @default(cuid())
+  bindingId      String
+  binding        ShopifyTranslationBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  locale         ContentLocale
+  direction      SyncDirection
+  status         SyncEventStatus           @default(PENDING)
+  fieldConflicts Json?
+  error          String?
+  attemptCount   Int                       @default(0)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  completedAt    DateTime?
+
+  @@index([bindingId, createdAt])
+  @@index([status, createdAt])
+}
+
+enum TranslationResourceType {
+  PRODUCT
+  COLLECTION
+  PAGE
+  METAOBJECT
+}
+
 model TranslationCache {
   locale    String   @id
   messages  Json
