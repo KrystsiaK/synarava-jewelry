@@ -58,4 +58,29 @@ describe("localized content", () => {
       ["title", "description"],
     )).toEqual({ complete: false, completed: 1, total: 2, percent: 50, missing: ["description"] });
   });
+
+  it("resolves an optional JSON field to its translation instead of always falling back (regression: object values are never strings, so a naive text check always saw them as blank)", () => {
+    const withDetails = { title: "Lava Ring", details: { materialsTitle: "Materials" } };
+    expect(resolveLocalizedContent({
+      source: withDetails,
+      translation: { title: "Anel de Lava", details: { materialsTitle: "Materiais" } },
+      optionalFields: ["details"],
+    })).toEqual({ title: "Anel de Lava", details: { materialsTitle: "Materiais" } });
+  });
+
+  it("still falls back to source for a null/undefined optional JSON field", () => {
+    const withDetails = { title: "Lava Ring", details: { materialsTitle: "Materials" } };
+    expect(resolveLocalizedContent({
+      source: withDetails,
+      translation: { title: "Anel de Lava", details: null },
+      optionalFields: ["details"],
+    })).toEqual({ title: "Anel de Lava", details: { materialsTitle: "Materials" } });
+  });
+
+  it("counts a populated JSON field as complete and an empty array/object as missing", () => {
+    expect(contentCompleteness({ materials: [{ title: "Lava" }] }, ["materials"]))
+      .toMatchObject({ complete: true, missing: [] });
+    expect(contentCompleteness({ materials: [] }, ["materials"]))
+      .toMatchObject({ complete: false, missing: ["materials"] });
+  });
 });

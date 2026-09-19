@@ -57,6 +57,20 @@ describe("product localization", () => {
     expect(resolved.materialLine).toBe("Lava stone and silver");
   });
 
+  it("resolves a populated Portuguese `details` object instead of always falling back to English (regression, see lib/i18n/localized-content.ts hasContent)", () => {
+    const resolved = resolveProductCopy(product({
+      translations: [{
+        locale: "PT",
+        title: "Anel de Lava",
+        shortDescription: "Um anel.",
+        description: "Feito em Lisboa.",
+        details: { materialsTitle: "Materiais" },
+      }],
+    }), "pt");
+
+    expect(resolved.details).toEqual({ materialsTitle: "Materiais" });
+  });
+
   it("reports missing Portuguese publish fields and review state", () => {
     expect(productLocaleReadiness(product({
       translations: [{

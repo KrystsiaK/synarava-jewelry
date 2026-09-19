@@ -14,7 +14,7 @@ import {
   requiredLocalizedFields,
   type EntityFieldRegistry,
 } from "@/lib/i18n/admin-field-registry";
-import { contentCompleteness, resolveLocalizedContent } from "@/lib/i18n/localized-content";
+import { contentCompleteness, hasContent, resolveLocalizedContent } from "@/lib/i18n/localized-content";
 
 export type { TranslationReviewStatus, TranslationSyncStatus };
 
@@ -64,10 +64,6 @@ export function entityLocaleReadiness<T extends LocalizedRecord>(
   return contentCompleteness(content, required);
 }
 
-function hasText(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
 /** Publish gate: every `always`/`when-published` field must be non-blank in both locales, and PT must be reviewed. Empty once already public (unpublish is not this function's concern). */
 export function missingRequiredForPublish<T extends LocalizedRecord>(
   registry: EntityFieldRegistry,
@@ -79,8 +75,8 @@ export function missingRequiredForPublish<T extends LocalizedRecord>(
   const required = requiredLocalizedFields(registry, { published: true });
   const missing: string[] = [];
   for (const field of required) {
-    if (!hasText(english[field.key])) missing.push(`English ${field.label}`);
-    if (!hasText(portuguese[field.key])) missing.push(`Portuguese ${field.label}`);
+    if (!hasContent(english[field.key])) missing.push(`English ${field.label}`);
+    if (!hasContent(portuguese[field.key])) missing.push(`Portuguese ${field.label}`);
   }
   if (required.length > 0 && !portugueseReviewed) missing.push("Portuguese review");
   return missing;
