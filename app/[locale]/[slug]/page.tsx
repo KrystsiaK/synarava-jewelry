@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {};
   }
 
-  const page = await getPageBySlug(slug);
+  const page = await getPageBySlug(slug, locale);
   if (!page) {
     return {};
   }
@@ -52,13 +52,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function StaticCmsPage({ params }: Props) {
-  const { slug } = await params;
+  const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
 
   if (RESERVED_SLUGS.has(slug)) {
     notFound();
   }
 
-  const page = await getPageBySlug(slug);
+  const page = await getPageBySlug(slug, locale);
   if (!page || slug === "home" || slug === "about" || slug === "manifesto") {
     notFound();
   }

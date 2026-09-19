@@ -45,7 +45,7 @@ export default async function ProfilePage({ searchParams }: Props) {
     return [];
   });
   const wishlistProducts = wishlistIds.length
-    ? (await listShopProducts({}, { shopifyProductIds: wishlistIds, limit: wishlistIds.length })).reverse()
+    ? (await listShopProducts({}, { shopifyProductIds: wishlistIds, limit: wishlistIds.length, locale })).reverse()
     : [];
 
   return (

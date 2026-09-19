@@ -43,4 +43,19 @@ describe("getPageBySlug localization", () => {
       },
     });
   });
+
+  it("uses an explicit locale without reading request headers", async () => {
+    mocks.getRequestLocale.mockClear();
+    mocks.findUniquePage.mockResolvedValue({
+      slug: "shop",
+      title: "Shop",
+      excerpt: "English excerpt",
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      content: { translations: { pt: { title: "Loja", excerpt: "Resumo" } } },
+    });
+
+    await expect(getPageBySlug("shop", "pt")).resolves.toMatchObject({ title: "Loja", excerpt: "Resumo" });
+    expect(mocks.getRequestLocale).not.toHaveBeenCalled();
+  });
 });

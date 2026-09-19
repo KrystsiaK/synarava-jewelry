@@ -211,8 +211,11 @@ export function parseCharacteristicsForm(formData: FormData) {
   });
 }
 
-export function characteristicDisplayValue(value: ProductCharacteristicValue) {
-  if (value.valueType === "BOOLEAN") return value.booleanValue ? "Yes" : "No";
+export function characteristicDisplayValue(value: ProductCharacteristicValue, locale: Locale = "en") {
+  if (value.valueType === "BOOLEAN") {
+    if (locale === "pt") return value.booleanValue ? "Sim" : "Não";
+    return value.booleanValue ? "Yes" : "No";
+  }
   if (value.valueType === "NUMBER") {
     return `${value.numberValue ?? ""}${value.unit ? ` ${value.unit}` : ""}`.trim();
   }

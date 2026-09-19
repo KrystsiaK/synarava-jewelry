@@ -24,7 +24,7 @@ import {
   resolveProductCopy,
   type ProductTranslationRecord,
 } from "@/lib/products/localization";
-import { resolveCollectionCopy } from "@/lib/collections/localization";
+import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/localization";
 import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 
 // Shopify's Standard Product Taxonomy name is a " > "-delimited full path
@@ -260,12 +260,30 @@ function toSummary(product: {
     collection: {
       slug: string;
       name: string;
+      description: string | null;
+      manifesto: string | null;
       symbolismLabel: string | null;
       symbolismTitle: string | null;
       symbolismBody: string | null;
       symbolismBody2: string | null;
+      searchSummary: string | null;
+      seoTitle: string | null;
+      seoDescription: string | null;
       isPrimaryNav: boolean;
       isStorefrontDefault: boolean;
+      translations: Array<{
+        locale: "EN" | "PT";
+        name: string;
+        description: string | null;
+        manifesto: string | null;
+        symbolismLabel: string | null;
+        symbolismTitle: string | null;
+        symbolismBody: string | null;
+        symbolismBody2: string | null;
+        searchSummary: string | null;
+        seoTitle: string | null;
+        seoDescription: string | null;
+      }>;
     };
   }[];
   characteristics: Array<{
@@ -300,6 +318,8 @@ function toSummary(product: {
     (item) => !item.collection.isPrimaryNav && !item.collection.isStorefrontDefault,
   )?.collection;
   const primaryNavCollection = product.collections.find((item) => item.collection.isPrimaryNav)?.collection ?? null;
+  const leadCollectionCopy = leadCollection ? resolveCollectionCopy(leadCollection, locale) : null;
+  const primaryNavCollectionName = primaryNavCollection ? resolveCollectionName(primaryNavCollection, locale) : "";
   const localized = resolveProductCopy(product, locale);
   const details = parseProductDetails(localized.details);
   const process = {
@@ -359,7 +379,7 @@ function toSummary(product: {
       localized.description,
       localized.materialLine,
       product.shopifyCategoryName,
-      primaryNavCollection?.name,
+      primaryNavCollectionName,
       ...product.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
     ].filter(Boolean).join(" "),
     variantCount: product.variants.length,
@@ -395,12 +415,12 @@ function toSummary(product: {
     image: storefrontMedia(product.imageUrl, product.slug),
     collectionSlug: leadCollection?.slug ?? "",
     collectionSlugs: product.collections.map((item) => item.collection.slug),
-    collectionName: leadCollection?.name ?? "",
+    collectionName: leadCollectionCopy?.name ?? "",
     materialLine: localized.materialLine,
     departmentSlug: primaryNavCollection?.slug ?? null,
-    departmentName: primaryNavCollection?.name ?? "",
+    departmentName: primaryNavCollectionName,
     attributes: product.characteristics.length
-      ? product.characteristics.map((item) => ({ label: characteristicLabel(item.key, item.label, locale), value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }) }))
+      ? product.characteristics.map((item) => ({ label: characteristicLabel(item.key, item.label, locale), value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }, locale) }))
       : details.attributes ?? [],
     characteristics: product.characteristics.map((item) => ({
       ...item,
@@ -412,10 +432,10 @@ function toSummary(product: {
     tagSlugs: product.tags.map((item) => item.tag.slug),
     tagNames: product.tags.map((item) => item.tag.name),
     publicMetafields: projection.publicMetafields,
-    symbolismLabel: localized.symbolismLabel || leadCollection?.symbolismLabel || "",
-    symbolismTitle: localized.symbolismTitle || leadCollection?.symbolismTitle || "",
-    symbolismBody: localized.symbolismBody || leadCollection?.symbolismBody || "",
-    symbolismBody2: localized.symbolismBody2 || leadCollection?.symbolismBody2 || "",
+    symbolismLabel: localized.symbolismLabel || leadCollectionCopy?.symbolismLabel || "",
+    symbolismTitle: localized.symbolismTitle || leadCollectionCopy?.symbolismTitle || "",
+    symbolismBody: localized.symbolismBody || leadCollectionCopy?.symbolismBody || "",
+    symbolismBody2: localized.symbolismBody2 || leadCollectionCopy?.symbolismBody2 || "",
     materialsEyebrow: details.materialsEyebrow ?? "",
     materialsTitle: details.materialsTitle ?? "",
     materials: details.materials ?? [],
@@ -447,9 +467,9 @@ export async function getStorefrontNavigation(locale: Locale = "en") {
   }));
 }
 
-export async function getShopFilterData() {
+export async function getShopFilterData(locale: Locale = "en") {
   const [departments, categoryRows, tags, collections, characteristicRows] = await Promise.all([
-    getStorefrontNavigation(),
+    getStorefrontNavigation(locale),
     // Category is Shopify Standard Product Taxonomy now (item 1) — there's
     // no local category table to browse, so the filter options are just
     // the distinct categories actually in use, like materials/finishes below.
@@ -465,6 +485,7 @@ export async function getShopFilterData() {
     db.collection.findMany({
       where: { status: "ACTIVE", visibility: "PUBLIC", isPrimaryNav: false, isStorefrontDefault: false },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: { translations: true },
     }),
     db.productCharacteristic.findMany({
       where: { filterable: true, textValue: { not: null }, product: { status: "ACTIVE", visibility: "PUBLIC" } },
@@ -479,7 +500,18 @@ export async function getShopFilterData() {
     name: categoryLeafLabel(row.shopifyCategoryName) || row.shopifyCategoryId!,
   }));
   const values = (key: string) => characteristicRows.filter((item) => item.key === key && item.textValue).map((item) => ({ slug: item.textValue!, name: item.textValue! }));
-  return { departments, categories, tags, collections, materials: values("material"), finishes: values("finish"), origins: values("origin") };
+  return {
+    departments,
+    categories,
+    tags,
+    collections: collections.map((collection) => ({
+      ...collection,
+      name: resolveCollectionName(collection, locale),
+    })),
+    materials: values("material"),
+    finishes: values("finish"),
+    origins: values("origin"),
+  };
 }
 
 export async function listCollections(locale: Locale = "en") {
@@ -569,10 +601,10 @@ export async function listBestSellingShopifyProductIds(): Promise<string[] | nul
 
 export async function listShopProducts(
   filters: ShopFilters = {},
-  options: { shopifyProductIds?: string[]; limit?: number } = {},
+  options: { shopifyProductIds?: string[]; limit?: number; locale?: Locale } = {},
 ) {
   if (options.shopifyProductIds?.length === 0) return [];
-  const locale = await getRequestLocale();
+  const locale = options.locale ?? await getRequestLocale();
   const contentLocale = storefrontLocaleToContentLocale(locale);
   const q = filters.q?.trim();
   const sort = normalizeShopSort(filters.sort);
@@ -669,12 +701,18 @@ export async function listShopProducts(
             select: {
               slug: true,
               name: true,
+              description: true,
+              manifesto: true,
               symbolismLabel: true,
               symbolismTitle: true,
               symbolismBody: true,
               symbolismBody2: true,
+              searchSummary: true,
+              seoTitle: true,
+              seoDescription: true,
               isPrimaryNav: true,
               isStorefrontDefault: true,
+              translations: true,
             },
           },
         },
@@ -723,8 +761,8 @@ export async function listShopProducts(
         : localizedProducts;
 }
 
-export async function getProductBySlug(slug: string) {
-  const locale = await getRequestLocale();
+export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
+  const locale = requestedLocale ?? await getRequestLocale();
   const product = await db.product.findUnique({
     where: { slug },
     include: {
@@ -739,12 +777,18 @@ export async function getProductBySlug(slug: string) {
             select: {
               slug: true,
               name: true,
+              description: true,
+              manifesto: true,
               symbolismLabel: true,
               symbolismTitle: true,
               symbolismBody: true,
               symbolismBody2: true,
+              searchSummary: true,
+              seoTitle: true,
+              seoDescription: true,
               isPrimaryNav: true,
               isStorefrontDefault: true,
+              translations: true,
             },
           },
         },
@@ -766,12 +810,12 @@ export async function getProductBySlug(slug: string) {
   return toSummary(product, locale);
 }
 
-export async function getProductsByCollection(slug: string) {
-  return listShopProducts({ collection: slug });
+export async function getProductsByCollection(slug: string, locale?: Locale) {
+  return listShopProducts({ collection: slug }, { locale });
 }
 
-export async function getPageBySlug(slug: string) {
-  const locale = await getRequestLocale();
+export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
+  const locale = requestedLocale ?? await getRequestLocale();
   const page = await db.page.findUnique({
     where: { slug },
   });

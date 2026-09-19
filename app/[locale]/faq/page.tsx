@@ -7,7 +7,8 @@ import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [{ t, locale }, page] = await Promise.all([getServerTranslations(), getPageBySlug("faq")]);
+  const { t, locale } = await getServerTranslations();
+  const page = await getPageBySlug("faq", locale);
   const title = t("service.faq.metaTitle");
   const description = t("service.faq.metaDescription");
   return {
@@ -24,7 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function FaqPage() {
-  const [{ t }, page] = await Promise.all([getServerTranslations(), getPageBySlug("faq")]);
+  const { t, locale } = await getServerTranslations();
+  const page = await getPageBySlug("faq", locale);
   return <ServicePage eyebrow={t("service.faq.eyebrow")} title={t("service.faq.title")} intro={t("service.faq.intro")} sections={[
     { title: t("service.faq.sections.makerTitle"), body: t("service.faq.sections.makerBody") },
     { title: t("service.faq.sections.availabilityTitle"), body: t("service.faq.sections.availabilityBody") },

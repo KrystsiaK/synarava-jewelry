@@ -8,7 +8,8 @@ import { buildAlternates } from "@/lib/seo/alternates";
 import { AboutPage } from "@/components/about/about-page";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [page, locale] = await Promise.all([getPageBySlug("about"), getRequestLocale()]);
+  const locale = await getRequestLocale();
+  const page = await getPageBySlug("about", locale);
   const content = page?.content ?? {};
 
   return {
@@ -27,7 +28,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [page, videos] = await Promise.all([getPageBySlug("about"), getSiteVideos()]);
+  const locale = await getRequestLocale();
+  const [page, videos] = await Promise.all([getPageBySlug("about", locale), getSiteVideos()]);
   const content = page?.content ?? {};
 
   return (

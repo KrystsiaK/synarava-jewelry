@@ -25,7 +25,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [resolved, locale] = await Promise.all([params, getRequestLocale()]);
   const key = resolved.slug ?? resolved.id ?? "";
-  const product = await getProductBySlug(key);
+  const product = await getProductBySlug(key, locale);
 
   if (!product) return { title: "Product" };
 
@@ -48,7 +48,7 @@ export default async function ProductDetailPage({ params }: Props) {
   const [resolved, locale] = await Promise.all([params, getRequestLocale()]);
   const key = resolved.slug ?? resolved.id ?? "";
   const [product, videos, reviews, isSignedIn] = await Promise.all([
-    getProductBySlug(key),
+    getProductBySlug(key, locale),
     getSiteVideos(),
     getProductReviewsBySlug(key),
     hasShopifyCustomerSession(),
@@ -60,8 +60,8 @@ export default async function ProductDetailPage({ params }: Props) {
     ? await getShopifyRelatedProductIds(product.shopifyProductId).catch(() => [])
     : [];
   const [rankedProducts, categoryProducts] = await Promise.all([
-    relatedIds.length ? listShopProducts({}, { shopifyProductIds: relatedIds, limit: relatedIds.length }) : Promise.resolve([]),
-    product.categorySlug ? listShopProducts({ category: product.categorySlug }, { limit: 9 }) : Promise.resolve([]),
+    relatedIds.length ? listShopProducts({}, { shopifyProductIds: relatedIds, limit: relatedIds.length, locale }) : Promise.resolve([]),
+    product.categorySlug ? listShopProducts({ category: product.categorySlug }, { limit: 9, locale }) : Promise.resolve([]),
   ]);
   const relatedProducts = pickRelatedProducts(product, [...rankedProducts, ...categoryProducts], relatedIds);
 

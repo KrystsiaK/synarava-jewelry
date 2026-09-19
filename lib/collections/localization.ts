@@ -91,6 +91,15 @@ export function findCollectionTranslation(collection: LocalizableCollection, loc
   return collection.translations?.find((translation) => translation.locale === persistedLocale) ?? null;
 }
 
+export function resolveCollectionName(
+  collection: { name: string; translations?: Array<{ locale: "EN" | "PT"; name: string }> },
+  locale: Locale,
+) {
+  if (locale === "en") return collection.name;
+  return collection.translations?.find(({ locale: rowLocale }) => rowLocale === "PT")?.name.trim()
+    || collection.name;
+}
+
 export function resolveCollectionCopy(collection: LocalizableCollection, locale: Locale): CollectionLocalizedCopy {
   const source = sourceCopy(collection);
   if (locale === "en") return source;

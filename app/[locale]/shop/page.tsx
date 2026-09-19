@@ -4,21 +4,27 @@ import { getPageBySlug, getShopFilterData, listBestSellingShopifyProductIds } fr
 import { listShopListingProducts } from "@/lib/content/shop-listing";
 import { ShopPage } from "@/components/shop/shop-page";
 import { normalizeShopSort } from "@/lib/catalog/shop-sort";
-import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
+import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("shop")]);
+  const { locale, t } = await getServerTranslations();
+  const page = await getPageBySlug("shop", locale);
   const heroImage = page?.content.heroImage;
+  const { title, description } = localizedPageMetadataCopy({
+    page,
+    fallbackTitle: t("nav.shop"),
+    fallbackDescription: t("shop.heroDescription"),
+  });
   return {
-    title: "Shop",
-    description:
-      "Browse Synarava jewelry, pet accessories, creative kits for kids, and jewelry-making supplies.",
+    title,
+    description,
     alternates: buildAlternates(locale, "/shop"),
     openGraph: {
       url: localePath(locale, "/shop"),
-      images: [{ url: heroImage || "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Shop" }],
+      images: [{ url: heroImage || "/og-default.jpg", width: 1200, height: 630, alt: `Synarava — ${title}` }],
     },
   };
 }
@@ -46,12 +52,12 @@ export default async function Page({ searchParams }: Props) {
     availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
     sort: normalizeShopSort(rawFilters.sort),
   };
-  const [{ departments, categories, tags, collections, materials, finishes, origins }, archiveProducts, bestSellingShopifyProductIds, { t }, page] = await Promise.all([
-    getShopFilterData(),
-    listShopListingProducts(),
+  const { t, locale } = await getServerTranslations();
+  const [{ departments, categories, tags, collections, materials, finishes, origins }, archiveProducts, bestSellingShopifyProductIds, page] = await Promise.all([
+    getShopFilterData(locale),
+    listShopListingProducts(locale),
     listBestSellingShopifyProductIds(),
-    getServerTranslations(),
-    getPageBySlug("shop"),
+    getPageBySlug("shop", locale),
   ]);
 
   const categoryTiles = categories.flatMap((category) => {

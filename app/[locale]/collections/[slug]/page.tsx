@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getCollectionBySlug, getProductsByCollection } from "@/lib/content/catalog";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { buildAlternates } from "@/lib/seo/alternates";
@@ -41,9 +41,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
-  const [collection, products] = await Promise.all([
+  const [{ t }, collection, products] = await Promise.all([
+    getServerTranslations(),
     getCollectionBySlug(slug, locale),
-    getProductsByCollection(slug),
+    getProductsByCollection(slug, locale),
   ]);
 
   if (!collection) notFound();
@@ -53,8 +54,8 @@ export default async function Page({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: new URL(localePath(locale, "/"), siteUrl).toString() },
-      { "@type": "ListItem", position: 2, name: "Collections", item: new URL(localePath(locale, "/collections"), siteUrl).toString() },
+      { "@type": "ListItem", position: 1, name: t("nav.home"), item: new URL(localePath(locale, "/"), siteUrl).toString() },
+      { "@type": "ListItem", position: 2, name: t("nav.collections"), item: new URL(localePath(locale, "/collections"), siteUrl).toString() },
       { "@type": "ListItem", position: 3, name: collection.name, item: new URL(localePath(locale, `/collections/${slug}`), siteUrl).toString() },
     ],
   };

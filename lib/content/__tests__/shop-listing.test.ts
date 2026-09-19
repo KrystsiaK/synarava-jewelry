@@ -61,4 +61,30 @@ describe("shop listing projection", () => {
     expect(select).not.toHaveProperty("media");
     expect(select.variants.select).not.toHaveProperty("selectedOptions");
   });
+
+  it("projects translated department names when an explicit Portuguese locale is supplied", async () => {
+    rows.push({
+      slug: "anel", sku: "ANEL-1", shopifyProductId: null, name: "Ring", seriesLabel: null,
+      shortDescription: "English", description: "English", materialLine: null,
+      searchSummary: null, searchDocument: null, currency: "EUR", priceCents: 1000,
+      imageUrl: "/ring.webp", shopifyCategoryId: null, shopifyCategoryName: null,
+      createdAt: new Date("2026-01-01"),
+      translations: [{ title: "Anel", shortDescription: "Português", description: "Português", materialLine: null }],
+      variants: [{ status: "ACTIVE", stockOnHand: 1, inventoryPolicy: "DENY", tracked: true, priceCents: 1000, compareAtCents: null }],
+      tags: [],
+      collections: [{
+        sortOrder: 0,
+        collection: {
+          slug: "jewelry", name: "Jewelry", isPrimaryNav: true, isStorefrontDefault: false,
+          translations: [{ locale: "PT", name: "Joalharia" }],
+        },
+      }],
+      characteristics: [],
+    });
+
+    await expect(listShopListingProducts("pt")).resolves.toMatchObject([{
+      title: "Anel",
+      departmentName: "Joalharia",
+    }]);
+  });
 });

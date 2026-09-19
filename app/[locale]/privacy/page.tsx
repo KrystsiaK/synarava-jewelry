@@ -16,7 +16,8 @@ import {
 } from "@/lib/content/privacy-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("privacy")]);
+  const locale = await getRequestLocale();
+  const page = await getPageBySlug("privacy", locale);
   const base = locale === "pt" ? {
     title: "Política de Privacidade | Synarava",
     description: "Como a Synarava recolhe, utiliza e protege os seus dados pessoais.",
@@ -39,7 +40,8 @@ export default async function PrivacyPage() {
   const legalName = process.env.NEXT_PUBLIC_LEGAL_NAME ?? "Synarava Jewelry";
   const postalAddress = process.env.NEXT_PUBLIC_LEGAL_POSTAL_ADDRESS;
   const privacyEmail = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "studio@synarava.com";
-  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("privacy")]);
+  const locale = await getRequestLocale();
+  const page = await getPageBySlug("privacy", locale);
   const heroImage = page?.content.heroImage;
   const homeHref = localePath(locale, "/");
   const offerHref = localePath(locale, "/offer");

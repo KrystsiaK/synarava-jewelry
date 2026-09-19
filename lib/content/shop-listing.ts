@@ -5,6 +5,8 @@ import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { formatCurrency } from "@/lib/i18n/format";
 import { resolveLocalizedContent, storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 import { getRequestLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/locales";
+import { resolveCollectionName } from "@/lib/collections/localization";
 
 /** Fields used by shop cards, discovery, sorting and client-side filters. */
 export type ShopListingProduct = {
@@ -35,8 +37,8 @@ function categoryLeafLabel(fullName: string | null) {
   return fullName?.split(">").at(-1)?.trim() ?? "";
 }
 
-export async function listShopListingProducts(): Promise<ShopListingProduct[]> {
-  const locale = await getRequestLocale();
+export async function listShopListingProducts(requestedLocale?: Locale): Promise<ShopListingProduct[]> {
+  const locale = requestedLocale ?? await getRequestLocale();
   const rows = await db.product.findMany({
     where: { status: "ACTIVE", visibility: "PUBLIC" },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
@@ -76,7 +78,15 @@ export async function listShopListingProducts(): Promise<ShopListingProduct[]> {
       collections: {
         select: {
           sortOrder: true,
-          collection: { select: { slug: true, name: true, isPrimaryNav: true, isStorefrontDefault: true } },
+          collection: {
+            select: {
+              slug: true,
+              name: true,
+              isPrimaryNav: true,
+              isStorefrontDefault: true,
+              translations: { select: { locale: true, name: true } },
+            },
+          },
         },
       },
       characteristics: {
@@ -108,6 +118,7 @@ export async function listShopListingProducts(): Promise<ShopListingProduct[]> {
       const priceCents = primaryVariant?.priceCents ?? row.priceCents;
       const compareAtCents = primaryVariant?.compareAtCents ?? null;
       const department = row.collections.find((item) => item.collection.isPrimaryNav)?.collection;
+      const departmentName = department ? resolveCollectionName(department, locale) : "";
       return {
         shopifyProductId: row.shopifyProductId,
         slug: row.slug,
@@ -123,11 +134,11 @@ export async function listShopListingProducts(): Promise<ShopListingProduct[]> {
         searchText: [
           row.slug, row.sku, row.seriesLabel, row.searchSummary, row.searchDocument,
           copy.title, copy.shortDescription, copy.description, copy.materialLine,
-          row.shopifyCategoryName, department?.name,
+          row.shopifyCategoryName, departmentName,
           ...row.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
         ].filter(Boolean).join(" "),
         departmentSlug: department?.slug ?? null,
-        departmentName: department?.name ?? "",
+        departmentName,
         categorySlug: row.shopifyCategoryId,
         categoryName: categoryLeafLabel(row.shopifyCategoryName),
         collectionSlugs: row.collections.map((item) => item.collection.slug),

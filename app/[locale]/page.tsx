@@ -13,7 +13,8 @@ import { buildAlternates } from "@/lib/seo/alternates";
 import { HomePage } from "@/components/home/home-page";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [page, locale] = await Promise.all([getPageBySlug("home"), getRequestLocale()]);
+  const locale = await getRequestLocale();
+  const page = await getPageBySlug("home", locale);
   const content = page?.content ?? {};
 
   return {
@@ -34,10 +35,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Page() {
   const locale = await getRequestLocale();
   const [page, collectionData, videos, products, navigation] = await Promise.all([
-    getPageBySlug("home"),
+    getPageBySlug("home", locale),
     listCollections(locale),
     getSiteVideos(),
-    listShopListingProducts(),
+    listShopListingProducts(locale),
     getStorefrontNavigation(locale),
   ]);
 

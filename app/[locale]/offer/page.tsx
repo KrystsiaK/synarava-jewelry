@@ -14,9 +14,12 @@ import {
 } from "@/lib/content/offer-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("offer")]);
-  const title = "Public Offer Agreement | Synarava";
-  const description = "Terms of the public offer for the purchase of Synarava Jewelry products.";
+  const locale = await getRequestLocale();
+  const page = await getPageBySlug("offer", locale);
+  const title = page?.title || (locale === "pt" ? "Condições gerais de venda | Synarava" : "Public Offer Agreement | Synarava");
+  const description = page?.excerpt || (locale === "pt"
+    ? "Condições gerais para a compra de produtos Synarava."
+    : "Terms of the public offer for the purchase of Synarava Jewelry products.");
   return {
     title,
     description,
@@ -31,7 +34,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function OfferPage() {
-  const [locale, page] = await Promise.all([getRequestLocale(), getPageBySlug("offer")]);
+  const locale = await getRequestLocale();
+  const page = await getPageBySlug("offer", locale);
   const heroImage = page?.content.heroImage;
   const homeHref = localePath(locale, "/");
   const privacyHref = localePath(locale, "/privacy");
@@ -44,16 +48,16 @@ export default async function OfferPage() {
     <LegalDocumentPage
       heroImage={heroImage}
       eyebrowLabel="Legal"
-      title="Public Offer Agreement"
+      title={page?.title || (locale === "pt" ? "Condições gerais de venda" : "Public Offer Agreement")}
       intro={intro}
-      lastUpdatedLabel="Last updated"
+      lastUpdatedLabel={locale === "pt" ? "Última atualização" : "Last updated"}
       lastUpdated={lastUpdated}
-      contentsLabel="Contents"
+      contentsLabel={locale === "pt" ? "Índice" : "Contents"}
       sections={sections}
       backHref={homeHref}
-      backLabel="← Back to store"
+      backLabel={locale === "pt" ? "← Voltar à loja" : "← Back to store"}
       nextHref={privacyHref}
-      nextLabel="Privacy Policy →"
+      nextLabel={locale === "pt" ? "Política de privacidade →" : "Privacy Policy →"}
     />
   );
 }
