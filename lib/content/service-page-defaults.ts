@@ -5,7 +5,7 @@ import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 // the fallback values when a field has never been touched in Admin, not
 // placeholder text.
 
-export type ServicePageSlug = "care" | "faq" | "returns" | "shipping";
+export type ServicePageSlug = "care" | "faq" | "returns" | "shipping" | "dispute-resolution";
 
 export type ServicePageIntroDefaults = { eyebrow: string; intro: string };
 
@@ -34,6 +34,10 @@ export const SERVICE_SECTIONS: Record<ServicePageSlug, LegalSectionMeta[]> = {
     { id: "tracking", label: "Tracking" },
     { id: "duties", label: "Duties and taxes" },
   ],
+  "dispute-resolution": [
+    { id: "ral", label: "Alternative dispute resolution" },
+    { id: "odr", label: "Online dispute resolution" },
+  ],
 };
 
 export const SERVICE_PAGE_TITLE_DEFAULTS_EN: Record<ServicePageSlug, string> = {
@@ -41,6 +45,7 @@ export const SERVICE_PAGE_TITLE_DEFAULTS_EN: Record<ServicePageSlug, string> = {
   faq: "Before you choose",
   returns: "A considered return",
   shipping: "From the studio to you",
+  "dispute-resolution": "Consumer dispute resolution",
 };
 
 export const SERVICE_PAGE_TITLE_DEFAULTS_PT: Record<ServicePageSlug, string> = {
@@ -48,6 +53,7 @@ export const SERVICE_PAGE_TITLE_DEFAULTS_PT: Record<ServicePageSlug, string> = {
   faq: "Antes de escolher",
   returns: "Uma devolução ponderada",
   shipping: "Do estúdio até si",
+  "dispute-resolution": "Resolução de litígios de consumo",
 };
 
 export const SERVICE_PAGE_INTRO_DEFAULTS_EN: Record<ServicePageSlug, ServicePageIntroDefaults> = {
@@ -67,6 +73,10 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_EN: Record<ServicePageSlug, ServicePage
     eyebrow: "Service / Shipping",
     intro: "Available delivery methods, costs, and the final estimate are shown at checkout for your destination.",
   },
+  "dispute-resolution": {
+    eyebrow: "Service / Consumer rights",
+    intro: "If we cannot resolve a complaint directly, Portuguese and EU law give you access to the following alternative dispute resolution channels.",
+  },
 };
 
 export const SERVICE_PAGE_INTRO_DEFAULTS_PT: Record<ServicePageSlug, ServicePageIntroDefaults> = {
@@ -85,6 +95,10 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_PT: Record<ServicePageSlug, ServicePage
   shipping: {
     eyebrow: "Serviço / Envios",
     intro: "Os métodos disponíveis, os custos e a estimativa final são apresentados no checkout para o seu destino.",
+  },
+  "dispute-resolution": {
+    eyebrow: "Serviço / Direitos do consumidor",
+    intro: "Se não conseguirmos resolver uma reclamação diretamente, a lei portuguesa e europeia dá-lhe acesso aos seguintes meios de resolução alternativa de litígios.",
   },
 };
 
@@ -161,6 +175,16 @@ export const SERVICE_SECTION_DEFAULTS_EN: Record<ServicePageSlug, Record<string,
       body: "International orders may be subject to local duties or import taxes. Any amount not collected at checkout is determined by the destination country.",
     },
   },
+  "dispute-resolution": {
+    ral: {
+      title: "Alternative dispute resolution (RAL)",
+      body: "As a consumer, you may refer an unresolved dispute to the Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), a licensed alternative dispute resolution entity.\n\nRua dos Douradores, 116, 2.º, 1100-207 Lisboa, Portugal\nTel: +351 218 807 030 · Email: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
+    },
+    odr: {
+      title: "Online dispute resolution (ODR)",
+      body: "For purchases made online, you can also use the European Commission's Online Dispute Resolution platform to submit a complaint: ec.europa.eu/consumers/odr. You can also register any complaint in the Livro de Reclamações at livroreclamacoes.pt.",
+    },
+  },
 };
 
 export const SERVICE_SECTION_DEFAULTS_PT: Record<ServicePageSlug, Record<string, LegalSectionDefault>> = {
@@ -234,6 +258,16 @@ export const SERVICE_SECTION_DEFAULTS_PT: Record<ServicePageSlug, Record<string,
     duties: {
       title: "Direitos e impostos",
       body: "Encomendas internacionais podem estar sujeitas a direitos ou impostos de importação locais. Qualquer valor não cobrado no checkout é determinado pelo país de destino.",
+    },
+  },
+  "dispute-resolution": {
+    ral: {
+      title: "Resolução alternativa de litígios (RAL)",
+      body: "Enquanto consumidor, pode recorrer ao Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), uma entidade de resolução alternativa de litígios licenciada, para litígios que não consigamos resolver diretamente.\n\nRua dos Douradores, 116, 2.º, 1100-207 Lisboa, Portugal\nTel: +351 218 807 030 · Email: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
+    },
+    odr: {
+      title: "Resolução de litígios em linha (RLL)",
+      body: "Para compras feitas online, também pode utilizar a plataforma de Resolução de Litígios em Linha da Comissão Europeia: ec.europa.eu/consumers/odr. Pode também registar qualquer reclamação no Livro de Reclamações Eletrónico em livroreclamacoes.pt.",
     },
   },
 };

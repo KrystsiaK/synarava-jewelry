@@ -87,22 +87,36 @@ export function SiteFooter() {
       <FooterOrnamentDivider />
 
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-stroke pt-6 text-center md:col-span-4 md:justify-start md:border-t md:pt-6 md:text-left">
-        <Link href={localePath(locale, "/privacy")} className="label-mono text-muted transition-colors hover:text-foreground">
+        <Link href={localePath(locale, "/offer")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
+          {t("footer.termsConditions")}
+        </Link>
+        <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
+        <Link href={localePath(locale, "/privacy")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
           {t("footer.privacyPolicy")}
         </Link>
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
         <PrivacySettingsButton />
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
-        <Link href={localePath(locale, "/offer")} className="label-mono text-muted transition-colors hover:text-foreground">
-          {t("footer.publicOffer")}
+        <Link href={localePath(locale, "/shipping")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
+          {t("footer.shippingPolicy")}
         </Link>
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
-        <p className="label-mono text-muted/60">
-          {t("footer.offerGovernedBy")}{" "}
-          <Link href={localePath(locale, "/offer")} className="underline underline-offset-4 transition-colors hover:text-foreground">
-            {t("footer.offerTerms")}
-          </Link>
-        </p>
+        <Link href={localePath(locale, "/returns")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
+          {t("footer.returnPolicy")}
+        </Link>
+        <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
+        <a
+          href="https://www.livroreclamacoes.pt/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="label-mono py-1 text-muted transition-colors hover:text-foreground"
+        >
+          {t("footer.livroReclamacoes")}
+        </a>
+        <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
+        <Link href={localePath(locale, "/dispute-resolution")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
+          {t("footer.disputeResolution")}
+        </Link>
       </div>
     </footer>
   );

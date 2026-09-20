@@ -30,9 +30,11 @@
     "contact": "Contact",
     "privacyPolicy": "Privacy Policy",
     "cookieSettings": "Cookie settings",
-    "publicOffer": "Public Offer Agreement",
-    "offerGovernedBy": "All purchases are governed by our",
-    "offerTerms": "offer terms",
+    "termsConditions": "Terms & Conditions",
+    "shippingPolicy": "Shipping Policy",
+    "returnPolicy": "Return & Refund Policy",
+    "livroReclamacoes": "Livro de Reclamações",
+    "disputeResolution": "Consumer Dispute Resolution",
     "copyright": "© 2026 Synarava."
   },
   "privacyConsent": {
@@ -521,6 +523,10 @@
     "faq": {
       "metaTitle": "FAQ",
       "metaDescription": "Answers to common questions about the Synarava shop."
+    },
+    "disputeResolution": {
+      "metaTitle": "Consumer Dispute Resolution",
+      "metaDescription": "Alternative and online dispute resolution channels available to Synarava customers."
     }
   }
 }

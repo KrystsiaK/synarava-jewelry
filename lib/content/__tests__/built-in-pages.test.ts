@@ -15,6 +15,7 @@ describe("built-in page definitions", () => {
       "faq",
       "offer",
       "privacy",
+      "dispute-resolution",
     ]);
   });
 

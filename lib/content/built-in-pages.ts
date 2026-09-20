@@ -9,6 +9,7 @@ export const BUILT_IN_PAGE_DEFINITIONS = [
   { slug: "faq", title: "FAQ", template: "STATIC_PAGE" },
   { slug: "offer", title: "Public Offer Agreement", template: "STATIC_PAGE" },
   { slug: "privacy", title: "Privacy Policy", template: "STATIC_PAGE" },
+  { slug: "dispute-resolution", title: "Consumer Dispute Resolution", template: "STATIC_PAGE" },
 ] as const;
 
 const BUILT_IN_PAGE_SLUGS = new Set<string>(

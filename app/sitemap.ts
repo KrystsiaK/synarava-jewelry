@@ -39,6 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/faq", changeFrequency: "monthly", priority: 0.5 },
     { path: "/privacy", changeFrequency: "monthly", priority: 0.4 },
     { path: "/offer", changeFrequency: "monthly", priority: 0.4 },
+    { path: "/dispute-resolution", changeFrequency: "yearly", priority: 0.3 },
   ];
 
   let dynamicEntries: RouteEntry[] = [];

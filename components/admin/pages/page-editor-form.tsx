@@ -395,7 +395,7 @@ export function PageEditor({
             <div>
               <h3 id="service-sections-heading" className="adm-title-sm">Page sections</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                These four fixed sections render on /{page.slug} in this order. Leave a title or body empty to fall back to the shipped default text.
+                These fixed sections render on /{page.slug} in this order. Leave a title or body empty to fall back to the shipped default text.
               </p>
             </div>
             {serviceSections.map((section, index) => {
