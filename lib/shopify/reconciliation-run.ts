@@ -366,65 +366,81 @@ export async function runTranslationReconciliation({
     };
   }
 
-  const bindings = await db.shopifyTranslationBinding.findMany({
-    where: scope?.bindingId ? { id: scope.bindingId } : undefined,
-    orderBy: { createdAt: "asc" },
-  });
+  try {
+    const bindings = await db.shopifyTranslationBinding.findMany({
+      where: scope?.bindingId ? { id: scope.bindingId } : undefined,
+      orderBy: { createdAt: "asc" },
+    });
 
-  let checkedCount = 0;
-  let differenceCount = 0;
-  const failures: string[] = [];
+    let checkedCount = 0;
+    let differenceCount = 0;
+    const failures: string[] = [];
 
-  // Intentionally sequential for the first rollout: a background check is
-  // less valuable than predictable Shopify throttling behavior. A bounded
-  // concurrency pool can be added after observing real run timings.
-  for (const binding of bindings) {
-    let state: Awaited<ReturnType<typeof fetchResourceTranslationState>>;
-    try {
-      state = await fetchResourceTranslationState(binding.shopifyResourceId, SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
-      if (!state) throw new Error("Shopify no longer exposes this resource as translatable.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      failures.push(`${binding.entityId}: ${message}`);
-      continue;
-    }
-
-    for (const locale of locales) {
+    // Intentionally sequential for the first rollout: a background check is
+    // less valuable than predictable Shopify throttling behavior. A bounded
+    // concurrency pool can be added after observing real run timings.
+    for (const binding of bindings) {
+      let state: Awaited<ReturnType<typeof fetchResourceTranslationState>>;
       try {
-        const subject = await loadReconcileSubject(binding, locale);
-        if (!subject || !scopeMatches(scope, binding.id, subject)) continue;
-
-        const translations = locale === "en"
-          ? sourceContentAsRemoteValues(state.translatableContent)
-          : state.translations;
-        const remote = projectRemoteTranslationWithMetadata(subject.registry, translations);
-        const base = await lastSnapshot(binding.id, binding.lastSyncedSnapshot, locale);
-        const plan = planReconcile(subject.registry, base, subject.local, remote.values, remote.metadata);
-        await persistDifferences({
-          runId,
-          bindingId: binding.id,
-          subject,
-          locale,
-          differences: plan.differences,
-        });
-        checkedCount += 1;
-        differenceCount += plan.differences.length;
+        state = await fetchResourceTranslationState(binding.shopifyResourceId, SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+        if (!state) throw new Error("Shopify no longer exposes this resource as translatable.");
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        failures.push(`${binding.entityId} (${locale}): ${message}`);
+        failures.push(`${binding.entityId}: ${message}`);
+        continue;
+      }
+
+      for (const locale of locales) {
+        try {
+          const subject = await loadReconcileSubject(binding, locale);
+          if (!subject || !scopeMatches(scope, binding.id, subject)) continue;
+
+          const translations = locale === "en"
+            ? sourceContentAsRemoteValues(state.translatableContent)
+            : state.translations;
+          const remote = projectRemoteTranslationWithMetadata(subject.registry, translations);
+          const base = await lastSnapshot(binding.id, binding.lastSyncedSnapshot, locale);
+          const plan = planReconcile(subject.registry, base, subject.local, remote.values, remote.metadata);
+          await persistDifferences({
+            runId,
+            bindingId: binding.id,
+            subject,
+            locale,
+            differences: plan.differences,
+          });
+          checkedCount += 1;
+          differenceCount += plan.differences.length;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          failures.push(`${binding.entityId} (${locale}): ${message}`);
+        }
       }
     }
+
+    const error = failures.length > 0
+      ? `${failures.length} check${failures.length === 1 ? "" : "s"} could not be completed. ${failures.slice(0, 3).join(" ")}`
+      : null;
+    const status: ReconcileRunStatus = failures.length === 0 ? "SUCCEEDED" : checkedCount > 0 ? "PARTIAL" : "FAILED";
+
+    return {
+      run: await finishRun(runId, { status, checkedCount, differenceCount, error }),
+      reused: false,
+    };
+  } catch (error) {
+    // Anything unexpected here (DB hiccup, a bug) must still close out the
+    // run — otherwise it's stuck RUNNING forever and every future check
+    // (auto or manual) just reuses that dead run instead of retrying.
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      run: await finishRun(runId, {
+        status: "FAILED",
+        checkedCount: 0,
+        differenceCount: 0,
+        error: message,
+      }),
+      reused: false,
+    };
   }
-
-  const error = failures.length > 0
-    ? `${failures.length} check${failures.length === 1 ? "" : "s"} could not be completed. ${failures.slice(0, 3).join(" ")}`
-    : null;
-  const status: ReconcileRunStatus = failures.length === 0 ? "SUCCEEDED" : checkedCount > 0 ? "PARTIAL" : "FAILED";
-
-  return {
-    run: await finishRun(runId, { status, checkedCount, differenceCount, error }),
-    reused: false,
-  };
 }
 
 export async function hasSessionReconciled(sessionId: string) {
