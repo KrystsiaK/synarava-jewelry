@@ -32,11 +32,7 @@ export function CartSummaryPanel({
       </div>
 
       <div className="mt-7 border-y border-stroke">
-        <div className="flex items-center justify-between py-4 text-sm">
-          <span className="text-foreground/62">{t("cart.selected")}</span>
-          <span className="font-semibold text-foreground">{itemCount}</span>
-        </div>
-        <div className="flex items-end justify-between gap-4 border-t border-stroke py-5">
+        <div className="flex items-end justify-between gap-4 py-5">
           <span className="text-sm text-foreground/62">{t("cart.subtotal")}</span>
           <span className="font-serif text-[1.75rem] leading-none text-foreground">{subtotal}</span>
         </div>

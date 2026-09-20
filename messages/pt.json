@@ -246,16 +246,16 @@
   "cart": {
     "emptyTitleLead": "Ainda não selecionou",
     "emptyTitleAccent": "nada.",
-    "emptyBody": "Explore a loja e escolha o produto certo para si. Pode voltar aqui e continuar como convidado—sem precisar de conta.",
+    "emptyBody": "Explore a loja e encontre algo que combine consigo.",
     "browse": "Ver produtos",
-    "eyebrow": "Seleção",
+    "eyebrow": "A sua seleção",
     "backToAccount": "Voltar à minha conta",
     "titleLead": "O seu",
     "titleAccent": "Carrinho",
-    "description": "Pode continuar para a entrega sem criar conta; se iniciar sessão, o carrinho mantém-se associado à sua conta.",
-    "secureCheckout": "Checkout seguro",
+    "description": "Reveja a sua seleção antes de continuar para o checkout.",
+    "secureCheckout": "Checkout",
     "continueDelivery": "Continuar para a entrega",
-    "shopifyNote": "A entrega e o pagamento são concluídos de forma segura no checkout. É possível comprar como convidado.",
+    "shopifyNote": "As opções e custos de entrega são apresentados no checkout, antes do pagamento.",
     "localNote": "Primeiro introduza os dados de entrega. Pode iniciar sessão ou continuar como convidado.",
     "continueShopping": "Continuar a comprar",
     "decrease": "Diminuir quantidade",
@@ -268,7 +268,6 @@
       "one": "{count} produto",
       "other": "{count} produtos"
     },
-    "selected": "Produtos selecionados",
     "subtotal": "Subtotal"
   },
   "checkout": {

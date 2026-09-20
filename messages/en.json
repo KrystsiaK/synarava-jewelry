@@ -246,16 +246,16 @@
   "cart": {
     "emptyTitleLead": "Nothing selected",
     "emptyTitleAccent": "yet.",
-    "emptyBody": "Explore the shop and choose a product that feels right. You can return here and continue as a guest—no account required.",
+    "emptyBody": "Explore the shop and find something that feels right for you.",
     "browse": "Browse products",
-    "eyebrow": "Selection",
+    "eyebrow": "Your selection",
     "backToAccount": "Back to My Account",
     "titleLead": "Your",
     "titleAccent": "Cart",
-    "description": "Guests can continue to delivery without registering, and signed-in users keep the same cart after login.",
-    "secureCheckout": "Secure checkout",
+    "description": "Review your selection before continuing to checkout.",
+    "secureCheckout": "Checkout",
     "continueDelivery": "Continue to delivery",
-    "shopifyNote": "Delivery and payment are completed securely at checkout. Guest checkout is available.",
+    "shopifyNote": "Delivery options and costs are shown at checkout before payment.",
     "localNote": "Delivery details come first. At checkout you can either sign in or continue as guest.",
     "continueShopping": "Continue shopping",
     "decrease": "Decrease quantity",
@@ -268,7 +268,6 @@
       "one": "{count} product",
       "other": "{count} products"
     },
-    "selected": "Selected products",
     "subtotal": "Subtotal"
   },
   "checkout": {

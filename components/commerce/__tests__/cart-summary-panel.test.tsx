@@ -6,7 +6,7 @@ describe("CartSummaryPanel", () => {
 
   it("renders item count and subtotal", () => {
     render(<CartSummaryPanel {...base} />);
-    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("2 products")).toBeInTheDocument();
     expect(screen.getByText("€480")).toBeInTheDocument();
   });
 
