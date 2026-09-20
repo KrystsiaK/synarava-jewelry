@@ -107,8 +107,17 @@ export default async function AdminLayout({
         </aside>
 
         {/* Content */}
-          <main className="admin-content p-4 md:p-6 xl:p-8">
-            {children}
+          {/* Top padding lives on this inner wrapper, not on .admin-content
+              itself: position:sticky insets are relative to the padding box
+              of the nearest scrolling ancestor, so a sticky child (the
+              locale tab strip) can never close a gap equal to its scroll
+              container's own padding-top. Left/right/bottom padding stay on
+              the scroll container since only the sticky-vs-top interaction
+              is affected. */}
+          <main className="admin-content px-4 pb-4 md:px-6 md:pb-6 xl:px-8 xl:pb-8">
+            <div className="pt-4 md:pt-6 xl:pt-8">
+              {children}
+            </div>
           </main>
         </div>
       </div>
