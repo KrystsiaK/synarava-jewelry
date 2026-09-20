@@ -318,7 +318,7 @@ function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipP
           alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, 55vw"
-          className="h-full w-full object-cover grayscale brightness-[0.7] transition-[filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:grayscale-0 hover:brightness-95"
+          className="h-full w-full object-cover grayscale brightness-[0.7] transition-[filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:grayscale-0 group-hover:brightness-95"
         />
       </motion.div>
     </div>
@@ -626,7 +626,11 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
 
         {/* Item 001: Left text block overlapping Right image */}
         <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-end">
-
+          <Link
+            href={items[0].href}
+            aria-label={`View ${items[0].title} collection`}
+            className="group contents"
+          >
           {/* Overlapping Text Card with Scroll reveal (loading effect) */}
           <motion.div
             ref={firstRecordRef}
@@ -681,24 +685,25 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
             transition={{ duration: 1.1, ease }}
             className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
           >
-            <Link
-              href={items[0].href}
-              aria-label={`View ${items[0].title} collection`}
-              className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
-            >
+            <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
               <ParallaxImage src={items[0].image} alt={items[0].title} clipPath="polygon(15% 5%, 95% 0, 100% 90%, 0% 100%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
                 View collection
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </span>
-            </Link>
+            </div>
           </motion.div>
+          </Link>
 
         </div>
 
         {/* Item 002: Right text block overlapping Left image */}
         <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-start">
-
+          <Link
+            href={items[1].href}
+            aria-label={`View ${items[1].title} collection`}
+            className="group contents"
+          >
           {/* Left Image with Scroll Reveal + Parallax scroll */}
           <motion.div
             initial={{ opacity: 0, y: 80 }}
@@ -707,17 +712,13 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
             transition={{ duration: 1.1, ease }}
             className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10"
           >
-            <Link
-              href={items[1].href}
-              aria-label={`View ${items[1].title} collection`}
-              className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
-            >
+            <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
               <ParallaxImage src={items[1].image} alt={items[1].title} clipPath="polygon(0 20%, 100% 0, 85% 100%, 5% 80%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
                 View collection
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </span>
-            </Link>
+            </div>
           </motion.div>
 
           {/* Overlapping Text Card with Scroll reveal (loading effect) */}
@@ -766,12 +767,17 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
               aria-hidden="true"
             />
           </motion.div>
+          </Link>
 
         </div>
 
         {/* Item 003: Left text block overlapping Right image */}
         <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-end mt-12 md:mt-0">
-
+          <Link
+            href={items[2].href}
+            aria-label={`View ${items[2].title} collection`}
+            className="group contents"
+          >
           {/* Overlapping Text Card with Scroll reveal (loading effect) */}
           <motion.div
             ref={thirdRecordRef}
@@ -826,18 +832,15 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
             transition={{ duration: 1.1, ease }}
             className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
           >
-            <Link
-              href={items[2].href}
-              aria-label={`View ${items[2].title} collection`}
-              className="group relative block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
-            >
+            <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
               <ParallaxImage src={items[2].image} alt={items[2].title} clipPath="polygon(10% 0, 100% 10%, 90% 100%, 0% 90%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
                 View collection
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </span>
-            </Link>
+            </div>
           </motion.div>
+          </Link>
 
         </div>
 
