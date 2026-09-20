@@ -6,6 +6,16 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
+import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import {
+  SERVICE_SECTIONS,
+  SERVICE_SECTION_DEFAULTS_EN,
+  SERVICE_SECTION_DEFAULTS_PT,
+  SERVICE_PAGE_TITLE_DEFAULTS_EN,
+  SERVICE_PAGE_TITLE_DEFAULTS_PT,
+  SERVICE_PAGE_INTRO_DEFAULTS_EN,
+  SERVICE_PAGE_INTRO_DEFAULTS_PT,
+} from "@/lib/content/service-page-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
@@ -29,12 +39,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ShippingPage() {
-  const { t, locale } = await getServerTranslations();
+  const { locale } = await getServerTranslations();
   const page = await getPageBySlug("shipping", locale);
-  return <ServicePage eyebrow={t("service.shipping.eyebrow")} title={t("service.shipping.title")} intro={t("service.shipping.intro")} sections={[
-    { title: t("service.shipping.sections.optionsTitle"), body: t("service.shipping.sections.optionsBody") },
-    { title: t("service.shipping.sections.preparingTitle"), body: t("service.shipping.sections.preparingBody") },
-    { title: t("service.shipping.sections.trackingTitle"), body: t("service.shipping.sections.trackingBody") },
-    { title: t("service.shipping.sections.dutiesTitle"), body: t("service.shipping.sections.dutiesBody") },
-  ]} heroImage={page?.content.heroImage} />;
+  const content = page?.content;
+  const isPt = locale === "pt";
+  const introDefaults = (isPt ? SERVICE_PAGE_INTRO_DEFAULTS_PT : SERVICE_PAGE_INTRO_DEFAULTS_EN).shipping;
+
+  return (
+    <ServicePage
+      eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
+      title={page?.title || (isPt ? SERVICE_PAGE_TITLE_DEFAULTS_PT : SERVICE_PAGE_TITLE_DEFAULTS_EN).shipping}
+      intro={resolveLegalText(content?.body, introDefaults.intro)}
+      sections={resolveLegalSections(
+        SERVICE_SECTIONS.shipping,
+        content?.serviceSections,
+        (isPt ? SERVICE_SECTION_DEFAULTS_PT : SERVICE_SECTION_DEFAULTS_EN).shipping,
+      )}
+      heroImage={content?.heroImage}
+    />
+  );
 }

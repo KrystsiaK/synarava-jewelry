@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 
 import {
@@ -19,8 +18,11 @@ import type { EditablePageContent, EditablePageCopy } from "@/components/admin/p
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
+import { SERVICE_SECTIONS, type ServicePageSlug } from "@/lib/content/service-page-defaults";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { DEFAULT_HOME_EDIT_PRODUCT_TITLES } from "@/lib/content/home-edit-section";
+
+const SERVICE_PAGE_SLUGS = Object.keys(SERVICE_SECTIONS) as ServicePageSlug[];
 
 export type HomeEditProductOption = {
   id: string;
@@ -66,6 +68,7 @@ type PageLocaleDraft = {
   finalContactLabel: string;
   legalIntro: string;
   legalSections: Record<string, { title: string; body: string }>;
+  serviceSections: Record<string, { title: string; body: string }>;
 };
 
 const emptyMaterial = (): MaterialDraft => ({ name: "", category: "", description: "", properties: "" });
@@ -107,6 +110,9 @@ function draftFromCopy(copy: EditablePageCopy): PageLocaleDraft {
     legalSections: Object.fromEntries(
       Object.entries(copy.legalSections ?? {}).map(([id, section]) => [id, { title: section.title ?? "", body: section.body ?? "" }]),
     ),
+    serviceSections: Object.fromEntries(
+      Object.entries(copy.serviceSections ?? {}).map(([id, section]) => [id, { title: section.title ?? "", body: section.body ?? "" }]),
+    ),
   };
 }
 
@@ -125,9 +131,11 @@ function localizedFieldName(locale: AdminLocale, key: string): string {
 function HiddenLocaleFields({
   draftByLocale,
   legalSectionIds,
+  serviceSectionIds,
 }: {
   draftByLocale: Record<AdminLocale, PageLocaleDraft>;
   legalSectionIds: string[];
+  serviceSectionIds: string[];
 }) {
   return (
     <div hidden>
@@ -172,6 +180,10 @@ function HiddenLocaleFields({
             const section = draft.legalSections[id] ?? { title: "", body: "" };
             return [field(`legal:${id}:title`, section.title), field(`legal:${id}:body`, section.body)];
           }),
+          ...serviceSectionIds.flatMap((id) => {
+            const section = draft.serviceSections[id] ?? { title: "", body: "" };
+            return [field(`service:${id}:title`, section.title), field(`service:${id}:body`, section.body)];
+          }),
         ];
       })}
     </div>
@@ -200,13 +212,16 @@ export function PageEditor({
   const isAboutPage = page.slug === "about";
   const isOfferPage = page.slug === "offer";
   const isPrivacyPage = page.slug === "privacy";
-  // These slugs render bespoke frontend components that read only title/excerpt (SEO meta)
-  // and content.heroImage — the generic copy fields below never reach the page.
-  const hideDeadCopyFields = ["shop", "care", "faq", "returns", "shipping", "collections"].includes(page.slug);
-  // These 5 (not "collections", which has no on-page CMS text at all) have their visible
-  // hero/eyebrow/intro/section copy edited on a different screen (Settings -> Copy), not here.
-  const onPageCopyGroupId = ["shop", "care", "faq", "returns", "shipping"].includes(page.slug) ? page.slug : null;
+  const isShopPage = page.slug === "shop";
+  const isCollectionsPage = page.slug === "collections";
+  const isServicePage = SERVICE_PAGE_SLUGS.includes(page.slug as ServicePageSlug);
+  // Shop and the 4 service pages render Title as their on-page H1 too (like home/about
+  // already do) — only Collections has literally no on-page CMS text to fall back on.
+  const titleIsMetaOnly = isCollectionsPage;
+  // CTA/Quote/Secondary-title/body never render on any of these three page kinds.
+  const hideDeadCopyFields = isShopPage || isServicePage || isCollectionsPage;
   const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
+  const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
   const { pushToast } = useAdminToast();
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, "EN");
   const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, PageLocaleDraft>>(() => ({
@@ -247,6 +262,19 @@ export function PageEditor({
     }));
   }
 
+  function updateServiceSection(sectionId: string, key: "title" | "body", value: string) {
+    setDraftByLocale((prev) => ({
+      ...prev,
+      [activeLocale]: {
+        ...prev[activeLocale],
+        serviceSections: {
+          ...prev[activeLocale].serviceSections,
+          [sectionId]: { ...(prev[activeLocale].serviceSections[sectionId] ?? { title: "", body: "" }), [key]: value },
+        },
+      },
+    }));
+  }
+
   function formAction(formData: FormData) {
     startTransition(async () => {
       const result = await savePageAction(formData);
@@ -262,7 +290,11 @@ export function PageEditor({
     <div data-component="PageEditor" className="adm-panel grid gap-5 p-5 md:p-6">
       <form ref={formRef} action={formAction} className="grid gap-5">
         <input type="hidden" name="slug" value={page.slug} />
-        <HiddenLocaleFields draftByLocale={draftByLocale} legalSectionIds={legalSections.map((section) => section.id)} />
+        <HiddenLocaleFields
+          draftByLocale={draftByLocale}
+          legalSectionIds={legalSections.map((section) => section.id)}
+          serviceSectionIds={serviceSections.map((section) => section.id)}
+        />
 
         <div
           className="flex flex-wrap items-start justify-between gap-4 pb-5"
@@ -292,20 +324,6 @@ export function PageEditor({
         />
         <AuthMessage error={state.error} />
 
-        {onPageCopyGroupId ? (
-          <p
-            className="text-xs leading-5"
-            style={{ color: "var(--adm-muted)" }}
-          >
-            Title/Excerpt below only feed the browser tab title and search-engine description — the headline,
-            description, and any body text visible on <strong>/{page.slug}</strong> itself are edited on{" "}
-            <Link href={`/admin/settings#copy-${onPageCopyGroupId}`} className="underline">
-              Settings → Copy
-            </Link>
-            .
-          </p>
-        ) : null}
-
         {isHomePage ? <HomeSectionVisibilityEditor key={page.updatedAt.toISOString()} content={content} /> : null}
 
         <label className="grid gap-2" hidden={activeLocale === "EN" || isBuiltInPage(page.slug)}>
@@ -318,14 +336,19 @@ export function PageEditor({
           <label className="grid gap-2">
             <span className="adm-label flex items-center gap-1.5">
               {isHomePage ? "Hero headline" : "Title"}
-              {hideDeadCopyFields ? (
+              {titleIsMetaOnly ? (
                 <AdminHelp>Browser tab title and search-engine result title. Not shown on the page itself.</AdminHelp>
+              ) : isShopPage || isServicePage ? (
+                <AdminHelp>The big H1 heading on /{page.slug} — also sets the browser tab title.</AdminHelp>
               ) : null}
             </span>
             <input value={draft.title} onChange={(event) => updateField("title", event.target.value)} className="adm-field" />
           </label>
-          <label className="grid gap-2" hidden={hideDeadCopyFields}>
-            <span className="adm-label">Eyebrow</span>
+          <label className="grid gap-2" hidden={!isServicePage && (isShopPage || isCollectionsPage)}>
+            <span className="adm-label flex items-center gap-1.5">
+              Eyebrow
+              {isServicePage ? <AdminHelp>Small label above the H1 on /{page.slug}.</AdminHelp> : null}
+            </span>
             <input value={draft.eyebrow} onChange={(event) => updateField("eyebrow", event.target.value)} className="adm-field" />
           </label>
         </div>
@@ -355,10 +378,44 @@ export function PageEditor({
           />
         </div>
 
-        <label className="grid gap-2" hidden={hideDeadCopyFields}>
-          <span className="adm-label">{isHomePage ? "Hero description" : isAboutPage ? "Studio introduction" : "Body"}</span>
+        <label className="grid gap-2" hidden={isCollectionsPage}>
+          <span className="adm-label flex items-center gap-1.5">
+            {isHomePage ? "Hero description" : isAboutPage ? "Studio introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
+            {isShopPage ? (
+              <AdminHelp>The paragraph under the hero heading on /shop.</AdminHelp>
+            ) : isServicePage ? (
+              <AdminHelp>The paragraph under the heading on /{page.slug}, above the four sections below.</AdminHelp>
+            ) : null}
+          </span>
           <textarea value={draft.body} onChange={(event) => updateField("body", event.target.value)} rows={5} className="adm-field" />
         </label>
+
+        {isServicePage ? (
+          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="service-sections-heading">
+            <div>
+              <h3 id="service-sections-heading" className="adm-title-sm">Page sections</h3>
+              <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+                These four fixed sections render on /{page.slug} in this order. Leave a title or body empty to fall back to the shipped default text.
+              </p>
+            </div>
+            {serviceSections.map((section, index) => {
+              const value = draft.serviceSections[section.id];
+              return (
+                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
+                  <p className="adm-section-tag">SECTION {index + 1} — {section.label}</p>
+                  <label className="grid gap-2">
+                    <span className="adm-label">Title</span>
+                    <input value={value?.title ?? ""} onChange={(event) => updateServiceSection(section.id, "title", event.target.value)} className="adm-field" />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className="adm-label">Body</span>
+                    <textarea value={value?.body ?? ""} onChange={(event) => updateServiceSection(section.id, "body", event.target.value)} rows={3} className="adm-field" />
+                  </label>
+                </div>
+              );
+            })}
+          </section>
+        ) : null}
 
         <div className="grid gap-4 md:grid-cols-2" hidden={hideDeadCopyFields}>
           <label className="grid gap-2">

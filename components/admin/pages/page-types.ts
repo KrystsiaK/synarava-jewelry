@@ -44,6 +44,7 @@ export type EditablePageCopy = {
   legalIntro?: string;
   legalLastUpdated?: string;
   legalSections?: Record<string, { title?: string; body?: string }>;
+  serviceSections?: Record<string, { title?: string; body?: string }>;
 };
 
 export type EditablePageContent = EditablePageCopy & {

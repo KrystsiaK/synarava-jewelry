@@ -6,6 +6,16 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
+import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import {
+  SERVICE_SECTIONS,
+  SERVICE_SECTION_DEFAULTS_EN,
+  SERVICE_SECTION_DEFAULTS_PT,
+  SERVICE_PAGE_TITLE_DEFAULTS_EN,
+  SERVICE_PAGE_TITLE_DEFAULTS_PT,
+  SERVICE_PAGE_INTRO_DEFAULTS_EN,
+  SERVICE_PAGE_INTRO_DEFAULTS_PT,
+} from "@/lib/content/service-page-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
@@ -29,12 +39,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ReturnsPage() {
-  const { t, locale } = await getServerTranslations();
+  const { locale } = await getServerTranslations();
   const page = await getPageBySlug("returns", locale);
-  return <ServicePage eyebrow={t("service.returns.eyebrow")} title={t("service.returns.title")} intro={t("service.returns.intro")} sections={[
-    { title: t("service.returns.sections.startTitle"), body: t("service.returns.sections.startBody") },
-    { title: t("service.returns.sections.conditionTitle"), body: t("service.returns.sections.conditionBody") },
-    { title: t("service.returns.sections.personalisedTitle"), body: t("service.returns.sections.personalisedBody") },
-    { title: t("service.returns.sections.damageTitle"), body: t("service.returns.sections.damageBody") },
-  ]} heroImage={page?.content.heroImage} />;
+  const content = page?.content;
+  const isPt = locale === "pt";
+  const introDefaults = (isPt ? SERVICE_PAGE_INTRO_DEFAULTS_PT : SERVICE_PAGE_INTRO_DEFAULTS_EN).returns;
+
+  return (
+    <ServicePage
+      eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
+      title={page?.title || (isPt ? SERVICE_PAGE_TITLE_DEFAULTS_PT : SERVICE_PAGE_TITLE_DEFAULTS_EN).returns}
+      intro={resolveLegalText(content?.body, introDefaults.intro)}
+      sections={resolveLegalSections(
+        SERVICE_SECTIONS.returns,
+        content?.serviceSections,
+        (isPt ? SERVICE_SECTION_DEFAULTS_PT : SERVICE_SECTION_DEFAULTS_EN).returns,
+      )}
+      heroImage={content?.heroImage}
+    />
+  );
 }

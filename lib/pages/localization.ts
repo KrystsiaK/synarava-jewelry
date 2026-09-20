@@ -43,6 +43,7 @@ export const pageTranslationContentSchema = z.object({
   legalIntro: z.string().optional(),
   legalLastUpdated: z.string().optional(),
   legalSections: z.record(z.string(), legalSectionSchema).optional(),
+  serviceSections: z.record(z.string(), legalSectionSchema).optional(),
 });
 
 export type PageTranslationContent = z.infer<typeof pageTranslationContentSchema>;

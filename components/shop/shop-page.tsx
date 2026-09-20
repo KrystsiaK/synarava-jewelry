@@ -19,18 +19,24 @@ import { ShopDiscovery, type ShopProductTypeTile } from "./shop-discovery";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { splitHeroTitleAccent } from "@/lib/content/service-page-defaults";
 import { filterAndSortShopProducts } from "./shop-product-filtering";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export function ShopHero({
   heroImage,
+  title,
+  description,
   archiveCount,
 }: {
   heroImage?: string;
+  title: string;
+  description: string;
   archiveCount: number;
 }) {
   const { t, plural } = useTranslations();
+  const { lead, accent } = splitHeroTitleAccent(title);
 
   return (
     <header data-component="ShopHero"
@@ -57,11 +63,11 @@ export function ShopHero({
 
       <div className="relative z-10 w-full max-w-[46rem]">
         <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.6rem,8vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-foreground">
-          {t("shop.heroTitleLead")} <span className="font-light italic text-couture-red">{t("shop.heroTitleAccent")}</span>
+          {lead ? `${lead} ` : null}<span className="font-light italic text-couture-red">{accent}</span>
         </h1>
 
         <p className="mt-6 max-w-[36rem] text-pretty font-sans text-sm font-medium leading-relaxed text-foreground/72 md:mt-7 md:text-base">
-          {t("shop.heroDescription")}
+          {description}
         </p>
 
         <div className="mt-7 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/20 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/65 md:mt-9">
@@ -382,12 +388,14 @@ export type ShopPageProps = {
   products: ShopListingProduct[];
   popularProductSlugs: string[] | null;
   heroImage?: string;
+  heroTitle: string;
+  heroDescription: string;
   archiveCount: number;
   filterProps: Omit<FilterBarProps, "totalCount">;
   productTypeTiles: ShopProductTypeTile[];
 };
 
-export function ShopPage({ products, popularProductSlugs, heroImage, archiveCount, filterProps, productTypeTiles }: ShopPageProps) {
+export function ShopPage({ products, popularProductSlugs, heroImage, heroTitle, heroDescription, archiveCount, filterProps, productTypeTiles }: ShopPageProps) {
   const { t, locale } = useTranslations();
   const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
   const productsBySlug = useMemo(
@@ -421,7 +429,7 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
     <main data-component="ShopPage"
       className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
-      <ShopHero heroImage={heroImage} archiveCount={archiveCount} />
+      <ShopHero heroImage={heroImage} title={heroTitle} description={heroDescription} archiveCount={archiveCount} />
 
       <ShopDiscovery
         newestProducts={newestProducts}

@@ -6,6 +6,16 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
+import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import {
+  SERVICE_SECTIONS,
+  SERVICE_SECTION_DEFAULTS_EN,
+  SERVICE_SECTION_DEFAULTS_PT,
+  SERVICE_PAGE_TITLE_DEFAULTS_EN,
+  SERVICE_PAGE_TITLE_DEFAULTS_PT,
+  SERVICE_PAGE_INTRO_DEFAULTS_EN,
+  SERVICE_PAGE_INTRO_DEFAULTS_PT,
+} from "@/lib/content/service-page-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
@@ -29,12 +39,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CarePage() {
-  const { t, locale } = await getServerTranslations();
+  const { locale } = await getServerTranslations();
   const page = await getPageBySlug("care", locale);
-  return <ServicePage eyebrow={t("service.care.eyebrow")} title={t("service.care.title")} intro={t("service.care.intro")} sections={[
-    { title: t("service.care.sections.jewelryTitle"), body: t("service.care.sections.jewelryBody") },
-    { title: t("service.care.sections.petsTitle"), body: t("service.care.sections.petsBody") },
-    { title: t("service.care.sections.kidsTitle"), body: t("service.care.sections.kidsBody") },
-    { title: t("service.care.sections.toolsTitle"), body: t("service.care.sections.toolsBody") },
-  ]} heroImage={page?.content.heroImage} />;
+  const content = page?.content;
+  const isPt = locale === "pt";
+  const introDefaults = (isPt ? SERVICE_PAGE_INTRO_DEFAULTS_PT : SERVICE_PAGE_INTRO_DEFAULTS_EN).care;
+
+  return (
+    <ServicePage
+      eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
+      title={page?.title || (isPt ? SERVICE_PAGE_TITLE_DEFAULTS_PT : SERVICE_PAGE_TITLE_DEFAULTS_EN).care}
+      intro={resolveLegalText(content?.body, introDefaults.intro)}
+      sections={resolveLegalSections(
+        SERVICE_SECTIONS.care,
+        content?.serviceSections,
+        (isPt ? SERVICE_SECTION_DEFAULTS_PT : SERVICE_SECTION_DEFAULTS_EN).care,
+      )}
+      heroImage={content?.heroImage}
+    />
+  );
 }

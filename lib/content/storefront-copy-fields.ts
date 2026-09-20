@@ -58,69 +58,14 @@ const FOOTER_GROUP: StorefrontCopyGroup = {
   ],
 };
 
-const SHOP_GROUP: StorefrontCopyGroup = {
-  id: "shop",
-  title: "Shop page",
-  description: "On-page hero copy for /shop. Browser tab title and search-engine description are set separately, on the page's Title/Excerpt in Pages -> shop.",
-  fields: [
-    {
-      key: "shop.heroTitleLead",
-      label: "Hero title (lead)",
-      hint: "The plain white run at the start of the big hero heading on /shop, e.g. \"Curated\".",
-    },
-    {
-      key: "shop.heroTitleAccent",
-      label: "Hero title accent",
-      hint: "The italic red word right after the lead, in the same heading, e.g. \"shop\".",
-    },
-    {
-      key: "shop.heroDescription",
-      label: "Hero description",
-      area: true,
-      hint: "The paragraph under the hero heading on /shop.",
-    },
-  ],
-};
-
-const SERVICE_PAGES = [
-  { slug: "faq", title: "FAQ page", sections: ["maker", "availability", "payment", "question"] },
-  { slug: "care", title: "Care Guide page", sections: ["jewelry", "pets", "kids", "tools"] },
-  { slug: "shipping", title: "Shipping page", sections: ["options", "preparing", "tracking", "duties"] },
-  { slug: "returns", title: "Returns page", sections: ["start", "condition", "personalised", "damage"] },
-] as const;
-
-function serviceGroup(page: (typeof SERVICE_PAGES)[number]): StorefrontCopyGroup {
-  const base = `service.${page.slug}`;
-  return {
-    id: page.slug,
-    title: page.title,
-    description: `On-page copy for /${page.slug}. Browser tab title and search-engine description are set separately, on the page's Title/Excerpt in Pages -> ${page.slug}.`,
-    fields: [
-      { key: `${base}.eyebrow`, label: "Eyebrow", hint: `Small label above the H1 on /${page.slug}.` },
-      { key: `${base}.title`, label: "Title", hint: `The page's H1 heading on /${page.slug} (not the browser tab title).` },
-      { key: `${base}.intro`, label: "Intro", area: true, hint: `The paragraph under the heading on /${page.slug}.` },
-      ...page.sections.flatMap((section, index) => [
-        {
-          key: `${base}.sections.${section}Title`,
-          label: `Section ${index + 1} title`,
-          hint: `Heading for section ${index + 1} of 4 on /${page.slug}.`,
-        },
-        {
-          key: `${base}.sections.${section}Body`,
-          label: `Section ${index + 1} body`,
-          area: true,
-          hint: `Body text for section ${index + 1} of 4 on /${page.slug}.`,
-        },
-      ]),
-    ],
-  };
-}
+// Shop's hero copy and the 4 service pages' (care/faq/returns/shipping) eyebrow/
+// title/intro/sections live on the Page record instead (edited in Pages -> that
+// slug) — a single screen per page, consistent with how home/about already work,
+// rather than splitting one page's copy across two admin screens.
 
 export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   NAV_GROUP,
   FOOTER_GROUP,
-  SHOP_GROUP,
-  ...SERVICE_PAGES.map(serviceGroup),
 ];
 
 export const STOREFRONT_COPY_KEYS: string[] = STOREFRONT_COPY_GROUPS.flatMap(

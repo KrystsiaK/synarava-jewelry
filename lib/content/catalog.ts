@@ -181,6 +181,7 @@ export type PageContent = {
   legalIntro?: string;
   legalLastUpdated?: string;
   legalSections?: Record<string, { title?: string; body?: string }>;
+  serviceSections?: Record<string, { title?: string; body?: string }>;
   translations?: {
     pt?: Omit<PageContent,
       | "translations"

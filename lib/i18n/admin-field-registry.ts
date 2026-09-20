@@ -140,6 +140,7 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "legalIntro", label: "Legal intro", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("page_section_copy", "legal_intro") },
     { key: "legalLastUpdated", label: "Legal — last updated (displayed date)", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "legal_last_updated") },
     { key: "legalSections", label: "Legal sections (title/body per section id)", mode: "localized", required: "optional", kind: "rich-text", shopifyTarget: metaobject("page_section_copy", "legal_sections") },
+    { key: "serviceSections", label: "Service page sections (title/body per section id)", mode: "localized", required: "optional", kind: "rich-text", shopifyTarget: metaobject("page_section_copy", "service_sections") },
     { key: "seoTitle", label: "SEO title", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("PAGE", "meta_title") },
     { key: "seoDescription", label: "SEO description", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("PAGE", "meta_description") },
 

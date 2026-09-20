@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { setStorefrontCopy } from "@/lib/content/storefront-copy";
 import { STOREFRONT_COPY_KEYS } from "@/lib/content/storefront-copy-fields";
-import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 
 export type StorefrontCopyActionState = {
   error?: string;
@@ -24,12 +23,9 @@ export async function saveStorefrontCopyAction(formData: FormData): Promise<Stor
 
   await setStorefrontCopy({ en, pt });
 
-  // Footer and the main menu render in the root layout on every route; the
-  // FAQ/Care/Shipping/Returns copy lives on those specific pages only.
+  // Footer and the main menu render in the root layout on every route — the only
+  // things Storefront Copy still covers.
   revalidatePath("/", "layout");
-  for (const path of ["/shop", "/faq", "/care", "/shipping", "/returns"]) {
-    revalidateStorefrontPath(path);
-  }
 
   return { success: "Storefront copy updated." };
 }

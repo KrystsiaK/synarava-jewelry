@@ -15,6 +15,7 @@ import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
+import { SERVICE_SECTIONS } from "@/lib/content/service-page-defaults";
 import {
   asRecord,
   createDraftToken,
@@ -100,13 +101,15 @@ function existingMaterialImage(existingContent: Record<string, unknown>, index: 
 }
 
 const LEGAL_SECTION_IDS = [...OFFER_SECTIONS, ...PRIVACY_SECTIONS_EN].map((s) => s.id);
+const SERVICE_SECTION_IDS = Object.values(SERVICE_SECTIONS).flatMap((sections) => sections.map((s) => s.id));
 
 // Dynamic per-section fields (`legal:{id}:title` / `legal:{id}:body`, `pt`-prefixed
 // for the translation) aren't worth exploding into the zod schema one property at a
-// time — same approach as the storefront-copy admin action.
-function readLegalSections(formData: FormData, prefix: "legal" | "ptLegal") {
+// time — same approach as the storefront-copy admin action. Reused for the fixed
+// service-page sections (care/faq/returns/shipping), which follow the same shape.
+function readSectionFields(formData: FormData, prefix: string, ids: string[]) {
   const sections: Record<string, { title: string; body: string }> = {};
-  for (const id of LEGAL_SECTION_IDS) {
+  for (const id of ids) {
     const title = String(formData.get(`${prefix}:${id}:title`) ?? "").trim();
     const body = String(formData.get(`${prefix}:${id}:body`) ?? "").trim();
     if (title || body) sections[id] = { title, body };
@@ -303,8 +306,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
   const ptLocalizedHandle = isBuiltInPage(slug) ? null : (slugify(ptHandle) || null);
-  const legalSections = readLegalSections(formData, "legal");
-  const ptLegalSections = readLegalSections(formData, "ptLegal");
+  const legalSections = readSectionFields(formData, "legal", LEGAL_SECTION_IDS);
+  const ptLegalSections = readSectionFields(formData, "ptLegal", LEGAL_SECTION_IDS);
+  const serviceSections = readSectionFields(formData, "service", SERVICE_SECTION_IDS);
+  const ptServiceSections = readSectionFields(formData, "ptService", SERVICE_SECTION_IDS);
   const editProductIds = [editProductId1, editProductId2, editProductId3, editProductId4].filter(Boolean);
 
   if (!slug || !title) {
@@ -350,7 +355,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     editSectionBody, editSectionCtaLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
-    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections,
+    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
   };
   const portugueseTranslationContent = {
     eyebrow: ptEyebrow,
@@ -380,6 +385,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     legalIntro: ptLegalIntro,
     legalLastUpdated,
     legalSections: ptLegalSections,
+    serviceSections: ptServiceSections,
   };
   const pageData = {
     slug,
@@ -424,6 +430,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       legalIntro,
       legalLastUpdated,
       legalSections,
+      serviceSections,
       heroImage,
       translations: {
         pt: {
@@ -554,8 +561,10 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
   const ptLocalizedHandle = isBuiltInPage(slug) ? null : (slugify(ptHandle) || null);
-  const legalSections = readLegalSections(formData, "legal");
-  const ptLegalSections = readLegalSections(formData, "ptLegal");
+  const legalSections = readSectionFields(formData, "legal", LEGAL_SECTION_IDS);
+  const ptLegalSections = readSectionFields(formData, "ptLegal", LEGAL_SECTION_IDS);
+  const serviceSections = readSectionFields(formData, "service", SERVICE_SECTION_IDS);
+  const ptServiceSections = readSectionFields(formData, "ptService", SERVICE_SECTION_IDS);
   const draftMaterialLexicon = buildMaterialLexiconEntries([
     { name: material1Name, category: material1Category, description: material1Description, properties: material1Properties },
     { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
@@ -610,6 +619,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       legalIntro,
       legalLastUpdated,
       legalSections,
+      serviceSections,
       translations: {
         pt: {
           title: ptTitle,
@@ -643,6 +653,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
           finalContactEmail,
           legalIntro: ptLegalIntro,
           legalSections: ptLegalSections,
+          serviceSections: ptServiceSections,
         },
       },
     },
@@ -673,7 +684,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     editSectionBody, editSectionCtaLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
-    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections,
+    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
   };
   const portugueseTranslationContent = {
     eyebrow: ptEyebrow, body: ptBody, ctaLabel: ptCtaLabel, quote: ptQuote,
@@ -699,6 +710,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     legalIntro: ptLegalIntro,
     legalLastUpdated,
     legalSections: ptLegalSections,
+    serviceSections: ptServiceSections,
   };
   await Promise.all([
     db.pageTranslation.upsert({

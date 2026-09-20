@@ -81,6 +81,8 @@ export default async function Page({ searchParams }: Props) {
       products={archiveProducts}
       popularProductSlugs={popularProductSlugs}
       heroImage={page?.content.heroImage}
+      heroTitle={page?.title || t("nav.shop")}
+      heroDescription={page?.content.body || t("shop.heroDescription")}
       archiveCount={archiveProducts.length}
       productTypeTiles={productTypeTiles}
       filterProps={{
