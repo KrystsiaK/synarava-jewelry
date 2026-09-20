@@ -102,7 +102,7 @@ export function CollectionsHero({
           <div className="mb-6 flex items-center gap-5">
             <span className="h-px w-14 bg-couture-red" />
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-muted-ink">
-              Synarava collections · {String(collections.length).padStart(2, "0")} series
+              Synarava collections
             </p>
           </div>
 
@@ -111,13 +111,13 @@ export function CollectionsHero({
           </h1>
 
           <p className="mt-7 max-w-xl text-base leading-7 text-muted-ink md:text-lg">
-            Editorial worlds shaped by material, memory, and symbol. Enter a story
-            before choosing the piece that belongs to it.
+            Explore Synarava through collections shaped by material, form and
+            character. Find the pieces that feel most like yours.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/15 pt-5 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted-ink">
-            <span>{String(collections.length).padStart(2, "0")} editorial worlds</span>
-            <span>Material / symbol / memory</span>
+            <span>{String(collections.length).padStart(2, "0")} collections</span>
+            <span>Material / form / character</span>
           </div>
         </div>
       </motion.div>
