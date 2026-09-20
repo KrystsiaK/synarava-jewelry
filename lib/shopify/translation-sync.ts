@@ -27,6 +27,42 @@ export async function findTranslationBinding(resourceType: TranslationResourceTy
   return db.shopifyTranslationBinding.findUnique({ where: { resourceType_entityId: { resourceType, entityId } } });
 }
 
+/** Dual-writes the locale-aware common ancestor and the legacy PT column during rollout. */
+export async function saveTranslationSnapshot({
+  bindingId,
+  locale,
+  values,
+}: {
+  bindingId: string;
+  locale: string;
+  values: Record<string, unknown>;
+}) {
+  const serialized = JSON.stringify(values);
+  await db.$transaction([
+    db.$executeRaw(Prisma.sql`
+      INSERT INTO "ShopifyTranslationSnapshot" (
+        "id", "bindingId", "locale", "values", "syncedAt", "createdAt", "updatedAt"
+      ) VALUES (
+        ${`${bindingId}:${locale}`},
+        ${bindingId},
+        ${locale},
+        CAST(${serialized} AS JSONB),
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      )
+      ON CONFLICT ("bindingId", "locale") DO UPDATE SET
+        "values" = EXCLUDED."values",
+        "syncedAt" = CURRENT_TIMESTAMP,
+        "updatedAt" = CURRENT_TIMESTAMP
+    `),
+    ...(locale === "pt-PT" ? [db.shopifyTranslationBinding.update({
+      where: { id: bindingId },
+      data: { lastSyncedSnapshot: values as Prisma.InputJsonValue },
+    })] : []),
+  ]);
+}
+
 /** Every push/pull/reconcile attempt gets its own event row — the audit trail tasks/plan.md's sync model requires, independent of ProductSyncEvent's commerce sync history. */
 export async function recordSyncEvent({
   bindingId,
@@ -57,6 +93,37 @@ export async function recordSyncEvent({
       completedAt: TERMINAL_STATUSES.includes(status) ? new Date() : null,
     },
   });
+}
+
+export async function recordReconcileAuditDetails({
+  eventId,
+  scope,
+  selectedSide,
+  localFingerprint,
+  shopifyFingerprint,
+  resultFingerprint,
+  shopifyResponse,
+}: {
+  eventId: string;
+  scope: Record<string, unknown>;
+  selectedSide: "SYNARAVA" | "SHOPIFY";
+  localFingerprint: string;
+  shopifyFingerprint: string;
+  resultFingerprint?: string | null;
+  shopifyResponse?: Record<string, unknown> | null;
+}) {
+  await db.$executeRaw(Prisma.sql`
+    UPDATE "TranslationSyncEvent"
+    SET
+      "scope" = CAST(${JSON.stringify(scope)} AS JSONB),
+      "selectedSide" = ${selectedSide},
+      "localFingerprint" = ${localFingerprint},
+      "shopifyFingerprint" = ${shopifyFingerprint},
+      "resultFingerprint" = ${resultFingerprint ?? null},
+      "shopifyResponse" = CAST(${JSON.stringify(shopifyResponse ?? null)} AS JSONB),
+      "updatedAt" = CURRENT_TIMESTAMP
+    WHERE "id" = ${eventId}
+  `);
 }
 
 /**

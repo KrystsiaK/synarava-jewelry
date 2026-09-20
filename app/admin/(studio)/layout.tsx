@@ -10,7 +10,9 @@ import {
   AdminTopbarIssueLink,
 } from "@/components/admin/shared/admin-primitives";
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
+import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
+import { getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
 
 export default async function AdminLayout({
   children,
@@ -18,10 +20,13 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }>) {
   await requireAdminSession("/admin");
-  const openIssues = await db.adminIssue.findMany({
-    where: { status: "OPEN" },
-    select: { entityType: true, targetHref: true },
-  });
+  const [openIssues, latestReconcileRun] = await Promise.all([
+    db.adminIssue.findMany({
+      where: { status: "OPEN" },
+      select: { entityType: true, targetHref: true },
+    }),
+    getLatestReconcileRun(),
+  ]);
   const openIssueCount = openIssues.length;
   const issueNavHrefs = Array.from(
     new Set(
@@ -65,6 +70,7 @@ export default async function AdminLayout({
           <div className="hidden sm:block">
             <AdminThemeToggle />
           </div>
+          <AdminShopifySyncSignal initialRun={latestReconcileRun} />
           <AdminTopbarIssueLink issues={openIssues} />
           <span className="adm-online-dot" />
           <span className="adm-brand-kicker hidden sm:inline">

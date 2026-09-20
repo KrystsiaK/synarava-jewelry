@@ -262,7 +262,11 @@ export function PageEditor({
           </button>
         </div>
 
-        <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} />
+        <AdminLocaleTabs
+          active={activeLocale}
+          onSelect={selectLocale}
+          syncScope={{ entityType: "PAGE", entityId: page.id }}
+        />
         <AuthMessage error={state.error} />
 
         {isHomePage ? <HomeSectionVisibilityEditor key={page.updatedAt.toISOString()} content={content} /> : null}

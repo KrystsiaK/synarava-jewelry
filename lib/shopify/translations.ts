@@ -3,7 +3,12 @@ import "server-only";
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
 import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 
-export type TranslatableContent = { key: string; digest: string };
+export type TranslatableContent = {
+  key: string;
+  digest: string;
+  value?: string | null;
+  locale?: string | null;
+};
 type TranslationUserError = { field?: string[] | null; message: string };
 export type RemoteTranslation = { key: string; value: string; updatedAt: string; outdated: boolean };
 
@@ -126,7 +131,7 @@ export async function fetchTranslatableContent(resourceId: string): Promise<Tran
     translatableResource: { translatableContent: TranslatableContent[] } | null;
   }>(`query SynaravaTranslatableContent($resourceId: ID!) {
     translatableResource(resourceId: $resourceId) {
-      translatableContent { key digest }
+      translatableContent { key digest value locale }
     }
   }`, { resourceId });
 
@@ -134,6 +139,28 @@ export async function fetchTranslatableContent(resourceId: string): Promise<Tran
     throw new ShopifyAdminError("Shopify did not expose this resource as translatable.");
   }
   return data.translatableResource.translatableContent;
+}
+
+export type ResourceTranslationState = {
+  translatableContent: TranslatableContent[];
+  translations: RemoteTranslation[];
+};
+
+/** Reads both Shopify's primary/source copy and one translated locale in a single request. */
+export async function fetchResourceTranslationState(
+  resourceId: string,
+  locale: string,
+): Promise<ResourceTranslationState | null> {
+  const data = await shopifyAdminRequest<{
+    translatableResource: ResourceTranslationState | null;
+  }>(`query SynaravaResourceTranslationState($resourceId: ID!, $locale: String!) {
+    translatableResource(resourceId: $resourceId) {
+      translatableContent { key digest value locale }
+      translations(locale: $locale) { key value updatedAt outdated }
+    }
+  }`, { resourceId, locale });
+
+  return data.translatableResource;
 }
 
 function isDigestError(errors: TranslationUserError[]) {

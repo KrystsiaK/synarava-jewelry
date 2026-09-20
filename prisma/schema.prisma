@@ -8,14 +8,15 @@ datasource db {
 }
 
 model AdminSession {
-  id         String   @id @default(uuid())
-  tokenHash  String   @unique
-  username   String
-  ipAddress  String?
-  userAgent  String?
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  lastSeenAt DateTime @default(now())
+  id                     String   @id @default(uuid())
+  tokenHash              String   @unique
+  username               String
+  ipAddress              String?
+  userAgent              String?
+  expiresAt              DateTime
+  createdAt              DateTime @default(now())
+  lastSeenAt             DateTime @default(now())
+  lastShopifyReconcileAt DateTime?
 
   @@index([username])
   @@index([expiresAt])
@@ -668,9 +669,85 @@ model ShopifyTranslationBinding {
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
   syncEvents         TranslationSyncEvent[]
+  snapshots          ShopifyTranslationSnapshot[]
+  divergences        ShopifyFieldDivergence[]
 
   @@unique([resourceType, entityId])
   @@unique([resourceType, shopifyResourceId])
+}
+
+// Locale-specific common ancestors for three-way comparison. The legacy
+// lastSyncedSnapshot column remains during the staged rollout so existing
+// PT bindings can be backfilled without breaking the current retry flow.
+model ShopifyTranslationSnapshot {
+  id        String                    @id @default(cuid())
+  bindingId String
+  binding   ShopifyTranslationBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  locale    String
+  values    Json
+  syncedAt  DateTime                  @default(now())
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+
+  @@unique([bindingId, locale])
+  @@index([locale, syncedAt])
+}
+
+// A read-only observation of Shopify/local state. Reconcile runs are kept
+// separate from TranslationSyncEvent because opening the admin may perform
+// a check but must never imply or trigger a write.
+model ShopifyReconcileRun {
+  id              String                 @id @default(cuid())
+  trigger         ShopifyReconcileTrigger
+  status          ShopifyReconcileStatus @default(QUEUED)
+  scope           Json?
+  requestedBy     String?
+  checkedCount    Int                    @default(0)
+  differenceCount Int                    @default(0)
+  error           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  divergences     ShopifyFieldDivergence[]
+
+  @@index([status, createdAt])
+  @@index([completedAt])
+}
+
+// Only unequal, actionable localized fields are stored. Equal fields and
+// shared commerce/media state never become disabled noise in the merge UI.
+model ShopifyFieldDivergence {
+  id                String                           @id @default(cuid())
+  runId             String
+  run               ShopifyReconcileRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  bindingId         String
+  binding           ShopifyTranslationBinding        @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  rootEntityType    String
+  rootEntityId      String
+  entityLabel       String
+  locale            String
+  fieldKey          String
+  fieldLabel        String
+  targetKind        ShopifyTranslationTargetKind
+  kind              ShopifyFieldDifferenceKind
+  baseValue         Json?
+  localValue        Json?
+  shopifyValue      Json?
+  localFingerprint  String
+  shopifyFingerprint String
+  shopifyUpdatedAt  DateTime?
+  shopifyOutdated   Boolean?
+  resolutionToken   String?
+  resolutionStartedAt DateTime?
+  resolvedAt        DateTime?
+  createdAt         DateTime                         @default(now())
+  updatedAt         DateTime                         @updatedAt
+
+  @@unique([runId, bindingId, locale, fieldKey])
+  @@index([bindingId, locale])
+  @@index([rootEntityType, rootEntityId, locale])
+  @@index([kind, resolvedAt])
 }
 
 model TranslationSyncEvent {
@@ -683,6 +760,12 @@ model TranslationSyncEvent {
   fieldConflicts Json?
   error          String?
   actorUsername  String?
+  scope          Json?
+  selectedSide   String?
+  localFingerprint String?
+  shopifyFingerprint String?
+  resultFingerprint String?
+  shopifyResponse Json?
   attemptCount   Int                       @default(0)
   createdAt      DateTime                  @default(now())
   updatedAt      DateTime                  @updatedAt
@@ -697,6 +780,33 @@ enum TranslationResourceType {
   COLLECTION
   PAGE
   METAOBJECT
+}
+
+enum ShopifyReconcileTrigger {
+  AUTO
+  MANUAL
+  ENTITY
+  LOCALE
+}
+
+enum ShopifyReconcileStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+}
+
+enum ShopifyTranslationTargetKind {
+  NATIVE
+  METAFIELD
+  METAOBJECT
+}
+
+enum ShopifyFieldDifferenceKind {
+  LOCAL_ONLY
+  SHOPIFY_ONLY
+  CONFLICT
 }
 
 model TranslationCache {

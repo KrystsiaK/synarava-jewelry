@@ -71,16 +71,33 @@ describe("planReconcile", () => {
       { field: "title", local: "Local Ring", remote: "Remote Ring" },
       { field: "body", local: "Local body", remote: "Remote body" },
     ]);
+    expect(plan.differences).toHaveLength(2);
+  });
+
+  it("never reports noop when different fields changed on opposite sides", () => {
+    const plan = planReconcile(
+      REGISTRY,
+      base,
+      { ...base, title: "Local Ring" },
+      { ...base, body: "Remote body" },
+    );
+
+    expect(plan.direction).toBe("conflict");
+    expect(plan.differences.map(({ fieldKey, kind }) => ({ fieldKey, kind }))).toEqual([
+      { fieldKey: "title", kind: "local-only" },
+      { fieldKey: "body", kind: "shopify-only" },
+    ]);
   });
 });
 
 describe("projectRemoteTranslation", () => {
-  it("maps native/metafield Shopify keys onto registry field keys and skips metaobject-targeted fields", () => {
+  it("maps native and metaobject Shopify keys onto registry field keys", () => {
     const projected = projectRemoteTranslation(REGISTRY, [
       { key: "title", value: "Anel", updatedAt: "2026-09-10T10:00:00Z", outdated: false },
       { key: "body_html", value: "<p>Feito</p>", updatedAt: "2026-09-10T10:00:00Z", outdated: false },
+      { key: "structured", value: "{\"material\":\"silver\"}", updatedAt: "2026-09-10T10:00:00Z", outdated: false },
     ]);
-    expect(projected).toEqual({ title: "Anel", body: "<p>Feito</p>" });
+    expect(projected).toEqual({ title: "Anel", body: "<p>Feito</p>", structured: "{\"material\":\"silver\"}" });
   });
 });
 

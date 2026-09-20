@@ -2,7 +2,10 @@ import "server-only";
 
 import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
 import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
+import { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 import { registerTranslations } from "@/lib/shopify/translations";
+
+export { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 
 type EditorialValue = unknown;
 
@@ -13,15 +16,6 @@ type MetaobjectDefinition = {
 };
 
 type UserError = { field?: string[] | null; message: string };
-
-export function metaobjectFieldKey(key: string) {
-  return key
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/[^a-zA-Z0-9_]+/g, "__")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .toLowerCase();
-}
 
 function serializeValue(value: EditorialValue): string {
   if (typeof value === "string") return value.trim();

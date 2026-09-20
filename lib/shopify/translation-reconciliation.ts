@@ -5,17 +5,27 @@ import { db } from "@/lib/db";
 import type { EntityFieldRegistry } from "@/lib/i18n/admin-field-registry";
 import { localizedFields } from "@/lib/i18n/admin-field-registry";
 import {
-  determineSyncDirection,
-  diffFieldConflicts,
   type FieldConflict,
   type LocalizedRecord,
   type SyncDirection,
 } from "@/lib/i18n/admin-localization";
+import {
+  compareLocalizedFields,
+  type RemoteFieldMetadata,
+  type SyncFieldDifference,
+} from "@/lib/i18n/sync-comparison";
+import { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 import { fetchTranslatableResourceIndex, type RemoteTranslation } from "@/lib/shopify/translations";
+
+type RemoteValue = Pick<RemoteTranslation, "key" | "value"> & {
+  updatedAt?: string | null;
+  outdated?: boolean | null;
+};
 
 export type ReconcilePlan = {
   direction: SyncDirection;
   conflicts: FieldConflict[];
+  differences: SyncFieldDifference[];
 };
 
 /**
@@ -31,23 +41,55 @@ export function planReconcile<T extends LocalizedRecord>(
   base: T | null,
   local: T,
   remote: T,
+  remoteMetadata: Record<string, RemoteFieldMetadata> = {},
 ): ReconcilePlan {
+  const differences = compareLocalizedFields(registry, base, local, remote, remoteMetadata);
+  const hasLocal = differences.some(({ kind }) => kind === "local-only");
+  const hasShopify = differences.some(({ kind }) => kind === "shopify-only");
+  const conflicts = differences
+    .filter(({ kind }) => kind === "conflict")
+    .map(({ fieldKey, localValue, shopifyValue }) => ({
+      field: fieldKey,
+      local: String(localValue ?? ""),
+      remote: String(shopifyValue ?? ""),
+    }));
+
+  let direction: SyncDirection = "noop";
+  if (conflicts.length > 0 || (hasLocal && hasShopify)) direction = "conflict";
+  else if (hasLocal) direction = "push";
+  else if (hasShopify) direction = "pull";
+
   return {
-    direction: determineSyncDirection(registry, base, local, remote),
-    conflicts: diffFieldConflicts(registry, base, local, remote),
+    direction,
+    conflicts,
+    differences,
   };
 }
 
-/** Shopify's flat `{key, value}[]` translation list, projected onto registry field keys via each field's native/metafield Shopify key. Fields with a metaobject target have no flat Shopify key here — reconciling those is the owning metaobject adapter's job (Task 16), not this generic sweep. */
-export function projectRemoteTranslation(registry: EntityFieldRegistry, translations: RemoteTranslation[]): LocalizedRecord {
+/** Shopify's flat `{key, value}[]` translation list, projected onto registry field keys. Callers pass a target-filtered registry so native resources and their app-owned metaobjects remain independent review/apply scopes. */
+export function projectRemoteTranslation(registry: EntityFieldRegistry, translations: RemoteValue[]): LocalizedRecord {
+  return projectRemoteTranslationWithMetadata(registry, translations).values;
+}
+
+export function projectRemoteTranslationWithMetadata(
+  registry: EntityFieldRegistry,
+  translations: RemoteValue[],
+): { values: LocalizedRecord; metadata: Record<string, RemoteFieldMetadata> } {
   const values = new Map(translations.map((t) => [t.key, t.value]));
   const projected: LocalizedRecord = {};
+  const metadata: Record<string, RemoteFieldMetadata> = {};
   for (const field of localizedFields(registry)) {
     const target = field.shopifyTarget;
-    const shopifyKey = target && (target.kind === "native" || target.kind === "metafield") ? target.key : null;
-    if (shopifyKey && values.has(shopifyKey)) projected[field.key] = values.get(shopifyKey);
+    const shopifyKey = target?.kind === "metaobject" ? metaobjectFieldKey(target.key) : target?.key ?? null;
+    if (!shopifyKey || !values.has(shopifyKey)) continue;
+    const translation = translations.find(({ key }) => key === shopifyKey);
+    projected[field.key] = values.get(shopifyKey);
+    metadata[field.key] = {
+      updatedAt: translation?.updatedAt ?? null,
+      outdated: translation?.outdated ?? null,
+    };
   }
-  return projected;
+  return { values: projected, metadata };
 }
 
 /**
@@ -79,13 +121,13 @@ export async function reconcileResourceType({
     const local = await loadLocal(binding.entityId);
     if (!local) continue;
 
-    const remote = projectRemoteTranslation(registry, remoteTranslations);
+    const remoteProjection = projectRemoteTranslationWithMetadata(registry, remoteTranslations);
     const base = (binding.lastSyncedSnapshot as LocalizedRecord | null) ?? null;
     results.push({
       bindingId: binding.id,
       entityId: binding.entityId,
       shopifyResourceId: binding.shopifyResourceId,
-      plan: planReconcile(registry, base, local, remote),
+      plan: planReconcile(registry, base, local, remoteProjection.values, remoteProjection.metadata),
     });
   }
   return results;

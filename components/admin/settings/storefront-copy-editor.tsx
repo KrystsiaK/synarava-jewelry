@@ -9,7 +9,7 @@ import {
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
+import { STOREFRONT_COPY_GROUPS, STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 
 export function StorefrontCopyEditor({
@@ -37,7 +37,12 @@ export function StorefrontCopyEditor({
 
   return (
     <form action={formAction} className="grid gap-8">
-      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} ptStatus={ptStatus} />
+      <AdminLocaleTabs
+        active={activeLocale}
+        onSelect={selectLocale}
+        ptStatus={ptStatus}
+        syncScope={{ entityType: "STOREFRONT_COPY", entityId: STOREFRONT_COPY_KEY }}
+      />
       <AuthMessage error={state.error} />
       <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
         Leave a field empty to fall back to the shipped default (shown as placeholder text). These

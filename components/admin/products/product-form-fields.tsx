@@ -118,6 +118,7 @@ export function ProductDetailFields({
   mode,
   issues = [],
   collections,
+  entityId,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   ptDetails: ProductLocaleDetailsDraft;
@@ -125,6 +126,8 @@ export function ProductDetailFields({
   mode: "create" | "edit";
   issues?: AdminIssueSummary[];
   collections: CollectionOption[];
+  /** Existing persisted product only — omit while creating a new one. */
+  entityId?: string;
 }) {
   const departmentCollections = collections
     .filter((collection) => collection.isPrimaryNav)
@@ -180,7 +183,11 @@ export function ProductDetailFields({
         <p className="mt-2 text-xs text-[var(--adm-muted)]">Characteristics are mirrored to Shopify metafields. Editorial photography, materials, process, and lookbook remain managed by Synarava.</p>
       </div>
 
-      <AdminLocaleTabs active={detailsLocale} onSelect={selectDetailsLocale} />
+      <AdminLocaleTabs
+        active={detailsLocale}
+        onSelect={selectDetailsLocale}
+        syncScope={entityId ? { entityType: "PRODUCT", entityId } : undefined}
+      />
       <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
 
       {!isEn ? (
@@ -522,12 +529,14 @@ function HiddenCoreLocaleFields({ draftByLocale }: { draftByLocale: Record<Admin
 
 export function ProductFormFields({
   draft,
+  entityId,
   collections,
   variantExists = false,
   issues = [],
   validation,
 }: {
   draft: ProductDraft;
+  entityId?: string;
   collections: CollectionOption[];
   variantExists?: boolean;
   issues?: AdminIssueSummary[];
@@ -593,6 +602,7 @@ export function ProductFormFields({
         active={activeLocale}
         onSelect={selectLocale}
         ptStatus={draft.pt.syncStatus as AdminLocaleStatus}
+        syncScope={entityId ? { entityType: "PRODUCT", entityId } : undefined}
       />
       <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 

@@ -1,6 +1,5 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
@@ -13,8 +12,8 @@ import {
   syncProductEditorialTranslation,
   syncStorefrontCopyTranslation,
 } from "@/lib/shopify/editorial-translation-sync";
-import { pushProductToShopify } from "@/lib/shopify/product-sync";
-import { ensureTranslationBinding, recordSyncEvent } from "@/lib/shopify/translation-sync";
+import { registerProductTranslation } from "@/lib/shopify/translations";
+import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
 
 export type TranslationOverviewEntity = "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY";
 
@@ -47,10 +46,7 @@ async function syncCollection(collectionId: string, actorUsername: string) {
       seoDescription: snapshot.seoDescription,
     });
     await Promise.all([
-      db.shopifyTranslationBinding.update({
-        where: { id: binding.id },
-        data: { lastSyncedSnapshot: snapshot as Prisma.InputJsonValue },
-      }),
+      saveTranslationSnapshot({ bindingId: binding.id, locale: "pt-PT", values: snapshot }),
       recordSyncEvent({
         bindingId: binding.id, locale: "PT", direction: "PUSH", status: "SUCCEEDED", actorUsername,
       }),
@@ -81,7 +77,7 @@ async function syncCollection(collectionId: string, actorUsername: string) {
   });
 }
 
-async function recordProductTranslationSync(productId: string, actorUsername: string) {
+async function syncProductNativeTranslation(productId: string, actorUsername: string) {
   const product = await db.product.findUnique({
     where: { id: productId },
     select: {
@@ -114,19 +110,42 @@ async function recordProductTranslationSync(productId: string, actorUsername: st
     seoTitle: translation.seoTitle ?? "",
     seoDescription: translation.seoDescription ?? "",
   };
-  await Promise.all([
-    db.shopifyTranslationBinding.update({
-      where: { id: binding.id },
-      data: { lastSyncedSnapshot: snapshot as Prisma.InputJsonValue },
-    }),
-    recordSyncEvent({
-      bindingId: binding.id,
-      locale: "PT",
-      direction: "PUSH",
-      status: "SUCCEEDED",
-      actorUsername,
-    }),
-  ]);
+  try {
+    await registerProductTranslation(product.shopifyProductId, {
+      handle: snapshot.localizedHandle,
+      title: snapshot.title,
+      descriptionHtml: snapshot.description,
+      seoTitle: snapshot.seoTitle,
+      seoDescription: snapshot.seoDescription,
+    });
+    await Promise.all([
+      saveTranslationSnapshot({ bindingId: binding.id, locale: "pt-PT", values: snapshot }),
+      recordSyncEvent({
+        bindingId: binding.id,
+        locale: "PT",
+        direction: "PUSH",
+        status: "SUCCEEDED",
+        actorUsername,
+      }),
+    ]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await Promise.all([
+      db.productTranslation.update({
+        where: { productId_locale: { productId, locale: "PT" } },
+        data: { syncStatus: "FAILED", syncError: message },
+      }),
+      recordSyncEvent({
+        bindingId: binding.id,
+        locale: "PT",
+        direction: "PUSH",
+        status: "FAILED",
+        error: message,
+        actorUsername,
+      }),
+    ]);
+    throw error;
+  }
 }
 
 export async function retryTranslationSyncAction(entityType: TranslationOverviewEntity, entityId: string) {
@@ -135,10 +154,7 @@ export async function retryTranslationSyncAction(entityType: TranslationOverview
 
   try {
     if (entityType === "PRODUCT") {
-      const result = await pushProductToShopify(entityId, false);
-      if (!result.ok) throw new Error(result.error);
-      if (result.translationError) throw new Error(result.translationError);
-      await recordProductTranslationSync(entityId, session.username);
+      await syncProductNativeTranslation(entityId, session.username);
       const editorialResults = await syncProductEditorialTranslation(entityId, session.username);
       const editorialFailure = editorialResults.find((target) => target.status === "FAILED");
       if (editorialFailure) {
@@ -148,6 +164,10 @@ export async function retryTranslationSyncAction(entityType: TranslationOverview
         });
         throw new Error(editorialFailure.error);
       }
+      await db.productTranslation.update({
+        where: { productId_locale: { productId: entityId, locale: "PT" } },
+        data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
+      });
     } else if (entityType === "COLLECTION") {
       await syncCollection(entityId, session.username);
     } else if (entityType === "PAGE") {

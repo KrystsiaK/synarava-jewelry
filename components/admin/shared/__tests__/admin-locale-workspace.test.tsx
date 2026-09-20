@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { AdminLocaleWorkspace } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, AdminLocaleWorkspace } from "@/components/admin/shared/admin-locale-workspace";
 
 function setup(props: Partial<React.ComponentProps<typeof AdminLocaleWorkspace>> = {}) {
   return render(
@@ -97,5 +97,22 @@ describe("AdminLocaleWorkspace", () => {
   it("forces open the locale of the first validation error", () => {
     setup({ forceLocale: "PT" });
     expect(screen.getByLabelText("Title (PT)").closest('[role="tabpanel"]')).not.toHaveAttribute("hidden");
+  });
+});
+
+describe("AdminLocaleTabs syncScope", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ run: { status: "SUCCEEDED" }, differenceCount: 0 }),
+    }));
+  });
+
+  it("shows the entity sync control only when a syncScope is given", async () => {
+    const { rerender } = render(<AdminLocaleTabs active="EN" onSelect={() => {}} />);
+    expect(screen.queryByRole("button", { name: /Check .* against Shopify/ })).not.toBeInTheDocument();
+
+    rerender(<AdminLocaleTabs active="EN" onSelect={() => {}} syncScope={{ entityType: "PRODUCT", entityId: "p1" }} />);
+    expect(await screen.findByRole("button", { name: "Check English against Shopify" })).toBeInTheDocument();
   });
 });

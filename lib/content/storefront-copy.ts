@@ -3,8 +3,9 @@ import "server-only";
 import { cache } from "react";
 
 import { db } from "@/lib/db";
+import { STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy-fields";
 
-export const STOREFRONT_COPY_KEY = "storefront-copy-v1";
+export { STOREFRONT_COPY_KEY };
 
 export type StorefrontCopy = {
   en: Record<string, string>;

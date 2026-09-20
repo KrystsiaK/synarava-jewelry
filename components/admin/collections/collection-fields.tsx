@@ -132,6 +132,7 @@ export function CollectionFields({
   currentHeroImageUrl,
   currentHeroImageLabel,
   fileInputKey,
+  entityId,
 }: {
   draft: CollectionDraft;
   onChange: <K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) => void;
@@ -140,12 +141,19 @@ export function CollectionFields({
   currentHeroImageUrl?: string | null;
   currentHeroImageLabel?: string;
   fileInputKey?: string | number;
+  /** Existing persisted collection only — omit when creating a new one. */
+  entityId?: string;
 }) {
   const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, "EN");
   const isEn = locale === "EN";
   return (
     <>
-      <AdminLocaleTabs active={locale} onSelect={selectLocale} ptStatus={draft.pt.syncStatus as AdminLocaleStatus} />
+      <AdminLocaleTabs
+        active={locale}
+        onSelect={selectLocale}
+        ptStatus={draft.pt.syncStatus as AdminLocaleStatus}
+        syncScope={entityId ? { entityType: "COLLECTION", entityId } : undefined}
+      />
       <HiddenLocaleFields draft={draft} />
 
       <div className="grid gap-4 md:grid-cols-3">

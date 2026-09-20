@@ -2,6 +2,11 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
+import {
+  EntityLocaleSyncControl,
+  type EntitySyncScope,
+} from "@/components/admin/translations/entity-locale-sync-control";
+
 export type AdminLocale = "EN" | "PT";
 
 const LOCALE_TABS: Array<{ code: AdminLocale; label: string }> = [
@@ -64,6 +69,8 @@ export type AdminLocaleTabsProps = {
   onSelect: (locale: AdminLocale) => void;
   /** Sync/readiness status shown next to the tabs (Shopify push/pull state). English has no sync status — it's the source. */
   ptStatus?: AdminLocaleStatus;
+  /** Existing persisted entity only. Adds locale-scoped Shopify check/review controls without changing the form fields. */
+  syncScope?: EntitySyncScope;
   /** Content rendered once, sharing the sticky band with the tabs (e.g. a commerce-core banner). */
   sharedHeader?: ReactNode;
   /** ids for the panels this tab strip controls, so aria-controls/aria-labelledby line up when a caller renders its own panels instead of using AdminLocaleWorkspace. */
@@ -77,7 +84,7 @@ export type AdminLocaleTabsProps = {
  * above) and so render their own panels/`hidden` markup instead of using
  * `AdminLocaleWorkspace`'s three-slot shape.
  */
-export function AdminLocaleTabs({ active, onSelect, ptStatus, sharedHeader, tabId, panelId }: AdminLocaleTabsProps) {
+export function AdminLocaleTabs({ active, onSelect, ptStatus, syncScope, sharedHeader, tabId, panelId }: AdminLocaleTabsProps) {
   const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({ EN: null, PT: null });
   const fallbackId = useId();
   const idFor = tabId ?? ((locale: AdminLocale) => `${fallbackId}-tab-${locale}`);
@@ -130,10 +137,11 @@ export function AdminLocaleTabs({ active, onSelect, ptStatus, sharedHeader, tabI
           {active === "EN" ? "// EN — SOURCE" : "// PT — TRANSLATION"}
         </span>
         {ptStatus ? (
-          <span className={`${statusBadgeClass(ptStatus)} ml-auto`} role="status" aria-live="polite">
+          <span className={`${statusBadgeClass(ptStatus)} ${syncScope ? "" : "ml-auto"}`} role="status" aria-live="polite">
             SHOPIFY: {statusLabel(ptStatus)}
           </span>
         ) : null}
+        {syncScope ? <EntityLocaleSyncControl scope={syncScope} locale={active} /> : null}
       </div>
     </div>
   );

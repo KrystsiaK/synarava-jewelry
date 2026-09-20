@@ -431,3 +431,115 @@
 - [ ] Один resource каждого типа прошёл controlled Shopify round trip — blocked on live Shopify Admin API credentials/dev store; none available this session.
 - [ ] Полный quality gate зелёный — `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test:run` (170 files / 833 tests) are all green as of this session's last run; `pnpm build`'s static generation and `pnpm test:e2e` remain blocked by environment (missing `APP_URL`, no dev server/database respectively), not by any known defect.
 - [ ] Human approves staged production rollout.
+
+## Phase 7 — Shopify reconciliation workspace
+
+Detailed product and technical design: `tasks/shopify-sync-reconciliation-plan.md`.
+
+### Task 24: Persist locale-aware reconciliation state
+
+- [x] Store one last-known-good snapshot per Shopify binding and locale; existing PT snapshots are backfilled and current write adapters dual-write during rollout.
+- [x] Record reconciliation runs separately from write events, including trigger, scope, counts, duration, and partial failures.
+- [x] Persist only actionable field divergences with local/Shopify/base values and fingerprints.
+- [x] Track the automatic check on the admin session so opening multiple pages does not start duplicate scans.
+
+### Task 25: Build normalized field-level comparison
+
+- [x] Normalize whitespace, HTML/plain-text equivalents, null/empty values, and structured JSON before comparison.
+- [x] Classify each localized field as equal, local-only, Shopify-only, or conflict.
+- [x] Exclude shared media, pricing, inventory, assignments, and other non-translatable data from translation diffs.
+- [x] Add fixtures for Product, Collection, Page, and metaobject-backed copy.
+
+### Task 26: Add safe automatic and manual checks
+
+- [x] Start a read-only reconciliation check when an authenticated admin session first opens.
+- [x] Coalesce concurrent/recent runs and expose progress without blocking editor saves.
+- [x] Keep a visible “Check now” action that bypasses the session debounce.
+- [x] Surface authentication, scope, locale, and partial-fetch failures honestly; explicit Shopify throttling telemetry remains in Task 34.
+
+### Checkpoint 7: Trustworthy detection
+
+- [x] Opening admin detects real divergences without writing to Shopify.
+- [x] Repeated navigation does not create a scan storm.
+- [x] “In sync” means every supported field was actually checked; partial and failed runs never present as current.
+- [x] The overview contains no disabled rows for fields that are equal or not translatable.
+
+### Task 27: Design the sync-health signal
+
+- [x] Add a calm, distinct sync-health indicator to the admin shell; do not mix it with editorial Problems.
+- [x] Show checking, current, differences found, action required, partial, and unavailable states in plain language.
+- [x] Make the signal accessible by keyboard/screen reader and legible in light/dark themes.
+- [ ] Define mobile behavior without covering page controls or sticky locale tabs.
+
+### Task 28: Replace the overview with an actionable workspace
+
+- [x] Group divergences by entity and locale, with impact summaries instead of technical resource IDs.
+- [x] Default to actionable changes only; equal/healthy fields are represented by the clear-state summary rather than inert rows (history is still pending).
+- [x] Provide clear routes to one Product, Collection, Page, or storefront-copy conflict.
+- [x] Preserve scan progress and results across navigation/reload.
+
+### Task 29: Build a Git-like field merge review
+
+- [x] Show Synarava and Shopify values side by side for every differing field.
+- [x] Offer explicit “Use Synarava” / “Use Shopify” choices per field and safe reviewed bulk choices.
+- [x] Reveal the common base on demand and distinguish which side changed without relying on color alone.
+- [x] Keep long text readable with wrapping and render structured content as labeled values rather than raw JSON.
+
+### Task 30: Add loss preview and confirmation guards
+
+- [x] Summarize exactly what will change, overwrite, clear, or remain untouched before apply.
+- [x] Require extra confirmation for destructive clears and multi-field actions; locale-wide controls are not exposed yet.
+- [x] Block apply when either local or remote fingerprint changed after review.
+- [x] Never auto-select a side for a true conflict.
+
+### Checkpoint 8: Human-safe merge UX
+
+- [x] A nontechnical admin can see what differs and what each choice will do in plain language.
+- [x] Shared media/collections never enter translation comparison or writes.
+- [x] The UI never relies on color alone and all merge actions are native keyboard-operable controls.
+- [x] No write can happen without a visible impact preview.
+
+### Task 31: Implement narrow scoped writes
+
+- [x] Support one field and reviewed multi-entity batches from the reconciliation workspace; editor-tab entry points remain in Task 33.
+- [x] Route translation writes through locale-specific adapters; the legacy Product translation retry no longer invokes a full commerce push.
+- [x] Preserve Shopify-native resources, fresh content digests, and locale semantics.
+- [ ] Keep unavailable scopes/actions visible but disabled with a concrete remediation message.
+
+### Task 32: Verify writes and recover partial failures
+
+- [x] Read back every successful write and compare the applied field fingerprints.
+- [x] Mark partial success per field; failed/stale fields remain unresolved and retryable after a fresh check.
+- [ ] Record actor, scope, selected side, before/after fingerprints, and Shopify response (actor/direction/status are recorded; richer before/after audit payload remains).
+- [ ] Offer restore only when neither side has changed since the recorded operation.
+
+### Task 33: Integrate entity-local sync controls
+
+- [x] Product/Collection/Page/Copy editors show locale-specific sync health beside the sticky locale tabs. `AdminLocaleTabs` grew an optional `syncScope` prop that renders `EntityLocaleSyncControl` (new) at the trailing edge of the tab row when given; wired into all four editors' `<AdminLocaleTabs>` call sites (`entityId` threaded from the persisted record — omitted in create forms, since there's no entity yet to check). Product has two independent tab strips (commerce core + Synarava CMS layer) and both get the control, since each can show a different locale and the API's reconcile scope is per-locale, not per-section. Fixed a real build-breaking bug found while wiring Copy: `storefront-copy-editor.tsx` (a client component) imported `STOREFRONT_COPY_KEY` from `lib/content/storefront-copy.ts`, which is `server-only` — moved the constant to the already-client-safe `storefront-copy-fields.ts` and had `storefront-copy.ts` re-export it for its existing server-side importers.
+- [x] Allow "check this locale" and "review differences" without leaving the current entity. The inline "Check" button runs a scoped `POST /admin/api/shopify/reconcile` and re-fetches state without navigating; "Review" (shown only when differences exist) deep-links into the Task 28 reconciliation workspace pre-scoped to this exact entity+locale rather than a generic list.
+- [x] Keep shared controls and media mounted and unchanged during locale switches. Unaffected by this task — still guaranteed by the Task 4/9/12/15 hidden-not-unmounted panel pattern; the new control only adds a sibling next to the tabs, it doesn't touch panel mounting.
+- [x] Avoid horizontal layout shifts when status text or actions appear. Added `.adm-entity-sync*` rules in `app/globals.css`: the status text has a reserved `min-width` and `tabular-nums`, and the whole control is pinned to the row's trailing edge (`margin-left: auto`) so switching between "Checking…"/"In sync"/"N differences" reflows only its own trailing content, not the locale tabs before it.
+
+**Verification:** `pnpm exec tsc --noEmit`, `pnpm exec eslint .`, `pnpm vitest run` (174 files / 869 tests, incl. new `entity-locale-sync-control.test.tsx` and an `AdminLocaleTabs syncScope` case) all green. Verified visually in a real browser against the local dev DB for all four editors (Product's both tab strips, Collection, Page/Home, Copy) — the control renders, shows "Check unavailable" gracefully with no configured Shopify credentials, and doesn't disturb existing EN/PT field switching. Applied the previously-pending `20260920120000_shopify_reconciliation_workspace` migration (purely additive: new nullable columns, new enums/tables/indexes, one idempotent `ON CONFLICT DO NOTHING` backfill insert — no data loss) to the local dev database, which had been blocking the entire admin app with a 500 before this.
+
+### Task 34: Harden accessibility, performance, and observability
+
+- [ ] Virtualize or progressively render large reconciliation result sets.
+- [ ] Add structured logs/metrics for run duration, resource counts, API throttling, partial failures, and write verification.
+- [ ] Cover reduced motion, focus restoration, live-region announcements, and 44px touch targets.
+- [ ] Validate real mobile/desktop admin flows without flattening the intended visual hierarchy.
+
+### Task 35: Stage rollout and operator documentation
+
+- [ ] Ship detection first, then merge review, then scoped writes behind explicit rollout gates.
+- [ ] Run controlled round trips for every supported resource type and locale.
+- [ ] Document scopes, failure recovery, stale-review behavior, and who can approve destructive changes.
+- [ ] Complete human usability review with a nontechnical operator before production enablement.
+
+### Checkpoint 9: Reconciliation feature complete
+
+- [ ] Automatic and manual checks agree on the same current result.
+- [ ] All supported localized fields have field-level compare and scoped-write coverage.
+- [ ] Read-after-write verification passes for Product, Collection, Page, and metaobject-backed copy.
+- [ ] Accessibility, unit, integration, and staging E2E gates are green.
+- [ ] Human approves production rollout and rollback procedure.

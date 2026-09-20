@@ -176,6 +176,7 @@ export function EditCollectionForm({
             currentHeroImageUrl={collection.heroImageUrl}
             currentHeroImageLabel={collection.name}
             fileInputKey={fileInputKey}
+            entityId={collection.id}
           />
 
           <div>

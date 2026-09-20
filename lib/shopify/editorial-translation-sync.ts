@@ -1,7 +1,5 @@
 import "server-only";
 
-import { Prisma } from "@prisma/client";
-
 import { db } from "@/lib/db";
 import {
   COLLECTION_FIELD_REGISTRY,
@@ -19,7 +17,7 @@ import {
 } from "@/lib/shopify/editorial-metaobjects";
 import { registerPageTranslation } from "@/lib/shopify/page-translations";
 import { upsertShopifyPage } from "@/lib/shopify/page-resource";
-import { ensureTranslationBinding, recordSyncEvent } from "@/lib/shopify/translation-sync";
+import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
 
 export type TargetResult = { target: "PAGE" | "METAOBJECT"; status: "SUCCEEDED" | "FAILED"; error?: string };
 
@@ -90,10 +88,7 @@ async function recordTargetFailure(bindingId: string, error: unknown, actorUsern
 }
 
 async function completeTarget(bindingId: string, snapshot: Record<string, unknown>, actorUsername?: string | null) {
-  await db.shopifyTranslationBinding.update({
-    where: { id: bindingId },
-    data: { lastSyncedSnapshot: snapshot as Prisma.InputJsonValue },
-  });
+  await saveTranslationSnapshot({ bindingId, locale: "pt-PT", values: snapshot });
   await recordSyncEvent({ bindingId, locale: "PT", direction: "PUSH", status: "SUCCEEDED", actorUsername });
 }
 

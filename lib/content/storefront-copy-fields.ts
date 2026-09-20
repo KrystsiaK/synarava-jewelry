@@ -3,6 +3,12 @@
 // keys listed here are editable, everything else in messages/*.json still
 // requires a code change. Extend this list (not the form) to expose more.
 
+// Lives here (not storefront-copy.ts) because that module is `server-only`
+// (it touches the database) — this constant is also needed by client
+// components, so storefront-copy.ts re-exports it from here instead of
+// declaring its own copy.
+export const STOREFRONT_COPY_KEY = "storefront-copy-v1";
+
 export type StorefrontCopyField = {
   key: string;
   label: string;

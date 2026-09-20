@@ -224,6 +224,7 @@ export function EditProductForm({
           <ProductFormFields
             key={`${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
             draft={draft}
+            entityId={currentProduct.id}
             collections={collections}
             variantExists={currentProduct.variants.length > 0}
             issues={issues}
@@ -237,6 +238,7 @@ export function EditProductForm({
             mode="edit"
             issues={issues}
             collections={collections}
+            entityId={currentProduct.id}
           />
           <ShopifyProductMirror product={currentProduct} />
 
