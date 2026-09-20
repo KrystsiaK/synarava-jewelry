@@ -762,7 +762,7 @@ export function ProductsCms({
                         </Link>
                       ) : null}
                     </div>
-                    <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
+                    <span data-role="workflow-status" className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
                       {status}
                     </span>
                     <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>

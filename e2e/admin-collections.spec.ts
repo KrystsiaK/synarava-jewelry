@@ -17,12 +17,16 @@ test.describe("Admin collections CRUD", () => {
     const fixture = validPngFixture();
 
     await page.goto("/admin/collections/new");
-    await page.locator('input[name="name"]').fill(name);
+    // Name/Collection summary/Manifesto/Search summary are controlled
+    // locale-switching fields with no `name` attribute of their own (see
+    // collection-fields.tsx) — a hidden readonly mirror carries that name
+    // for submission instead. Target the real, visible field by its label.
+    await page.getByLabel(/^Name\*/).fill(name);
     await page.locator('input[name="slug"]').fill(`${prefix}-collection-create`);
     await page.locator('input[name="code"]').fill("E2E-COL");
-    await page.locator('textarea[name="description"]').fill("E2E collection summary.");
-    await page.locator('textarea[name="manifesto"]').fill("E2E collection manifesto.");
-    await page.locator('textarea[name="searchSummary"]').fill("E2E search summary.");
+    await page.getByLabel("Collection summary").fill("E2E collection summary.");
+    await page.getByLabel("Manifesto").fill("E2E collection manifesto.");
+    await page.getByLabel("Search summary").fill("E2E search summary.");
     // The draft-autosave (700ms debounce, see use-draft-autosave.ts) can still
     // have a flush in flight or queued right after the fields above are
     // filled. Submitting while one is pending races it: the create below can
@@ -35,7 +39,11 @@ test.describe("Admin collections CRUD", () => {
     await page.getByRole("button", { name: "Save collection" }).click();
     await page.getByRole("button", { name: "Create collection" }).click();
 
-    await page.waitForURL(/\/admin\/collections\/[^/]+$/);
+    // Excludes "new" itself — the starting URL is /admin/collections/new,
+    // which already matches a bare [^/]+ pattern, so waitForURL would
+    // resolve immediately without waiting for the actual post-save
+    // navigation.
+    await page.waitForURL(/\/admin\/collections\/(?!new$)[^/]+$/);
     await expect(page.getByRole("heading", { name }).first()).toBeVisible();
   });
 

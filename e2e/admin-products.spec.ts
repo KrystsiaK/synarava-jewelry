@@ -32,7 +32,10 @@ test.describe("Admin products CRUD", () => {
     await page.getByRole("button", { name: "Save product" }).first().click();
     await page.getByRole("button", { name: "Continue and save" }).click();
 
-    await page.waitForURL(/\/admin\/products\/[^/]+$/);
+    // Excludes "new" itself — the starting URL is /admin/products/new, which
+    // already matches a bare [^/]+ pattern, so waitForURL would resolve
+    // immediately without waiting for the actual post-save navigation.
+    await page.waitForURL(/\/admin\/products\/(?!new$)[^/]+$/);
     await expect(page.getByRole("heading", { name }).first()).toBeVisible();
   });
 
@@ -65,17 +68,21 @@ test.describe("Admin products CRUD", () => {
       .filter({ has: page.getByRole("button", { name: "Details" }) })
       .last();
 
+    // The row also carries EN/PT translation-readiness badges that reuse the
+    // same .adm-badge-draft/.adm-badge-published classes — scope to the
+    // actual workflow-status badge so this doesn't match more than one span.
+    const workflowStatus = row.locator('[data-role="workflow-status"]');
     await row.getByRole("button", { name: "Publish" }).click();
     await page.getByRole("button", { name: "Publish product" }).click();
-    await expect(row.locator(".adm-badge-published")).toHaveText("PUBLISHED");
+    await expect(workflowStatus).toHaveText("PUBLISHED");
 
     await row.getByRole("button", { name: "Draft" }).click();
     await page.getByRole("button", { name: "Move to draft" }).click();
-    await expect(row.locator(".adm-badge-draft")).toHaveText("DRAFT");
+    await expect(workflowStatus).toHaveText("DRAFT");
 
     await row.getByRole("button", { name: "Archive" }).click();
     await page.getByRole("button", { name: "Archive product" }).click();
-    await expect(row.locator(".adm-badge-draft")).toHaveText("ARCHIVED");
+    await expect(workflowStatus).toHaveText("ARCHIVED");
 
     await row.getByRole("button", { name: "Delete" }).click();
     await page.getByRole("button", { name: "Delete permanently" }).click();
