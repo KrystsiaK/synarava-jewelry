@@ -6,6 +6,7 @@ import {
   saveStorefrontCopyAction,
   type StorefrontCopyActionState,
 } from "@/app/admin/actions/storefront-copy";
+import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
@@ -63,7 +64,10 @@ export function StorefrontCopyEditor({
               return (
                 <div key={field.key} className="grid gap-2 md:grid-cols-2">
                   <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-                    <span className="adm-label">{field.label} (EN)</span>
+                    <span className="adm-label flex items-center gap-1.5">
+                      {field.label} (EN)
+                      {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
+                    </span>
                     <Field
                       name={`en:${field.key}`}
                       defaultValue={copy.en[field.key] ?? ""}
@@ -73,7 +77,10 @@ export function StorefrontCopyEditor({
                     />
                   </label>
                   <label className="grid gap-2" hidden={activeLocale !== "PT"}>
-                    <span className="adm-label">{field.label} (PT)</span>
+                    <span className="adm-label flex items-center gap-1.5">
+                      {field.label} (PT)
+                      {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
+                    </span>
                     <Field
                       name={`pt:${field.key}`}
                       defaultValue={copy.pt[field.key] ?? ""}

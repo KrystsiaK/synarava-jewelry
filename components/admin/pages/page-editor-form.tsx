@@ -316,7 +316,12 @@ export function PageEditor({
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
-            <span className="adm-label">{isHomePage ? "Hero headline" : "Title"}</span>
+            <span className="adm-label flex items-center gap-1.5">
+              {isHomePage ? "Hero headline" : "Title"}
+              {hideDeadCopyFields ? (
+                <AdminHelp>Browser tab title and search-engine result title. Not shown on the page itself.</AdminHelp>
+              ) : null}
+            </span>
             <input value={draft.title} onChange={(event) => updateField("title", event.target.value)} className="adm-field" />
           </label>
           <label className="grid gap-2" hidden={hideDeadCopyFields}>
@@ -326,7 +331,12 @@ export function PageEditor({
         </div>
 
         <label className="grid gap-2">
-          <span className="adm-label">{isHomePage ? "Search summary" : "Excerpt"}</span>
+          <span className="adm-label flex items-center gap-1.5">
+            {isHomePage ? "Search summary" : "Excerpt"}
+            {hideDeadCopyFields ? (
+              <AdminHelp>Search-engine result description (meta description). Not shown on the page itself.</AdminHelp>
+            ) : null}
+          </span>
           <textarea value={draft.excerpt} onChange={(event) => updateField("excerpt", event.target.value)} rows={3} className="adm-field" />
         </label>
 
