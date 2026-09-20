@@ -6,10 +6,15 @@ import { PencilLine } from "lucide-react";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 
 type AdminLongTextFieldProps = {
-  name: string;
+  // Omit `name` when the caller submits this field itself (e.g. via its own
+  // hidden mirror inputs) and drives the displayed text with `value`/`onChange`
+  // — see product-form-fields.tsx's locale-switching fields.
+  name?: string;
   label: React.ReactNode;
   dialogLabel?: string;
   defaultValue?: string | null;
+  value?: string;
+  onChange?: (value: string) => void;
   placeholder?: string;
   rows?: number;
 };
@@ -19,30 +24,35 @@ export function AdminLongTextField({
   label,
   dialogLabel,
   defaultValue = "",
+  value: controlledValue,
+  onChange,
   placeholder = "No content yet.",
   rows = 12,
 }: AdminLongTextFieldProps) {
+  const isControlled = controlledValue !== undefined;
   const titleId = useId();
   const hiddenFieldRef = useRef<HTMLTextAreaElement>(null);
   const initialValue = defaultValue ?? "";
-  const [value, setValue] = useState(initialValue);
-  const [draftValue, setDraftValue] = useState(initialValue);
+  const [internalValue, setInternalValue] = useState(initialValue);
+  const value = isControlled ? controlledValue : internalValue;
+  const [draftValue, setDraftValue] = useState(value);
   const [open, setOpen] = useState(false);
-  const plainLabel = dialogLabel ?? (typeof label === "string" ? label : name);
+  const plainLabel = dialogLabel ?? (typeof label === "string" ? label : name ?? "field");
 
   useEffect(() => {
+    if (isControlled) return;
     const form = hiddenFieldRef.current?.form;
     if (!form) return;
 
     function handleReset() {
-      setValue(initialValue);
+      setInternalValue(initialValue);
       setDraftValue(initialValue);
       setOpen(false);
     }
 
     form.addEventListener("reset", handleReset);
     return () => form.removeEventListener("reset", handleReset);
-  }, [initialValue]);
+  }, [initialValue, isControlled]);
 
   function openEditor() {
     setDraftValue(value);
@@ -55,10 +65,14 @@ export function AdminLongTextField({
   }, [value]);
 
   function applyChanges() {
-    setValue(draftValue);
-    if (hiddenFieldRef.current) {
-      hiddenFieldRef.current.value = draftValue;
-      hiddenFieldRef.current.dispatchEvent(new Event("input", { bubbles: true }));
+    if (isControlled) {
+      onChange?.(draftValue);
+    } else {
+      setInternalValue(draftValue);
+      if (hiddenFieldRef.current) {
+        hiddenFieldRef.current.value = draftValue;
+        hiddenFieldRef.current.dispatchEvent(new Event("input", { bubbles: true }));
+      }
     }
     setOpen(false);
   }
@@ -66,15 +80,17 @@ export function AdminLongTextField({
   return (
     <div data-component="AdminLongTextField" className="grid min-w-0 gap-2">
       <div>{label}</div>
-      <textarea
-        ref={hiddenFieldRef}
-        name={name}
-        value={value}
-        readOnly
-        tabIndex={-1}
-        aria-hidden="true"
-        className="sr-only"
-      />
+      {name ? (
+        <textarea
+          ref={hiddenFieldRef}
+          name={name}
+          value={value}
+          readOnly
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only"
+        />
+      ) : null}
       <div className="adm-long-text-preview">
         <p className="adm-long-text-preview__copy" data-empty={value ? undefined : "true"}>
           {value || placeholder}

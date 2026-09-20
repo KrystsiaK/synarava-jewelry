@@ -8,7 +8,7 @@ import {
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
-import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
@@ -32,6 +32,85 @@ export function OwnershipLabel({ children, owner }: { children: React.ReactNode;
   );
 }
 
+// Maps a locale + field key to the exact FormData field name the server
+// action already reads: EN uses the bare key, any other locale prefixes it
+// and capitalizes it ("materialsEyebrow" -> "ptMaterialsEyebrow"). Matches
+// the convention used by page-editor-form.tsx and collection-fields.tsx.
+function localizedFieldName(locale: AdminLocale, key: string): string {
+  if (locale === "EN") return key;
+  return `${locale.toLowerCase()}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+}
+
+type ProductDetailsSource = {
+  materialsEyebrow: string;
+  materialsTitle: string;
+  materials: Array<{ title: string; body: string }>;
+  process: { eyebrow: string; title: string; stats: Array<{ value: string; label: string }> };
+  lookbookEyebrow: string;
+  lookbookTitle: string;
+  lookbook: Array<{ label: string }>;
+};
+
+type ProductDetailsLocaleDraft = {
+  materialsEyebrow: string;
+  materialsTitle: string;
+  materials: Array<{ title: string; body: string }>;
+  processEyebrow: string;
+  processTitle: string;
+  processStats: Array<{ value: string; label: string }>;
+  lookbookEyebrow: string;
+  lookbookTitle: string;
+  lookbookLabels: string[];
+};
+
+function detailsDraftFrom(source: ProductDetailsSource): ProductDetailsLocaleDraft {
+  return {
+    materialsEyebrow: source.materialsEyebrow,
+    materialsTitle: source.materialsTitle,
+    materials: source.materials.map((material) => ({ title: material.title, body: material.body })),
+    processEyebrow: source.process.eyebrow,
+    processTitle: source.process.title,
+    processStats: source.process.stats.map((stat) => ({ value: stat.value, label: stat.label })),
+    lookbookEyebrow: source.lookbookEyebrow,
+    lookbookTitle: source.lookbookTitle,
+    lookbookLabels: source.lookbook.map((item) => item.label),
+  };
+}
+
+// One physical field per concept (Materials eyebrow, Material 1 title, ...),
+// not one copy per language: the field's *value* switches with the active
+// locale tab. These always-rendered hidden mirrors carry both locales' real
+// values on submit regardless of which tab is active. See
+// components/admin/pages/page-editor-form.tsx for the same pattern.
+function HiddenDetailsLocaleFields({ draftByLocale }: { draftByLocale: Record<AdminLocale, ProductDetailsLocaleDraft> }) {
+  return (
+    <div hidden>
+      {(Object.keys(draftByLocale) as AdminLocale[]).flatMap((locale) => {
+        const draft = draftByLocale[locale];
+        const name = (key: string) => localizedFieldName(locale, key);
+        const field = (key: string, value: string) => <input key={name(key)} type="hidden" readOnly name={name(key)} value={value} />;
+        return [
+          field("materialsEyebrow", draft.materialsEyebrow),
+          field("materialsTitle", draft.materialsTitle),
+          ...draft.materials.flatMap((material, index) => [
+            field(`materialTitle${index + 1}`, material.title),
+            field(`materialBody${index + 1}`, material.body),
+          ]),
+          field("processEyebrow", draft.processEyebrow),
+          field("processTitle", draft.processTitle),
+          ...draft.processStats.flatMap((stat, index) => [
+            field(`processStatValue${index + 1}`, stat.value),
+            field(`processStatLabel${index + 1}`, stat.label),
+          ]),
+          field("lookbookEyebrow", draft.lookbookEyebrow),
+          field("lookbookTitle", draft.lookbookTitle),
+          ...draft.lookbookLabels.map((label, index) => field(`lookbookLabel${index + 1}`, label)),
+        ];
+      })}
+    </div>
+  );
+}
+
 export function ProductDetailFields({
   details,
   ptDetails,
@@ -51,6 +130,41 @@ export function ProductDetailFields({
     .filter((collection) => collection.isPrimaryNav)
     .sort((a, b) => a.navSortOrder - b.navSortOrder);
   const [detailsLocale, selectDetailsLocale] = useAdminActiveLocale(`product-details:${sku || "new"}`, "EN");
+  const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, ProductDetailsLocaleDraft>>(() => ({
+    EN: detailsDraftFrom(details),
+    PT: detailsDraftFrom(ptDetails),
+  }));
+  const draft = draftByLocale[detailsLocale];
+  const isEn = detailsLocale === "EN";
+
+  function updateField<K extends keyof ProductDetailsLocaleDraft>(key: K, value: ProductDetailsLocaleDraft[K]) {
+    setDraftByLocale((prev) => ({ ...prev, [detailsLocale]: { ...prev[detailsLocale], [key]: value } }));
+  }
+
+  function updateMaterial(index: number, key: "title" | "body", value: string) {
+    setDraftByLocale((prev) => {
+      const materials = [...prev[detailsLocale].materials];
+      materials[index] = { ...materials[index], [key]: value };
+      return { ...prev, [detailsLocale]: { ...prev[detailsLocale], materials } };
+    });
+  }
+
+  function updateProcessStat(index: number, key: "value" | "label", value: string) {
+    setDraftByLocale((prev) => {
+      const processStats = [...prev[detailsLocale].processStats];
+      processStats[index] = { ...processStats[index], [key]: value };
+      return { ...prev, [detailsLocale]: { ...prev[detailsLocale], processStats } };
+    });
+  }
+
+  function updateLookbookLabel(index: number, value: string) {
+    setDraftByLocale((prev) => {
+      const lookbookLabels = [...prev[detailsLocale].lookbookLabels];
+      lookbookLabels[index] = value;
+      return { ...prev, [detailsLocale]: { ...prev[detailsLocale], lookbookLabels } };
+    });
+  }
+
   return (
     <div data-component="ProductDetailFields"
       className="grid gap-6 pt-5"
@@ -67,57 +181,14 @@ export function ProductDetailFields({
       </div>
 
       <AdminLocaleTabs active={detailsLocale} onSelect={selectDetailsLocale} />
+      <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
 
-      <section
-        role="tabpanel"
-        aria-label="Portuguese materials, process, and lookbook copy"
-        hidden={detailsLocale !== "PT"}
-        className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
-      >
-        <p className="adm-section-tag">[ PT — MATERIALS / PROCESS / LOOKBOOK ]</p>
+      {!isEn ? (
         <p className="text-xs text-[var(--adm-muted)]">
           Optional — blank fields show the English text to Portuguese visitors instead. Images stay
           shared with English and are not repeated here.
         </p>
-        <div className="grid gap-3 md:grid-cols-2">
-          <input name="ptMaterialsEyebrow" defaultValue={ptDetails.materialsEyebrow} placeholder="Section eyebrow" className="adm-field" />
-          <input name="ptMaterialsTitle" defaultValue={ptDetails.materialsTitle} placeholder="Section title" className="adm-field" />
-        </div>
-        <div className="grid gap-3 xl:grid-cols-3">
-          {ptDetails.materials.map((material, index) => (
-            <div key={`pt-material-${index}`} className="grid gap-2 p-3" style={{ border: "1px solid var(--adm-border)" }}>
-              <p className="adm-section-tag">MATERIAL {index + 1} (PT)</p>
-              <input name={`ptMaterialTitle${index + 1}`} defaultValue={material.title} placeholder="Pedra de Lava" className="adm-field" />
-              <textarea name={`ptMaterialBody${index + 1}`} rows={4} defaultValue={material.body} placeholder="Descreva a história do material." className="adm-field" />
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <input name="ptProcessEyebrow" defaultValue={ptDetails.process.eyebrow} placeholder="Processo" className="adm-field" />
-          <input name="ptProcessTitle" defaultValue={ptDetails.process.title} placeholder="Precisão Humana" className="adm-field" />
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {ptDetails.process.stats.map((stat, index) => (
-            <div key={`pt-process-stat-${index}`} className="grid gap-2 p-3" style={{ border: "1px solid var(--adm-border)" }}>
-              <p className="adm-section-tag">STAT {index + 1} (PT)</p>
-              <input name={`ptProcessStatValue${index + 1}`} defaultValue={stat.value} placeholder="12" className="adm-field" />
-              <input name={`ptProcessStatLabel${index + 1}`} defaultValue={stat.label} placeholder="Horas de tecelagem" className="adm-field" />
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <input name="ptLookbookEyebrow" defaultValue={ptDetails.lookbookEyebrow} placeholder="Section eyebrow" className="adm-field" />
-          <input name="ptLookbookTitle" defaultValue={ptDetails.lookbookTitle} placeholder="Section title" className="adm-field" />
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          {ptDetails.lookbook.map((item, index) => (
-            <label key={`pt-lookbook-${index}`} className="grid gap-2">
-              <span className="adm-label">Lookbook {index + 1} label (PT)</span>
-              <input name={`ptLookbookLabel${index + 1}`} defaultValue={item.label} placeholder="01 / O Conjunto" className="adm-field" />
-            </label>
-          ))}
-        </div>
-      </section>
+      ) : null}
 
       <section
         className="grid gap-4 p-4"
@@ -187,7 +258,6 @@ export function ProductDetailFields({
 
       {/* Materials */}
       <section
-        hidden={detailsLocale !== "EN"}
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
       >
@@ -199,14 +269,14 @@ export function ProductDetailFields({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <input
-            name="materialsEyebrow"
-            defaultValue={details.materialsEyebrow}
+            value={draft.materialsEyebrow}
+            onChange={(event) => updateField("materialsEyebrow", event.target.value)}
             placeholder="Section eyebrow"
             className="adm-field"
           />
           <input
-            name="materialsTitle"
-            defaultValue={details.materialsTitle}
+            value={draft.materialsTitle}
+            onChange={(event) => updateField("materialsTitle", event.target.value)}
             placeholder="Section title"
             className="adm-field"
           />
@@ -222,18 +292,19 @@ export function ProductDetailFields({
               <p className="adm-section-tag">MATERIAL {index + 1}</p>
               <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-materials-${index}-image`)} />
               <input
-                name={`materialTitle${index + 1}`}
-                defaultValue={material.title}
+                value={draft.materials[index].title}
+                onChange={(event) => updateMaterial(index, "title", event.target.value)}
                 placeholder="Lava Stone"
                 className="adm-field"
               />
               <textarea
-                name={`materialBody${index + 1}`}
                 rows={4}
-                defaultValue={material.body}
+                value={draft.materials[index].body}
+                onChange={(event) => updateMaterial(index, "body", event.target.value)}
                 placeholder="Describe the material story."
                 className="adm-field"
               />
+              {/* Image is shared across locales and always visible. */}
               <input
                 type="hidden"
                 name={`existingMaterialImage${index + 1}`}
@@ -242,7 +313,7 @@ export function ProductDetailFields({
               <ImageFileField
                 name={`materialImageFile${index + 1}`}
                 currentImageUrl={mode === "edit" ? material.image : ""}
-                currentImageAlt={material.title || `Material ${index + 1}`}
+                currentImageAlt={draft.materials[index].title || `Material ${index + 1}`}
                 removeFieldName={`removeMaterialImage${index + 1}`}
                 removeLabel="Remove"
               />
@@ -253,7 +324,6 @@ export function ProductDetailFields({
 
       {/* Process */}
       <section
-        hidden={detailsLocale !== "EN"}
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
       >
@@ -265,18 +335,19 @@ export function ProductDetailFields({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <input
-            name="processEyebrow"
-            defaultValue={details.process.eyebrow}
+            value={draft.processEyebrow}
+            onChange={(event) => updateField("processEyebrow", event.target.value)}
             placeholder="Process"
             className="adm-field"
           />
           <input
-            name="processTitle"
-            defaultValue={details.process.title}
+            value={draft.processTitle}
+            onChange={(event) => updateField("processTitle", event.target.value)}
             placeholder="Human Precision"
             className="adm-field"
           />
         </div>
+        {/* Media is shared across locales and always visible. */}
         <input
           type="hidden"
           name="existingProcessMediaImage"
@@ -285,7 +356,7 @@ export function ProductDetailFields({
         <ImageFileField
           name="processMediaImageFile"
           currentImageUrl={mode === "edit" ? details.process.mediaImage : ""}
-          currentImageAlt={details.process.title || "Process media"}
+          currentImageAlt={draft.processTitle || "Process media"}
           currentImageLabel="Current process media"
           previewAspect="video"
           fieldId="field-details-process-mediaImage"
@@ -294,7 +365,7 @@ export function ProductDetailFields({
         />
         <AdminIssueInlineWarning issues={issuesForField(issues, "field-details-process-mediaImage")} />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {details.process.stats.map((stat, index) => (
+          {draft.processStats.map((stat, index) => (
             <div
               key={`process-stat-${index}`}
               className="grid gap-3 p-3"
@@ -302,14 +373,14 @@ export function ProductDetailFields({
             >
               <p className="adm-section-tag">STAT {index + 1}</p>
               <input
-                name={`processStatValue${index + 1}`}
-                defaultValue={stat.value}
+                value={stat.value}
+                onChange={(event) => updateProcessStat(index, "value", event.target.value)}
                 placeholder="12"
                 className="adm-field"
               />
               <input
-                name={`processStatLabel${index + 1}`}
-                defaultValue={stat.label}
+                value={stat.label}
+                onChange={(event) => updateProcessStat(index, "label", event.target.value)}
                 placeholder="Hours of weaving"
                 className="adm-field"
               />
@@ -320,7 +391,6 @@ export function ProductDetailFields({
 
       {/* Lookbook */}
       <section
-        hidden={detailsLocale !== "EN"}
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
       >
@@ -332,14 +402,14 @@ export function ProductDetailFields({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <input
-            name="lookbookEyebrow"
-            defaultValue={details.lookbookEyebrow}
+            value={draft.lookbookEyebrow}
+            onChange={(event) => updateField("lookbookEyebrow", event.target.value)}
             placeholder="Section eyebrow"
             className="adm-field"
           />
           <input
-            name="lookbookTitle"
-            defaultValue={details.lookbookTitle}
+            value={draft.lookbookTitle}
+            onChange={(event) => updateField("lookbookTitle", event.target.value)}
             placeholder="Section title"
             className="adm-field"
           />
@@ -355,6 +425,7 @@ export function ProductDetailFields({
               <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-lookbook-${index}-src`)} />
               <div className="flex items-center justify-between gap-3">
                 <p className="adm-section-tag">LOOKBOOK {index + 1}</p>
+                {/* Featured is shared across locales and always visible. */}
                 <label
                   className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-[0.08em] cursor-pointer"
                   style={{ color: "var(--adm-muted)" }}
@@ -368,11 +439,12 @@ export function ProductDetailFields({
                 </label>
               </div>
               <input
-                name={`lookbookLabel${index + 1}`}
-                defaultValue={item.label}
+                value={draft.lookbookLabels[index] ?? ""}
+                onChange={(event) => updateLookbookLabel(index, event.target.value)}
                 placeholder="01 / The Ensemble"
                 className="adm-field"
               />
+              {/* Image is shared across locales and always visible. */}
               <input
                 type="hidden"
                 name={`existingLookbookImage${index + 1}`}
@@ -381,7 +453,7 @@ export function ProductDetailFields({
               <ImageFileField
                 name={`lookbookImageFile${index + 1}`}
                 currentImageUrl={mode === "edit" ? item.src : ""}
-                currentImageAlt={item.label || `Lookbook ${index + 1}`}
+                currentImageAlt={draft.lookbookLabels[index] || `Lookbook ${index + 1}`}
                 removeFieldName={`removeLookbookImage${index + 1}`}
                 removeLabel="Remove"
               />
@@ -389,6 +461,61 @@ export function ProductDetailFields({
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+type ProductCoreLocaleDraft = {
+  shortDescription: string;
+  description: string;
+  materialLine: string;
+  symbolismLabel: string;
+  symbolismTitle: string;
+  symbolismBody: string;
+  symbolismBody2: string;
+  seoTitle: string;
+  seoDescription: string;
+};
+
+function coreDraftFrom(source: ProductCoreLocaleDraft): ProductCoreLocaleDraft {
+  return {
+    shortDescription: source.shortDescription,
+    description: source.description,
+    materialLine: source.materialLine,
+    symbolismLabel: source.symbolismLabel,
+    symbolismTitle: source.symbolismTitle,
+    symbolismBody: source.symbolismBody,
+    symbolismBody2: source.symbolismBody2,
+    seoTitle: source.seoTitle,
+    seoDescription: source.seoDescription,
+  };
+}
+
+// Same one-field-per-concept pattern as HiddenDetailsLocaleFields above.
+// Product name/title is NOT included here — it keeps its own duplicated
+// EN/PT fields (see the comment above the "Name" field below) because it's
+// wired into useAdminFormValidation's native-DOM constraint-validation scan,
+// which requires the real, currently-required "name" input to always be a
+// non-hidden, named element for the browser to flag it when empty.
+function HiddenCoreLocaleFields({ draftByLocale }: { draftByLocale: Record<AdminLocale, ProductCoreLocaleDraft> }) {
+  return (
+    <div hidden>
+      {(Object.keys(draftByLocale) as AdminLocale[]).flatMap((locale) => {
+        const draft = draftByLocale[locale];
+        const name = (key: string) => localizedFieldName(locale, key);
+        const field = (key: keyof ProductCoreLocaleDraft) => <input key={name(key)} type="hidden" readOnly name={name(key)} value={draft[key]} />;
+        return [
+          field("shortDescription"),
+          field("description"),
+          field("materialLine"),
+          field("symbolismLabel"),
+          field("symbolismTitle"),
+          field("symbolismBody"),
+          field("symbolismBody2"),
+          field("seoTitle"),
+          field("seoDescription"),
+        ];
+      })}
     </div>
   );
 }
@@ -408,16 +535,23 @@ export function ProductFormFields({
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
+  const [ptTitleValue, setPtTitleValue] = useState(draft.pt.title);
   const [slugValue, setSlugValue] = useState(draft.slug);
   const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
   const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${draft.sku || "new"}`, "EN");
+  const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, ProductCoreLocaleDraft>>(() => ({
+    EN: coreDraftFrom(draft),
+    PT: coreDraftFrom(draft.pt),
+  }));
+  const coreDraft = draftByLocale[activeLocale];
+  const isEn = activeLocale === "EN";
 
   useEffect(() => {
-    // Fixes a real bug: EN fields sit inside a `hidden` ancestor while the
-    // PT tab is active, so a browser (and jsdom) skips them during native
-    // constraint validation — a save attempted from the PT tab with a blank
-    // required EN field reported no visible error until this forced the
-    // EN tab back open. See admin-locale-panel.tsx / Task 4.
+    // Fixes a real bug: the required "Name" field sits inside a `hidden`
+    // ancestor while the PT tab is active, so a browser (and jsdom) skips it
+    // during native constraint validation — a save attempted from the PT tab
+    // with a blank required EN field reported no visible error until this
+    // forced the EN tab back open. See admin-locale-panel.tsx / Task 4.
     const forced = localeOfFirstError(fieldErrors);
     if (forced) selectLocale(forced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -441,6 +575,10 @@ export function ProductFormFields({
     setSlugLocked(true);
   }
 
+  function updateCore<K extends keyof ProductCoreLocaleDraft>(key: K, value: ProductCoreLocaleDraft[K]) {
+    setDraftByLocale((prev) => ({ ...prev, [activeLocale]: { ...prev[activeLocale], [key]: value } }));
+  }
+
   return (
     <>
       <div className="flex flex-col gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4 md:flex-row md:items-center md:justify-between">
@@ -456,15 +594,10 @@ export function ProductFormFields({
         onSelect={selectLocale}
         ptStatus={draft.pt.syncStatus as AdminLocaleStatus}
       />
+      <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 
-      <section
-        role="tabpanel"
-        aria-label="Portuguese product copy"
-        hidden={activeLocale !== "PT"}
-        className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
-      >
-        <div>
-          {/* Shopify sync status now lives once, on the sticky AdminLocaleTabs badge above — not duplicated here. */}
+      {!isEn ? (
+        <div className="border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
           <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
           <p className="mt-2 text-xs text-[var(--adm-muted)]">
             Optional — publishing never blocks on this. Whatever is left blank here shows the English text
@@ -474,49 +607,22 @@ export function ProductFormFields({
             <p className="mt-2 text-xs text-[var(--adm-danger)]">{draft.pt.syncError}</p>
           ) : null}
         </div>
-        <label className="grid gap-2">
-          <span className="adm-label">Product name (PT)</span>
-          <input name="ptTitle" defaultValue={draft.pt.title} className="adm-field" />
-        </label>
-        <label className="grid gap-2">
-          <span className="adm-label">URL handle (PT, optional)</span>
-          <input name="ptHandle" defaultValue={draft.pt.localizedHandle} className="adm-field" placeholder={draft.slug} />
-          <span className="text-xs text-[var(--adm-muted)]">Blank uses the English slug.</span>
-        </label>
-        <AdminLongTextField
-          name="ptShortDescription"
-          label={<span className="adm-label">Short description (PT)</span>}
-          dialogLabel="Short description (PT)"
-          defaultValue={draft.pt.shortDescription}
-          rows={8}
-        />
-        <AdminLongTextField
-          name="ptDescription"
-          label={<span className="adm-label">Description (PT)</span>}
-          dialogLabel="Description (PT)"
-          defaultValue={draft.pt.description}
-        />
-        <label className="grid gap-2">
-          <span className="adm-label">Material line (PT)</span>
-          <input name="ptMaterialLine" defaultValue={draft.pt.materialLine} className="adm-field" />
-        </label>
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2"><span className="adm-label">Symbolism label (PT)</span><input name="ptSymbolismLabel" defaultValue={draft.pt.symbolismLabel} className="adm-field" /></label>
-          <label className="grid gap-2"><span className="adm-label">Symbolism title (PT)</span><input name="ptSymbolismTitle" defaultValue={draft.pt.symbolismTitle} className="adm-field" /></label>
-        </div>
-        <AdminLongTextField name="ptSymbolismBody" label={<span className="adm-label">Symbolism body (PT)</span>} dialogLabel="Symbolism body (PT)" defaultValue={draft.pt.symbolismBody} />
-        <AdminLongTextField name="ptSymbolismBody2" label={<span className="adm-label">Symbolism continuation (PT)</span>} dialogLabel="Symbolism continuation (PT)" defaultValue={draft.pt.symbolismBody2} rows={8} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2"><span className="adm-label">SEO title (PT)</span><input name="ptSeoTitle" defaultValue={draft.pt.seoTitle} className="adm-field" /></label>
-          <AdminLongTextField name="ptSeoDescription" label={<span className="adm-label">SEO description (PT)</span>} dialogLabel="SEO description (PT)" defaultValue={draft.pt.seoDescription} rows={7} />
-        </div>
-        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
-          <input type="checkbox" name="ptReviewed" defaultChecked={draft.pt.reviewed} />
-          <span>Portuguese translation reviewed</span>
-        </label>
-      </section>
+      ) : null}
 
       <div className="grid items-start gap-4 md:grid-cols-2">
+        {/*
+          The Name field is the one exception to "single field per concept"
+          in this form: it stays duplicated (this EN input plus the PT one
+          further down) because useAdminFormValidation's native constraint
+          scan (collectNativeFieldErrors) only detects a blank *required*
+          field when that field is a real, named, non-hidden DOM node. A
+          type="hidden" mirror can never satisfy `required` (the HTML spec
+          excludes hidden inputs from constraint validation entirely), so
+          collapsing Name into a locale-switching value here would silently
+          break the existing Task 4 empty-name-while-on-PT-tab protection
+          below. Every other localized field here has no `required`
+          attribute and safely uses the single-field pattern.
+        */}
         <div className="grid content-start gap-2" hidden={activeLocale !== "EN"}>
           <label htmlFor={validation.fieldId("name")}>
             <OwnershipLabel owner="Shopify">Name *</OwnershipLabel>
@@ -532,6 +638,10 @@ export function ProductFormFields({
           />
           <AdminFieldError id={validation.fieldErrorId("name")} message={fieldErrors.name} />
         </div>
+        <label className="grid content-start gap-2" hidden={activeLocale !== "PT"}>
+          <span className="adm-label">Product name (PT)</span>
+          <input name="ptTitle" value={ptTitleValue} onChange={(event) => setPtTitleValue(event.target.value)} className="adm-field" />
+        </label>
         <div className="grid content-start gap-2">
           <label htmlFor={validation.fieldId("slug")}>
             <OwnershipLabel owner="Shopify">Slug *</OwnershipLabel>
@@ -548,6 +658,14 @@ export function ProductFormFields({
           <AdminFieldError id={validation.fieldErrorId("slug")} message={fieldErrors.slug} />
         </div>
       </div>
+
+      {!isEn ? (
+        <label className="grid gap-2">
+          <span className="adm-label">URL handle (PT, optional)</span>
+          <input name="ptHandle" defaultValue={draft.pt.localizedHandle} className="adm-field" placeholder={draft.slug} />
+          <span className="text-xs text-[var(--adm-muted)]">Blank uses the English slug.</span>
+        </label>
+      ) : null}
 
       <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="grid content-start gap-2">
@@ -593,7 +711,8 @@ export function ProductFormFields({
         </label>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+      {/* Vendor/brand and Product type are shared across locales — always visible, no PT counterpart. */}
+      <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
           <OwnershipLabel owner="Shopify">Vendor / brand</OwnershipLabel>
           <input name="vendor" defaultValue={draft.vendor} className="adm-field" />
@@ -604,43 +723,39 @@ export function ProductFormFields({
         </label>
       </div>
 
-      <div hidden={activeLocale !== "EN"}>
-        <AdminLongTextField
-          name="shortDescription"
-          label={<OwnershipLabel owner="Synarava">Short description</OwnershipLabel>}
-          dialogLabel="Short description"
-          defaultValue={draft.shortDescription}
-          rows={8}
-        />
-      </div>
+      <AdminLongTextField
+        label={<OwnershipLabel owner="Synarava">Short description</OwnershipLabel>}
+        dialogLabel="Short description"
+        value={coreDraft.shortDescription}
+        onChange={(value) => updateCore("shortDescription", value)}
+        rows={8}
+      />
 
-      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+      <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
           <OwnershipLabel owner="Shopify">SEO title</OwnershipLabel>
-          <input name="seoTitle" defaultValue={draft.seoTitle} className="adm-field" />
+          <input value={coreDraft.seoTitle} onChange={(event) => updateCore("seoTitle", event.target.value)} className="adm-field" />
         </label>
         <AdminLongTextField
-          name="seoDescription"
           label={<OwnershipLabel owner="Shopify">SEO description</OwnershipLabel>}
           dialogLabel="SEO description"
-          defaultValue={draft.seoDescription}
+          value={coreDraft.seoDescription}
+          onChange={(value) => updateCore("seoDescription", value)}
           rows={7}
         />
       </div>
 
-      <div hidden={activeLocale !== "EN"}>
-        <AdminLongTextField
-          name="description"
-          label={<OwnershipLabel owner="Shopify">Description</OwnershipLabel>}
-          dialogLabel="Description"
-          defaultValue={draft.description}
-        />
-      </div>
+      <AdminLongTextField
+        label={<OwnershipLabel owner="Shopify">Description</OwnershipLabel>}
+        dialogLabel="Description"
+        value={coreDraft.description}
+        onChange={(value) => updateCore("description", value)}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2">
           <OwnershipLabel owner="Synarava">Material line</OwnershipLabel>
-          <input name="materialLine" defaultValue={draft.materialLine} className="adm-field" />
+          <input value={coreDraft.materialLine} onChange={(event) => updateCore("materialLine", event.target.value)} className="adm-field" />
         </label>
         <div id="field-imageUrl" className="grid content-start gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
           <OwnershipLabel owner="Shopify">Catalog cover</OwnershipLabel>
@@ -654,7 +769,6 @@ export function ProductFormFields({
       {/* Symbolism */}
       <div
         className="grid gap-4 pt-4"
-        hidden={activeLocale !== "EN"}
         style={{ borderTop: "1px solid var(--adm-border)" }}
       >
         <div>
@@ -665,21 +779,28 @@ export function ProductFormFields({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <input
-            name="symbolismLabel"
-            defaultValue={draft.symbolismLabel}
+            value={coreDraft.symbolismLabel}
+            onChange={(event) => updateCore("symbolismLabel", event.target.value)}
             placeholder="Symbolic Language"
             className="adm-field"
           />
           <input
-            name="symbolismTitle"
-            defaultValue={draft.symbolismTitle}
+            value={coreDraft.symbolismTitle}
+            onChange={(event) => updateCore("symbolismTitle", event.target.value)}
             placeholder="Wood, Lava, Embroidery"
             className="adm-field"
           />
         </div>
-        <AdminLongTextField name="symbolismBody" label={<span className="adm-label">Symbolism body</span>} dialogLabel="Symbolism body" defaultValue={draft.symbolismBody} />
-        <AdminLongTextField name="symbolismBody2" label={<span className="adm-label">Symbolism continuation</span>} dialogLabel="Symbolism continuation" defaultValue={draft.symbolismBody2} rows={8} />
+        <AdminLongTextField label={<span className="adm-label">Symbolism body</span>} dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
+        <AdminLongTextField label={<span className="adm-label">Symbolism continuation</span>} dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} rows={8} />
       </div>
+
+      {!isEn ? (
+        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
+          <input type="checkbox" name="ptReviewed" defaultChecked={draft.pt.reviewed} />
+          <span>Portuguese translation reviewed</span>
+        </label>
+      ) : null}
 
       {/* Taxonomy + state */}
       <div className="grid items-start gap-4 lg:grid-cols-3">

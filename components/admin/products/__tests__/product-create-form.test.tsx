@@ -30,6 +30,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.autosaveProductDraftAction.mockResolvedValue({});
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
+  // The active-locale tab is remembered in sessionStorage per product sku
+  // (all create-form tests share the "new" key), so tests would otherwise
+  // leak their tab state across `it()` blocks.
+  sessionStorage.clear();
 });
 
 describe("CreateProductForm", () => {

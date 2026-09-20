@@ -74,6 +74,10 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
+  // The active-locale tab is remembered in sessionStorage per product sku, so
+  // tests sharing a sku (they all use "LAVA-1") would otherwise leak their
+  // tab state across `it()` blocks.
+  sessionStorage.clear();
 });
 
 describe("EditProductForm", () => {
@@ -159,6 +163,42 @@ describe("EditProductForm", () => {
     // ...and the EN tab reopens so the user can actually see the error
     // instead of being stuck looking at the PT panel.
     expect(await screen.findByLabelText(/Name/)).toBeVisible();
+  });
+
+  it("keeps shared Vendor/brand and Product type visible on the PT tab", async () => {
+    const user = userEvent.setup();
+    render(<EditProductForm product={makeProduct({ vendor: "Synarava", productType: "Necklace" })} collections={[]} />);
+    await act(async () => {});
+
+    expect(screen.getByLabelText(/Vendor \/ brand/)).toBeVisible();
+    await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
+    expect(screen.getByLabelText(/Vendor \/ brand/)).toBeVisible();
+    expect(screen.getByLabelText(/Product type/)).toBeVisible();
+  });
+
+  it("switches the same Short description field's value with the locale tab", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({
+      shortDescription: "A refined piece.",
+      translations: [{
+        id: "translation-pt", locale: "PT", title: "Anel de Lava", localizedHandle: null,
+        shortDescription: "Uma peça refinada.", description: null, materialLine: null,
+        symbolismLabel: null, symbolismTitle: null, symbolismBody: null, symbolismBody2: null,
+        details: null, seoTitle: null, seoDescription: null, reviewStatus: "DRAFT", reviewedAt: null,
+        syncStatus: "PENDING", syncError: null, contentHash: null, lastSyncedAt: null,
+        createdAt: new Date("2026-01-01"), updatedAt: new Date("2026-01-01"), productId: "product-1",
+      }],
+    });
+    render(<EditProductForm product={product} collections={[]} />);
+    await act(async () => {});
+
+    expect(screen.getByText("A refined piece.")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
+    expect(screen.getByText("Uma peça refinada.")).toBeInTheDocument();
+    expect(screen.queryByText("A refined piece.")).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("tab", { name: "English" })[0]);
+    expect(screen.getByText("A refined piece.")).toBeInTheDocument();
   });
 
   it("keeps the editor available when the save action rejects", async () => {
