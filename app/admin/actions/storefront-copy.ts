@@ -27,7 +27,7 @@ export async function saveStorefrontCopyAction(formData: FormData): Promise<Stor
   // Footer and the main menu render in the root layout on every route; the
   // FAQ/Care/Shipping/Returns copy lives on those specific pages only.
   revalidatePath("/", "layout");
-  for (const path of ["/faq", "/care", "/shipping", "/returns"]) {
+  for (const path of ["/shop", "/faq", "/care", "/shipping", "/returns"]) {
     revalidateStorefrontPath(path);
   }
 

@@ -5,12 +5,16 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
   const page = await getPageBySlug("care", locale);
-  const title = t("service.care.metaTitle");
-  const description = t("service.care.metaDescription");
+  const { title, description } = localizedPageMetadataCopy({
+    page,
+    fallbackTitle: t("service.care.metaTitle"),
+    fallbackDescription: t("service.care.metaDescription"),
+  });
   return {
     title,
     description,

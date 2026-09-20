@@ -199,6 +199,9 @@ export function PageEditor({
   const isAboutPage = page.slug === "about";
   const isOfferPage = page.slug === "offer";
   const isPrivacyPage = page.slug === "privacy";
+  // These slugs render bespoke frontend components that read only title/excerpt (SEO meta)
+  // and content.heroImage — the generic copy fields below never reach the page.
+  const hideDeadCopyFields = ["shop", "care", "faq", "returns", "shipping", "collections"].includes(page.slug);
   const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
   const { pushToast } = useAdminToast();
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, "EN");
@@ -298,7 +301,7 @@ export function PageEditor({
             <span className="adm-label">{isHomePage ? "Hero headline" : "Title"}</span>
             <input value={draft.title} onChange={(event) => updateField("title", event.target.value)} className="adm-field" />
           </label>
-          <label className="grid gap-2">
+          <label className="grid gap-2" hidden={hideDeadCopyFields}>
             <span className="adm-label">Eyebrow</span>
             <input value={draft.eyebrow} onChange={(event) => updateField("eyebrow", event.target.value)} className="adm-field" />
           </label>
@@ -324,12 +327,12 @@ export function PageEditor({
           />
         </div>
 
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={hideDeadCopyFields}>
           <span className="adm-label">{isHomePage ? "Hero description" : isAboutPage ? "Studio introduction" : "Body"}</span>
           <textarea value={draft.body} onChange={(event) => updateField("body", event.target.value)} rows={5} className="adm-field" />
         </label>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2" hidden={hideDeadCopyFields}>
           <label className="grid gap-2">
             <span className="adm-label">CTA label</span>
             <input value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} className="adm-field" />
@@ -526,7 +529,7 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Manifesto</h3> : null}
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={hideDeadCopyFields}>
           <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
           <textarea value={draft.quote} onChange={(event) => updateField("quote", event.target.value)} rows={4} className="adm-field" />
         </label>
@@ -545,7 +548,7 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Final call to action</h3> : null}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2" hidden={hideDeadCopyFields}>
           <label className="grid gap-2">
             <span className="adm-label">{isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : "Secondary title"}</span>
             <input value={draft.secondaryTitle} onChange={(event) => updateField("secondaryTitle", event.target.value)} className="adm-field" />
@@ -574,12 +577,12 @@ export function PageEditor({
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
                 <span className="adm-label">Contact label</span>
-                <input value={draft.finalContactLabel} onChange={(event) => updateField("finalContactLabel", event.target.value)} placeholder="studio@synarava.com" className="adm-field" />
+                <input value={draft.finalContactLabel} onChange={(event) => updateField("finalContactLabel", event.target.value)} placeholder="synarava.shop@gmail.com" className="adm-field" />
               </label>
               <label className="grid gap-2">
                 <span className="adm-label">Contact email</span>
                 <AdminHelp>Shared across languages — an address, not translated copy.</AdminHelp>
-                <input name="finalContactEmail" type="email" defaultValue={content.finalContactEmail ?? ""} placeholder="studio@synarava.com" className="adm-field" />
+                <input name="finalContactEmail" type="email" defaultValue={content.finalContactEmail ?? ""} placeholder="synarava.shop@gmail.com" className="adm-field" />
               </label>
             </div>
           </div>

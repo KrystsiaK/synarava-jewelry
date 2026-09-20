@@ -44,7 +44,7 @@ export function ServicePage({ eyebrow, title, intro, sections, heroImage }: Serv
       <div className="site-shell">
         <div className="grid gap-px border-b border-stroke bg-stroke md:grid-cols-2">
           {sections.map((section, index) => (
-            <section key={section.title} className="min-h-64 bg-background px-0 py-10 md:p-10">
+            <section key={index} className="min-h-64 bg-background px-0 py-10 md:p-10">
               <p className="label-caps text-accent">{String(index + 1).padStart(2, "0")}</p>
               <h2 className="mt-4 font-serif text-3xl leading-tight">{section.title}</h2>
               <p className="mt-5 max-w-[58ch] whitespace-pre-line text-sm leading-7 text-muted">
@@ -59,7 +59,7 @@ export function ServicePage({ eyebrow, title, intro, sections, heroImage }: Serv
             <p className="label-caps text-accent">{t("service.contactTitle")}</p>
             <p className="mt-2 text-sm text-muted">{t("service.contactBody")}</p>
           </div>
-          <ArtifactLink href="mailto:studio@synarava.com" variant="inverse" size="md">
+          <ArtifactLink href="mailto:synarava.shop@gmail.com" variant="inverse" size="md">
             {t("service.contactCta")}
           </ArtifactLink>
         </aside>

@@ -56,6 +56,17 @@ const FOOTER_GROUP: StorefrontCopyGroup = {
   ],
 };
 
+const SHOP_GROUP: StorefrontCopyGroup = {
+  id: "shop",
+  title: "Shop page",
+  description: "The hero title and its accent word render as two separate on-page runs.",
+  fields: [
+    { key: "shop.heroTitleLead", label: "Hero title (lead)" },
+    { key: "shop.heroTitleAccent", label: "Hero title accent" },
+    { key: "shop.heroDescription", label: "Hero description", area: true },
+  ],
+};
+
 const SERVICE_PAGES = [
   { slug: "faq", title: "FAQ page", sections: ["maker", "availability", "payment", "question"] },
   { slug: "care", title: "Care Guide page", sections: ["jewelry", "pets", "kids", "tools"] },
@@ -84,6 +95,7 @@ function serviceGroup(page: (typeof SERVICE_PAGES)[number]): StorefrontCopyGroup
 export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   NAV_GROUP,
   FOOTER_GROUP,
+  SHOP_GROUP,
   ...SERVICE_PAGES.map(serviceGroup),
 ];
 
