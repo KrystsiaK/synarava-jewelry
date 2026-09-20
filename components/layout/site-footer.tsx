@@ -75,11 +75,11 @@ export function SiteFooter() {
             {t("footer.faq")}
           </Link>
           <Link
-            href="mailto:studio@synarava.com"
-            aria-label={`${t("footer.contact")}: studio@synarava.com`}
+            href="mailto:synarava.shop@gmail.com"
+            aria-label={`${t("footer.contact")}: synarava.shop@gmail.com`}
             className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit"
           >
-            studio@synarava.com
+            synarava.shop@gmail.com
           </Link>
         </nav>
       </div>

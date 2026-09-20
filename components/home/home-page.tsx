@@ -1258,7 +1258,7 @@ function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?:
 }
 
 function FinalFooter({ title, contactLabel, contactEmail }: { title?: string; contactLabel?: string; contactEmail?: string }) {
-  const email = contactEmail?.trim() || "studio@synarava.com";
+  const email = contactEmail?.trim() || "synarava.shop@gmail.com";
 
   return (
     <div data-component="FinalFooter" className="mt-auto flex flex-1 flex-col justify-end gap-6 border-t border-linen/15 pb-1 pt-8 sm:flex-row sm:items-end sm:justify-between md:pt-10">

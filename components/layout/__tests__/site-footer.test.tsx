@@ -45,9 +45,9 @@ describe("SiteFooter", () => {
 
   it("renders contact email link", () => {
     renderFooter();
-    expect(screen.getByRole("link", { name: "Contact: studio@synarava.com" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Contact: synarava.shop@gmail.com" })).toHaveAttribute(
       "href",
-      "mailto:studio@synarava.com",
+      "mailto:synarava.shop@gmail.com",
     );
   });
 

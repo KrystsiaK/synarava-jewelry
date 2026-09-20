@@ -37,7 +37,7 @@ test.describe("Home page", () => {
     await expect(footer).toBeVisible();
     await expect(footer.getByRole("link", { name: "Shipping" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "Returns" })).toBeVisible();
-    await expect(footer.getByRole("link", { name: "Contact: studio@synarava.com" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Contact: synarava.shop@gmail.com" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Shipping" })).toHaveCount(1);
   });
 
@@ -165,7 +165,7 @@ test.describe("Home page", () => {
     await expect(finalScene.locator("[data-mobile-final-shard]")).toHaveCount(2);
     await expect(finalScene.locator("[data-mobile-final-shard]").first()).toBeVisible();
     await expect(finalScene.getByText("Objects shaped slowly,")).toBeVisible();
-    await expect(finalScene.getByRole("link", { name: "studio@synarava.com" })).toBeVisible();
+    await expect(finalScene.getByRole("link", { name: "synarava.shop@gmail.com" })).toBeVisible();
     expect(await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     )).toBe(false);

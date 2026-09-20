@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PrivacyPage() {
   const legalName = process.env.NEXT_PUBLIC_LEGAL_NAME ?? "Synarava Jewelry";
   const postalAddress = process.env.NEXT_PUBLIC_LEGAL_POSTAL_ADDRESS;
-  const privacyEmail = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "studio@synarava.com";
+  const privacyEmail = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "synarava.shop@gmail.com";
   const locale = await getRequestLocale();
   const page = await getPageBySlug("privacy", locale);
   const heroImage = page?.content.heroImage;
