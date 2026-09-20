@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { CollectionEditRoute } from "@/components/admin/collections/collection-route-editor";
+import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 
 export default async function EditCollectionPage({
   params,
@@ -9,7 +11,10 @@ export default async function EditCollectionPage({
   params: Promise<{ collectionId: string }>;
 }) {
   const { collectionId } = await params;
-  const { collections } = await getAdminCatalogData();
+  const [{ collections }, syncDifferences] = await Promise.all([
+    getAdminCatalogData(),
+    getLatestReconcileDifferences(),
+  ]);
   const collection = collections.find((item) => item.id === collectionId);
 
   if (!collection) {
@@ -44,6 +49,12 @@ export default async function EditCollectionPage({
             Back to collections
           </Link>
         </div>
+        <AdminSyncInlineWarning
+          className="mt-4"
+          differences={syncDifferences.filter(
+            (difference) => difference.rootEntityType === "COLLECTION" && difference.rootEntityId === collectionId,
+          )}
+        />
       </div>
 
       <CollectionEditRoute collection={collection} />

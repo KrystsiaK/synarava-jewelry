@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { ProductEditRoute } from "@/components/admin/products/product-route-editor";
+import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 
 export default async function EditProductPage({
   params,
@@ -9,10 +11,16 @@ export default async function EditProductPage({
   params: Promise<{ productId: string }>;
 }) {
   const { productId } = await params;
-  const { products, collections, issues } = await getAdminCatalogData();
+  const [{ products, collections, issues }, syncDifferences] = await Promise.all([
+    getAdminCatalogData(),
+    getLatestReconcileDifferences(),
+  ]);
   const product = products.find((item) => item.id === productId);
   const productIssues = issues.filter(
     (issue) => issue.entityType === "PRODUCT" && issue.entityId === productId,
+  );
+  const productSyncDifferences = syncDifferences.filter(
+    (difference) => difference.rootEntityType === "PRODUCT" && difference.rootEntityId === productId,
   );
 
   if (!product) {
@@ -47,6 +55,7 @@ export default async function EditProductPage({
             Back to table
           </Link>
         </div>
+        <AdminSyncInlineWarning className="mt-4" differences={productSyncDifferences} />
       </div>
 
       <ProductEditRoute

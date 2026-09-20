@@ -12,7 +12,7 @@ import {
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
-import { getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
+import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
 
 export default async function AdminLayout({
   children,
@@ -20,12 +20,14 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }>) {
   await requireAdminSession("/admin");
-  const [openIssues, latestReconcileRun] = await Promise.all([
+  const [openIssues, latestReconcileRun, syncDifferences, syncPages] = await Promise.all([
     db.adminIssue.findMany({
       where: { status: "OPEN" },
       select: { entityType: true, targetHref: true },
     }),
     getLatestReconcileRun(),
+    getLatestReconcileDifferences(),
+    db.page.findMany({ select: { id: true, slug: true } }),
   ]);
   const openIssueCount = openIssues.length;
   const issueNavHrefs = Array.from(
@@ -42,6 +44,21 @@ export default async function AdminLayout({
   );
   if (openIssueCount > 0) issueNavHrefs.push("/admin/issues");
 
+  const syncCount = syncDifferences.length;
+  const syncPageSlugs = new Map(syncPages.map((page) => [page.id, page.slug]));
+  const syncNavHrefs = Array.from(
+    new Set<string>(
+      syncDifferences.map((difference) => {
+        if (difference.rootEntityType === "PRODUCT") return "/admin/products";
+        if (difference.rootEntityType === "COLLECTION") return "/admin/collections";
+        if (difference.rootEntityType === "STOREFRONT_COPY") return "/admin/settings";
+        const slug = syncPageSlugs.get(difference.rootEntityId);
+        return slug === "home" ? "/admin/home" : slug === "about" ? "/admin/about" : "/admin/pages";
+      }),
+    ),
+  );
+  if (syncCount > 0) syncNavHrefs.push("/admin/translations");
+
   return (
     <AdminToastProvider>
       <div className="admin-terminal">
@@ -53,6 +70,8 @@ export default async function AdminLayout({
           <AdminMobileMenu
             issueCount={openIssueCount}
             issueNavHrefs={issueNavHrefs}
+            syncCount={syncCount}
+            syncNavHrefs={syncNavHrefs}
             footer={
               <div className="grid gap-3">
                 <AdminThemeToggle />
@@ -96,7 +115,12 @@ export default async function AdminLayout({
               </p>
             </div>
 
-            <AdminNav issueCount={openIssueCount} issueNavHrefs={issueNavHrefs} />
+            <AdminNav
+              issueCount={openIssueCount}
+              issueNavHrefs={issueNavHrefs}
+              syncCount={syncCount}
+              syncNavHrefs={syncNavHrefs}
+            />
           </div>
 
           <div className="admin-sidebar-footer">

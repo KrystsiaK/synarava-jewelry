@@ -115,11 +115,11 @@ const NAV_ITEMS = [
   { href: "/admin/account", label: "Account", code: "ACC" },
 ] as const;
 
-function AdminIssueNavBadge({ count }: { count: number }) {
+function AdminNavCountBadge({ count, label }: { count: number; label: string }) {
   if (count <= 0) return null;
 
   return (
-    <span data-component="AdminIssueNavBadge" className="adm-nav-issue-badge" aria-label={`${count} open problems`}>
+    <span data-component="AdminNavCountBadge" className="adm-nav-issue-badge" aria-label={label}>
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -128,14 +128,19 @@ function AdminIssueNavBadge({ count }: { count: number }) {
 export function AdminNav({
   issueCount = 0,
   issueNavHrefs = [],
+  syncCount = 0,
+  syncNavHrefs = [],
   onNavigate,
 }: {
   issueCount?: number;
   issueNavHrefs?: string[];
+  syncCount?: number;
+  syncNavHrefs?: string[];
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const issueHrefSet = new Set(issueNavHrefs);
+  const syncHrefSet = new Set(syncNavHrefs);
 
   return (
     <nav data-component="AdminNav" className="flex flex-col gap-1">
@@ -144,7 +149,7 @@ export function AdminNav({
           "exact" in item && item.exact
             ? pathname === item.href
             : pathname.startsWith(item.href);
-        const hasIssue = issueHrefSet.has(item.href);
+        const hasAttention = issueHrefSet.has(item.href) || syncHrefSet.has(item.href);
         return (
           <Link
             key={item.href}
@@ -155,14 +160,16 @@ export function AdminNav({
           >
             <span
               className="adm-nav-arrow"
-              data-issue={hasIssue ? "true" : undefined}
+              data-attention={hasAttention ? "true" : undefined}
               aria-hidden="true"
             >
-              {hasIssue ? "" : active ? "◆" : "·"}
+              {hasAttention ? "" : active ? "◆" : "·"}
             </span>
             <span className="flex-1">{item.label}</span>
             {item.href === "/admin/issues" ? (
-              <AdminIssueNavBadge count={issueCount} />
+              <AdminNavCountBadge count={issueCount} label={`${issueCount} open problems`} />
+            ) : item.href === "/admin/translations" ? (
+              <AdminNavCountBadge count={syncCount} label={`${syncCount} Shopify sync changes to review`} />
             ) : (
               <span
                 className="text-[0.58rem] font-bold uppercase tracking-[0.08em] opacity-30 transition-opacity group-hover:opacity-60"
@@ -194,10 +201,14 @@ export function AdminMobileMenu({
   footer,
   issueCount = 0,
   issueNavHrefs = [],
+  syncCount = 0,
+  syncNavHrefs = [],
 }: {
   footer?: ReactNode;
   issueCount?: number;
   issueNavHrefs?: string[];
+  syncCount?: number;
+  syncNavHrefs?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const portalTarget = typeof document === "undefined"
@@ -277,6 +288,8 @@ export function AdminMobileMenu({
             <AdminNav
               issueCount={issueCount}
               issueNavHrefs={issueNavHrefs}
+              syncCount={syncCount}
+              syncNavHrefs={syncNavHrefs}
               onNavigate={() => setOpen(false)}
             />
 

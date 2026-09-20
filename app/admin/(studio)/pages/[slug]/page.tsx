@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { PageEditRoute } from "@/components/admin/pages/page-route-editor";
+import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 
 export default async function EditPagePage({
   params,
@@ -9,7 +11,10 @@ export default async function EditPagePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { pages, products } = await getAdminCatalogData();
+  const [{ pages, products }, syncDifferences] = await Promise.all([
+    getAdminCatalogData(),
+    getLatestReconcileDifferences(),
+  ]);
   const page = pages.find((item) => item.slug === slug);
 
   if (!page) {
@@ -44,6 +49,12 @@ export default async function EditPagePage({
             Back to pages
           </Link>
         </div>
+        <AdminSyncInlineWarning
+          className="mt-4"
+          differences={syncDifferences.filter(
+            (difference) => difference.rootEntityType === "PAGE" && difference.rootEntityId === page.id,
+          )}
+        />
       </div>
 
       <PageEditRoute

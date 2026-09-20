@@ -4,17 +4,23 @@ import { flattenMessages } from "@/lib/i18n/utils";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
 import { STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy";
+import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { db } from "@/lib/db";
+import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 import type { AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 
 export default async function AdminSettingsPage() {
-  const [copy, binding] = await Promise.all([
+  const [copy, binding, syncDifferences] = await Promise.all([
     getStorefrontCopy(),
     db.shopifyTranslationBinding.findUnique({
       where: { resourceType_entityId: { resourceType: "METAOBJECT", entityId: STOREFRONT_COPY_KEY } },
       include: { syncEvents: { orderBy: { createdAt: "desc" }, take: 1 } },
     }),
+    getLatestReconcileDifferences(),
   ]);
+  const storefrontSyncDifferences = syncDifferences.filter(
+    (difference) => difference.rootEntityType === "STOREFRONT_COPY" && difference.rootEntityId === STOREFRONT_COPY_KEY,
+  );
   const eventStatus = binding?.syncEvents[0]?.status;
   const ptStatus: AdminLocaleStatus = eventStatus === "SUCCEEDED"
     ? "SYNCED"
@@ -34,6 +40,7 @@ export default async function AdminSettingsPage() {
         <p className="adm-page-subtitle">
           Main menu and footer — text only, no layout changes. Page-specific copy (Shop, Care, FAQ, Shipping, Returns) is edited on that page in Pages.
         </p>
+        <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />
       </div>
       <StorefrontCopyEditor copy={copy} defaults={defaults} ptStatus={ptStatus} />
     </div>
