@@ -15,7 +15,7 @@ import { ProductCard } from "@/components/ui/product-card";
 import { PrimaryCtaButton } from "@/components/ui";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
-import { ShopDiscovery, type ShopCategoryTile } from "./shop-discovery";
+import { ShopDiscovery, type ShopProductTypeTile } from "./shop-discovery";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -98,6 +98,7 @@ type EmptyStateProps = {
   filters: ShopFilters;
   departments?: FilterOption[];
   categories: FilterOption[];
+  productTypes?: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
 };
@@ -105,7 +106,7 @@ type EmptyStateProps = {
 const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
-function EmptyState({ filters, departments = [], categories, collections, tags, onSelectFilters }: EmptyStateProps & { onSelectFilters: (filters: ShopFilters) => void }) {
+function EmptyState({ filters, departments = [], categories, productTypes = [], collections, tags, onSelectFilters }: EmptyStateProps & { onSelectFilters: (filters: ShopFilters) => void }) {
   const { t, locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
@@ -113,6 +114,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags, 
     filters.q,
     filters.availability,
     filters.category,
+    filters.productType,
     filters.collection,
     filters.tag,
     filters.material,
@@ -122,7 +124,7 @@ function EmptyState({ filters, departments = [], categories, collections, tags, 
   ].some(Boolean);
   const departmentName = filters.department ? labelOf(filters.department, departments) : t("shop.empty.thisDepartment");
   const dim: Record<keyof ShopFilters, string> = {
-    q: t("shop.filters.searchLabel"), department: t("shop.filters.department"), availability: t("shop.filters.availability"), category: t("shop.filters.category"), collection: t("shop.filters.collection"), tag: t("shop.filters.tag"),
+    q: t("shop.filters.searchLabel"), department: t("shop.filters.department"), availability: t("shop.filters.availability"), category: t("shop.filters.category"), productType: t("shop.filters.productType"), collection: t("shop.filters.collection"), tag: t("shop.filters.tag"),
     material: t("shop.filters.material"), finish: t("shop.filters.finish"), origin: t("shop.filters.origin"), certified: t("shop.filters.certification"), sort: t("shop.filters.sort"),
   };
 
@@ -143,6 +145,10 @@ function EmptyState({ filters, departments = [], categories, collections, tags, 
   if (filters.category) {
     const next = { ...filters, category: undefined };
     active.push({ key: "category", label: labelOf(filters.category, categories), nextFilters: next });
+  }
+  if (filters.productType) {
+    const next = { ...filters, productType: undefined };
+    active.push({ key: "productType", label: labelOf(filters.productType, productTypes), nextFilters: next });
   }
   if (filters.collection) {
     const next = { ...filters, collection: undefined };
@@ -378,10 +384,10 @@ export type ShopPageProps = {
   heroImage?: string;
   archiveCount: number;
   filterProps: Omit<FilterBarProps, "totalCount">;
-  categoryTiles: ShopCategoryTile[];
+  productTypeTiles: ShopProductTypeTile[];
 };
 
-export function ShopPage({ products, popularProductSlugs, heroImage, archiveCount, filterProps, categoryTiles }: ShopPageProps) {
+export function ShopPage({ products, popularProductSlugs, heroImage, archiveCount, filterProps, productTypeTiles }: ShopPageProps) {
   const { t, locale } = useTranslations();
   const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
   const productsBySlug = useMemo(
@@ -421,7 +427,7 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
         newestProducts={newestProducts}
         popularProducts={popularProducts.slice(0, 8)}
         showPopular={popularProductSlugs !== null && popularProducts.length > 0}
-        categories={categoryTiles}
+        productTypes={productTypeTiles}
         onSelectFilters={selectDiscoveryFilters}
       />
 
@@ -460,6 +466,7 @@ export function ShopPage({ products, popularProductSlugs, heroImage, archiveCoun
                       filters={activeFilters}
                       departments={filterProps.departments}
                       categories={filterProps.categories}
+                      productTypes={filterProps.productTypes}
                       collections={filterProps.collections}
                       tags={filterProps.tags}
                       onSelectFilters={selectDiscoveryFilters}

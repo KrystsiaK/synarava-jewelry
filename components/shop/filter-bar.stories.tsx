@@ -6,6 +6,11 @@ const categories = [
   { value: "necklaces", label: "Necklaces" },
   { value: "earrings", label: "Earrings" },
 ];
+const productTypes = [
+  { value: "Bracelets", label: "Bracelets" },
+  { value: "Necklaces", label: "Necklaces" },
+  { value: "Chains with pendants", label: "Chains with pendants" },
+];
 const collections = [
   { value: "heritage", label: "Heritage" },
   { value: "earth", label: "Eco Earth" },
@@ -22,7 +27,7 @@ const meta = {
   component: FilterBar,
   tags: ["autodocs"],
   parameters: { layout: "padded" },
-  args: { categories, collections, tags, totalCount: 12 },
+  args: { categories, productTypes, collections, tags, totalCount: 12 },
 } satisfies Meta<typeof FilterBar>;
 
 export default meta;

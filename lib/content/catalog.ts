@@ -125,6 +125,7 @@ export type ShopFilters = {
   department?: string;
   availability?: "in-stock" | string;
   category?: string;
+  productType?: string;
   tag?: string;
   collection?: string;
   material?: string;
@@ -482,7 +483,7 @@ export async function getStorefrontNavigation(locale: Locale = "en") {
 }
 
 export async function getShopFilterData(locale: Locale = "en") {
-  const [departments, categoryRows, tags, collections, characteristicRows] = await Promise.all([
+  const [departments, categoryRows, productTypeRows, tags, collections, characteristicRows] = await Promise.all([
     getStorefrontNavigation(locale),
     // Category is Shopify Standard Product Taxonomy now (item 1) — there's
     // no local category table to browse, so the filter options are just
@@ -492,6 +493,12 @@ export async function getShopFilterData(locale: Locale = "en") {
       select: { shopifyCategoryId: true, shopifyCategoryName: true },
       distinct: ["shopifyCategoryId"],
       orderBy: { shopifyCategoryName: "asc" },
+    }),
+    db.product.findMany({
+      where: { status: "ACTIVE", visibility: "PUBLIC", productType: { not: null } },
+      select: { productType: true },
+      distinct: ["productType"],
+      orderBy: { productType: "asc" },
     }),
     db.tag.findMany({
       orderBy: { name: "asc" },
@@ -513,10 +520,15 @@ export async function getShopFilterData(locale: Locale = "en") {
     slug: row.shopifyCategoryId!,
     name: categoryLeafLabel(row.shopifyCategoryName) || row.shopifyCategoryId!,
   }));
+  const productTypes = productTypeRows.flatMap((row) => {
+    const value = row.productType?.trim();
+    return value ? [{ slug: value, name: value }] : [];
+  });
   const values = (key: string) => characteristicRows.filter((item) => item.key === key && item.textValue).map((item) => ({ slug: item.textValue!, name: item.textValue! }));
   return {
     departments,
     categories,
+    productTypes,
     tags,
     collections: collections.map((collection) => ({
       ...collection,

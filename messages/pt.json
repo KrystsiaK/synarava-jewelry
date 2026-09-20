@@ -79,11 +79,11 @@
       "newDescription": "As peças mais recentes da seleção Synarava.",
       "popularTitle": "Mais populares",
       "popularDescription": "As peças a que os clientes regressam com mais frequência.",
-      "categoryTitle": "Comprar por categoria",
-      "categoryDescription": "Explore as categorias exatas atribuídas aos produtos na Shopify.",
+      "productTypeTitle": "Comprar por tipo de produto",
+      "productTypeDescription": "Explore os tipos de produto definidos na Shopify.",
       "viewAll": "Ver tudo",
       "viewAllLabel": "Ver tudo em {section}",
-      "shopCategory": "Comprar {category}"
+      "shopProductType": "Comprar {productType}"
     },
     "empty": {
       "preview": "Pré-visualização do departamento",
@@ -120,6 +120,7 @@
       "nameAsc": "Nome · A–Z",
       "department": "Departamento",
       "category": "Categoria",
+      "productType": "Tipo de produto",
       "availability": "Disponibilidade",
       "inStock": "Em stock",
       "collection": "Coleção",
@@ -130,6 +131,7 @@
       "compliance": "Conformidade",
       "certification": "Certificação",
       "allCategories": "Todas as categorias",
+      "allProductTypes": "Todos os tipos de produto",
       "allAvailability": "Toda a disponibilidade",
       "allCollections": "Todas as coleções",
       "allTags": "Todas as etiquetas",

@@ -27,6 +27,7 @@ export type ShopListingProduct = {
   departmentName: string;
   categorySlug: string | null;
   categoryName: string;
+  productType: string;
   collectionSlugs: string[];
   tagSlugs: string[];
   tagNames: string[];
@@ -48,6 +49,7 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
       sku: true,
       shopifyProductId: true,
       name: true,
+      productType: true,
       seriesLabel: true,
       shortDescription: true,
       description: true,
@@ -142,6 +144,7 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
         departmentName,
         categorySlug: row.shopifyCategoryId,
         categoryName: categoryLeafLabel(row.shopifyCategoryName),
+        productType: row.productType?.trim() ?? "",
         collectionSlugs: row.collections.map((item) => item.collection.slug),
         tagSlugs: row.tags.map((item) => item.tag.slug),
         tagNames: row.tags.map((item) => item.tag.name),

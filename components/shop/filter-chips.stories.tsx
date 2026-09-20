@@ -12,6 +12,7 @@ const meta = {
   parameters: { layout: "padded" },
   args: {
     categories,
+    productTypes: [],
     collections,
     tags,
     onRemove: () => {},

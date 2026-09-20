@@ -25,6 +25,7 @@ import {
 export type FilterBarProps = {
   departments?: FilterOption[];
   categories: FilterOption[];
+  productTypes?: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
   materials?: FilterOption[];
@@ -41,6 +42,7 @@ const labelOf = (value: string, opts: FilterOption[]) =>
 export function FilterBar({
   departments = [],
   categories,
+  productTypes = [],
   collections,
   tags,
   materials = [],
@@ -201,6 +203,11 @@ export function FilterBar({
                 {labelOf(pendingRestore.category, categories)}
               </span>
             )}
+            {pendingRestore.productType && (
+              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
+                {labelOf(pendingRestore.productType, productTypes)}
+              </span>
+            )}
             {pendingRestore.collection && (
               <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 {labelOf(pendingRestore.collection, collections)}
@@ -284,6 +291,13 @@ export function FilterBar({
               value={filters.category ?? ""}
               onChange={(v) => setFilter("category", v)}
               allLabel={t("shop.filters.allCategories")}
+            />
+            <FilterDropdown
+              label={t("shop.filters.productType")}
+              options={productTypes}
+              value={filters.productType ?? ""}
+              onChange={(v) => setFilter("productType", v)}
+              allLabel={t("shop.filters.allProductTypes")}
             />
             <FilterDropdown
               label={t("shop.filters.availability")}
@@ -418,6 +432,7 @@ export function FilterBar({
             filters={filters}
             departments={departments}
             categories={categories}
+            productTypes={productTypes}
             collections={collections}
             tags={tags}
             materials={materials}
@@ -434,6 +449,7 @@ export function FilterBar({
         key={mobileSession}
         open={mobileOpen}
         categories={categories}
+        productTypes={productTypes}
         collections={collections}
         tags={tags}
         materials={materials}
@@ -456,6 +472,7 @@ export function FilterBar({
 type MobileFilterSheetProps = {
   open: boolean;
   categories: FilterOption[];
+  productTypes: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
   materials?: FilterOption[];
@@ -469,6 +486,7 @@ type MobileFilterSheetProps = {
 function MobileFilterSheet({
   open,
   categories,
+  productTypes,
   collections,
   tags,
   materials = [],
@@ -485,6 +503,7 @@ function MobileFilterSheet({
 
   const sections: { key: keyof ShopFilters; label: string; options: FilterOption[] }[] = [
     { key: "category", label: t("shop.filters.category"), options: categories },
+    { key: "productType", label: t("shop.filters.productType"), options: productTypes },
     { key: "availability", label: t("shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
     ...(isJewelryDepartment(local.department)
       ? [{ key: "collection" as const, label: t("shop.filters.collection"), options: collections }]

@@ -8,7 +8,7 @@ import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { buildSearchParams, type ShopFilters } from "./types";
 
-export type ShopCategoryTile = {
+export type ShopProductTypeTile = {
   slug: string;
   name: string;
   image: string;
@@ -46,13 +46,13 @@ export function ShopDiscovery({
   newestProducts,
   popularProducts,
   showPopular = true,
-  categories,
+  productTypes,
   onSelectFilters,
 }: {
   newestProducts: ShopListingProduct[];
   popularProducts: ShopListingProduct[];
   showPopular?: boolean;
-  categories: ShopCategoryTile[];
+  productTypes: ShopProductTypeTile[];
   onSelectFilters?: (filters: ShopFilters) => void;
 }) {
   const { t, plural, locale } = useTranslations();
@@ -118,31 +118,31 @@ export function ShopDiscovery({
           </section>
         ))}
 
-        <section aria-labelledby="shop-category-title">
+        <section aria-labelledby="shop-product-type-title">
           <div className="mb-7 max-w-2xl md:mb-9">
             <h2
-              id="shop-category-title"
+              id="shop-product-type-title"
               className="font-serif text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
             >
-              {t("shop.discovery.categoryTitle")}
+              {t("shop.discovery.productTypeTitle")}
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted md:text-base">
-              {t("shop.discovery.categoryDescription")}
+              {t("shop.discovery.productTypeDescription")}
             </p>
           </div>
           <div className="grid gap-px overflow-hidden border border-foreground/[0.1] bg-foreground/[0.1] sm:grid-cols-2 lg:grid-cols-4">
-            {categories.map((category) => {
-              const filters = { category: category.slug };
+            {productTypes.map((productType) => {
+              const filters = { productType: productType.slug };
               return (
                 <Link
-                  key={category.slug}
+                  key={productType.slug}
                   href={filterHref(filters)}
                   onClick={(event) => selectFilters(event, filters)}
-                  aria-label={t("shop.discovery.shopCategory", { category: category.name })}
+                  aria-label={t("shop.discovery.shopProductType", { productType: productType.name })}
                   className="group relative flex min-h-72 items-end overflow-hidden bg-stone-beige p-5"
                 >
                   <Image
-                    src={category.image}
+                    src={productType.image}
                     alt=""
                     fill
                     sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 25vw"
@@ -150,9 +150,9 @@ export function ShopDiscovery({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" aria-hidden="true" />
                   <div className="relative z-10 text-white">
-                    <h3 className="font-serif text-3xl leading-none">{category.name}</h3>
+                    <h3 className="font-serif text-3xl leading-none">{productType.name}</h3>
                     <p className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/70">
-                      {plural("shop.filters.productCount", category.count)}
+                      {plural("shop.filters.productCount", productType.count)}
                     </p>
                   </div>
                 </Link>

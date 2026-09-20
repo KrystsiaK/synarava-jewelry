@@ -35,6 +35,7 @@ type Props = {
     department?: string;
     availability?: string;
     category?: string;
+    productType?: string;
     tag?: string;
     collection?: string;
     material?: string;
@@ -53,17 +54,17 @@ export default async function Page({ searchParams }: Props) {
     sort: normalizeShopSort(rawFilters.sort),
   };
   const { t, locale } = await getServerTranslations();
-  const [{ departments, categories, tags, collections, materials, finishes, origins }, archiveProducts, bestSellingShopifyProductIds, page] = await Promise.all([
+  const [{ departments, categories, productTypes, tags, collections, materials, finishes, origins }, archiveProducts, bestSellingShopifyProductIds, page] = await Promise.all([
     getShopFilterData(locale),
     listShopListingProducts(locale),
     listBestSellingShopifyProductIds(),
     getPageBySlug("shop", locale),
   ]);
 
-  const categoryTiles = categories.flatMap((category) => {
-    const categoryProducts = archiveProducts.filter((product) => product.categorySlug === category.slug);
-    const image = categoryProducts[0]?.image;
-    return image ? [{ ...category, image, count: categoryProducts.length }] : [];
+  const productTypeTiles = productTypes.flatMap((productType) => {
+    const typeProducts = archiveProducts.filter((product) => product.productType === productType.slug);
+    const image = typeProducts[0]?.image;
+    return image ? [{ ...productType, image, count: typeProducts.length }] : [];
   });
   const productsByShopifyId = new Map(
     archiveProducts.flatMap((product) => (
@@ -81,7 +82,7 @@ export default async function Page({ searchParams }: Props) {
       popularProductSlugs={popularProductSlugs}
       heroImage={page?.content.heroImage}
       archiveCount={archiveProducts.length}
-      categoryTiles={categoryTiles}
+      productTypeTiles={productTypeTiles}
       filterProps={{
         departments: departments.map((department) => {
           const hasProducts = archiveProducts.some((product) => product.departmentSlug === department.slug);
@@ -92,6 +93,7 @@ export default async function Page({ searchParams }: Props) {
           };
         }),
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
+        productTypes: productTypes.map((type) => ({ value: type.slug, label: type.name })),
         collections: collections.map((c) => ({ value: c.slug, label: c.name })),
         tags: tags.map((t) => ({ value: t.slug, label: t.name })),
         materials: materials.map((item) => ({ value: item.slug, label: item.name })),

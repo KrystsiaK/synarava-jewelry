@@ -8,6 +8,7 @@ type FilterChipsProps = {
   filters: ShopFilters;
   departments?: FilterOption[];
   categories: FilterOption[];
+  productTypes: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
   materials?: FilterOption[];
@@ -24,6 +25,7 @@ export function FilterChips({
   filters,
   departments = [],
   categories,
+  productTypes,
   collections,
   tags,
   materials = [],
@@ -38,6 +40,7 @@ export function FilterChips({
     department: t("shop.filters.department"),
     availability: t("shop.filters.availability"),
     category: t("shop.filters.category"),
+    productType: t("shop.filters.productType"),
     collection: t("shop.filters.collection"),
     tag: t("shop.filters.tag"),
     material: t("shop.filters.material"),
@@ -52,6 +55,7 @@ export function FilterChips({
   if (filters.department) chips.push({ key: "department", value: labelOf(filters.department, departments) });
   if (filters.availability) chips.push({ key: "availability", value: t("shop.filters.inStock") });
   if (filters.category)   chips.push({ key: "category",   value: labelOf(filters.category, categories) });
+  if (filters.productType) chips.push({ key: "productType", value: labelOf(filters.productType, productTypes) });
   if (filters.collection) chips.push({ key: "collection", value: labelOf(filters.collection, collections) });
   if (filters.tag)        chips.push({ key: "tag",        value: labelOf(filters.tag, tags) });
   if (filters.material)   chips.push({ key: "material",   value: labelOf(filters.material, materials) });

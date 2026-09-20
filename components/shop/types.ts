@@ -5,6 +5,7 @@ export type ShopFilters = {
   department?: string;
   availability?: "in-stock";
   category?: string;
+  productType?: string;
   collection?: string;
   tag?: string;
   material?: string;
@@ -29,6 +30,7 @@ export function buildSearchParams(filters: ShopFilters): string {
   if (filters.department) params.set("department", filters.department);
   if (filters.availability) params.set("availability", filters.availability);
   if (filters.category) params.set("category", filters.category);
+  if (filters.productType) params.set("productType", filters.productType);
   if (filters.collection) params.set("collection", filters.collection);
   if (filters.tag) params.set("tag", filters.tag);
   if (filters.material) params.set("material", filters.material);
@@ -46,6 +48,7 @@ export function parseShopFilters(searchParams: URLSearchParams): ShopFilters {
     department: searchParams.get("department") || undefined,
     availability: availability === "in-stock" ? "in-stock" : undefined,
     category: searchParams.get("category") || undefined,
+    productType: searchParams.get("productType") || undefined,
     collection: searchParams.get("collection") || undefined,
     tag: searchParams.get("tag") || undefined,
     material: searchParams.get("material") || undefined,
@@ -57,7 +60,7 @@ export function parseShopFilters(searchParams: URLSearchParams): ShopFilters {
 }
 
 export function countActiveFilters(filters: ShopFilters): number {
-  return [filters.q, filters.department, filters.availability, filters.category, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
+  return [filters.q, filters.department, filters.availability, filters.category, filters.productType, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
 }
 
 export function filtersWithoutSort(filters: ShopFilters): ShopFilters {

@@ -13,13 +13,13 @@ const product = {
 } as ProductSummary;
 
 describe("ShopDiscovery", () => {
-  it("offers new, popular, and Shopify category pathways", () => {
+  it("offers new, popular, and product type pathways", () => {
     render(
       <ShopDiscovery
         newestProducts={[product]}
         popularProducts={[product]}
-        categories={[{
-          slug: "gid://shopify/TaxonomyCategory/aa-1",
+        productTypes={[{
+          slug: "Necklaces",
           name: "Necklaces",
           image: "/necklace.jpg",
           count: 1,
@@ -29,12 +29,12 @@ describe("ShopDiscovery", () => {
 
     expect(screen.getByRole("heading", { name: /new arrivals/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /most popular/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /shop by category/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /shop by product type/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /view all new arrivals/i })).toHaveAttribute("href", "/en/shop?sort=newest#shop-products");
     expect(screen.getByRole("link", { name: /view all most popular/i })).toHaveAttribute("href", "/en/shop?sort=popular#shop-products");
     expect(screen.getByRole("link", { name: /shop necklaces/i })).toHaveAttribute(
       "href",
-      "/en/shop?category=gid%3A%2F%2Fshopify%2FTaxonomyCategory%2Faa-1#shop-products",
+      "/en/shop?productType=Necklaces#shop-products",
     );
   });
 
@@ -44,7 +44,7 @@ describe("ShopDiscovery", () => {
         newestProducts={[product]}
         popularProducts={[]}
         showPopular={false}
-        categories={[]}
+        productTypes={[]}
       />,
     );
 

@@ -15,6 +15,7 @@ function setup(filters: Parameters<typeof FilterChips>[0]["filters"]) {
       filters={filters}
       departments={departments}
       categories={categories}
+      productTypes={[]}
       collections={collections}
       tags={tags}
       onRemove={onRemove}
@@ -27,7 +28,7 @@ function setup(filters: Parameters<typeof FilterChips>[0]["filters"]) {
 describe("FilterChips", () => {
   it("renders nothing when no active filters", () => {
     const { container } = render(
-      <FilterChips filters={{}} categories={[]} collections={[]} tags={[]} onRemove={vi.fn()} onClearAll={vi.fn()} />,
+      <FilterChips filters={{}} categories={[]} productTypes={[]} collections={[]} tags={[]} onRemove={vi.fn()} onClearAll={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
