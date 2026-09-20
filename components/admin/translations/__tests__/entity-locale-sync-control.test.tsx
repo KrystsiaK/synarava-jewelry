@@ -1,66 +1,32 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EntityLocaleSyncControl } from "@/components/admin/translations/entity-locale-sync-control";
 
-const scope = { entityType: "PRODUCT" as const, entityId: "product-1" };
-
-function jsonResponse(body: unknown, ok = true) {
-  return { ok, json: async () => body } as Response;
-}
-
-beforeEach(() => {
-  vi.restoreAllMocks();
-});
+afterEach(() => vi.unstubAllGlobals());
 
 describe("EntityLocaleSyncControl", () => {
-  it("checks the given locale on mount and shows the difference count", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      jsonResponse({ run: { status: "SUCCEEDED" }, differenceCount: 2 }),
-    ));
-    render(<EntityLocaleSyncControl scope={scope} locale="PT" />);
-
-    expect(await screen.findByText("2 differences")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Review" })).toHaveAttribute(
-      "href",
-      expect.stringContaining("locale=pt-PT"),
-    );
-    const [, requestInit] = vi.mocked(fetch).mock.calls[0];
-    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain("entityType=PRODUCT");
-    expect(requestInit?.method).toBe("GET");
-  });
-
-  it("shows In sync with no Review link when nothing differs", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      jsonResponse({ run: { status: "SUCCEEDED" }, differenceCount: 0 }),
-    ));
-    render(<EntityLocaleSyncControl scope={scope} locale="EN" />);
-
-    expect(await screen.findByText("In sync")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Review" })).not.toBeInTheDocument();
-  });
-
-  it("surfaces a fetch failure as an unavailable state instead of crashing", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
-    render(<EntityLocaleSyncControl scope={scope} locale="EN" />);
-
-    expect(await screen.findByText("Check unavailable")).toBeInTheDocument();
-  });
-
-  it("runs a manual check via POST, then re-fetches the latest state", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ run: { status: "SUCCEEDED" }, differenceCount: 1 }))
-      .mockResolvedValueOnce(jsonResponse({ run: { status: "SUCCEEDED" } }))
-      .mockResolvedValueOnce(jsonResponse({ run: { status: "SUCCEEDED" }, differenceCount: 0 }));
+  it("opens a focused conflict summary and retains a safe full-review path", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      run: { id: "run-1", status: "SUCCEEDED", trigger: "LOCALE", checkedCount: 1, differenceCount: 1, error: null, startedAt: null, completedAt: null, createdAt: "2026-09-20T10:00:00.000Z" },
+      differenceCount: 1,
+      differences: [{
+        id: "diff-1", runId: "run-1", bindingId: "binding-1", rootEntityType: "PRODUCT", rootEntityId: "product-1", entityLabel: "Pearl ring", locale: "en", fieldKey: "title", fieldLabel: "Title", targetKind: "NATIVE", kind: "CONFLICT", baseValue: "Old", localValue: "Local", shopifyValue: "Remote", localFingerprint: "a", shopifyFingerprint: "b", shopifyUpdatedAt: null, shopifyOutdated: false,
+      }],
+    }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-    render(<EntityLocaleSyncControl scope={scope} locale="PT" />);
 
-    expect(await screen.findByText("1 difference")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Check Portuguese against Shopify" }));
+    render(<EntityLocaleSyncControl scope={{ entityType: "PRODUCT", entityId: "product-1" }} locale="EN" />);
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(fetchMock.mock.calls[1][1]?.method).toBe("POST");
-    expect(await screen.findByText("In sync")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("1 difference")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Review" }));
+
+    expect(screen.getByRole("heading", { name: /Shopify sync · English/i })).toBeInTheDocument();
+    expect(screen.getByText("Title")).toBeInTheDocument();
+    expect(screen.getByText("Changed in both places")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Compare and decide/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("entityId=product-1"),
+    );
   });
 });

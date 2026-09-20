@@ -5,7 +5,12 @@ import {
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
 
-export default async function AdminTranslationsPage() {
+type PageProps = {
+  searchParams?: Promise<{ entityType?: string; entityId?: string; locale?: string }>;
+};
+
+export default async function AdminTranslationsPage({ searchParams }: PageProps) {
+  const requested = await searchParams;
   const [run, differences, pages] = await Promise.all([
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
@@ -22,7 +27,11 @@ export default async function AdminTranslationsPage() {
       href = slug === "home" ? "/admin/home" : slug === "about" ? "/admin/about" : `/admin/pages/${slug ?? difference.rootEntityId}`;
     }
     return { ...difference, href };
-  });
+  }).filter((difference) =>
+    (!requested?.entityType || difference.rootEntityType === requested.entityType)
+    && (!requested?.entityId || difference.rootEntityId === requested.entityId)
+    && (!requested?.locale || difference.locale === requested.locale),
+  );
 
   return (
     <div className="space-y-7">

@@ -2,7 +2,7 @@
 
 ## Статус
 
-**Draft for approval — 2026-09-20. Реализация не начата.**
+**In implementation — 2026-09-20.** Detection, field-level review, scoped writes, locale-aware EN/PT handling, and the editor conflict entry points are implemented; live Shopify round trips, recovery history, observability, and rollout validation remain open.
 
 Этот документ дополняет, но не заменяет [`tasks/plan.md`](./plan.md). Старый план описывает EN/PT-платформу; здесь отдельно спроектирован ежедневный workflow проверки расхождений, понятного merge и безопасного точечного sync для обычного администратора.
 

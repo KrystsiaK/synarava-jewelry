@@ -168,18 +168,16 @@ export async function getLatestEntityReconcileState({
   locale: string;
 }) {
   const run = await getLatestReconcileRun();
-  if (!run) return { run: null, differenceCount: 0 };
-  const rows = await db.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
-    SELECT COUNT(*)::bigint AS "count"
-    FROM "ShopifyFieldDivergence"
-    WHERE
-      "runId" = ${run.id}
-      AND "resolvedAt" IS NULL
-      AND "rootEntityType" = ${entityType}
-      AND "rootEntityId" = ${entityId}
-      AND "locale" = ${locale}
-  `);
-  return { run, differenceCount: Number(rows[0]?.count ?? 0) };
+  if (!run || !["SUCCEEDED", "PARTIAL"].includes(run.status)) {
+    return { run, differenceCount: 0, differences: [] as ReconcileDifferenceView[] };
+  }
+  const differences = (await getLatestReconcileDifferences()).filter((difference) =>
+    difference.runId === run.id
+    && difference.rootEntityType === entityType
+    && difference.rootEntityId === entityId
+    && difference.locale === locale,
+  );
+  return { run, differenceCount: differences.length, differences };
 }
 
 async function createOrReuseRun({

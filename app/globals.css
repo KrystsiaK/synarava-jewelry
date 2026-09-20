@@ -3226,6 +3226,158 @@ body.admin-mode .ui-tooltip {
   background: var(--adm-accent-soft);
 }
 
+.adm-entity-sync {
+  margin-left: auto;
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.7rem;
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+  background: var(--adm-panel);
+  color: var(--adm-muted);
+}
+
+.adm-entity-sync[data-state="differences"] {
+  border-color: color-mix(in srgb, var(--adm-warning) 56%, var(--adm-border));
+  color: var(--adm-text);
+}
+
+.adm-entity-sync[data-state="error"] {
+  border-color: color-mix(in srgb, var(--adm-danger) 56%, var(--adm-border));
+}
+
+.adm-entity-sync__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.73rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.adm-entity-sync__review,
+.adm-entity-sync__check,
+.adm-sync-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.125rem;
+  border-radius: 7px;
+  padding: 0.35rem 0.55rem;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--adm-text);
+  text-decoration: none;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.adm-entity-sync__review:hover,
+.adm-entity-sync__check:hover {
+  background: var(--adm-bg-soft);
+}
+
+.adm-entity-sync__check {
+  border: 1px solid var(--adm-border);
+  background: transparent;
+  cursor: pointer;
+}
+
+.adm-entity-sync__check:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.adm-sync-modal {
+  overflow: hidden;
+  border: 1px solid var(--adm-border-strong);
+  border-radius: 14px;
+  background: var(--adm-panel);
+  box-shadow: 0 24px 70px color-mix(in srgb, #000 38%, transparent);
+}
+
+.adm-sync-modal__header,
+.adm-sync-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem;
+}
+
+.adm-sync-modal__header {
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.adm-sync-modal__header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.adm-sync-modal__header p,
+.adm-sync-modal__intro {
+  margin-top: 0.28rem;
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.adm-sync-modal__close {
+  flex: 0 0 auto;
+  min-width: 2.5rem;
+  border: 1px solid var(--adm-border);
+  background: transparent;
+  cursor: pointer;
+}
+
+.adm-sync-modal__content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+}
+
+.adm-sync-modal__list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: min(45vh, 25rem);
+  overflow: auto;
+}
+
+.adm-sync-modal__list li {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--adm-border);
+  color: var(--adm-warning);
+}
+
+.adm-sync-modal__list span { display: grid; gap: 0.18rem; color: var(--adm-text); }
+.adm-sync-modal__list small { color: var(--adm-muted); font-size: 0.76rem; }
+
+.adm-sync-modal__footer {
+  border-top: 1px solid var(--adm-border);
+  background: var(--adm-bg-soft);
+}
+
+@media (max-width: 40rem) {
+  .adm-entity-sync {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .adm-sync-modal { width: calc(100vw - 1.25rem); }
+  .adm-sync-modal__header,
+  .adm-sync-modal__footer { padding: 1rem; }
+  .adm-sync-modal__footer { align-items: stretch; flex-direction: column-reverse; }
+  .adm-sync-modal__footer > * { justify-content: center; }
+}
+
 /* Entity-local Shopify sync control, shown beside the sticky locale tabs
    (see EntityLocaleSyncControl). The status text reserves a stable minimum
    width and the whole control pins to the row's trailing edge so switching
