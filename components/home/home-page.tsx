@@ -883,24 +883,27 @@ function EditShowcase({
     <section
       data-component="EditShowcase"
       aria-labelledby="edit-showcase-title"
-      className="relative z-20 overflow-hidden px-5 pb-28 pt-12 text-linen md:px-[4vw] md:pb-40 md:pt-24"
+      className="edit-showcase-section relative z-20 overflow-hidden px-5 pb-24 pt-16 text-[#171513] md:px-[4vw] md:pb-36 md:pt-24"
     >
       <div className="mx-auto max-w-[90rem]">
-        <header className="mb-12 flex flex-col gap-4 border-b border-linen/20 pb-7 md:mb-16 md:flex-row md:items-end md:justify-between md:gap-8">
-          <div>
-            <p className="mb-3 font-sans text-[0.62rem] font-bold uppercase tracking-[0.28em] text-couture-red">
+        <header className="edit-showcase-header mb-12 grid gap-8 border-b border-[#171513]/20 pb-8 md:mb-20 md:grid-cols-[minmax(0,1fr)_minmax(18rem,23rem)] md:items-end md:gap-12">
+          <div className="min-w-0">
+            <p className="mb-5 font-sans text-[0.62rem] font-bold uppercase tracking-[0.3em] text-[#b32636] md:mb-6">
               {eyebrow || defaults.eyebrow}
             </p>
-            <h2 id="edit-showcase-title" className="font-serif text-[clamp(3.6rem,9vw,8.8rem)] font-bold uppercase leading-[0.82] tracking-[-0.045em] text-linen">
+            <h2 id="edit-showcase-title" className="max-w-[8ch] font-serif text-[clamp(4.2rem,11.4vw,10.7rem)] font-medium uppercase leading-[0.76] tracking-[-0.065em] text-[#171513]">
               {title || defaults.title}
             </h2>
           </div>
-          <p className="max-w-[28ch] font-sans text-[0.68rem] font-semibold uppercase leading-[1.6] tracking-[0.12em] text-stone-beige/75 md:pb-1 md:text-right">
-            {body || defaults.body}
-          </p>
+          <div className="flex items-end justify-between gap-6 md:pb-2">
+            <p className="max-w-[25ch] font-sans text-[0.66rem] font-semibold uppercase leading-[1.7] tracking-[0.13em] text-[#6f6860] md:text-right">
+              {body || defaults.body}
+            </p>
+            <span className="hidden shrink-0 font-sans text-[0.6rem] font-bold uppercase tracking-[0.22em] text-[#8d857b] md:block">01—04</span>
+          </div>
         </header>
 
-        <div className="grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 md:gap-x-5 md:gap-y-0">
+        <div className="edit-showcase-grid grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 md:gap-x-6 md:gap-y-0">
           {items.map((product, index) => {
             const kind = [product.series, product.categoryName].filter(Boolean).join(" · ");
             const productCta = ctaLabel || defaults.ctaLabel;
@@ -910,9 +913,9 @@ function EditShowcase({
                 key={product.slug}
                 href={localePath(locale, `/products/${product.slug}`)}
                 aria-label={`${productCta}: ${product.title}`}
-                className={`group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red ${index % 2 === 1 ? "md:mt-16" : ""}`}
+                className={`edit-showcase-card group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636] ${index % 2 === 1 ? "md:mt-16" : ""}`}
               >
-                <div className="relative aspect-[0.78] overflow-hidden bg-black/10">
+                <div className="edit-showcase-image relative aspect-[0.78] overflow-hidden bg-[#e3ddd5]">
                   <Image
                     src={product.image}
                     alt={product.title}
@@ -920,22 +923,19 @@ function EditShowcase({
                     sizes="(max-width: 768px) 50vw, 25vw"
                     className="object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
                   />
-                  <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(9,9,10,0.78),transparent_42%)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
-                  <span className="absolute bottom-4 right-4 inline-flex translate-y-2 items-center gap-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.18em] text-white opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
-                    {productCta} <ArrowRight className="size-3.5" aria-hidden="true" />
-                  </span>
                 </div>
-                <div className="mt-4 flex items-start justify-between gap-3 border-t border-linen/20 pt-3">
+                <div className="mt-3 flex items-start justify-between gap-3 border-t border-[#171513]/20 pt-3 md:mt-4 md:pt-4">
                   <div className="min-w-0">
-                    <h3 className="truncate font-serif text-[1.15rem] uppercase leading-none text-linen md:text-[1.35rem]">
+                    <h3 className="truncate font-serif text-[clamp(1rem,1.8vw,1.55rem)] uppercase leading-[0.95] tracking-[-0.025em] text-[#171513]">
                       {product.title}
                     </h3>
-                    {kind ? <p className="mt-2 truncate font-sans text-[0.55rem] font-bold uppercase tracking-[0.16em] text-stone-beige/70">{kind}</p> : null}
+                    {kind ? <p className="mt-2 truncate font-sans text-[0.55rem] font-bold uppercase tracking-[0.16em] text-[#837b71]">{kind}</p> : null}
                   </div>
-                  <span className="shrink-0 font-sans text-[0.72rem] font-bold uppercase tracking-[0.08em] text-linen">
+                  <span className="shrink-0 pt-0.5 font-sans text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#171513]">
                     {product.price}
                   </span>
                 </div>
+                <span className="sr-only">{productCta}</span>
               </Link>
             );
           })}

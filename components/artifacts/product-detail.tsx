@@ -328,50 +328,6 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
   );
 }
 
-function ProductDescription({ product }: { product: ProductSummary }) {
-  const { t } = useTranslations();
-  const [expanded, setExpanded] = useState(false);
-  const presentation = getProductPresentation(product.departmentSlug, t);
-  const description = product.description.trim();
-  const shortDescription = product.shortDescription.trim();
-  if (!description || description === shortDescription) return null;
-
-  const isLong = description.length > 320;
-
-  return (
-    <section data-component="ProductDescription" className="bg-background py-20 md:py-28">
-      <div className="site-shell grid gap-8 md:grid-cols-12 md:gap-12">
-        <div className="md:col-span-4">
-          <p className="label-mono text-couture-red">{presentation.descriptionLabel}</p>
-          <h2 className="mt-4 max-w-xs text-balance font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none">
-            {presentation.descriptionTitle}
-          </h2>
-        </div>
-        <div className="md:col-span-7 md:col-start-6">
-          <p className={`max-w-[68ch] text-pretty text-base leading-[1.9] text-foreground/72 md:text-lg ${isLong && !expanded ? "line-clamp-6" : ""}`}>
-            {description}
-          </p>
-          {isLong ? (
-            <button
-              type="button"
-              onClick={() => setExpanded((current) => !current)}
-              className="label-caps mt-4 text-couture-red underline-offset-4 hover:underline"
-              aria-expanded={expanded}
-            >
-              {expanded ? t("product.showLess") : t("product.readMore")}
-            </button>
-          ) : null}
-          <div className="mt-10 flex items-center gap-4" aria-hidden="true">
-            <span className="h-px w-16 bg-couture-red/70" />
-            <span className="h-2 w-2 rotate-45 border border-couture-red" />
-            <span className="h-px flex-1 bg-foreground/10" />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ─── Materials strip ────────────────────────────────────────────── */
 function MaterialsScrollSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
@@ -1030,7 +986,6 @@ export function ProductDetail({
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
       <ProductHero product={product} reviews={reviews ?? null} isSignedIn={isSignedIn} />
-      <ProductDescription product={product} />
       <ProductSpecifications product={product} />
       <MaterialsSection product={product} />
       <SymbolismSection product={product} />
