@@ -868,6 +868,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         productId: product.id,
         shopifyVariantId: variant.id,
         shopifyInventoryItemId: variant.inventoryItem?.id ?? null,
+        sku,
         title: variant.title,
         priceCents: shopifyAmountToCents(variant.price),
         compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
