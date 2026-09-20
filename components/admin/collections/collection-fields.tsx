@@ -49,7 +49,7 @@ export function WorkflowStateField({
     {
       value: "DRAFT",
       title: "Draft",
-      description: "Hidden from the storefront while you prepare content.",
+      description: "Hidden from the site while you prepare content.",
     },
     {
       value: "PUBLISHED",
@@ -61,7 +61,7 @@ export function WorkflowStateField({
   return (
     <div data-component="WorkflowStateField" className="grid gap-2">
       <FieldLabel required help="Draft collections stay private. Published collections appear on the collections index and their public detail page.">
-        Storefront state
+        Site state
       </FieldLabel>
       <input type="hidden" name="workflowState" value={value} />
       <div className="grid gap-3 md:grid-cols-2">
@@ -206,7 +206,7 @@ export function CollectionFields({
         </label>
 
         <label className="grid gap-2">
-          <FieldLabel required help="Short collection code used in storefront views and admin references.">
+          <FieldLabel required help="Short collection code used in site views and admin references.">
             Accent code
           </FieldLabel>
           <input

@@ -30,7 +30,7 @@ export default async function AdminLoginPage({ searchParams }: Props) {
     <AuthShell
       eyebrow="SYNARAVA | Admin"
       title="Studio entrance."
-      description="Restricted CMS access is separate from storefront customer accounts."
+      description="Restricted CMS access is separate from site customer accounts."
       asideTitle="Private studio"
       asideBody="Catalog, collection, and editorial controls live behind an isolated admin session."
     >

@@ -115,7 +115,7 @@ describe("compareLocalizedFields", () => {
     ["Product", PRODUCT_FIELD_REGISTRY, "title"],
     ["Collection", COLLECTION_FIELD_REGISTRY, "name"],
     ["Page", PAGE_FIELD_REGISTRY, "title"],
-    ["Storefront copy", STOREFRONT_COPY_FIELD_REGISTRY, "nav.home"],
+    ["Site copy", STOREFRONT_COPY_FIELD_REGISTRY, "nav.home"],
   ])("supports the %s registry without emitting equal fields", (_name, registry, fieldKey) => {
     const value = { [fieldKey]: "Same value" };
     expect(compareLocalizedFields(registry, value, value, value)).toEqual([]);

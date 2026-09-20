@@ -488,7 +488,7 @@ function publishGapsNotice({ missingTranslations, missingImage }: { missingTrans
     );
   }
   if (missingImage) {
-    notes.push("No photo yet — the storefront will show a placeholder image until one is uploaded.");
+    notes.push("No photo yet — the site will show a placeholder image until one is uploaded.");
   }
   return notes.length ? notes.join(" ") : undefined;
 }

@@ -219,7 +219,7 @@ export function productActionCopy(target: ProductRowAction) {
     return {
       title: `Publish ${name}`,
       description:
-        "This will make the product visible on the storefront and product listings. Customers may be able to view and add it to cart immediately.",
+        "This will make the product visible on the site and product listings. Customers may be able to view and add it to cart immediately.",
       confirmLabel: "Publish product",
       tone: "default" as const,
     };
@@ -237,7 +237,7 @@ export function productActionCopy(target: ProductRowAction) {
     return {
       title: `Archive ${name}`,
       description:
-        "This will hide the product from the storefront and keep the record in admin for later recovery. Use this instead of permanent delete when you may need history or content back.",
+        "This will hide the product from the site and keep the record in admin for later recovery. Use this instead of permanent delete when you may need history or content back.",
       confirmLabel: "Archive product",
       tone: "danger" as const,
     };

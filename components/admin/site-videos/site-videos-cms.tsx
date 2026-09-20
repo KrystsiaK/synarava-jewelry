@@ -87,9 +87,9 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
     <section data-component="SiteVideosCms" className="adm-panel grid gap-6 p-5 md:p-6">
       <div className="grid gap-2">
         <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
-        <h2 className="adm-title-sm">Storefront video</h2>
+        <h2 className="adm-title-sm">Site video</h2>
         <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-          Upload MP4 or WebM files directly from this browser to Railway Bucket. Replacing a video changes every storefront placement listed below after cache revalidation. The bucket must allow PUT requests from this admin origin in its CORS policy.
+          Upload MP4 or WebM files directly from this browser to Railway Bucket. Replacing a video changes every site placement listed below after cache revalidation. The bucket must allow PUT requests from this admin origin in its CORS policy.
         </p>
       </div>
 

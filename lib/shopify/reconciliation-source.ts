@@ -180,7 +180,7 @@ export async function loadReconcileSubject(
     return localizedCopy ? {
       rootEntityType: "STOREFRONT_COPY",
       rootEntityId: STOREFRONT_COPY_KEY,
-      label: "Storefront copy",
+      label: "Site copy",
       registry: registryForTarget(STOREFRONT_COPY_FIELD_REGISTRY, "metaobject", "storefront_copy"),
       local: localizedCopy,
     } : null;

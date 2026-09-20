@@ -177,7 +177,7 @@ export function ProductDetailFields({
         <p className="adm-label-row">
           <span className="adm-section-tag">[ SYNARAVA CMS LAYER ]</span>
           <AdminHelp>
-            Extended content enriches the storefront without being erased by Shopify catalog pulls.
+            Extended content enriches the site without being erased by Shopify catalog pulls.
           </AdminHelp>
         </p>
         <p className="mt-2 text-xs text-[var(--adm-muted)]">Characteristics are mirrored to Shopify metafields. Editorial photography, materials, process, and lookbook remain managed by Synarava.</p>
@@ -271,7 +271,7 @@ export function ProductDetailFields({
         <div>
           <p className="adm-label-row">
             <span className="adm-label">Materials</span>
-            <AdminHelp>Three material cards shown on the storefront product detail page.</AdminHelp>
+            <AdminHelp>Three material cards shown on the site’s product detail page.</AdminHelp>
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -819,7 +819,7 @@ export function ProductFormFields({
             <OwnershipLabel owner="Shopify">Product category</OwnershipLabel>
             <AdminHelp>
               This is the exact Shopify Standard Product Taxonomy category. Its Shopify ID powers
-              the Category section and filter on the storefront; Collections and Departments are
+              the Category section and filter on the site; Collections and Departments are
               separate merchandising groups.
             </AdminHelp>
           </div>
@@ -854,7 +854,7 @@ export function ProductFormFields({
       </div>
 
       <label className="grid gap-2 md:max-w-xs">
-        <OwnershipLabel owner="Shopify">Storefront state</OwnershipLabel>
+        <OwnershipLabel owner="Shopify">Site state</OwnershipLabel>
         <select name="workflowState" defaultValue={draft.workflowState} className="adm-field">
           <option value="DRAFT">Draft — hidden</option>
           <option value="PUBLISHED">Published — visible</option>

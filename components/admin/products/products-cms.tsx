@@ -245,7 +245,7 @@ export function ProductsCms({
   function confirmArchive(productIds: string[]) {
     setSyncConfirmation({
       title: "Archive missing local products",
-      description: `${productIds.length} local product${productIds.length === 1 ? "" : "s"} no longer found in Shopify will be hidden from the storefront. The records remain available in admin.`,
+      description: `${productIds.length} local product${productIds.length === 1 ? "" : "s"} no longer found in Shopify will be hidden from the site. The records remain available in admin.`,
       confirmLabel: `Archive ${productIds.length} product${productIds.length === 1 ? "" : "s"}`,
       remoteProductIds: [],
       localProductIds: [],

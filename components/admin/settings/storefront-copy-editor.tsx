@@ -47,7 +47,7 @@ export function StorefrontCopyEditor({
       <AuthMessage error={state.error} />
       <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
         Leave a field empty to fall back to the shipped default (shown as placeholder text). These
-        keys are also used as the English source and Portuguese translation across the storefront.
+        keys are also used as the English source and Portuguese translation across the site.
       </p>
 
       {STOREFRONT_COPY_GROUPS.map((group) => (
@@ -98,7 +98,7 @@ export function StorefrontCopyEditor({
 
       <div className="flex justify-end" style={{ borderTop: "1px solid var(--adm-border)", paddingTop: "1rem" }}>
         <button type="submit" className="adm-btn-primary" disabled={isPending}>
-          {isPending ? "Saving..." : "Save storefront copy"}
+          {isPending ? "Saving..." : "Save site copy"}
         </button>
       </div>
     </form>

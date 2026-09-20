@@ -184,7 +184,7 @@ export function AdminNav({
         onClick={onNavigate}
       >
         <span className="adm-nav-arrow">{"↗"}</span>
-        <span className="flex-1">Storefront</span>
+        <span className="flex-1">View site</span>
       </a>
     </nav>
   );

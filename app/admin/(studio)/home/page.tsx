@@ -10,7 +10,7 @@ export default async function AdminHomePage() {
     .filter((product) => product.status === "ACTIVE" && product.visibility === "PUBLIC")
     .map((product) => ({ id: product.id, title: product.name, slug: product.slug }));
 
-  return <EditorialPage title="Home" description="Control section visibility, localized editorial copy, calls to action, and contact details across the storefront home page." page={page} productOptions={productOptions} />;
+  return <EditorialPage title="Home" description="Control section visibility, localized editorial copy, calls to action, and contact details across the site's home page." page={page} productOptions={productOptions} />;
 }
 
 function EditorialPage({ title, description, page, productOptions }: { title: string; description: string; page: NonNullable<Awaited<ReturnType<typeof getAdminCatalogData>>>["pages"][number]; productOptions: Array<{ id: string; title: string; slug: string }> }) {

@@ -32,7 +32,7 @@ describe("AuthShell", () => {
     render(<AuthShell {...baseProps}><div>Form</div></AuthShell>);
     // footer section has border-t and pt-6 classes
     // the footer slot itself should not appear
-    expect(screen.queryByText("Back to storefront")).toBeInTheDocument(); // always present
+    expect(screen.queryByText("Back to site")).toBeInTheDocument(); // always present
   });
 
   it("renders footer slot when provided", () => {
@@ -44,8 +44,8 @@ describe("AuthShell", () => {
     expect(screen.getByText("Footer note")).toBeInTheDocument();
   });
 
-  it("has back-to-storefront link", () => {
+  it("has back-to-site link", () => {
     render(<AuthShell {...baseProps}><div>Form</div></AuthShell>);
-    expect(screen.getByRole("link", { name: "Back to storefront" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Back to site" })).toHaveAttribute("href", "/");
   });
 });

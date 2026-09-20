@@ -16,7 +16,7 @@ export function pageActionCopy(target: PageRowAction) {
     return {
       title: `Publish ${target.page.title}`,
       description:
-        "This makes the page public. Storefront visitors may see the updated page immediately after cache revalidation.",
+        "This makes the page public. Site visitors may see the updated page immediately after cache revalidation.",
       confirmLabel: "Publish page",
       tone: "default" as const,
     };
@@ -25,7 +25,7 @@ export function pageActionCopy(target: PageRowAction) {
     return {
       title: `Move ${target.page.title} to draft`,
       description:
-        "This hides the page from public access where the storefront checks publishing state. The content remains editable in admin.",
+        "This hides the page from public access where the site checks publishing state. The content remains editable in admin.",
       confirmLabel: "Move to draft",
       tone: "default" as const,
     };
@@ -33,7 +33,7 @@ export function pageActionCopy(target: PageRowAction) {
   return {
     title: `Archive ${target.page.title}`,
     description:
-      "This hides the page and keeps the record in admin. Use archive when content should disappear from the storefront but may be restored later.",
+      "This hides the page and keeps the record in admin. Use archive when content should disappear from the site but may be restored later.",
     confirmLabel: "Archive page",
     tone: "danger" as const,
   };

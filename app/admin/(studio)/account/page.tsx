@@ -27,7 +27,7 @@ export default async function AdminAccountPage() {
           </div>
 
           <p className="text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-            Admin access is intentionally separate from storefront accounts. Update
+            Admin access is intentionally separate from site accounts. Update
             <span className="font-semibold" style={{ color: "var(--adm-text)" }}> ADMIN_USERNAME </span>
             and
             <span className="font-semibold" style={{ color: "var(--adm-text)" }}> ADMIN_PASSWORD_HASH </span>

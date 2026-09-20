@@ -13,7 +13,7 @@ export default async function AdminProductsPage() {
           Catalog
         </h1>
         <p className="adm-page-subtitle">
-          Products, categories, tags, media, and storefront publishing state.
+          Products, categories, tags, media, and site publishing state.
         </p>
       </div>
 

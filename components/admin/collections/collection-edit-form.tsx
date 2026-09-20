@@ -65,7 +65,7 @@ function DeleteCollectionForm({
       <AdminConfirmModal
         open={confirmOpen}
         title={`Permanently delete ${collectionSlug}`}
-        description="This permanently removes the collection and its sections. Products are not deleted, but they lose this collection assignment, which affects collection pages and storefront filters. Prefer Archive unless you are certain."
+        description="This permanently removes the collection and its sections. Products are not deleted, but they lose this collection assignment, which affects collection pages and site filters. Prefer Archive unless you are certain."
         confirmLabel="Delete permanently"
         tone="danger"
         pending={isPending}

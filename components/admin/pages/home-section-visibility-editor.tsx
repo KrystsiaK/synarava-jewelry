@@ -22,7 +22,7 @@ export function HomeSectionVisibilityEditor({ content }: { content: EditablePage
     <section aria-labelledby="home-sections-heading" className="grid gap-4 border-b border-[var(--adm-border)] pb-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 id="home-sections-heading" className="adm-title-sm">Storefront sections</h3>
+          <h3 id="home-sections-heading" className="adm-title-sm">Site sections</h3>
           <p className="mt-1 max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
             Choose what appears on the home page. Turning a section off keeps its content ready for later.
           </p>

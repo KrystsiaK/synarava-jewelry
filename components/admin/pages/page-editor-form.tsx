@@ -547,7 +547,7 @@ export function PageEditor({
               <fieldset className="grid gap-3 md:col-span-2">
                 <legend className="adm-label">The Edit products</legend>
                 <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                  Choose four different published products. Slot order matches the storefront from left to right.
+                  Choose four different published products. Slot order matches the site from left to right.
                 </p>
                 <div className="grid gap-3 md:grid-cols-2">
                   {editProductIds.map((productId, index) => (
@@ -721,7 +721,7 @@ export function PageEditor({
       <AdminConfirmModal
         open={confirmOpen}
         title={`Save ${page.title}`}
-        description="This writes page copy and publishing state to the database. Published pages may change the storefront immediately after revalidation."
+        description="This writes page copy and publishing state to the database. Published pages may change the site immediately after revalidation."
         confirmLabel="Save page"
         pending={isPending}
         onCancel={() => setConfirmOpen(false)}

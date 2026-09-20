@@ -128,7 +128,7 @@ export function CreateProductForm({
         <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
         <div>
           <AdminHelp label="Publishing guidance">
-            Saving updates the database. Published products can immediately affect the public storefront.
+            Saving updates the database. Published products can immediately affect the public site.
           </AdminHelp>
         </div>
 

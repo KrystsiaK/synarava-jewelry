@@ -149,7 +149,7 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onCheck,
           <p className="mt-1 text-xs text-[var(--adm-muted)]">Across {product.variants.length} variant{product.variants.length === 1 ? "" : "s"}</p>
         </div>
         <div className="border-t border-[var(--adm-border)] py-3 sm:pr-4 xl:border-r xl:border-t-0 xl:px-4">
-          <p className="adm-section-tag">Storefront state</p>
+          <p className="adm-section-tag">Site state</p>
           <p className="mt-2 text-sm font-semibold text-[var(--adm-ink)]">{storefrontState}</p>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
             {product.shopifyProductId
@@ -173,7 +173,7 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onCheck,
         </div>
         <div>
           <p className="adm-section-tag">Synarava CMS layer</p>
-          <p className="mt-2 text-xs leading-5 text-[var(--adm-muted)]">Additional photography, category and collection curation, symbolism, materials, process story, lookbook, and storefront search presentation stay local and survive every Shopify pull.</p>
+          <p className="mt-2 text-xs leading-5 text-[var(--adm-muted)]">Additional photography, category and collection curation, symbolism, materials, process story, lookbook, and site search presentation stay local and survive every Shopify pull.</p>
         </div>
       </div>
 

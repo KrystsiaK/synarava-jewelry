@@ -33,7 +33,7 @@ describe("StorefrontCopyEditor", () => {
   });
 
   it("submits both en: and pt: prefixed keys in one save", async () => {
-    mocks.saveStorefrontCopyAction.mockResolvedValue({ success: "Storefront copy saved." });
+    mocks.saveStorefrontCopyAction.mockResolvedValue({ success: "Site copy saved." });
     const user = userEvent.setup();
     render(
       <StorefrontCopyEditor
@@ -45,7 +45,7 @@ describe("StorefrontCopyEditor", () => {
     await user.type(screen.getByLabelText("Home (EN)"), "Home");
     await user.click(screen.getByRole("tab", { name: "Português" }));
     await user.type(screen.getByLabelText("Home (PT)"), "Início");
-    await user.click(screen.getByRole("button", { name: "Save storefront copy" }));
+    await user.click(screen.getByRole("button", { name: "Save site copy" }));
 
     expect(mocks.saveStorefrontCopyAction).toHaveBeenCalledTimes(1);
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;

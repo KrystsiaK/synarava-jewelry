@@ -105,7 +105,7 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
               New collection
             </Link>
             <AdminHelp label="Collection editing guidance" align="end">
-              New collection opens the create route. Details opens the collection edit route. Draft, Publish, and Archive change storefront visibility. Delete removes the record.
+              New collection opens the create route. Details opens the collection edit route. Draft, Publish, and Archive change site visibility. Delete removes the record.
             </AdminHelp>
           </div>
         </div>

@@ -30,7 +30,7 @@ export default async function AdminSettingsPage() {
     <div className="space-y-8">
       <div>
         <p className="adm-section-tag mb-3">[ SYN-ADM // COPY ]</p>
-        <h1 className="adm-page-title">Storefront copy</h1>
+        <h1 className="adm-page-title">Site copy</h1>
         <p className="adm-page-subtitle">
           Main menu and footer — text only, no layout changes. Page-specific copy (Shop, Care, FAQ, Shipping, Returns) is edited on that page in Pages.
         </p>

@@ -222,7 +222,7 @@ export async function scanAdminIssues() {
             fieldPath: "field-taxonomy-collection",
             label: "collection",
             description:
-              "This product is not assigned to any collection, so it can disappear from collection-led storefront paths.",
+              "This product is not assigned to any collection, so it can disappear from collection-led site paths.",
           }),
         );
       }

@@ -302,7 +302,7 @@ export function EditProductForm({
       <AdminConfirmModal
         open={deleteOpen}
         title={`Delete ${currentProduct.name}`}
-        description="This action removes the product record permanently. Public storefront pages for this item will stop working after deletion."
+        description="This action removes the product record permanently. Public site pages for this item will stop working after deletion."
         confirmLabel="Yes, delete permanently"
         onCancel={() => setDeleteOpen(false)}
         onConfirm={() => {

@@ -6,7 +6,7 @@ import { localePath } from "@/lib/i18n/routing";
 
 export const metadata: Metadata = {
   title: "Register | Synarava",
-  description: "Join the Synarava storefront and create a new account.",
+  description: "Join Synarava and create a new account.",
 };
 
 export default async function RegisterPage() {

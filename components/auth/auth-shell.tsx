@@ -50,7 +50,7 @@ export function AuthShell({
           {children}
           <div className="mt-7 border-t border-stroke pt-5 text-sm text-foreground/62">
             <Link href={homeHref} className="transition-colors hover:text-accent">
-              Back to storefront
+              Back to site
             </Link>
           </div>
         </section>
