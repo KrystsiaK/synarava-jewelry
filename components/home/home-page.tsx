@@ -1190,7 +1190,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
 
           <p
             data-lexicon-archive-rail
-            className="absolute bottom-6 right-8 z-20 hidden origin-bottom-right rotate-90 font-sans text-[0.5rem] font-bold uppercase tracking-[0.32em] text-linen/60 lg:block xl:right-24"
+            className="absolute bottom-6 right-8 z-20 hidden origin-bottom-right rotate-90 font-sans text-[0.5rem] font-bold uppercase tracking-[0.32em] text-linen/60 lg:block"
             aria-hidden="true"
           >
             Synarava material archive · Vol. I
