@@ -105,7 +105,7 @@
     },
     "filters": {
       "eyebrow": "Find the right product",
-      "description": "Start with a category or availability. Open more filters only when you need them.",
+      "description": "Filter by category, product type or availability to narrow your selection.",
       "showing": "Showing",
       "productCount": {
         "one": "{count} product",
@@ -143,7 +143,7 @@
       "less": "Fewer filters",
       "filters": "Filters",
       "activeCount": "{count} active",
-      "searchPlaceholder": "Search products…",
+      "searchPlaceholder": "Search products",
       "searchLabel": "Search products",
       "clearSearch": "Clear search",
       "clearAll": "Clear all",
