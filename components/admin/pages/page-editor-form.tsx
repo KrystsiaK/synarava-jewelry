@@ -218,8 +218,13 @@ export function PageEditor({
   // Shop and the 4 service pages render Title as their on-page H1 too (like home/about
   // already do) — only Collections has literally no on-page CMS text to fall back on.
   const titleIsMetaOnly = isCollectionsPage;
-  // CTA/Quote/Secondary-title/body never render on any of these three page kinds.
+  // Quote never renders on any of these three page kinds; CTA href likewise
+  // (Shop's CTA always points to /collections — only its label is editable).
   const hideDeadCopyFields = isShopPage || isServicePage || isCollectionsPage;
+  // Eyebrow/CTA label/Secondary title & body power Shop's "Browse the
+  // Collections" callout at the bottom of /shop — dead only for Service and
+  // Collections pages.
+  const hideShopCalloutFields = isServicePage || isCollectionsPage;
   const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
   const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
   const { pushToast } = useAdminToast();
@@ -344,10 +349,14 @@ export function PageEditor({
             </span>
             <input value={draft.title} onChange={(event) => updateField("title", event.target.value)} className="adm-field" />
           </label>
-          <label className="grid gap-2" hidden={!isServicePage && (isShopPage || isCollectionsPage)}>
+          <label className="grid gap-2" hidden={!isServicePage && isCollectionsPage}>
             <span className="adm-label flex items-center gap-1.5">
               Eyebrow
-              {isServicePage ? <AdminHelp>Small label above the H1 on /{page.slug}.</AdminHelp> : null}
+              {isServicePage ? (
+                <AdminHelp>Small label above the H1 on /{page.slug}.</AdminHelp>
+              ) : isShopPage ? (
+                <AdminHelp>The small red label above the heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp>
+              ) : null}
             </span>
             <input value={draft.eyebrow} onChange={(event) => updateField("eyebrow", event.target.value)} className="adm-field" />
           </label>
@@ -417,12 +426,15 @@ export function PageEditor({
           </section>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2" hidden={hideDeadCopyFields}>
+        <div className="grid gap-4 md:grid-cols-2" hidden={hideShopCalloutFields}>
           <label className="grid gap-2">
-            <span className="adm-label">CTA label</span>
+            <span className="adm-label flex items-center gap-1.5">
+              {isShopPage ? "Primary button label" : "CTA label"}
+              {isShopPage ? <AdminHelp>The button in the “Browse the Collections” callout at the bottom of /shop. Always links to /collections.</AdminHelp> : null}
+            </span>
             <input value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} className="adm-field" />
           </label>
-          <label className="grid gap-2">
+          <label className="grid gap-2" hidden={isShopPage}>
             <span className="adm-label">CTA href</span>
             <AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>
             <input name="ctaHref" defaultValue={content.ctaHref ?? ""} className="adm-field" />
@@ -633,14 +645,20 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Final call to action</h3> : null}
-        <div className="grid gap-4 md:grid-cols-2" hidden={hideDeadCopyFields}>
+        <div className="grid gap-4 md:grid-cols-2" hidden={hideShopCalloutFields}>
           <label className="grid gap-2">
-            <span className="adm-label">{isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : "Secondary title"}</span>
+            <span className="adm-label flex items-center gap-1.5">
+              {isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : isShopPage ? "Collections callout heading" : "Secondary title"}
+              {isShopPage ? <AdminHelp>The heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp> : null}
+            </span>
             <input value={draft.secondaryTitle} onChange={(event) => updateField("secondaryTitle", event.target.value)} className="adm-field" />
           </label>
           <label className="grid gap-2">
-            <span className="adm-label">{isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : "Secondary body"}</span>
-            <textarea value={draft.secondaryBody} onChange={(event) => updateField("secondaryBody", event.target.value)} rows={3} className="adm-field" />
+            <span className="adm-label flex items-center gap-1.5">
+              {isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : isShopPage ? "Secondary link label" : "Secondary body"}
+              {isShopPage ? <AdminHelp>The small link under the button (e.g. “About Synarava”). Always links to /about.</AdminHelp> : null}
+            </span>
+            <textarea value={draft.secondaryBody} onChange={(event) => updateField("secondaryBody", event.target.value)} rows={isShopPage ? 1 : 3} className="adm-field" />
           </label>
         </div>
 

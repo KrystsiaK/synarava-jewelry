@@ -310,7 +310,17 @@ function ProductGrid({ products, sort }: { products: ShopListingProduct[]; sort?
 }
 
 /* ─── Shop CTA footer ────────────────────────────────────────────── */
-function ShopFooter() {
+function ShopFooter({
+  eyebrow,
+  title,
+  ctaLabel,
+  secondaryLabel,
+}: {
+  eyebrow?: string;
+  title?: string;
+  ctaLabel?: string;
+  secondaryLabel?: string;
+}) {
   const { t, locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
@@ -348,7 +358,7 @@ function ShopFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, ease, delay: 0.1 }}
         >
-          {t("shop.footerCta.eyebrow")}
+          {eyebrow || t("shop.footerCta.eyebrow")}
         </motion.p>
 
         <motion.h2
@@ -358,7 +368,7 @@ function ShopFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.18 }}
         >
-          {t("shop.footerCta.title")}
+          {title || t("shop.footerCta.title")}
         </motion.h2>
 
         <motion.div
@@ -368,14 +378,14 @@ function ShopFooter() {
           transition={{ duration: 0.8, ease, delay: 0.28 }}
         >
           <PrimaryCtaButton href={localePath(locale, "/collections")}>
-            {t("shop.footerCta.collections")}
+            {ctaLabel || t("shop.footerCta.collections")}
           </PrimaryCtaButton>
 
           <Link
             href={localePath(locale, "/about")}
             className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
           >
-            {t("shop.footerCta.story")}
+            {secondaryLabel || t("shop.footerCta.story")}
           </Link>
         </motion.div>
       </div>
@@ -393,9 +403,26 @@ export type ShopPageProps = {
   archiveCount: number;
   filterProps: Omit<FilterBarProps, "totalCount">;
   productTypeTiles: ShopProductTypeTile[];
+  collectionsCalloutEyebrow?: string;
+  collectionsCalloutTitle?: string;
+  collectionsCalloutCtaLabel?: string;
+  collectionsCalloutSecondaryLabel?: string;
 };
 
-export function ShopPage({ products, popularProductSlugs, heroImage, heroTitle, heroDescription, archiveCount, filterProps, productTypeTiles }: ShopPageProps) {
+export function ShopPage({
+  products,
+  popularProductSlugs,
+  heroImage,
+  heroTitle,
+  heroDescription,
+  archiveCount,
+  filterProps,
+  productTypeTiles,
+  collectionsCalloutEyebrow,
+  collectionsCalloutTitle,
+  collectionsCalloutCtaLabel,
+  collectionsCalloutSecondaryLabel,
+}: ShopPageProps) {
   const { t, locale } = useTranslations();
   const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
   const productsBySlug = useMemo(
@@ -489,7 +516,12 @@ export function ShopPage({ products, popularProductSlugs, heroImage, heroTitle, 
         </div>
       </div>
 
-      <ShopFooter />
+      <ShopFooter
+        eyebrow={collectionsCalloutEyebrow}
+        title={collectionsCalloutTitle}
+        ctaLabel={collectionsCalloutCtaLabel}
+        secondaryLabel={collectionsCalloutSecondaryLabel}
+      />
     </main>
   );
 }

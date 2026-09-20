@@ -85,6 +85,10 @@ export default async function Page({ searchParams }: Props) {
       heroDescription={page?.content.body || t("shop.heroDescription")}
       archiveCount={archiveProducts.length}
       productTypeTiles={productTypeTiles}
+      collectionsCalloutEyebrow={page?.content.eyebrow}
+      collectionsCalloutTitle={page?.content.secondaryTitle}
+      collectionsCalloutCtaLabel={page?.content.ctaLabel}
+      collectionsCalloutSecondaryLabel={page?.content.secondaryBody}
       filterProps={{
         departments: departments.map((department) => {
           const hasProducts = archiveProducts.some((product) => product.departmentSlug === department.slug);
