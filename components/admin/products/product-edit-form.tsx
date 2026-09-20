@@ -24,7 +24,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ShopifyProductMirror } from "@/components/admin/products/shopify-product-mirror";
-import { ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
+import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
 import {
   getProductEditorDetails,
   productToDraft,
@@ -56,6 +56,7 @@ export function EditProductForm({
   const [isDirty, setIsDirty] = useState(false);
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
   const [conflictResolution, setConflictResolution] = useState<"shopify" | "synarava" | null>(null);
+  const [syncDetailOpen, setSyncDetailOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
@@ -137,6 +138,7 @@ export function EditProductForm({
       if (result.product) {
         setState({ success: result.success, product: result.product });
         onUpdated?.(result.product);
+        setSyncDetailOpen(false);
         router.refresh();
       }
     });
@@ -153,6 +155,7 @@ export function EditProductForm({
         setState({ success: result.success, product: result.product });
         setIsDirty(false);
         onUpdated?.(result.product);
+        setSyncDetailOpen(false);
         router.refresh();
       }
     });
@@ -216,9 +219,7 @@ export function EditProductForm({
             inspection={inspection}
             pending={isPending}
             onCheck={handleCheckShopify}
-            onPull={() => handlePullFromShopify(false)}
-            onPush={() => handlePushToShopify(false)}
-            onResolve={setConflictResolution}
+            onOpenDetail={() => setSyncDetailOpen(true)}
           />
 
           <ProductFormFields
@@ -266,6 +267,18 @@ export function EditProductForm({
           }}
         />
       </div>
+
+      <ProductSyncDetailModal
+        open={syncDetailOpen}
+        onClose={() => setSyncDetailOpen(false)}
+        product={currentProduct}
+        dirty={isDirty}
+        inspection={inspection}
+        pending={isPending}
+        onPull={() => handlePullFromShopify(false)}
+        onPush={() => handlePushToShopify(false)}
+        onResolve={setConflictResolution}
+      />
 
       <AdminConfirmModal
         open={confirmOpen}

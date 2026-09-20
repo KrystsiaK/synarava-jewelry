@@ -60,6 +60,8 @@ export function ProductSyncModal({
   if (!preview) return null;
 
   const actionableRemote = preview.remote.filter((item) => item.action !== "UP_TO_DATE");
+  const safeImportCount = actionableRemote.filter((item) => item.action !== "CONFLICT").length;
+  const safePushCount = preview.pushToShopify.length;
 
   function toggleExpand(item: RemoteItem) {
     const key = item.shopifyProductId;
@@ -123,14 +125,22 @@ export function ProductSyncModal({
           <button
             type="button"
             className="adm-btn-primary"
-            disabled={pending || (preview.remote.every((item) => item.action === "CONFLICT" || item.action === "UP_TO_DATE") && preview.pushToShopify.length === 0)}
+            disabled={pending || (safeImportCount === 0 && safePushCount === 0)}
             onClick={() => confirmSync(
               preview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").map((item) => item.shopifyProductId),
               preview.pushToShopify.map((item) => item.productId),
               "Apply all previewed catalog changes",
             )}
           >
-            {pending ? "Applying..." : "Apply all changes"}
+            {pending
+              ? "Applying..."
+              : safeImportCount === 0 && safePushCount === 0
+                ? "Nothing to apply"
+                : safeImportCount === 0
+                  ? `Push ${safePushCount} to Shopify`
+                  : safePushCount === 0
+                    ? `Import ${safeImportCount} from Shopify`
+                    : `Import ${safeImportCount} · Push ${safePushCount}`}
           </button>
         </div>
       </div>
