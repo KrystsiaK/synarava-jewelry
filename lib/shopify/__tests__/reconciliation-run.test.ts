@@ -41,8 +41,8 @@ beforeEach(() => {
     $queryRaw: mocks.queryRaw,
     $executeRaw: mocks.executeRaw,
   }));
+  mocks.executeRaw.mockResolvedValueOnce(undefined); // advisory lock (void-returning, must use $executeRaw)
   mocks.queryRaw
-    .mockResolvedValueOnce([]) // advisory lock
     .mockResolvedValueOnce([]) // no active QUEUED/RUNNING run
     .mockResolvedValueOnce([runRow()]); // runById after insert
 });
@@ -57,7 +57,7 @@ describe("runTranslationReconciliation", () => {
       reused: false,
     });
 
-    // insert (createOrReuseRun) + update (finishRun) — the run must be closed out, not left RUNNING.
-    expect(mocks.executeRaw).toHaveBeenCalledTimes(2);
+    // advisory lock + insert (createOrReuseRun) + update (finishRun) — the run must be closed out, not left RUNNING.
+    expect(mocks.executeRaw).toHaveBeenCalledTimes(3);
   });
 });

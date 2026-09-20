@@ -192,7 +192,7 @@ async function createOrReuseRun({
   return db.$transaction(async (transaction) => {
     // One short database lock protects the check/create window across tabs
     // and app instances. It does not cover the Shopify network work.
-    await transaction.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(730921441)`);
+    await transaction.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(730921441)`);
 
     const active = await transaction.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT "id"
