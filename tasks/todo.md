@@ -255,7 +255,7 @@
 - [x] Resolver tests cover shared-field stripping, normalized-row priority and legacy fallback.
 - [x] Page action test proves PT normalized persistence; Page editor tests prove existing EN/PT workspace behavior remains intact.
 - [x] Prisma schema validates; focused Page suite passes (6 files / 22 tests).
-- [ ] Migration apply against the real dev database remains part of the Task 22 staging gate because PostgreSQL is not reachable in this environment.
+- [x] Migration apply — a local dev database now exists (2026-09-20); `pnpm exec prisma migrate status` confirms all 23 migrations, including `20260919150000_page_translations`, are applied and the schema is up to date.
 
 **Dependencies:** Tasks 2, 6  
 **Files:** `prisma/schema.prisma`, `prisma/migrations/20260919150000_page_translations/migration.sql`, `lib/pages/localization.ts`, `app/admin/actions/pages.ts`, `lib/content/catalog.ts`, Page admin/tests.
