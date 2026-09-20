@@ -28,14 +28,9 @@ function AboutHero({
   title,
   excerpt,
   eyebrow,
-  ctaHref,
-  ctaLabel,
   heroVideoSrc,
   heroImage,
-}: Pick<
-  AboutPageProps,
-  "title" | "excerpt" | "eyebrow" | "ctaHref" | "ctaLabel" | "heroVideoSrc" | "heroImage"
->) {
+}: Pick<AboutPageProps, "title" | "excerpt" | "eyebrow" | "heroVideoSrc" | "heroImage">) {
   const reduceMotion = useReducedMotion();
   const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
 
@@ -108,11 +103,6 @@ function AboutHero({
           transition={{ duration: 0.8, delay: 0.18, ease }}
         >
           {excerpt ? <p className="text-base leading-8 text-foreground/70">{excerpt}</p> : null}
-          {ctaHref && ctaLabel ? (
-            <div className="mt-8">
-              <PrimaryCtaButton href={ctaHref}>{ctaLabel}</PrimaryCtaButton>
-            </div>
-          ) : null}
         </motion.div>
       </div>
     </header>
@@ -122,9 +112,13 @@ function AboutHero({
 function StudioCopy({
   title,
   body,
+  ctaHref,
+  ctaLabel,
 }: {
   title?: string;
   body: string;
+  ctaHref: string;
+  ctaLabel: string;
 }) {
   if (!title && !body) return null;
 
@@ -140,6 +134,11 @@ function StudioCopy({
           <p className="max-w-xl text-pretty text-base leading-8 text-foreground/68 md:col-span-5 md:pt-4 md:text-lg">
             {body}
           </p>
+        ) : null}
+        {ctaHref && ctaLabel ? (
+          <div className="md:col-span-12">
+            <PrimaryCtaButton href={ctaHref}>{ctaLabel}</PrimaryCtaButton>
+          </div>
         ) : null}
       </div>
     </section>
@@ -190,12 +189,15 @@ export function AboutPage(props: AboutPageProps) {
         title={props.title}
         excerpt={props.excerpt}
         eyebrow={props.eyebrow}
-        ctaHref={props.ctaHref}
-        ctaLabel={props.ctaLabel}
         heroVideoSrc={props.heroVideoSrc}
         heroImage={props.heroImage}
       />
-      <StudioCopy title={props.secondaryTitle} body={props.secondaryBody} />
+      <StudioCopy
+        title={props.secondaryTitle}
+        body={props.secondaryBody}
+        ctaHref={props.ctaHref}
+        ctaLabel={props.ctaLabel}
+      />
       <MovementStory title={props.quote} videoSrc={props.materialVideoSrc} />
     </main>
   );
