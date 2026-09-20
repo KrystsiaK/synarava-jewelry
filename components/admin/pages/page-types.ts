@@ -48,6 +48,7 @@ export type EditablePageCopy = {
 
 export type EditablePageContent = EditablePageCopy & {
   heroImage?: string;
+  editProductIds?: string[];
   heroSectionEnabled?: boolean;
   departmentSectionEnabled?: boolean;
   archiveSectionEnabled?: boolean;

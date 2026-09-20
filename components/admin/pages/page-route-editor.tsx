@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreatePageForm } from "@/components/admin/pages/page-create-form";
 import { PageEditor } from "@/components/admin/pages/page-editor-form";
 import type { SavedPagePayload } from "@/app/admin/actions/pages";
+import type { HomeEditProductOption } from "@/components/admin/pages/page-editor-form";
 
 export function PageCreateRoute() {
   const router = useRouter();
@@ -21,14 +22,17 @@ export function PageCreateRoute() {
 
 export function PageEditRoute({
   page,
+  productOptions,
 }: {
   page: SavedPagePayload;
+  productOptions?: HomeEditProductOption[];
 }) {
   const router = useRouter();
 
   return (
     <PageEditor
       page={page}
+      productOptions={productOptions}
       onUpdated={() => router.refresh()}
     />
   );

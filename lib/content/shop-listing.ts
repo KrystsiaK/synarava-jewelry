@@ -11,8 +11,10 @@ import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 
 /** Fields used by shop cards, discovery, sorting and client-side filters. */
 export type ShopListingProduct = {
+  id: string;
   shopifyProductId: string | null;
   slug: string;
+  sourceTitle: string;
   series: string;
   title: string;
   shortDescription: string;
@@ -45,6 +47,7 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
     where: { status: "ACTIVE", visibility: "PUBLIC" },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     select: {
+      id: true,
       slug: true,
       sku: true,
       shopifyProductId: true,
@@ -123,8 +126,10 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
       const department = row.collections.find((item) => item.collection.isPrimaryNav)?.collection;
       const departmentName = department ? resolveCollectionName(department, locale) : "";
       return {
+        id: row.id,
         shopifyProductId: row.shopifyProductId,
         slug: resolveLocalizedHandle(locale, row.slug, translation?.localizedHandle),
+        sourceTitle: row.name,
         series: row.seriesLabel ?? "",
         title: copy.title,
         shortDescription: copy.shortDescription,

@@ -71,8 +71,10 @@ export default async function Page() {
       content={{ ...content, heroImage: content.heroImage, heroTitle: page?.title ?? "", heroBody: content.body ?? page?.excerpt ?? "" }}
       collections={collections}
       products={products.map((product) => ({
+        id: product.id,
         slug: product.slug,
         title: product.title,
+        sourceTitle: product.sourceTitle,
         price: product.price,
         image: product.image,
         series: product.series,

@@ -48,6 +48,7 @@ The shop should read as an editorial progression before it becomes a utility sur
 
 - **Discovery:** Use large serif headlines, generous vertical pacing, hairline dividers, and image-led cards. Product rails scroll horizontally with snap behavior; taxonomy categories resolve into a responsive image grid.
 - **Product imagery:** Let photography carry the cards. Use restrained dark gradients only to preserve white title and price legibility; hover scaling stays slow and slight.
+- **Home product edit:** Four equal image frames share one baseline and a consistent metadata rhythm. The oversized editorial heading leads, a short thesis supports it, and a quiet underlined catalog link closes the section after the grid.
 - **Archive:** Visually separate discovery from the denser archive while keeping the porcelain canvas continuous. Departments are primary-navigation collections; merchandising collections are a secondary rail; exact Shopify taxonomy categories remain a distinct facet.
 - **Interaction:** Archive filters update results and the URL in place so the shopper keeps their reading position. Discovery calls to action may smoothly advance to the archive after setting the corresponding filter.
 

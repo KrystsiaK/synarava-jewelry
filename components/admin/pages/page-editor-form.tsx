@@ -19,6 +19,13 @@ import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-secti
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
+import { DEFAULT_HOME_EDIT_PRODUCT_TITLES } from "@/lib/content/home-edit-section";
+
+export type HomeEditProductOption = {
+  id: string;
+  title: string;
+  slug: string;
+};
 
 // One physical field per concept (Title, Body, Department headline, ...),
 // not one copy per language: the field's *value* switches with the active
@@ -172,9 +179,11 @@ function HiddenLocaleFields({
 
 export function PageEditor({
   page,
+  productOptions = [],
   onUpdated,
 }: {
   page: SavedPagePayload;
+  productOptions?: HomeEditProductOption[];
   onUpdated?: (page: SavedPagePayload) => void;
 }) {
   const [state, setState] = useState<PageActionState>({});
@@ -197,6 +206,13 @@ export function PageEditor({
     EN: draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" }),
     PT: draftFromCopy(ptContent),
   }));
+  const [editProductIds, setEditProductIds] = useState<string[]>(() => {
+    if (content.editProductIds?.length) return [...content.editProductIds, "", "", "", ""].slice(0, 4);
+    const approvedDefaults = DEFAULT_HOME_EDIT_PRODUCT_TITLES.map(
+      (title) => productOptions.find((product) => product.title === title)?.id ?? "",
+    );
+    return approvedDefaults.every(Boolean) ? approvedDefaults : ["", "", "", ""];
+  });
   const draft = draftByLocale[activeLocale];
 
   function updateField<K extends keyof PageLocaleDraft>(key: K, value: PageLocaleDraft[K]) {
@@ -414,7 +430,7 @@ export function PageEditor({
               </label>
               <label className="grid gap-2">
                 <span className="adm-label">The Edit eyebrow</span>
-                <input value={draft.editSectionEyebrow} onChange={(event) => updateField("editSectionEyebrow", event.target.value)} placeholder="A few to start with / Shop the edit" className="adm-field" />
+                <input value={draft.editSectionEyebrow} onChange={(event) => updateField("editSectionEyebrow", event.target.value)} placeholder="A few to start with" className="adm-field" />
               </label>
               <label className="grid gap-2">
                 <span className="adm-label">The Edit title</span>
@@ -426,8 +442,38 @@ export function PageEditor({
               </label>
               <label className="grid gap-2 md:col-span-2">
                 <span className="adm-label">The Edit description</span>
-                <textarea value={draft.editSectionBody} onChange={(event) => updateField("editSectionBody", event.target.value)} rows={2} placeholder="Four pieces to read the range…" className="adm-field" />
+                <textarea value={draft.editSectionBody} onChange={(event) => updateField("editSectionBody", event.target.value)} rows={2} placeholder="Four pieces, four sides of Synarava." className="adm-field" />
               </label>
+              <fieldset className="grid gap-3 md:col-span-2">
+                <legend className="adm-label">The Edit products</legend>
+                <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+                  Choose four different published products. Slot order matches the storefront from left to right.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {editProductIds.map((productId, index) => (
+                    <label key={index} className="grid gap-2">
+                      <span className="adm-label">Product {index + 1}</span>
+                      <select
+                        name={`editProductId${index + 1}`}
+                        value={productId}
+                        onChange={(event) => setEditProductIds((current) => current.map((id, slot) => slot === index ? event.target.value : id))}
+                        className="adm-field"
+                      >
+                        <option value="">Choose a product</option>
+                        {productOptions.map((product) => (
+                          <option
+                            key={product.id}
+                            value={product.id}
+                            disabled={product.id !== productId && editProductIds.includes(product.id)}
+                          >
+                            {product.title} · /{product.slug}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label className="grid gap-2">
                 <span className="adm-label">Material eyebrow</span>
                 <input value={draft.materialSectionEyebrow} onChange={(event) => updateField("materialSectionEyebrow", event.target.value)} placeholder="Material glossary / scroll to turn" className="adm-field" />

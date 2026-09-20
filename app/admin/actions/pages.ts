@@ -191,6 +191,10 @@ const pageContentFieldsSchema = z.object({
   editSectionTitle: z.string().trim().default(""),
   editSectionBody: z.string().trim().default(""),
   editSectionCtaLabel: z.string().trim().default(""),
+  editProductId1: z.string().trim().default(""),
+  editProductId2: z.string().trim().default(""),
+  editProductId3: z.string().trim().default(""),
+  editProductId4: z.string().trim().default(""),
   materialSectionEyebrow: z.string().trim().default(""),
   materialSectionTitle: z.string().trim().default(""),
   materialSectionNoteLabel: z.string().trim().default(""),
@@ -278,6 +282,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     ptQuote, ptSecondaryTitle, ptSecondaryBody, heroSectionEnabled, departmentSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionCtaLabel,
+    editProductId1, editProductId2, editProductId3, editProductId4,
     materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
     material1Name, material1Category, material1Description, material1Properties,
     material2Name, material2Category, material2Description, material2Properties,
@@ -300,9 +305,13 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   const ptLocalizedHandle = isBuiltInPage(slug) ? null : (slugify(ptHandle) || null);
   const legalSections = readLegalSections(formData, "legal");
   const ptLegalSections = readLegalSections(formData, "ptLegal");
+  const editProductIds = [editProductId1, editProductId2, editProductId3, editProductId4].filter(Boolean);
 
   if (!slug || !title) {
     return { error: "Page slug and title are required." };
+  }
+  if (editProductIds.length > 0 && (editProductIds.length !== 4 || new Set(editProductIds).size !== 4)) {
+    return { error: "Choose four different products for The Edit, or leave all four product slots empty." };
   }
 
   const isPublished = workflowState === "PUBLISHED";
@@ -396,6 +405,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       editSectionTitle,
       editSectionBody,
       editSectionCtaLabel,
+      editProductIds,
       materialSectionEyebrow,
       materialSectionTitle,
       materialSectionNoteLabel,

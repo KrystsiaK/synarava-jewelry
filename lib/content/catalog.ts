@@ -160,6 +160,7 @@ export type PageContent = {
   editSectionTitle?: string;
   editSectionBody?: string;
   editSectionCtaLabel?: string;
+  editProductIds?: string[];
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   materialSectionNoteLabel?: string;
@@ -188,6 +189,7 @@ export type PageContent = {
       | "departmentSectionEnabled"
       | "archiveSectionEnabled"
       | "editSectionEnabled"
+      | "editProductIds"
       | "materialSectionEnabled"
       | "manifestoSectionEnabled"
       | "finalCtaSectionEnabled"

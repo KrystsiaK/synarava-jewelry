@@ -47,6 +47,38 @@ beforeEach(() => {
 });
 
 describe("PageEditor", () => {
+  it("edits the four ordered product slots used by The Edit", async () => {
+    mocks.savePageAction.mockImplementation(async (formData: FormData) => {
+      expect(formData.get("editProductId1")).toBe("bird");
+      expect(formData.get("editProductId2")).toBe("moon");
+      expect(formData.get("editProductId3")).toBe("dog");
+      expect(formData.get("editProductId4")).toBe("pearl");
+      return { success: "Page saved." };
+    });
+    const user = userEvent.setup();
+    render(<PageEditor
+      page={makePage({
+        slug: "home",
+        title: "Home",
+        content: { editProductIds: ["bird", "moon", "dog", "pearl"] },
+      })}
+      productOptions={[
+        { id: "bird", title: "Golden Bird Brooch", slug: "golden-bird-brooch" },
+        { id: "moon", title: "Hammered Half Moon Necklace", slug: "hammered-half-moon-necklace" },
+        { id: "dog", title: "Clementine Dachshund Bag Charm", slug: "clementine-dachshund-bag-charm" },
+        { id: "pearl", title: "AAA Freshwater Pearl Necklace", slug: "aaa-freshwater-pearl-necklace" },
+      ]}
+    />);
+
+    expect(screen.getByLabelText("Product 1")).toHaveValue("bird");
+    expect(screen.getByLabelText("Product 4")).toHaveValue("pearl");
+
+    await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
+    await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
+
+    expect(mocks.savePageAction).toHaveBeenCalledTimes(1);
+  });
+
   it("renders the page's current title, slug, and body", () => {
     render(<PageEditor page={makePage()} />);
 

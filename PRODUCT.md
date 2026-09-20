@@ -20,6 +20,8 @@ The Home editor controls the storefront as seven explicit sections: Hero, Depart
 
 Editors can maintain the localized English and Portuguese copy used by these sections, including labels, headings, body copy, calls to action, manifesto attribution, footer statement, and contact details. Collection- and navigation-driven imagery and cards continue to come from the corresponding catalog records.
 
+The Edit is a four-slot merchandising surface. Editors choose four distinct published Shopify-backed products in display order; the storefront resolves the saved local product references against the synchronized catalog and keeps product names, prices, links, and imagery sourced from that projection.
+
 Visibility settings are shared across locales so the page structure stays consistent. Copy remains locale-specific. Existing page records preserve the established storefront by default: all original sections remain visible, while the newer Department pathway remains opt-in until explicitly enabled.
 
 ## Shop Discovery and Filtering

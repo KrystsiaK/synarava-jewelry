@@ -76,6 +76,10 @@ describe("savePageAction", () => {
     formData.set("editSectionTitle", "The Edit");
     formData.set("editSectionBody", "Four pieces to begin.");
     formData.set("editSectionCtaLabel", "View piece");
+    formData.set("editProductId1", "bird");
+    formData.set("editProductId2", "moon");
+    formData.set("editProductId3", "dog");
+    formData.set("editProductId4", "pearl");
     formData.set("ptEditSectionEyebrow", "Descubra a seleção");
     formData.set("ptEditSectionTitle", "A Seleção");
     formData.set("ptEditSectionBody", "Quatro peças para começar.");
@@ -109,6 +113,7 @@ describe("savePageAction", () => {
           editSectionTitle: "The Edit",
           editSectionBody: "Four pieces to begin.",
           editSectionCtaLabel: "View piece",
+          editProductIds: ["bird", "moon", "dog", "pearl"],
           materialSectionTitle: "Lexicon",
           materialSectionNoteLabel: "Material notes",
           manifestoSectionAttribution: "The Synarava Manifesto",

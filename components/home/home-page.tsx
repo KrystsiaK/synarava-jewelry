@@ -25,6 +25,7 @@ import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
 import { buildFinalCtaImages } from "@/lib/content/home-media";
+import { resolveHomeEditProducts } from "@/lib/content/home-edit-section";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import {
   resolveHomeDepartmentSection,
@@ -58,6 +59,7 @@ type HomePageContent = HomeDepartmentSectionFields & HomeSectionVisibilityFields
   editSectionTitle?: string;
   editSectionBody?: string;
   editSectionCtaLabel?: string;
+  editProductIds?: string[];
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   manifestoSectionLabel?: string;
@@ -83,7 +85,7 @@ export interface HomePageProps {
   excerpt?: string;
   content?: HomePageContent;
   collections: CollectionItem[];
-  products?: Pick<ShopListingProduct, "slug" | "title" | "price" | "image" | "series" | "categoryName">[];
+  products?: Pick<ShopListingProduct, "id" | "slug" | "title" | "sourceTitle" | "price" | "image" | "series" | "categoryName">[];
   departments: DepartmentItem[];
   heroVideoSrc?: string | string[];
 }
@@ -855,26 +857,28 @@ function EditShowcase({
   title,
   body,
   ctaLabel,
+  selectedProductIds,
 }: {
   products: NonNullable<HomePageProps["products"]>;
   eyebrow?: string;
   title?: string;
   body?: string;
   ctaLabel?: string;
+  selectedProductIds?: string[];
 }) {
   const { locale } = useTranslations();
-  const items = products.filter((product) => product.image).slice(0, 4);
+  const items = resolveHomeEditProducts(products, selectedProductIds);
   const defaults = locale === "pt"
-    ? {
-        eyebrow: "Algumas peças para começar / Descubra a seleção",
+      ? {
+        eyebrow: "Algumas peças para começar",
         title: "A Seleção",
-        body: "Quatro peças para descobrir a coleção — dos gestos quotidianos ao objeto contemplativo.",
+        body: "Quatro peças, quatro lados da Synarava.",
         ctaLabel: "Ver peça",
       }
     : {
-        eyebrow: "A few to start with / Shop the edit",
+        eyebrow: "A few to start with",
         title: "The Edit",
-        body: "Four pieces to read the range — from everyday gestures to the considered object.",
+        body: "Four pieces, four sides of Synarava.",
         ctaLabel: "View piece",
       };
 
@@ -886,28 +890,27 @@ function EditShowcase({
     <section
       data-component="EditShowcase"
       aria-labelledby="edit-showcase-title"
-      className="edit-showcase-section relative z-20 overflow-hidden px-5 pb-24 pt-16 text-[#171513] md:px-[4vw] md:pb-36 md:pt-24"
+      className="edit-showcase-section relative z-20 overflow-hidden px-5 py-20 text-[#171513] md:px-[4vw] md:py-28"
     >
       <div className="mx-auto max-w-[90rem]">
-        <header className="edit-showcase-header mb-12 grid gap-8 border-b border-[#171513]/20 pb-8 md:mb-20 md:grid-cols-[minmax(0,1fr)_minmax(18rem,23rem)] md:items-end md:gap-12">
-          <div className="min-w-0">
-            <p className="mb-5 font-sans text-[0.62rem] font-bold uppercase tracking-[0.3em] text-[#b32636] md:mb-6">
+        <header className="edit-showcase-header mb-14 grid gap-9 border-b border-[#171513]/20 pb-10 md:mb-16 md:grid-cols-12 md:items-end md:gap-6 md:pb-12">
+          <div className="min-w-0 md:col-span-8">
+            <p className="mb-4 font-sans text-[0.62rem] font-bold uppercase tracking-[0.28em] text-[#a51f32] md:mb-5">
               {eyebrow || defaults.eyebrow}
             </p>
-            <h2 id="edit-showcase-title" className="max-w-[8ch] font-serif text-[clamp(4.2rem,11.4vw,10.7rem)] font-medium uppercase leading-[0.76] tracking-[-0.065em] text-[#171513]">
+            <h2 id="edit-showcase-title" className="max-w-[8ch] text-balance font-serif text-[clamp(4rem,8vw,6rem)] font-medium uppercase leading-[0.82] tracking-[-0.04em] text-[#171513]">
               {title || defaults.title}
             </h2>
           </div>
-          <div className="flex items-end justify-between gap-6 md:pb-2">
-            <p className="max-w-[25ch] font-sans text-[0.66rem] font-semibold uppercase leading-[1.7] tracking-[0.13em] text-[#6f6860] md:text-right">
+          <div className="flex items-end justify-between gap-6 md:col-span-4 md:pb-1">
+            <p className="max-w-[24ch] text-balance font-sans text-[0.68rem] font-semibold uppercase leading-[1.65] tracking-[0.12em] text-[#615a52] md:ml-auto md:text-right">
               {body || defaults.body}
             </p>
-            <span className="hidden shrink-0 font-sans text-[0.6rem] font-bold uppercase tracking-[0.22em] text-[#8d857b] md:block">01—04</span>
           </div>
         </header>
 
-        <div className="edit-showcase-grid grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 md:gap-x-6 md:gap-y-0">
-          {items.map((product, index) => {
+        <div className="edit-showcase-grid grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 md:gap-x-5 lg:gap-x-6">
+          {items.map((product) => {
             const kind = [product.series, product.categoryName].filter(Boolean).join(" · ");
             const productCta = ctaLabel || defaults.ctaLabel;
 
@@ -916,9 +919,9 @@ function EditShowcase({
                 key={product.slug}
                 href={localePath(locale, `/products/${product.slug}`)}
                 aria-label={`${productCta}: ${product.title}`}
-                className={`edit-showcase-card group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636] ${index % 2 === 1 ? "md:mt-16" : ""}`}
+                className="edit-showcase-card group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
               >
-                <div className="edit-showcase-image relative aspect-[0.78] overflow-hidden bg-[#e3ddd5]">
+                <div className="edit-showcase-image relative aspect-[4/5] overflow-hidden bg-[#e3ddd5]">
                   <Image
                     src={product.image}
                     alt={product.title}
@@ -927,14 +930,14 @@ function EditShowcase({
                     className="object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
                   />
                 </div>
-                <div className="mt-3 flex items-start justify-between gap-3 border-t border-[#171513]/20 pt-3 md:mt-4 md:pt-4">
+                <div className="mt-4 grid gap-2 border-t border-[#171513]/25 pt-3 md:grid-cols-[minmax(0,1fr)_auto] md:gap-4 md:pt-4">
                   <div className="min-w-0">
-                    <h3 className="truncate font-serif text-[clamp(1rem,1.8vw,1.55rem)] uppercase leading-[0.95] tracking-[-0.025em] text-[#171513]">
+                    <h3 className="font-serif text-[clamp(1rem,1.45vw,1.3rem)] uppercase leading-[1.02] tracking-[-0.02em] text-[#171513]">
                       {product.title}
                     </h3>
-                    {kind ? <p className="mt-2 truncate font-sans text-[0.55rem] font-bold uppercase tracking-[0.16em] text-[#837b71]">{kind}</p> : null}
+                    {kind ? <p className="mt-2 line-clamp-1 font-sans text-[0.55rem] font-bold uppercase tracking-[0.15em] text-[#746c63]">{kind}</p> : null}
                   </div>
-                  <span className="shrink-0 pt-0.5 font-sans text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#171513]">
+                  <span className="shrink-0 font-sans text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[#171513] md:pt-0.5">
                     {product.price}
                   </span>
                 </div>
@@ -942,6 +945,16 @@ function EditShowcase({
               </Link>
             );
           })}
+        </div>
+
+        <div className="mt-14 flex justify-end border-t border-[#171513]/20 pt-6 md:mt-20">
+          <Link
+            href={localePath(locale, "/shop")}
+            className="edit-showcase-all-link group inline-flex min-h-11 items-center gap-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#171513] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
+          >
+            {locale === "pt" ? "Ver todos os produtos" : "View all products"}
+            <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </section>
@@ -1632,6 +1645,7 @@ export function HomePage({ collections, products = [], departments, heroVideoSrc
         title={content?.editSectionTitle}
         body={content?.editSectionBody}
         ctaLabel={content?.editSectionCtaLabel}
+        selectedProductIds={content?.editProductIds}
       /> : null}
       {visibility.material ? <MaterialLab materials={lexiconMaterials} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} noteLabel={content?.materialSectionNoteLabel} /> : null}
       {visibility.manifesto ? <ManifestoQuote quote={content?.quote} label={content?.manifestoSectionLabel} attribution={content?.manifestoSectionAttribution} /> : null}

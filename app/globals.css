@@ -624,9 +624,7 @@ html[data-theme="dark"] .home-experience {
 
 .edit-showcase-section {
   color-scheme: light;
-  background:
-    radial-gradient(circle at 14% 18%, rgba(190, 166, 143, 0.12), transparent 22rem),
-    linear-gradient(180deg, #f3efe9 0%, #f8f6f2 48%, #eee9e1 100%);
+  background: #f3f0ea;
 }
 
 .edit-showcase-section::before {
@@ -634,7 +632,7 @@ html[data-theme="dark"] .home-experience {
   inset: 0;
   pointer-events: none;
   content: "";
-  opacity: 0.24;
+  opacity: 0.16;
   background-image: radial-gradient(rgba(35, 29, 23, 0.12) 0.45px, transparent 0.45px);
   background-size: 5px 5px;
   mix-blend-mode: multiply;
@@ -646,8 +644,8 @@ html[data-theme="dark"] .home-experience {
 
 .edit-showcase-card::after {
   position: absolute;
-  top: -0.8rem;
-  left: -0.25rem;
+  top: -1rem;
+  left: 0;
   font: 700 0.56rem/1 var(--font-hanken), sans-serif;
   letter-spacing: 0.18em;
   color: rgba(23, 21, 19, 0.42);
@@ -661,18 +659,30 @@ html[data-theme="dark"] .home-experience {
 
 .edit-showcase-image {
   isolation: isolate;
-  box-shadow: 0 1.5rem 2.5rem -2rem rgba(28, 22, 17, 0.55);
-  transition: box-shadow 350ms ease;
+  box-shadow: 0 1rem 2rem -1.75rem rgba(28, 22, 17, 0.55);
+  transition: box-shadow 240ms ease-out;
 }
 
 .edit-showcase-card:hover .edit-showcase-image,
 .edit-showcase-card:focus-visible .edit-showcase-image {
-  box-shadow: 0 1.75rem 2.75rem -2rem rgba(28, 22, 17, 0.7);
+  box-shadow: 0 1.4rem 2.25rem -1.75rem rgba(28, 22, 17, 0.68);
+}
+
+.edit-showcase-all-link {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.35rem;
+  text-decoration-color: rgba(23, 21, 19, 0.35);
+  transition: text-decoration-color 180ms ease-out;
+}
+
+.edit-showcase-all-link:hover {
+  text-decoration-color: currentColor;
 }
 
 @media (max-width: 767px) {
   .edit-showcase-header {
-    min-height: 19rem;
+    min-height: 16rem;
   }
 
   .edit-showcase-card::after {

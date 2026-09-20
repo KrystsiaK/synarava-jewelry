@@ -9,7 +9,7 @@ export default async function EditPagePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { pages } = await getAdminCatalogData();
+  const { pages, products } = await getAdminCatalogData();
   const page = pages.find((item) => item.slug === slug);
 
   if (!page) {
@@ -46,7 +46,12 @@ export default async function EditPagePage({
         </div>
       </div>
 
-      <PageEditRoute page={page} />
+      <PageEditRoute
+        page={page}
+        productOptions={page.slug === "home" ? products
+          .filter((product) => product.status === "ACTIVE" && product.visibility === "PUBLIC")
+          .map((product) => ({ id: product.id, title: product.name, slug: product.slug })) : undefined}
+      />
     </div>
   );
 }
