@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useTranslations } from "@/lib/i18n/context";
+import { ArtifactButton } from "@/components/ui";
 
 type ReturnableLineItem = {
   quantity: number;
@@ -109,14 +110,14 @@ export function ReturnRequestPanel({
           })}
           {result && !result.ok ? <p className="text-sm text-couture-red">{result.message}</p> : null}
           <div className="flex flex-wrap gap-3 pt-1">
-            <button
+            <ArtifactButton
               type="button"
               onClick={submit}
               disabled={pending || Object.keys(selected).length === 0}
-              className="label-caps bg-couture-red px-5 py-3 text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+              size="md"
             >
               {pending ? t("profile.returns.submitting") : t("profile.returns.submit")}
-            </button>
+            </ArtifactButton>
             <button
               type="button"
               onClick={() => { setOpen(false); setSelected({}); setResult(null); }}

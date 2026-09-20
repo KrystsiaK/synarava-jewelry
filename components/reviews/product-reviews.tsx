@@ -10,6 +10,7 @@ import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 import { useTranslations } from "@/lib/i18n/context";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
+import { ArtifactButton } from "@/components/ui";
 
 function Stars({ rating, label }: { rating: number; label: string }) {
   return (
@@ -152,13 +153,9 @@ export function ProductReviews({
                     </p>
                   ) : null}
                   {state.success ? <p role="status" className="text-sm text-foreground/72">{state.success}</p> : null}
-                  <button
-                    type="submit"
-                    disabled={pending}
-                    className="label-caps w-fit bg-couture-red px-6 py-3 text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-55"
-                  >
+                  <ArtifactButton type="submit" disabled={pending} size="md" className="w-fit">
                     {pending ? t("reviews.publishing") : t("reviews.publish")}
-                  </button>
+                  </ArtifactButton>
                   <p className="max-w-[60ch] text-xs leading-5 text-foreground/45">
                     {t("reviews.storedNotice")}
                   </p>

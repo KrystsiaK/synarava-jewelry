@@ -15,6 +15,7 @@ import { localeTag } from "@/lib/i18n/format";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
+import { ArtifactLink } from "@/components/ui";
 
 const tabs = ["overview", "wishlist", "orders", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
@@ -246,9 +247,9 @@ export function ShopifyProfileShell({
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Link href={tabHref("orders", locale)} className="label-caps bg-couture-red px-6 py-4 text-white">
+                  <ArtifactLink href={tabHref("orders", locale)} size="md">
                     {t("profile.overview.viewOrders")}
-                  </Link>
+                  </ArtifactLink>
                   <Link href={localePath(locale, "/cart")} className="label-caps border border-stroke px-6 py-4 hover:border-foreground/50">
                     {t("profile.overview.currentCart")}
                   </Link>

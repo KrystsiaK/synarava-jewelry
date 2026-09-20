@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { ArtifactLink } from "@/components/ui";
 import { safeCustomerReturnPath } from "@/lib/shopify/customer-account/config";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -43,12 +44,9 @@ export default async function LoginPage({ searchParams }: Props) {
             We could not complete the sign-in. Please try again.
           </p>
         ) : null}
-        <a
-          href={shopifyAuthHref}
-          className="label-caps inline-flex w-full items-center justify-center bg-couture-red px-6 py-4 text-white transition-opacity hover:opacity-90"
-        >
+        <ArtifactLink href={shopifyAuthHref} className="w-full">
           Sign in or create account
-        </a>
+        </ArtifactLink>
         <p className="text-sm leading-6 text-foreground/45">
           New customers are created automatically after email verification.
         </p>
