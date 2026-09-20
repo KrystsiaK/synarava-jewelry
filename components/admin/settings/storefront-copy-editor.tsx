@@ -50,7 +50,7 @@ export function StorefrontCopyEditor({
       </p>
 
       {STOREFRONT_COPY_GROUPS.map((group) => (
-        <section key={group.id} className="adm-panel grid gap-4 p-5 md:p-6">
+        <section key={group.id} id={`copy-${group.id}`} className="adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24">
           <div>
             <p className="adm-section-tag">{group.title}</p>
             {group.description ? (

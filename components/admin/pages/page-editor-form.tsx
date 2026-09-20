@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 
 import {
@@ -202,6 +203,9 @@ export function PageEditor({
   // These slugs render bespoke frontend components that read only title/excerpt (SEO meta)
   // and content.heroImage — the generic copy fields below never reach the page.
   const hideDeadCopyFields = ["shop", "care", "faq", "returns", "shipping", "collections"].includes(page.slug);
+  // These 5 (not "collections", which has no on-page CMS text at all) have their visible
+  // hero/eyebrow/intro/section copy edited on a different screen (Settings -> Copy), not here.
+  const onPageCopyGroupId = ["shop", "care", "faq", "returns", "shipping"].includes(page.slug) ? page.slug : null;
   const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
   const { pushToast } = useAdminToast();
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, "EN");
@@ -287,6 +291,20 @@ export function PageEditor({
           syncScope={{ entityType: "PAGE", entityId: page.id }}
         />
         <AuthMessage error={state.error} />
+
+        {onPageCopyGroupId ? (
+          <p
+            className="text-xs leading-5"
+            style={{ color: "var(--adm-muted)" }}
+          >
+            Title/Excerpt below only feed the browser tab title and search-engine description — the headline,
+            description, and any body text visible on <strong>/{page.slug}</strong> itself are edited on{" "}
+            <Link href={`/admin/settings#copy-${onPageCopyGroupId}`} className="underline">
+              Settings → Copy
+            </Link>
+            .
+          </p>
+        ) : null}
 
         {isHomePage ? <HomeSectionVisibilityEditor key={page.updatedAt.toISOString()} content={content} /> : null}
 
