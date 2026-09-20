@@ -21,11 +21,10 @@ import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { ProductSyncModal } from "@/components/admin/products/product-sync-modal";
 import type { ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
 import { productLocaleReadiness } from "@/lib/products/localization";
 import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -77,6 +76,7 @@ export function ProductsCms({
     currentShopDomain: string;
   } | null>(null);
   const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
   const [isConnectionPending, startConnectionTransition] = useTransition();
@@ -184,8 +184,22 @@ export function ProductsCms({
         setSelectedRemoteIds([]);
         setSelectedLocalIds([]);
         setSelectedArchiveIds([]);
+        setSyncModalOpen(true);
       }
     });
+  }
+
+  function handleResolved(shopifyProductId: string, updatedProduct?: ProductRecord) {
+    if (updatedProduct) {
+      setProducts((current) => normalizeProducts([
+        ...current.filter((product) => product.id !== updatedProduct.id),
+        updatedProduct,
+      ]));
+    }
+    setSyncPreview((current) => current
+      ? { ...current, remote: current.remote.filter((item) => item.shopifyProductId !== shopifyProductId) }
+      : current);
+    router.refresh();
   }
 
   function toggleSelection(id: string, selected: string[], setSelected: (ids: string[]) => void) {
@@ -353,11 +367,11 @@ export function ProductsCms({
             <button
               type="button"
               className="adm-btn-secondary inline-flex items-center justify-center gap-2"
-              onClick={handlePreviewShopifyReconciliation}
+              onClick={() => syncPreview ? setSyncModalOpen(true) : handlePreviewShopifyReconciliation()}
               disabled={isPreviewPending}
             >
               <Eye className="size-4" />
-              {isPreviewPending ? "Comparing catalogs..." : "Compare catalogs"}
+              {isPreviewPending ? "Comparing catalogs..." : syncPreview ? "Resolve conflicts" : "Compare catalogs"}
             </button>
             <Link href="/admin/products/new" className="adm-btn-primary">
               New product
@@ -365,7 +379,7 @@ export function ProductsCms({
           </div>
         </div>
         <p className="py-3 text-xs leading-5 text-[var(--adm-muted)]">
-          Check Shopify link verifies access and links this catalog to the store on first use; it can also register review webhooks. Compare catalogs shows differences without saving products. Apply all changes imports or pushes only the safe differences below. To reload every field of a product marked up to date, open it and choose Refresh from Shopify.
+          Check Shopify link verifies access and links this catalog to the store on first use; it can also register review webhooks. Resolve conflicts compares the catalogs and opens a review modal — nothing is changed until you choose an action there. To reload every field of a product marked up to date, open it and choose Refresh from Shopify.
         </p>
 
         <div
@@ -468,178 +482,6 @@ export function ProductsCms({
                       : "Drag a handle or use the arrow buttons. Changes save immediately."}
             </span>
           </div>
-        ) : null}
-
-        {syncPreview ? (
-          <section className="mt-4 grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
-            <div className="flex flex-col gap-3 border-b border-[var(--adm-border)] pb-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="adm-section-tag">[ SYNC PREVIEW — READY FOR REVIEW ]</p>
-                <p className="mt-2 text-xs text-[var(--adm-muted)]">
-                  Shopify webhooks pull changes automatically. An action appears only while the local copy still differs.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="adm-btn-secondary"
-                  disabled={isSyncPending || selectedRemoteIds.length + selectedLocalIds.length === 0}
-                  onClick={() => confirmSync(selectedRemoteIds, selectedLocalIds, "Sync selected products")}
-                >
-                  Sync selected ({selectedRemoteIds.length + selectedLocalIds.length})
-                </button>
-                <button
-                  type="button"
-                  className="adm-btn-primary"
-                  disabled={isSyncPending || syncPreview.remote.every((item) => item.action === "CONFLICT" || item.action === "UP_TO_DATE") && syncPreview.pushToShopify.length === 0}
-                  onClick={() => confirmSync(
-                    syncPreview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").map((item) => item.shopifyProductId),
-                    syncPreview.pushToShopify.map((item) => item.productId),
-                    "Apply all previewed catalog changes",
-                  )}
-                >
-                  {isSyncPending ? "Applying..." : "Apply all changes"}
-                </button>
-              </div>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="adm-label">From Shopify ({syncPreview.remote.length})</p>
-                  <button
-                    type="button"
-                    className="adm-btn-ghost min-h-8 px-2 py-1 text-[0.62rem]"
-                    disabled={isSyncPending || syncPreview.remote.every((item) => item.action === "CONFLICT" || item.action === "UP_TO_DATE")}
-                    onClick={() => confirmSync(
-                      syncPreview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").map((item) => item.shopifyProductId),
-                      [],
-                      "Import all Shopify changes",
-                    )}
-                  >
-                    Import all
-                  </button>
-                </div>
-                <div className="mt-2 grid gap-2">
-                  {syncPreview.remote.map((item) => {
-                    const hasConflict = item.action === "CONFLICT";
-                    const isUpToDate = item.action === "UP_TO_DATE";
-                    const isActionable = !hasConflict && !isUpToDate;
-                    const checked = selectedRemoteIds.includes(item.shopifyProductId);
-                    return (
-                    <div key={item.shopifyProductId} className="flex gap-3 border border-[var(--adm-border)] p-3 text-xs">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${item.title} for import`}
-                        checked={checked}
-                        disabled={!isActionable || isSyncPending}
-                        onChange={() => toggleSelection(item.shopifyProductId, selectedRemoteIds, setSelectedRemoteIds)}
-                        className="mt-0.5 size-4 shrink-0 !p-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[var(--adm-ink)]">{item.title}</p>
-                        <p className="mt-1 text-[var(--adm-muted)]">{item.sku} · {item.action.replaceAll("_", " ")}</p>
-                        {item.localName ? <p className="mt-1 text-[var(--adm-subtle)]">Matches local: {item.localName}</p> : null}
-                        {item.changes.length > 0 ? (
-                          <p className="mt-1 text-[var(--adm-subtle)]">Shopify changed: {item.changes.join(", ")}</p>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="adm-btn-ghost mt-3 inline-flex min-h-8 items-center gap-2 px-2 py-1 text-[0.62rem]"
-                          disabled={!isActionable || isSyncPending}
-                          onClick={() => runSync([item.shopifyProductId], [])}
-                        >
-                          <ArrowDownToLine className="size-3.5" />
-                          {hasConflict ? "Resolve conflict first" : isUpToDate ? "Already synced" : item.action === "CREATE_LOCAL" ? "Import" : "Pull update"}
-                        </button>
-                      </div>
-                    </div>
-                  );})}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="adm-label">Push to Shopify ({syncPreview.pushToShopify.length})</p>
-                  <button
-                    type="button"
-                    className="adm-btn-ghost min-h-8 px-2 py-1 text-[0.62rem]"
-                    disabled={isSyncPending || syncPreview.pushToShopify.length === 0}
-                    onClick={() => confirmSync([], syncPreview.pushToShopify.map((item) => item.productId), "Push all local products")}
-                  >
-                    Push all
-                  </button>
-                </div>
-                <div className="mt-2 grid gap-2">
-                  {syncPreview.pushToShopify.map((item) => (
-                    <div key={item.productId} className="flex gap-3 border border-[var(--adm-border)] p-3 text-xs">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${item.name} to push to Shopify`}
-                        checked={selectedLocalIds.includes(item.productId)}
-                        disabled={isSyncPending}
-                        onChange={() => toggleSelection(item.productId, selectedLocalIds, setSelectedLocalIds)}
-                        className="mt-0.5 size-4 shrink-0 !p-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[var(--adm-ink)]">{item.name}</p>
-                        <p className="mt-1 text-[var(--adm-muted)]">{item.sku} · /{item.slug}</p>
-                        <button
-                          type="button"
-                          className="adm-btn-ghost mt-3 inline-flex min-h-8 items-center gap-2 px-2 py-1 text-[0.62rem]"
-                          disabled={isSyncPending}
-                          onClick={() => runSync([], [item.productId])}
-                        >
-                          <ArrowUpFromLine className="size-3.5" />
-                          Push
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="adm-label">Archive locally ({syncPreview.archiveLocal.length})</p>
-                  <button
-                    type="button"
-                    className="adm-btn-danger min-h-8 px-2 py-1 text-[0.62rem]"
-                    disabled={isSyncPending || selectedArchiveIds.length === 0}
-                    onClick={() => confirmArchive(selectedArchiveIds)}
-                  >
-                    Archive selected
-                  </button>
-                </div>
-                <div className="mt-2 grid gap-2">
-                  {syncPreview.archiveLocal.length === 0 ? (
-                    <p className="text-xs text-[var(--adm-muted)]">Nothing would be archived.</p>
-                  ) : null}
-                  {syncPreview.archiveLocal.map((item) => (
-                    <div key={item.productId} className="flex gap-3 border border-[var(--adm-border)] p-3 text-xs">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${item.name} to archive locally`}
-                        checked={selectedArchiveIds.includes(item.productId)}
-                        disabled={isSyncPending}
-                        onChange={() => toggleSelection(item.productId, selectedArchiveIds, setSelectedArchiveIds)}
-                        className="mt-0.5 size-4 shrink-0 !p-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[var(--adm-ink)]">{item.name}</p>
-                        <p className="mt-1 break-all text-[var(--adm-muted)]">{item.shopifyProductId}</p>
-                        <button
-                          type="button"
-                          className="adm-btn-danger mt-3 min-h-8 px-2 py-1 text-[0.62rem]"
-                          disabled={isSyncPending}
-                          onClick={() => confirmArchive([item.productId])}
-                        >
-                          Archive
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
         ) : null}
 
         <div className="mt-4 min-w-0 overflow-hidden">
@@ -844,6 +686,24 @@ export function ProductsCms({
           onConfirm={runRowAction}
         />
       ) : null}
+
+      <ProductSyncModal
+        open={syncModalOpen}
+        onClose={() => setSyncModalOpen(false)}
+        preview={syncPreview}
+        pending={isSyncPending}
+        selectedRemoteIds={selectedRemoteIds}
+        setSelectedRemoteIds={setSelectedRemoteIds}
+        selectedLocalIds={selectedLocalIds}
+        setSelectedLocalIds={setSelectedLocalIds}
+        selectedArchiveIds={selectedArchiveIds}
+        setSelectedArchiveIds={setSelectedArchiveIds}
+        toggleSelection={toggleSelection}
+        runSync={runSync}
+        confirmSync={confirmSync}
+        confirmArchive={confirmArchive}
+        onResolved={handleResolved}
+      />
 
       {syncConfirmation ? (
         <AdminConfirmModal
