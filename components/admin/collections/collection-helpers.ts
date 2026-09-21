@@ -8,12 +8,13 @@ function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
   };
 }
 
-export function emptyCollectionDraft(): CollectionDraft {
+/** `translationLocales` is every non-source (non-English) locale to render a tab for. */
+export function emptyCollectionDraft(translationLocales: string[] = ["pt"]): CollectionDraft {
   return {
     name: "", subtitle: "", slug: "", code: "", description: "",
     manifesto: "", searchSummary: "", symbolismLabel: "", symbolismTitle: "",
     symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT",
-    pt: emptyCollectionLocaleDraft(),
+    translations: Object.fromEntries(translationLocales.map((locale) => [locale, emptyCollectionLocaleDraft()])),
   };
 }
 
@@ -102,8 +103,9 @@ export function collectionActionCopy(target: CollectionRowAction) {
   };
 }
 
-export function collectionToDraft(collection: AdminCollection): CollectionDraft {
-  const pt = collection.translations?.find((translation) => translation.locale === "pt");
+/** `translationLocales` is every non-source locale to render a tab for, regardless of whether a translation row exists yet. */
+export function collectionToDraft(collection: AdminCollection, translationLocales: string[] = ["pt"]): CollectionDraft {
+  const byLocale = new Map(collection.translations?.map((translation) => [translation.locale, translation]));
   return {
     name: collection.name,
     subtitle: collection.subtitle ?? "",
@@ -117,21 +119,25 @@ export function collectionToDraft(collection: AdminCollection): CollectionDraft 
     symbolismBody: collection.symbolismBody ?? "",
     symbolismBody2: collection.symbolismBody2 ?? "",
     workflowState: workflowStateFromCollection(collection),
-    pt: {
-      localizedHandle: pt?.localizedHandle ?? "",
-      name: pt?.name ?? "",
-      subtitle: pt?.subtitle ?? "",
-      description: pt?.description ?? "",
-      manifesto: pt?.manifesto ?? "",
-      searchSummary: pt?.searchSummary ?? "",
-      symbolismLabel: pt?.symbolismLabel ?? "",
-      symbolismTitle: pt?.symbolismTitle ?? "",
-      symbolismBody: pt?.symbolismBody ?? "",
-      symbolismBody2: pt?.symbolismBody2 ?? "",
-      reviewed: pt?.reviewStatus === "REVIEWED",
-      syncStatus: pt?.syncStatus ?? "NOT_APPLICABLE",
-      syncError: pt?.syncError ?? "",
-    },
+    translations: Object.fromEntries(translationLocales.map((locale) => {
+      const row = byLocale.get(locale);
+      const draft: CollectionLocaleDraft = {
+        localizedHandle: row?.localizedHandle ?? "",
+        name: row?.name ?? "",
+        subtitle: row?.subtitle ?? "",
+        description: row?.description ?? "",
+        manifesto: row?.manifesto ?? "",
+        searchSummary: row?.searchSummary ?? "",
+        symbolismLabel: row?.symbolismLabel ?? "",
+        symbolismTitle: row?.symbolismTitle ?? "",
+        symbolismBody: row?.symbolismBody ?? "",
+        symbolismBody2: row?.symbolismBody2 ?? "",
+        reviewed: row?.reviewStatus === "REVIEWED",
+        syncStatus: row?.syncStatus ?? "NOT_APPLICABLE",
+        syncError: row?.syncError ?? "",
+      };
+      return [locale, draft];
+    })),
   };
 }
 

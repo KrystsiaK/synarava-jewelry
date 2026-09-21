@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { CollectionCreateRoute } from "@/components/admin/collections/collection-route-editor";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 
-export default function NewCollectionPage() {
+export default async function NewCollectionPage() {
+  const translationLocales = await getAdminTranslationLocales();
   return (
     <div className="space-y-8">
       <div>
@@ -20,7 +22,7 @@ export default function NewCollectionPage() {
         </div>
       </div>
 
-      <CollectionCreateRoute />
+      <CollectionCreateRoute translationLocales={translationLocales} />
     </div>
   );
 }

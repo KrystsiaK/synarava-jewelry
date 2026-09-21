@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CollectionEditRoute } from "@/components/admin/collections/collection-route-editor";
 import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 
 export default async function EditCollectionPage({
@@ -11,9 +12,10 @@ export default async function EditCollectionPage({
   params: Promise<{ collectionId: string }>;
 }) {
   const { collectionId } = await params;
-  const [{ collections }, syncDifferences] = await Promise.all([
+  const [{ collections }, syncDifferences, translationLocales] = await Promise.all([
     getAdminCatalogData(),
     getLatestReconcileDifferences(),
+    getAdminTranslationLocales(),
   ]);
   const collection = collections.find((item) => item.id === collectionId);
 
@@ -57,7 +59,7 @@ export default async function EditCollectionPage({
         />
       </div>
 
-      <CollectionEditRoute collection={collection} />
+      <CollectionEditRoute collection={collection} translationLocales={translationLocales} />
     </div>
   );
 }

@@ -18,7 +18,8 @@ import {
   generateCollectionCode,
   submitLabel,
 } from "@/components/admin/collections/collection-helpers";
-import type { AdminCollection, CollectionDraft } from "@/components/admin/collections/collection-types";
+import type { AdminCollection, CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
 const initialState: CollectionActionState = {};
 
@@ -83,17 +84,19 @@ function DeleteCollectionForm({
 
 export function EditCollectionForm({
   collection,
+  translationLocales = [{ code: "pt", label: "Português" }],
   onUpdated,
   onDeleted,
 }: {
   collection: AdminCollection;
+  translationLocales?: AdminTranslationLocale[];
   onUpdated?: (collection: AdminCollection) => void;
   onDeleted?: (collectionId: string) => void;
 }) {
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [draft, setDraft] = useState<CollectionDraft>(() => collectionToDraft(collection));
+  const [draft, setDraft] = useState<CollectionDraft>(() => collectionToDraft(collection, translationLocales.map((l) => l.code)));
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputKey = collection.heroImageUrl ?? collection.id;
   const { pushToast } = useAdminToast();
@@ -128,8 +131,11 @@ export function EditCollectionForm({
     });
   }
 
-  function updateDraftPt<K extends keyof CollectionDraft["pt"]>(key: K, value: CollectionDraft["pt"][K]) {
-    setDraft((current) => ({ ...current, pt: { ...current.pt, [key]: value } }));
+  function updateDraftTranslation<K extends keyof CollectionLocaleDraft>(locale: string, key: K, value: CollectionLocaleDraft[K]) {
+    setDraft((current) => ({
+      ...current,
+      translations: { ...current.translations, [locale]: { ...current.translations[locale], [key]: value } },
+    }));
   }
 
   return (
@@ -171,12 +177,13 @@ export function EditCollectionForm({
               if (key === "code") setCodeLocked(Boolean(String(value).trim()));
               updateDraft(key, value);
             }}
-            onChangePt={updateDraftPt}
+            onChangeTranslation={updateDraftTranslation}
             fieldErrors={state.fieldErrors}
             currentHeroImageUrl={collection.heroImageUrl}
             currentHeroImageLabel={collection.name}
             fileInputKey={fileInputKey}
             entityId={collection.id}
+            translationLocales={translationLocales}
           />
 
           <div>

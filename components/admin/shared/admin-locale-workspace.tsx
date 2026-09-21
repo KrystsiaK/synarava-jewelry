@@ -64,7 +64,27 @@ export function useAdminActiveLocale(
   defaultLocale: AdminLocale = locales[0]?.code ?? "EN",
 ) {
   const scopedKey = `adm-locale:${storageKey}`;
-  const [active, setActive] = useState<AdminLocale>(() => readStoredLocale(scopedKey, locales) ?? defaultLocale);
+  // Starts at defaultLocale on every render, server included, then syncs
+  // from sessionStorage once mounted — sessionStorage doesn't exist during
+  // SSR, so reading it in the initial state (the previous approach) made
+  // the server's markup and the client's first paint disagree on which tab
+  // is active whenever a visitor had picked a non-default tab before,
+  // which is a hydration error, not just a mistimed default.
+  const [active, setActive] = useState<AdminLocale>(defaultLocale);
+
+  useEffect(() => {
+    const stored = readStoredLocale(scopedKey, locales);
+    // A one-time post-mount sync from sessionStorage, not a subscription —
+    // there's no external-store "change" to react to here, just the SSR
+    // render (which can't see sessionStorage) catching up to it once on
+    // the client. That's exactly the documented exception to "don't
+    // setState in an effect".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored && stored !== defaultLocale) setActive(stored);
+    // Only re-sync when the storage key itself changes (a different
+    // record) — not on every `locales`/`defaultLocale` identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedKey]);
 
   function select(locale: AdminLocale) {
     setActive(locale);

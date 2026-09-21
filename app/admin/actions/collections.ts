@@ -10,6 +10,8 @@ import { db } from "@/lib/db";
 import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
+import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import {
   createDraftToken,
@@ -206,21 +208,27 @@ const collectionFieldsSchema = z.object({
   symbolismTitle: z.string().trim().default(""),
   symbolismBody: z.string().trim().default(""),
   symbolismBody2: z.string().trim().default(""),
-  ptName: z.string().trim().default(""),
-  ptHandle: z.string().trim().default(""),
-  ptSubtitle: z.string().trim().default(""),
-  ptDescription: z.string().trim().default(""),
-  ptManifesto: z.string().trim().default(""),
-  ptSearchSummary: z.string().trim().default(""),
-  ptSymbolismLabel: z.string().trim().default(""),
-  ptSymbolismTitle: z.string().trim().default(""),
-  ptSymbolismBody: z.string().trim().default(""),
-  ptSymbolismBody2: z.string().trim().default(""),
-  ptReviewed: z.string().trim().default(""),
   removeHeroImage: z.string().trim().default(""),
   existingHeroImageUrl: z.string().trim().default(""),
   workflowState: z.string().trim().default("DRAFT"),
 });
+
+const TRANSLATABLE_COLLECTION_FIELDS = [
+  "name", "subtitle", "description", "manifesto", "searchSummary",
+  "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
+] as const;
+
+/** Reads one locale's fields straight from the raw FormData (not the strict shared-field schema above — a translation is optional everywhere, so nothing here needs `.min(1)`). */
+function readCollectionTranslationFields(formData: FormData, locale: string) {
+  const fields = Object.fromEntries(
+    TRANSLATABLE_COLLECTION_FIELDS.map((key) => [key, readLocaleField(formData, locale, key)]),
+  ) as Record<(typeof TRANSLATABLE_COLLECTION_FIELDS)[number], string>;
+  return {
+    ...fields,
+    localizedHandle: readLocaleField(formData, locale, "localizedHandle"),
+    reviewedFlag: readLocaleField(formData, locale, "reviewed"),
+  };
+}
 
 export async function saveCollectionAction(
   _prevState: CollectionActionState,
@@ -235,9 +243,8 @@ export async function saveCollectionAction(
   const {
     collectionId, code, name, subtitle, description, manifesto, searchSummary,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, workflowState,
-    ptName, ptHandle, ptSubtitle, ptDescription, ptManifesto, ptSearchSummary,
-    ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
   } = parsed.data;
+  const translationLocales = await getAdminTranslationLocales();
   const slug = slugify(parsed.data.slug);
   const removeHeroImage = parsed.data.removeHeroImage === "1";
   const existingHeroImageUrl = removeHeroImage ? "" : parsed.data.existingHeroImageUrl;
@@ -345,23 +352,27 @@ export async function saveCollectionAction(
         });
       });
 
-  const ptCopy = {
-    localizedHandle: slugify(ptHandle) || null,
-    name: ptName || name,
-    subtitle: ptSubtitle || null,
-    description: ptDescription || null,
-    manifesto: ptManifesto || null,
-    searchSummary: ptSearchSummary || null,
-    symbolismLabel: ptSymbolismLabel || null,
-    symbolismTitle: ptSymbolismTitle || null,
-    symbolismBody: ptSymbolismBody || null,
-    symbolismBody2: ptSymbolismBody2 || null,
-  };
-  const ptContentHash = createHash("sha256").update(JSON.stringify(ptCopy)).digest("hex");
-  const ptReviewed = parsed.data.ptReviewed === "on" && Boolean(ptName);
-  // Saving marks reviewed copy pending; the Localization dashboard owns the
-  // explicit Shopify write/retry so editing never performs a surprise remote mutation.
-  const ptSyncStatus = ptReviewed ? "PENDING" as const : "NOT_APPLICABLE" as const;
+  const translationUpserts = translationLocales.map(({ code: locale }) => {
+    const fields = readCollectionTranslationFields(formData, locale);
+    const copy = {
+      localizedHandle: slugify(fields.localizedHandle) || null,
+      name: fields.name || name,
+      subtitle: fields.subtitle || null,
+      description: fields.description || null,
+      manifesto: fields.manifesto || null,
+      searchSummary: fields.searchSummary || null,
+      symbolismLabel: fields.symbolismLabel || null,
+      symbolismTitle: fields.symbolismTitle || null,
+      symbolismBody: fields.symbolismBody || null,
+      symbolismBody2: fields.symbolismBody2 || null,
+    };
+    const contentHash = createHash("sha256").update(JSON.stringify(copy)).digest("hex");
+    const reviewed = fields.reviewedFlag === "on" && Boolean(fields.name);
+    // Saving marks reviewed copy pending; the Localization dashboard owns the
+    // explicit Shopify write/retry so editing never performs a surprise remote mutation.
+    const syncStatus = reviewed ? "PENDING" as const : "NOT_APPLICABLE" as const;
+    return { locale, copy, reviewed, syncStatus, contentHash };
+  });
 
   await db.$transaction([
     db.collectionTranslation.upsert({
@@ -382,32 +393,32 @@ export async function saveCollectionAction(
         reviewStatus: "REVIEWED", reviewedAt: new Date(),
       },
     }),
-    db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "pt" } },
+    ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.collectionTranslation.upsert({
+      where: { collectionId_locale: { collectionId: savedCollection.id, locale } },
       update: {
-        ...ptCopy,
-        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: ptReviewed ? new Date() : null,
-        contentHash: ptContentHash,
-        syncStatus: ptSyncStatus,
+        ...copy,
+        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: reviewed ? new Date() : null,
+        contentHash,
+        syncStatus,
       },
       create: {
-        collectionId: savedCollection.id, locale: "pt",
-        ...ptCopy,
-        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: ptReviewed ? new Date() : null,
-        contentHash: ptContentHash,
-        syncStatus: ptSyncStatus,
+        collectionId: savedCollection.id, locale,
+        ...copy,
+        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: reviewed ? new Date() : null,
+        contentHash,
+        syncStatus,
       },
-    }),
+    })),
   ]);
-  await recordLocalizedHandleRedirect({
+  await Promise.all(translationUpserts.map(({ locale, copy }) => recordLocalizedHandleRedirect({
     entityType: "COLLECTION",
     entityId: savedCollection.id,
-    locale: "pt",
-    previousHandle: before?.translations.find((translation) => translation.locale === "pt")?.localizedHandle,
-    nextHandle: ptCopy.localizedHandle ?? slug,
-  });
+    locale,
+    previousHandle: before?.translations.find((translation) => translation.locale === locale)?.localizedHandle,
+    nextHandle: copy.localizedHandle ?? slug,
+  })));
 
   await writeAuditLog({
     action: collectionId ? "UPDATE" : "CREATE",

@@ -20,10 +20,17 @@ import {
   submitLabel,
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionDraft } from "@/components/admin/collections/collection-types";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
 const initialState: CollectionActionState = {};
 
-export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: AdminCollection) => void }) {
+export function CreateCollectionForm({
+  translationLocales = [{ code: "pt", label: "Português" }],
+  onCreated,
+}: {
+  translationLocales?: AdminTranslationLocale[];
+  onCreated?: (collection: AdminCollection) => void;
+}) {
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -32,7 +39,8 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
   const [fileInputKey, setFileInputKey] = useState(0);
   const [slugLocked, setSlugLocked] = useState(false);
   const [codeLocked, setCodeLocked] = useState(false);
-  const [draft, setDraft] = useState<CollectionDraft>(emptyCollectionDraft);
+  const translationLocaleCodes = translationLocales.map((locale) => locale.code);
+  const [draft, setDraft] = useState<CollectionDraft>(() => emptyCollectionDraft(translationLocaleCodes));
   const { pushToast } = useAdminToast();
 
   useDraftAutosave({
@@ -59,7 +67,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
       }
 
       if (nextState.success && nextState.collection) {
-        setDraft(emptyCollectionDraft());
+        setDraft(emptyCollectionDraft(translationLocaleCodes));
         setSlugLocked(false);
         setCodeLocked(false);
         setFileInputKey((current) => current + 1);
@@ -130,9 +138,13 @@ export function CreateCollectionForm({ onCreated }: { onCreated?: (collection: A
             if (key === "code") setCodeLocked(Boolean(String(value).trim()));
             updateDraft(key, value);
           }}
-          onChangePt={(key, value) => setDraft((current) => ({ ...current, pt: { ...current.pt, [key]: value } }))}
+          onChangeTranslation={(locale, key, value) => setDraft((current) => ({
+            ...current,
+            translations: { ...current.translations, [locale]: { ...current.translations[locale], [key]: value } },
+          }))}
           fieldErrors={state.fieldErrors}
           fileInputKey={fileInputKey}
+          translationLocales={translationLocales}
         />
       </form>
       <AdminConfirmModal

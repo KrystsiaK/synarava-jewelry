@@ -44,7 +44,7 @@ describe("emptyCollectionDraft", () => {
   });
 
   it("gives the PT locale draft blank fields and NOT_APPLICABLE sync status", () => {
-    expect(emptyCollectionDraft().pt).toEqual({
+    expect(emptyCollectionDraft(["pt"]).translations.pt).toEqual({
       localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
       symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
       reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
@@ -117,14 +117,14 @@ describe("collectionToDraft", () => {
       }],
     }));
 
-    expect(draft.pt.name).toBe("Rituais da Terra");
-    expect(draft.pt.description).toBe("Peças fundamentadas.");
-    expect(draft.pt.reviewed).toBe(true);
-    expect(draft.pt.syncStatus).toBe("PENDING");
+    expect(draft.translations.pt.name).toBe("Rituais da Terra");
+    expect(draft.translations.pt.description).toBe("Peças fundamentadas.");
+    expect(draft.translations.pt.reviewed).toBe(true);
+    expect(draft.translations.pt.syncStatus).toBe("PENDING");
   });
 
   it("defaults the PT locale draft when no translation exists yet", () => {
-    expect(collectionToDraft(makeCollection()).pt).toMatchObject({ name: "", reviewed: false, syncStatus: "NOT_APPLICABLE" });
+    expect(collectionToDraft(makeCollection()).translations.pt).toMatchObject({ name: "", reviewed: false, syncStatus: "NOT_APPLICABLE" });
   });
 });
 

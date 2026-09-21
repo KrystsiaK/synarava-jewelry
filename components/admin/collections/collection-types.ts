@@ -31,7 +31,8 @@ export type CollectionDraft = {
   symbolismBody: string;
   symbolismBody2: string;
   workflowState: "DRAFT" | "PUBLISHED";
-  pt: CollectionLocaleDraft;
+  /** Every non-source locale's copy, keyed by locale code (e.g. "pt", "ru"). The source locale (English) lives in this object's own top-level fields, not in here. */
+  translations: Record<string, CollectionLocaleDraft>;
 };
 
 export type CollectionRowAction = {
