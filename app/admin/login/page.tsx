@@ -29,9 +29,9 @@ export default async function AdminLoginPage({ searchParams }: Props) {
   return (
     <AuthShell
       eyebrow="SYNARAVA | Admin"
-      title="Studio entrance."
+      title="Admin entrance."
       description="Restricted CMS access is separate from site customer accounts."
-      asideTitle="Private studio"
+      asideTitle="Private access"
       asideBody="Catalog, collection, and editorial controls live behind an isolated admin session."
     >
       <AdminLoginForm redirectTo={redirectTo} />

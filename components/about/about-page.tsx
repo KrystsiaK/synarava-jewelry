@@ -109,7 +109,7 @@ function AboutHero({
   );
 }
 
-function StudioCopy({
+function AboutCopy({
   title,
   body,
   ctaHref,
@@ -123,7 +123,7 @@ function StudioCopy({
   if (!title && !body) return null;
 
   return (
-    <section data-component="StudioCopy" className="bg-surface py-24 text-foreground md:py-40">
+    <section data-component="AboutCopy" className="bg-surface py-24 text-foreground md:py-40">
       <div className="site-shell grid gap-10 md:grid-cols-12">
         {title ? (
           <h2 className="text-balance font-serif text-[clamp(3rem,7vw,6.5rem)] leading-[0.9] tracking-[-0.035em] md:col-span-7">
@@ -192,7 +192,7 @@ export function AboutPage(props: AboutPageProps) {
         heroVideoSrc={props.heroVideoSrc}
         heroImage={props.heroImage}
       />
-      <StudioCopy
+      <AboutCopy
         title={props.secondaryTitle}
         body={props.secondaryBody}
         ctaHref={props.ctaHref}

@@ -87,7 +87,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
   delivery: {
     title: "Shipping terms and timelines",
     body: [
-      "Synarava ships internationally. All items are made to order or assembled from in-studio stock; dispatch takes place within **3–7 business days** of payment confirmation.",
+      "Synarava ships internationally. All items are made to order or assembled from in-house stock; dispatch takes place within **3–7 business days** of payment confirmation.",
       [
         "| Zone | Time | Notes |",
         "| --- | --- | --- |",

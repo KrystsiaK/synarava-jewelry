@@ -2,7 +2,7 @@
 
 ## 1. Visual Theme & Atmosphere
 
-A restrained luxury system with two related expressions. The public storefront is an image-led porcelain editorial experience with couture pacing; the admin is a calm studio console built for repeated work. Dark mode uses graphite surfaces for low-light studio sessions, while light mode uses neutral porcelain and mineral-gray layers for daylight work. Both retain precise typography and quiet, state-driven motion. Champagne signals operational state in the admin; couture red provides the storefront's sparing editorial accent.
+A restrained luxury system with two related expressions. The public storefront is an image-led porcelain editorial experience with couture pacing; the admin is a calm console built for repeated work. Dark mode uses graphite surfaces for low-light work sessions, while light mode uses neutral porcelain and mineral-gray layers for daylight work. Both retain precise typography and quiet, state-driven motion. Champagne signals operational state in the admin; couture red provides the storefront's sparing editorial accent.
 
 ## 2. Color Palette & Roles
 
@@ -40,7 +40,7 @@ Admin screens use a persistent shell, clear page headers, responsive grids, and 
 
 Transitions stay between 120ms and 220ms, mostly color, opacity, and transform. Buttons press down subtly. Reduced motion removes non-essential transitions. Loading states should use progress/skeleton treatments rather than centered spinners.
 
-Theme preference supports Light, Dark, and System. It is persisted in the `synarava-theme` cookie, applied before hydration to prevent a wrong-theme flash, and shared by the storefront, checkout, profile, authentication, and admin studio. Theme controls must remain available on every route and in the admin mobile drawer.
+Theme preference supports Light, Dark, and System. It is persisted in the `synarava-theme` cookie, applied before hydration to prevent a wrong-theme flash, and shared by the storefront, checkout, profile, authentication, and admin console. Theme controls must remain available on every route and in the admin mobile drawer.
 
 ## 7. Storefront Shop Experience
 

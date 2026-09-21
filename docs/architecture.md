@@ -9,7 +9,7 @@ curated groups; `/[locale]/products/[slug]` contains the product gallery, varian
 selector, reviews, and purchase controls. `/[locale]/profile` shows Shopify-owned
 customer data and orders. `/[locale]/about`, `/[locale]/about/manifesto`, service
 pages, and CMS pages provide editorial content. `/admin` is the separate CMS and
-commerce studio.
+commerce console.
 
 ## Data model strategy
 

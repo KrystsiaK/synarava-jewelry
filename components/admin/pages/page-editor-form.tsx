@@ -389,7 +389,7 @@ export function PageEditor({
 
         <label className="grid gap-2" hidden={isCollectionsPage}>
           <span className="adm-label flex items-center gap-1.5">
-            {isHomePage ? "Hero description" : isAboutPage ? "Studio introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
+            {isHomePage ? "Hero description" : isAboutPage ? "About introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
             {isShopPage ? (
               <AdminHelp>The paragraph under the hero heading on /shop.</AdminHelp>
             ) : isServicePage ? (

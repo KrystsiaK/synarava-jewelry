@@ -23,7 +23,7 @@ describe("AdminLoginForm", () => {
 
   it("renders admin login heading", () => {
     render(<AdminLoginForm />);
-    expect(screen.getByText("Studio credentials")).toBeInTheDocument();
+    expect(screen.getByText("Admin credentials")).toBeInTheDocument();
   });
 
   it("renders username or email and password fields", () => {

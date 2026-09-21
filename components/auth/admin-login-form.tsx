@@ -77,7 +77,7 @@ function AdminLoginFormFields({
 
       <div className="space-y-2">
         <p className="label-caps text-accent">Admin access</p>
-        <h2 className="font-serif text-[2.4rem] leading-none">Studio credentials</h2>
+        <h2 className="font-serif text-[2.4rem] leading-none">Admin credentials</h2>
       </div>
 
       <AuthMessage error={displayError} />

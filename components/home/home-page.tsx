@@ -1512,7 +1512,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
               href={localePath(locale, "/about")}
               className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
             >
-              The studio
+              About us
               <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           </div>

@@ -629,7 +629,7 @@ async function releaseReadyLocalProductMedia(productId: string, remote: ShopifyP
  * (`syncStatus` PENDING/FAILED/CONFLICT) is only overwritten if the
  * incoming Shopify data is strictly newer (`remote.updatedAt` vs.
  * `shopifyUpdatedAt`); if the local edit is newer, the pull is recorded as
- * `LOCAL_CHANGES` and skipped rather than silently discarding studio edits.
+ * `LOCAL_CHANGES` and skipped rather than silently discarding admin edits.
  * `force: true` (used by the admin's explicit "pull" action) always takes
  * the remote version regardless of local edits.
  */

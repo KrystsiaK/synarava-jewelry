@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     "collectible jewelry",
     "Slavic jewelry",
   ],
-  authors: [{ name: "Synarava Studio" }],
+  authors: [{ name: "Synarava" }],
   creator: "Synarava",
   openGraph: {
     type: "website",

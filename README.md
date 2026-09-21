@@ -104,7 +104,7 @@ SHOPIFY_WEBHOOK_SECRET=...
 ### Product synchronization
 
 The local catalog is the storefront read model. Saving a product in
-the studio stores the draft locally; **Push to Shopify** sends title, handle, description, vendor,
+the admin stores the draft locally; **Push to Shopify** sends title, handle, description, vendor,
 product type, status, price, SKU, primary image, inventory, tags, and
 `synarava.*` characteristic metafields through the Shopify Admin GraphQL API. The product editor
 also shows the pulled variants, metafields, and stored Shopify snapshot; **Pull from Shopify**
@@ -120,10 +120,10 @@ The Admin API token needs
 and `read_locales`. Enable and publish Portuguese (Portugal), locale `pt-PT`, in Shopify under
 **Settings → Languages**, then assign it to the relevant market and domain. After changing scopes,
 release the updated Shopify app configuration and approve the new permissions for the store; replace
-`SHOPIFY_ADMIN_ACCESS_TOKEN` if Shopify issues a new token. The studio connection test verifies the
+`SHOPIFY_ADMIN_ACCESS_TOKEN` if Shopify issues a new token. The admin connection test verifies the
 granted scopes and that `pt-PT` is published before localized product sync is used.
 
-Collection priority is Shopify's manual collection order. In the studio product table, choose a
+Collection priority is Shopify's manual collection order. In the admin product table, choose a
 collection and the **Collection priority** sort, then drag rows or use the arrow controls. Each move
 uses Shopify's `collectionReorderProducts`; the local `ProductCollection.sortOrder` value is only the
 storefront projection of the order returned by Shopify.

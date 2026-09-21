@@ -81,7 +81,7 @@ export default async function AdminLayout({
           />
           <BrandMark alt="" size={32} tone="dark" className="adm-brand-mark" />
           <span className="adm-brand-kicker truncate">
-            Admin studio
+            Admin console
           </span>
         </div>
 

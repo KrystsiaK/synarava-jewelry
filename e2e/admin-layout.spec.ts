@@ -5,7 +5,7 @@ import { expect, test } from "./support/fixtures";
 // Runs in the "chromium-admin" project (see playwright.config.ts), which
 // starts every test already authenticated via the storage state produced by
 // support/auth.setup.ts. No login boilerplate needed here.
-test.describe("Admin studio layout", () => {
+test.describe("Admin console layout", () => {
   test.beforeEach(() => {
     test.skip(!hasAdminCredentials(), "Local admin credentials are not configured.");
   });

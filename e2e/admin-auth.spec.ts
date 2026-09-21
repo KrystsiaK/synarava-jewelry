@@ -9,16 +9,16 @@ test.describe("Admin auth", () => {
     await page.goto("/admin");
 
     await expect(page).toHaveURL(/\/admin\/login\?redirectTo=%2Fadmin/);
-    await expect(page.getByRole("heading", { name: "Studio credentials" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Admin credentials" })).toBeVisible();
   });
 
-  test("allows configured admin credentials into the admin studio", async ({ page }) => {
+  test("allows configured admin credentials into the admin console", async ({ page }) => {
     test.skip(!hasAdminCredentials(), "Local admin credentials are not configured.");
 
     await loginAsAdmin(page);
 
     await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByText("Admin studio")).toBeVisible();
+    await expect(page.getByText("Admin console")).toBeVisible();
   });
 
   test("logout clears admin access", async ({ page }) => {

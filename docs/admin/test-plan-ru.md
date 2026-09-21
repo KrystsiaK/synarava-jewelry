@@ -174,7 +174,7 @@ Vitest. Правило маршрутизации:
 - **Локальная БД для разработки пуста по контенту.** `Page` — 0 строк
   (включая системные `home`/`about`/`manifesto`), при этом `Product` — 7,
   `Collection` — 4. Из-за этого `/admin/home` реально рендерит `null`
-  (`if (!page) return null;` в `app/admin/(studio)/home/page.tsx`) — это же
+  (`if (!page) return null;` в `app/admin/(admin)/home/page.tsx`) — это же
   открывшийся баг для storefront-теста `home.spec.ts` (не мой файл, не трогал).
   Ровно из-за этого выбрал для теста геометрии не `/admin/home`, а
   сгенерированную через `createTestPage` тестовую страницу — она гарантированно

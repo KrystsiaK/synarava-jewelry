@@ -44,7 +44,7 @@ export const SERVICE_PAGE_TITLE_DEFAULTS_EN: Record<ServicePageSlug, string> = {
   care: "Keep it well",
   faq: "Before you choose",
   returns: "A considered return",
-  shipping: "From the studio to you",
+  shipping: "From us to you",
   "dispute-resolution": "Consumer dispute resolution",
 };
 
@@ -52,7 +52,7 @@ export const SERVICE_PAGE_TITLE_DEFAULTS_PT: Record<ServicePageSlug, string> = {
   care: "Cuide bem",
   faq: "Antes de escolher",
   returns: "Uma devolução ponderada",
-  shipping: "Do estúdio até si",
+  shipping: "De nós até si",
   "dispute-resolution": "Resolução de litígios de consumo",
 };
 
@@ -67,7 +67,7 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_EN: Record<ServicePageSlug, ServicePage
   },
   returns: {
     eyebrow: "Service / Returns",
-    intro: "If something is not right, contact the studio before sending an item back so we can confirm the correct route for your order.",
+    intro: "If something is not right, contact us before sending an item back so we can confirm the correct route for your order.",
   },
   shipping: {
     eyebrow: "Service / Shipping",
@@ -90,7 +90,7 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_PT: Record<ServicePageSlug, ServicePage
   },
   returns: {
     eyebrow: "Serviço / Devoluções",
-    intro: "Se algo não estiver correto, contacte o estúdio antes de devolver o produto para confirmarmos o procedimento adequado.",
+    intro: "Se algo não estiver correto, contacte-nos antes de devolver o produto para confirmarmos o procedimento adequado.",
   },
   shipping: {
     eyebrow: "Serviço / Envios",
@@ -154,7 +154,7 @@ export const SERVICE_SECTION_DEFAULTS_EN: Record<ServicePageSlug, Record<string,
     },
     damage: {
       title: "Damage or an incorrect item",
-      body: "Contact us promptly with clear photos of the product and packaging. Do not discard the parcel until the studio confirms the next step.",
+      body: "Contact us promptly with clear photos of the product and packaging. Do not discard the parcel until we confirm the next step.",
     },
   },
   shipping: {
@@ -239,7 +239,7 @@ export const SERVICE_SECTION_DEFAULTS_PT: Record<ServicePageSlug, Record<string,
     },
     damage: {
       title: "Produto danificado ou incorreto",
-      body: "Contacte-nos rapidamente com fotografias nítidas do produto e da embalagem. Não elimine a encomenda até o estúdio confirmar o próximo passo.",
+      body: "Contacte-nos rapidamente com fotografias nítidas do produto e da embalagem. Não elimine a encomenda até confirmarmos o próximo passo.",
     },
   },
   shipping: {

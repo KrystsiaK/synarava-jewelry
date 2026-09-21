@@ -73,7 +73,7 @@ cases that need a real browser remain as e2e work.
 Browser coverage is still required for every case marked **E2E**, including the
 long-lived-tab recovery path in AUTH-20.
 
-## 2. Studio shell / layout (`e2e/admin-layout.spec.ts`)
+## 2. Admin shell / layout (`e2e/admin-layout.spec.ts`)
 
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
@@ -254,7 +254,7 @@ and SYNC-16 asserts that state is handled gracefully.
 | PAGE-01 | Creating a custom page with title+slug succeeds, publicly reachable once published | positive | P1 | **E2E** | |
 | PAGE-02 | Empty title blocks save | negative | P1 | **action** | "Page slug and title are required." |
 | PAGE-03 | Editing `home`'s "Hero headline" persists; labels are home-specific | positive | P2 | ✔ render | `page-editor-form.test.ts` covers the home-specific labels. |
-| PAGE-04 | Editing `about`'s "Studio introduction" persists | positive | P2 | **E2E** | |
+| PAGE-04 | Editing `about`'s "About introduction" persists | positive | P2 | **E2E** | |
 | PAGE-05 | The delete control is absent for `home` | positive | P1 | **render** | `isProtectedPage` gate; UI half of the guarantee. |
 | PAGE-06 | `deletePageAction` for `home`/`about`/`manifesto` is refused server-side | security | P1 | **action** | "System pages cannot be deleted." Hiding a button is not a security boundary — the server must refuse independently. |
 | PAGE-07 | Deleting a non-protected page succeeds; its URL 404s | positive | P1 | **E2E** | |

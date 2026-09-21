@@ -12,7 +12,7 @@ Synarava is a couture jewelry storefront with a lightweight CMS. The admin exist
 
 - The storefront presents editorial home, manifesto, collection, product, discovery, and customer-account experiences.
 - Shopify owns commerce data, checkout, orders, and customer identity. Synarava owns the editorial presentation layered over synchronized catalog data.
-- The admin studio provides dedicated Home and About editors, generic Pages, Posts, shared Videos, Catalog, Collections, Problems, and Account surfaces.
+- The admin console provides dedicated Home and About editors, generic Pages, Posts, shared Videos, Catalog, Collections, Problems, and Account surfaces.
 
 ## Home Page CMS
 
@@ -34,7 +34,7 @@ Shopify taxonomy categories and collections serve different purposes. A product 
 
 ## Brand Personality
 
-Quiet, ceremonial, precise. The public brand is editorial and museum-like; the admin should translate that into a calm studio console rather than a decorative marketing surface.
+Quiet, ceremonial, precise. The public brand is editorial and museum-like; the admin should translate that into a calm console rather than a decorative marketing surface.
 
 ## Anti-references
 
