@@ -16,6 +16,7 @@ describe("built-in page definitions", () => {
       "offer",
       "privacy",
       "dispute-resolution",
+      "legal-notice",
     ]);
   });
 

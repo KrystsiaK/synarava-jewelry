@@ -16,7 +16,7 @@
     "pauseBackgroundVideo": "Pause background video"
   },
   "footer": {
-    "tagline": "Objects with character, chosen to last.",
+    "tagline": "Objects with character. Chosen with intention.",
     "navigationHeading": "Navigation",
     "serviceHeading": "Service",
     "shop": "Shop",
@@ -33,6 +33,7 @@
     "termsConditions": "Terms & Conditions",
     "shippingPolicy": "Shipping Policy",
     "returnPolicy": "Return & Refund Policy",
+    "legalNotice": "Legal Notice",
     "livroReclamacoes": "Livro de Reclamações",
     "disputeResolution": "Consumer Dispute Resolution",
     "copyright": "© 2026 Synarava."

@@ -18,6 +18,7 @@ import type { EditablePageContent, EditablePageCopy } from "@/components/admin/p
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
+import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
 import { SERVICE_SECTIONS, type ServicePageSlug } from "@/lib/content/service-page-defaults";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { DEFAULT_HOME_EDIT_PRODUCT_TITLES } from "@/lib/content/home-edit-section";
@@ -212,6 +213,7 @@ export function PageEditor({
   const isAboutPage = page.slug === "about";
   const isOfferPage = page.slug === "offer";
   const isPrivacyPage = page.slug === "privacy";
+  const isLegalNoticePage = page.slug === "legal-notice";
   const isShopPage = page.slug === "shop";
   const isCollectionsPage = page.slug === "collections";
   const isServicePage = SERVICE_PAGE_SLUGS.includes(page.slug as ServicePageSlug);
@@ -225,7 +227,7 @@ export function PageEditor({
   // Collections" callout at the bottom of /shop — dead only for Service and
   // Collections pages.
   const hideShopCalloutFields = isServicePage || isCollectionsPage;
-  const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : [];
+  const legalSections = isOfferPage ? OFFER_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : isLegalNoticePage ? LEGAL_NOTICE_SECTIONS : [];
   const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
   const { pushToast } = useAdminToast();
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, "EN");
@@ -441,7 +443,7 @@ export function PageEditor({
           </label>
         </div>
 
-        {isOfferPage || isPrivacyPage ? (
+        {isOfferPage || isPrivacyPage || isLegalNoticePage ? (
           <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="legal-copy-heading">
             <div>
               <h3 id="legal-copy-heading" className="adm-title-sm">Legal document</h3>
@@ -451,7 +453,7 @@ export function PageEditor({
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {isOfferPage ? (
+              {isOfferPage || isLegalNoticePage ? (
                 <label className="grid gap-2 md:col-span-2">
                   <span className="adm-label">Intro paragraph</span>
                   <textarea value={draft.legalIntro} onChange={(event) => updateField("legalIntro", event.target.value)} rows={2} className="adm-field" />

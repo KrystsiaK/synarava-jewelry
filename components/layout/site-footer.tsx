@@ -105,6 +105,10 @@ export function SiteFooter() {
           {t("footer.returnPolicy")}
         </Link>
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
+        <Link href={localePath(locale, "/legal-notice")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
+          {t("footer.legalNotice")}
+        </Link>
+        <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>
         <a
           href="https://www.livroreclamacoes.pt/"
           target="_blank"
