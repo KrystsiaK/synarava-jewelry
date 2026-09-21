@@ -1341,7 +1341,8 @@ html[data-theme="dark"] .etched-glass {
   font-weight: 600;
 }
 
-.legal-markdown a {
+.legal-markdown a,
+.legal-markdown [data-legal-action] {
   color: var(--color-accent);
   text-underline-offset: 4px;
   text-decoration: underline;

@@ -148,6 +148,7 @@ export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = 
         "| _fbp, _fbc and related identifiers · Meta | Measures advertising performance and attribution. | Marketing | Up to 90 days |",
       ].join("\n"),
       "Analytics and marketing rows apply only when those integrations are configured and you enable the corresponding category. You can withdraw consent at any time; the withdrawal applies from that point onward.",
+      "You can review or change your choices at any time via [Cookie Settings](action:cookie-settings).",
     ].join("\n\n"),
   },
   security: {
@@ -254,7 +255,8 @@ export const PRIVACY_SECTION_DEFAULTS_PT: Record<string, LegalSectionDefault> = 
         "| _ga, _gid, _gat e relacionados · Google | Mede utilização e percursos de compra através da etiqueta Google configurada. | Análise | Até 2 anos |",
         "| _fbp, _fbc e relacionados · Meta | Mede desempenho e atribuição de publicidade. | Marketing | Até 90 dias |",
       ].join("\n"),
-      "As linhas de análise e marketing só se aplicam quando a integração está configurada e ativada por si. Pode alterar ou retirar o consentimento aqui:",
+      "As linhas de análise e marketing só se aplicam quando a integração está configurada e ativada por si. Pode retirar o consentimento a qualquer momento; a retirada aplica-se a partir desse momento.",
+      "Pode rever ou alterar as suas escolhas a qualquer momento através de [Definições de cookies](action:cookie-settings).",
     ].join("\n\n"),
   },
   security: {

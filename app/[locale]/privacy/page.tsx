@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { PrivacySettingsButton } from "@/components/privacy/privacy-settings-button";
 import { LegalDocumentPage } from "@/components/legal/legal-document-page";
 import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -74,11 +73,6 @@ export default async function PrivacyPage() {
       backLabel={isPt ? "← Voltar à loja" : "← Back to store"}
       nextHref={termsHref}
       nextLabel={isPt ? "Termos e Condições →" : "Terms & Conditions →"}
-      renderSectionExtra={(id) => (id === "cookies" ? (
-        <div className="mt-4 inline-flex border border-stroke px-4 py-3">
-          <PrivacySettingsButton />
-        </div>
-      ) : null)}
     />
   );
 }
