@@ -12,6 +12,7 @@ import {
   syncProductEditorialTranslation,
   syncStorefrontCopyTranslation,
 } from "@/lib/shopify/editorial-translation-sync";
+import { syncStorefrontLocalesFromShopify } from "@/lib/shopify/storefront-locale-sync";
 import { registerProductTranslation } from "@/lib/shopify/translations";
 import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
 
@@ -183,5 +184,18 @@ export async function retryTranslationSyncAction(entityType: TranslationOverview
     return { success: "Translation synced." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Translation sync failed." };
+  }
+}
+
+export async function syncStorefrontLocalesAction() {
+  await requireAdminSession("/admin/translations");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+
+  try {
+    const result = await syncStorefrontLocalesFromShopify();
+    revalidatePath("/admin/translations");
+    return { success: `Checked ${result.updated.length} locale${result.updated.length === 1 ? "" : "s"} against Shopify.` };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Locale sync failed." };
   }
 }

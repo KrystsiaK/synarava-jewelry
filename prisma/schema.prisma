@@ -816,6 +816,29 @@ model TranslationCache {
   updatedAt DateTime @updatedAt
 }
 
+// Registry of storefront locales. Adding a new language (once published in
+// Shopify Markets) is a row here, not a schema change or enum edit — see
+// tasks/universal-localization-plan.md. `routeSegment` is operator-chosen
+// and Shopify sync (`lib/shopify/storefront-locale-sync.ts`) never
+// overwrites it; only `isPublished`/`shopifyUpdatedAt` come from Shopify.
+model StorefrontLocale {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  routeSegment     String    @unique
+  shopifyLocale    String    @unique
+  intlLocale       String
+  name             String
+  nativeName       String
+  isDefault        Boolean   @default(false)
+  isPublished      Boolean   @default(false)
+  sortOrder        Int       @default(0)
+  shopifyUpdatedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([sortOrder])
+}
+
 enum AdminIssueStatus {
   OPEN
   RESOLVED

@@ -201,6 +201,17 @@ export async function fetchShopifyShopIdentity() {
   return data.shop;
 }
 
+export type ShopifyShopLocale = { locale: string; name: string; primary: boolean; published: boolean };
+
+export async function fetchShopifyLocales(): Promise<ShopifyShopLocale[]> {
+  const data = await shopifyAdminRequest<{ shopLocales: ShopifyShopLocale[] }>(
+    `query SynaravaShopLocales {
+      shopLocales { locale name primary published }
+    }`,
+  );
+  return data.shopLocales ?? [];
+}
+
 export async function testShopifyAdminConnection() {
   const data = await shopifyAdminRequest<{
     shop: { name: string; myshopifyDomain: string };
@@ -237,13 +248,7 @@ export async function testShopifyAdminConnection() {
   );
   if (!canReadLocales) missingTranslationScopes.push("read_locales or read_markets_home");
 
-  const locales = canReadLocales
-    ? (await shopifyAdminRequest<{
-        shopLocales: Array<{ locale: string; name: string; primary: boolean; published: boolean }>;
-      }>(`query SynaravaShopLocales {
-        shopLocales { locale name primary published }
-      }`)).shopLocales ?? []
-    : [];
+  const locales = canReadLocales ? await fetchShopifyLocales() : [];
 
   return {
     shopName: data.shop.name,

@@ -107,13 +107,34 @@ Rollback выключает writes для locale/resource, но сохраняе
 
 **Acceptance criteria:**
 
-- [ ] `StorefrontLocale` хранит EN/PT и любую новую locale без schema change.
-- [ ] Shopify `shopLocales` synchronizes enabled/published state without
-  overwriting a manually approved `routeSegment`.
-- [ ] Admin показывает Shopify locale, publication state и конфликт segment.
+- [x] `StorefrontLocale` хранит EN/PT и любую новую locale без schema change.
+  Additive migration `20260921150000_storefront_locale_registry` (applied
+  via `prisma migrate deploy`, not `migrate dev` — the local DB has
+  unrelated pre-existing drift from legacy tables that made `migrate dev`
+  want to reset it; hand-written SQL avoided that). Backfills `en`/`pt` as
+  registry rows.
+- [x] Shopify `shopLocales` synchronizes enabled/published state without
+  overwriting a manually approved `routeSegment`. `lib/shopify/storefront-locale-sync.ts`
+  matches registry rows to Shopify locales by `shopifyLocale` (case-insensitive),
+  only ever writes `isPublished`/`shopifyUpdatedAt`, never creates rows for
+  an unmatched Shopify locale (surfaced as `unmatched`, needs an operator to
+  choose a `routeSegment`), and marks a row `orphaned`/unpublished if Shopify
+  stops reporting its locale. Verified live against the real dev store
+  (2026-09-21): "Check Shopify" on `/admin/translations` refreshed both
+  rows' "Last checked" timestamps with EN/PT still Published, `routeSegment`
+  unchanged.
+- [x] Admin показывает Shopify locale, publication state и конфликт segment.
+  `LocaleRegistryPanel` on `/admin/translations` ("Localization" in the
+  sidebar) lists code/route/Shopify locale/published/last-checked per row
+  and surfaces `findDuplicateRouteSegments`/`findEnglishSourceViolation` as
+  inline alerts.
 
 **Verification:** unit tests for BCP-47 validation, Shopify projection,
-segment uniqueness and EN source invariant.
+segment uniqueness and EN source invariant — `lib/i18n/__tests__/bcp47.test.ts`,
+`lib/i18n/__tests__/storefront-locale-registry.test.ts`,
+`lib/shopify/__tests__/storefront-locale-sync.test.ts` (15 tests). Full
+suite green: `pnpm exec tsc --noEmit`, `pnpm exec eslint`, `pnpm vitest run`
+(181 files / 900 tests).
 
 #### Task U2: Сделать routing и SEO registry-driven
 
