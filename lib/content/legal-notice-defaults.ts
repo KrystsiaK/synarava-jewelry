@@ -4,11 +4,15 @@ import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 // values when a section has never been touched in Admin, not placeholder
 // text. Mirrors the /offer pattern (single-language legal content; only the
 // chrome around it, not the identity/contact text, could ever be localized).
-
+//
+// Anchor ids are derived from the numbered label (e.g. "3. Contact" ->
+// "contact") — a different Legal Document page reusing the same id is fine,
+// since each page is its own HTML document; only the id must be unique
+// within a single page.
 export const LEGAL_NOTICE_SECTIONS: LegalSectionMeta[] = [
   { id: "store-operator", label: "1. Store Operator" },
   { id: "online-store", label: "2. Online Store" },
-  { id: "notice-contact", label: "3. Contact" },
+  { id: "contact", label: "3. Contact" },
   { id: "consumer-information", label: "4. Consumer Information" },
 ];
 
@@ -39,7 +43,7 @@ export const LEGAL_NOTICE_SECTION_DEFAULTS: Record<string, LegalSectionDefault> 
       "Our online store is hosted on Shopify.",
     ].join("\n\n"),
   },
-  "notice-contact": {
+  contact: {
     title: "How to contact us",
     body: [
       "For questions about products, orders, deliveries, returns or the operation of this website, please contact:",

@@ -4,19 +4,22 @@ import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 // became admin-editable — these are the fallback values when a section has
 // never been touched in Admin, not placeholder text.
 
+// Anchor ids are derived from the numbered label (e.g. "2. Subject of
+// Agreement" -> "subject-of-agreement") so internal Markdown links stay
+// stable and predictable.
 export const OFFER_SECTIONS: LegalSectionMeta[] = [
   { id: "definitions", label: "1. Definitions" },
-  { id: "subject", label: "2. Subject of Agreement" },
+  { id: "subject-of-agreement", label: "2. Subject of Agreement" },
   { id: "acceptance", label: "3. Acceptance" },
-  { id: "order", label: "4. Order Placement" },
+  { id: "order-placement", label: "4. Order Placement" },
   { id: "price-payment", label: "5. Price & Payment" },
   { id: "delivery", label: "6. Delivery" },
-  { id: "returns", label: "7. Returns & Refunds" },
+  { id: "returns-refunds", label: "7. Returns & Refunds" },
   { id: "warranties", label: "8. Warranties" },
   { id: "liability", label: "9. Liability" },
   { id: "intellectual-property", label: "10. Intellectual Property" },
-  { id: "dispute", label: "11. Dispute Resolution" },
-  { id: "final", label: "12. Final Provisions" },
+  { id: "dispute-resolution", label: "11. Dispute Resolution" },
+  { id: "final-provisions", label: "12. Final Provisions" },
 ];
 
 export const OFFER_INTRO_DEFAULT =
@@ -37,7 +40,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       "- **Agreement** — This Public Offer Agreement, accepted in full by the Buyer upon placing an Order.",
     ].join("\n"),
   },
-  subject: {
+  "subject-of-agreement": {
     title: "What this Agreement covers",
     body: [
       "The Seller undertakes to transfer ownership of the ordered Products to the Buyer, and the Buyer undertakes to accept and pay for the Products in accordance with the terms of this Agreement.",
@@ -58,7 +61,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       ].join("\n"),
     ].join("\n\n"),
   },
-  order: {
+  "order-placement": {
     title: "How to place and confirm an order",
     body: [
       "Orders are placed exclusively through the Website checkout. The Buyer selects Products, provides shipping details, and confirms the Order. A confirmation email is sent to the address provided.",
@@ -99,7 +102,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       "The Seller is not responsible for delays caused by customs clearance, force majeure, or errors in the delivery address provided by the Buyer.",
     ].join("\n\n"),
   },
-  returns: {
+  "returns-refunds": {
     title: "Return and refund policy",
     body: [
       "You have the right to return any Product within **14 calendar days** of delivery, in accordance with EU consumer protection law (Directive 2011/83/EU).",
@@ -146,7 +149,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       "No content may be reproduced, distributed, or used for commercial purposes without prior written consent from Synarava. Personal, non-commercial use of product photographs is permitted with attribution.",
     ].join("\n\n"),
   },
-  dispute: {
+  "dispute-resolution": {
     title: "How disputes are resolved",
     body: [
       "In the event of a dispute, we encourage you to contact us first at [synarava.shop@gmail.com](mailto:synarava.shop@gmail.com). We aim to resolve all issues amicably within 10 business days.",
@@ -154,7 +157,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       "This Agreement is governed by the laws of the Republic of Lithuania (where Synarava's operations are registered). Disputes that cannot be resolved amicably shall be subject to the jurisdiction of the competent courts of Lithuania, without prejudice to mandatory consumer protection provisions in the Buyer's country of residence.",
     ].join("\n\n"),
   },
-  final: {
+  "final-provisions": {
     title: "Miscellaneous",
     body: [
       "This Agreement constitutes the entire agreement between the Seller and the Buyer with respect to the purchase of Products and supersedes all prior representations or understandings.",

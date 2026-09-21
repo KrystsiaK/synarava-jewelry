@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { PageHeroImage } from "@/components/ui";
+import { LegalSectionScroll } from "@/components/legal/legal-section-scroll";
 import { cn } from "@/lib/ui";
 import type { ResolvedLegalSection } from "@/lib/content/legal-sections";
 
@@ -50,6 +51,7 @@ export function LegalDocumentPage({
 }) {
   return (
     <main className="artifact-shell min-h-screen pb-20 md:pb-32">
+      <LegalSectionScroll />
       <header className={cn("relative overflow-hidden border-b border-stroke", heroImage ? "flex min-h-[68svh] items-end py-12 pt-24 md:min-h-[76svh] md:py-16 md:pt-28" : "pt-24 md:pt-28")}>
         <PageHeroImage src={heroImage} />
         <div className="site-shell relative z-10 w-full pb-10 md:pb-14">

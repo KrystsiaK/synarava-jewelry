@@ -6,27 +6,30 @@ import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 // {legalName} / {privacyEmail} / {postalAddressLine} are interpolated at
 // render time from env-configured business details.
 
+// Anchor ids are derived from the numbered English label (e.g. "1. Data
+// Controller" -> "data-controller") and stay in English across locales so a
+// link written against one locale's page still resolves on the other.
 export const PRIVACY_SECTIONS_EN: LegalSectionMeta[] = [
-  { id: "controller", label: "1. Data Controller" },
-  { id: "data-collected", label: "2. Data We Collect" },
+  { id: "data-controller", label: "1. Data Controller" },
+  { id: "data-we-collect", label: "2. Data We Collect" },
   { id: "legal-basis", label: "3. Legal Basis" },
-  { id: "how-we-use", label: "4. How We Use Your Data" },
-  { id: "sharing", label: "5. Data Sharing" },
+  { id: "how-we-use-your-data", label: "4. How We Use Your Data" },
+  { id: "data-sharing", label: "5. Data Sharing" },
   { id: "retention", label: "6. Retention" },
-  { id: "rights", label: "7. Your Rights" },
+  { id: "your-rights", label: "7. Your Rights" },
   { id: "cookies", label: "8. Cookies" },
   { id: "security", label: "9. Security" },
   { id: "contact", label: "10. Contact" },
 ];
 
 export const PRIVACY_SECTIONS_PT: LegalSectionMeta[] = [
-  { id: "controller", label: "1. Responsável pelo tratamento" },
-  { id: "data-collected", label: "2. Dados que recolhemos" },
+  { id: "data-controller", label: "1. Responsável pelo tratamento" },
+  { id: "data-we-collect", label: "2. Dados que recolhemos" },
   { id: "legal-basis", label: "3. Fundamentos jurídicos" },
-  { id: "how-we-use", label: "4. Como utilizamos os dados" },
-  { id: "sharing", label: "5. Partilha e transferências" },
+  { id: "how-we-use-your-data", label: "4. Como utilizamos os dados" },
+  { id: "data-sharing", label: "5. Partilha e transferências" },
   { id: "retention", label: "6. Conservação" },
-  { id: "rights", label: "7. Os seus direitos" },
+  { id: "your-rights", label: "7. Os seus direitos" },
   { id: "cookies", label: "8. Cookies" },
   { id: "security", label: "9. Segurança" },
   { id: "contact", label: "10. Contacto" },
@@ -35,16 +38,17 @@ export const PRIVACY_SECTIONS_PT: LegalSectionMeta[] = [
 export const PRIVACY_LAST_UPDATED_DEFAULT = "5 September 2026";
 
 export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = {
-  controller: {
+  "data-controller": {
     title: "Who is responsible for your data",
     body: [
       'The data controller for all personal information processed through this website is **{legalName}** (hereafter "Synarava", "we", "us").',
       "Email: [{privacyEmail}](mailto:{privacyEmail})",
       "{postalAddressLine}",
       "We are committed to protecting your privacy and handling your data in full compliance with the General Data Protection Regulation (GDPR) and applicable national data protection laws.",
+      "More information about Shopify's processing of personal data is provided in the [Data Sharing](#data-sharing) section of this Privacy Policy.",
     ].join("\n\n"),
   },
-  "data-collected": {
+  "data-we-collect": {
     title: "What information we process",
     body: [
       "We collect only the information necessary to provide our services:",
@@ -69,7 +73,7 @@ export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = 
       ].join("\n"),
     ].join("\n\n"),
   },
-  "how-we-use": {
+  "how-we-use-your-data": {
     title: "Purposes of processing",
     body: [
       "Your information is used solely for the following purposes:",
@@ -85,7 +89,7 @@ export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = 
       "We do not sell, rent, or trade your personal data to third parties for their own marketing purposes.",
     ].join("\n\n"),
   },
-  sharing: {
+  "data-sharing": {
     title: "Third parties we work with",
     body: [
       "We share data only where necessary with trusted service providers bound by data-processing agreements:",
@@ -112,7 +116,7 @@ export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = 
       ].join("\n"),
     ].join("\n\n"),
   },
-  rights: {
+  "your-rights": {
     title: "Rights under GDPR",
     body: [
       "Under the GDPR you have the following rights, which you may exercise free of charge:",
@@ -172,16 +176,17 @@ export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = 
 };
 
 export const PRIVACY_SECTION_DEFAULTS_PT: Record<string, LegalSectionDefault> = {
-  controller: {
+  "data-controller": {
     title: "Quem é responsável pelos seus dados",
     body: [
       "O responsável pelo tratamento dos dados pessoais processados neste site é **{legalName}**, operador da Synarava.",
       "Email: [{privacyEmail}](mailto:{privacyEmail})",
       "{postalAddressLine}",
       "Tratamos os dados de acordo com o Regulamento Geral sobre a Proteção de Dados (RGPD) e a legislação nacional aplicável.",
+      "Mais informações sobre o tratamento de dados pessoais pela Shopify constam da secção [Partilha e transferências](#data-sharing) desta Política de Privacidade.",
     ].join("\n\n"),
   },
-  "data-collected": {
+  "data-we-collect": {
     title: "Informação que tratamos",
     body: [
       "- Conta: nome, email, identificadores, histórico de encomendas e moradas guardadas. O acesso Shopify usa código único; a Synarava não guarda a palavra-passe do cliente.",
@@ -200,7 +205,7 @@ export const PRIVACY_SECTION_DEFAULTS_PT: Record<string, LegalSectionDefault> = 
       "- Obrigação legal — cumprir normas fiscais, contabilísticas e de defesa do consumidor.",
     ].join("\n"),
   },
-  "how-we-use": {
+  "how-we-use-your-data": {
     title: "Finalidades do tratamento",
     body: [
       [
@@ -212,7 +217,7 @@ export const PRIVACY_SECTION_DEFAULTS_PT: Record<string, LegalSectionDefault> = 
       "Não vendemos nem alugamos os seus dados pessoais a terceiros para marketing próprio.",
     ].join("\n\n"),
   },
-  sharing: {
+  "data-sharing": {
     title: "Fornecedores e destinatários",
     body: [
       "Partilhamos apenas os dados necessários com fornecedores sujeitos a obrigações de proteção: Shopify para comércio, pagamentos, conta e checkout; fornecedor de alojamento; e fornecedor de armazenamento de imagens e ficheiros.",
@@ -228,7 +233,7 @@ export const PRIVACY_SECTION_DEFAULTS_PT: Record<string, LegalSectionDefault> = 
       "- Comunicações de apoio — 2 anos após o último contacto, salvo obrigação legal superior.",
     ].join("\n"),
   },
-  rights: {
+  "your-rights": {
     title: "Direitos ao abrigo do RGPD",
     body: [
       "Pode pedir gratuitamente acesso, retificação, apagamento, limitação, portabilidade e opor-se ao tratamento. Pode retirar o consentimento sem afetar a licitude do tratamento anterior.",
