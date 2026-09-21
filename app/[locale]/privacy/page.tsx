@@ -73,7 +73,7 @@ export default async function PrivacyPage() {
       backHref={homeHref}
       backLabel={isPt ? "← Voltar à loja" : "← Back to store"}
       nextHref={offerHref}
-      nextLabel={isPt ? "Condições gerais de venda →" : "Public Offer Agreement →"}
+      nextLabel={isPt ? "Termos e Condições →" : "Terms & Conditions →"}
       renderSectionExtra={(id) => (id === "cookies" ? (
         <div className="mt-4 inline-flex border border-stroke px-4 py-3">
           <PrivacySettingsButton />
