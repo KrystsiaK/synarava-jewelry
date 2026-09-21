@@ -1,6 +1,25 @@
 import { NextRequest } from "next/server";
 
+const mocks = vi.hoisted(() => ({ findMany: vi.fn() }));
+
+vi.mock("@/lib/db", () => ({
+  db: { storefrontLocale: { findMany: mocks.findMany } },
+}));
+
+import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
 import { proxy } from "@/proxy";
+
+const REGISTRY_ROWS = [
+  { routeSegment: "en", isDefault: true, isPublished: true },
+  { routeSegment: "pt", isDefault: false, isPublished: true },
+  { routeSegment: "ru", isDefault: false, isPublished: false },
+];
+
+beforeEach(() => {
+  mocks.findMany.mockReset();
+  mocks.findMany.mockResolvedValue(REGISTRY_ROWS);
+  invalidateStorefrontLocaleCache();
+});
 
 describe("storefront Content Security Policy", () => {
   afterEach(() => {
@@ -64,5 +83,62 @@ describe("admin session proxy", () => {
     expect(response.headers.get("location")).toBe(
       "https://synarava.test/admin/login?redirectTo=%2Fadmin%2Fproducts",
     );
+  });
+});
+
+describe("registry-driven locale routing", () => {
+  it("passes through a published locale prefix and sets x-locale", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/pt/shop"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("permanently redirects a bare path to the default locale with no cookie", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/shop"));
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
+  });
+
+  it("temporarily redirects a bare path to a valid, published cookie locale", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/shop", {
+      headers: { cookie: "synarava-locale=pt" },
+    }));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://synarava.test/pt/shop");
+  });
+
+  it("ignores a cookie for a registered but unpublished locale and falls back to default", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/shop", {
+      headers: { cookie: "synarava-locale=ru" },
+    }));
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
+  });
+
+  it("ignores a cookie for a locale that was never registered", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/shop", {
+      headers: { cookie: "synarava-locale=de" },
+    }));
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
+  });
+
+  it("passes a registered-but-unpublished locale segment through (layout 404s it, not a redirect loop)", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/ru/shop"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("falls back to the emergency default segment when the registry is completely unreachable", async () => {
+    mocks.findMany.mockRejectedValue(new Error("connection refused"));
+
+    const response = await proxy(new NextRequest("https://synarava.test/shop"));
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
   });
 });

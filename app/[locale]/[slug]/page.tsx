@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: page.title,
     description: page.excerpt || page.title,
-    alternates: buildAlternates(locale, `/${page.slug}`, { en: `/${page.sourceSlug}`, pt: `/${page.slug}` }),
+    alternates: await buildAlternates(locale, `/${page.slug}`, { en: `/${page.sourceSlug}`, pt: `/${page.slug}` }),
     openGraph: {
       url: localePath(locale, `/${slug}`),
       title: page.title,

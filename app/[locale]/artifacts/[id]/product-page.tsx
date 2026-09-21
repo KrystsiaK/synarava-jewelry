@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: product.seoTitle || product.title,
     description: product.seoDescription || product.shortDescription || product.description,
-    alternates: buildAlternates(locale, `/products/${product.slug}`, {
+    alternates: await buildAlternates(locale, `/products/${product.slug}`, {
       en: `/products/${product.sourceSlug}`,
       pt: `/products/${product.slug}`,
     }),

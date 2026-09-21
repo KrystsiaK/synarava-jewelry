@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 
-import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
-export function generateStaticParams() {
-  return SUPPORTED_LOCALES.map((locale) => ({ locale: locale.code }));
+export async function generateStaticParams() {
+  const locales = await getPublishedStorefrontLocales();
+  return locales.map((locale) => ({ locale: locale.routeSegment }));
 }
 
 type Props = {
@@ -13,8 +14,9 @@ type Props = {
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
+  const locales = await getPublishedStorefrontLocales();
 
-  if (!SUPPORTED_LOCALES.some((entry) => entry.code === locale)) {
+  if (!locales.some((entry) => entry.routeSegment === locale)) {
     notFound();
   }
 

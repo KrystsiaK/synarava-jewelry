@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
 import { MotionConfig } from "motion/react";
 
@@ -110,11 +112,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, requestHeaders, initialLocale] = await Promise.all([
+  const [cookieStore, requestHeaders, initialLocale, publishedLocales] = await Promise.all([
     cookies(),
     headers(),
     getRequestLocale(),
+    getPublishedStorefrontLocales(),
   ]);
+  // The language switcher only offers locales this app can actually render
+  // UI copy for (SUPPORTED_LOCALES, still hardcoded until the buyer-facing
+  // copy itself is registry-driven) — intersected with the registry so an
+  // unpublished/removed Shopify locale drops out automatically.
+  const publishedCodes = new Set(publishedLocales.map((locale) => locale.routeSegment));
+  const availableLocales = SUPPORTED_LOCALES.filter((locale) => publishedCodes.has(locale.code));
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
@@ -156,7 +165,7 @@ export default async function RootLayout({
         <a href="#main-content" className="skip-link">
           {initialLocale === "pt" ? "Saltar para o conteúdo principal" : "Skip to main content"}
         </a>
-        <TranslationProvider initialLocale={initialLocale} initialOverrides={storefrontCopy}>
+        <TranslationProvider initialLocale={initialLocale} initialOverrides={storefrontCopy} availableLocales={availableLocales}>
           <PrivacyConsentManager
             initialConsent={cookieStore.get(PRIVACY_CONSENT_COOKIE)?.value}
             shopifyConfig={shopifyPrivacyEnabled ? {

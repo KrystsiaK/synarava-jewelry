@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: buildAlternates(locale, "/collections"),
+    alternates: await buildAlternates(locale, "/collections"),
     openGraph: {
       url: localePath(locale, "/collections"),
       images: [{ url: heroImage || "/og-default.jpg", width: 1200, height: 630, alt: `Synarava — ${title}` }],

@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: page?.title || "Synarava — Curated Goods with Character" },
     description: page?.excerpt || undefined,
-    alternates: buildAlternates(locale, "/"),
+    alternates: await buildAlternates(locale, "/"),
     openGraph: {
       url: localePath(locale, "/"),
       images: [

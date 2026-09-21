@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { normalizeLocale } from "@/lib/i18n/locales";
+import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 const ADMIN_COOKIE = "synarava-admin-session";
-const LOCALE_PREFIX_RE = /^\/(en|pt)(\/|$)/;
+// Emergency fallback only, if the registry cache has never successfully
+// loaded (e.g. DB unreachable on first request) — not the normal path.
+const FALLBACK_DEFAULT_SEGMENT = "en";
 
 function origin(value?: string) {
   try {
@@ -137,14 +139,23 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const localeMatch = isLocaleExempt ? null : LOCALE_PREFIX_RE.exec(pathname);
-  if (!isLocaleExempt && !localeMatch) {
+  const locales = isLocaleExempt ? [] : await getStorefrontLocales();
+  // Registered (published or not) — an unpublished/disabled locale still
+  // matches here so it reaches app/[locale]/layout.tsx and gets a real 404
+  // via notFound() there, instead of being treated as a bare content path.
+  const registeredSegments = locales.map((locale) => locale.routeSegment);
+  const firstSegment = isLocaleExempt ? null : pathname.split("/")[1] ?? "";
+  const localeSegment = firstSegment && registeredSegments.includes(firstSegment) ? firstSegment : null;
+
+  if (!isLocaleExempt && !localeSegment) {
+    const publishedSegments = locales.filter((locale) => locale.isPublished).map((locale) => locale.routeSegment);
+    const defaultSegment = locales.find((locale) => locale.isDefault)?.routeSegment ?? FALLBACK_DEFAULT_SEGMENT;
     const cookieLocale = request.cookies.get("synarava-locale")?.value;
-    const hasValidCookie = cookieLocale === "en" || cookieLocale === "pt";
-    const locale = normalizeLocale(cookieLocale);
+    const hasValidCookie = typeof cookieLocale === "string" && publishedSegments.includes(cookieLocale);
+    const target = hasValidCookie ? cookieLocale : defaultSegment;
 
     const url = request.nextUrl.clone();
-    url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+    url.pathname = `/${target}${pathname === "/" ? "" : pathname}`;
 
     // A remembered preference is a personalized, non-cacheable redirect (307).
     // No cookie — what Googlebot and first-time visitors get — is the stable,
@@ -157,8 +168,8 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
-  if (localeMatch) {
-    requestHeaders.set("x-locale", localeMatch[1]);
+  if (localeSegment) {
+    requestHeaders.set("x-locale", localeSegment);
   }
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);

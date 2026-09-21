@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
   return {
     ...base,
-    alternates: buildAlternates(locale, "/privacy"),
+    alternates: await buildAlternates(locale, "/privacy"),
     openGraph: {
       url: localePath(locale, "/privacy"),
       ...base,

@@ -1,11 +1,19 @@
-import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/locales";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import type { Locale } from "@/lib/i18n/locales";
 import { localePath } from "@/lib/i18n/routing";
 
-export function buildAlternates(locale: Locale, path: string, localizedPaths?: Partial<Record<Locale, string>>) {
+export async function buildAlternates(
+  locale: Locale,
+  path: string,
+  localizedPaths?: Partial<Record<string, string>>,
+) {
+  const locales = await getPublishedStorefrontLocales();
+  const defaultSegment = locales.find((entry) => entry.isDefault)?.routeSegment ?? "en";
+
   const languages = Object.fromEntries(
-    SUPPORTED_LOCALES.map(({ code }) => [code, localePath(code, localizedPaths?.[code] ?? path)]),
+    locales.map(({ routeSegment }) => [routeSegment, localePath(routeSegment, localizedPaths?.[routeSegment] ?? path)]),
   ) as Record<string, string>;
-  languages["x-default"] = localePath("en", localizedPaths?.en ?? path);
+  languages["x-default"] = localePath(defaultSegment, localizedPaths?.[defaultSegment] ?? path);
 
   return {
     canonical: localePath(locale, localizedPaths?.[locale] ?? path),

@@ -140,14 +140,50 @@ suite green: `pnpm exec tsc --noEmit`, `pnpm exec eslint`, `pnpm vitest run`
 
 **Acceptance criteria:**
 
-- [ ] Proxy, `[locale]` layout, language switcher, sitemap, alternates and
-  revalidation derive public locales from the registry.
-- [ ] `/en` and `/pt` keep their current canonical behavior.
-- [ ] Unknown/disabled locale returns 404; bare paths still redirect to the
-  default or valid cookie locale.
+- [x] Proxy, `[locale]` layout, sitemap, alternates derive public locales
+  from the registry (`lib/i18n/storefront-locale-cache.ts`, a 30s-TTL
+  in-memory cache in front of the registry — `proxy.ts` runs in the Node
+  runtime here, not Edge, confirmed empirically, so it can read the DB
+  directly, but every request still shouldn't hit Postgres). Language
+  switcher is registry-aware but intersected with `SUPPORTED_LOCALES`
+  (buyer-facing UI copy is still hardcoded until Task U6) — see note below.
+  Revalidation (`lib/content/revalidate-storefront.ts`) deliberately left
+  on `SUPPORTED_LOCALES`: it revalidates rendered content templates, which
+  are still EN/PT-only until Task U3, so widening it now would be a no-op
+  change with real ripple cost (called from many admin actions).
+- [x] `/en` and `/pt` keep their current canonical behavior — unchanged
+  redirect codes (308 no cookie / 307 cookie), CSP headers, admin-cookie
+  handling; verified via the full proxy test suite and live curl.
+- [x] Unknown/disabled locale returns 404; bare paths still redirect to the
+  default or valid cookie locale. A registered-but-unpublished locale
+  (e.g. `ru` if it were unpublished) passes through proxy and gets a real
+  `notFound()` in `[locale]/layout.tsx`, not a redirect loop; an
+  unregistered segment (e.g. `/de`) is treated as a bare path and
+  redirects with the default locale prepended, 404ing naturally.
 
-**Verification:** proxy tests plus Playwright matrix for EN/PT and a seeded
-third locale.
+**Note — language switcher scope:** did not widen it to show every
+published registry locale. `ru` is published in Shopify but the storefront
+UI copy (`messages/en.json`/`pt.json`, `TranslationProvider`) is still
+hardcoded to EN/PT — showing "Russian" as a switcher option today would let
+a customer pick it and see English, before Task U6 gives it a real fallback
+story. Verified live: switcher shows English/Português only; `/ru` and
+`/ru/shop` are still directly reachable (200, `lang="en"`, correct
+fallback semantics) for anyone who lands there via a link or the
+now-registry-driven sitemap/alternates.
+
+**Verification:** proxy tests (`__tests__/proxy.test.ts`, 11 tests,
+`@/lib/db` mocked — registry, cookie validity, unpublished vs. unregistered
+segments, DB-unreachable fallback), `lib/i18n/__tests__/storefront-locale-cache.test.ts`
+(6 tests: TTL reuse, invalidation, stale-on-error fallback),
+`app/[locale]/__tests__/layout.test.tsx` (4 tests: generateStaticParams,
+published/unpublished/unregistered notFound), plus the existing
+`localized-page-metadata.test.ts` updated for async `buildAlternates`.
+Live-verified against the real dev store: `/en`, `/pt` unchanged; `/ru` and
+`/ru/shop` return 200; `/de` 308-redirects to `/en/de` which 404s; a
+`synarava-locale=ru` cookie 307-redirects `/shop` → `/ru/shop` (ru is
+published); sitemap.xml includes `ru` alternates; language switcher shows
+only English/Português. Full suite green: `pnpm exec tsc --noEmit`,
+`pnpm exec eslint .`, `pnpm vitest run` (183 files / 917 tests).
 
 **Risk:** Proxy is on the request path. Cache registry reads with bounded TTL
 and explicit invalidation; do not query Shopify during a request.

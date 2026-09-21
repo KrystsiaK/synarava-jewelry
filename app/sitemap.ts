@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listCollections, listShopProducts } from "@/lib/content/catalog";
-import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
 type RouteEntry = {
@@ -10,14 +10,19 @@ type RouteEntry = {
   lastModified?: Date;
 };
 
-function withLocales(baseUrl: string, entry: RouteEntry): MetadataRoute.Sitemap {
+function withLocales(
+  baseUrl: string,
+  entry: RouteEntry,
+  routeSegments: string[],
+  defaultSegment: string,
+): MetadataRoute.Sitemap {
   const languages = Object.fromEntries(
-    SUPPORTED_LOCALES.map(({ code }) => [code, `${baseUrl}/${code}${entry.path}`]),
+    routeSegments.map((segment) => [segment, `${baseUrl}/${segment}${entry.path}`]),
   );
-  languages["x-default"] = `${baseUrl}/en${entry.path}`;
+  languages["x-default"] = `${baseUrl}/${defaultSegment}${entry.path}`;
 
-  return SUPPORTED_LOCALES.map(({ code }) => ({
-    url: `${baseUrl}/${code}${entry.path}`,
+  return routeSegments.map((segment) => ({
+    url: `${baseUrl}/${segment}${entry.path}`,
     lastModified: entry.lastModified,
     changeFrequency: entry.changeFrequency,
     priority: entry.priority,
@@ -27,6 +32,9 @@ function withLocales(baseUrl: string, entry: RouteEntry): MetadataRoute.Sitemap 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getPublicSiteUrl();
+  const locales = await getPublishedStorefrontLocales();
+  const routeSegments = locales.map((locale) => locale.routeSegment);
+  const defaultSegment = locales.find((locale) => locale.isDefault)?.routeSegment ?? "en";
 
   const staticEntries: RouteEntry[] = [
     { path: "", changeFrequency: "weekly", priority: 1.0 },
@@ -70,5 +78,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB unavailable — omit dynamic routes
   }
 
-  return [...staticEntries, ...dynamicEntries].flatMap((entry) => withLocales(baseUrl, entry));
+  return [...staticEntries, ...dynamicEntries].flatMap((entry) =>
+    withLocales(baseUrl, entry, routeSegments, defaultSegment));
 }

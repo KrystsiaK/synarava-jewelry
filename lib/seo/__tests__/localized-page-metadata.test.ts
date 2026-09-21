@@ -1,7 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { buildAlternates } from "@/lib/seo/alternates";
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    storefrontLocale: {
+      findMany: vi.fn().mockResolvedValue([
+        { routeSegment: "en", isDefault: true, isPublished: true },
+        { routeSegment: "pt", isDefault: false, isPublished: true },
+      ]),
+    },
+  },
+}));
 
 describe("localizedPageMetadataCopy", () => {
   it("prefers localized CMS copy when it is available", () => {
@@ -22,8 +33,8 @@ describe("localizedPageMetadataCopy", () => {
 });
 
 describe("localized handle alternates", () => {
-  it("uses the active handle for each locale and keeps English as x-default", () => {
-    expect(buildAlternates("pt", "/products/anel-lava", {
+  it("uses the active handle for each locale and keeps English as x-default", async () => {
+    expect(await buildAlternates("pt", "/products/anel-lava", {
       en: "/products/lava-ring",
       pt: "/products/anel-lava",
     })).toEqual({

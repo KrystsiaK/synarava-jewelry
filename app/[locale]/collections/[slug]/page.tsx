@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: collection.name,
     description: collection.summary,
-    alternates: buildAlternates(locale, `/collections/${collection.slug}`, {
+    alternates: await buildAlternates(locale, `/collections/${collection.slug}`, {
       en: `/collections/${collection.sourceSlug}`,
       pt: `/collections/${collection.slug}`,
     }),

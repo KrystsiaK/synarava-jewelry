@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: buildAlternates(locale, "/care"),
+    alternates: await buildAlternates(locale, "/care"),
     openGraph: {
       url: localePath(locale, "/care"),
       title,

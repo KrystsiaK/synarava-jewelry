@@ -5,10 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import { flattenMessages } from "./utils";
-import { normalizeLocale, type Locale } from "./locales";
+import { normalizeLocale, SUPPORTED_LOCALES, type Locale } from "./locales";
 import { localePath } from "./routing";
 
 export type { Locale } from "./locales";
+
+type AvailableLocale = (typeof SUPPORTED_LOCALES)[number];
 
 type TranslationContextValue = {
   locale: Locale;
@@ -16,6 +18,7 @@ type TranslationContextValue = {
   t: (key: string, values?: TranslationValues) => string;
   plural: (key: string, count: number, values?: TranslationValues) => string;
   loading: boolean;
+  availableLocales: readonly AvailableLocale[];
 };
 
 type TranslationValues = Record<string, string | number>;
@@ -40,15 +43,18 @@ const TranslationContext = createContext<TranslationContextValue>({
   t: (key, values) => interpolate(enFlat[key] ?? key, values),
   plural: (key, count, values) => interpolate(enFlat[`${key}.${count === 1 ? "one" : "other"}`] ?? key, { ...values, count }),
   loading: false,
+  availableLocales: SUPPORTED_LOCALES,
 });
 
 export function TranslationProvider({
   initialLocale = "en",
   initialOverrides,
+  availableLocales = SUPPORTED_LOCALES,
   children,
 }: {
   initialLocale?: string;
   initialOverrides?: { en: Record<string, string>; pt: Record<string, string> };
+  availableLocales?: readonly AvailableLocale[];
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -99,7 +105,7 @@ export function TranslationProvider({
   );
 
   return (
-    <TranslationContext.Provider value={{ locale, setLocale, t, plural, loading: false }}>
+    <TranslationContext.Provider value={{ locale, setLocale, t, plural, loading: false, availableLocales }}>
       {children}
     </TranslationContext.Provider>
   );

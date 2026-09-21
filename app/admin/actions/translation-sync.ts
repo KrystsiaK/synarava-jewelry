@@ -12,6 +12,7 @@ import {
   syncProductEditorialTranslation,
   syncStorefrontCopyTranslation,
 } from "@/lib/shopify/editorial-translation-sync";
+import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
 import { syncStorefrontLocalesFromShopify } from "@/lib/shopify/storefront-locale-sync";
 import { registerProductTranslation } from "@/lib/shopify/translations";
 import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
@@ -193,6 +194,7 @@ export async function syncStorefrontLocalesAction() {
 
   try {
     const result = await syncStorefrontLocalesFromShopify();
+    invalidateStorefrontLocaleCache();
     revalidatePath("/admin/translations");
     const summary = `Checked ${result.updated.length} locale${result.updated.length === 1 ? "" : "s"} against Shopify.`;
     return {

@@ -4,7 +4,7 @@ import { Globe, Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
 import { useTranslations } from "@/lib/i18n/context";
-import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/locales";
+import type { Locale } from "@/lib/i18n/locales";
 
 export function LanguageSwitcher({
   showCode = false,
@@ -15,9 +15,9 @@ export function LanguageSwitcher({
   fullWidth?: boolean;
   align?: "left" | "right";
 }) {
-  const { locale, setLocale, loading, t } = useTranslations();
+  const { locale, setLocale, loading, t, availableLocales } = useTranslations();
   const [open, setOpen] = useState(false);
-  const activeLanguage = SUPPORTED_LOCALES.find((lang) => lang.code === locale);
+  const activeLanguage = availableLocales.find((lang) => lang.code === locale);
 
   async function handleSelect(code: Locale) {
     setOpen(false);
@@ -62,7 +62,7 @@ export function LanguageSwitcher({
           </button>
         )}
       >
-          {SUPPORTED_LOCALES.map((lang) => (
+          {availableLocales.map((lang) => (
             <button
               key={lang.code}
               type="button"
