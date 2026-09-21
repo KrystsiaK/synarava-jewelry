@@ -5,7 +5,7 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
-import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
 import {
   TERMS_EXCERPT_DEFAULT,
   TERMS_INTRO_DEFAULT,
@@ -39,9 +39,10 @@ export default async function TermsAndConditionsPage() {
   const homeHref = localePath(locale, "/");
   const privacyHref = localePath(locale, "/privacy");
 
-  const sections = resolveLegalSections(TERMS_SECTIONS, page?.content.legalSections, TERMS_SECTION_DEFAULTS);
-  const intro = resolveLegalText(page?.content.legalIntro, TERMS_INTRO_DEFAULT);
-  const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, TERMS_LAST_UPDATED_DEFAULT);
+  const exists = isSavedLegalDocument(page);
+  const sections = resolveLegalSections(TERMS_SECTIONS, page?.content.legalSections, exists ? {} : TERMS_SECTION_DEFAULTS);
+  const intro = resolveLegalText(page?.content.legalIntro, exists ? "" : TERMS_INTRO_DEFAULT);
+  const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : TERMS_LAST_UPDATED_DEFAULT);
 
   return (
     <LegalDocumentPage

@@ -15,7 +15,18 @@ function interpolate(text: string, vars: Record<string, string>): string {
 /**
  * Admin content overrides a fixed set of code-defined sections (id, TOC
  * label, and order are not editable — this is a legal document, not a page
- * builder). An empty title/body falls back to the shipped default text.
+ * builder). An empty title/body falls back to `defaults`.
+ *
+ * For the four Legal Document pages (Privacy, Terms & Conditions, Legal
+ * Notice, Public Offer Agreement) specifically: once a document exists,
+ * admin-saved content is authoritative and `defaults` must never be the
+ * live shipped copy — see isSavedLegalDocument below. Passing the real
+ * `*_SECTION_DEFAULTS`/`*_DEFAULT` constants here is only correct while the
+ * document has not been created/backfilled yet (page is null); once it
+ * exists, callers pass `{}` / `""` so an admin-cleared field renders empty
+ * instead of silently reverting to whatever the shipped copy says today.
+ * Service pages (care/faq/shipping/returns/dispute-resolution) are not
+ * bound by this — they still resolve against the live defaults every time.
  */
 export function resolveLegalSections(
   sections: LegalSectionMeta[],
@@ -38,4 +49,19 @@ export function resolveLegalText(
   vars: Record<string, string> = {},
 ): string {
   return interpolate(override?.trim() || fallback, vars);
+}
+
+/**
+ * True once a Legal Document's Page row exists (getPageBySlug returned a
+ * real, published row) — the gate that decides whether a Legal Document
+ * page may still fall back to shipped defaults. Once true, callers must
+ * stop passing the live `*_SECTION_DEFAULTS`/`*_DEFAULT` constants into
+ * resolveLegalSections/resolveLegalText for that request, so an
+ * admin-cleared field renders empty rather than reverting to today's
+ * shipped copy. lib/content/legal-document-backfill.ts is what makes this
+ * safe to flip on: it guarantees every field already has real content
+ * before this check starts being honored for a given document.
+ */
+export function isSavedLegalDocument<T>(page: T | null | undefined): page is T {
+  return page != null;
 }

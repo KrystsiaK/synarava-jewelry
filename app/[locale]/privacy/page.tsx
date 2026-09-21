@@ -5,7 +5,7 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
-import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
 import {
   PRIVACY_LAST_UPDATED_DEFAULT,
   PRIVACY_SECTIONS_EN,
@@ -52,13 +52,14 @@ export default async function PrivacyPage() {
     postalAddressLine: postalAddress ? `${isPt ? "Morada postal" : "Postal address"}: ${postalAddress}` : "",
   };
 
+  const exists = isSavedLegalDocument(page);
   const sections = resolveLegalSections(
     isPt ? PRIVACY_SECTIONS_PT : PRIVACY_SECTIONS_EN,
     page?.content.legalSections,
-    isPt ? PRIVACY_SECTION_DEFAULTS_PT : PRIVACY_SECTION_DEFAULTS_EN,
+    exists ? {} : (isPt ? PRIVACY_SECTION_DEFAULTS_PT : PRIVACY_SECTION_DEFAULTS_EN),
     vars,
   );
-  const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, PRIVACY_LAST_UPDATED_DEFAULT);
+  const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : PRIVACY_LAST_UPDATED_DEFAULT);
 
   return (
     <LegalDocumentPage

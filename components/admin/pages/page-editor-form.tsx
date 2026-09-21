@@ -450,8 +450,9 @@ export function PageEditor({
             <div>
               <h3 id="legal-copy-heading" className="adm-title-sm">Legal document</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                Section order, numbering, and anchors are fixed and shared across languages. Leave a title or
-                body empty to fall back to the shipped default text. Body supports Markdown.
+                Section order, numbering, and anchors are fixed and shared across languages. Saved legal
+                document content is managed exclusively from Admin. Empty fields remain empty. Default
+                content is used only when a new legal document is created. Body supports Markdown.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
