@@ -14,6 +14,18 @@ const markdownComponents = {
       <table>{children}</table>
     </div>
   ),
+  // Anchor (#id), mailto:, and relative in-app links (/shipping) stay
+  // same-tab, normal navigation. Only genuine absolute http(s) links to
+  // another site open in a new tab, with rel="noopener noreferrer" so the
+  // opened page can't reach back into window.opener.
+  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
+    const isExternal = href ? /^https?:\/\//.test(href) : false;
+    return (
+      <a href={href} {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : null)}>
+        {children}
+      </a>
+    );
+  },
 };
 
 // Shared chrome for /offer and /privacy: hero, sticky table of contents, and
