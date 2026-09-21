@@ -122,7 +122,7 @@ function shopifyWireValue(value: unknown) {
 }
 
 async function fetchRemoteValues(resourceId: string, locale: string) {
-  if (contentLocaleForShopify(locale) === "EN") {
+  if (contentLocaleForShopify(locale) === "en") {
     const state = await fetchResourceTranslationState(resourceId, "pt-PT");
     if (!state) return null;
     return sourceContentAsRemoteValues(state.translatableContent);
@@ -180,7 +180,7 @@ export async function applyReconcileChoice({
       const shopifyKey = field.shopifyTarget.kind === "metaobject"
         ? metaobjectFieldKey(field.shopifyTarget.key)
         : field.shopifyTarget.key;
-      const writeResult = contentLocale === "EN"
+      const writeResult = contentLocale === "en"
         ? await updateShopifySourceField({
             resourceType: row.bindingResourceType,
             resourceId: row.shopifyResourceId,

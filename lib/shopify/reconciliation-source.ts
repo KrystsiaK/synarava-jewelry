@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma, type ContentLocale, type TranslationResourceType } from "@prisma/client";
+import { Prisma, type TranslationResourceType } from "@prisma/client";
 
 import { STOREFRONT_COPY_KEY, type StorefrontCopy } from "@/lib/content/storefront-copy";
 import { db } from "@/lib/db";
@@ -103,9 +103,9 @@ function pageSourceCopy(page: Record<string, unknown>) {
   return pageCopy({ ...page, localizedHandle: page.slug });
 }
 
-export function contentLocaleForShopify(locale: string): ContentLocale {
-  if (locale.toLowerCase().startsWith("en")) return "EN";
-  if (locale.toLowerCase().startsWith("pt")) return "PT";
+export function contentLocaleForShopify(locale: string): string {
+  if (locale.toLowerCase().startsWith("en")) return "en";
+  if (locale.toLowerCase().startsWith("pt")) return "pt";
   throw new Error(`Locale ${locale} is not supported by the Synarava translation editor.`);
 }
 
@@ -119,7 +119,7 @@ export async function loadReconcileSubject(
   locale = "pt-PT",
 ): Promise<ReconcileSubject | null> {
   const contentLocale = contentLocaleForShopify(locale);
-  const english = contentLocale === "EN";
+  const english = contentLocale === "en";
   if (binding.resourceType === "PRODUCT") {
     const product = await db.product.findUnique({
       where: { id: binding.entityId },
@@ -267,7 +267,7 @@ export async function writeLocalReconcileField({
   shopifyValue: unknown;
 }) {
   const contentLocale = contentLocaleForShopify(locale);
-  const english = contentLocale === "EN";
+  const english = contentLocale === "en";
   const subject = await loadReconcileSubject(binding, locale);
   if (!subject) throw new Error("The local translation no longer exists.");
   const field = subject.registry.fields.find((candidate) => candidate.key === fieldKey);
@@ -289,11 +289,11 @@ export async function writeLocalReconcileField({
           data: { [sourceKey]: stored } as Prisma.ProductUpdateInput,
         }),
         db.productTranslation.upsert({
-          where: { productId_locale: { productId: subject.rootEntityId, locale: "EN" } },
+          where: { productId_locale: { productId: subject.rootEntityId, locale: "en" } },
           update: { [fieldKey]: stored } as Prisma.ProductTranslationUpdateInput,
           create: {
             productId: subject.rootEntityId,
-            locale: "EN",
+            locale: "en",
             title: fieldKey === "title" ? String(value ?? "") : String(subject.local.title ?? ""),
             [fieldKey]: stored,
           } as Prisma.ProductTranslationUncheckedCreateInput,
@@ -301,7 +301,7 @@ export async function writeLocalReconcileField({
       ]);
     } else {
       await db.productTranslation.update({
-        where: { productId_locale: { productId: subject.rootEntityId, locale: "PT" } },
+        where: { productId_locale: { productId: subject.rootEntityId, locale: "pt" } },
         data: { [fieldKey]: stored } as Prisma.ProductTranslationUpdateInput,
       });
     }
@@ -318,11 +318,11 @@ export async function writeLocalReconcileField({
           data: { [sourceKey]: value } as Prisma.CollectionUpdateInput,
         }),
         db.collectionTranslation.upsert({
-          where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: "EN" } },
+          where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: "en" } },
           update: { [fieldKey]: value } as Prisma.CollectionTranslationUpdateInput,
           create: {
             collectionId: subject.rootEntityId,
-            locale: "EN",
+            locale: "en",
             name: fieldKey === "name" ? String(value ?? "") : String(subject.local.name ?? ""),
             [fieldKey]: value,
           } as Prisma.CollectionTranslationUncheckedCreateInput,
@@ -330,7 +330,7 @@ export async function writeLocalReconcileField({
       ]);
     } else {
       await db.collectionTranslation.update({
-        where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: "PT" } },
+        where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: "pt" } },
         data: { [fieldKey]: value } as Prisma.CollectionTranslationUpdateInput,
       });
     }
@@ -347,11 +347,11 @@ export async function writeLocalReconcileField({
             data: { [sourceKey]: value } as Prisma.PageUpdateInput,
           }),
           db.pageTranslation.upsert({
-            where: { pageId_locale: { pageId: subject.rootEntityId, locale: "EN" } },
+            where: { pageId_locale: { pageId: subject.rootEntityId, locale: "en" } },
             update: { [fieldKey]: value } as Prisma.PageTranslationUpdateInput,
             create: {
               pageId: subject.rootEntityId,
-              locale: "EN",
+              locale: "en",
               title: fieldKey === "title" ? String(value ?? "") : String(subject.local.title ?? ""),
               [fieldKey]: value,
             } as Prisma.PageTranslationUncheckedCreateInput,
@@ -359,7 +359,7 @@ export async function writeLocalReconcileField({
         ]);
       } else {
         await db.pageTranslation.update({
-          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "PT" } },
+          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "pt" } },
           data: { [fieldKey]: value } as Prisma.PageTranslationUpdateInput,
         });
       }
@@ -369,7 +369,7 @@ export async function writeLocalReconcileField({
     const page = english
       ? await db.page.findUnique({ where: { id: subject.rootEntityId }, select: { content: true } })
       : await db.pageTranslation.findUnique({
-          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "PT" } },
+          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "pt" } },
           select: { content: true },
         });
     if (!page) throw new Error("The page translation no longer exists.");
@@ -381,11 +381,11 @@ export async function writeLocalReconcileField({
       await db.$transaction([
         db.page.update({ where: { id: subject.rootEntityId }, data: { content: storedContent } }),
         db.pageTranslation.upsert({
-          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "EN" } },
+          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "en" } },
           update: { content: storedContent },
           create: {
             pageId: subject.rootEntityId,
-            locale: "EN",
+            locale: "en",
             title: String(subject.local.title ?? ""),
             content: storedContent,
           },
@@ -393,7 +393,7 @@ export async function writeLocalReconcileField({
       ]);
     } else {
       await db.pageTranslation.update({
-        where: { pageId_locale: { pageId: subject.rootEntityId, locale: "PT" } },
+        where: { pageId_locale: { pageId: subject.rootEntityId, locale: "pt" } },
         data: { content: storedContent },
       });
     }

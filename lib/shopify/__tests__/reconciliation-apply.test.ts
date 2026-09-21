@@ -32,7 +32,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/shopify/reconciliation-source", () => ({
-  contentLocaleForShopify: (locale: string) => locale.toLowerCase().startsWith("en") ? "EN" : "PT",
+  contentLocaleForShopify: (locale: string) => locale.toLowerCase().startsWith("en") ? "en" : "pt",
   loadReconcileSubject: mocks.loadSubject,
   writeLocalReconcileField: mocks.writeLocal,
 }));
@@ -194,7 +194,7 @@ describe("applyReconcileChoice", () => {
       value: "Local title",
     }));
     expect(mocks.registerTranslations).not.toHaveBeenCalled();
-    expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ locale: "EN" }));
+    expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ locale: "en" }));
   });
 
   it("refuses a second concurrent resolver that cannot claim the field", async () => {

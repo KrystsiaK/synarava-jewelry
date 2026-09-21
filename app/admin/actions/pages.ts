@@ -48,7 +48,7 @@ export type SavedPagePayload = {
   shopifyHandle: string | null;
   translations: Array<{
     id: string;
-    locale: "EN" | "PT";
+    locale: string;
     title: string;
     localizedHandle: string | null;
     excerpt: string | null;
@@ -480,25 +480,25 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     .digest("hex");
   await Promise.all([
     db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "EN" } },
+      where: { pageId_locale: { pageId: page.id, locale: "en" } },
       update: {
         title, excerpt: excerpt || null, content: englishTranslationContent,
         reviewStatus: "REVIEWED", reviewedAt: new Date(),
       },
       create: {
-        pageId: page.id, locale: "EN", title, excerpt: excerpt || null,
+        pageId: page.id, locale: "en", title, excerpt: excerpt || null,
         content: englishTranslationContent, reviewStatus: "REVIEWED", reviewedAt: new Date(),
       },
     }),
     db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "PT" } },
+      where: { pageId_locale: { pageId: page.id, locale: "pt" } },
       update: {
         title: ptTitle || title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent,
         contentHash: ptContentHash,
         syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
       },
       create: {
-        pageId: page.id, locale: "PT", title: ptTitle || title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null,
+        pageId: page.id, locale: "pt", title: ptTitle || title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null,
         content: portugueseTranslationContent, contentHash: ptContentHash,
         syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
       },
@@ -507,7 +507,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   await recordLocalizedHandleRedirect({
     entityType: "PAGE",
     entityId: page.id,
-    previousHandle: before?.translations.find((translation) => translation.locale === "PT")?.localizedHandle,
+    locale: "pt",
+    previousHandle: before?.translations.find((translation) => translation.locale === "pt")?.localizedHandle,
     nextHandle: ptLocalizedHandle ?? slug,
   });
 
@@ -716,14 +717,14 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   };
   await Promise.all([
     db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "EN" } },
+      where: { pageId_locale: { pageId: page.id, locale: "en" } },
       update: { title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
-      create: { pageId: page.id, locale: "EN", title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
+      create: { pageId: page.id, locale: "en", title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
     }),
     db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "PT" } },
+      where: { pageId_locale: { pageId: page.id, locale: "pt" } },
       update: { title: ptTitle || pageData.title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
-      create: { pageId: page.id, locale: "PT", title: ptTitle || pageData.title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
+      create: { pageId: page.id, locale: "pt", title: ptTitle || pageData.title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
     }),
   ]);
 

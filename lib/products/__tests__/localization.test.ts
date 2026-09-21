@@ -26,7 +26,7 @@ function product(overrides: Partial<LocalizableProduct> = {}): LocalizableProduc
 describe("product localization", () => {
   it("uses the Shopify-owned English source when its persisted mirror is stale", () => {
     const resolved = resolveProductCopy(product({
-      translations: [{ locale: "EN", title: "Stale English title", description: "Stale description" }],
+      translations: [{ locale: "en", title: "Stale English title", description: "Stale description" }],
     }), "en");
 
     expect(resolved.title).toBe("Lava Ring");
@@ -36,7 +36,7 @@ describe("product localization", () => {
   it("returns Portuguese copy and only falls back for optional fields", () => {
     const resolved = resolveProductCopy(product({
       translations: [{
-        locale: "PT",
+        locale: "pt",
         title: "Anel de Lava",
         shortDescription: "Um anel entrelaçado.",
         description: "Feito em Lisboa.",
@@ -60,7 +60,7 @@ describe("product localization", () => {
   it("resolves a populated Portuguese `details` object instead of always falling back to English (regression, see lib/i18n/localized-content.ts hasContent)", () => {
     const resolved = resolveProductCopy(product({
       translations: [{
-        locale: "PT",
+        locale: "pt",
         title: "Anel de Lava",
         shortDescription: "Um anel.",
         description: "Feito em Lisboa.",
@@ -74,7 +74,7 @@ describe("product localization", () => {
   it("reports missing Portuguese publish fields and review state", () => {
     expect(productLocaleReadiness(product({
       translations: [{
-        locale: "PT",
+        locale: "pt",
         title: "Anel de Lava",
         shortDescription: "",
         description: "",

@@ -181,7 +181,7 @@ describe("EditProductForm", () => {
     const product = makeProduct({
       shortDescription: "A refined piece.",
       translations: [{
-        id: "translation-pt", locale: "PT", title: "Anel de Lava", localizedHandle: null,
+        id: "translation-pt", locale: "pt", title: "Anel de Lava", localizedHandle: null,
         shortDescription: "Uma peça refinada.", description: null, materialLine: null,
         symbolismLabel: null, symbolismTitle: null, symbolismBody: null, symbolismBody2: null,
         details: null, seoTitle: null, seoDescription: null, reviewStatus: "DRAFT", reviewedAt: null,

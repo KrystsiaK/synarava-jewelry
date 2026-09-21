@@ -103,7 +103,7 @@ export function collectionActionCopy(target: CollectionRowAction) {
 }
 
 export function collectionToDraft(collection: AdminCollection): CollectionDraft {
-  const pt = collection.translations?.find((translation) => translation.locale === "PT");
+  const pt = collection.translations?.find((translation) => translation.locale === "pt");
   return {
     name: collection.name,
     subtitle: collection.subtitle ?? "",

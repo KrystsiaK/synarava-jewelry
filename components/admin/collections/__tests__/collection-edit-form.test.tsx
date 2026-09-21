@@ -60,7 +60,7 @@ describe("EditCollectionForm", () => {
     const user = userEvent.setup();
     const { container } = render(<EditCollectionForm collection={makeCollection({
       translations: [{
-        id: "translation-pt", locale: "PT", name: "Rituais de Verão",
+        id: "translation-pt", locale: "pt", name: "Rituais de Verão",
         description: null, manifesto: null, symbolismLabel: null, symbolismTitle: null,
         symbolismBody: null, symbolismBody2: null, searchSummary: null,
         reviewStatus: "DRAFT", syncStatus: "NOT_APPLICABLE", syncError: null,

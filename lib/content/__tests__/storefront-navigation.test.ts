@@ -24,7 +24,7 @@ describe("getStorefrontNavigation locale", () => {
         name: "Jewelry",
         description: null, manifesto: null, symbolismLabel: null, symbolismTitle: null,
         symbolismBody: null, symbolismBody2: null, searchSummary: null, seoTitle: null, seoDescription: null,
-        translations: [{ locale: "PT", name: "Joalharia", description: null, manifesto: null, symbolismLabel: null, symbolismTitle: null, symbolismBody: null, symbolismBody2: null, searchSummary: null, seoTitle: null, seoDescription: null }],
+        translations: [{ locale: "pt", name: "Joalharia", description: null, manifesto: null, symbolismLabel: null, symbolismTitle: null, symbolismBody: null, symbolismBody2: null, searchSummary: null, seoTitle: null, seoDescription: null }],
       },
     ]);
 
@@ -46,13 +46,13 @@ describe("getStorefrontNavigation locale", () => {
         slug: "jewelry", name: "Jewelry", description: null, manifesto: null,
         symbolismLabel: null, symbolismTitle: null, symbolismBody: null, symbolismBody2: null,
         searchSummary: null, seoTitle: null, seoDescription: null,
-        translations: [{ locale: "PT", name: "Joalharia" }],
+        translations: [{ locale: "pt", name: "Joalharia" }],
       }])
       .mockResolvedValueOnce([{
         slug: "archive", name: "Archive", description: null, manifesto: null,
         symbolismLabel: null, symbolismTitle: null, symbolismBody: null, symbolismBody2: null,
         searchSummary: null, seoTitle: null, seoDescription: null,
-        translations: [{ locale: "PT", name: "Arquivo" }],
+        translations: [{ locale: "pt", name: "Arquivo" }],
       }]);
     mocks.findManyProduct.mockResolvedValue([]);
     mocks.findManyTag.mockResolvedValue([]);

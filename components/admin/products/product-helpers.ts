@@ -108,7 +108,7 @@ export function productToDraft(product: ProductRecord): ProductDraft {
   const marketingCollection = product.collections.find(
     (item) => !item.collection.isPrimaryNav && !item.collection.isStorefrontDefault,
   )?.collection;
-  const pt = product.translations?.find((translation) => translation.locale === "PT");
+  const pt = product.translations?.find((translation) => translation.locale === "pt");
   return {
     name: product.name,
     vendor: product.vendor ?? "",

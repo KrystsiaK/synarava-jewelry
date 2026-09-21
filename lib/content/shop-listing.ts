@@ -3,7 +3,7 @@ import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
 import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { formatCurrency } from "@/lib/i18n/format";
-import { resolveLocalizedContent, storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
+import { resolveLocalizedContent } from "@/lib/i18n/localized-content";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { resolveCollectionName } from "@/lib/collections/localization";
@@ -66,7 +66,7 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
       shopifyCategoryName: true,
       createdAt: true,
       translations: {
-        where: { locale: storefrontLocaleToContentLocale(locale) },
+        where: { locale },
         select: { localizedHandle: true, title: true, shortDescription: true, description: true, materialLine: true },
       },
       variants: {
@@ -104,7 +104,7 @@ export async function listShopListingProducts(requestedLocale?: Locale): Promise
   return rows
     .sort((left, right) => featuredCollectionPosition(left.collections) - featuredCollectionPosition(right.collections))
     .map((row) => {
-      const translation = locale === "pt" ? row.translations[0] : null;
+      const translation = locale !== "en" ? row.translations[0] : null;
       const copy = resolveLocalizedContent({
         source: {
           title: row.name,

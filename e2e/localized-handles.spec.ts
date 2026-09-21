@@ -6,7 +6,7 @@ test("redirects source and previous Portuguese handles while English remains can
   const firstHandle = `${testDataPrefix(runId)}-diario`;
   const nextHandle = `${testDataPrefix(runId)}-caderno`;
   const translation = await db.pageTranslation.create({
-    data: { pageId: record.id, locale: "PT", title: "Diário", localizedHandle: firstHandle },
+    data: { pageId: record.id, locale: "pt", title: "Diário", localizedHandle: firstHandle },
   });
 
   await page.goto(`/pt/${record.slug}`);
@@ -15,7 +15,7 @@ test("redirects source and previous Portuguese handles while English remains can
   await db.$transaction([
     db.pageTranslation.update({ where: { id: translation.id }, data: { localizedHandle: nextHandle } }),
     db.localizedHandleRedirect.create({
-      data: { entityType: "PAGE", entityId: record.id, locale: "PT", fromHandle: firstHandle, toHandle: nextHandle },
+      data: { entityType: "PAGE", entityId: record.id, locale: "pt", fromHandle: firstHandle, toHandle: nextHandle },
     }),
   ]);
   await page.goto(`/pt/${firstHandle}`);

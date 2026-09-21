@@ -1,5 +1,4 @@
 import type { Locale } from "@/lib/i18n/locales";
-import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 import { COLLECTION_FIELD_REGISTRY } from "@/lib/i18n/admin-field-registry";
 import {
   entityLocaleReadiness,
@@ -12,7 +11,7 @@ import {
 // localization.ts, which predates the registry and duplicates this logic).
 
 export type CollectionTranslationRecord = {
-  locale: "EN" | "PT";
+  locale: string;
   localizedHandle?: string | null;
   name: string;
   description?: string | null;
@@ -88,16 +87,15 @@ function translatedCopy(translation: CollectionTranslationRecord): CollectionLoc
 }
 
 export function findCollectionTranslation(collection: LocalizableCollection, locale: Locale) {
-  const persistedLocale = storefrontLocaleToContentLocale(locale);
-  return collection.translations?.find((translation) => translation.locale === persistedLocale) ?? null;
+  return collection.translations?.find((translation) => translation.locale === locale) ?? null;
 }
 
 export function resolveCollectionName(
-  collection: { name: string; translations?: Array<{ locale: "EN" | "PT"; name: string }> },
+  collection: { name: string; translations?: Array<{ locale: string; name: string }> },
   locale: Locale,
 ) {
   if (locale === "en") return collection.name;
-  return collection.translations?.find(({ locale: rowLocale }) => rowLocale === "PT")?.name.trim()
+  return collection.translations?.find(({ locale: rowLocale }) => rowLocale === locale)?.name.trim()
     || collection.name;
 }
 
@@ -116,7 +114,7 @@ export function collectionLocaleReadiness(collection: LocalizableCollection, loc
   }
 
   const translation = findCollectionTranslation(collection, locale);
-  const content = translation ? translatedCopy(translation) : translatedCopy({ locale: "PT", name: "" });
+  const content = translation ? translatedCopy(translation) : translatedCopy({ locale, name: "" });
   const completeness = entityLocaleReadiness(COLLECTION_FIELD_REGISTRY, content, { published });
   return {
     complete: completeness.complete,

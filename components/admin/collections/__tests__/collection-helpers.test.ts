@@ -102,7 +102,7 @@ describe("collectionToDraft", () => {
     const draft = collectionToDraft(makeCollection({
       translations: [{
         id: "translation-pt",
-        locale: "PT",
+        locale: "pt",
         name: "Rituais da Terra",
         description: "Peças fundamentadas.",
         manifesto: null,

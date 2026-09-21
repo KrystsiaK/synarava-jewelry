@@ -41,7 +41,7 @@ export type CollectionFieldName =
 
 export type SavedCollectionTranslationPayload = {
   id: string;
-  locale: "EN" | "PT";
+  locale: string;
   name: string;
   localizedHandle: string | null;
   subtitle: string | null;
@@ -365,7 +365,7 @@ export async function saveCollectionAction(
 
   await db.$transaction([
     db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "EN" } },
+      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "en" } },
       update: {
         name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
         symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
@@ -374,7 +374,7 @@ export async function saveCollectionAction(
         reviewStatus: "REVIEWED", reviewedAt: new Date(),
       },
       create: {
-        collectionId: savedCollection.id, locale: "EN",
+        collectionId: savedCollection.id, locale: "en",
         name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
         symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
         symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
@@ -383,7 +383,7 @@ export async function saveCollectionAction(
       },
     }),
     db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "PT" } },
+      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "pt" } },
       update: {
         ...ptCopy,
         reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
@@ -392,7 +392,7 @@ export async function saveCollectionAction(
         syncStatus: ptSyncStatus,
       },
       create: {
-        collectionId: savedCollection.id, locale: "PT",
+        collectionId: savedCollection.id, locale: "pt",
         ...ptCopy,
         reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
         reviewedAt: ptReviewed ? new Date() : null,
@@ -404,7 +404,8 @@ export async function saveCollectionAction(
   await recordLocalizedHandleRedirect({
     entityType: "COLLECTION",
     entityId: savedCollection.id,
-    previousHandle: before?.translations.find((translation) => translation.locale === "PT")?.localizedHandle,
+    locale: "pt",
+    previousHandle: before?.translations.find((translation) => translation.locale === "pt")?.localizedHandle,
     nextHandle: ptCopy.localizedHandle ?? slug,
   });
 

@@ -25,7 +25,6 @@ import {
   type ProductTranslationRecord,
 } from "@/lib/products/localization";
 import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/localization";
-import { storefrontLocaleToContentLocale } from "@/lib/i18n/localized-content";
 import { resolvePageLocalizedCopy } from "@/lib/pages/localization";
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 import { findLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
@@ -287,7 +286,7 @@ function toSummary(product: {
       isPrimaryNav: boolean;
       isStorefrontDefault: boolean;
       translations: Array<{
-        locale: "EN" | "PT";
+        locale: string;
         name: string;
         description: string | null;
         manifesto: string | null;
@@ -336,7 +335,7 @@ function toSummary(product: {
   const leadCollectionCopy = leadCollection ? resolveCollectionCopy(leadCollection, locale) : null;
   const primaryNavCollectionName = primaryNavCollection ? resolveCollectionName(primaryNavCollection, locale) : "";
   const localized = resolveProductCopy(product, locale);
-  const localizedHandle = product.translations.find((translation) => translation.locale === "PT")?.localizedHandle;
+  const localizedHandle = product.translations.find((translation) => translation.locale === locale)?.localizedHandle;
   const activeSlug = resolveLocalizedHandle(locale, product.slug, localizedHandle);
   const details = parseProductDetails(localized.details);
   const process = {
@@ -480,7 +479,7 @@ export async function getStorefrontNavigation(locale: Locale = "en") {
     include: { translations: true },
   });
   return collections.map((collection) => ({
-    slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === "PT")?.localizedHandle),
+    slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle),
     name: resolveCollectionCopy(collection, locale).name,
   }));
 }
@@ -556,7 +555,7 @@ export async function listCollections(locale: Locale = "en") {
   return collections.map((collection) => {
     const copy = resolveCollectionCopy(collection, locale);
     return {
-      slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === "PT")?.localizedHandle),
+      slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle),
       sourceSlug: collection.slug,
       name: copy.name,
       eyebrow: formatCollectionEyebrow(collection.sortOrder),
@@ -570,13 +569,13 @@ export async function listCollections(locale: Locale = "en") {
 
 export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
   let collection = await db.collection.findFirst({
-    where: locale === "pt"
-      ? { OR: [{ slug }, { translations: { some: { locale: "PT", localizedHandle: slug } } }] }
-      : { slug },
+    where: locale === "en"
+      ? { slug }
+      : { OR: [{ slug }, { translations: { some: { locale, localizedHandle: slug } } }] },
     include: { translations: true },
   });
-  if (!collection && locale === "pt") {
-    const oldHandle = await findLocalizedHandleRedirect("COLLECTION", slug);
+  if (!collection && locale !== "en") {
+    const oldHandle = await findLocalizedHandleRedirect("COLLECTION", locale, slug);
     if (oldHandle) collection = await db.collection.findUnique({ where: { id: oldHandle.entityId }, include: { translations: true } });
   }
 
@@ -585,7 +584,7 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
   }
 
   const copy = resolveCollectionCopy(collection, locale);
-  const activeSlug = resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === "PT")?.localizedHandle);
+  const activeSlug = resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle);
   return {
     slug: activeSlug,
     sourceSlug: collection.slug,
@@ -643,7 +642,6 @@ export async function listShopProducts(
 ) {
   if (options.shopifyProductIds?.length === 0) return [];
   const locale = options.locale ?? await getRequestLocale();
-  const contentLocale = storefrontLocaleToContentLocale(locale);
   const q = filters.q?.trim();
   const sort = normalizeShopSort(filters.sort);
   const orderBy = sort === "newest"
@@ -714,7 +712,7 @@ export async function listShopProducts(
               {
                 translations: {
                   some: {
-                    locale: contentLocale,
+                    locale,
                     OR: [
                       { title: { contains: q, mode: "insensitive" } },
                       { shortDescription: { contains: q, mode: "insensitive" } },
@@ -802,9 +800,9 @@ export async function listShopProducts(
 export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
   const locale = requestedLocale ?? await getRequestLocale();
   let product = await db.product.findFirst({
-    where: locale === "pt"
-      ? { OR: [{ slug }, { translations: { some: { locale: "PT", localizedHandle: slug } } }] }
-      : { slug },
+    where: locale === "en"
+      ? { slug }
+      : { OR: [{ slug }, { translations: { some: { locale, localizedHandle: slug } } }] },
     include: {
       tags: {
         include: {
@@ -842,8 +840,8 @@ export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
       translations: true,
     },
   });
-  if (!product && locale === "pt") {
-    const oldHandle = await findLocalizedHandleRedirect("PRODUCT", slug);
+  if (!product && locale !== "en") {
+    const oldHandle = await findLocalizedHandleRedirect("PRODUCT", locale, slug);
     if (oldHandle) {
       product = await db.product.findUnique({
         where: { id: oldHandle.entityId },
@@ -875,21 +873,21 @@ export async function getProductsByCollection(slug: string, locale?: Locale) {
 export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
   const locale = requestedLocale ?? await getRequestLocale();
   let page = await db.page.findFirst({
-    where: locale === "pt"
-      ? { OR: [{ slug }, { translations: { some: { locale: "PT", localizedHandle: slug } } }] }
-      : { slug },
+    where: locale === "en"
+      ? { slug }
+      : { OR: [{ slug }, { translations: { some: { locale, localizedHandle: slug } } }] },
     include: {
       translations: {
-        where: { locale: storefrontLocaleToContentLocale(locale) },
+        where: { locale },
       },
     },
   });
-  if (!page && locale === "pt") {
-    const oldHandle = await findLocalizedHandleRedirect("PAGE", slug);
+  if (!page && locale !== "en") {
+    const oldHandle = await findLocalizedHandleRedirect("PAGE", locale, slug);
     if (oldHandle) {
       page = await db.page.findUnique({
         where: { id: oldHandle.entityId },
-        include: { translations: { where: { locale: storefrontLocaleToContentLocale(locale) } } },
+        include: { translations: { where: { locale } } },
       });
     }
   }

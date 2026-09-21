@@ -15,7 +15,7 @@ function hasContent(value) {
 }
 
 function findPt(translations) {
-  return translations?.find((translation) => translation.locale === "PT") ?? null;
+  return translations?.find((translation) => translation.locale === "pt") ?? null;
 }
 
 function missingFields(pt, requiredFields) {

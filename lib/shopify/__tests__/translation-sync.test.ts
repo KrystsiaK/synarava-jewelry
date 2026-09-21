@@ -46,10 +46,10 @@ describe("recordSyncEvent", () => {
   it("stamps completedAt for a terminal status but not for PENDING", async () => {
     mocks.eventCreate.mockResolvedValue({ id: "evt-1" });
 
-    await recordSyncEvent({ bindingId: "bind-1", locale: "PT", direction: "PUSH", status: "PENDING" });
+    await recordSyncEvent({ bindingId: "bind-1", locale: "pt", direction: "PUSH", status: "PENDING" });
     expect(mocks.eventCreate.mock.calls[0][0].data.completedAt).toBeNull();
 
-    await recordSyncEvent({ bindingId: "bind-1", locale: "PT", direction: "PUSH", status: "SUCCEEDED" });
+    await recordSyncEvent({ bindingId: "bind-1", locale: "pt", direction: "PUSH", status: "SUCCEEDED" });
     expect(mocks.eventCreate.mock.calls[1][0].data.completedAt).toBeInstanceOf(Date);
   });
 
@@ -57,7 +57,7 @@ describe("recordSyncEvent", () => {
     mocks.eventCreate.mockResolvedValue({ id: "evt-1" });
     const fieldConflicts = [{ field: "title", local: "A", remote: "B" }];
 
-    await recordSyncEvent({ bindingId: "bind-1", locale: "PT", direction: "RECONCILE", status: "CONFLICT", fieldConflicts });
+    await recordSyncEvent({ bindingId: "bind-1", locale: "pt", direction: "RECONCILE", status: "CONFLICT", fieldConflicts });
 
     expect(mocks.eventCreate.mock.calls[0][0].data.fieldConflicts).toEqual(fieldConflicts);
   });

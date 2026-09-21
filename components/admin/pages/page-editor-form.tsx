@@ -206,7 +206,7 @@ export function PageEditor({
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const content = (page.content ?? {}) as EditablePageContent;
-  const normalizedPortuguese = page.translations?.find((translation) => translation.locale === "PT");
+  const normalizedPortuguese = page.translations?.find((translation) => translation.locale === "pt");
   const ptContent: EditablePageCopy = normalizedPortuguese
     ? { ...(normalizedPortuguese.content as EditablePageCopy ?? {}), title: normalizedPortuguese.title, excerpt: normalizedPortuguese.excerpt ?? "" }
     : content.translations?.pt ?? {};

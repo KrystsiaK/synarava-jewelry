@@ -506,7 +506,7 @@ export function ProductsCms({
                 );
                 const enReadiness = productLocaleReadiness(product, "en");
                 const ptReadiness = productLocaleReadiness(product, "pt");
-                const ptTranslation = product.translations.find((translation) => translation.locale === "PT");
+                const ptTranslation = product.translations.find((translation) => translation.locale === "pt");
 
                 return (
                   <div

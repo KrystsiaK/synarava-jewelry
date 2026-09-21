@@ -17,7 +17,7 @@ describe("translation coverage", () => {
       name: "Lava ring",
       shopifyProductId: null,
       translations: [{
-        locale: "PT",
+        locale: "pt",
         title: "Anel Lava",
         shortDescription: "",
         description: "Descrição",
@@ -52,7 +52,7 @@ describe("translation coverage", () => {
       name: "Rings",
       shopifyCollectionId: "gid://shopify/Collection/1",
       translations: [{
-        locale: "PT",
+        locale: "pt",
         name: "Anéis",
         description: null,
         manifesto: null,
@@ -75,7 +75,7 @@ describe("translation coverage", () => {
       id: "page-1",
       title: "About",
       shopifyPageId: "gid://shopify/Page/1",
-      translations: [{ locale: "PT", title: "Sobre", reviewStatus: "REVIEWED" }],
+      translations: [{ locale: "pt", title: "Sobre", reviewStatus: "REVIEWED" }],
     });
 
     expect(row).toMatchObject({

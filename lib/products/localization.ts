@@ -2,11 +2,10 @@ import type { Locale } from "@/lib/i18n/locales";
 import {
   contentCompleteness,
   resolveLocalizedContent,
-  storefrontLocaleToContentLocale,
 } from "@/lib/i18n/localized-content";
 
 export type ProductTranslationRecord = {
-  locale: "EN" | "PT";
+  locale: string;
   localizedHandle?: string | null;
   title: string;
   shortDescription?: string | null;
@@ -104,8 +103,7 @@ function translatedCopy(translation: ProductTranslationRecord): ProductLocalized
 }
 
 export function findProductTranslation(product: LocalizableProduct, locale: Locale) {
-  const persistedLocale = storefrontLocaleToContentLocale(locale);
-  return product.translations?.find((translation) => translation.locale === persistedLocale) ?? null;
+  return product.translations?.find((translation) => translation.locale === locale) ?? null;
 }
 
 export function resolveProductCopy(product: LocalizableProduct, locale: Locale): ProductLocalizedCopy {
@@ -134,7 +132,7 @@ export function productLocaleReadiness(product: LocalizableProduct, locale: Loca
   const translation = findProductTranslation(product, locale);
   const content = translation
     ? translatedCopy(translation)
-    : translatedCopy({ locale: "PT", title: "" });
+    : translatedCopy({ locale, title: "" });
   const completeness = contentCompleteness(content, REQUIRED_PRODUCT_FIELDS);
   return {
     complete: completeness.complete,

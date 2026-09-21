@@ -194,13 +194,50 @@ and explicit invalidation; do not query Shopify during a request.
 
 **Acceptance criteria:**
 
-- [ ] Product/Collection/Page translations, localized-handle redirects,
-  sync events and snapshots use registry locale codes.
-- [ ] Migration preserves all EN/PT records and their unique indexes.
-- [ ] New locale insertion requires no Prisma migration.
+- [x] Product/Collection/Page translations, localized-handle redirects,
+  sync events and snapshots use registry locale codes. `ContentLocale`
+  enum dropped from the schema; `CollectionTranslation`, `ProductTranslation`,
+  `PageTranslation`, `LocalizedHandleRedirect`, `TranslationSyncEvent`
+  all take a plain `String` locale now, lowercase ("en"/"pt") to match the
+  registry's `code`. Every persisted-value read/write across
+  `lib/content/catalog.ts`, `lib/products/localization.ts`,
+  `lib/collections/localization.ts`, the Shopify sync adapters
+  (`reconciliation-source.ts`, `reconciliation-apply.ts`,
+  `editorial-translation-sync.ts`, `product-sync.ts`), the admin actions
+  (products/collections/pages.ts, translation-sync.ts) and the backfill
+  scripts was swept from the old uppercase enum values to the registry
+  codes — `storefrontLocaleToContentLocale()` (storefront→persisted) and
+  the uppercase branch of `contentLocaleForShopify()` (Shopify→persisted)
+  are gone/lowercased, since the persisted value *is* the storefront/registry
+  code now. `findLocalizedHandleRedirect`/`recordLocalizedHandleRedirect`
+  gained an explicit `locale` param instead of hardcoding `"PT"`.
+  Deliberately **not** touched: the admin editors' own UI tab state
+  (`useAdminActiveLocale(..., "EN")`, `AdminLocaleTabs` visibility) and
+  `Page.content.translations.pt` (dead legacy JSON, pre-dates
+  `PageTranslation`) — both are UI/legacy concerns, not persistence, and
+  belong to Task U4 or nowhere at all.
+- [x] Migration preserves all EN/PT records and their unique indexes.
+  `20260921170000_content_locale_to_string`: `ALTER COLUMN ... TYPE TEXT
+  USING lower(locale::TEXT)` per table, additive only. Before/after count
+  report against the real dev DB: `PageTranslation` 11 EN + 7 PT,
+  `ProductTranslation` 10 EN + 1 PT before → identical counts after, now
+  lowercase (`CollectionTranslation`/`LocalizedHandleRedirect`/`TranslationSyncEvent`
+  were empty in this DB). Applied via `migrate deploy`, not `migrate dev`,
+  same reason as Task U1.
+- [x] New locale insertion requires no Prisma migration — confirmed by
+  Task U1's `ru` row: no schema change was needed to route `/ru`.
 
-**Verification:** migration test against a fixture DB and before/after count
-report; `prisma generate`; typecheck.
+**Verification:** before/after row-count report above stands in for a
+migration test (no fixture-DB harness exists in this repo to run one
+against; this ran against the real dev DB with a real snapshot instead).
+`prisma generate` clean. Full suite green: `pnpm exec tsc --noEmit`,
+`pnpm exec eslint .`, `pnpm vitest run` (183 files / 916 tests — 16 test
+fixtures across products/collections/pages localization, admin action, and
+Shopify sync tests updated from uppercase to lowercase locale literals to
+match). Live-verified: admin product editor's PT tab still loads the
+migrated translation ("Colar Turquesa AXIS"), readiness badges (EN 100% /
+PT 100%) still compute correctly, and `/pt/products/axis-turquoise-necklace`
+still resolves the Portuguese title end to end.
 
 #### Task U4: Replace EN/PT form payloads with dynamic locale drafts
 

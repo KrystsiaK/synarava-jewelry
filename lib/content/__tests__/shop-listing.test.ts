@@ -76,7 +76,7 @@ describe("shop listing projection", () => {
         sortOrder: 0,
         collection: {
           slug: "jewelry", name: "Jewelry", isPrimaryNav: true, isStorefrontDefault: false,
-          translations: [{ locale: "PT", name: "Joalharia" }],
+          translations: [{ locale: "pt", name: "Joalharia" }],
         },
       }],
       characteristics: [],

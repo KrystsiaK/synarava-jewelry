@@ -1,7 +1,6 @@
 import {
   contentCompleteness,
   resolveLocalizedContent,
-  storefrontLocaleToContentLocale,
 } from "@/lib/i18n/localized-content";
 
 describe("localized content", () => {
@@ -10,11 +9,6 @@ describe("localized content", () => {
     description: "Handwoven in Lisbon.",
     optionalNote: "Limited edition",
   };
-
-  it("maps storefront locales to persisted locale values", () => {
-    expect(storefrontLocaleToContentLocale("en")).toBe("EN");
-    expect(storefrontLocaleToContentLocale("pt")).toBe("PT");
-  });
 
   it("uses the requested translation while falling back only for optional fields", () => {
     expect(resolveLocalizedContent({

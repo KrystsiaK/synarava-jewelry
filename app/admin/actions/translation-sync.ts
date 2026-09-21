@@ -22,7 +22,7 @@ export type TranslationOverviewEntity = "PRODUCT" | "COLLECTION" | "PAGE" | "STO
 async function syncCollection(collectionId: string, actorUsername: string) {
   const collection = await db.collection.findUnique({
     where: { id: collectionId },
-    include: { translations: { where: { locale: "PT" } } },
+    include: { translations: { where: { locale: "pt" } } },
   });
   if (!collection?.shopifyCollectionId) throw new Error("Collection is not linked to Shopify.");
   const translation = collection.translations[0];
@@ -50,7 +50,7 @@ async function syncCollection(collectionId: string, actorUsername: string) {
     await Promise.all([
       saveTranslationSnapshot({ bindingId: binding.id, locale: "pt-PT", values: snapshot }),
       recordSyncEvent({
-        bindingId: binding.id, locale: "PT", direction: "PUSH", status: "SUCCEEDED", actorUsername,
+        bindingId: binding.id, locale: "pt", direction: "PUSH", status: "SUCCEEDED", actorUsername,
       }),
     ]);
   } catch (error) {
@@ -58,7 +58,7 @@ async function syncCollection(collectionId: string, actorUsername: string) {
     await Promise.all([
       db.collectionTranslation.update({ where: { id: translation.id }, data: { syncStatus: "FAILED", syncError: message } }),
       recordSyncEvent({
-        bindingId: binding.id, locale: "PT", direction: "PUSH", status: "FAILED", error: message, actorUsername,
+        bindingId: binding.id, locale: "pt", direction: "PUSH", status: "FAILED", error: message, actorUsername,
       }),
     ]);
     throw error;
@@ -85,7 +85,7 @@ async function syncProductNativeTranslation(productId: string, actorUsername: st
     select: {
       shopifyProductId: true,
       translations: {
-        where: { locale: "PT" },
+        where: { locale: "pt" },
         select: {
           localizedHandle: true,
           title: true,
@@ -124,7 +124,7 @@ async function syncProductNativeTranslation(productId: string, actorUsername: st
       saveTranslationSnapshot({ bindingId: binding.id, locale: "pt-PT", values: snapshot }),
       recordSyncEvent({
         bindingId: binding.id,
-        locale: "PT",
+        locale: "pt",
         direction: "PUSH",
         status: "SUCCEEDED",
         actorUsername,
@@ -134,12 +134,12 @@ async function syncProductNativeTranslation(productId: string, actorUsername: st
     const message = error instanceof Error ? error.message : String(error);
     await Promise.all([
       db.productTranslation.update({
-        where: { productId_locale: { productId, locale: "PT" } },
+        where: { productId_locale: { productId, locale: "pt" } },
         data: { syncStatus: "FAILED", syncError: message },
       }),
       recordSyncEvent({
         bindingId: binding.id,
-        locale: "PT",
+        locale: "pt",
         direction: "PUSH",
         status: "FAILED",
         error: message,
@@ -161,13 +161,13 @@ export async function retryTranslationSyncAction(entityType: TranslationOverview
       const editorialFailure = editorialResults.find((target) => target.status === "FAILED");
       if (editorialFailure) {
         await db.productTranslation.update({
-          where: { productId_locale: { productId: entityId, locale: "PT" } },
+          where: { productId_locale: { productId: entityId, locale: "pt" } },
           data: { syncStatus: "FAILED", syncError: editorialFailure.error },
         });
         throw new Error(editorialFailure.error);
       }
       await db.productTranslation.update({
-        where: { productId_locale: { productId: entityId, locale: "PT" } },
+        where: { productId_locale: { productId: entityId, locale: "pt" } },
         data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
       });
     } else if (entityType === "COLLECTION") {

@@ -24,7 +24,7 @@ export async function backfillLegalDocuments(): Promise<LegalDocumentBackfillRes
   for (const docConfig of LEGAL_DOCUMENT_CONFIGS) {
     const page = await db.page.findUnique({
       where: { slug: docConfig.slug },
-      include: { translations: { where: { locale: "PT" } } },
+      include: { translations: { where: { locale: "pt" } } },
     });
 
     if (!page) {

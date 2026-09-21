@@ -134,10 +134,10 @@ describe("savePageAction", () => {
       }),
     }));
     expect(mocks.upsertPageTranslation).toHaveBeenCalledWith(expect.objectContaining({
-      where: { pageId_locale: { pageId: "home-page", locale: "PT" } },
+      where: { pageId_locale: { pageId: "home-page", locale: "pt" } },
       create: expect.objectContaining({
         pageId: "home-page",
-        locale: "PT",
+        locale: "pt",
         title: "Home",
         content: expect.objectContaining({
           departmentSectionTitle: "Escolha por onde começar.",

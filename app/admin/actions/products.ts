@@ -136,7 +136,7 @@ export type SavedProductPayload = {
 
 export type SavedProductTranslationPayload = {
   id: string;
-  locale: "EN" | "PT";
+  locale: string;
   title: string;
   localizedHandle: string | null;
   shortDescription: string | null;
@@ -572,7 +572,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     ? validateProductPublication({
         isAlreadyPublic: Boolean(
           (before?.visibility === "PUBLIC" || before?.visibility === "UNLISTED")
-          && !before.translations.some((translation) => translation.locale === "PT"),
+          && !before.translations.some((translation) => translation.locale === "pt"),
         ),
         english: { title: name, shortDescription, description },
         portuguese: { title: ptTitle, shortDescription: ptShortDescription, description: ptDescription },
@@ -785,7 +785,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const ptContentHash = createHash("sha256").update(JSON.stringify(ptCopy)).digest("hex");
   const ptReviewed = parsed.data.ptReviewed === "on"
     && Boolean(ptTitle && ptShortDescription && ptDescription);
-  const previousPortuguese = before?.translations.find((translation) => translation.locale === "PT");
+  const previousPortuguese = before?.translations.find((translation) => translation.locale === "pt");
   const sourceTranslationChanged = !before
     || before.name !== name
     || before.description !== description
@@ -800,7 +800,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       : "PENDING" as const;
   await db.$transaction([
     db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "EN" } },
+      where: { productId_locale: { productId: product.id, locale: "en" } },
       update: {
         title: name,
         shortDescription: shortDescription || null,
@@ -818,7 +818,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       },
       create: {
         productId: product.id,
-        locale: "EN",
+        locale: "en",
         title: name,
         shortDescription: shortDescription || null,
         description: description || null,
@@ -835,7 +835,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       },
     }),
     db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "PT" } },
+      where: { productId_locale: { productId: product.id, locale: "pt" } },
       update: {
         ...ptCopy,
         reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
@@ -846,7 +846,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       },
       create: {
         productId: product.id,
-        locale: "PT",
+        locale: "pt",
         ...ptCopy,
         reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
         reviewedAt: ptReviewed ? new Date() : null,
@@ -858,6 +858,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   await recordLocalizedHandleRedirect({
     entityType: "PRODUCT",
     entityId: product.id,
+    locale: "pt",
     previousHandle: previousPortuguese?.localizedHandle,
     nextHandle: ptCopy.localizedHandle ?? slug,
   });
@@ -1090,7 +1091,7 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
 
   await db.$transaction([
     db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "EN" } },
+      where: { productId_locale: { productId: product.id, locale: "en" } },
       update: {
         title: name,
         shortDescription: shortDescription || null,
@@ -1104,7 +1105,7 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
       },
       create: {
         productId: product.id,
-        locale: "EN",
+        locale: "en",
         title: name,
         shortDescription: shortDescription || null,
         description: description || null,
@@ -1117,7 +1118,7 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
       },
     }),
     db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "PT" } },
+      where: { productId_locale: { productId: product.id, locale: "pt" } },
       update: {
         title: ptTitle,
         shortDescription: ptShortDescription || null,
@@ -1130,7 +1131,7 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
       },
       create: {
         productId: product.id,
-        locale: "PT",
+        locale: "pt",
         title: ptTitle,
         shortDescription: ptShortDescription || null,
         description: ptDescription || null,
@@ -1220,7 +1221,7 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
   const missingImage = action === "publish" && !before?.imageUrl;
   let missingTranslations: string[] = [];
   if (action === "publish" && before) {
-    const portuguese = before.translations.find((translation) => translation.locale === "PT");
+    const portuguese = before.translations.find((translation) => translation.locale === "pt");
     missingTranslations = validateProductPublication({
       isAlreadyPublic: false,
       english: {

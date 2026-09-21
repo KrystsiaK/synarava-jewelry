@@ -26,7 +26,7 @@ describe("collection localization", () => {
   it("returns Portuguese copy and only falls back for optional fields", () => {
     const resolved = resolveCollectionCopy(collection({
       translations: [{
-        locale: "PT",
+        locale: "pt",
         name: "Rituais da Terra",
         description: "Peças fundamentadas.",
         manifesto: null,

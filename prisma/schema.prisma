@@ -88,7 +88,7 @@ model Collection {
 
 model CollectionTranslation {
   id              String                  @id @default(cuid())
-  locale          ContentLocale
+  locale          String
   name            String
   localizedHandle String?                 @unique
   subtitle        String?
@@ -190,7 +190,7 @@ model Product {
 
 model ProductTranslation {
   id               String                  @id @default(cuid())
-  locale           ContentLocale
+  locale           String
   title            String
   localizedHandle  String?                 @unique
   shortDescription String?
@@ -446,7 +446,7 @@ model Page {
 
 model PageTranslation {
   id              String                  @id @default(cuid())
-  locale          ContentLocale
+  locale          String
   title           String
   localizedHandle String?                 @unique
   excerpt         String?
@@ -481,7 +481,7 @@ model LocalizedHandleRedirect {
   id         String        @id @default(cuid())
   entityType String
   entityId   String
-  locale     ContentLocale
+  locale     String
   fromHandle String
   toHandle   String
   createdAt  DateTime      @default(now())
@@ -567,11 +567,6 @@ enum ProductSyncStatus {
   SYNCED
   CONFLICT
   FAILED
-}
-
-enum ContentLocale {
-  EN
-  PT
 }
 
 enum TranslationReviewStatus {
@@ -754,7 +749,7 @@ model TranslationSyncEvent {
   id             String                    @id @default(cuid())
   bindingId      String
   binding        ShopifyTranslationBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
-  locale         ContentLocale
+  locale         String
   direction      SyncDirection
   status         SyncEventStatus           @default(PENDING)
   fieldConflicts Json?

@@ -754,7 +754,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   });
 
   const localPortuguese = await db.productTranslation.findUnique({
-    where: { productId_locale: { productId: product.id, locale: "PT" } },
+    where: { productId_locale: { productId: product.id, locale: "pt" } },
   });
   let translationStatus: "SYNCED" | "LOCAL_CHANGES" | "CONFLICT" | "UNAVAILABLE" = "SYNCED";
   let remotePortuguese: ShopifyProductTranslationSnapshot | null = null;
@@ -830,7 +830,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
           && !remotePortuguese.outdated,
         );
         await db.productTranslation.upsert({
-          where: { productId_locale: { productId: product.id, locale: "PT" } },
+          where: { productId_locale: { productId: product.id, locale: "pt" } },
           update: {
             ...mergedCopy,
             reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
@@ -842,7 +842,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
           },
           create: {
             productId: product.id,
-            locale: "PT",
+            locale: "pt",
             ...mergedCopy,
             reviewStatus: "DRAFT",
             syncStatus: "SYNCED",
@@ -1502,7 +1502,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     await deleteUnreferencedArchivedProductAssets();
 
     let translationError: string | undefined;
-    const portuguese = product.translations.find((translation) => translation.locale === "PT");
+    const portuguese = product.translations.find((translation) => translation.locale === "pt");
     if (
       portuguese?.reviewStatus === "REVIEWED"
       && portuguese.title.trim()
@@ -1708,7 +1708,7 @@ export async function previewShopifyReconciliation(): Promise<ShopifyReconciliat
       shopifyUpdatedAt: true,
       syncStatus: true,
       translations: {
-        where: { locale: "PT" },
+        where: { locale: "pt" },
         select: {
           title: true,
           description: true,

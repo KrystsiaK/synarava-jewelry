@@ -1,11 +1,3 @@
-import type { Locale } from "./locales";
-
-export type PersistedContentLocale = "EN" | "PT";
-
-export function storefrontLocaleToContentLocale(locale: Locale): PersistedContentLocale {
-  return locale === "pt" ? "PT" : "EN";
-}
-
 // "Blank" for a string means empty/whitespace; for JSON content (details,
 // materialLexicon, legalSections, ...) it means null/undefined only — an
 // object or array is content even if some of its own leaves are empty, and

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma, type ContentLocale, type SyncDirection, type SyncEventStatus, type TranslationResourceType } from "@prisma/client";
+import { Prisma, type SyncDirection, type SyncEventStatus, type TranslationResourceType } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { FieldConflict } from "@/lib/i18n/admin-localization";
 
@@ -74,7 +74,7 @@ export async function recordSyncEvent({
   actorUsername,
 }: {
   bindingId: string;
-  locale: ContentLocale;
+  locale: string;
   direction: SyncDirection;
   status: SyncEventStatus;
   fieldConflicts?: FieldConflict[];

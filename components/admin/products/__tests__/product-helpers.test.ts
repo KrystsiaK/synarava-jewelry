@@ -153,7 +153,7 @@ describe("productToDraft", () => {
     const draft = productToDraft(makeProduct({
       translations: [{
         id: "translation-pt",
-        locale: "PT",
+        locale: "pt",
         title: "Anel de Lava",
         shortDescription: "Entrelaçado à mão.",
         description: "Feito em Lisboa.",
@@ -186,7 +186,7 @@ describe("productToDraft", () => {
     const draft = productToDraft(makeProduct({
       translations: [{
         id: "translation-pt",
-        locale: "PT",
+        locale: "pt",
         title: "Anel de Lava",
         shortDescription: "",
         description: "",

@@ -72,7 +72,7 @@ describe("getPageBySlug localization", () => {
       status: "PUBLISHED",
       visibility: "PUBLIC",
       content: { body: "English body", translations: { pt: { title: "Legacy", body: "Legacy body" } } },
-      translations: [{ locale: "PT", title: "Sobre", excerpt: "Resumo", content: { body: "Corpo normalizado" } }],
+      translations: [{ locale: "pt", title: "Sobre", excerpt: "Resumo", content: { body: "Corpo normalizado" } }],
     });
 
     await expect(getPageBySlug("about", "pt")).resolves.toMatchObject({
@@ -86,7 +86,7 @@ describe("getPageBySlug localization", () => {
     const row = {
       id: "page-1", slug: "journal", title: "Journal", excerpt: null,
       status: "PUBLISHED", visibility: "PUBLIC", content: {},
-      translations: [{ locale: "PT", title: "Diário", localizedHandle: "caderno", content: {} }],
+      translations: [{ locale: "pt", title: "Diário", localizedHandle: "caderno", content: {} }],
     };
     mocks.findUniquePage.mockResolvedValueOnce(null).mockResolvedValueOnce(row);
     mocks.findRedirect.mockResolvedValue({ entityId: "page-1" });
