@@ -36,7 +36,7 @@ export const SERVICE_SECTIONS: Record<ServicePageSlug, LegalSectionMeta[]> = {
   ],
   "dispute-resolution": [
     { id: "ral", label: "Alternative dispute resolution" },
-    { id: "odr", label: "Online dispute resolution" },
+    { id: "livro", label: "Livro de Reclamações" },
   ],
 };
 
@@ -75,7 +75,7 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_EN: Record<ServicePageSlug, ServicePage
   },
   "dispute-resolution": {
     eyebrow: "Service / Consumer rights",
-    intro: "If we cannot resolve a complaint directly, Portuguese and EU law give you access to the following alternative dispute resolution channels.",
+    intro: "If we cannot resolve a complaint directly, you may have access to alternative consumer dispute resolution services.",
   },
 };
 
@@ -98,7 +98,7 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_PT: Record<ServicePageSlug, ServicePage
   },
   "dispute-resolution": {
     eyebrow: "Serviço / Direitos do consumidor",
-    intro: "Se não conseguirmos resolver uma reclamação diretamente, a lei portuguesa e europeia dá-lhe acesso aos seguintes meios de resolução alternativa de litígios.",
+    intro: "Se não conseguirmos resolver uma reclamação diretamente, poderá ter acesso a serviços alternativos de resolução de litígios de consumo.",
   },
 };
 
@@ -178,11 +178,11 @@ export const SERVICE_SECTION_DEFAULTS_EN: Record<ServicePageSlug, Record<string,
   "dispute-resolution": {
     ral: {
       title: "Alternative dispute resolution (RAL)",
-      body: "As a consumer, you may refer an unresolved dispute to the Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), a licensed alternative dispute resolution entity.\n\nRua dos Douradores, 116, 2.º, 1100-207 Lisboa, Portugal\nTel: +351 218 807 030 · Email: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
+      body: "If a consumer dispute cannot be resolved directly with us, you may contact the Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), an authorised consumer dispute resolution entity.\nRua dos Douradores, 116, 2.º\n1100-207 Lisboa, Portugal\nTel: +351 218 807 030\nEmail: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
     },
-    odr: {
-      title: "Online dispute resolution (ODR)",
-      body: "For purchases made online, you can also use the European Commission's Online Dispute Resolution platform to submit a complaint: ec.europa.eu/consumers/odr. You can also register any complaint in the Livro de Reclamações at livroreclamacoes.pt.",
+    livro: {
+      title: "Livro de Reclamações",
+      body: "You can also submit a complaint through the official Portuguese electronic complaints book, Livro de Reclamações Eletrónico.\nwww.livroreclamacoes.pt",
     },
   },
 };
@@ -263,11 +263,11 @@ export const SERVICE_SECTION_DEFAULTS_PT: Record<ServicePageSlug, Record<string,
   "dispute-resolution": {
     ral: {
       title: "Resolução alternativa de litígios (RAL)",
-      body: "Enquanto consumidor, pode recorrer ao Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), uma entidade de resolução alternativa de litígios licenciada, para litígios que não consigamos resolver diretamente.\n\nRua dos Douradores, 116, 2.º, 1100-207 Lisboa, Portugal\nTel: +351 218 807 030 · Email: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
+      body: "Se um litígio de consumo não puder ser resolvido diretamente connosco, pode contactar o Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), uma entidade de resolução alternativa de litígios de consumo autorizada.\nRua dos Douradores, 116, 2.º\n1100-207 Lisboa, Portugal\nTel: +351 218 807 030\nEmail: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
     },
-    odr: {
-      title: "Resolução de litígios em linha (RLL)",
-      body: "Para compras feitas online, também pode utilizar a plataforma de Resolução de Litígios em Linha da Comissão Europeia: ec.europa.eu/consumers/odr. Pode também registar qualquer reclamação no Livro de Reclamações Eletrónico em livroreclamacoes.pt.",
+    livro: {
+      title: "Livro de Reclamações",
+      body: "Também pode apresentar uma reclamação através do Livro de Reclamações Eletrónico oficial português.\nwww.livroreclamacoes.pt",
     },
   },
 };

@@ -150,8 +150,8 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
     title: "How disputes are resolved",
     body: [
       "In the event of a dispute, we encourage you to contact us first at [synarava.shop@gmail.com](mailto:synarava.shop@gmail.com). We aim to resolve all issues amicably within 10 business days.",
-      "If an amicable resolution cannot be reached, EU residents may refer the matter to the EU Online Dispute Resolution platform at ec.europa.eu/consumers/odr.",
-      "This Agreement is governed by the laws of the Republic of Lithuania (where Synarava's operations are registered). Disputes that cannot be resolved via ODR shall be subject to the jurisdiction of the competent courts of Lithuania, without prejudice to mandatory consumer protection provisions in the Buyer's country of residence.",
+      "If an amicable resolution cannot be reached, you may have access to alternative consumer dispute resolution services — see our Consumer Dispute Resolution page for the available channels.",
+      "This Agreement is governed by the laws of the Republic of Lithuania (where Synarava's operations are registered). Disputes that cannot be resolved amicably shall be subject to the jurisdiction of the competent courts of Lithuania, without prejudice to mandatory consumer protection provisions in the Buyer's country of residence.",
     ].join("\n\n"),
   },
   final: {
