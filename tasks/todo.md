@@ -475,7 +475,7 @@ Detailed product and technical design: `tasks/shopify-sync-reconciliation-plan.m
 - [x] Add a calm, distinct sync-health indicator to the admin shell; do not mix it with editorial Problems.
 - [x] Show checking, current, differences found, action required, partial, and unavailable states in plain language.
 - [x] Make the signal accessible by keyboard/screen reader and legible in light/dark themes.
-- [ ] Define mobile behavior without covering page controls or sticky locale tabs.
+- [x] Define mobile behavior without covering page controls or sticky locale tabs. Verified live at 390px and 320px (2026-09-21): the sync signal already collapses to icon-only at `≤40rem` (`app/globals.css`), and structurally can't cover the sticky locale tabs — `AdminSmartTopbar` sits outside `.admin-content` (the sticky tabs' own scroll container), so they stack cleanly with no overlap. Checked both the dashboard topbar and the Product editor's `LOCALE / EN / PT` sticky bar directly below it. No code change needed.
 
 ### Task 28: Replace the overview with an actionable workspace
 
