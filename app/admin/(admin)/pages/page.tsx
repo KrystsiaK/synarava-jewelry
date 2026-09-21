@@ -1,4 +1,5 @@
 import { PagesCms } from "@/components/admin/pages/pages-cms";
+import { LegalDocumentBackfillButton } from "@/components/admin/pages/legal-document-backfill-button";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 
 export default async function AdminPagesPage() {
@@ -13,6 +14,8 @@ export default async function AdminPagesPage() {
           Editorial CMS for page copy, publishing state, and route-specific hero images.
         </p>
       </div>
+
+      <LegalDocumentBackfillButton />
 
       <PagesCms pages={pages} />
     </div>
