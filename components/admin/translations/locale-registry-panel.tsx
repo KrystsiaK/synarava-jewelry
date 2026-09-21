@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { syncStorefrontLocalesAction } from "@/app/admin/actions/translation-sync";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
+import type { ShopifyShopLocale } from "@/lib/shopify/admin";
 
 export function LocaleRegistryPanel({
   locales,
@@ -17,12 +18,14 @@ export function LocaleRegistryPanel({
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [unmatched, setUnmatched] = useState<ShopifyShopLocale[]>([]);
 
   function checkNow() {
     setMessage(null);
     startTransition(async () => {
       const result = await syncStorefrontLocalesAction();
       setMessage(result.error ?? result.success ?? null);
+      setUnmatched(result.unmatched ?? []);
     });
   }
 
@@ -78,6 +81,20 @@ export function LocaleRegistryPanel({
       </div>
 
       {message ? <p className="adm-apply-message" role="status">{message}</p> : null}
+
+      {unmatched.length > 0 ? (
+        <div className="grid gap-2 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>
+          <p className="text-sm font-medium">Published in Shopify, not yet in the registry:</p>
+          <ul className="grid gap-1 text-sm">
+            {unmatched.map((locale) => (
+              <li key={locale.locale}>
+                <code>{locale.locale}</code> — {locale.name} ({locale.published ? "published" : "not published"}).
+                Add a route segment for it before it can go live.
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

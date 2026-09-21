@@ -194,7 +194,13 @@ export async function syncStorefrontLocalesAction() {
   try {
     const result = await syncStorefrontLocalesFromShopify();
     revalidatePath("/admin/translations");
-    return { success: `Checked ${result.updated.length} locale${result.updated.length === 1 ? "" : "s"} against Shopify.` };
+    const summary = `Checked ${result.updated.length} locale${result.updated.length === 1 ? "" : "s"} against Shopify.`;
+    return {
+      success: result.unmatched.length > 0
+        ? `${summary} Shopify has ${result.unmatched.length} more not yet in the registry.`
+        : summary,
+      unmatched: result.unmatched,
+    };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Locale sync failed." };
   }
