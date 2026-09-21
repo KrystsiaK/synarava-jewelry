@@ -19,7 +19,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
   const [draftId, setDraftId] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const { pushToast } = useAdminToast();
-  const [activeLocale, selectLocale] = useAdminActiveLocale("page:new", "EN");
+  const [activeLocale, selectLocale] = useAdminActiveLocale("page:new");
 
   useDraftAutosave({
     formRef,

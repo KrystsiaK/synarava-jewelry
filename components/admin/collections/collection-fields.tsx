@@ -144,7 +144,7 @@ export function CollectionFields({
   /** Existing persisted collection only — omit when creating a new one. */
   entityId?: string;
 }) {
-  const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, "EN");
+  const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`);
   const isEn = locale === "EN";
   return (
     <>

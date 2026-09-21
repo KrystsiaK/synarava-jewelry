@@ -7,9 +7,18 @@ import {
   type EntitySyncScope,
 } from "@/components/admin/translations/entity-locale-sync-control";
 
-export type AdminLocale = "EN" | "PT";
+/**
+ * A locale code as it appears in the admin — still whatever a caller passes
+ * via `locales` (today, always the two below; no editor has real fields
+ * for a third locale yet). Widened from a closed "EN" | "PT" union so a
+ * form that does grow a third tab doesn't need to touch this file.
+ */
+export type AdminLocale = string;
 
-const LOCALE_TABS: Array<{ code: AdminLocale; label: string }> = [
+export type AdminLocaleTab = { code: AdminLocale; label: string };
+
+/** The only locale set any admin editor has real fields for today. Pass this until an editor has an actual third-locale panel to show. */
+export const EN_PT_LOCALE_TABS: AdminLocaleTab[] = [
   { code: "EN", label: "English" },
   { code: "PT", label: "Português" },
 ];
@@ -29,12 +38,13 @@ function statusBadgeClass(status: AdminLocaleStatus) {
 /**
  * Session-persisted active locale, scoped by `storageKey` so unrelated forms
  * (Product vs Collection vs Page) don't fight over the same tab. Falls back
- * silently if sessionStorage is unavailable (private browsing, SSR).
+ * silently if sessionStorage is unavailable (private browsing, SSR), and
+ * ignores a stored value that isn't one of `locales` (e.g. a tab set shrank).
  */
-function readStoredLocale(storageKey: string): AdminLocale | null {
+function readStoredLocale(storageKey: string, locales: AdminLocaleTab[]): AdminLocale | null {
   try {
     const stored = sessionStorage.getItem(storageKey);
-    return stored === "EN" || stored === "PT" ? stored : null;
+    return stored && locales.some((locale) => locale.code === stored) ? stored : null;
   } catch {
     return null;
   }
@@ -46,11 +56,15 @@ function readStoredLocale(storageKey: string): AdminLocale | null {
  * (e.g. the Product editor's commerce grid) and so can't adopt
  * `AdminLocaleWorkspace`'s three-slot (sharedHeader/en/pt) render shape
  * without an unrelated visual restructure. Those forms pair this with
- * `<AdminLocaleTabs>` and their own `hidden={active !== "EN"}` markup.
+ * `<AdminLocaleTabs>` and their own `hidden={active !== locales[0].code}` markup.
  */
-export function useAdminActiveLocale(storageKey: string, defaultLocale: AdminLocale = "EN") {
+export function useAdminActiveLocale(
+  storageKey: string,
+  locales: AdminLocaleTab[] = EN_PT_LOCALE_TABS,
+  defaultLocale: AdminLocale = locales[0]?.code ?? "EN",
+) {
   const scopedKey = `adm-locale:${storageKey}`;
-  const [active, setActive] = useState<AdminLocale>(() => readStoredLocale(scopedKey) ?? defaultLocale);
+  const [active, setActive] = useState<AdminLocale>(() => readStoredLocale(scopedKey, locales) ?? defaultLocale);
 
   function select(locale: AdminLocale) {
     setActive(locale);
@@ -67,7 +81,9 @@ export function useAdminActiveLocale(storageKey: string, defaultLocale: AdminLoc
 export type AdminLocaleTabsProps = {
   active: AdminLocale;
   onSelect: (locale: AdminLocale) => void;
-  /** Sync/readiness status shown next to the tabs (Shopify push/pull state). English has no sync status — it's the source. */
+  /** Which locales to render as tabs. Defaults to the EN/PT pair every editor has fields for today. */
+  locales?: AdminLocaleTab[];
+  /** Sync/readiness status shown next to the tabs (Shopify push/pull state). The source locale has no sync status. */
   ptStatus?: AdminLocaleStatus;
   /** Existing persisted entity only. Adds locale-scoped Shopify check/review controls without changing the form fields. */
   syncScope?: EntitySyncScope;
@@ -79,19 +95,29 @@ export type AdminLocaleTabsProps = {
 };
 
 /**
- * The sticky EN/PT tab strip on its own, for forms whose shared and
+ * The sticky locale tab strip on its own, for forms whose shared and
  * localized fields are interleaved in one layout (see `useAdminActiveLocale`
  * above) and so render their own panels/`hidden` markup instead of using
  * `AdminLocaleWorkspace`'s three-slot shape.
  */
-export function AdminLocaleTabs({ active, onSelect, ptStatus, syncScope, sharedHeader, tabId, panelId }: AdminLocaleTabsProps) {
-  const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({ EN: null, PT: null });
+export function AdminLocaleTabs({
+  active,
+  onSelect,
+  locales = EN_PT_LOCALE_TABS,
+  ptStatus,
+  syncScope,
+  sharedHeader,
+  tabId,
+  panelId,
+}: AdminLocaleTabsProps) {
+  const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({});
   const fallbackId = useId();
   const idFor = tabId ?? ((locale: AdminLocale) => `${fallbackId}-tab-${locale}`);
   const panelIdFor = panelId;
+  const sourceCode = locales[0]?.code;
 
   function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const lastIndex = LOCALE_TABS.length - 1;
+    const lastIndex = locales.length - 1;
     let nextIndex: number | null = null;
     if (event.key === "ArrowRight") nextIndex = index === lastIndex ? 0 : index + 1;
     else if (event.key === "ArrowLeft") nextIndex = index === 0 ? lastIndex : index - 1;
@@ -100,7 +126,7 @@ export function AdminLocaleTabs({ active, onSelect, ptStatus, syncScope, sharedH
     if (nextIndex === null) return;
 
     event.preventDefault();
-    const next = LOCALE_TABS[nextIndex];
+    const next = locales[nextIndex];
     onSelect(next.code);
     tabRefs.current[next.code]?.focus();
   }
@@ -114,7 +140,7 @@ export function AdminLocaleTabs({ active, onSelect, ptStatus, syncScope, sharedH
         className="flex flex-wrap items-center gap-1.5 pb-4"
       >
         <span className="adm-section-tag mr-1">LOCALE /</span>
-        {LOCALE_TABS.map((locale, index) => (
+        {locales.map((locale, index) => (
           <button
             key={locale.code}
             ref={(node) => { tabRefs.current[locale.code] = node; }}
@@ -134,7 +160,7 @@ export function AdminLocaleTabs({ active, onSelect, ptStatus, syncScope, sharedH
           </button>
         ))}
         <span className="adm-section-tag ml-2">
-          {active === "EN" ? "// EN — SOURCE" : "// PT — TRANSLATION"}
+          {active === sourceCode ? `// ${sourceCode} — SOURCE` : `// ${active} — TRANSLATION`}
         </span>
         {ptStatus ? (
           <span className={`${statusBadgeClass(ptStatus)} ${syncScope ? "" : "ml-auto"}`} role="status" aria-live="polite">
@@ -154,9 +180,9 @@ export type AdminLocaleWorkspaceProps = {
   defaultLocale?: AdminLocale;
   /** Locale to force-open, e.g. the locale of the first validation error. Takes priority over the remembered tab. */
   forceLocale?: AdminLocale;
-  /** Sync/readiness status shown on the PT tab (Shopify push/pull state). English has no sync status — it's the source. */
+  /** Sync/readiness status shown on the translation tab (Shopify push/pull state). The source locale has no sync status. */
   ptStatus?: AdminLocaleStatus;
-  /** Content rendered once, above the tabs, shared between EN and PT (e.g. media, relations, commerce fields that don't localize). */
+  /** Content rendered once, above the tabs, shared between locales (e.g. media, relations, commerce fields that don't localize). */
   sharedHeader?: ReactNode;
   en: ReactNode;
   pt: ReactNode;
@@ -170,6 +196,11 @@ export type AdminLocaleWorkspaceProps = {
  * `hidden`, not unmounted) so uncontrolled inputs keep their value and any
  * shared controlled draft state survives switching tabs — see
  * tasks/plan.md "Скрытие panel не размонтирует uncontrolled inputs".
+ *
+ * Still EN/PT-only (named `en`/`pt` props, not a locale-keyed map) — no
+ * caller has a third panel to render yet. `AdminLocaleTabs` above is the
+ * part that's locale-count-generic; this wrapper covers the one shape
+ * every current caller actually needs.
  *
  * A form whose shared and localized fields are interleaved in one layout
  * (Product's commerce grid) can't adopt this three-slot shape without an
@@ -186,7 +217,7 @@ export function AdminLocaleWorkspace({
   pt,
   onLocaleChange,
 }: AdminLocaleWorkspaceProps) {
-  const [active, select] = useAdminActiveLocale(storageKey, defaultLocale);
+  const [active, select] = useAdminActiveLocale(storageKey, EN_PT_LOCALE_TABS, defaultLocale);
   const tablistId = useId();
 
   useEffect(() => {

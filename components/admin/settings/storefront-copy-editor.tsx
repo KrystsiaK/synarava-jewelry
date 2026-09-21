@@ -25,7 +25,7 @@ export function StorefrontCopyEditor({
   const [state, setState] = useState<StorefrontCopyActionState>({});
   const [isPending, startTransition] = useTransition();
   const { pushToast } = useAdminToast();
-  const [activeLocale, selectLocale] = useAdminActiveLocale("storefront-copy", "EN");
+  const [activeLocale, selectLocale] = useAdminActiveLocale("storefront-copy");
 
   function formAction(formData: FormData) {
     startTransition(async () => {

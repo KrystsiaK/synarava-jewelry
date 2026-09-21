@@ -232,7 +232,7 @@ export function PageEditor({
   const legalSections = isOfferPage ? OFFER_SECTIONS : isTermsPage ? TERMS_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : isLegalNoticePage ? LEGAL_NOTICE_SECTIONS : [];
   const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
   const { pushToast } = useAdminToast();
-  const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, "EN");
+  const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`);
   const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, PageLocaleDraft>>(() => ({
     EN: draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" }),
     PT: draftFromCopy(ptContent),

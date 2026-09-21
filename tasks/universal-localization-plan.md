@@ -241,14 +241,46 @@ still resolves the Portuguese title end to end.
 
 #### Task U4: Replace EN/PT form payloads with dynamic locale drafts
 
-**Acceptance criteria:**
+**Status: partially done (2026-09-21) — mechanism only, deliberately stopped short of the risky part.**
+Right after fixing a production outage caused by an earlier task's Next.js
+rendering assumption, a full rewrite of the Product/Collection/Page save
+actions (real commerce data, ~4900 lines across 7 files) didn't feel like
+the right thing to do carelessly in the same session. Did the safe half
+instead; the risky half (below) is still open.
 
-- [ ] `AdminLocaleWorkspace` renders every active locale as ARIA tabs.
-- [ ] Switching tabs never loses unsaved values.
+- [x] `AdminLocaleTabs`/`useAdminActiveLocale` render every locale in a
+  passed-in list as ARIA tabs — `AdminLocale` widened from a closed
+  `"EN" | "PT"` union to `string`, `LOCALE_TABS` is no longer a hardcoded
+  module constant. Proven generic with a live 3-tab (en/pt/ru) test, not
+  just "still shows 2 by default." `AdminLocaleWorkspace` (the 3-slot
+  `en`/`pt` wrapper) turned out to be unused by any real editor — every
+  actual consumer (Product, Collection, Page, Storefront Copy) already used
+  `AdminLocaleTabs` directly — so it was left as the one EN/PT-named
+  convenience shape it actually is, not force-generalized for no caller.
+- [ ] Switching tabs never loses unsaved values — unchanged from before
+  (already true), not re-verified beyond the existing test coverage.
 - [ ] Requiredness, review status, sync status and first-error focus work per
-  locale, without `pt*` form field names.
+  locale, without `pt*` form field names — **not done.** The tab strip can
+  now show any locale, but every editor's actual fields are still fixed
+  `en`/`pt` panels (`components/admin/products/product-form-fields.tsx`,
+  `collection-fields.tsx`, `page-editor-form.tsx`) and the save actions
+  (`app/admin/actions/{products,collections,pages}.ts`) still parse literal
+  `pt*`-prefixed FormData fields, not a locale-keyed draft. (One partial
+  exception: `page-editor-form.tsx`'s `localizedFieldName()` already
+  generalizes client-side — "EN uses the bare key, every other locale
+  prefixes it" — but `savePageAction` only ever reads the `pt*` prefix, so
+  a real third locale still can't round-trip.) No editor's tab list was
+  changed to actually show a third locale, since doing that without real
+  panels behind it would render a blank tab — same reasoning as Task U2's
+  language switcher staying EN/PT-only.
 
-**Verification:** component tests with EN/PT/RU and keyboard/mobile checks.
+**Verification:** `admin-locale-workspace.test.tsx` — 2 new tests (3-tab
+render + keyboard nav in range with a non-EN/PT list; source-locale label
+derived from `locales[0]`, not hardcoded "EN"), 11/11 passing. Full suite
+green: tsc, eslint, 916 tests. Live-verified zero regression in the
+Product, Collection, and Page editors (tab switching, EN↔PT content).
+Remaining work — generic form fields + save actions — needs its own
+careful pass, not a rushed continuation of this one.
 
 ### Phase 3 — Generic content and Shopify synchronization
 

@@ -100,6 +100,36 @@ describe("AdminLocaleWorkspace", () => {
   });
 });
 
+describe("AdminLocaleTabs with a custom locale list", () => {
+  it("renders a tab per entry, not just EN/PT, and keeps keyboard nav in range", async () => {
+    const user = userEvent.setup();
+    const locales = [
+      { code: "en", label: "English" },
+      { code: "pt", label: "Português" },
+      { code: "ru", label: "Русский" },
+    ];
+    const onSelect = vi.fn();
+    render(<AdminLocaleTabs active="en" onSelect={onSelect} locales={locales} />);
+
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(screen.getByRole("tab", { name: "Русский" })).toBeInTheDocument();
+
+    const enTab = screen.getByRole("tab", { name: "English" });
+    enTab.focus();
+    await user.keyboard("{End}");
+    expect(onSelect).toHaveBeenLastCalledWith("ru");
+  });
+
+  it("labels the source locale from locales[0], not a hardcoded EN", () => {
+    const locales = [
+      { code: "pt", label: "Português" },
+      { code: "en", label: "English" },
+    ];
+    render(<AdminLocaleTabs active="pt" onSelect={() => {}} locales={locales} />);
+    expect(screen.getByText("// pt — SOURCE")).toBeInTheDocument();
+  });
+});
+
 describe("AdminLocaleTabs syncScope", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({

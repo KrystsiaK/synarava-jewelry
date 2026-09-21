@@ -132,7 +132,7 @@ export function ProductDetailFields({
   const departmentCollections = collections
     .filter((collection) => collection.isPrimaryNav)
     .sort((a, b) => a.navSortOrder - b.navSortOrder);
-  const [detailsLocale, selectDetailsLocale] = useAdminActiveLocale(`product-details:${sku || "new"}`, "EN");
+  const [detailsLocale, selectDetailsLocale] = useAdminActiveLocale(`product-details:${sku || "new"}`);
   const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, ProductDetailsLocaleDraft>>(() => ({
     EN: detailsDraftFrom(details),
     PT: detailsDraftFrom(ptDetails),
@@ -547,7 +547,7 @@ export function ProductFormFields({
   const [ptTitleValue, setPtTitleValue] = useState(draft.pt.title);
   const [slugValue, setSlugValue] = useState(draft.slug);
   const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
-  const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${draft.sku || "new"}`, "EN");
+  const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${draft.sku || "new"}`);
   const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, ProductCoreLocaleDraft>>(() => ({
     EN: coreDraftFrom(draft),
     PT: coreDraftFrom(draft.pt),
