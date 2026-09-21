@@ -14,6 +14,7 @@ import { savePageImageUpload } from "@/lib/media/local-upload";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
+import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
 import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
 import { SERVICE_SECTIONS } from "@/lib/content/service-page-defaults";
@@ -101,7 +102,7 @@ function existingMaterialImage(existingContent: Record<string, unknown>, index: 
   return entry && typeof entry.image === "string" ? entry.image : "";
 }
 
-const LEGAL_SECTION_IDS = [...OFFER_SECTIONS, ...PRIVACY_SECTIONS_EN, ...LEGAL_NOTICE_SECTIONS].map((s) => s.id);
+const LEGAL_SECTION_IDS = [...OFFER_SECTIONS, ...TERMS_SECTIONS, ...PRIVACY_SECTIONS_EN, ...LEGAL_NOTICE_SECTIONS].map((s) => s.id);
 const SERVICE_SECTION_IDS = Object.values(SERVICE_SECTIONS).flatMap((sections) => sections.map((s) => s.id));
 
 // Dynamic per-section fields (`legal:{id}:title` / `legal:{id}:body`, `pt`-prefixed

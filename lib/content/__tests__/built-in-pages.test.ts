@@ -14,6 +14,7 @@ describe("built-in page definitions", () => {
       "returns",
       "faq",
       "offer",
+      "terms-and-conditions",
       "privacy",
       "dispute-resolution",
       "legal-notice",

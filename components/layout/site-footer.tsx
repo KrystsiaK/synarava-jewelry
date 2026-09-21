@@ -87,7 +87,7 @@ export function SiteFooter() {
       <FooterOrnamentDivider />
 
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-stroke pt-6 text-center md:col-span-4 md:justify-start md:border-t md:pt-6 md:text-left">
-        <Link href={localePath(locale, "/offer")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
+        <Link href={localePath(locale, "/terms-and-conditions")} className="label-mono py-1 text-muted transition-colors hover:text-foreground">
           {t("footer.termsConditions")}
         </Link>
         <span className="hidden text-stroke md:inline" aria-hidden="true">·</span>

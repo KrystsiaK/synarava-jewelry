@@ -44,7 +44,7 @@ export default async function PrivacyPage() {
   const page = await getPageBySlug("privacy", locale);
   const heroImage = page?.content.heroImage;
   const homeHref = localePath(locale, "/");
-  const offerHref = localePath(locale, "/offer");
+  const termsHref = localePath(locale, "/terms-and-conditions");
   const isPt = locale === "pt";
 
   const vars = {
@@ -72,7 +72,7 @@ export default async function PrivacyPage() {
       sections={sections}
       backHref={homeHref}
       backLabel={isPt ? "← Voltar à loja" : "← Back to store"}
-      nextHref={offerHref}
+      nextHref={termsHref}
       nextLabel={isPt ? "Termos e Condições →" : "Terms & Conditions →"}
       renderSectionExtra={(id) => (id === "cookies" ? (
         <div className="mt-4 inline-flex border border-stroke px-4 py-3">
