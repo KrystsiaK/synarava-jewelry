@@ -47,7 +47,7 @@ export type ProductDraft = {
   workflowState: "DRAFT" | "PUBLISHED" | "UNLISTED";
   imageUrl: string;
   stockOnHand: string;
-  pt: ProductLocaleDraft;
+  translations: Record<string, ProductLocaleDraft>;
 };
 
 export type ProductLocaleDetailsDraft = {

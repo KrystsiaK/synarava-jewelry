@@ -148,6 +148,8 @@ describe("productStatusLabel", () => {
   });
 });
 
+const PT_LOCALE = [{ code: "pt", label: "Português" }];
+
 describe("productToDraft", () => {
   it("maps the Portuguese translation into an independent locale draft", () => {
     const draft = productToDraft(makeProduct({
@@ -175,11 +177,11 @@ describe("productToDraft", () => {
         updatedAt: new Date("2026-01-02"),
         productId: "product-1",
       }],
-    }));
+    }), PT_LOCALE);
 
-    expect(draft.pt.title).toBe("Anel de Lava");
-    expect(draft.pt.description).toBe("Feito em Lisboa.");
-    expect(draft.pt.reviewed).toBe(true);
+    expect(draft.translations.pt.title).toBe("Anel de Lava");
+    expect(draft.translations.pt.description).toBe("Feito em Lisboa.");
+    expect(draft.translations.pt.reviewed).toBe(true);
   });
 
   it("maps the Portuguese translation's details into the locale draft, text-only", () => {
@@ -213,16 +215,16 @@ describe("productToDraft", () => {
         updatedAt: new Date("2026-01-01"),
         productId: "product-1",
       }],
-    }));
+    }), PT_LOCALE);
 
-    expect(draft.pt.details.materialsEyebrow).toBe("Materiais");
-    expect(draft.pt.details.materials[0]).toEqual({ title: "Pedra de Lava", body: "Extraída de vulcões ativos." });
-    expect(draft.pt.details.process.stats[0]).toEqual({ value: "12", label: "Horas de tecelagem" });
-    expect(draft.pt.details.lookbook[0]).toEqual({ label: "01 / O Conjunto" });
+    expect(draft.translations.pt.details.materialsEyebrow).toBe("Materiais");
+    expect(draft.translations.pt.details.materials[0]).toEqual({ title: "Pedra de Lava", body: "Extraída de vulcões ativos." });
+    expect(draft.translations.pt.details.process.stats[0]).toEqual({ value: "12", label: "Horas de tecelagem" });
+    expect(draft.translations.pt.details.lookbook[0]).toEqual({ label: "01 / O Conjunto" });
     // Fixed slot counts, same as the English editor's details.
-    expect(draft.pt.details.materials).toHaveLength(3);
-    expect(draft.pt.details.process.stats).toHaveLength(4);
-    expect(draft.pt.details.lookbook).toHaveLength(4);
+    expect(draft.translations.pt.details.materials).toHaveLength(3);
+    expect(draft.translations.pt.details.process.stats).toHaveLength(4);
+    expect(draft.translations.pt.details.lookbook).toHaveLength(4);
   });
 
   it("prefers the primary variant's commerce fields over the product's own mirror columns", () => {
@@ -281,7 +283,7 @@ describe("emptyDraft", () => {
   });
 
   it("gives the PT locale draft the same fixed-slot details shape as English, with no data yet", () => {
-    expect(emptyDraft().pt.details).toEqual(getProductDetailsTranslation(null));
+    expect(emptyDraft(PT_LOCALE).translations.pt.details).toEqual(getProductDetailsTranslation(null));
   });
 });
 

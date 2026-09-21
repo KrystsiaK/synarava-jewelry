@@ -7,17 +7,21 @@ import { EditProductForm } from "@/components/admin/products/product-edit-form";
 import type { SavedProductPayload } from "@/app/admin/actions/products";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { CollectionOption } from "@/components/admin/products/product-types";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
 export function ProductCreateRoute({
   collections,
+  translationLocales,
 }: {
   collections: CollectionOption[];
+  translationLocales: AdminTranslationLocale[];
 }) {
   const router = useRouter();
 
   return (
     <CreateProductForm
       collections={collections}
+      translationLocales={translationLocales}
       onCreated={(product) => {
         router.push(`/admin/products/${product.id}`);
         router.refresh();
@@ -30,10 +34,12 @@ export function ProductEditRoute({
   product,
   collections,
   issues = [],
+  translationLocales,
 }: {
   product: SavedProductPayload;
   collections: CollectionOption[];
   issues?: AdminIssueSummary[];
+  translationLocales: AdminTranslationLocale[];
 }) {
   const router = useRouter();
 
@@ -42,6 +48,7 @@ export function ProductEditRoute({
       product={product}
       collections={collections}
       issues={issues}
+      translationLocales={translationLocales}
       onUpdated={() => router.refresh()}
       onDeleted={() => {
         router.push("/admin/products");

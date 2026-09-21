@@ -1,7 +1,8 @@
 import { parseProductDetails } from "@/lib/content/product-details";
 import { productCollectionPosition } from "@/lib/catalog/collection-order";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
-import type { ProductDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
+import type { ProductDraft, ProductLocaleDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
 
 export const PRODUCT_SAVE_FAILURE_MESSAGE =
   "Product could not be saved. Reload this page before trying again.";
@@ -82,24 +83,28 @@ export function getProductEditorDetails(details: unknown, characteristics: Produ
   };
 }
 
-export function emptyDraft(): ProductDraft {
+function emptyLocaleDraft(): ProductLocaleDraft {
+  return {
+    localizedHandle: "", title: "", shortDescription: "", description: "", materialLine: "",
+    symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
+    seoTitle: "", seoDescription: "",
+    details: getProductDetailsTranslation(null),
+    reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
+  };
+}
+
+export function emptyDraft(translationLocales: AdminTranslationLocale[] = []): ProductDraft {
   return {
     name: "", vendor: "", productType: "", slug: "", sku: "", price: "", seriesLabel: "",
     shortDescription: "", description: "", seoTitle: "", seoDescription: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
     tags: "", workflowState: "DRAFT", imageUrl: "", stockOnHand: "0",
-    pt: {
-      localizedHandle: "", title: "", shortDescription: "", description: "", materialLine: "",
-      symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
-      seoTitle: "", seoDescription: "",
-      details: getProductDetailsTranslation(null),
-      reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
-    },
+    translations: Object.fromEntries(translationLocales.map(({ code }) => [code, emptyLocaleDraft()])),
   };
 }
 
-export function productToDraft(product: ProductRecord): ProductDraft {
+export function productToDraft(product: ProductRecord, translationLocales: AdminTranslationLocale[] = []): ProductDraft {
   // Commerce fields are owned by the variant, not Product's own mirror
   // columns (kept only as a Shopify pull identity anchor). Collection
   // membership mixes marketing collections with the primary-nav
@@ -108,7 +113,6 @@ export function productToDraft(product: ProductRecord): ProductDraft {
   const marketingCollection = product.collections.find(
     (item) => !item.collection.isPrimaryNav && !item.collection.isStorefrontDefault,
   )?.collection;
-  const pt = product.translations?.find((translation) => translation.locale === "pt");
   return {
     name: product.name,
     vendor: product.vendor ?? "",
@@ -137,23 +141,26 @@ export function productToDraft(product: ProductRecord): ProductDraft {
         : "DRAFT",
     imageUrl: product.imageUrl ?? "",
     stockOnHand: String(primaryVariant?.stockOnHand ?? 0),
-    pt: {
-      localizedHandle: pt?.localizedHandle ?? "",
-      title: pt?.title ?? "",
-      shortDescription: pt?.shortDescription ?? "",
-      description: pt?.description ?? "",
-      materialLine: pt?.materialLine ?? "",
-      symbolismLabel: pt?.symbolismLabel ?? "",
-      symbolismTitle: pt?.symbolismTitle ?? "",
-      symbolismBody: pt?.symbolismBody ?? "",
-      symbolismBody2: pt?.symbolismBody2 ?? "",
-      seoTitle: pt?.seoTitle ?? "",
-      seoDescription: pt?.seoDescription ?? "",
-      details: getProductDetailsTranslation(pt?.details),
-      reviewed: pt?.reviewStatus === "REVIEWED",
-      syncStatus: pt?.syncStatus ?? "NOT_APPLICABLE",
-      syncError: pt?.syncError ?? "",
-    },
+    translations: Object.fromEntries(translationLocales.map(({ code }) => {
+      const translation = product.translations?.find((item) => item.locale === code);
+      return [code, {
+        localizedHandle: translation?.localizedHandle ?? "",
+        title: translation?.title ?? "",
+        shortDescription: translation?.shortDescription ?? "",
+        description: translation?.description ?? "",
+        materialLine: translation?.materialLine ?? "",
+        symbolismLabel: translation?.symbolismLabel ?? "",
+        symbolismTitle: translation?.symbolismTitle ?? "",
+        symbolismBody: translation?.symbolismBody ?? "",
+        symbolismBody2: translation?.symbolismBody2 ?? "",
+        seoTitle: translation?.seoTitle ?? "",
+        seoDescription: translation?.seoDescription ?? "",
+        details: getProductDetailsTranslation(translation?.details),
+        reviewed: translation?.reviewStatus === "REVIEWED",
+        syncStatus: translation?.syncStatus ?? "NOT_APPLICABLE",
+        syncError: translation?.syncError ?? "",
+      } satisfies ProductLocaleDraft];
+    })),
   };
 }
 

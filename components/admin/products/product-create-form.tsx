@@ -25,20 +25,24 @@ import {
 } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
 export function CreateProductForm({
   collections,
   onCreated,
+  translationLocales = [{ code: "pt", label: "Português" }],
 }: {
   collections: CollectionOption[];
   onCreated?: (product: ProductRecord) => void;
+  /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
+  translationLocales?: AdminTranslationLocale[];
 }) {
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [draftId, setDraftId] = useState("");
   const [draftProduct, setDraftProduct] = useState<ProductRecord | null>(null);
-  const [draft] = useState<ProductDraft>(emptyDraft);
+  const [draft] = useState<ProductDraft>(() => emptyDraft(translationLocales));
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const { pushToast } = useAdminToast();
@@ -136,6 +140,7 @@ export function CreateProductForm({
           draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
           collections={collections}
           validation={validation}
+          translationLocales={translationLocales}
         />
         <ProductMediaManager
           product={draftProduct}
@@ -147,10 +152,11 @@ export function CreateProductForm({
         />
         <ProductDetailFields
           details={getProductEditorDetails(null)}
-          ptDetails={draft.pt.details}
+          translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
           sku={draft.sku}
           mode="create"
           collections={collections}
+          translationLocales={translationLocales}
         />
 
         <div

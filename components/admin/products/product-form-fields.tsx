@@ -8,12 +8,14 @@ import {
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
-import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { slugify } from "@/lib/text/slug";
+import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { ShopifyCategoryField } from "@/components/admin/products/shopify-category-field";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
 import {
@@ -23,6 +25,9 @@ import {
 import { getProductEditorDetails, issuesForField } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 
+const SOURCE_LOCALE = "en";
+const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
+
 export function OwnershipLabel({ children, owner }: { children: React.ReactNode; owner: "Shopify" | "Synarava" | "Shopify push" }) {
   return (
     <span data-component="OwnershipLabel" className="adm-label flex items-center justify-between gap-2">
@@ -30,15 +35,6 @@ export function OwnershipLabel({ children, owner }: { children: React.ReactNode;
       <span className={owner === "Shopify" ? "text-[var(--adm-accent)]" : "text-[var(--adm-subtle)]"}>{owner}</span>
     </span>
   );
-}
-
-// Maps a locale + field key to the exact FormData field name the server
-// action already reads: EN uses the bare key, any other locale prefixes it
-// and capitalizes it ("materialsEyebrow" -> "ptMaterialsEyebrow"). Matches
-// the convention used by page-editor-form.tsx and collection-fields.tsx.
-function localizedFieldName(locale: AdminLocale, key: string): string {
-  if (locale === "EN") return key;
-  return `${locale.toLowerCase()}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
 }
 
 type ProductDetailsSource = {
@@ -63,6 +59,12 @@ type ProductDetailsLocaleDraft = {
   lookbookLabels: string[];
 };
 
+const EMPTY_DETAILS_SOURCE: ProductDetailsSource = {
+  materialsEyebrow: "", materialsTitle: "", materials: [],
+  process: { eyebrow: "", title: "", stats: [] },
+  lookbookEyebrow: "", lookbookTitle: "", lookbook: [],
+};
+
 function detailsDraftFrom(source: ProductDetailsSource): ProductDetailsLocaleDraft {
   return {
     materialsEyebrow: source.materialsEyebrow,
@@ -79,15 +81,15 @@ function detailsDraftFrom(source: ProductDetailsSource): ProductDetailsLocaleDra
 
 // One physical field per concept (Materials eyebrow, Material 1 title, ...),
 // not one copy per language: the field's *value* switches with the active
-// locale tab. These always-rendered hidden mirrors carry both locales' real
+// locale tab. These always-rendered hidden mirrors carry every locale's real
 // values on submit regardless of which tab is active. See
 // components/admin/pages/page-editor-form.tsx for the same pattern.
-function HiddenDetailsLocaleFields({ draftByLocale }: { draftByLocale: Record<AdminLocale, ProductDetailsLocaleDraft> }) {
+function HiddenDetailsLocaleFields({ draftByLocale }: { draftByLocale: Record<string, ProductDetailsLocaleDraft> }) {
   return (
     <div hidden>
-      {(Object.keys(draftByLocale) as AdminLocale[]).flatMap((locale) => {
+      {Object.keys(draftByLocale).flatMap((locale) => {
         const draft = draftByLocale[locale];
-        const name = (key: string) => localizedFieldName(locale, key);
+        const name = (key: string) => adminLocaleFieldName(locale, key, SOURCE_LOCALE);
         const field = (key: string, value: string) => <input key={name(key)} type="hidden" readOnly name={name(key)} value={value} />;
         return [
           field("materialsEyebrow", draft.materialsEyebrow),
@@ -113,32 +115,37 @@ function HiddenDetailsLocaleFields({ draftByLocale }: { draftByLocale: Record<Ad
 
 export function ProductDetailFields({
   details,
-  ptDetails,
+  translationsDetails,
   sku,
   mode,
   issues = [],
   collections,
   entityId,
+  translationLocales = DEFAULT_TRANSLATION_LOCALES,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
-  ptDetails: ProductLocaleDetailsDraft;
+  /** Every translation locale's details, keyed by locale code. */
+  translationsDetails: Record<string, ProductLocaleDetailsDraft>;
   sku: string;
   mode: "create" | "edit";
   issues?: AdminIssueSummary[];
   collections: CollectionOption[];
   /** Existing persisted product only — omit while creating a new one. */
   entityId?: string;
+  /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
+  translationLocales?: AdminTranslationLocale[];
 }) {
   const departmentCollections = collections
     .filter((collection) => collection.isPrimaryNav)
     .sort((a, b) => a.navSortOrder - b.navSortOrder);
-  const [detailsLocale, selectDetailsLocale] = useAdminActiveLocale(`product-details:${sku || "new"}`);
-  const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, ProductDetailsLocaleDraft>>(() => ({
-    EN: detailsDraftFrom(details),
-    PT: detailsDraftFrom(ptDetails),
+  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+  const [detailsLocale, selectDetailsLocale] = useAdminActiveLocale(`product-details:${sku || "new"}`, tabs);
+  const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductDetailsLocaleDraft>>(() => ({
+    [SOURCE_LOCALE]: detailsDraftFrom(details),
+    ...Object.fromEntries(translationLocales.map(({ code }) => [code, detailsDraftFrom(translationsDetails[code] ?? EMPTY_DETAILS_SOURCE)])),
   }));
   const draft = draftByLocale[detailsLocale];
-  const isEn = detailsLocale === "EN";
+  const isEn = detailsLocale === SOURCE_LOCALE;
 
   function updateField<K extends keyof ProductDetailsLocaleDraft>(key: K, value: ProductDetailsLocaleDraft[K]) {
     setDraftByLocale((prev) => ({ ...prev, [detailsLocale]: { ...prev[detailsLocale], [key]: value } }));
@@ -186,14 +193,15 @@ export function ProductDetailFields({
       <AdminLocaleTabs
         active={detailsLocale}
         onSelect={selectDetailsLocale}
+        locales={tabs}
         syncScope={entityId ? { entityType: "PRODUCT", entityId } : undefined}
       />
       <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
 
       {!isEn ? (
         <p className="text-xs text-[var(--adm-muted)]">
-          Optional — blank fields show the English text to Portuguese visitors instead. Images stay
-          shared with English and are not repeated here.
+          Optional — blank fields show the English text to visitors of this language instead. Images
+          stay shared with English and are not repeated here.
         </p>
       ) : null}
 
@@ -499,17 +507,17 @@ function coreDraftFrom(source: ProductCoreLocaleDraft): ProductCoreLocaleDraft {
 }
 
 // Same one-field-per-concept pattern as HiddenDetailsLocaleFields above.
-// Product name/title is NOT included here — it keeps its own duplicated
-// EN/PT fields (see the comment above the "Name" field below) because it's
+// Product name/title is NOT included here — it keeps its own dedicated
+// EN field (see the comment above the "Name" field below) because it's
 // wired into useAdminFormValidation's native-DOM constraint-validation scan,
 // which requires the real, currently-required "name" input to always be a
 // non-hidden, named element for the browser to flag it when empty.
-function HiddenCoreLocaleFields({ draftByLocale }: { draftByLocale: Record<AdminLocale, ProductCoreLocaleDraft> }) {
+function HiddenCoreLocaleFields({ draftByLocale }: { draftByLocale: Record<string, ProductCoreLocaleDraft> }) {
   return (
     <div hidden>
-      {(Object.keys(draftByLocale) as AdminLocale[]).flatMap((locale) => {
+      {Object.keys(draftByLocale).flatMap((locale) => {
         const draft = draftByLocale[locale];
-        const name = (key: string) => localizedFieldName(locale, key);
+        const name = (key: string) => adminLocaleFieldName(locale, key, SOURCE_LOCALE);
         const field = (key: keyof ProductCoreLocaleDraft) => <input key={name(key)} type="hidden" readOnly name={name(key)} value={draft[key]} />;
         return [
           field("shortDescription"),
@@ -534,6 +542,7 @@ export function ProductFormFields({
   variantExists = false,
   issues = [],
   validation,
+  translationLocales = DEFAULT_TRANSLATION_LOCALES,
 }: {
   draft: ProductDraft;
   entityId?: string;
@@ -541,27 +550,41 @@ export function ProductFormFields({
   variantExists?: boolean;
   issues?: AdminIssueSummary[];
   validation: AdminFormValidation<ProductFieldName>;
+  /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
+  translationLocales?: AdminTranslationLocale[];
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
-  const [ptTitleValue, setPtTitleValue] = useState(draft.pt.title);
+  const [titleByLocale, setTitleByLocale] = useState<Record<string, string>>(() =>
+    Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.title ?? ""])),
+  );
+  const [handleByLocale, setHandleByLocale] = useState<Record<string, string>>(() =>
+    Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.localizedHandle ?? ""])),
+  );
+  const [reviewedByLocale, setReviewedByLocale] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.reviewed ?? false])),
+  );
   const [slugValue, setSlugValue] = useState(draft.slug);
   const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
-  const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${draft.sku || "new"}`);
-  const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, ProductCoreLocaleDraft>>(() => ({
-    EN: coreDraftFrom(draft),
-    PT: coreDraftFrom(draft.pt),
+  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+  const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${draft.sku || "new"}`, tabs);
+  const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductCoreLocaleDraft>>(() => ({
+    [SOURCE_LOCALE]: coreDraftFrom(draft),
+    ...Object.fromEntries(translationLocales.map(({ code }) => [code, coreDraftFrom(draft.translations[code] ?? draft)])),
   }));
   const coreDraft = draftByLocale[activeLocale];
-  const isEn = activeLocale === "EN";
+  const isEn = activeLocale === SOURCE_LOCALE;
+  const activeLabel = tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
+  const activeTranslation = isEn ? null : draft.translations[activeLocale];
 
   useEffect(() => {
     // Fixes a real bug: the required "Name" field sits inside a `hidden`
-    // ancestor while the PT tab is active, so a browser (and jsdom) skips it
-    // during native constraint validation — a save attempted from the PT tab
-    // with a blank required EN field reported no visible error until this
-    // forced the EN tab back open. See admin-locale-panel.tsx / Task 4.
-    const forced = localeOfFirstError(fieldErrors);
+    // ancestor while a translation tab is active, so a browser (and jsdom)
+    // skips it during native constraint validation — a save attempted from
+    // a translation tab with a blank required EN field reported no visible
+    // error until this forced the EN tab back open. See
+    // admin-locale-panel.tsx / Task 4.
+    const forced = localeOfFirstError(fieldErrors, translationLocales.map((locale) => locale.code));
     if (forced) selectLocale(forced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldErrors]);
@@ -601,20 +624,21 @@ export function ProductFormFields({
       <AdminLocaleTabs
         active={activeLocale}
         onSelect={selectLocale}
-        ptStatus={draft.pt.syncStatus as AdminLocaleStatus}
+        locales={tabs}
+        ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
         syncScope={entityId ? { entityType: "PRODUCT", entityId } : undefined}
       />
       <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 
-      {!isEn ? (
+      {activeTranslation ? (
         <div className="border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
-          <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
+          <p className="adm-section-tag">[ {activeLabel.toUpperCase()} ]</p>
           <p className="mt-2 text-xs text-[var(--adm-muted)]">
             Optional — publishing never blocks on this. Whatever is left blank here shows the English text
-            to Portuguese visitors instead, until it&apos;s filled in.
+            to {activeLabel} visitors instead, until it&apos;s filled in.
           </p>
-          {draft.pt.syncError ? (
-            <p className="mt-2 text-xs text-[var(--adm-danger)]">{draft.pt.syncError}</p>
+          {activeTranslation.syncError ? (
+            <p className="mt-2 text-xs text-[var(--adm-danger)]">{activeTranslation.syncError}</p>
           ) : null}
         </div>
       ) : null}
@@ -622,18 +646,19 @@ export function ProductFormFields({
       <div className="grid items-start gap-4 md:grid-cols-2">
         {/*
           The Name field is the one exception to "single field per concept"
-          in this form: it stays duplicated (this EN input plus the PT one
-          further down) because useAdminFormValidation's native constraint
-          scan (collectNativeFieldErrors) only detects a blank *required*
-          field when that field is a real, named, non-hidden DOM node. A
+          in this form: it stays a dedicated EN input (plus a dedicated
+          input per translation locale below) because
+          useAdminFormValidation's native constraint scan
+          (collectNativeFieldErrors) only detects a blank *required* field
+          when that field is a real, named, non-hidden DOM node. A
           type="hidden" mirror can never satisfy `required` (the HTML spec
           excludes hidden inputs from constraint validation entirely), so
           collapsing Name into a locale-switching value here would silently
-          break the existing Task 4 empty-name-while-on-PT-tab protection
-          below. Every other localized field here has no `required`
-          attribute and safely uses the single-field pattern.
+          break the existing Task 4 empty-name-while-on-a-translation-tab
+          protection below. Every other localized field here has no
+          `required` attribute and safely uses the single-field pattern.
         */}
-        <div className="grid content-start gap-2" hidden={activeLocale !== "EN"}>
+        <div className="grid content-start gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
           <label htmlFor={validation.fieldId("name")}>
             <OwnershipLabel owner="Shopify">Name *</OwnershipLabel>
           </label>
@@ -648,10 +673,35 @@ export function ProductFormFields({
           />
           <AdminFieldError id={validation.fieldErrorId("name")} message={fieldErrors.name} />
         </div>
-        <label className="grid content-start gap-2" hidden={activeLocale !== "PT"}>
-          <span className="adm-label">Product name (PT)</span>
-          <input name="ptTitle" value={ptTitleValue} onChange={(event) => setPtTitleValue(event.target.value)} className="adm-field" />
-        </label>
+        {activeTranslation ? (
+          <label className="grid content-start gap-2">
+            <span className="adm-label">Product name ({activeLabel})</span>
+            {/*
+              No `name` attribute here — this is only the editing surface for
+              whichever translation tab is active. The actual submitted value
+              per locale comes from the always-rendered hidden mirrors below,
+              same reasoning as HiddenCoreLocaleFields: without them, only the
+              locale active at submit time would have a title field with a
+              `name` attribute, silently dropping every other locale's title.
+            */}
+            <input
+              value={titleByLocale[activeLocale] ?? ""}
+              onChange={(event) => setTitleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
+              className="adm-field"
+            />
+          </label>
+        ) : null}
+        <div hidden>
+          {translationLocales.map(({ code }) => (
+            <input
+              key={code}
+              type="hidden"
+              readOnly
+              name={adminLocaleFieldName(code, "title", SOURCE_LOCALE)}
+              value={titleByLocale[code] ?? ""}
+            />
+          ))}
+        </div>
         <div className="grid content-start gap-2">
           <label htmlFor={validation.fieldId("slug")}>
             <OwnershipLabel owner="Shopify">Slug *</OwnershipLabel>
@@ -669,13 +719,30 @@ export function ProductFormFields({
         </div>
       </div>
 
-      {!isEn ? (
+      {activeTranslation ? (
         <label className="grid gap-2">
-          <span className="adm-label">URL handle (PT, optional)</span>
-          <input name="ptHandle" defaultValue={draft.pt.localizedHandle} className="adm-field" placeholder={draft.slug} />
+          <span className="adm-label">URL handle ({activeLabel}, optional)</span>
+          {/* No `name` here — same reasoning as the Product name field above; the hidden mirrors below carry every locale's real value. */}
+          <input
+            value={handleByLocale[activeLocale] ?? ""}
+            onChange={(event) => setHandleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
+            className="adm-field"
+            placeholder={draft.slug}
+          />
           <span className="text-xs text-[var(--adm-muted)]">Blank uses the English slug.</span>
         </label>
       ) : null}
+      <div hidden>
+        {translationLocales.map(({ code }) => (
+          <input
+            key={code}
+            type="hidden"
+            readOnly
+            name={adminLocaleFieldName(code, "localizedHandle", SOURCE_LOCALE)}
+            value={handleByLocale[code] ?? ""}
+          />
+        ))}
+      </div>
 
       <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="grid content-start gap-2">
@@ -805,12 +872,28 @@ export function ProductFormFields({
         <AdminLongTextField label={<span className="adm-label">Symbolism continuation</span>} dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} rows={8} />
       </div>
 
-      {!isEn ? (
+      {activeTranslation ? (
         <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
-          <input type="checkbox" name="ptReviewed" defaultChecked={draft.pt.reviewed} />
-          <span>Portuguese translation reviewed</span>
+          {/* No `name` here — same reasoning as the fields above; the hidden mirrors below carry every locale's real "on"/"" value. */}
+          <input
+            type="checkbox"
+            checked={reviewedByLocale[activeLocale] ?? false}
+            onChange={(event) => setReviewedByLocale((prev) => ({ ...prev, [activeLocale]: event.target.checked }))}
+          />
+          <span>{activeLabel} translation reviewed</span>
         </label>
       ) : null}
+      <div hidden>
+        {translationLocales.map(({ code }) => (
+          <input
+            key={code}
+            type="hidden"
+            readOnly
+            name={adminLocaleFieldName(code, "reviewed", SOURCE_LOCALE)}
+            value={reviewedByLocale[code] ? "on" : ""}
+          />
+        ))}
+      </div>
 
       {/* Taxonomy + state */}
       <div className="grid items-start gap-4 lg:grid-cols-3">

@@ -144,16 +144,21 @@ export function productLocaleReadiness(product: LocalizableProduct, locale: Loca
 
 type ProductPublishCopy = Pick<ProductLocalizedCopy, "title" | "shortDescription" | "description">;
 
+/** One non-English locale's publish-readiness input: its label (for the missing-fields message), its copy, and whether it's been marked reviewed. */
+export type ProductPublishTranslation = {
+  label: string;
+  copy: ProductPublishCopy;
+  reviewed: boolean;
+};
+
 export function validateProductPublication({
   isAlreadyPublic,
   english,
-  portuguese,
-  portugueseReviewed,
+  translations,
 }: {
   isAlreadyPublic: boolean;
   english: ProductPublishCopy;
-  portuguese: ProductPublishCopy;
-  portugueseReviewed: boolean;
+  translations: ProductPublishTranslation[];
 }) {
   if (isAlreadyPublic) return [];
 
@@ -162,14 +167,20 @@ export function validateProductPublication({
     shortDescription: "short description",
     description: "description",
   };
-  const missing = (["title", "shortDescription", "description"] as const).flatMap((field) => [
-    ...(typeof english[field] === "string" && english[field].trim()
-      ? []
-      : [`English ${labels[field]}`]),
-    ...(typeof portuguese[field] === "string" && portuguese[field].trim()
-      ? []
-      : [`Portuguese ${labels[field]}`]),
-  ]);
-  if (!portugueseReviewed) missing.push("Portuguese review");
+  const fields = ["title", "shortDescription", "description"] as const;
+  const missing: string[] = [];
+  for (const field of fields) {
+    if (!(typeof english[field] === "string" && english[field].trim())) {
+      missing.push(`English ${labels[field]}`);
+    }
+    for (const { label, copy } of translations) {
+      if (!(typeof copy[field] === "string" && copy[field].trim())) {
+        missing.push(`${label} ${labels[field]}`);
+      }
+    }
+  }
+  for (const { label, reviewed } of translations) {
+    if (!reviewed) missing.push(`${label} review`);
+  }
   return missing;
 }

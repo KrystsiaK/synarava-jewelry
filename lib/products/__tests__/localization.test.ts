@@ -88,15 +88,36 @@ describe("product localization", () => {
     });
   });
 
-  it("blocks a new publication until EN and reviewed PT are complete", () => {
+  it("blocks a new publication until EN and each reviewed translation are complete", () => {
     expect(validateProductPublication({
       isAlreadyPublic: false,
       english: { title: "Lava Ring", shortDescription: "", description: "Made in Lisbon." },
-      portuguese: { title: "Anel de Lava", shortDescription: "Um anel.", description: "Feito em Lisboa." },
-      portugueseReviewed: false,
+      translations: [{
+        label: "Portuguese",
+        copy: { title: "Anel de Lava", shortDescription: "Um anel.", description: "Feito em Lisboa." },
+        reviewed: false,
+      }],
     })).toEqual([
       "English short description",
       "Portuguese review",
+    ]);
+  });
+
+  it("reports missing fields for every translation, in field order, then every unreviewed translation", () => {
+    expect(validateProductPublication({
+      isAlreadyPublic: false,
+      english: { title: "Lava Ring", shortDescription: "A ring.", description: "Made in Lisbon." },
+      translations: [
+        { label: "Portuguese", copy: { title: "Anel de Lava", shortDescription: "", description: "" }, reviewed: true },
+        { label: "Russian", copy: { title: "", shortDescription: "", description: "" }, reviewed: false },
+      ],
+    })).toEqual([
+      "Russian title",
+      "Portuguese short description",
+      "Russian short description",
+      "Portuguese description",
+      "Russian description",
+      "Russian review",
     ]);
   });
 
@@ -104,8 +125,7 @@ describe("product localization", () => {
     expect(validateProductPublication({
       isAlreadyPublic: true,
       english: { title: "Legacy", shortDescription: "", description: "" },
-      portuguese: { title: "", shortDescription: "", description: "" },
-      portugueseReviewed: false,
+      translations: [{ label: "Portuguese", copy: { title: "", shortDescription: "", description: "" }, reviewed: false }],
     })).toEqual([]);
   });
 });

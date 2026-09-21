@@ -70,8 +70,8 @@ describe("CreateProductForm", () => {
     await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
 
     expect(screen.getAllByRole("tab", { name: "Português" })[0]).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByLabelText("Product name (PT)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Portuguese translation reviewed")).toBeInTheDocument();
+    expect(screen.getByLabelText("Product name (Português)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Português translation reviewed")).toBeInTheDocument();
   });
 
   it("opens the confirmation modal after filling required fields and saves on confirm", async () => {

@@ -24,6 +24,8 @@ import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
 import { validateProductPublication } from "@/lib/products/localization";
+import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import {
   syncDepartmentCollectionMembership,
   syncScopedCollectionMembership,
@@ -449,18 +451,6 @@ const saveProductFieldsSchema = z.object({
   symbolismTitle: z.string().trim().default(""),
   symbolismBody: z.string().trim().default(""),
   symbolismBody2: z.string().trim().default(""),
-  ptTitle: z.string().trim().default(""),
-  ptHandle: z.string().trim().default(""),
-  ptShortDescription: z.string().trim().default(""),
-  ptDescription: z.string().trim().default(""),
-  ptMaterialLine: z.string().trim().default(""),
-  ptSymbolismLabel: z.string().trim().default(""),
-  ptSymbolismTitle: z.string().trim().default(""),
-  ptSymbolismBody: z.string().trim().default(""),
-  ptSymbolismBody2: z.string().trim().default(""),
-  ptSeoTitle: z.string().trim().default(""),
-  ptSeoDescription: z.string().trim().default(""),
-  ptReviewed: z.string().trim().default(""),
   removeImage: z.string().trim().default(""),
   existingImageUrl: z.string().trim().default(""),
   price: z.string().trim().default("0"),
@@ -471,6 +461,58 @@ const saveProductFieldsSchema = z.object({
   tags: z.string().trim().default(""),
   workflowState: z.string().trim().default("DRAFT"),
 });
+
+const TRANSLATABLE_PRODUCT_FIELDS = [
+  "title", "shortDescription", "description", "materialLine",
+  "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
+  "seoTitle", "seoDescription",
+] as const;
+
+/** Reads one locale's flat copy fields straight from the raw FormData (not the strict shared-field schema above — a translation is optional everywhere, so nothing here needs `.min(1)`). */
+function readProductTranslationFields(formData: FormData, locale: string) {
+  const fields = Object.fromEntries(
+    TRANSLATABLE_PRODUCT_FIELDS.map((key) => [key, readLocaleField(formData, locale, key)]),
+  ) as Record<(typeof TRANSLATABLE_PRODUCT_FIELDS)[number], string>;
+  return {
+    ...fields,
+    localizedHandle: readLocaleField(formData, locale, "localizedHandle"),
+    reviewedFlag: readLocaleField(formData, locale, "reviewed"),
+  };
+}
+
+/**
+ * One locale's `details` (materials/process/lookbook) text — images/src/
+ * mediaImage are shared with English (see `details` in saveProductAction)
+ * and never re-uploaded per locale.
+ */
+function readProductTranslationDetails(formData: FormData, locale: string) {
+  const materials = [1, 2, 3].map((index) => ({
+    title: readLocaleField(formData, locale, `materialTitle${index}`),
+    body: readLocaleField(formData, locale, `materialBody${index}`),
+  }));
+  const stats = [1, 2, 3, 4]
+    .map((index) => ({
+      value: readLocaleField(formData, locale, `processStatValue${index}`),
+      label: readLocaleField(formData, locale, `processStatLabel${index}`),
+    }))
+    .filter((item) => item.value && item.label);
+  const lookbook = [1, 2, 3, 4]
+    .map((index) => ({ label: readLocaleField(formData, locale, `lookbookLabel${index}`) }))
+    .filter((item) => item.label);
+  return {
+    materialsEyebrow: readLocaleField(formData, locale, "materialsEyebrow"),
+    materialsTitle: readLocaleField(formData, locale, "materialsTitle"),
+    materials: materials.filter((item) => item.title && item.body),
+    process: {
+      eyebrow: readLocaleField(formData, locale, "processEyebrow"),
+      title: readLocaleField(formData, locale, "processTitle"),
+      stats,
+    },
+    lookbookEyebrow: readLocaleField(formData, locale, "lookbookEyebrow"),
+    lookbookTitle: readLocaleField(formData, locale, "lookbookTitle"),
+    lookbook,
+  };
+}
 
 
 /**
@@ -515,11 +557,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const {
     productId, sku, name, vendor, productType, seriesLabel, shortDescription, description, seoTitle, seoDescription, materialLine,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
-    ptTitle, ptHandle, ptShortDescription, ptDescription, ptMaterialLine,
-    ptSymbolismLabel, ptSymbolismTitle, ptSymbolismBody, ptSymbolismBody2,
-    ptSeoTitle, ptSeoDescription,
     collectionSlug, workflowState,
   } = parsed.data;
+  const translationLocales = await getAdminTranslationLocales();
   const slug = slugify(parsed.data.slug);
   const removeImage = parsed.data.removeImage === "1";
   const existingImageUrl = removeImage ? "" : parsed.data.existingImageUrl;
@@ -566,17 +606,23 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
 
   const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
+  const translationFields = translationLocales.map(({ code, label }) => ({
+    code, label, fields: readProductTranslationFields(formData, code),
+  }));
   const isPublished = workflowState === "PUBLISHED";
   const isUnlisted = workflowState === "UNLISTED";
   const missingTranslations = (isPublished || isUnlisted)
     ? validateProductPublication({
         isAlreadyPublic: Boolean(
           (before?.visibility === "PUBLIC" || before?.visibility === "UNLISTED")
-          && !before.translations.some((translation) => translation.locale === "pt"),
+          && !before.translations.some((translation) => translation.locale !== "en"),
         ),
         english: { title: name, shortDescription, description },
-        portuguese: { title: ptTitle, shortDescription: ptShortDescription, description: ptDescription },
-        portugueseReviewed: parsed.data.ptReviewed === "on",
+        translations: translationFields.map(({ label, fields }) => ({
+          label,
+          copy: { title: fields.title, shortDescription: fields.shortDescription, description: fields.description },
+          reviewed: fields.reviewedFlag === "on",
+        })),
       })
     : [];
 
@@ -678,35 +724,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     lookbook: lookbookEntries.filter((item) => item.src),
   };
 
-  // Portuguese text only — images/src/mediaImage are shared with English
-  // (see details above) and are never re-uploaded per locale.
-  const ptMaterialEntries = [1, 2, 3].map((index) => ({
-    title: formValue(formData, `ptMaterialTitle${index}`),
-    body: formValue(formData, `ptMaterialBody${index}`),
-  }));
-  const ptProcessStats = [1, 2, 3, 4]
-    .map((index) => ({
-      value: formValue(formData, `ptProcessStatValue${index}`),
-      label: formValue(formData, `ptProcessStatLabel${index}`),
-    }))
-    .filter((item) => item.value && item.label);
-  const ptLookbookEntries = [1, 2, 3, 4]
-    .map((index) => ({ label: formValue(formData, `ptLookbookLabel${index}`) }))
-    .filter((item) => item.label);
-  const ptDetails = {
-    materialsEyebrow: formValue(formData, "ptMaterialsEyebrow"),
-    materialsTitle: formValue(formData, "ptMaterialsTitle"),
-    materials: ptMaterialEntries.filter((item) => item.title && item.body),
-    process: {
-      eyebrow: formValue(formData, "ptProcessEyebrow"),
-      title: formValue(formData, "ptProcessTitle"),
-      stats: ptProcessStats,
-    },
-    lookbookEyebrow: formValue(formData, "ptLookbookEyebrow"),
-    lookbookTitle: formValue(formData, "ptLookbookTitle"),
-    lookbook: ptLookbookEntries,
-  };
-
   const collection = collectionSlug
     ? await db.collection.findUnique({ where: { slug: collectionSlug }, select: { id: true } })
     : null;
@@ -768,36 +785,40 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     throw error;
   }
 
-  const ptCopy = {
-    localizedHandle: slugify(ptHandle) || null,
-    title: ptTitle,
-    shortDescription: ptShortDescription || null,
-    description: ptDescription || null,
-    materialLine: ptMaterialLine || null,
-    symbolismLabel: ptSymbolismLabel || null,
-    symbolismTitle: ptSymbolismTitle || null,
-    symbolismBody: ptSymbolismBody || null,
-    symbolismBody2: ptSymbolismBody2 || null,
-    seoTitle: ptSeoTitle || null,
-    seoDescription: ptSeoDescription || null,
-    details: ptDetails as Prisma.InputJsonValue,
-  };
-  const ptContentHash = createHash("sha256").update(JSON.stringify(ptCopy)).digest("hex");
-  const ptReviewed = parsed.data.ptReviewed === "on"
-    && Boolean(ptTitle && ptShortDescription && ptDescription);
-  const previousPortuguese = before?.translations.find((translation) => translation.locale === "pt");
   const sourceTranslationChanged = !before
     || before.name !== name
     || before.description !== description
     || before.seoTitle !== (seoTitle || null)
     || before.seoDescription !== (seoDescription || null);
-  const ptSyncStatus = !before?.shopifyProductId || !ptReviewed
-    ? "NOT_APPLICABLE" as const
-    : previousPortuguese?.contentHash === ptContentHash
-      && !sourceTranslationChanged
-      && previousPortuguese.syncStatus === "SYNCED"
-      ? "SYNCED" as const
-      : "PENDING" as const;
+  const translationUpserts = translationFields.map(({ code: locale, fields }) => {
+    const translationDetails = readProductTranslationDetails(formData, locale);
+    const copy = {
+      localizedHandle: slugify(fields.localizedHandle) || null,
+      title: fields.title,
+      shortDescription: fields.shortDescription || null,
+      description: fields.description || null,
+      materialLine: fields.materialLine || null,
+      symbolismLabel: fields.symbolismLabel || null,
+      symbolismTitle: fields.symbolismTitle || null,
+      symbolismBody: fields.symbolismBody || null,
+      symbolismBody2: fields.symbolismBody2 || null,
+      seoTitle: fields.seoTitle || null,
+      seoDescription: fields.seoDescription || null,
+      details: translationDetails as Prisma.InputJsonValue,
+    };
+    const contentHash = createHash("sha256").update(JSON.stringify(copy)).digest("hex");
+    const reviewed = fields.reviewedFlag === "on"
+      && Boolean(fields.title && fields.shortDescription && fields.description);
+    const previousTranslation = before?.translations.find((translation) => translation.locale === locale);
+    const syncStatus = !before?.shopifyProductId || !reviewed
+      ? "NOT_APPLICABLE" as const
+      : previousTranslation?.contentHash === contentHash
+        && !sourceTranslationChanged
+        && previousTranslation.syncStatus === "SYNCED"
+        ? "SYNCED" as const
+        : "PENDING" as const;
+    return { locale, copy, reviewed, syncStatus, contentHash, previousHandle: previousTranslation?.localizedHandle };
+  });
   await db.$transaction([
     db.productTranslation.upsert({
       where: { productId_locale: { productId: product.id, locale: "en" } },
@@ -834,34 +855,34 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         reviewedAt: new Date(),
       },
     }),
-    db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "pt" } },
+    ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.productTranslation.upsert({
+      where: { productId_locale: { productId: product.id, locale } },
       update: {
-        ...ptCopy,
-        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: ptReviewed ? new Date() : null,
-        contentHash: ptContentHash,
-        syncStatus: ptSyncStatus,
+        ...copy,
+        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: reviewed ? new Date() : null,
+        contentHash,
+        syncStatus,
         syncError: null,
       },
       create: {
         productId: product.id,
-        locale: "pt",
-        ...ptCopy,
-        reviewStatus: ptReviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: ptReviewed ? new Date() : null,
-        contentHash: ptContentHash,
-        syncStatus: ptSyncStatus,
+        locale,
+        ...copy,
+        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+        reviewedAt: reviewed ? new Date() : null,
+        contentHash,
+        syncStatus,
       },
-    }),
+    })),
   ]);
-  await recordLocalizedHandleRedirect({
+  await Promise.all(translationUpserts.map(({ locale, copy, previousHandle }) => recordLocalizedHandleRedirect({
     entityType: "PRODUCT",
     entityId: product.id,
-    locale: "pt",
-    previousHandle: previousPortuguese?.localizedHandle,
-    nextHandle: ptCopy.localizedHandle ?? slug,
-  });
+    locale,
+    previousHandle,
+    nextHandle: copy.localizedHandle ?? slug,
+  })));
 
   if (uploadedAssetId) {
     await db.$transaction(async (tx) => {
@@ -979,13 +1000,6 @@ const autosaveProductFieldsSchema = z.object({
   seoTitle: z.string().trim().default(""),
   seoDescription: z.string().trim().default(""),
   materialLine: z.string().trim().default(""),
-  ptTitle: z.string().trim().default(""),
-  ptShortDescription: z.string().trim().default(""),
-  ptDescription: z.string().trim().default(""),
-  ptMaterialLine: z.string().trim().default(""),
-  ptSeoTitle: z.string().trim().default(""),
-  ptSeoDescription: z.string().trim().default(""),
-  ptReviewed: z.string().trim().default(""),
   shopifyCategoryId: z.string().trim().default(""),
   shopifyCategoryName: z.string().trim().default(""),
   price: z.string().trim().default("0"),
@@ -1006,8 +1020,11 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
   }
   const {
     productId, seriesLabel, shortDescription, description, seoTitle, seoDescription, materialLine,
-    ptTitle, ptShortDescription, ptDescription, ptMaterialLine, ptSeoTitle, ptSeoDescription,
   } = parsed.data;
+  const translationLocales = await getAdminTranslationLocales();
+  const translationFields = translationLocales.map(({ code }) => ({
+    code, fields: readProductTranslationFields(formData, code),
+  }));
   const hasShopifyCategorySelection =
     formData.has("shopifyCategoryId") || formData.has("shopifyCategoryName");
   let shopifyCategory;
@@ -1117,30 +1134,30 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
         reviewedAt: new Date(),
       },
     }),
-    db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "pt" } },
+    ...translationFields.map(({ code: locale, fields }) => db.productTranslation.upsert({
+      where: { productId_locale: { productId: product.id, locale } },
       update: {
-        title: ptTitle,
-        shortDescription: ptShortDescription || null,
-        description: ptDescription || null,
-        materialLine: ptMaterialLine || null,
-        seoTitle: ptSeoTitle || null,
-        seoDescription: ptSeoDescription || null,
-        reviewStatus: parsed.data.ptReviewed === "on" ? "REVIEWED" : "DRAFT",
+        title: fields.title,
+        shortDescription: fields.shortDescription || null,
+        description: fields.description || null,
+        materialLine: fields.materialLine || null,
+        seoTitle: fields.seoTitle || null,
+        seoDescription: fields.seoDescription || null,
+        reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
         syncStatus: "NOT_APPLICABLE",
       },
       create: {
         productId: product.id,
-        locale: "pt",
-        title: ptTitle,
-        shortDescription: ptShortDescription || null,
-        description: ptDescription || null,
-        materialLine: ptMaterialLine || null,
-        seoTitle: ptSeoTitle || null,
-        seoDescription: ptSeoDescription || null,
-        reviewStatus: parsed.data.ptReviewed === "on" ? "REVIEWED" : "DRAFT",
+        locale,
+        title: fields.title,
+        shortDescription: fields.shortDescription || null,
+        description: fields.description || null,
+        materialLine: fields.materialLine || null,
+        seoTitle: fields.seoTitle || null,
+        seoDescription: fields.seoDescription || null,
+        reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
       },
-    }),
+    })),
   ]);
 
   revalidatePath("/admin/products");
@@ -1221,7 +1238,7 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
   const missingImage = action === "publish" && !before?.imageUrl;
   let missingTranslations: string[] = [];
   if (action === "publish" && before) {
-    const portuguese = before.translations.find((translation) => translation.locale === "pt");
+    const translationLocales = await getAdminTranslationLocales();
     missingTranslations = validateProductPublication({
       isAlreadyPublic: false,
       english: {
@@ -1229,12 +1246,18 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
         shortDescription: before.shortDescription ?? "",
         description: before.description ?? "",
       },
-      portuguese: {
-        title: portuguese?.title ?? "",
-        shortDescription: portuguese?.shortDescription ?? "",
-        description: portuguese?.description ?? "",
-      },
-      portugueseReviewed: portuguese?.reviewStatus === "REVIEWED",
+      translations: translationLocales.map(({ code, label }) => {
+        const translation = before.translations.find((item) => item.locale === code);
+        return {
+          label,
+          copy: {
+            title: translation?.title ?? "",
+            shortDescription: translation?.shortDescription ?? "",
+            description: translation?.description ?? "",
+          },
+          reviewed: translation?.reviewStatus === "REVIEWED",
+        };
+      }),
     });
   }
   const publishWarning = publishGapsNotice({ missingTranslations, missingImage });

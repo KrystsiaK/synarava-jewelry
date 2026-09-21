@@ -33,6 +33,7 @@ import {
 import type { CollectionOption, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
 export function EditProductForm({
   product,
@@ -41,6 +42,7 @@ export function EditProductForm({
   onUpdated,
   onDeleted,
   highlighted = false,
+  translationLocales = [{ code: "pt", label: "Português" }],
 }: {
   product: ProductRecord;
   collections: CollectionOption[];
@@ -48,6 +50,8 @@ export function EditProductForm({
   onUpdated?: (product: ProductRecord) => void;
   onDeleted?: (productId: string) => void;
   highlighted?: boolean;
+  /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
+  translationLocales?: AdminTranslationLocale[];
 }) {
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
@@ -61,7 +65,7 @@ export function EditProductForm({
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const currentProduct = state.product ?? product;
-  const draft = productToDraft(currentProduct);
+  const draft = productToDraft(currentProduct, translationLocales);
   const currentDepartment = currentProduct.collections.find((item) => item.collection.isPrimaryNav)?.collection.slug ?? "";
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics, currentDepartment);
   const { pushToast } = useAdminToast();
@@ -230,16 +234,18 @@ export function EditProductForm({
             variantExists={currentProduct.variants.length > 0}
             issues={issues}
             validation={validation}
+            translationLocales={translationLocales}
           />
           <ProductDetailFields
             key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
             details={details}
-            ptDetails={draft.pt.details}
+            translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
             sku={draft.sku}
             mode="edit"
             issues={issues}
             collections={collections}
             entityId={currentProduct.id}
+            translationLocales={translationLocales}
           />
           <ShopifyProductMirror product={currentProduct} />
 

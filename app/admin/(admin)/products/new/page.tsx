@@ -2,9 +2,13 @@ import Link from "next/link";
 
 import { ProductCreateRoute } from "@/components/admin/products/product-route-editor";
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 
 export default async function NewProductPage() {
-  const { collections } = await getAdminCatalogData();
+  const [{ collections }, translationLocales] = await Promise.all([
+    getAdminCatalogData(),
+    getAdminTranslationLocales(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -23,7 +27,7 @@ export default async function NewProductPage() {
         </div>
       </div>
 
-      <ProductCreateRoute collections={collections} />
+      <ProductCreateRoute collections={collections} translationLocales={translationLocales} />
     </div>
   );
 }

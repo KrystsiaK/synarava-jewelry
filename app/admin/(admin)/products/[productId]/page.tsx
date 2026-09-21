@@ -4,6 +4,7 @@ import { ProductEditRoute } from "@/components/admin/products/product-route-edit
 import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 
 export default async function EditProductPage({
   params,
@@ -11,9 +12,10 @@ export default async function EditProductPage({
   params: Promise<{ productId: string }>;
 }) {
   const { productId } = await params;
-  const [{ products, collections, issues }, syncDifferences] = await Promise.all([
+  const [{ products, collections, issues }, syncDifferences, translationLocales] = await Promise.all([
     getAdminCatalogData(),
     getLatestReconcileDifferences(),
+    getAdminTranslationLocales(),
   ]);
   const product = products.find((item) => item.id === productId);
   const productIssues = issues.filter(
@@ -62,6 +64,7 @@ export default async function EditProductPage({
         product={product}
         collections={collections}
         issues={productIssues}
+        translationLocales={translationLocales}
       />
     </div>
   );

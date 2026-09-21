@@ -241,13 +241,16 @@ still resolves the Portuguese title end to end.
 
 #### Task U4: Replace EN/PT form payloads with dynamic locale drafts
 
-**Status: partially done (2026-09-21) — mechanism + Collection editor complete; Product and Page still open.**
+**Status: partially done (2026-09-21) — mechanism + Collection + Product editors complete; Page still open.**
 Right after fixing a production outage caused by an earlier task's Next.js
 rendering assumption, a full rewrite of the Product/Collection/Page save
 actions (real commerce data, ~4900 lines across 7 files) didn't feel like
 the right thing to do carelessly in the same session. Did the tab mechanism
 first, then took Collection all the way through as the proof this pattern
-actually holds on live commerce data before repeating it for Product/Page.
+actually holds on live commerce data, then repeated it for Product —
+the largest and riskiest of the three (commerce fields, a nested
+materials/process/lookbook `details` JSON, a second save path for
+autosaved drafts, and Shopify sync-status bookkeeping).
 
 - [x] `AdminLocaleTabs`/`useAdminActiveLocale` render every locale in a
   passed-in list as ARIA tabs — `AdminLocale` widened from a closed
@@ -272,23 +275,64 @@ actually holds on live commerce data before repeating it for Product/Page.
   hardcoded pair; `saveCollectionAction` builds one upsert per locale via
   `.map()` over that list inside a single `db.$transaction`, replacing the
   old fixed EN+PT upsert pair.
-- [ ] **Product and Page editors — not yet done.** Same fixed `en`/`pt`
-  panels and literal `pt*`-prefixed FormData fields as before
-  (`components/admin/products/product-form-fields.tsx`,
-  `app/admin/actions/products.ts`; `components/admin/pages/page-editor-form.tsx`,
-  `app/admin/actions/pages.ts`). Page's client-side `localizedFieldName()`
-  already generalizes ("EN uses the bare key, every other locale prefixes
-  it") but `savePageAction` only ever reads the `pt*` prefix, so a real
-  third locale still can't round-trip there either. No editor's tab list
-  was changed to actually show a third locale, since doing that without
-  real panels behind it would render a blank tab — same reasoning as Task
-  U2's language switcher staying EN/PT-only.
+- [x] **Product editor** — fully N-locale, `pt*` fields gone entirely:
+  `ProductDraft.pt` → `translations: Record<string, ProductLocaleDraft>`;
+  `product-form-fields.tsx`'s two independent tab strips (commerce/copy
+  and the extended materials/process/lookbook `details` section) both
+  render every registry translation locale, using the same
+  `adminLocaleFieldName`/`getAdminTranslationLocales()` pair Collection
+  established; `saveProductAction` and `autosaveProductDraftAction` both
+  build one `ProductTranslation` upsert per registry locale via `.map()`,
+  replacing the old fixed EN+PT pair — including the per-locale Shopify
+  `syncStatus` carry-forward logic (SYNCED survives an unchanged re-save,
+  PENDING otherwise) that Collection's simpler translations didn't need.
+  `validateProductPublication` (the publish-readiness gate) generalized
+  from a fixed `portuguese`/`portugueseReviewed` pair to a `translations`
+  array, with its own two callers (save and the publish-status action)
+  and tests updated. Required-field native validation for the EN "Name"
+  field keeps its own dedicated, real (non-hidden-mirrored) DOM node
+  exactly as before — `localeOfFirstError` (the force-tab-open-on-error
+  fix from Task 4) gained an optional locale-list argument so it still
+  works for N locales without changing `AdminLocaleWorkspace`'s
+  still-EN/PT-only default behavior.
+  **Real bug caught only by live browser testing, not by the unit or
+  integration tests:** the translation-only Title/URL-handle/Reviewed
+  fields were first built as a single shared input whose `name` attribute
+  switched with the active tab — meaning only whichever locale was active
+  *at submit time* actually had a real, named DOM node, so every other
+  locale's typed value silently vanished on save. Fixed by giving those
+  three fields the same always-rendered hidden-mirror pattern (one per
+  locale, real submitted values) already used for every other translated
+  field, with the one visible input left as a pure, unnamed editing
+  surface. Confirmed fixed by re-testing in a real browser: typed PT and
+  RU titles, switched tabs, saved, reloaded, and read both back correctly.
+- [ ] **Page editor — not yet done.** Same fixed `en`/`pt` draft record and
+  literal `pt*`-prefixed FormData fields as before
+  (`components/admin/pages/page-editor-form.tsx`, `app/admin/actions/pages.ts`).
+  Page's client-side `localizedFieldName()` already generalizes ("EN uses
+  the bare key, every other locale prefixes it") but `savePageAction` only
+  ever reads the `pt*` prefix, so a real third locale still can't
+  round-trip there either. No editor's tab list was changed to actually
+  show a third locale, since doing that without real panels behind it
+  would render a blank tab — same reasoning as Task U2's language switcher
+  staying EN/PT-only.
+- [ ] **Shopify sync/reconciliation adapters (`lib/shopify/product-sync.ts`,
+  `editorial-translation-sync.ts`, `reconciliation-source.ts`, etc.) are
+  still `locale === "pt"`-hardcoded for both Product and Collection.**
+  Deliberately left alone here — that's Task U5's job ("Generalize Shopify
+  locale adapters and reconciliation"), not U4's; U4 only covers the admin
+  editor forms and their own save actions, which now round-trip any
+  registry locale end to end before a push/pull ever touches Shopify.
 
 **Verification:** `admin-locale-workspace.test.tsx` — 2 new tests (3-tab
 render + keyboard nav in range with a non-EN/PT list; source-locale label
 derived from `locales[0]`, not hardcoded "EN"), 11/11 passing.
 `lib/i18n/__tests__/admin-locale-fields.test.ts` — 7 tests for the shared
-FormData naming helpers. `lib/i18n/__tests__/collection-save-integration.test.ts`
+FormData naming helpers. `lib/i18n/__tests__/product-save-integration.test.ts`
+— real-DB integration test mirroring the Collection one below: saves a
+product with EN/PT/RU translations in one call and asserts all three
+`ProductTranslation` rows land correctly, including the unreviewed-blank-RU
+fallback case. `lib/i18n/__tests__/collection-save-integration.test.ts`
 — real-DB integration test (no UI mocking beyond auth/registry/cache) that
 saves a Collection with EN/PT/RU translations in one call and asserts all
 three `CollectionTranslation` rows land correctly, including RU's fallback
@@ -296,8 +340,15 @@ to the EN name when left blank and unreviewed. Chosen over further
 browser-automation testing after discovering every collection in the local
 dev DB predates the form's required-field validation (a pre-existing
 data-quality gap, unrelated to this change) — a real-DB integration test
-exercises the actual save logic without fighting stale fixture data. Full
-suite green: tsc, eslint, 927 tests.
+exercises the actual save logic without fighting stale fixture data.
+`lib/products/__tests__/localization.test.ts` — 2 new tests for the
+generalized `validateProductPublication`. Product's editor was also
+live-verified in a real browser end to end (typed EN/PT/RU content, saved,
+reloaded, confirmed all three round-tripped, deleted the test record) —
+that pass is what caught the shared-input submission bug above; the
+integration test alone would not have, since it builds FormData by hand
+rather than driving the actual form. Full suite green: tsc, eslint, 930
+tests.
 
 ### Phase 3 — Generic content and Shopify synchronization
 
