@@ -1334,6 +1334,13 @@ html[data-theme="dark"] .etched-glass {
   font-size: 1rem;
   line-height: 1.8;
   color: color-mix(in srgb, var(--color-foreground) 75%, transparent);
+  /* Markdown already renders a single line break as a soft break (a literal
+     newline character left in place, not collapsed to a space) — the
+     browser's own default `white-space: normal` is what visually collapses
+     it. `pre-line` keeps that newline visible as a line break while still
+     wrapping normally and collapsing runs of spaces/tabs, so an editor's
+     single Enter is preserved without writing a hard break or <br>. */
+  white-space: pre-line;
 }
 
 .legal-markdown strong {

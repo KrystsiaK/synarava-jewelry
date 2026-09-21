@@ -29,8 +29,8 @@ export const LEGAL_NOTICE_SECTION_DEFAULTS: Record<string, LegalSectionDefault> 
     title: "Seller identification",
     body: [
       "Synarava Shop is operated by:",
-      "Nadzeya Krystsia\\\nIndividual operating Synarava Shop",
-      "Largo Girassol, Bloco B1, Apt. 17\\\nLombos\\\n2775-663 Carcavelos\\\nPortugal",
+      "Nadzeya Krystsia\nIndividual operating Synarava Shop",
+      "Largo Girassol, Bloco B1, Apt. 17\nLombos\n2775-663 Carcavelos\nPortugal",
       "Portuguese Tax Identification Number (NIF): [NIF]",
       "Email: synarava.shop@gmail.com",
     ].join("\n\n"),
@@ -49,7 +49,7 @@ export const LEGAL_NOTICE_SECTION_DEFAULTS: Record<string, LegalSectionDefault> 
       "For questions about products, orders, deliveries, returns or the operation of this website, please contact:",
       "Email: synarava.shop@gmail.com",
       "Postal address:",
-      "Synarava Shop\\\nNadzeya Krystsia\\\nLargo Girassol, Bloco B1, Apt. 17\\\nLombos\\\n2775-663 Carcavelos\\\nPortugal",
+      "Synarava Shop\nNadzeya Krystsia\nLargo Girassol, Bloco B1, Apt. 17\nLombos\n2775-663 Carcavelos\nPortugal",
     ].join("\n\n"),
   },
   "consumer-information": {
