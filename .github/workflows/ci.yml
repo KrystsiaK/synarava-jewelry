@@ -20,6 +20,24 @@ jobs:
     name: Quality Gates
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    services:
+      # A handful of unit-test files (lib/i18n/__tests__/*-save-integration.test.ts)
+      # exercise the real save actions against a real Postgres instance instead of
+      # mocking @/lib/db, so `pnpm test:run` needs a reachable database here too —
+      # not just in the storefront-smoke job below.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: synarava_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synarava_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
@@ -53,6 +71,9 @@ jobs:
 
       - name: Dependency security audit
         run: pnpm audit --audit-level high --prod
+
+      - name: Push database schema
+        run: pnpm prisma:push
 
       - name: Unit tests
         run: pnpm test:run
