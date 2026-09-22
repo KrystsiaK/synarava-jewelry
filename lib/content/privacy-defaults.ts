@@ -275,14 +275,18 @@ const privacySectionDefaultsPt: Record<string, LegalSectionDefault> = {
 };
 
 // Locale-keyed so a page component looks up its defaults with
-// `PRIVACY_SECTIONS[locale]` instead of a `locale === "pt"` branch — adding a
-// language here is a new key, not a new conditional.
-export const PRIVACY_SECTIONS: Record<Locale, LegalSectionMeta[]> = {
+// `PRIVACY_SECTIONS[locale] ?? PRIVACY_SECTIONS.en` instead of a
+// `locale === "pt"` branch — adding a language here is a new key, not a new
+// conditional. Deliberately `Partial`, not every registered locale has real
+// legal-copy defaults yet (writing GDPR text is a translation/review task,
+// not a code change) — a locale with no entry here falls back to the
+// English defaults, same as everywhere else in this plan.
+export const PRIVACY_SECTIONS: { en: LegalSectionMeta[] } & Partial<Record<Locale, LegalSectionMeta[]>> = {
   en: privacySectionsEn,
   pt: privacySectionsPt,
 };
 
-export const PRIVACY_SECTION_DEFAULTS: Record<Locale, Record<string, LegalSectionDefault>> = {
+export const PRIVACY_SECTION_DEFAULTS: { en: Record<string, LegalSectionDefault> } & Partial<Record<Locale, Record<string, LegalSectionDefault>>> = {
   en: privacySectionDefaultsEn,
   pt: privacySectionDefaultsPt,
 };

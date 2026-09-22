@@ -32,10 +32,19 @@ const enFlat = flattenMessages(en as Record<string, unknown>);
 // wait on a fetch. REV-20: SSR used to seed `messages` from enFlat
 // unconditionally and only fetch the PT dictionary in a post-mount effect,
 // so a PT page's initial HTML was English until that fetch resolved.
-const dictionaries: Record<Locale, Record<string, string>> = {
+//
+// Not every registered locale has a static dictionary file (adding one
+// isn't required to enable a language — see Task U9) — `dictionaries[locale]`
+// is simply undefined for those, and `t()` below already falls back to
+// `enFlat` for any key it can't find.
+const dictionaries: Partial<Record<Locale, Record<string, string>>> = {
   en: enFlat,
   pt: flattenMessages(pt as Record<string, unknown>),
 };
+
+// Built from SUPPORTED_LOCALES so a newly registered locale is recognized
+// in the URL without touching this regex by hand.
+const LOCALE_PATH_PATTERN = new RegExp(`^/(${SUPPORTED_LOCALES.map((locale) => locale.code).join("|")})(?=/|$)`);
 
 const TranslationContext = createContext<TranslationContextValue>({
   locale: "en",
@@ -64,7 +73,7 @@ export function TranslationProvider({
   // back/forward or a plain Link to a /pt/... route used to leave the previous
   // locale's dictionary in place. Deriving from pathname on every render means
   // there's no stored locale to go stale: it's re-read on every navigation.
-  const pathLocale = pathname.match(/^\/(en|pt)(?=\/|$)/)?.[1];
+  const pathLocale = pathname.match(LOCALE_PATH_PATTERN)?.[1];
   const locale = normalizeLocale(pathLocale ?? initialLocale);
   const messages = useMemo(
     () => ({ ...dictionaries[locale], ...initialOverrides?.[locale] }),

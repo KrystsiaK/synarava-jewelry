@@ -39,17 +39,17 @@ export default async function CarePage() {
   const { locale } = await getServerTranslations();
   const page = await getPageBySlug("care", locale);
   const content = page?.content;
-  const introDefaults = SERVICE_PAGE_INTRO_DEFAULTS[locale].care;
+  const introDefaults = (SERVICE_PAGE_INTRO_DEFAULTS[locale] ?? SERVICE_PAGE_INTRO_DEFAULTS.en).care;
 
   return (
     <ServicePage
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || SERVICE_PAGE_TITLE_DEFAULTS[locale].care}
+      title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).care}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
       sections={resolveLegalSections(
         SERVICE_SECTIONS.care,
         content?.serviceSections,
-        SERVICE_SECTION_DEFAULTS[locale].care,
+        (SERVICE_SECTION_DEFAULTS[locale] ?? SERVICE_SECTION_DEFAULTS.en).care,
       )}
       heroImage={content?.heroImage}
     />

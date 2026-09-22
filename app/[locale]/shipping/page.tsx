@@ -39,17 +39,17 @@ export default async function ShippingPage() {
   const { locale } = await getServerTranslations();
   const page = await getPageBySlug("shipping", locale);
   const content = page?.content;
-  const introDefaults = SERVICE_PAGE_INTRO_DEFAULTS[locale].shipping;
+  const introDefaults = (SERVICE_PAGE_INTRO_DEFAULTS[locale] ?? SERVICE_PAGE_INTRO_DEFAULTS.en).shipping;
 
   return (
     <ServicePage
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || SERVICE_PAGE_TITLE_DEFAULTS[locale].shipping}
+      title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).shipping}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
       sections={resolveLegalSections(
         SERVICE_SECTIONS.shipping,
         content?.serviceSections,
-        SERVICE_SECTION_DEFAULTS[locale].shipping,
+        (SERVICE_SECTION_DEFAULTS[locale] ?? SERVICE_SECTION_DEFAULTS.en).shipping,
       )}
       heroImage={content?.heroImage}
     />

@@ -39,17 +39,17 @@ export default async function DisputeResolutionPage() {
   const { locale } = await getServerTranslations();
   const page = await getPageBySlug("dispute-resolution", locale);
   const content = page?.content;
-  const introDefaults = SERVICE_PAGE_INTRO_DEFAULTS[locale]["dispute-resolution"];
+  const introDefaults = (SERVICE_PAGE_INTRO_DEFAULTS[locale] ?? SERVICE_PAGE_INTRO_DEFAULTS.en)["dispute-resolution"];
 
   return (
     <ServicePage
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || SERVICE_PAGE_TITLE_DEFAULTS[locale]["dispute-resolution"]}
+      title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en)["dispute-resolution"]}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
       sections={resolveLegalSections(
         SERVICE_SECTIONS["dispute-resolution"],
         content?.serviceSections,
-        SERVICE_SECTION_DEFAULTS[locale]["dispute-resolution"],
+        (SERVICE_SECTION_DEFAULTS[locale] ?? SERVICE_SECTION_DEFAULTS.en)["dispute-resolution"],
       )}
       heroImage={content?.heroImage}
     />

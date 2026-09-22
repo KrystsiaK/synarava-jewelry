@@ -38,7 +38,7 @@ export const LEGAL_DOCUMENT_CONFIGS: LegalDocumentConfig[] = [
   {
     slug: "privacy",
     en: { sections: PRIVACY_SECTIONS.en, sectionDefaults: PRIVACY_SECTION_DEFAULTS.en, lastUpdatedDefault: PRIVACY_LAST_UPDATED_DEFAULT },
-    pt: { sections: PRIVACY_SECTIONS.pt, sectionDefaults: PRIVACY_SECTION_DEFAULTS.pt },
+    pt: { sections: PRIVACY_SECTIONS.pt!, sectionDefaults: PRIVACY_SECTION_DEFAULTS.pt! },
   },
   {
     slug: "offer",

@@ -273,20 +273,23 @@ const serviceSectionDefaultsPt: Record<ServicePageSlug, Record<string, LegalSect
   },
 };
 
-// Locale-keyed so page components look up `SERVICE_PAGE_TITLE_DEFAULTS[locale]`
-// etc. instead of a `locale === "pt"` branch — adding a language here is a
-// new key, not a new conditional.
-export const SERVICE_PAGE_TITLE_DEFAULTS: Record<Locale, Record<ServicePageSlug, string>> = {
+// Locale-keyed so page components look up `SERVICE_PAGE_TITLE_DEFAULTS[locale]
+// ?? SERVICE_PAGE_TITLE_DEFAULTS.en` etc. instead of a `locale === "pt"`
+// branch — adding a language here is a new key, not a new conditional.
+// Deliberately `Partial`: not every registered locale has real service-copy
+// defaults yet (that's a translation/review task, not a code change) — a
+// locale with no entry falls back to the English defaults.
+export const SERVICE_PAGE_TITLE_DEFAULTS: { en: Record<ServicePageSlug, string> } & Partial<Record<Locale, Record<ServicePageSlug, string>>> = {
   en: servicePageTitleDefaultsEn,
   pt: servicePageTitleDefaultsPt,
 };
 
-export const SERVICE_PAGE_INTRO_DEFAULTS: Record<Locale, Record<ServicePageSlug, ServicePageIntroDefaults>> = {
+export const SERVICE_PAGE_INTRO_DEFAULTS: { en: Record<ServicePageSlug, ServicePageIntroDefaults> } & Partial<Record<Locale, Record<ServicePageSlug, ServicePageIntroDefaults>>> = {
   en: servicePageIntroDefaultsEn,
   pt: servicePageIntroDefaultsPt,
 };
 
-export const SERVICE_SECTION_DEFAULTS: Record<Locale, Record<ServicePageSlug, Record<string, LegalSectionDefault>>> = {
+export const SERVICE_SECTION_DEFAULTS: { en: Record<ServicePageSlug, Record<string, LegalSectionDefault>> } & Partial<Record<Locale, Record<ServicePageSlug, Record<string, LegalSectionDefault>>>> = {
   en: serviceSectionDefaultsEn,
   pt: serviceSectionDefaultsPt,
 };

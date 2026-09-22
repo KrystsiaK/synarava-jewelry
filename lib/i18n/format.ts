@@ -4,6 +4,7 @@ import { SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE } from "@/lib/shopify/locales";
 const NUMBER_LOCALES: Record<Locale, string> = {
   en: "en-IE",
   pt: "pt-PT",
+  ru: "ru-RU",
 };
 
 export function localeTag(locale: Locale) {
@@ -22,6 +23,12 @@ export function formatCurrency(
   }).format(amount);
 }
 
+const SHOPIFY_STOREFRONT_LANGUAGE_CODES: Record<Locale, string> = {
+  en: "EN",
+  pt: SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE,
+  ru: "RU",
+};
+
 export function shopifyLanguage(locale: Locale) {
-  return locale === "pt" ? SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE : "EN";
+  return SHOPIFY_STOREFRONT_LANGUAGE_CODES[locale];
 }

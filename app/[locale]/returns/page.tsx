@@ -39,17 +39,17 @@ export default async function ReturnsPage() {
   const { locale } = await getServerTranslations();
   const page = await getPageBySlug("returns", locale);
   const content = page?.content;
-  const introDefaults = SERVICE_PAGE_INTRO_DEFAULTS[locale].returns;
+  const introDefaults = (SERVICE_PAGE_INTRO_DEFAULTS[locale] ?? SERVICE_PAGE_INTRO_DEFAULTS.en).returns;
 
   return (
     <ServicePage
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || SERVICE_PAGE_TITLE_DEFAULTS[locale].returns}
+      title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).returns}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
       sections={resolveLegalSections(
         SERVICE_SECTIONS.returns,
         content?.serviceSections,
-        SERVICE_SECTION_DEFAULTS[locale].returns,
+        (SERVICE_SECTION_DEFAULTS[locale] ?? SERVICE_SECTION_DEFAULTS.en).returns,
       )}
       heroImage={content?.heroImage}
     />

@@ -39,17 +39,17 @@ export default async function FaqPage() {
   const { locale } = await getServerTranslations();
   const page = await getPageBySlug("faq", locale);
   const content = page?.content;
-  const introDefaults = SERVICE_PAGE_INTRO_DEFAULTS[locale].faq;
+  const introDefaults = (SERVICE_PAGE_INTRO_DEFAULTS[locale] ?? SERVICE_PAGE_INTRO_DEFAULTS.en).faq;
 
   return (
     <ServicePage
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || SERVICE_PAGE_TITLE_DEFAULTS[locale].faq}
+      title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).faq}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
       sections={resolveLegalSections(
         SERVICE_SECTIONS.faq,
         content?.serviceSections,
-        SERVICE_SECTION_DEFAULTS[locale].faq,
+        (SERVICE_SECTION_DEFAULTS[locale] ?? SERVICE_SECTION_DEFAULTS.en).faq,
       )}
       heroImage={content?.heroImage}
     />

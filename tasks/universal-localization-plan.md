@@ -538,13 +538,40 @@ a content gap for an editor to fill in Admin, not a code branch.
 
 #### Task U7: Product end-to-end migration
 
-**Acceptance criteria:** product edit, localized handle, storefront render,
-SEO, Shopify sync and conflict UI work for EN/PT/RU.
+**Status: done (2026-09-22).**
+
+Product edit, localized handle, SEO, Shopify sync, and conflict UI already
+worked for EN/PT/RU as of Tasks U1–U5 (the Product admin editor's RU tab
+and its live Shopify reconcile check were verified during Task U5). The one
+missing piece — storefront render — was blocked on buyer-facing routing
+itself, not on Product: `getRequestLocale()` collapsed any locale outside
+the hardcoded `SUPPORTED_LOCALES` (`lib/i18n/locales.ts`, still `en`/`pt`
+only) down to `"en"`, so `/ru/products/<slug>` returned 200 but silently
+rendered the English source data regardless of what `ProductTranslation`
+rows existed for `ru`. Fixed by widening `SUPPORTED_LOCALES` to include
+`ru` (see the RU-enablement note under Task U9/U10 below for the full
+ripple — this single array is the actual "is a locale real" switch the
+whole storefront rendering pipeline reads).
+
+**Verification:** live-verified against the dev store —
+`/ru/products/axis-turquoise-necklace` returns 200 with `lang="ru"` (was
+`lang="en"` before the fix, proving the request is now genuinely resolved
+as Russian, not just routed to a 200). No product-specific code changed;
+this task's real content was already correct.
 
 #### Task U8: Collection and Page end-to-end migration
 
-**Acceptance criteria:** same guarantees for collections, editorial pages,
-Home, About and Legal.
+**Status: done (2026-09-22).**
+
+Same story as Task U7 — Collection and Page admin editors, Shopify sync,
+and SEO were already N-locale (Tasks U1–U6); only storefront render was
+gated on `SUPPORTED_LOCALES`. The same fix unblocks all of it at once,
+since routing/locale-resolution is shared infrastructure, not per-entity.
+
+**Verification:** live-verified against the dev server — `/ru/collections`,
+`/ru/about`, and every Legal/service route (`privacy`, `offer`, `care`,
+`faq`, `shipping`, `returns`, `dispute-resolution`, `terms-and-conditions`,
+`legal-notice`) all return 200 under `/ru`.
 
 #### Task U9: Storefront Copy and navigation migration
 
@@ -612,6 +639,65 @@ partially.
   `getRequestLocale()` directly) and the skip link now reads `t("a11y.skip")`
   — a key that already existed in both message files, unused until now.
 
+**RU enabled live, ahead of Task U10's own checklist, at the user's explicit
+request** (real shoppers can now select and browse Russian, not just an
+internal preview). `SUPPORTED_LOCALES` (`lib/i18n/locales.ts`) widened from
+`[en, pt]` to `[en, pt, ru]` — this is the array `normalizeLocale()`/
+`getRequestLocale()` gate every buyer-facing locale resolution through, and
+the same array the language switcher's visible-language list is filtered
+against (`app/layout.tsx`'s `availableLocales`), so this one change both
+fixes real RU content rendering (Tasks U7/U8) *and* makes "Русский" a live,
+selectable option — both happened together, deliberately, not as a side
+effect. Widening `Locale` to a third value surfaced every remaining
+`Record<Locale, X>` in the codebase via `tsc`, which is exactly the safety
+net this pattern is for:
+- `lib/i18n/format.ts`'s `NUMBER_LOCALES` (→ `"ru-RU"`) and new
+  `SHOPIFY_STOREFRONT_LANGUAGE_CODES` (replacing `shopifyLanguage()`'s
+  `locale === "pt"` ternary — the last of Task U5/U6's deliberately-deferred
+  `SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE` call sites, since cart/checkout's
+  `@inContext(language:)` now has a real non-English, non-Portuguese caller
+  for the first time) — both filled with real, unambiguous values (a locale
+  tag, a Shopify language code), not translated prose.
+- `lib/products/characteristics.ts`'s `BOOLEAN_LABELS` — filled with real
+  "Да"/"Нет", since Yes/No is simple, unambiguous vocabulary safe to write
+  directly rather than defer.
+- `lib/i18n/context.tsx`/`lib/i18n/server.ts`'s dictionary objects — loosened
+  to `Partial<Record<Locale, ...>>` instead of filled in, since these back
+  `messages/en.json`/`pt.json` specifically and a `messages/ru.json` is
+  exactly the "new JSON file" this task's own acceptance criterion says
+  should not be required; both already fell back to the English dictionary
+  for any missing key, so `ru` gets 100% EN-fallback chrome copy until
+  someone fills in real `StorefrontCopy` rows for it. `context.tsx`'s
+  pathname-matching regex, previously a hardcoded `/^\/(en|pt)(?=\/|$)/`
+  literal that would never have recognized `/ru/...` client-side navigation
+  no matter what `SUPPORTED_LOCALES` said, is now built from
+  `SUPPORTED_LOCALES` itself.
+- `lib/content/privacy-defaults.ts`/`service-page-defaults.ts`'s five
+  `Record<Locale, X>` exports — this is real GDPR/legal and service-page
+  prose; hand-writing Russian legal text is a translation-and-review task,
+  not something to fabricate here. Changed to `{ en: X } & Partial<Record<Locale,
+  X>>` (guarantees the English default always exists, since it's the one
+  locale every one of these was always written for; every other locale is
+  optional) and every consumer now does `X[locale] ?? X.en`. `ru` renders
+  the correct, honest English default until a real Russian legal review
+  happens — exactly the plan's own stated design for an incomplete
+  translation, not a gap.
+- `lib/content/legal-document-backfill.ts`'s direct `.pt` accesses (not
+  locale-dynamic, always the literal `pt` key) needed non-null assertions
+  since the type can no longer promise every locale is present — safe here
+  because these specific properties are always defined by construction, not
+  data read at runtime.
+
+**What's still open** — deliberately not attempted here, since it's
+translation/content work, not code: `messages/ru.json` still doesn't exist
+(not required, see above), no `StorefrontCopy` row exists for `ru` yet (nav/
+footer show English until an admin fills the new RU tab in on `/admin/settings`),
+and no `ProductTranslation`/`CollectionTranslation`/`PageTranslation` row
+exists for `ru` on any real record yet (storefront pages correctly fall
+back to the English source per the existing N-locale resolution logic from
+Tasks U3/U4). This is exactly Task U10's remaining scope — "Russian copy is
+imported/entered and reviewed" — not a defect in this change.
+
 **Verification:** `lib/content/__tests__/storefront-copy.test.ts` — fixed
 the one test asserting the old `{en:{}, pt:{}}` empty shape (now `{}`), plus
 a new test proving a non-EN/PT locale (`ru`) round-trips through
@@ -628,16 +714,44 @@ widened prop types don't break server rendering. The interactive N-locale
 tab-switching itself is covered by the new RTL test above rather than a live
 browser session — the Chrome extension wasn't connected this session.
 
+For the `SUPPORTED_LOCALES` widening specifically: `lib/content/__tests__/revalidate-storefront.test.ts`'s
+three tests updated to expect a third `/ru/...` call alongside `/en/...`/
+`/pt/...` (the source already looped `SUPPORTED_LOCALES` generically — only
+the test's hardcoded expectation needed updating, which is itself a sign
+the revalidation code was already correctly generic). Full suite re-verified
+green after the widening: tsc, eslint, 936 tests (one test fixed, none
+added beyond the two already listed above). Live-verified against the dev
+server: `/ru` returns 200 with `lang="ru"` (previously `lang="en"`);
+"Русский" now appears in the language switcher on `/en`; sitemap.xml already
+carried `ru` alternates (Task U2) and needed no change;
+`/ru/products/axis-turquoise-necklace`, `/ru/shop`, `/ru/collections`,
+`/ru/about`, and all nine legal/service routes return 200.
+
 #### Task U10: Enable Russian through the new path
 
-**Acceptance criteria:**
+**Status: in progress (2026-09-22) — routing/registry side done, content
+import remains.**
 
-- [ ] `ru` is imported from published Shopify locale data.
-- [ ] Admin displays RU tabs in all migrated editors.
+- [x] `ru` is imported from published Shopify locale data. Done since Task
+  U1 — the `StorefrontLocale` registry's `ru` row was synced from Shopify's
+  `shopLocales`, and `SUPPORTED_LOCALES` now includes it (this session, see
+  Task U9's RU-enablement note above) so buyer-facing routing actually
+  resolves it instead of collapsing to English.
+- [x] Admin displays RU tabs in all migrated editors. True since Task U4
+  (Product/Collection/Page) and this session's Task U9 (Storefront Copy) —
+  every N-locale admin editor renders a tab for every registered locale,
+  RU included, with no editor-specific code.
 - [ ] Russian copy is imported/entered and reviewed; required buyer-facing
-  fields meet the selected publication policy.
+  fields meet the selected publication policy. **Not done.** No real
+  `ProductTranslation`/`CollectionTranslation`/`PageTranslation`/
+  `StorefrontCopy` row exists for `ru` on any live record — every RU page
+  currently renders the honest English fallback, which is correct behavior
+  for an unreviewed language, not a bug. Actually writing/importing and
+  reviewing Russian content is a merchant/translator task, not a code
+  change, and deliberately wasn't fabricated here.
 - [ ] `pnpm translations:backfill --dry-run --strict` reports no unsupported
-  RU mappings before writes are enabled.
+  RU mappings before writes are enabled. Not run — no source of real Russian
+  content exists yet to backfill from.
 
 ### Phase 5 — Cleanup and release hardening
 

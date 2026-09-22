@@ -18,7 +18,8 @@ describe("revalidateStorefrontPath", () => {
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/en/shop");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pt/shop");
-    expect(mocks.revalidatePath).toHaveBeenCalledTimes(2);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/ru/shop");
+    expect(mocks.revalidatePath).toHaveBeenCalledTimes(3);
   });
 
   it("treats the bare root path as just the locale segment, not '/en/'", () => {
@@ -26,6 +27,7 @@ describe("revalidateStorefrontPath", () => {
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/en");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pt");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/ru");
   });
 });
 
@@ -35,5 +37,6 @@ describe("revalidateStorefrontTemplate", () => {
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/en/products/[slug]", "page");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pt/products/[slug]", "page");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/ru/products/[slug]", "page");
   });
 });

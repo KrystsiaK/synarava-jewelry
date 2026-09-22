@@ -3,14 +3,20 @@ import "server-only";
 import { headers } from "next/headers";
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
-import { normalizeLocale } from "./locales";
+import { normalizeLocale, type Locale } from "./locales";
 import { flattenMessages } from "./utils";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 
 type Values = Record<string, string | number>;
 
-const dictionaries = {
-  en: flattenMessages(en as Record<string, unknown>),
+const enDictionary = flattenMessages(en as Record<string, unknown>);
+
+// Not every registered locale has a static dictionary file (adding one
+// isn't required to enable a language — see Task U9) — `dictionaries[locale]`
+// is simply undefined for those, and getServerTranslations already falls
+// back to `enDictionary` for any missing key.
+const dictionaries: Partial<Record<Locale, Record<string, string>>> = {
+  en: enDictionary,
   pt: flattenMessages(pt as Record<string, unknown>),
 };
 
@@ -30,7 +36,7 @@ export async function getServerTranslations() {
   const locale = await getRequestLocale();
   const overrides = await getStorefrontCopy();
   const messages = { ...dictionaries[locale], ...overrides[locale] };
-  const fallback = dictionaries.en;
+  const fallback = enDictionary;
   const interpolate = (message: string, values?: Values) => values
     ? message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
         Object.hasOwn(values, key) ? String(values[key]) : match

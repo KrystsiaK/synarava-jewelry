@@ -48,9 +48,9 @@ export default async function PrivacyPage() {
 
   const exists = isSavedLegalDocument(page);
   const sections = resolveLegalSections(
-    PRIVACY_SECTIONS[locale],
+    PRIVACY_SECTIONS[locale] ?? PRIVACY_SECTIONS.en,
     page?.content.legalSections,
-    exists ? {} : PRIVACY_SECTION_DEFAULTS[locale],
+    exists ? {} : (PRIVACY_SECTION_DEFAULTS[locale] ?? PRIVACY_SECTION_DEFAULTS.en),
     vars,
   );
   const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : PRIVACY_LAST_UPDATED_DEFAULT);

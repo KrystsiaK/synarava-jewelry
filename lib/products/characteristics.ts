@@ -214,6 +214,7 @@ export function parseCharacteristicsForm(formData: FormData) {
 const BOOLEAN_LABELS: Record<Locale, { yes: string; no: string }> = {
   en: { yes: "Yes", no: "No" },
   pt: { yes: "Sim", no: "Não" },
+  ru: { yes: "Да", no: "Нет" },
 };
 
 export function characteristicDisplayValue(value: ProductCharacteristicValue, locale: Locale = "en") {
