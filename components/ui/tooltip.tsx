@@ -244,7 +244,6 @@ export function Tooltip({
           className={cn("ui-tooltip", className)}
           style={{
             left: position?.left ?? 0,
-            maxWidth: `min(${maxWidth}px, calc(100vw - 16px))`,
             top: position?.top ?? 0,
             visibility: position ? "visible" : "hidden",
           }}
@@ -253,8 +252,10 @@ export function Tooltip({
           }}
           onPointerLeave={() => hide()}
         >
-          {content}
           <span className="ui-tooltip__arrow" aria-hidden="true" style={arrowStyle} />
+          <div className="ui-tooltip__box" style={{ maxWidth: `min(${maxWidth}px, calc(100vw - 16px))` }}>
+            {content}
+          </div>
         </div>,
         portalTarget,
       ) : null}

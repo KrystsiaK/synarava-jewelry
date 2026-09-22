@@ -2988,8 +2988,9 @@ select.adm-field option {
   background: none;
   color: #4f8dfd;
   cursor: help;
-  font-family: var(--font-sans), sans-serif;
-  font-size: 0.8rem;
+  font-family: var(--font-serif), serif;
+  font-size: 1.2rem;
+  font-style: italic;
   font-weight: 700;
   line-height: 1;
   transition: color 160ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -3011,11 +3012,19 @@ select.adm-field option {
   z-index: 280;
   isolation: isolate;
   margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  overflow: visible;
   width: max-content;
+  opacity: 1;
+  animation: ui-tooltip-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.ui-tooltip__box {
   border: 1px solid var(--tooltip-border);
   border-radius: 10px;
   background-color: var(--tooltip-bg);
-  background-image: none;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
   color: var(--tooltip-fg);
   font-family: var(--font-sans), sans-serif;
@@ -3027,16 +3036,17 @@ select.adm-field option {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.62rem 0.72rem;
-  opacity: 1;
   text-transform: none;
   white-space: normal;
-  animation: ui-tooltip-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 body.admin-mode .ui-tooltip {
   --tooltip-bg: var(--adm-panel);
   --tooltip-border: var(--adm-border-strong);
   --tooltip-fg: var(--adm-text);
+}
+
+body.admin-mode .ui-tooltip .ui-tooltip__box {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
   font-size: 0.82rem;
   padding: 0.72rem 0.8rem;
