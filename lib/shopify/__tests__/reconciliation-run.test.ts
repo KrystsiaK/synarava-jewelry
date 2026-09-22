@@ -59,11 +59,14 @@ function runRow(overrides: Partial<Record<string, unknown>> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // createOrReuseRun: no active run, no recent run, then insert + read back the new row.
-  mocks.transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({
-    $queryRaw: mocks.queryRaw,
-    $executeRaw: mocks.executeRaw,
-  }));
+  // createOrReuseRun's advisory lock uses the interactive-transaction form
+  // (a callback); persistDifferences' retire+insert uses the
+  // array-of-promises form. Both go through this one $transaction mock.
+  mocks.transaction.mockImplementation(async (arg: unknown) =>
+    typeof arg === "function"
+      ? (arg as (tx: unknown) => unknown)({ $queryRaw: mocks.queryRaw, $executeRaw: mocks.executeRaw })
+      : Promise.all(arg as Promise<unknown>[]),
+  );
   mocks.executeRaw.mockResolvedValueOnce(undefined); // advisory lock (void-returning, must use $executeRaw)
   mocks.queryRaw
     .mockResolvedValueOnce([]) // no active QUEUED/RUNNING run
@@ -120,15 +123,7 @@ describe("runTranslationReconciliation", () => {
     expect(checkedLocales).toEqual(["en", "pt-PT", "ru"]);
   });
 
-  it("unconditionally retires every unresolved row for the exact (binding, locale) it just rechecked before inserting fresh ones — including a field still found different, so resolving the new row can never uncover a stale duplicate", async () => {
-    // Both the interactive-transaction form (createOrReuseRun's advisory lock)
-    // and the array-of-promises form (persistDifferences' inserts) go through
-    // the same $transaction mock here.
-    mocks.transaction.mockImplementation(async (arg: unknown) =>
-      typeof arg === "function"
-        ? (arg as (tx: unknown) => unknown)({ $queryRaw: mocks.queryRaw, $executeRaw: mocks.executeRaw })
-        : Promise.all(arg as Promise<unknown>[]),
-    );
+  function setUpSingleBindingSingleLocaleCheck(differences: Array<Record<string, unknown>>) {
     mocks.findMany.mockResolvedValue([{
       id: "binding-1",
       shopifyResourceId: "gid://shopify/Product/1",
@@ -145,18 +140,25 @@ describe("runTranslationReconciliation", () => {
     });
     mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
     mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
-    mocks.planReconcile.mockReturnValue({
-      differences: [{
-        fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
-        baseValue: null, localValue: "A", shopifyValue: "B",
-        localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
-      }],
-    });
-    mocks.queryRaw
-      .mockResolvedValueOnce([]) // lastSnapshot(en)
-      .mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 1, differenceCount: 1 })]); // runById after finishRun
+    mocks.planReconcile.mockReturnValue({ differences });
+    mocks.queryRaw.mockResolvedValueOnce([]); // lastSnapshot(en)
+  }
+
+  it("retires every unresolved row for the (binding, locale) and inserts the fresh ones in the same transaction — including a field still found different, so resolving the new row can never uncover a stale duplicate", async () => {
+    setUpSingleBindingSingleLocaleCheck([{
+      fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
+      baseValue: null, localValue: "A", shopifyValue: "B",
+      localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
+    }]);
+    mocks.queryRaw.mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 1, differenceCount: 1 })]); // runById after finishRun
 
     await runTranslationReconciliation({ trigger: "MANUAL", scope: { locale: "en" } });
+
+    // persistDifferences' one $transaction call is the 2nd (the 1st is
+    // createOrReuseRun's advisory lock) and must carry both the retire and
+    // the insert together — that's what makes them atomic.
+    const [operations] = mocks.transaction.mock.calls[1] as [unknown[]];
+    expect(operations).toHaveLength(2);
 
     const retireCall = mocks.executeRaw.mock.calls.find(
       ([query]) => (query as { sql: string }).sql.includes('UPDATE "ShopifyFieldDivergence"'),
@@ -176,10 +178,43 @@ describe("runTranslationReconciliation", () => {
     );
     expect(insertCall).toBeTruthy();
 
-    // Retire must run before the insert, or the fresh row it's about to
-    // write could be immediately resolved by the same sweep.
+    // Retire must be built (and therefore ordered) before the insert within
+    // the transaction's operation list, or the fresh row could be resolved
+    // by the same sweep.
     const retireIndex = mocks.executeRaw.mock.calls.indexOf(retireCall!);
     const insertIndex = mocks.executeRaw.mock.calls.indexOf(insertCall!);
     expect(retireIndex).toBeLessThan(insertIndex);
+  });
+
+  it("does not lose existing conflicts when the insert half of persistDifferences fails — retire and insert roll back together", async () => {
+    setUpSingleBindingSingleLocaleCheck([{
+      fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
+      baseValue: null, localValue: "A", shopifyValue: "B",
+      localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
+    }]);
+    mocks.queryRaw.mockResolvedValueOnce([runRow({
+      status: "FAILED", checkedCount: 0, differenceCount: 0,
+      error: "1 check could not be completed. product-1 (en): insert failed.",
+    })]); // runById after finishRun
+    // 1st $transaction call: createOrReuseRun's advisory lock (still the
+    // function form). 2nd: persistDifferences' retire+insert batch — reject
+    // it exactly like a real Postgres transaction that fails and rolls back
+    // every statement in it, including the retire.
+    mocks.transaction
+      .mockImplementationOnce(async (fn: (tx: unknown) => unknown) => fn({ $queryRaw: mocks.queryRaw, $executeRaw: mocks.executeRaw }))
+      .mockImplementationOnce(async () => {
+        throw new Error("insert failed.");
+      });
+
+    const result = await runTranslationReconciliation({ trigger: "MANUAL", scope: { locale: "en" } });
+
+    // The failure must be visible on the run, not swallowed as a quiet
+    // success with the old conflict simply gone.
+    expect(result.run).toMatchObject({ status: "FAILED", checkedCount: 0 });
+    expect(result.run?.error).toMatch(/insert failed/);
+    // Nothing beyond the failed transaction's own retire attempt should
+    // have run — in particular, no separate/earlier retire outside of it
+    // (which would mean the retire could commit independently of the insert).
+    expect(mocks.transaction).toHaveBeenCalledTimes(2);
   });
 });

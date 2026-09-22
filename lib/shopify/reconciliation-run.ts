@@ -262,18 +262,25 @@ function json(value: unknown) {
 }
 
 /**
- * Retires every unresolved row for this exact (binding, locale) pair —
- * this check's `differences` is the complete, authoritative current state
- * for that pair, about to be inserted fresh below. This must happen even
- * for a field that's still differing: leaving its old row unresolved and
- * merely adding a second, newer row for the same field means resolving
- * that newer row (via the apply flow) uncovers the stale old one, which
- * then reappears in `getLatestReconcileDifferences()` as if it were
- * current. Only the (binding, locale) actually rechecked is touched, not
- * every row in the table.
+ * Builds (without executing) the retire step for this exact (binding,
+ * locale) pair — every currently unresolved row is superseded by this
+ * check's `differences`, the complete, authoritative current state for
+ * that pair. This must happen even for a field that's still differing:
+ * leaving its old row unresolved and merely adding a second, newer row for
+ * the same field means resolving that newer row (via the apply flow)
+ * uncovers the stale old one, which then reappears in
+ * `getLatestReconcileDifferences()` as if it were current. Only the
+ * (binding, locale) actually rechecked is touched, not every row in the
+ * table.
+ *
+ * Returned unexecuted (a PrismaPromise) so `persistDifferences` can run it
+ * in the same `$transaction` as the inserts below — retiring old rows and
+ * inserting the new ones must commit or fail together. Run separately, a
+ * failed insert would leave this (binding, locale) pair's retire already
+ * committed with nothing to replace it, silently wiping real conflicts.
  */
-async function retireStaleDifferences(bindingId: string, locale: string) {
-  await db.$executeRaw(Prisma.sql`
+function retireStaleDifferences(bindingId: string, locale: string) {
+  return db.$executeRaw(Prisma.sql`
     UPDATE "ShopifyFieldDivergence"
     SET "resolvedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
     WHERE "bindingId" = ${bindingId} AND "locale" = ${locale} AND "resolvedAt" IS NULL
@@ -293,11 +300,9 @@ async function persistDifferences({
   locale: string;
   differences: ReturnType<typeof planReconcile>["differences"];
 }) {
-  await retireStaleDifferences(bindingId, locale);
-  if (differences.length === 0) return;
-
-  await db.$transaction(
-    differences.map((difference) => db.$executeRaw(Prisma.sql`
+  await db.$transaction([
+    retireStaleDifferences(bindingId, locale),
+    ...differences.map((difference) => db.$executeRaw(Prisma.sql`
       INSERT INTO "ShopifyFieldDivergence" (
         "id", "runId", "bindingId", "rootEntityType", "rootEntityId", "entityLabel",
         "locale", "fieldKey", "fieldLabel", "targetKind", "kind",
@@ -326,7 +331,7 @@ async function persistDifferences({
         CURRENT_TIMESTAMP
       )
     `)),
-  );
+  ]);
 }
 
 async function finishRun(
