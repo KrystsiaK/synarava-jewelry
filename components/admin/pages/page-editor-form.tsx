@@ -467,8 +467,10 @@ export function PageEditor({
             <input value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} className="adm-field" />
           </label>
           <label className="grid gap-2" hidden={isShopPage}>
-            <span className="adm-label">CTA href</span>
-            <AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>
+            <span className="adm-label-row">
+              <span className="adm-label">CTA href</span>
+              <AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>
+            </span>
             <input name="ctaHref" defaultValue={content.ctaHref ?? ""} className="adm-field" />
           </label>
         </div>
@@ -491,8 +493,10 @@ export function PageEditor({
                 </label>
               ) : null}
               <label className="grid gap-2">
-                <span className="adm-label">Last updated</span>
-                <AdminHelp>Shared across languages — a display date, not translated copy.</AdminHelp>
+                <span className="adm-label-row">
+                  <span className="adm-label">Last updated</span>
+                  <AdminHelp>Shared across languages — a display date, not translated copy.</AdminHelp>
+                </span>
                 <input name="legalLastUpdated" defaultValue={content.legalLastUpdated ?? ""} placeholder="e.g. 1 June 2025" className="adm-field" />
               </label>
             </div>
@@ -643,8 +647,10 @@ export function PageEditor({
                   <input value={material.properties} onChange={(event) => updateMaterial(index, "properties", event.target.value)} placeholder="Recycled, Hypoallergenic, Handmade" className="adm-field" />
                 </label>
                 <label className="grid gap-2">
-                  <span className="adm-label">Image</span>
-                  <AdminHelp>Shared across languages.</AdminHelp>
+                  <span className="adm-label-row">
+                    <span className="adm-label">Image</span>
+                    <AdminHelp>Shared across languages.</AdminHelp>
+                  </span>
                   <ImageFileField
                     name={`material${index + 1}ImageFile`}
                     currentImageUrl={content.materialLexicon?.[index]?.image}
@@ -702,8 +708,10 @@ export function PageEditor({
               <input value={draft.finalCtaLabel} onChange={(event) => updateField("finalCtaLabel", event.target.value)} className="adm-field" />
             </label>
             <label className="grid gap-2">
-              <span className="adm-label">Final CTA href</span>
-              <AdminHelp>Shared across languages.</AdminHelp>
+              <span className="adm-label-row">
+                <span className="adm-label">Final CTA href</span>
+                <AdminHelp>Shared across languages.</AdminHelp>
+              </span>
               <input name="finalCtaHref" defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""} className="adm-field" />
             </label>
             <label className="grid gap-2">
@@ -716,8 +724,10 @@ export function PageEditor({
                 <input value={draft.finalContactLabel} onChange={(event) => updateField("finalContactLabel", event.target.value)} placeholder="synarava.shop@gmail.com" className="adm-field" />
               </label>
               <label className="grid gap-2">
-                <span className="adm-label">Contact email</span>
-                <AdminHelp>Shared across languages — an address, not translated copy.</AdminHelp>
+                <span className="adm-label-row">
+                  <span className="adm-label">Contact email</span>
+                  <AdminHelp>Shared across languages — an address, not translated copy.</AdminHelp>
+                </span>
                 <input name="finalContactEmail" type="email" defaultValue={content.finalContactEmail ?? ""} placeholder="synarava.shop@gmail.com" className="adm-field" />
               </label>
             </div>
