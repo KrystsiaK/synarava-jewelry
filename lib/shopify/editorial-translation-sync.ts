@@ -188,16 +188,15 @@ export async function syncPageEditorialTranslation(pageId: string, locale: SyncT
   return results;
 }
 
-// Deliberately still Portuguese-only: StorefrontCopy itself (lib/content/storefront-copy.ts)
-// is a fixed `{ en, pt }` shape, not yet a registry-keyed record — that's
-// Task U9's job ("Storefront Copy and navigation migration"), not U5's. This
-// function can't take an arbitrary locale until that data model changes.
-const STOREFRONT_COPY_PT_LOCALE: SyncTargetLocale = { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese" };
-
-export async function syncStorefrontCopyTranslation(actorUsername?: string | null): Promise<TargetResult[]> {
+export async function syncStorefrontCopyTranslation(
+  locale: SyncTargetLocale,
+  actorUsername?: string | null,
+): Promise<TargetResult[]> {
   const setting = await db.siteSetting.findUnique({ where: { key: STOREFRONT_COPY_KEY } });
   const value = setting?.value as StorefrontCopy | null;
-  if (!setting || !value?.en || !value?.pt) throw new Error("Storefront copy is missing.");
+  const englishCopy = value?.en;
+  const localizedCopy = value?.[locale.code];
+  if (!setting || !englishCopy || !localizedCopy) throw new Error("Storefront copy is missing.");
 
   const fieldKeys = localizedFields(STOREFRONT_COPY_FIELD_REGISTRY).flatMap((field) =>
     field.shopifyTarget?.kind === "metaobject" ? [field.shopifyTarget.key] : [],
@@ -206,7 +205,7 @@ export async function syncStorefrontCopyTranslation(actorUsername?: string | nul
     definition: "storefront_copy",
     name: "Storefront copy",
     handle: "storefront-copy",
-    values: value.en,
+    values: englishCopy,
     fieldKeys,
   });
   const binding = await ensureTranslationBinding({
@@ -215,11 +214,11 @@ export async function syncStorefrontCopyTranslation(actorUsername?: string | nul
     shopifyResourceId: metaobject.id,
   });
   try {
-    await registerEditorialMetaobjectTranslation(metaobject.id, value.pt, STOREFRONT_COPY_PT_LOCALE.shopifyLocale);
-    await completeTarget(binding.id, value.pt, STOREFRONT_COPY_PT_LOCALE, actorUsername);
+    await registerEditorialMetaobjectTranslation(metaobject.id, localizedCopy, locale.shopifyLocale);
+    await completeTarget(binding.id, localizedCopy, locale, actorUsername);
     return [{ target: "METAOBJECT", status: "SUCCEEDED" }];
   } catch (error) {
-    await recordTargetFailure(binding.id, error, STOREFRONT_COPY_PT_LOCALE, actorUsername);
+    await recordTargetFailure(binding.id, error, locale, actorUsername);
     return [{ target: "METAOBJECT", status: "FAILED", error: errorMessage(error) }];
   }
 }

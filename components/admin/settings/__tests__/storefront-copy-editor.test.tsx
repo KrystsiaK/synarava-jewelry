@@ -10,6 +10,11 @@ vi.mock("@/app/admin/actions/storefront-copy", () => ({
 
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
 
+const EN_PT_LOCALES = [
+  { code: "en", label: "English" },
+  { code: "pt", label: "Português" },
+];
+
 beforeEach(() => vi.clearAllMocks());
 
 describe("StorefrontCopyEditor", () => {
@@ -19,6 +24,7 @@ describe("StorefrontCopyEditor", () => {
       <StorefrontCopyEditor
         copy={{ en: { "nav.home": "Home" }, pt: { "nav.home": "Início" } }}
         defaults={{ en: {}, pt: {} }}
+        locales={EN_PT_LOCALES}
       />,
     );
 
@@ -39,6 +45,7 @@ describe("StorefrontCopyEditor", () => {
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {} }}
         defaults={{ en: {}, pt: {} }}
+        locales={EN_PT_LOCALES}
       />,
     );
 
@@ -51,5 +58,24 @@ describe("StorefrontCopyEditor", () => {
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
     expect(formData.get("en:nav.home")).toBe("Home");
     expect(formData.get("pt:nav.home")).toBe("Início");
+  });
+
+  it("renders and submits a third registered locale (Russian) the same way as EN/PT", async () => {
+    const user = userEvent.setup();
+    render(
+      <StorefrontCopyEditor
+        copy={{ en: {}, pt: {}, ru: { "nav.home": "Главная" } }}
+        defaults={{ en: {}, pt: {} }}
+        locales={[...EN_PT_LOCALES, { code: "ru", label: "Русский" }]}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Русский" }));
+    expect(screen.getByLabelText("Home (RU)")).toBeVisible();
+    expect(screen.getByLabelText("Home (RU)")).toHaveValue("Главная");
+
+    await user.click(screen.getByRole("button", { name: "Save site copy" }));
+    const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
+    expect(formData.get("ru:nav.home")).toBe("Главная");
   });
 });

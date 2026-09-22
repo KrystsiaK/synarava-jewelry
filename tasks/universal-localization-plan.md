@@ -1,3 +1,4 @@
+
 # План: универсальная локализация и Shopify Markets
 
 ## Статус
@@ -547,8 +548,85 @@ Home, About and Legal.
 
 #### Task U9: Storefront Copy and navigation migration
 
-**Acceptance criteria:** all Chrome copy uses the dynamic locale store; no
-new JSON file is needed to enable a language.
+**Status: done (2026-09-22).**
+
+Done ahead of Task U7 — the plan's own vertical-migration tasks (U7, U8)
+need Product/Collection/Page storefront rendering to genuinely work for a
+third locale, and that was still blocked on Storefront Copy's fixed
+`{en, pt}` shape (deferred here explicitly by both Task U5 and Task U6's
+completion notes). Doing U9 first unblocks U7/U8 for real instead of just
+partially.
+
+- [x] All Chrome copy uses the dynamic locale store. "Chrome copy" here is
+  the already-curated, admin-editable subset — `STOREFRONT_COPY_GROUPS`'
+  nav + footer, 20 keys (`lib/content/storefront-copy-fields.ts`); the rest
+  of the site's static strings are either on admin-editable Page records
+  (N-locale since Task U4) or developer-owned `messages/*.json` UI strings
+  never meant to be admin-editable, both out of this task's "Chrome copy"
+  scope. `lib/content/storefront-copy.ts`'s persisted shape widened from a
+  literal `{ en: Record<string,string>; pt: Record<string,string> }` to
+  `Record<string, Record<string,string>>`, keyed by registry locale code —
+  `getStorefrontCopy`/`setStorefrontCopy` now loop over whatever locales are
+  present instead of reading/writing two hardcoded fields.
+  `components/admin/settings/storefront-copy-editor.tsx` — which had never
+  been migrated onto the N-locale `AdminLocaleTabs` pattern Task U4 built
+  for Product/Collection/Page, still defaulting to the old hardcoded
+  `EN_PT_LOCALE_TABS` — now takes a `locales` prop and renders one
+  always-present (hidden-if-inactive), really-named field per locale via
+  `.map()`, the same pattern Collection's editor already used (this one
+  never had Product's single-shared-input bug, since every locale already
+  got its own permanently-rendered input). `app/admin/actions/storefront-copy.ts`
+  builds its FormData-derived update per registry locale instead of two
+  hardcoded `en:`/`pt:` reads. `app/admin/(admin)/settings/page.tsx` now
+  fetches `getStorefrontLocales()` (all registered, not just published —
+  staff can prep a translation before go-live, same reasoning as
+  `getAdminTranslationLocales()`) and passes it through; the admin now shows
+  an RU tab for Storefront Copy immediately, since `ru` was already a
+  registered locale from Task U1.
+- [x] Shopify sync generalized too, closing the gap Task U5 explicitly left
+  open: `lib/shopify/editorial-translation-sync.ts`'s `syncStorefrontCopyTranslation`
+  dropped its hardcoded `STOREFRONT_COPY_PT_LOCALE` constant and now takes a
+  `locale: SyncTargetLocale` param like every other sync function;
+  `app/admin/actions/translation-sync.ts`'s `STOREFRONT_COPY` branch now
+  resolves the requested locale the same way `PRODUCT`/`COLLECTION`/`PAGE`
+  already did instead of ignoring the caller's `localeCode` entirely.
+  `lib/shopify/reconciliation-source.ts`'s two `english ? current.en :
+  current.pt` spots (read and write) became `current[contentLocale]` —
+  simpler than before, not just more general, since the ternary disappears
+  along with the branch.
+- [x] No new JSON file is needed to enable a language. This was already true
+  in spirit before this task for the ~513 keys `messages/en.json`/`pt.json`
+  don't share with Storefront Copy — `getServerTranslations()`/
+  `useTranslations()` already fall back to the English dictionary for any
+  locale with no dictionary file, which is the plan's own explicitly stated
+  design ("for a new language, EN fallback shows immediately, admin marks
+  it incomplete"), not a gap to close. What this task adds is that the 20
+  curated Chrome keys are *also* real per-locale data now, not two hardcoded
+  fields — so enabling a language needs zero code changes and zero new
+  files anywhere in the Storefront Copy path, only registry + admin data,
+  same as every other N-locale entity.
+- [x] Found and fixed one leftover `locale === "pt"` branch outside Task U6's
+  sweep: `app/layout.tsx`'s skip-link text used `initialLocale === "pt"`
+  directly (missed because the variable is named `initialLocale`, not
+  `locale`). Switched the layout to `getServerTranslations()` (was calling
+  `getRequestLocale()` directly) and the skip link now reads `t("a11y.skip")`
+  — a key that already existed in both message files, unused until now.
+
+**Verification:** `lib/content/__tests__/storefront-copy.test.ts` — fixed
+the one test asserting the old `{en:{}, pt:{}}` empty shape (now `{}`), plus
+a new test proving a non-EN/PT locale (`ru`) round-trips through
+`get`/`setStorefrontCopy` the same way. `components/admin/settings/__tests__/storefront-copy-editor.test.tsx`
+— updated both existing tests for the new required `locales` prop, plus a
+new test rendering a third locale (`ru`) tab, switching to it, and asserting
+its value both displays and submits correctly. Full suite green: tsc,
+eslint, 936 tests. Live-verified against the dev server: `/en` and `/pt`
+nav/footer copy unchanged after the persistence-shape rewrite; the skip-link
+fix renders "Skip to main content" on `/en` and "Saltar para o conteúdo
+principal" on `/pt`; `/admin/settings` 307-redirects to login (unauthenticated)
+rather than erroring, confirming the new `getStorefrontLocales()` call and
+widened prop types don't break server rendering. The interactive N-locale
+tab-switching itself is covered by the new RTL test above rather than a live
+browser session — the Chrome extension wasn't connected this session.
 
 #### Task U10: Enable Russian through the new path
 

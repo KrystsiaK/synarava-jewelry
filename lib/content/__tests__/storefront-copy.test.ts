@@ -18,7 +18,16 @@ beforeEach(() => {
 describe("storefront copy overrides", () => {
   it("defaults to empty overrides when nothing has been saved", async () => {
     mocks.findUnique.mockResolvedValue(null);
-    await expect(getStorefrontCopy()).resolves.toEqual({ en: {}, pt: {} });
+    await expect(getStorefrontCopy()).resolves.toEqual({});
+  });
+
+  it("holds an override for any registry locale, not just en/pt", async () => {
+    mocks.findUnique.mockResolvedValue({ value: { ru: { "nav.home": "Главная" } } });
+    await expect(getStorefrontCopy()).resolves.toEqual({ ru: { "nav.home": "Главная" } });
+
+    mocks.findUnique.mockResolvedValue({ value: {} });
+    const result = await setStorefrontCopy({ ru: { "nav.home": "Главная" } });
+    expect(result).toEqual({ ru: { "nav.home": "Главная" } });
   });
 
   it("drops blank strings and non-string values when reading", async () => {

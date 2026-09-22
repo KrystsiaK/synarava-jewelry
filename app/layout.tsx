@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { getServerTranslations } from "@/lib/i18n/server";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
@@ -112,10 +112,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, requestHeaders, initialLocale, publishedLocales] = await Promise.all([
+  const [cookieStore, requestHeaders, { locale: initialLocale, t }, publishedLocales] = await Promise.all([
     cookies(),
     headers(),
-    getRequestLocale(),
+    getServerTranslations(),
     getPublishedStorefrontLocales(),
   ]);
   // The language switcher only offers locales this app can actually render
@@ -163,7 +163,7 @@ export default async function RootLayout({
       </head>
       <body>
         <a href="#main-content" className="skip-link">
-          {initialLocale === "pt" ? "Saltar para o conteúdo principal" : "Skip to main content"}
+          {t("a11y.skip")}
         </a>
         <TranslationProvider initialLocale={initialLocale} initialOverrides={storefrontCopy} availableLocales={availableLocales}>
           <PrivacyConsentManager

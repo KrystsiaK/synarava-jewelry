@@ -178,12 +178,9 @@ export async function loadReconcileSubject(
   if (binding.resourceType !== "METAOBJECT") return null;
 
   if (binding.entityId === STOREFRONT_COPY_KEY) {
-    // StorefrontCopy is still a fixed { en, pt } shape (Task U9's job, not
-    // this task's) — a non-English, non-Portuguese contentLocale has no
-    // field to read here yet.
     const setting = await db.siteSetting.findUnique({ where: { key: STOREFRONT_COPY_KEY } });
     const copy = setting?.value as StorefrontCopy | null;
-    const localizedCopy = english ? copy?.en : copy?.pt;
+    const localizedCopy = copy?.[contentLocale];
     return localizedCopy ? {
       rootEntityType: "STOREFRONT_COPY",
       rootEntityId: STOREFRONT_COPY_KEY,
@@ -407,17 +404,15 @@ export async function writeLocalReconcileField({
     return value;
   }
 
-  // StorefrontCopy is still a fixed { en, pt } shape (Task U9's job) — see
-  // the same note in loadReconcileSubject above.
   const setting = await db.siteSetting.findUnique({ where: { key: STOREFRONT_COPY_KEY } });
   const current = setting?.value as StorefrontCopy | null;
   if (!current) throw new Error("Storefront copy no longer exists.");
-  const localized = { ...(english ? current.en : current.pt) };
+  const localized = { ...current[contentLocale] };
   if (value === null) delete localized[fieldKey];
   else localized[fieldKey] = String(value);
   await db.siteSetting.update({
     where: { key: STOREFRONT_COPY_KEY },
-    data: { value: { ...current, [english ? "en" : "pt"]: localized } },
+    data: { value: { ...current, [contentLocale]: localized } },
   });
   return value;
 }

@@ -170,15 +170,15 @@ export async function retryTranslationSyncAction(entityType: TranslationOverview
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
 
   try {
+    const locale = await resolveSyncTargetLocale(localeCode);
     if (entityType === "STOREFRONT_COPY") {
-      const results = await syncStorefrontCopyTranslation(session.username);
+      const results = await syncStorefrontCopyTranslation(locale, session.username);
       const failed = results.find((result) => result.status === "FAILED");
       if (failed) throw new Error(failed.error);
       revalidatePath("/admin/translations");
       return { success: "Translation synced." };
     }
 
-    const locale = await resolveSyncTargetLocale(localeCode);
     if (entityType === "PRODUCT") {
       await syncProductNativeTranslation(entityId, locale, session.username);
       const editorialResults = await syncProductEditorialTranslation(entityId, locale, session.username);

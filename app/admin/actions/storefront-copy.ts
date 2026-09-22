@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
-import { setStorefrontCopy } from "@/lib/content/storefront-copy";
+import { setStorefrontCopy, type StorefrontCopy } from "@/lib/content/storefront-copy";
 import { STOREFRONT_COPY_KEYS } from "@/lib/content/storefront-copy-fields";
+import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 export type StorefrontCopyActionState = {
   error?: string;
@@ -14,14 +15,17 @@ export type StorefrontCopyActionState = {
 export async function saveStorefrontCopyAction(formData: FormData): Promise<StorefrontCopyActionState> {
   await requireAdminSession("/admin/settings");
 
-  const en: Record<string, string> = {};
-  const pt: Record<string, string> = {};
-  for (const key of STOREFRONT_COPY_KEYS) {
-    en[key] = String(formData.get(`en:${key}`) ?? "");
-    pt[key] = String(formData.get(`pt:${key}`) ?? "");
+  const locales = await getStorefrontLocales();
+  const updates: StorefrontCopy = {};
+  for (const locale of locales) {
+    const fields: Record<string, string> = {};
+    for (const key of STOREFRONT_COPY_KEYS) {
+      fields[key] = String(formData.get(`${locale.code}:${key}`) ?? "");
+    }
+    updates[locale.code] = fields;
   }
 
-  await setStorefrontCopy({ en, pt });
+  await setStorefrontCopy(updates);
 
   // Footer and the main menu render in the root layout on every route — the only
   // things Storefront Copy still covers.

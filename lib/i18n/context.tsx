@@ -53,7 +53,7 @@ export function TranslationProvider({
   children,
 }: {
   initialLocale?: string;
-  initialOverrides?: { en: Record<string, string>; pt: Record<string, string> };
+  initialOverrides?: Record<string, Record<string, string>>;
   availableLocales?: readonly AvailableLocale[];
   children: React.ReactNode;
 }) {

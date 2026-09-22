@@ -8,7 +8,7 @@ import {
 } from "@/app/admin/actions/storefront-copy";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { STOREFRONT_COPY_GROUPS, STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
@@ -16,16 +16,19 @@ import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 export function StorefrontCopyEditor({
   copy,
   defaults,
+  locales,
   ptStatus,
 }: {
   copy: StorefrontCopy;
-  defaults: { en: Record<string, string>; pt: Record<string, string> };
+  defaults: StorefrontCopy;
+  locales: AdminLocaleTab[];
   ptStatus?: AdminLocaleStatus;
 }) {
   const [state, setState] = useState<StorefrontCopyActionState>({});
   const [isPending, startTransition] = useTransition();
   const { pushToast } = useAdminToast();
-  const [activeLocale, selectLocale] = useAdminActiveLocale("storefront-copy");
+  const [activeLocale, selectLocale] = useAdminActiveLocale("storefront-copy", locales, locales[0]?.code ?? "en");
+  const englishDefaults = defaults.en ?? {};
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -41,6 +44,7 @@ export function StorefrontCopyEditor({
       <AdminLocaleTabs
         active={activeLocale}
         onSelect={selectLocale}
+        locales={locales}
         ptStatus={ptStatus}
         syncScope={{ entityType: "STOREFRONT_COPY", entityId: STOREFRONT_COPY_KEY }}
       />
@@ -63,32 +67,21 @@ export function StorefrontCopyEditor({
               const Field = field.area ? "textarea" : "input";
               return (
                 <div key={field.key} className="grid gap-2 md:grid-cols-2">
-                  <label className="grid gap-2" hidden={activeLocale !== "EN"}>
-                    <span className="adm-label flex items-center gap-1.5">
-                      {field.label} (EN)
-                      {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
-                    </span>
-                    <Field
-                      name={`en:${field.key}`}
-                      defaultValue={copy.en[field.key] ?? ""}
-                      placeholder={defaults.en[field.key] ?? ""}
-                      rows={field.area ? 3 : undefined}
-                      className="adm-field"
-                    />
-                  </label>
-                  <label className="grid gap-2" hidden={activeLocale !== "PT"}>
-                    <span className="adm-label flex items-center gap-1.5">
-                      {field.label} (PT)
-                      {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
-                    </span>
-                    <Field
-                      name={`pt:${field.key}`}
-                      defaultValue={copy.pt[field.key] ?? ""}
-                      placeholder={defaults.pt[field.key] ?? defaults.en[field.key] ?? ""}
-                      rows={field.area ? 3 : undefined}
-                      className="adm-field"
-                    />
-                  </label>
+                  {locales.map((locale) => (
+                    <label key={locale.code} className="grid gap-2" hidden={activeLocale !== locale.code}>
+                      <span className="adm-label flex items-center gap-1.5">
+                        {field.label} ({locale.code.toUpperCase()})
+                        {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
+                      </span>
+                      <Field
+                        name={`${locale.code}:${field.key}`}
+                        defaultValue={copy[locale.code]?.[field.key] ?? ""}
+                        placeholder={defaults[locale.code]?.[field.key] ?? englishDefaults[field.key] ?? ""}
+                        rows={field.area ? 3 : undefined}
+                        className="adm-field"
+                      />
+                    </label>
+                  ))}
                 </div>
               );
             })}
