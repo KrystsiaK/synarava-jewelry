@@ -8,6 +8,13 @@ import { ProductCard } from "@/components/ui/product-card";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import {
+  getMemoryView,
+  getPersistedView,
+  saveView,
+  type CatalogViewAnchor,
+  type CatalogViewSnapshot,
+} from "@/lib/catalog/catalog-view-cache";
 import { buildSearchParams, type FilterOption, type ShopFilters } from "./types";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -186,6 +193,7 @@ function ProductGrid({ products, sort }: { products: ShopListingProduct[]; sort?
             <motion.div
               layout
               key={product.id}
+              data-product-id={product.id}
               className={`${isFeatured ? "sm:col-span-2 lg:col-span-2" : ""} ${offsetClass(index) ?? ""}`}
               initial={reduceMotion ? false : { opacity: 0, y: 22, scale: 0.985, filter: "blur(6px)" }}
               animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
@@ -236,20 +244,84 @@ export function ShopCatalogClient({
   onTotalCountChange,
 }: ShopCatalogClientProps) {
   const { t, locale } = useTranslations();
-  const [state, setState] = useState<CatalogState>(() => ({
-    fingerprint: fingerprintOf(filters),
-    nodes: initialPage.nodes,
-    hasNextPage: initialPage.hasNextPage,
-    endCursor: initialPage.endCursor,
-    totalCount: initialPage.totalCount,
-    loading: false,
-    loadingMore: false,
-    error: false,
-  }));
+  // Checked synchronously (not in an effect) so a same-tab Back from a PDP
+  // — the common case, since the module-level memory cache survives that
+  // client-side navigation — restores straight into the first paint instead
+  // of flashing SSR's page-1 first.
+  const initialViewKey = `${locale}|${fingerprintOf(filters)}`;
+  const initialMemoryHit = getMemoryView(initialViewKey);
+  const [state, setState] = useState<CatalogState>(() => (initialMemoryHit
+    ? {
+        fingerprint: fingerprintOf(filters),
+        nodes: initialMemoryHit.nodes,
+        hasNextPage: initialMemoryHit.hasNextPage,
+        endCursor: initialMemoryHit.endCursor,
+        totalCount: initialMemoryHit.totalCount,
+        loading: false,
+        loadingMore: false,
+        error: false,
+      }
+    : {
+        fingerprint: fingerprintOf(filters),
+        nodes: initialPage.nodes,
+        hasNextPage: initialPage.hasNextPage,
+        endCursor: initialPage.endCursor,
+        totalCount: initialPage.totalCount,
+        loading: false,
+        loadingMore: false,
+        error: false,
+      }));
 
   const abortRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
   const targetFilters = useMemo(() => filters, [filters]);
+  const viewKeyOf = useCallback((f: ShopFilters) => `${locale}|${fingerprintOf(f)}`, [locale]);
+  const mountViewKeyRef = useRef(initialViewKey);
+
+  // Gates the sentinel while a scroll anchor still needs restoring, so a
+  // short restored list sitting near the sentinel doesn't immediately
+  // trigger an unwanted extra page load before the user sees where they
+  // left off. Only true by default when the memory cache already answered
+  // that synchronously — a plain cold mount doesn't wait on the IndexedDB
+  // round-trip below; that only matters for "reloaded after a deep scroll",
+  // and the effect re-gates the sentinel if that check comes back with an anchor.
+  const [restoring, setRestoring] = useState(() => Boolean(initialMemoryHit?.anchor));
+  const [anchorToRestore, setAnchorToRestore] = useState<CatalogViewAnchor | null>(() => initialMemoryHit?.anchor ?? null);
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  const restoringRef = useRef(restoring);
+  useEffect(() => { restoringRef.current = restoring; }, [restoring]);
+
+  const persistCurrentView = useCallback((anchor: CatalogViewAnchor | null) => {
+    if (restoringRef.current) return;
+    const current = stateRef.current;
+    if (current.nodes.length === 0) return;
+    const snapshot: CatalogViewSnapshot = {
+      viewKey: viewKeyOf(targetFilters),
+      savedAt: Date.now(),
+      nodes: current.nodes,
+      endCursor: current.endCursor,
+      hasNextPage: current.hasNextPage,
+      totalCount: current.totalCount,
+      anchor,
+    };
+    saveView(snapshot);
+  }, [targetFilters, viewKeyOf]);
+
+  const applySnapshot = useCallback((fp: string, snapshot: CatalogViewSnapshot) => {
+    setState({
+      fingerprint: fp,
+      nodes: snapshot.nodes,
+      hasNextPage: snapshot.hasNextPage,
+      endCursor: snapshot.endCursor,
+      totalCount: snapshot.totalCount,
+      loading: false,
+      loadingMore: false,
+      error: false,
+    });
+    setAnchorToRestore(snapshot.anchor);
+    setRestoring(Boolean(snapshot.anchor));
+  }, []);
 
   const runFetch = useCallback((mode: "reset" | "append", cursor: string | null) => {
     abortRef.current?.abort();
@@ -264,9 +336,9 @@ export function ShopCatalogClient({
 
     fetchCatalogPage(targetFilters, locale, cursor, controller.signal).then((page) => {
       if (requestIdRef.current !== requestId) return;
-      setState((prev) => {
-        if (mode === "reset") {
-          return {
+      const prev = stateRef.current;
+      const next: CatalogState = mode === "reset"
+        ? {
             fingerprint: fp,
             nodes: page.nodes,
             hasNextPage: page.hasNextPage,
@@ -275,33 +347,71 @@ export function ShopCatalogClient({
             loading: false,
             loadingMore: false,
             error: false,
-          };
-        }
-        const seen = new Set(prev.nodes.map((node) => node.id));
-        return {
-          ...prev,
-          nodes: [...prev.nodes, ...page.nodes.filter((node) => !seen.has(node.id))],
-          hasNextPage: page.hasNextPage,
-          endCursor: page.endCursor,
-          totalCount: page.totalCount,
-          loadingMore: false,
-        };
+          }
+        : (() => {
+            const seen = new Set(prev.nodes.map((node) => node.id));
+            return {
+              ...prev,
+              nodes: [...prev.nodes, ...page.nodes.filter((node) => !seen.has(node.id))],
+              hasNextPage: page.hasNextPage,
+              endCursor: page.endCursor,
+              totalCount: page.totalCount,
+              loadingMore: false,
+            };
+          })();
+      setState(next);
+      saveView({
+        viewKey: viewKeyOf(targetFilters),
+        savedAt: Date.now(),
+        nodes: next.nodes,
+        endCursor: next.endCursor,
+        hasNextPage: next.hasNextPage,
+        totalCount: next.totalCount,
+        anchor: null,
       });
     }).catch((error: unknown) => {
       if (error instanceof DOMException && error.name === "AbortError") return;
       if (requestIdRef.current !== requestId) return;
       setState((prev) => ({ ...prev, loading: false, loadingMore: false, error: true }));
     });
-  }, [targetFilters, locale]);
+  }, [targetFilters, locale, viewKeyOf]);
 
   // A filter/sort/search change (from FilterBar, EmptyState, discovery links
-  // or browser back/forward) always lands here as a new `filters` prop —
-  // refetch page 1 for it. `initialPage` already matches on first render.
+  // or browser back/forward) always lands here as a new `filters` prop.
+  // Restore a cached view for it (memory first — a same-tab Next.js Link
+  // navigation to a PDP and back survives in the module-level cache even
+  // though this component unmounts — then IndexedDB for a same-tab reload)
+  // before falling back to a fresh page-1 fetch.
   useEffect(() => {
     const fp = fingerprintOf(targetFilters);
-    if (fp === state.fingerprint) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    runFetch("reset", null);
+    const viewKey = viewKeyOf(targetFilters);
+    const isMountEntryPoint = fp === state.fingerprint && viewKey === mountViewKeyRef.current;
+    const requestId = ++requestIdRef.current;
+    abortRef.current?.abort();
+
+    const memoryHit = getMemoryView(viewKey);
+    if (memoryHit) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      applySnapshot(fp, memoryHit);
+      return;
+    }
+
+    if (!isMountEntryPoint) {
+      setRestoring(true);
+      setState((prev) => ({ ...prev, loading: true, error: false }));
+    }
+
+    getPersistedView(viewKey).then((persistedHit) => {
+      if (requestIdRef.current !== requestId) return;
+      if (persistedHit) {
+        applySnapshot(fp, persistedHit);
+      } else if (isMountEntryPoint) {
+        // SSR's initialPage is already showing and valid — nothing more to restore.
+        setRestoring(false);
+      } else {
+        runFetch("reset", null);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetFilters]);
 
@@ -309,6 +419,60 @@ export function ShopCatalogClient({
     onTotalCountChange?.(state.totalCount);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.totalCount]);
+
+  // Once a restored page has actually painted, scroll the anchor card back
+  // to where the user left it — recomputed from the live DOM (not a stored
+  // pixel offset alone), since image loads and viewport width can shift
+  // layout between visits. Two rAFs: one for the DOM update, one for layout.
+  useEffect(() => {
+    if (!anchorToRestore) return;
+    let cancelled = false;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (cancelled) return;
+        const grid = document.getElementById("shop-product-grid");
+        const target = grid?.querySelector(`[data-product-id="${CSS.escape(anchorToRestore.productId)}"]`);
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          window.scrollTo({ top: window.scrollY + rect.top - anchorToRestore.offsetPx });
+        }
+        setAnchorToRestore(null);
+        setRestoring(false);
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [anchorToRestore, state.nodes]);
+
+  // Tracks the topmost visible card (throttled to one measurement per
+  // frame) so a page reload or same-tab return can scroll back to it.
+  useEffect(() => {
+    let pending = false;
+    const computeAnchor = (): CatalogViewAnchor | null => {
+      if (typeof document.elementFromPoint !== "function") return null; // not implemented in every test/embedded environment
+      const readY = 160;
+      const el = document.elementFromPoint(window.innerWidth / 2, readY)?.closest<HTMLElement>("[data-product-id]");
+      if (!el?.dataset.productId) return null;
+      return { productId: el.dataset.productId, offsetPx: el.getBoundingClientRect().top - readY };
+    };
+    const onScroll = () => {
+      if (pending || restoringRef.current) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        persistCurrentView(computeAnchor());
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      persistCurrentView(computeAnchor()); // final flush before this view goes away (e.g. navigating to a PDP)
+    };
+  }, [persistCurrentView]);
 
   const loadMore = useCallback(() => {
     if (state.loading || state.loadingMore || !state.hasNextPage) return;
@@ -325,13 +489,13 @@ export function ShopCatalogClient({
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el || !state.hasNextPage) return;
+    if (!el || !state.hasNextPage || restoring) return;
     const observer = new IntersectionObserver((entries) => {
       if (entries[0]?.isIntersecting) loadMore();
     }, { rootMargin: "800px 0px" });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [state.hasNextPage, loadMore]);
+  }, [state.hasNextPage, restoring, loadMore]);
 
   const liveMessage = state.loading
     ? t("shop.catalog.loading")

@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import { clearCatalogViewCacheForTests, saveView } from "@/lib/catalog/catalog-view-cache";
 import { ShopCatalogClient, type InitialCatalogPage } from "../shop-catalog-client";
 
 function product(id: string) {
@@ -49,6 +50,7 @@ function triggerSentinel() {
 describe("ShopCatalogClient", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    clearCatalogViewCacheForTests();
   });
 
   it("renders the SSR-seeded first page without an extra fetch", () => {
@@ -172,5 +174,87 @@ describe("ShopCatalogClient", () => {
     );
 
     expect(screen.getByText(/no products matched/i)).toBeInTheDocument();
+  });
+
+  describe("same-tab restore", () => {
+    it("restores a deeper previously-loaded view from the memory cache instead of SSR's first page, with zero fetches", async () => {
+      saveView({
+        viewKey: "en|",
+        savedAt: Date.now(),
+        nodes: [product("a"), product("b"), product("c")],
+        endCursor: null,
+        hasNextPage: false,
+        totalCount: 3,
+        anchor: null,
+      });
+
+      render(
+        <ShopCatalogClient
+          initialPage={initialPage()} // SSR only knows about a/b — the cache knows about c too
+          filters={{}}
+          onSelectFilters={vi.fn()}
+          categories={[]}
+          collections={[]}
+          tags={[]}
+        />,
+      );
+
+      expect(screen.getByRole("heading", { name: "c" })).toBeInTheDocument();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it("scrolls the restored anchor card back into view once the cached page has rendered", async () => {
+      const scrollTo = vi.fn();
+      vi.stubGlobal("scrollTo", scrollTo);
+      saveView({
+        viewKey: "en|",
+        savedAt: Date.now(),
+        nodes: [product("a"), product("b")],
+        endCursor: "cursor-1",
+        hasNextPage: true,
+        totalCount: 3,
+        anchor: { productId: "b", offsetPx: 40 },
+      });
+
+      render(
+        <ShopCatalogClient
+          initialPage={initialPage()}
+          filters={{}}
+          onSelectFilters={vi.fn()}
+          categories={[]}
+          collections={[]}
+          tags={[]}
+        />,
+      );
+
+      await waitFor(() => expect(scrollTo).toHaveBeenCalled());
+    });
+
+    it("does not let the sentinel fire a page load while an anchor restore is pending", async () => {
+      saveView({
+        viewKey: "en|",
+        savedAt: Date.now(),
+        nodes: [product("a")],
+        endCursor: "cursor-1",
+        hasNextPage: true,
+        totalCount: 3,
+        anchor: { productId: "a", offsetPx: 0 },
+      });
+
+      render(
+        <ShopCatalogClient
+          initialPage={initialPage()}
+          filters={{}}
+          onSelectFilters={vi.fn()}
+          categories={[]}
+          collections={[]}
+          tags={[]}
+        />,
+      );
+
+      triggerSentinel();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(fetch).not.toHaveBeenCalled();
+    });
   });
 });
