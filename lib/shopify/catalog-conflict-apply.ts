@@ -1,14 +1,11 @@
 import "server-only";
 
-import { db } from "@/lib/db";
-
 import {
   getProductCatalogConflict,
   listConflictedProductIds,
   type CatalogConflictDirection,
   type CatalogConflictField,
 } from "./catalog-conflict";
-import { pullShopifyProduct, pushProductToShopify } from "./product-sync";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
 // A bulk scope resolves every currently conflicted product — capped so one
@@ -20,6 +17,26 @@ const MAX_BULK_PRODUCTS = 50;
 // call will attempt, regardless of scope shape (bulk, product, or hand-picked
 // manual selections) — a defensive bound on request size, not a tuned value.
 const MAX_APPLY_ENTRIES = 200;
+
+// Commerce fields have no safe scoped write yet: pushProductToShopify and
+// pullShopifyProduct are whole-product — a forced push/pull rewrites every
+// commerce field *and* every published locale's translation (see their own
+// per-locale loops in product-sync.ts), using a conflict check
+// (decideProductTranslationPull / push's inline per-locale fetch+compare)
+// that is a *separate* code path from the reconcile system this module's
+// read model (getProductCatalogConflict) is built on. The two can disagree
+// about what currently conflicts, so there is no reliable way from here to
+// confirm a whole-product write would touch *only* the fields this apply
+// call approved — approving one commerce field and calling force push/pull
+// would silently carry along every other commerce field and every locale's
+// translation, including ones marked STALE or blocked on this same call.
+// Until inspectProductSyncState/push/pull get a true field-scoped rewrite
+// (tracked as an open item in catalog-conflict-resolution-plan.md stage 1),
+// commerce fields are reported UNSUPPORTED here rather than offering a
+// write guarantee this contract cannot keep. Whole-product commerce/
+// translation resolution for one product remains available through the
+// existing pushSingleProductToShopifyAction/pullSingleProductFromShopifyAction.
+const COMMERCE_UNSUPPORTED_REASON = "Commerce fields don't have a scoped write yet — resolving one commerce field would also silently overwrite every other commerce field and translation locale on this product. Use the product's existing Push/Pull action to resolve commerce as a whole.";
 
 export type CatalogConflictApplyScope =
   | { kind: "BULK"; direction: CatalogConflictDirection }
@@ -65,25 +82,23 @@ function willClear(field: CatalogConflictField, direction: CatalogConflictDirect
  * function backs a bulk direction, a single product's direction, and a
  * hand-picked manual field list, so preview and apply always agree on what
  * "this scope" means. Fields whose direction isn't allowed, that are no
- * longer conflicting, or that would mix directions across a single
- * product's commerce fields (commerce applies atomically per product — see
- * catalog-conflict-resolution-plan.md stage 1's open note) are reported in
- * `excluded`, never silently dropped.
+ * longer conflicting, or that are COMMERCE-origin (see
+ * COMMERCE_UNSUPPORTED_REASON above) are reported in `excluded`, never
+ * silently dropped.
  */
 export async function previewCatalogConflictResolution(scope: CatalogConflictApplyScope): Promise<CatalogConflictPreview> {
   const entries: ResolvedCatalogConflictEntry[] = [];
   const excluded: ExcludedCatalogConflictEntry[] = [];
   let truncated = false;
-  // Tracked across every resolveProductDirection call for a product — a
-  // MANUAL scope can call it once per requested direction, and the mixed-
-  // direction check must see all of a product's commerce selections
-  // together, not just the ones in whichever direction group ran last.
-  const commerceDirectionByProduct = new Map<string, CatalogConflictDirection>();
 
   async function resolveProductDirection(productId: string, direction: CatalogConflictDirection, onlyFieldKeys?: Set<string>) {
     const conflict = await getProductCatalogConflict(productId);
     for (const field of conflict.fields) {
       if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
+      if (field.origin === "COMMERCE") {
+        excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: COMMERCE_UNSUPPORTED_REASON });
+        continue;
+      }
       if (!field.allowedDirections.includes(direction)) {
         excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: field.blockedReason ?? "This direction isn't supported for this field." });
         continue;
@@ -91,19 +106,6 @@ export async function previewCatalogConflictResolution(scope: CatalogConflictApp
       if (field.blockedReason) {
         excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: field.blockedReason });
         continue;
-      }
-      if (field.origin === "COMMERCE") {
-        const takenDirection = commerceDirectionByProduct.get(productId);
-        if (takenDirection && takenDirection !== direction) {
-          excluded.push({
-            productId,
-            fieldKey: field.fieldKey,
-            label: field.label,
-            reason: "Commerce fields apply together in one direction per product; this field's direction conflicts with another commerce field already chosen for this product.",
-          });
-          continue;
-        }
-        commerceDirectionByProduct.set(productId, direction);
       }
       entries.push({ productId, direction, field, willClearNonEmptyValue: willClear(field, direction) });
     }
@@ -174,15 +176,13 @@ function staleResult(entry: CatalogConflictApplyEntryInput, message: string): Ca
  * Re-validates every requested entry against the product's current
  * conflict state right before writing anything — the client's expected
  * fingerprints must still match, or the entry is reported STALE and
- * skipped rather than overwritten. Commerce entries for the same
- * (product, direction) are grouped and written with exactly one
- * whole-product push/pull — Shopify is the source of truth for commerce
- * and inspectProductSyncState only tells us the product differs, not which
- * field caused it, so a scoped commerce write cannot yet touch one field
- * without the others (see catalog-conflict-resolution-plan.md stage 1's
- * open note); this keeps that limitation honest instead of pretending
- * per-field commerce granularity that doesn't exist. Translation entries
- * apply individually through the existing per-field applyReconcileChoice.
+ * skipped rather than overwritten.
+ *
+ * Only TRANSLATION-origin fields are actually written here, individually,
+ * through the existing per-field applyReconcileChoice (already atomic,
+ * fingerprint-checked, and verified by a read-after-write). COMMERCE-origin
+ * fields are always reported UNSUPPORTED — see COMMERCE_UNSUPPORTED_REASON
+ * at the top of this file for why a scoped commerce write isn't safe yet.
  *
  * A repeated submission of the same input is safe: once an entry has been
  * applied, the underlying value/fingerprint has changed, so re-validation
@@ -202,8 +202,7 @@ export async function applyCatalogConflictResolution({
   }
 
   const results: CatalogConflictApplyEntryResult[] = [];
-  const readyTranslation: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
-  const readyCommerceByProductDirection = new Map<string, { productId: string; direction: CatalogConflictDirection; inputs: CatalogConflictApplyEntryInput[] }>();
+  const ready: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
 
   const productIds = [...new Set(entries.map((entry) => entry.productId))];
   const conflictsByProduct = new Map(
@@ -221,6 +220,10 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
+    if (field.origin === "COMMERCE") {
+      results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: COMMERCE_UNSUPPORTED_REASON });
+      continue;
+    }
     if (!field.allowedDirections.includes(entry.direction) || field.blockedReason) {
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: field.blockedReason ?? "This direction isn't supported for this field." });
       continue;
@@ -229,18 +232,10 @@ export async function applyCatalogConflictResolution({
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "NEEDS_CLEAR_CONFIRMATION", message: "This would clear a non-empty value. Confirm clearing before applying." });
       continue;
     }
-
-    if (field.origin === "TRANSLATION") {
-      readyTranslation.push({ input: entry, field });
-    } else {
-      const key = `${entry.productId}:${entry.direction}`;
-      const group = readyCommerceByProductDirection.get(key) ?? { productId: entry.productId, direction: entry.direction, inputs: [] };
-      group.inputs.push(entry);
-      readyCommerceByProductDirection.set(key, group);
-    }
+    ready.push({ input: entry, field });
   }
 
-  for (const { input, field } of readyTranslation) {
+  for (const { input, field } of ready) {
     if (!field.sourceId) {
       results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: "This translated field is missing its source record." });
       continue;
@@ -257,42 +252,6 @@ export async function applyCatalogConflictResolution({
         ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
         : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
     );
-  }
-
-  for (const group of readyCommerceByProductDirection.values()) {
-    try {
-      if (group.direction === "SYNARAVA_TO_SHOPIFY") {
-        const pushResult = await pushProductToShopify(group.productId, true);
-        for (const input of group.inputs) {
-          results.push(
-            pushResult.ok
-              ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: "Synarava was applied to Shopify." }
-              : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: pushResult.error },
-          );
-        }
-      } else {
-        const product = await db.product.findUnique({ where: { id: group.productId }, select: { shopifyProductId: true } });
-        if (!product?.shopifyProductId) {
-          for (const input of group.inputs) {
-            results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: "This product is not linked to Shopify." });
-          }
-          continue;
-        }
-        const pullResult = await pullShopifyProduct(product.shopifyProductId, undefined, true);
-        for (const input of group.inputs) {
-          results.push(
-            pullResult.status === "SYNCED"
-              ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: "Shopify was applied to Synarava." }
-              : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: `Shopify pull ended in ${pullResult.status}.` },
-          );
-        }
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Shopify write failed.";
-      for (const input of group.inputs) {
-        results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message });
-      }
-    }
   }
 
   const failedCount = results.filter((result) => !result.ok).length;
