@@ -119,4 +119,57 @@ describe("runTranslationReconciliation", () => {
     const checkedLocales = mocks.loadReconcileSubject.mock.calls.map((call) => call[1]);
     expect(checkedLocales).toEqual(["en", "pt-PT", "ru"]);
   });
+
+  it("retires stale unresolved rows for the exact (binding, locale) it just rechecked, keeping only the field still found different", async () => {
+    // Both the interactive-transaction form (createOrReuseRun's advisory lock)
+    // and the array-of-promises form (persistDifferences' inserts) go through
+    // the same $transaction mock here.
+    mocks.transaction.mockImplementation(async (arg: unknown) =>
+      typeof arg === "function"
+        ? (arg as (tx: unknown) => unknown)({ $queryRaw: mocks.queryRaw, $executeRaw: mocks.executeRaw })
+        : Promise.all(arg as Promise<unknown>[]),
+    );
+    mocks.findMany.mockResolvedValue([{
+      id: "binding-1",
+      shopifyResourceId: "gid://shopify/Product/1",
+      entityId: "product-1",
+      lastSyncedSnapshot: null,
+      createdAt: new Date(),
+    }]);
+    mocks.loadReconcileSubject.mockResolvedValue({
+      rootEntityType: "PRODUCT",
+      rootEntityId: "product-1",
+      label: "Ring",
+      registry: { entity: "product", fields: [] },
+      local: {},
+    });
+    mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
+    mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
+    mocks.planReconcile.mockReturnValue({
+      differences: [{
+        fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
+        baseValue: null, localValue: "A", shopifyValue: "B",
+        localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
+      }],
+    });
+    mocks.queryRaw
+      .mockResolvedValueOnce([]) // lastSnapshot(en)
+      .mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 1, differenceCount: 1 })]); // runById after finishRun
+
+    await runTranslationReconciliation({ trigger: "MANUAL", scope: { locale: "en" } });
+
+    const retireCall = mocks.executeRaw.mock.calls.find(
+      ([query]) => (query as { sql: string }).sql.includes("NOT IN"),
+    );
+    expect(retireCall).toBeTruthy();
+    const [query] = retireCall!;
+    expect((query as { sql: string }).sql).toContain('"bindingId" = ?');
+    expect((query as { sql: string }).sql).toContain('"resolvedAt" IS NULL');
+    expect((query as { values: unknown[] }).values).toEqual(["binding-1", "en", "title"]);
+
+    const insertCall = mocks.executeRaw.mock.calls.find(
+      ([query]) => (query as { sql: string }).sql.includes("INSERT INTO \"ShopifyFieldDivergence\""),
+    );
+    expect(insertCall).toBeTruthy();
+  });
 });

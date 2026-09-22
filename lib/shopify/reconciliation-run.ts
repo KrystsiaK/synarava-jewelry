@@ -119,6 +119,18 @@ export async function getLatestReconcileRun(): Promise<ReconcileRunSummary | nul
   return rows[0] ? serializeRun(rows[0]) : null;
 }
 
+/**
+ * The current set of unresolved differences: the most recently recorded
+ * unresolved row per (binding, locale, fieldKey), not "everything from the
+ * single latest run". A run only ever re-checks the bindings/locales in its
+ * own scope (see `runTranslationReconciliation`'s `scope`); filtering by a
+ * single global latest run id would make a narrow recheck of one product or
+ * locale hide every other binding's still-valid, still-unresolved
+ * differences the moment it completes. `persistDifferences` keeps this
+ * table self-consistent by resolving stale rows for exactly the
+ * (binding, locale) pair it just rechecked, so a row surviving here always
+ * reflects that pair's last actual check, whichever run performed it.
+ */
 export async function getLatestReconcileDifferences(): Promise<ReconcileDifferenceView[]> {
   const rows = await db.$queryRaw<Array<Omit<ReconcileDifferenceView, "shopifyUpdatedAt"> & { shopifyUpdatedAt: Date | null }>>(Prisma.sql`
     SELECT
@@ -140,16 +152,17 @@ export async function getLatestReconcileDifferences(): Promise<ReconcileDifferen
       difference."shopifyFingerprint",
       difference."shopifyUpdatedAt",
       difference."shopifyOutdated"
-    FROM "ShopifyFieldDivergence" AS difference
-    WHERE
-      difference."resolvedAt" IS NULL
-      AND difference."runId" = (
-        SELECT run."id"
-        FROM "ShopifyReconcileRun" AS run
-        WHERE run."status" IN ('SUCCEEDED', 'PARTIAL')
-        ORDER BY run."createdAt" DESC
-        LIMIT 1
-      )
+    FROM (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY "bindingId", "locale", "fieldKey"
+          ORDER BY "createdAt" DESC
+        ) AS "rn"
+      FROM "ShopifyFieldDivergence"
+      WHERE "resolvedAt" IS NULL
+    ) AS difference
+    WHERE difference."rn" = 1
     ORDER BY
       difference."rootEntityType" ASC,
       difference."entityLabel" ASC,
@@ -171,13 +184,9 @@ export async function getLatestEntityReconcileState({
   entityId: string;
   locale: string;
 }) {
-  const run = await getLatestReconcileRun();
-  if (!run || !["SUCCEEDED", "PARTIAL"].includes(run.status)) {
-    return { run, differenceCount: 0, differences: [] as ReconcileDifferenceView[] };
-  }
-  const differences = (await getLatestReconcileDifferences()).filter((difference) =>
-    difference.runId === run.id
-    && difference.rootEntityType === entityType
+  const [run, allDifferences] = await Promise.all([getLatestReconcileRun(), getLatestReconcileDifferences()]);
+  const differences = allDifferences.filter((difference) =>
+    difference.rootEntityType === entityType
     && difference.rootEntityId === entityId
     && difference.locale === locale,
   );
@@ -252,6 +261,30 @@ function json(value: unknown) {
   return JSON.stringify(value ?? null);
 }
 
+/**
+ * Retires unresolved rows for this exact (binding, locale) pair that this
+ * check no longer found a difference for — a scoped recheck must not leave
+ * a now-fixed field claiming to still conflict forever, but it also must
+ * only touch the (binding, locale) it actually just checked, not every row
+ * in the table.
+ */
+async function retireStaleDifferences(bindingId: string, locale: string, keepFieldKeys: string[]) {
+  if (keepFieldKeys.length === 0) {
+    await db.$executeRaw(Prisma.sql`
+      UPDATE "ShopifyFieldDivergence"
+      SET "resolvedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "bindingId" = ${bindingId} AND "locale" = ${locale} AND "resolvedAt" IS NULL
+    `);
+    return;
+  }
+  await db.$executeRaw(Prisma.sql`
+    UPDATE "ShopifyFieldDivergence"
+    SET "resolvedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
+    WHERE "bindingId" = ${bindingId} AND "locale" = ${locale} AND "resolvedAt" IS NULL
+      AND "fieldKey" NOT IN (${Prisma.join(keepFieldKeys)})
+  `);
+}
+
 async function persistDifferences({
   runId,
   bindingId,
@@ -265,6 +298,7 @@ async function persistDifferences({
   locale: string;
   differences: ReturnType<typeof planReconcile>["differences"];
 }) {
+  await retireStaleDifferences(bindingId, locale, differences.map((difference) => difference.fieldKey));
   if (differences.length === 0) return;
 
   await db.$transaction(

@@ -3,16 +3,21 @@ import "server-only";
 import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
+import { findTranslationBinding } from "./translation-sync";
 
-import { getLatestReconcileDifferences, getLatestReconcileRun, type ReconcileDifferenceView } from "./reconciliation-run";
+import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
 import { inspectProductSyncState, type ProductSyncDifference } from "./product-sync";
 
 // Commerce inspection compares Name/Handle/Description/SEO title/SEO
 // description as flat product attributes, but those same fields are also
-// localized content covered by translation reconciliation's "en" locale
-// (PRODUCT_FIELD_REGISTRY marks them `mode: "localized"`). Surfacing both
-// would show the same underlying drift twice under different UI shapes, so
-// the commerce side is excluded here in favor of the locale-scoped version.
+// localized content owned by translation reconciliation's "en" locale once
+// this product has a translation binding (PRODUCT_FIELD_REGISTRY marks them
+// `mode: "localized"`). Surfacing both would show the same underlying drift
+// twice under different UI shapes, so the commerce side is dropped in favor
+// of the locale-scoped version — but only when a binding actually exists;
+// otherwise translation reconcile will never cover this product's EN
+// content and dropping the commerce version would silently lose the
+// conflict entirely (see catalog-conflict-resolution-plan.md open note).
 const COMMERCE_LOCALE_DUPLICATE_LABELS = new Set([
   "Name",
   "Handle",
@@ -45,9 +50,6 @@ export type CatalogConflictField = {
 export type ProductCatalogConflict = {
   productId: string;
   fields: CatalogConflictField[];
-  /** Translation-reconcile portion is only as fresh as the latest run; false when that run is missing/queued/failed. */
-  translationChecked: boolean;
-  translationCheckedAt: string | null;
 };
 
 function slugFieldKey(label: string): string {
@@ -112,18 +114,25 @@ function translationField(difference: ReconcileDifferenceView, locales: Storefro
 
 /**
  * Unified per-product conflict read model: links commerce inspection
- * (live Shopify fetch) with the latest translation-reconcile sweep by
+ * (live Shopify fetch) with the latest translation-reconcile state by
  * product ID, so a single card can show every conflicting field/locale
  * without the caller knowing about two separate subsystems.
  *
  * Only fields with an actual two-sided conflict are included — a
  * one-directional change (local-only edit, or an untouched remote update)
  * has its own existing push/pull flow and is deliberately left out here.
+ *
+ * `getLatestReconcileDifferences()` always returns the current, per-field
+ * state of everything ever checked (see its doc comment) — it is not
+ * gated on the most recent reconcile run's own status/scope, so a narrow
+ * or failed run elsewhere never hides this product's already-known
+ * translation conflicts.
  */
 export async function getProductCatalogConflict(productId: string): Promise<ProductCatalogConflict> {
-  const [inspection, run, locales] = await Promise.all([
+  const [inspection, differences, translationBinding, locales] = await Promise.all([
     inspectProductSyncState(productId),
-    getLatestReconcileRun(),
+    getLatestReconcileDifferences(),
+    findTranslationBinding("PRODUCT", productId),
     getPublishedStorefrontLocales(),
   ]);
 
@@ -131,27 +140,18 @@ export async function getProductCatalogConflict(productId: string): Promise<Prod
 
   if (inspection.state === "CONFLICT") {
     for (const difference of inspection.differences) {
-      if (COMMERCE_LOCALE_DUPLICATE_LABELS.has(difference.field)) continue;
+      if (translationBinding && COMMERCE_LOCALE_DUPLICATE_LABELS.has(difference.field)) continue;
       fields.push(commerceField(difference));
     }
   }
 
-  const translationChecked = run != null && (run.status === "SUCCEEDED" || run.status === "PARTIAL");
-  if (translationChecked) {
-    const differences = await getLatestReconcileDifferences();
-    for (const difference of differences) {
-      if (difference.rootEntityType !== "PRODUCT" || difference.rootEntityId !== productId) continue;
-      if (difference.kind !== "CONFLICT") continue;
-      fields.push(translationField(difference, locales));
-    }
+  for (const difference of differences) {
+    if (difference.rootEntityType !== "PRODUCT" || difference.rootEntityId !== productId) continue;
+    if (difference.kind !== "CONFLICT") continue;
+    fields.push(translationField(difference, locales));
   }
 
-  return {
-    productId,
-    fields,
-    translationChecked,
-    translationCheckedAt: run?.completedAt ?? null,
-  };
+  return { productId, fields };
 }
 
 /**
@@ -159,24 +159,25 @@ export async function getProductCatalogConflict(productId: string): Promise<Prod
  * catalog-wide signal/counter. Deliberately avoids a live Shopify fetch per
  * product: the commerce side reads the `syncStatus` flag webhooks already
  * persist (set to CONFLICT when a remote update lands on unsynced local
- * changes — see product-sync.ts), and the translation side reads the
- * latest reconcile sweep. Neither call is a live Shopify round trip.
+ * changes — see product-sync.ts), and the translation side reads
+ * `getLatestReconcileDifferences()`, which is always current regardless of
+ * whether the most recent reconcile run was a full sweep or scoped to one
+ * product/locale. Neither call is a live Shopify round trip.
+ *
+ * The catalog page's own "checking…"/"failed, retry" banner is a separate
+ * concern — read `getLatestReconcileRun()` directly for that; it is not
+ * threaded through here because it must never gate which conflicts show.
  */
-export async function listConflictedProductIds(): Promise<{ productIds: string[]; translationChecked: boolean }> {
-  const [commerceConflicted, run] = await Promise.all([
+export async function listConflictedProductIds(): Promise<string[]> {
+  const [commerceConflicted, differences] = await Promise.all([
     db.product.findMany({ where: { syncStatus: "CONFLICT" }, select: { id: true } }),
-    getLatestReconcileRun(),
+    getLatestReconcileDifferences(),
   ]);
 
   const productIds = new Set(commerceConflicted.map((product) => product.id));
-
-  const translationChecked = run != null && (run.status === "SUCCEEDED" || run.status === "PARTIAL");
-  if (translationChecked) {
-    const differences = await getLatestReconcileDifferences();
-    for (const difference of differences) {
-      if (difference.rootEntityType === "PRODUCT" && difference.kind === "CONFLICT") productIds.add(difference.rootEntityId);
-    }
+  for (const difference of differences) {
+    if (difference.rootEntityType === "PRODUCT" && difference.kind === "CONFLICT") productIds.add(difference.rootEntityId);
   }
 
-  return { productIds: [...productIds], translationChecked };
+  return [...productIds];
 }
