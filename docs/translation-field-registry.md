@@ -4,8 +4,9 @@ Source of truth: `lib/i18n/admin-field-registry.ts`. This doc is a human-readabl
 mirror for review — if it disagrees with the code, the code wins; update this
 file in the same change.
 
-Legend — **Mode**: `shared` (one value for EN/PT) or `localized` (independent
-EN/PT). **Required**: `always`, `when-published`, or `optional`. **Shopify
+Legend — **Mode**: `shared` (one value across every locale) or `localized`
+(an independent value per registered locale). **Required**: `always`,
+`when-published`, or `optional`. **Shopify
 target**: `native` (a real Shopify field), `metafield` (translatable
 metafield on the native owner), `metaobject` (translatable `$app:` metaobject
 for Synarava-structured content with no native Shopify equivalent), or `—`
@@ -105,5 +106,5 @@ source of truth and is out of scope.
   their tables above), synced via Shopify's native `handle` translation and
   resolved on the storefront through `lib/content/handle-localization.ts`
   with a redirect record on change (`lib/content/handle-redirects.ts`). The
-  base `slug`/`code` columns stay `shared`; only the optional PT override is
-  localized.
+  base `slug`/`code` columns stay `shared`; only the optional per-locale
+  override is localized.

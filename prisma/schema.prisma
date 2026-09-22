@@ -656,10 +656,10 @@ model ShopifyTranslationBinding {
   resourceType       TranslationResourceType
   entityId           String
   shopifyResourceId  String
-  // PT field values (registry key -> value) as of the last successful push
-  // or pull — the "base" a three-way reconcile diffs local/remote against.
-  // Null before the first sync (nothing to diff yet, so reconcile treats
-  // any local or remote content as a first push/pull, never a conflict).
+  // Legacy, single-locale field values (registry key -> value) as of the
+  // last successful push/pull, from before per-locale ShopifyTranslationSnapshot
+  // rows existed — only ever populated for one locale and no longer written
+  // (Task U5), kept as a read-only fallback for bindings that predate it.
   lastSyncedSnapshot Json?
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
@@ -671,9 +671,10 @@ model ShopifyTranslationBinding {
   @@unique([resourceType, shopifyResourceId])
 }
 
-// Locale-specific common ancestors for three-way comparison. The legacy
-// lastSyncedSnapshot column remains during the staged rollout so existing
-// PT bindings can be backfilled without breaking the current retry flow.
+// Locale-specific common ancestors for three-way comparison, one row per
+// (binding, locale). The legacy lastSyncedSnapshot column on
+// ShopifyTranslationBinding remains only so bindings created before this
+// table existed still have a fallback base to diff against.
 model ShopifyTranslationSnapshot {
   id        String                    @id @default(cuid())
   bindingId String

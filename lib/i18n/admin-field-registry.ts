@@ -1,10 +1,11 @@
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 
 // Typed inventory of every buyer-facing admin field: whether it is shared
-// (one value for EN/PT) or localized (independent EN/PT values), how
-// required it is, and where it syncs in Shopify. Form schemas, validation,
-// completeness, and Shopify adapters all read this instead of re-declaring
-// the same field list — see tasks/plan.md "Единый контракт полей".
+// (one value across every locale) or localized (an independent value per
+// registered locale), how required it is, and where it syncs in Shopify.
+// Form schemas, validation, completeness, and Shopify adapters all read this
+// instead of re-declaring the same field list — see tasks/plan.md "Единый
+// контракт полей".
 //
 // This is the source of truth. If a buyer-facing field exists in a form or
 // server action but not here, translation-field-registry.test.ts style

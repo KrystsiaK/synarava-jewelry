@@ -1,5 +1,4 @@
 import type { Locale } from "./locales";
-import { SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE } from "@/lib/shopify/locales";
 
 const NUMBER_LOCALES: Record<Locale, string> = {
   en: "en-IE",
@@ -23,9 +22,12 @@ export function formatCurrency(
   }).format(amount);
 }
 
+// Shopify Storefront API LanguageCode enum values for each registered
+// locale's @inContext(language:) argument — plain per-locale data, not a
+// Portuguese-specific special case (Task U11).
 const SHOPIFY_STOREFRONT_LANGUAGE_CODES: Record<Locale, string> = {
   en: "EN",
-  pt: SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE,
+  pt: "PT_PT",
   ru: "RU",
 };
 

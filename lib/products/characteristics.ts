@@ -71,17 +71,25 @@ export const PRODUCT_CHARACTERISTIC_GROUPS = Array.from(
 // PT map alongside the EN source, not a database row. Values entered per
 // product (textValue/numberValue/booleanValue) are shared/untranslated; only
 // these fixed labels are buyer-facing text.
-const PRODUCT_CHARACTERISTIC_GROUP_LABELS_PT: Record<string, string> = {
-  "Dimensions & fit": "Dimensões e ajuste",
-  "Pet sizing & use": "Tamanho e uso para animais",
-  "Age & activity": "Idade e atividade",
-  "Maker compatibility": "Compatibilidade para artesãos",
-  "Materials & construction": "Materiais e construção",
-  "Care & fulfilment": "Cuidados e envio",
-  "Compliance & sales": "Conformidade e venda",
+// Locale-keyed (not just Portuguese) so a future locale's labels are a new
+// key here, not a new branch in characteristicLabel/characteristicGroupLabel
+// below — Task U11. Only `pt` has real translations today; every other
+// locale (including `ru`) falls back to the English source, same as it
+// always did for any non-Portuguese locale.
+const CHARACTERISTIC_GROUP_LABEL_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
+  pt: {
+    "Dimensions & fit": "Dimensões e ajuste",
+    "Pet sizing & use": "Tamanho e uso para animais",
+    "Age & activity": "Idade e atividade",
+    "Maker compatibility": "Compatibilidade para artesãos",
+    "Materials & construction": "Materiais e construção",
+    "Care & fulfilment": "Cuidados e envio",
+    "Compliance & sales": "Conformidade e venda",
+  },
 };
 
-const PRODUCT_CHARACTERISTIC_LABELS_PT: Record<string, string> = {
+const CHARACTERISTIC_LABEL_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
+  pt: {
   size: "Tamanho",
   fit_notes: "Notas de ajuste",
   neck_fit: "Ajuste ao pescoço",
@@ -139,17 +147,16 @@ const PRODUCT_CHARACTERISTIC_LABELS_PT: Record<string, string> = {
   hypoallergenic: "Hipoalergénico",
   sold_per_piece: "Vendido por unidade",
   safety_disclosure: "Aviso de segurança",
+  },
 };
 
-/** Locale-aware label for a characteristic key — falls back to the English source (from PRODUCT_CHARACTERISTICS, or the value's own persisted label for a legacy/unrecognized key) when no PT translation is registered. */
+/** Locale-aware label for a characteristic key — falls back to the English source (from PRODUCT_CHARACTERISTICS, or the value's own persisted label for a legacy/unrecognized key) when no translation is registered for `locale`. */
 export function characteristicLabel(key: string, fallbackLabel: string, locale: Locale): string {
-  if (locale !== "pt") return fallbackLabel;
-  return PRODUCT_CHARACTERISTIC_LABELS_PT[key] ?? fallbackLabel;
+  return CHARACTERISTIC_LABEL_TRANSLATIONS[locale]?.[key] ?? fallbackLabel;
 }
 
 export function characteristicGroupLabel(group: string, locale: Locale): string {
-  if (locale !== "pt") return group;
-  return PRODUCT_CHARACTERISTIC_GROUP_LABELS_PT[group] ?? group;
+  return CHARACTERISTIC_GROUP_LABEL_TRANSLATIONS[locale]?.[group] ?? group;
 }
 
 export type ProductCharacteristicKey = (typeof PRODUCT_CHARACTERISTICS)[number]["key"];

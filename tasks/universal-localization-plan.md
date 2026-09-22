@@ -757,9 +757,75 @@ import remains.**
 
 #### Task U11: Remove legacy EN/PT-only paths
 
-**Acceptance criteria:** no `ContentLocale` enum, `SHOPIFY_PORTUGUESE_*`
-dependency in generic code, or buyer-facing Portuguese-specific conditional
-remains outside deliberate Portuguese legal substance.
+**Status: done (2026-09-22).**
+
+- [x] No `ContentLocale` enum remains — confirmed zero references anywhere
+  in the codebase (repo-wide search); it was already fully removed in
+  Task U3.
+- [x] No `SHOPIFY_PORTUGUESE_*` dependency in generic code remains.
+  `SHOPIFY_PORTUGUESE_ADMIN_LOCALE` was already deleted in Task U5.
+  `SHOPIFY_PORTUGUESE_STOREFRONT_LANGUAGE` (`lib/shopify/locales.ts`) was
+  its last survivor — by the time this task started it was already only
+  ever read as one value inside `lib/i18n/format.ts`'s generic
+  `SHOPIFY_STOREFRONT_LANGUAGE_CODES: Record<Locale, string>` lookup (built
+  this session's RU-enablement work), not a control-flow branch. Inlined
+  its value (`"PT_PT"`) directly into that record and deleted
+  `lib/shopify/locales.ts` — it had exactly one export and one consumer, so
+  the named "Portuguese" constant is gone entirely, not just unused as a
+  branch.
+- [x] No buyer-facing Portuguese-specific conditional remains outside
+  deliberate Portuguese legal substance. Found one buyer-facing
+  `locale !== "pt"` pair Task U6's sweep missed because it was phrased as an
+  early-return guard rather than a ternary:
+  `lib/products/characteristics.ts`'s `characteristicLabel`/
+  `characteristicGroupLabel` (used to build the Materials/Dimensions table
+  shown on every product page). Restructured the PT-only label dictionaries
+  into a `Partial<Record<Locale, Record<string,string>>>` keyed lookup —
+  same `X[locale]?.[key] ?? fallback` pattern used everywhere else in this
+  plan. Behaviorally identical (still only `pt` has real translations,
+  every other locale still falls back to the English source), but the
+  conditional itself is gone — a future locale's labels are a new object
+  key, not a new branch. Did **not** hand-write Russian labels for the ~60
+  characteristic keys here, same judgment call as the legal/service page
+  defaults in Task U6/U9's RU-enablement note: that's translation work, not
+  a code change.
+- [x] Two stale schema comments describing `ShopifyTranslationBinding.lastSyncedSnapshot`/
+  `ShopifyTranslationSnapshot` as "PT field values" (`prisma/schema.prisma`)
+  updated to describe what they actually are now — a legacy, pre-Task-U5,
+  single-locale fallback column, not something inherently Portuguese.
+  Comment-only, no schema change, no migration needed.
+  `docs/translation-field-registry.md` and `lib/i18n/admin-field-registry.ts`'s
+  top-of-file comments similarly reworded from "EN/PT" to "every
+  locale"/"per registered locale" — the `shared`/`localized` field-mode
+  system they describe was already fully locale-count-generic; only the
+  prose describing it was stale.
+
+**Deliberately left out of scope** (not "buyer-facing," so outside this
+task's literal criterion, even though they're both legacy EN/PT-only in
+spirit):
+- `components/admin/products/products-cms.tsx`'s product list view still
+  hardcodes an EN and a PT readiness/sync-status column (`enReadiness`,
+  `ptReadiness`, `ptTranslation`) with no RU column — an admin-only list
+  convenience, not a buyer-facing conditional. Generalizing it to N columns
+  is a real UI change (loop `getAdminTranslationLocales()`, render one badge
+  per locale) that nothing in this plan's acceptance criteria requires; left
+  as a known gap for whoever next touches that screen.
+- `scripts/lib/translation-coverage.mjs` (and its `PRODUCT_REQUIRED_PT_FIELDS`-
+  style exports) is an entire CLI reporting tool built around "PT" as *the*
+  one translation locale to check completeness for. Not buyer-facing, not a
+  `SHOPIFY_PORTUGUESE_*`/`ContentLocale` dependency — a separate ops-tooling
+  concern this task's criteria don't reach. Generalizing it to report
+  per-locale (not just PT) coverage would be worthwhile if the merchant
+  wants RU completeness reporting, but is new scope, not a "remove legacy
+  path" cleanup.
+
+**Verification:** full suite green: tsc, eslint, 936 tests (no test needed
+updating — the `characteristics.ts` restructuring is covered by the
+existing "localizes boolean display values"-adjacent PT-coverage test in
+`lib/products/__tests__/characteristics.test.ts`, which already asserts
+every characteristic has a PT label and passed unchanged, confirming the
+refactor didn't drop any translation). Live-verified: `/pt/products/axis-turquoise-necklace`
+still 200s after the characteristics refactor.
 
 #### Task U12: Release gates
 
