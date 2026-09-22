@@ -10,16 +10,29 @@ import {
 } from "@/app/admin/actions/pages";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
-import { AdminLocaleTabs, useAdminActiveLocale } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
+import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
-export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePayload) => void }) {
+const SOURCE_LOCALE = "en";
+const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
+
+export function CreatePageForm({
+  onCreated,
+  translationLocales = DEFAULT_TRANSLATION_LOCALES,
+}: {
+  onCreated: (page: SavedPagePayload) => void;
+  /** Every non-English locale to render a section for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
+  translationLocales?: AdminTranslationLocale[];
+}) {
   const [state, setState] = useState<PageActionState>({});
   const [isPending, startTransition] = useTransition();
   const [draftId, setDraftId] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const { pushToast } = useAdminToast();
-  const [activeLocale, selectLocale] = useAdminActiveLocale("page:new");
+  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+  const [activeLocale, selectLocale] = useAdminActiveLocale("page:new", tabs);
 
   useDraftAutosave({
     formRef,
@@ -65,11 +78,11 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </button>
       </div>
 
-      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} />
+      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} locales={tabs} />
       <AuthMessage error={state.error} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
           <span className="adm-label">Title</span>
           <input name="title" placeholder="Lookbook" className="adm-field" />
         </label>
@@ -77,7 +90,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
           <span className="adm-label">Slug</span>
           <input name="slug" placeholder="lookbook" className="adm-field" />
         </label>
-        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
           <span className="adm-label">Eyebrow</span>
           <input name="eyebrow" placeholder="Editorial note" className="adm-field" />
         </label>
@@ -90,32 +103,38 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </label>
       </div>
 
-      <section
-        role="tabpanel"
-        aria-label="Portuguese page copy"
-        hidden={activeLocale !== "PT"}
-        className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
-      >
-        <div>
-          <p className="adm-section-tag">[ PT — PORTUGUÊS ]</p>
-          <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>Optional. Empty fields use the English source.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2"><span className="adm-label">Title (PT)</span><input name="ptTitle" className="adm-field" /></label>
-          <label className="grid gap-2"><span className="adm-label">URL handle (PT, optional)</span><input name="ptHandle" className="adm-field" placeholder="diario" /></label>
-          <label className="grid gap-2"><span className="adm-label">Eyebrow (PT)</span><input name="ptEyebrow" className="adm-field" /></label>
-        </div>
-        <label className="grid gap-2"><span className="adm-label">Excerpt (PT)</span><textarea name="ptExcerpt" rows={3} className="adm-field" /></label>
-        <label className="grid gap-2"><span className="adm-label">Body (PT)</span><textarea name="ptBody" rows={5} className="adm-field" /></label>
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2"><span className="adm-label">CTA label (PT)</span><input name="ptCtaLabel" className="adm-field" /></label>
-          <label className="grid gap-2"><span className="adm-label">Quote (PT)</span><textarea name="ptQuote" rows={3} className="adm-field" /></label>
-          <label className="grid gap-2"><span className="adm-label">Secondary title (PT)</span><input name="ptSecondaryTitle" className="adm-field" /></label>
-          <label className="grid gap-2"><span className="adm-label">Secondary body (PT)</span><textarea name="ptSecondaryBody" rows={3} className="adm-field" /></label>
-        </div>
-      </section>
+      {translationLocales.map(({ code, label }) => {
+        const fieldName = (key: string) => adminLocaleFieldName(code, key, SOURCE_LOCALE);
+        return (
+          <section
+            key={code}
+            role="tabpanel"
+            aria-label={`${label} page copy`}
+            hidden={activeLocale !== code}
+            className="grid gap-4 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4"
+          >
+            <div>
+              <p className="adm-section-tag">[ {code.toUpperCase()} — {label.toUpperCase()} ]</p>
+              <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>Optional. Empty fields use the English source.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2"><span className="adm-label">Title ({code.toUpperCase()})</span><input name={fieldName("title")} className="adm-field" /></label>
+              <label className="grid gap-2"><span className="adm-label">URL handle ({code.toUpperCase()}, optional)</span><input name={fieldName("handle")} className="adm-field" placeholder="diario" /></label>
+              <label className="grid gap-2"><span className="adm-label">Eyebrow ({code.toUpperCase()})</span><input name={fieldName("eyebrow")} className="adm-field" /></label>
+            </div>
+            <label className="grid gap-2"><span className="adm-label">Excerpt ({code.toUpperCase()})</span><textarea name={fieldName("excerpt")} rows={3} className="adm-field" /></label>
+            <label className="grid gap-2"><span className="adm-label">Body ({code.toUpperCase()})</span><textarea name={fieldName("body")} rows={5} className="adm-field" /></label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2"><span className="adm-label">CTA label ({code.toUpperCase()})</span><input name={fieldName("ctaLabel")} className="adm-field" /></label>
+              <label className="grid gap-2"><span className="adm-label">Quote ({code.toUpperCase()})</span><textarea name={fieldName("quote")} rows={3} className="adm-field" /></label>
+              <label className="grid gap-2"><span className="adm-label">Secondary title ({code.toUpperCase()})</span><input name={fieldName("secondaryTitle")} className="adm-field" /></label>
+              <label className="grid gap-2"><span className="adm-label">Secondary body ({code.toUpperCase()})</span><textarea name={fieldName("secondaryBody")} rows={3} className="adm-field" /></label>
+            </div>
+          </section>
+        );
+      })}
 
-      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+      <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
         <span className="adm-label">Excerpt</span>
         <textarea
           name="excerpt"
@@ -125,13 +144,13 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         />
       </label>
 
-      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+      <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
         <span className="adm-label">Body</span>
         <textarea name="body" rows={5} className="adm-field" placeholder="Main editorial body copy." />
       </label>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+        <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
           <span className="adm-label">CTA label</span>
           <input name="ctaLabel" placeholder="Shop all products" className="adm-field" />
         </label>
@@ -141,7 +160,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         </label>
       </div>
 
-      <label className="grid gap-2" hidden={activeLocale !== "EN"}>
+      <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
         <span className="adm-label">Quote</span>
         <textarea
           name="quote"
@@ -151,7 +170,7 @@ export function CreatePageForm({ onCreated }: { onCreated: (page: SavedPagePaylo
         />
       </label>
 
-      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== "EN"}>
+      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== SOURCE_LOCALE}>
         <label className="grid gap-2">
           <span className="adm-label">Secondary title</span>
           <input name="secondaryTitle" placeholder="Further reading" className="adm-field" />

@@ -4,6 +4,7 @@ import { PageEditRoute } from "@/components/admin/pages/page-route-editor";
 import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 
 export default async function EditPagePage({
   params,
@@ -11,9 +12,10 @@ export default async function EditPagePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [{ pages, products }, syncDifferences] = await Promise.all([
+  const [{ pages, products }, syncDifferences, translationLocales] = await Promise.all([
     getAdminCatalogData(),
     getLatestReconcileDifferences(),
+    getAdminTranslationLocales(),
   ]);
   const page = pages.find((item) => item.slug === slug);
 
@@ -62,6 +64,7 @@ export default async function EditPagePage({
         productOptions={page.slug === "home" ? products
           .filter((product) => product.status === "ACTIVE" && product.visibility === "PUBLIC")
           .map((product) => ({ id: product.id, title: product.name, slug: product.slug })) : undefined}
+        translationLocales={translationLocales}
       />
     </div>
   );

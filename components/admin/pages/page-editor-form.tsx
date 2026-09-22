@@ -13,7 +13,9 @@ import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
-import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocale } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
+import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
@@ -25,6 +27,8 @@ import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { DEFAULT_HOME_EDIT_PRODUCT_TITLES } from "@/lib/content/home-edit-section";
 
 const SERVICE_PAGE_SLUGS = Object.keys(SERVICE_SECTIONS) as ServicePageSlug[];
+const SOURCE_LOCALE = "en";
+const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
 
 export type HomeEditProductOption = {
   id: string;
@@ -118,32 +122,20 @@ function draftFromCopy(copy: EditablePageCopy): PageLocaleDraft {
   };
 }
 
-/**
- * Maps a locale + field key to the exact FormData field name savePageAction
- * already reads: EN uses the bare key, every other locale prefixes it and
- * capitalizes ("title" -> "ptTitle", "legal:x:title" -> "ptLegal:x:title").
- * Adding a locale later just needs the server action to read its prefix —
- * this function doesn't change.
- */
-function localizedFieldName(locale: AdminLocale, key: string): string {
-  if (locale === "EN") return key;
-  return `${locale.toLowerCase()}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-}
-
 function HiddenLocaleFields({
   draftByLocale,
   legalSectionIds,
   serviceSectionIds,
 }: {
-  draftByLocale: Record<AdminLocale, PageLocaleDraft>;
+  draftByLocale: Record<string, PageLocaleDraft>;
   legalSectionIds: string[];
   serviceSectionIds: string[];
 }) {
   return (
     <div hidden>
-      {(Object.keys(draftByLocale) as AdminLocale[]).flatMap((locale) => {
+      {Object.keys(draftByLocale).flatMap((locale) => {
         const draft = draftByLocale[locale];
-        const name = (key: string) => localizedFieldName(locale, key);
+        const name = (key: string) => adminLocaleFieldName(locale, key, SOURCE_LOCALE);
         const field = (key: string, value: string) => <input key={name(key)} type="hidden" name={name(key)} value={value} readOnly />;
         return [
           field("title", draft.title),
@@ -196,20 +188,28 @@ export function PageEditor({
   page,
   productOptions = [],
   onUpdated,
+  translationLocales = DEFAULT_TRANSLATION_LOCALES,
 }: {
   page: SavedPagePayload;
   productOptions?: HomeEditProductOption[];
   onUpdated?: (page: SavedPagePayload) => void;
+  /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
+  translationLocales?: AdminTranslationLocale[];
 }) {
   const [state, setState] = useState<PageActionState>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const content = (page.content ?? {}) as EditablePageContent;
-  const normalizedPortuguese = page.translations?.find((translation) => translation.locale === "pt");
-  const ptContent: EditablePageCopy = normalizedPortuguese
-    ? { ...(normalizedPortuguese.content as EditablePageCopy ?? {}), title: normalizedPortuguese.title, excerpt: normalizedPortuguese.excerpt ?? "" }
-    : content.translations?.pt ?? {};
+  function translationCopyFor(code: string): EditablePageCopy {
+    const row = page.translations?.find((translation) => translation.locale === code);
+    if (row) {
+      return { ...(row.content as EditablePageCopy ?? {}), title: row.title, excerpt: row.excerpt ?? "" };
+    }
+    // The pre-PageTranslation-table content.translations.pt blob is a
+    // Portuguese-only legacy fallback — no other locale ever had one.
+    return code === "pt" ? content.translations?.pt ?? {} : {};
+  }
   const isHomePage = page.slug === "home";
   const isAboutPage = page.slug === "about";
   const isOfferPage = page.slug === "offer";
@@ -232,11 +232,17 @@ export function PageEditor({
   const legalSections = isOfferPage ? OFFER_SECTIONS : isTermsPage ? TERMS_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : isLegalNoticePage ? LEGAL_NOTICE_SECTIONS : [];
   const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
   const { pushToast } = useAdminToast();
-  const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`);
-  const [draftByLocale, setDraftByLocale] = useState<Record<AdminLocale, PageLocaleDraft>>(() => ({
-    EN: draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" }),
-    PT: draftFromCopy(ptContent),
+  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+  const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, tabs);
+  const [draftByLocale, setDraftByLocale] = useState<Record<string, PageLocaleDraft>>(() => ({
+    [SOURCE_LOCALE]: draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" }),
+    ...Object.fromEntries(translationLocales.map(({ code }) => [code, draftFromCopy(translationCopyFor(code))])),
   }));
+  const [handleByLocale, setHandleByLocale] = useState<Record<string, string>>(() =>
+    Object.fromEntries(translationLocales.map(({ code }) =>
+      [code, page.translations?.find((translation) => translation.locale === code)?.localizedHandle ?? ""],
+    )),
+  );
   const [editProductIds, setEditProductIds] = useState<string[]>(() => {
     if (content.editProductIds?.length) return [...content.editProductIds, "", "", "", ""].slice(0, 4);
     const approvedDefaults = DEFAULT_HOME_EDIT_PRODUCT_TITLES.map(
@@ -245,6 +251,8 @@ export function PageEditor({
     return approvedDefaults.every(Boolean) ? approvedDefaults : ["", "", "", ""];
   });
   const draft = draftByLocale[activeLocale];
+  const isEn = activeLocale === SOURCE_LOCALE;
+  const activeLabel = tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
 
   function updateField<K extends keyof PageLocaleDraft>(key: K, value: PageLocaleDraft[K]) {
     setDraftByLocale((prev) => ({ ...prev, [activeLocale]: { ...prev[activeLocale], [key]: value } }));
@@ -329,17 +337,37 @@ export function PageEditor({
         <AdminLocaleTabs
           active={activeLocale}
           onSelect={selectLocale}
+          locales={tabs}
           syncScope={{ entityType: "PAGE", entityId: page.id }}
         />
         <AuthMessage error={state.error} />
 
         {isHomePage ? <HomeSectionVisibilityEditor key={page.updatedAt.toISOString()} content={content} /> : null}
 
-        <label className="grid gap-2" hidden={activeLocale === "EN" || isBuiltInPage(page.slug)}>
-          <span className="adm-label">URL handle ({activeLocale}, optional)</span>
-          <input name="ptHandle" defaultValue={normalizedPortuguese?.localizedHandle ?? ""} className="adm-field" placeholder={page.slug} />
-          <span className="text-xs" style={{ color: "var(--adm-muted)" }}>Blank uses the English slug.</span>
-        </label>
+        {!isEn && !isBuiltInPage(page.slug) ? (
+          <label className="grid gap-2">
+            <span className="adm-label">URL handle ({activeLabel}, optional)</span>
+            {/* No `name` here — the hidden mirrors below carry every locale's real value, same reasoning as the Product editor. */}
+            <input
+              value={handleByLocale[activeLocale] ?? ""}
+              onChange={(event) => setHandleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
+              className="adm-field"
+              placeholder={page.slug}
+            />
+            <span className="text-xs" style={{ color: "var(--adm-muted)" }}>Blank uses the English slug.</span>
+          </label>
+        ) : null}
+        <div hidden>
+          {translationLocales.map(({ code }) => (
+            <input
+              key={code}
+              type="hidden"
+              readOnly
+              name={adminLocaleFieldName(code, "handle", SOURCE_LOCALE)}
+              value={handleByLocale[code] ?? ""}
+            />
+          ))}
+        </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">

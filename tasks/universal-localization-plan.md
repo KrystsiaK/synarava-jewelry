@@ -241,16 +241,16 @@ still resolves the Portuguese title end to end.
 
 #### Task U4: Replace EN/PT form payloads with dynamic locale drafts
 
-**Status: partially done (2026-09-21) — mechanism + Collection + Product editors complete; Page still open.**
+**Status: done (2026-09-22).**
 Right after fixing a production outage caused by an earlier task's Next.js
 rendering assumption, a full rewrite of the Product/Collection/Page save
 actions (real commerce data, ~4900 lines across 7 files) didn't feel like
-the right thing to do carelessly in the same session. Did the tab mechanism
+the right thing to do carelessly in one sitting. Did the tab mechanism
 first, then took Collection all the way through as the proof this pattern
-actually holds on live commerce data, then repeated it for Product —
-the largest and riskiest of the three (commerce fields, a nested
-materials/process/lookbook `details` JSON, a second save path for
-autosaved drafts, and Shopify sync-status bookkeeping).
+actually holds on live commerce data, then Product — the largest and
+riskiest of the three (commerce fields, a nested materials/process/lookbook
+`details` JSON, a second save path for autosaved drafts, and Shopify
+sync-status bookkeeping) — then Page, the last of the three editors.
 
 - [x] `AdminLocaleTabs`/`useAdminActiveLocale` render every locale in a
   passed-in list as ARIA tabs — `AdminLocale` widened from a closed
@@ -306,16 +306,32 @@ autosaved drafts, and Shopify sync-status bookkeeping).
   field, with the one visible input left as a pure, unnamed editing
   surface. Confirmed fixed by re-testing in a real browser: typed PT and
   RU titles, switched tabs, saved, reloaded, and read both back correctly.
-- [ ] **Page editor — not yet done.** Same fixed `en`/`pt` draft record and
-  literal `pt*`-prefixed FormData fields as before
-  (`components/admin/pages/page-editor-form.tsx`, `app/admin/actions/pages.ts`).
-  Page's client-side `localizedFieldName()` already generalizes ("EN uses
-  the bare key, every other locale prefixes it") but `savePageAction` only
-  ever reads the `pt*` prefix, so a real third locale still can't
-  round-trip there either. No editor's tab list was changed to actually
-  show a third locale, since doing that without real panels behind it
-  would render a blank tab — same reasoning as Task U2's language switcher
-  staying EN/PT-only.
+- [x] **Page editor** — fully N-locale, `pt*` fields gone entirely from both
+  `page-editor-form.tsx` and `page-create-form.tsx`. Page's `PageTranslation`
+  table already mirrors Product/Collection's shape, and — unlike
+  Product — none of Page's fields are natively `required`, so the whole
+  editor could adopt the single-switching-value + always-hidden-mirror
+  pattern uniformly (title, materials, dynamic `legal:{id}:title`/
+  `service:{id}:title` section fields included) with no special-cased
+  DOM node anywhere. The one field that still needed its own state map and
+  hidden mirrors was the URL handle — applying the exact fix Product needed
+  reactively, this time proactively, since it's the same "translation-only
+  field with no EN counterpart" shape that bit Product. `readSectionFields`
+  (dynamic per-section legal/service fields) generalized from a literal
+  `"legal"`/`"ptLegal"` prefix pair to `adminLocaleFieldName(locale,
+  \`${kind}:${id}:title\`, "en")` — the same helper handles colon-containing
+  keys with no special-casing. `savePageAction` and `autosavePageDraftAction`
+  both build one `PageTranslation` upsert per registry locale via `.map()`.
+  The pre-`PageTranslation`-table `content.translations.pt` JSON blob (a
+  Portuguese-only legacy fallback the admin form still reads when no real
+  translation row exists yet) was deliberately left PT-only and untouched —
+  no other locale ever had one, real rows always take precedence once they
+  exist, and generalizing a fallback for data that structurally cannot
+  exist for a new locale would have been complexity with no payoff.
+  `CreatePageForm` (the separate, simpler "blank custom page" form) kept its
+  existing physically-duplicated-fields-per-locale shape, generalized to
+  loop over `translationLocales`, since every field there is real, uniquely
+  named, and non-shared — no hidden-mirror pattern needed there at all.
 - [ ] **Shopify sync/reconciliation adapters (`lib/shopify/product-sync.ts`,
   `editorial-translation-sync.ts`, `reconciliation-source.ts`, etc.) are
   still `locale === "pt"`-hardcoded for both Product and Collection.**
@@ -342,13 +358,24 @@ dev DB predates the form's required-field validation (a pre-existing
 data-quality gap, unrelated to this change) — a real-DB integration test
 exercises the actual save logic without fighting stale fixture data.
 `lib/products/__tests__/localization.test.ts` — 2 new tests for the
-generalized `validateProductPublication`. Product's editor was also
-live-verified in a real browser end to end (typed EN/PT/RU content, saved,
-reloaded, confirmed all three round-tripped, deleted the test record) —
-that pass is what caught the shared-input submission bug above; the
-integration test alone would not have, since it builds FormData by hand
-rather than driving the actual form. Full suite green: tsc, eslint, 930
-tests.
+generalized `validateProductPublication`. `lib/i18n/__tests__/page-save-integration.test.ts`
+— the same real-DB pattern for Page: saves a page with EN/PT/RU
+translations in one call and asserts all three `PageTranslation` rows land
+correctly, including RU falling back to the English title when left blank.
+Both Product's and Page's editors were also live-verified end to end in a
+real browser (typed EN/PT/RU content, switched tabs, saved, reloaded,
+confirmed every locale round-tripped independently with no cross-locale
+bleed, deleted the test record) — Product's pass is what caught the
+shared-input submission bug above; Page's pass, applying that lesson from
+the start, found nothing wrong. The integration tests alone would not have
+caught that class of bug, since they build FormData by hand rather than
+driving the actual form. Full suite green: tsc, eslint, 932 tests.
+
+Task U4 is now fully done: all three admin editors (Collection, Product,
+Page) are N-locale end to end, driven entirely by the `StorefrontLocale`
+registry with zero hardcoded `pt`/`PT` left in any of their save actions
+or form field lists. Adding a language from here on is a registry row —
+Task U1 — not a code change to any of these three editors.
 
 ### Phase 3 — Generic content and Shopify synchronization
 

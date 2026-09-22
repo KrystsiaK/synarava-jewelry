@@ -18,6 +18,8 @@ import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
 import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
 import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
 import { SERVICE_SECTIONS } from "@/lib/content/service-page-defaults";
+import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import {
   asRecord,
   createDraftToken,
@@ -105,18 +107,48 @@ function existingMaterialImage(existingContent: Record<string, unknown>, index: 
 const LEGAL_SECTION_IDS = [...OFFER_SECTIONS, ...TERMS_SECTIONS, ...PRIVACY_SECTIONS_EN, ...LEGAL_NOTICE_SECTIONS].map((s) => s.id);
 const SERVICE_SECTION_IDS = Object.values(SERVICE_SECTIONS).flatMap((sections) => sections.map((s) => s.id));
 
-// Dynamic per-section fields (`legal:{id}:title` / `legal:{id}:body`, `pt`-prefixed
-// for the translation) aren't worth exploding into the zod schema one property at a
-// time — same approach as the storefront-copy admin action. Reused for the fixed
-// service-page sections (care/faq/returns/shipping), which follow the same shape.
-function readSectionFields(formData: FormData, prefix: string, ids: string[]) {
+// Dynamic per-section fields (`legal:{id}:title` / `legal:{id}:body`, locale-prefixed
+// for a translation via the same adminLocaleFieldName convention every other field
+// uses) aren't worth exploding into the zod schema one property at a time — same
+// approach as the storefront-copy admin action. Reused for the fixed service-page
+// sections (care/faq/returns/shipping), which follow the same shape.
+function readSectionFields(formData: FormData, locale: string, kind: "legal" | "service", ids: string[]) {
   const sections: Record<string, { title: string; body: string }> = {};
   for (const id of ids) {
-    const title = String(formData.get(`${prefix}:${id}:title`) ?? "").trim();
-    const body = String(formData.get(`${prefix}:${id}:body`) ?? "").trim();
+    const title = readLocaleField(formData, locale, `${kind}:${id}:title`);
+    const body = readLocaleField(formData, locale, `${kind}:${id}:body`);
     if (title || body) sections[id] = { title, body };
   }
   return sections;
+}
+
+const TRANSLATABLE_PAGE_FIELDS = [
+  "eyebrow", "body", "ctaLabel", "quote", "secondaryTitle", "secondaryBody",
+  "departmentSectionTitle", "departmentSectionBody", "departmentSectionImageCaption", "departmentSectionCtaLabel",
+  "archiveSectionLabel", "editSectionEyebrow", "editSectionTitle", "editSectionBody", "editSectionCtaLabel",
+  "materialSectionEyebrow", "materialSectionTitle", "materialSectionNoteLabel",
+  "manifestoSectionLabel", "manifestoSectionAttribution",
+  "finalCtaLabel", "finalFooterTitle", "finalContactLabel", "legalIntro",
+] as const;
+
+/** Reads one locale's flat copy fields, title/handle, and the three lexicon materials straight from the raw FormData — a translation is optional everywhere, so nothing here needs `.min(1)`. */
+function readPageTranslationFields(formData: FormData, locale: string) {
+  const fields = Object.fromEntries(
+    TRANSLATABLE_PAGE_FIELDS.map((key) => [key, readLocaleField(formData, locale, key)]),
+  ) as Record<(typeof TRANSLATABLE_PAGE_FIELDS)[number], string>;
+  const materials = [1, 2, 3].map((index) => ({
+    name: readLocaleField(formData, locale, `material${index}Name`),
+    category: readLocaleField(formData, locale, `material${index}Category`),
+    description: readLocaleField(formData, locale, `material${index}Description`),
+    properties: readLocaleField(formData, locale, `material${index}Properties`),
+  }));
+  return {
+    ...fields,
+    title: readLocaleField(formData, locale, "title"),
+    handle: readLocaleField(formData, locale, "handle"),
+    excerpt: readLocaleField(formData, locale, "excerpt"),
+    materials,
+  };
 }
 
 function buildMaterialLexiconEntries(
@@ -228,45 +260,6 @@ const pageContentFieldsSchema = z.object({
   departmentSectionCtaLabel: z.string().trim().default(""),
   legalIntro: z.string().trim().default(""),
   legalLastUpdated: z.string().trim().default(""),
-  ptLegalIntro: z.string().trim().default(""),
-  ptTitle: z.string().trim().default(""),
-  ptHandle: z.string().trim().default(""),
-  ptExcerpt: z.string().trim().default(""),
-  ptEyebrow: z.string().trim().default(""),
-  ptBody: z.string().trim().default(""),
-  ptCtaLabel: z.string().trim().default(""),
-  ptQuote: z.string().trim().default(""),
-  ptSecondaryTitle: z.string().trim().default(""),
-  ptSecondaryBody: z.string().trim().default(""),
-  ptDepartmentSectionTitle: z.string().trim().default(""),
-  ptDepartmentSectionBody: z.string().trim().default(""),
-  ptDepartmentSectionImageCaption: z.string().trim().default(""),
-  ptDepartmentSectionCtaLabel: z.string().trim().default(""),
-  ptArchiveSectionLabel: z.string().trim().default(""),
-  ptEditSectionEyebrow: z.string().trim().default(""),
-  ptEditSectionTitle: z.string().trim().default(""),
-  ptEditSectionBody: z.string().trim().default(""),
-  ptEditSectionCtaLabel: z.string().trim().default(""),
-  ptMaterialSectionEyebrow: z.string().trim().default(""),
-  ptMaterialSectionTitle: z.string().trim().default(""),
-  ptMaterialSectionNoteLabel: z.string().trim().default(""),
-  ptMaterial1Name: z.string().trim().default(""),
-  ptMaterial1Category: z.string().trim().default(""),
-  ptMaterial1Description: z.string().trim().default(""),
-  ptMaterial1Properties: z.string().trim().default(""),
-  ptMaterial2Name: z.string().trim().default(""),
-  ptMaterial2Category: z.string().trim().default(""),
-  ptMaterial2Description: z.string().trim().default(""),
-  ptMaterial2Properties: z.string().trim().default(""),
-  ptMaterial3Name: z.string().trim().default(""),
-  ptMaterial3Category: z.string().trim().default(""),
-  ptMaterial3Description: z.string().trim().default(""),
-  ptMaterial3Properties: z.string().trim().default(""),
-  ptManifestoSectionLabel: z.string().trim().default(""),
-  ptManifestoSectionAttribution: z.string().trim().default(""),
-  ptFinalCtaLabel: z.string().trim().default(""),
-  ptFinalFooterTitle: z.string().trim().default(""),
-  ptFinalContactLabel: z.string().trim().default(""),
 });
 
 const savePageSchema = pageContentFieldsSchema.extend({
@@ -283,8 +276,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   }
   const {
     pageId, workflowState, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
-    secondaryTitle, secondaryBody, ptTitle, ptHandle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
-    ptQuote, ptSecondaryTitle, ptSecondaryBody, heroSectionEnabled, departmentSectionEnabled,
+    secondaryTitle, secondaryBody, heroSectionEnabled, departmentSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionCtaLabel,
     editProductId1, editProductId2, editProductId3, editProductId4,
@@ -295,23 +287,13 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail,
     departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
-    departmentSectionCtaLabel, ptDepartmentSectionTitle, ptDepartmentSectionBody,
-    ptDepartmentSectionImageCaption, ptDepartmentSectionCtaLabel,
-    ptArchiveSectionLabel, ptEditSectionEyebrow, ptEditSectionTitle, ptEditSectionBody, ptEditSectionCtaLabel,
-    ptMaterialSectionEyebrow, ptMaterialSectionTitle, ptMaterialSectionNoteLabel,
-    ptMaterial1Name, ptMaterial1Category, ptMaterial1Description, ptMaterial1Properties,
-    ptMaterial2Name, ptMaterial2Category, ptMaterial2Description, ptMaterial2Properties,
-    ptMaterial3Name, ptMaterial3Category, ptMaterial3Description, ptMaterial3Properties,
-    ptManifestoSectionLabel, ptManifestoSectionAttribution, ptFinalCtaLabel,
-    ptFinalFooterTitle, ptFinalContactLabel,
-    legalIntro, legalLastUpdated, ptLegalIntro,
+    departmentSectionCtaLabel,
+    legalIntro, legalLastUpdated,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
-  const ptLocalizedHandle = isBuiltInPage(slug) ? null : (slugify(ptHandle) || null);
-  const legalSections = readSectionFields(formData, "legal", LEGAL_SECTION_IDS);
-  const ptLegalSections = readSectionFields(formData, "ptLegal", LEGAL_SECTION_IDS);
-  const serviceSections = readSectionFields(formData, "service", SERVICE_SECTION_IDS);
-  const ptServiceSections = readSectionFields(formData, "ptService", SERVICE_SECTION_IDS);
+  const translationLocales = await getAdminTranslationLocales();
+  const legalSections = readSectionFields(formData, "en", "legal", LEGAL_SECTION_IDS);
+  const serviceSections = readSectionFields(formData, "en", "service", SERVICE_SECTION_IDS);
   const editProductIds = [editProductId1, editProductId2, editProductId3, editProductId4].filter(Boolean);
 
   if (!slug || !title) {
@@ -345,11 +327,6 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
     { name: material3Name, category: material3Category, description: material3Description, properties: material3Properties },
   ], materialImages);
-  const ptMaterialLexicon = buildMaterialLexiconEntries([
-    { name: ptMaterial1Name, category: ptMaterial1Category, description: ptMaterial1Description, properties: ptMaterial1Properties },
-    { name: ptMaterial2Name, category: ptMaterial2Category, description: ptMaterial2Description, properties: ptMaterial2Properties },
-    { name: ptMaterial3Name, category: ptMaterial3Category, description: ptMaterial3Description, properties: ptMaterial3Properties },
-  ], materialImages);
   const englishTranslationContent = {
     eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
     departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
@@ -359,36 +336,44 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
   };
-  const portugueseTranslationContent = {
-    eyebrow: ptEyebrow,
-    body: ptBody,
-    ctaLabel: ptCtaLabel,
-    quote: ptQuote,
-    secondaryTitle: ptSecondaryTitle,
-    secondaryBody: ptSecondaryBody,
-    departmentSectionTitle: ptDepartmentSectionTitle,
-    departmentSectionBody: ptDepartmentSectionBody,
-    departmentSectionImageCaption: ptDepartmentSectionImageCaption,
-    departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
-    archiveSectionLabel: ptArchiveSectionLabel,
-    editSectionEyebrow: ptEditSectionEyebrow,
-    editSectionTitle: ptEditSectionTitle,
-    editSectionBody: ptEditSectionBody,
-    editSectionCtaLabel: ptEditSectionCtaLabel,
-    materialSectionEyebrow: ptMaterialSectionEyebrow,
-    materialSectionTitle: ptMaterialSectionTitle,
-    materialSectionNoteLabel: ptMaterialSectionNoteLabel,
-    materialLexicon: ptMaterialLexicon,
-    manifestoSectionLabel: ptManifestoSectionLabel,
-    manifestoSectionAttribution: ptManifestoSectionAttribution,
-    finalCtaLabel: ptFinalCtaLabel,
-    finalFooterTitle: ptFinalFooterTitle,
-    finalContactLabel: ptFinalContactLabel,
-    legalIntro: ptLegalIntro,
-    legalLastUpdated,
-    legalSections: ptLegalSections,
-    serviceSections: ptServiceSections,
-  };
+  // Images/src stay shared with English (see materialImages above) and are
+  // never re-uploaded per locale.
+  const translationsData = translationLocales.map(({ code, label }) => {
+    const fields = readPageTranslationFields(formData, code);
+    const content = {
+      eyebrow: fields.eyebrow,
+      body: fields.body,
+      ctaLabel: fields.ctaLabel,
+      quote: fields.quote,
+      secondaryTitle: fields.secondaryTitle,
+      secondaryBody: fields.secondaryBody,
+      departmentSectionTitle: fields.departmentSectionTitle,
+      departmentSectionBody: fields.departmentSectionBody,
+      departmentSectionImageCaption: fields.departmentSectionImageCaption,
+      departmentSectionCtaLabel: fields.departmentSectionCtaLabel,
+      archiveSectionLabel: fields.archiveSectionLabel,
+      editSectionEyebrow: fields.editSectionEyebrow,
+      editSectionTitle: fields.editSectionTitle,
+      editSectionBody: fields.editSectionBody,
+      editSectionCtaLabel: fields.editSectionCtaLabel,
+      materialSectionEyebrow: fields.materialSectionEyebrow,
+      materialSectionTitle: fields.materialSectionTitle,
+      materialSectionNoteLabel: fields.materialSectionNoteLabel,
+      materialLexicon: buildMaterialLexiconEntries(fields.materials, materialImages),
+      manifestoSectionLabel: fields.manifestoSectionLabel,
+      manifestoSectionAttribution: fields.manifestoSectionAttribution,
+      finalCtaLabel: fields.finalCtaLabel,
+      finalFooterTitle: fields.finalFooterTitle,
+      finalContactLabel: fields.finalContactLabel,
+      legalIntro: fields.legalIntro,
+      legalLastUpdated,
+      legalSections: readSectionFields(formData, code, "legal", LEGAL_SECTION_IDS),
+      serviceSections: readSectionFields(formData, code, "service", SERVICE_SECTION_IDS),
+    };
+    const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
+    return { code, label, fields, localizedHandle, content };
+  });
+  const ptTranslation = translationsData.find((translation) => translation.code === "pt");
   const pageData = {
     slug,
     title,
@@ -434,14 +419,18 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       legalSections,
       serviceSections,
       heroImage,
+      // Legacy, Portuguese-only fallback from before the PageTranslation
+      // table existed — no other locale ever had one, and the real
+      // PageTranslation.pt row written below always takes precedence once
+      // it exists (see PageEditor's translationCopyFor).
       translations: {
         pt: {
-          title: ptTitle,
-          excerpt: ptExcerpt,
+          title: ptTranslation?.fields.title ?? "",
+          excerpt: ptTranslation?.fields.excerpt ?? "",
           ctaHref,
           finalCtaHref,
           finalContactEmail,
-          ...portugueseTranslationContent,
+          ...(ptTranslation?.content ?? {}),
         },
       },
     },
@@ -475,9 +464,29 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
         });
       })();
 
-  const ptContentHash = createHash("sha256")
-    .update(JSON.stringify({ title: ptTitle, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt, ...portugueseTranslationContent }))
-    .digest("hex");
+  const translationUpserts = translationsData.map(({ code, fields, localizedHandle, content }) => {
+    const contentHash = createHash("sha256")
+      .update(JSON.stringify({ title: fields.title, localizedHandle, excerpt: fields.excerpt, ...content }))
+      .digest("hex");
+    return {
+      code,
+      localizedHandle,
+      syncStatus: (page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE") as "PENDING" | "NOT_APPLICABLE",
+      upsert: db.pageTranslation.upsert({
+        where: { pageId_locale: { pageId: page.id, locale: code } },
+        update: {
+          title: fields.title || title, localizedHandle, excerpt: fields.excerpt || null, content,
+          contentHash,
+          syncStatus: page.shopifyPageId ? "PENDING" as const : "NOT_APPLICABLE" as const,
+        },
+        create: {
+          pageId: page.id, locale: code, title: fields.title || title, localizedHandle, excerpt: fields.excerpt || null,
+          content, contentHash,
+          syncStatus: page.shopifyPageId ? "PENDING" as const : "NOT_APPLICABLE" as const,
+        },
+      }),
+    };
+  });
   await Promise.all([
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "en" } },
@@ -490,27 +499,15 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
         content: englishTranslationContent, reviewStatus: "REVIEWED", reviewedAt: new Date(),
       },
     }),
-    db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "pt" } },
-      update: {
-        title: ptTitle || title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent,
-        contentHash: ptContentHash,
-        syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
-      },
-      create: {
-        pageId: page.id, locale: "pt", title: ptTitle || title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null,
-        content: portugueseTranslationContent, contentHash: ptContentHash,
-        syncStatus: page.shopifyPageId ? "PENDING" : "NOT_APPLICABLE",
-      },
-    }),
+    ...translationUpserts.map(({ upsert }) => upsert),
   ]);
-  await recordLocalizedHandleRedirect({
+  await Promise.all(translationUpserts.map(({ code, localizedHandle }) => recordLocalizedHandleRedirect({
     entityType: "PAGE",
     entityId: page.id,
-    locale: "pt",
-    previousHandle: before?.translations.find((translation) => translation.locale === "pt")?.localizedHandle,
-    nextHandle: ptLocalizedHandle ?? slug,
-  });
+    locale: code,
+    previousHandle: before?.translations.find((translation) => translation.locale === code)?.localizedHandle,
+    nextHandle: localizedHandle ?? slug,
+  })));
 
   await writeAuditLog({
     action: before ? "UPDATE" : "CREATE",
@@ -540,8 +537,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   }
   const {
     pageId, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
-    secondaryTitle, secondaryBody, ptTitle, ptHandle, ptExcerpt, ptEyebrow, ptBody, ptCtaLabel,
-    ptQuote, ptSecondaryTitle, ptSecondaryBody, heroSectionEnabled, departmentSectionEnabled,
+    secondaryTitle, secondaryBody, heroSectionEnabled, departmentSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionCtaLabel,
     materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
@@ -551,33 +547,54 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail,
     departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
-    departmentSectionCtaLabel, ptDepartmentSectionTitle, ptDepartmentSectionBody,
-    ptDepartmentSectionImageCaption, ptDepartmentSectionCtaLabel,
-    ptArchiveSectionLabel, ptEditSectionEyebrow, ptEditSectionTitle, ptEditSectionBody, ptEditSectionCtaLabel,
-    ptMaterialSectionEyebrow, ptMaterialSectionTitle, ptMaterialSectionNoteLabel,
-    ptMaterial1Name, ptMaterial1Category, ptMaterial1Description, ptMaterial1Properties,
-    ptMaterial2Name, ptMaterial2Category, ptMaterial2Description, ptMaterial2Properties,
-    ptMaterial3Name, ptMaterial3Category, ptMaterial3Description, ptMaterial3Properties,
-    ptManifestoSectionLabel, ptManifestoSectionAttribution, ptFinalCtaLabel,
-    ptFinalFooterTitle, ptFinalContactLabel,
-    legalIntro, legalLastUpdated, ptLegalIntro,
+    departmentSectionCtaLabel,
+    legalIntro, legalLastUpdated,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
-  const ptLocalizedHandle = isBuiltInPage(slug) ? null : (slugify(ptHandle) || null);
-  const legalSections = readSectionFields(formData, "legal", LEGAL_SECTION_IDS);
-  const ptLegalSections = readSectionFields(formData, "ptLegal", LEGAL_SECTION_IDS);
-  const serviceSections = readSectionFields(formData, "service", SERVICE_SECTION_IDS);
-  const ptServiceSections = readSectionFields(formData, "ptService", SERVICE_SECTION_IDS);
+  const translationLocales = await getAdminTranslationLocales();
+  const legalSections = readSectionFields(formData, "en", "legal", LEGAL_SECTION_IDS);
+  const serviceSections = readSectionFields(formData, "en", "service", SERVICE_SECTION_IDS);
   const draftMaterialLexicon = buildMaterialLexiconEntries([
     { name: material1Name, category: material1Category, description: material1Description, properties: material1Properties },
     { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
     { name: material3Name, category: material3Category, description: material3Description, properties: material3Properties },
   ]);
-  const draftPtMaterialLexicon = buildMaterialLexiconEntries([
-    { name: ptMaterial1Name, category: ptMaterial1Category, description: ptMaterial1Description, properties: ptMaterial1Properties },
-    { name: ptMaterial2Name, category: ptMaterial2Category, description: ptMaterial2Description, properties: ptMaterial2Properties },
-    { name: ptMaterial3Name, category: ptMaterial3Category, description: ptMaterial3Description, properties: ptMaterial3Properties },
-  ]);
+  const translationsData = translationLocales.map(({ code, label }) => {
+    const fields = readPageTranslationFields(formData, code);
+    const content = {
+      eyebrow: fields.eyebrow,
+      body: fields.body,
+      ctaLabel: fields.ctaLabel,
+      quote: fields.quote,
+      secondaryTitle: fields.secondaryTitle,
+      secondaryBody: fields.secondaryBody,
+      departmentSectionTitle: fields.departmentSectionTitle,
+      departmentSectionBody: fields.departmentSectionBody,
+      departmentSectionImageCaption: fields.departmentSectionImageCaption,
+      departmentSectionCtaLabel: fields.departmentSectionCtaLabel,
+      archiveSectionLabel: fields.archiveSectionLabel,
+      editSectionEyebrow: fields.editSectionEyebrow,
+      editSectionTitle: fields.editSectionTitle,
+      editSectionBody: fields.editSectionBody,
+      editSectionCtaLabel: fields.editSectionCtaLabel,
+      materialSectionEyebrow: fields.materialSectionEyebrow,
+      materialSectionTitle: fields.materialSectionTitle,
+      materialSectionNoteLabel: fields.materialSectionNoteLabel,
+      materialLexicon: buildMaterialLexiconEntries(fields.materials),
+      manifestoSectionLabel: fields.manifestoSectionLabel,
+      manifestoSectionAttribution: fields.manifestoSectionAttribution,
+      finalCtaLabel: fields.finalCtaLabel,
+      finalFooterTitle: fields.finalFooterTitle,
+      finalContactLabel: fields.finalContactLabel,
+      legalIntro: fields.legalIntro,
+      legalLastUpdated,
+      legalSections: readSectionFields(formData, code, "legal", LEGAL_SECTION_IDS),
+      serviceSections: readSectionFields(formData, code, "service", SERVICE_SECTION_IDS),
+    };
+    const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
+    return { code, label, fields, localizedHandle, content };
+  });
+  const ptTranslation = translationsData.find((translation) => translation.code === "pt");
 
   const pageData = {
     slug,
@@ -623,40 +640,15 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       legalLastUpdated,
       legalSections,
       serviceSections,
+      // Legacy, Portuguese-only fallback — see the identical comment in savePageAction.
       translations: {
         pt: {
-          title: ptTitle,
-          excerpt: ptExcerpt,
-          eyebrow: ptEyebrow,
-          body: ptBody,
-          ctaLabel: ptCtaLabel,
+          title: ptTranslation?.fields.title ?? "",
+          excerpt: ptTranslation?.fields.excerpt ?? "",
           ctaHref,
-          quote: ptQuote,
-          secondaryTitle: ptSecondaryTitle,
-          secondaryBody: ptSecondaryBody,
-          departmentSectionTitle: ptDepartmentSectionTitle,
-          departmentSectionBody: ptDepartmentSectionBody,
-          departmentSectionImageCaption: ptDepartmentSectionImageCaption,
-          departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
-          archiveSectionLabel: ptArchiveSectionLabel,
-          editSectionEyebrow: ptEditSectionEyebrow,
-          editSectionTitle: ptEditSectionTitle,
-          editSectionBody: ptEditSectionBody,
-          editSectionCtaLabel: ptEditSectionCtaLabel,
-          materialSectionEyebrow: ptMaterialSectionEyebrow,
-          materialSectionTitle: ptMaterialSectionTitle,
-          materialSectionNoteLabel: ptMaterialSectionNoteLabel,
-          materialLexicon: draftPtMaterialLexicon,
-          manifestoSectionLabel: ptManifestoSectionLabel,
-          manifestoSectionAttribution: ptManifestoSectionAttribution,
-          finalCtaLabel: ptFinalCtaLabel,
           finalCtaHref,
-          finalFooterTitle: ptFinalFooterTitle,
-          finalContactLabel: ptFinalContactLabel,
           finalContactEmail,
-          legalIntro: ptLegalIntro,
-          legalSections: ptLegalSections,
-          serviceSections: ptServiceSections,
+          ...(ptTranslation?.content ?? {}),
         },
       },
     },
@@ -689,43 +681,17 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
   };
-  const portugueseTranslationContent = {
-    eyebrow: ptEyebrow, body: ptBody, ctaLabel: ptCtaLabel, quote: ptQuote,
-    secondaryTitle: ptSecondaryTitle, secondaryBody: ptSecondaryBody,
-    departmentSectionTitle: ptDepartmentSectionTitle,
-    departmentSectionBody: ptDepartmentSectionBody,
-    departmentSectionImageCaption: ptDepartmentSectionImageCaption,
-    departmentSectionCtaLabel: ptDepartmentSectionCtaLabel,
-    archiveSectionLabel: ptArchiveSectionLabel,
-    editSectionEyebrow: ptEditSectionEyebrow,
-    editSectionTitle: ptEditSectionTitle,
-    editSectionBody: ptEditSectionBody,
-    editSectionCtaLabel: ptEditSectionCtaLabel,
-    materialSectionEyebrow: ptMaterialSectionEyebrow,
-    materialSectionTitle: ptMaterialSectionTitle,
-    materialSectionNoteLabel: ptMaterialSectionNoteLabel,
-    materialLexicon: draftPtMaterialLexicon,
-    manifestoSectionLabel: ptManifestoSectionLabel,
-    manifestoSectionAttribution: ptManifestoSectionAttribution,
-    finalCtaLabel: ptFinalCtaLabel,
-    finalFooterTitle: ptFinalFooterTitle,
-    finalContactLabel: ptFinalContactLabel,
-    legalIntro: ptLegalIntro,
-    legalLastUpdated,
-    legalSections: ptLegalSections,
-    serviceSections: ptServiceSections,
-  };
   await Promise.all([
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "en" } },
       update: { title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
       create: { pageId: page.id, locale: "en", title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
     }),
-    db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "pt" } },
-      update: { title: ptTitle || pageData.title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
-      create: { pageId: page.id, locale: "pt", title: ptTitle || pageData.title, localizedHandle: ptLocalizedHandle, excerpt: ptExcerpt || null, content: portugueseTranslationContent },
-    }),
+    ...translationsData.map(({ code, fields, localizedHandle, content }) => db.pageTranslation.upsert({
+      where: { pageId_locale: { pageId: page.id, locale: code } },
+      update: { title: fields.title || pageData.title, localizedHandle, excerpt: fields.excerpt || null, content },
+      create: { pageId: page.id, locale: code, title: fields.title || pageData.title, localizedHandle, excerpt: fields.excerpt || null, content },
+    })),
   ]);
 
   revalidatePath("/admin/pages");

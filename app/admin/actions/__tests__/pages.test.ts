@@ -30,6 +30,9 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/media/local-upload", () => ({ savePageImageUpload: vi.fn() }));
+vi.mock("@/lib/i18n/admin-translation-locales", () => ({
+  getAdminTranslationLocales: vi.fn().mockResolvedValue([{ code: "pt", label: "Português" }]),
+}));
 
 import { savePageAction } from "@/app/admin/actions/pages";
 

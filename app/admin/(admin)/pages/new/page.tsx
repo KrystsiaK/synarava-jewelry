@@ -1,8 +1,11 @@
 import Link from "next/link";
 
 import { PageCreateRoute } from "@/components/admin/pages/page-route-editor";
+import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 
-export default function NewPagePage() {
+export default async function NewPagePage() {
+  const translationLocales = await getAdminTranslationLocales();
+
   return (
     <div className="space-y-8">
       <div>
@@ -20,7 +23,7 @@ export default function NewPagePage() {
         </div>
       </div>
 
-      <PageCreateRoute />
+      <PageCreateRoute translationLocales={translationLocales} />
     </div>
   );
 }
