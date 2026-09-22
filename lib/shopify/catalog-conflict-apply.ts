@@ -240,18 +240,30 @@ export async function applyCatalogConflictResolution({
       results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: "This translated field is missing its source record." });
       continue;
     }
-    const outcome = await applyReconcileChoice({
-      divergenceId: field.sourceId,
-      choice: input.direction === "SYNARAVA_TO_SHOPIFY" ? "SYNARAVA" : "SHOPIFY",
-      expectedLocalFingerprint: input.expectedLocalFingerprint,
-      expectedShopifyFingerprint: input.expectedShopifyFingerprint,
-      actorUsername,
-    });
-    results.push(
-      outcome.ok
-        ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
-        : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
-    );
+    // applyReconcileChoice can throw before it even reaches its own internal
+    // try (claimDifference runs outside it — a DB hiccup there throws
+    // straight out). Without a try/catch here, one such failure mid-batch
+    // would reject applyCatalogConflictResolution entirely, discarding every
+    // already-computed result — including fields already applied
+    // successfully earlier in this same loop — instead of reporting this
+    // one field as failed and letting the rest of the batch stand.
+    try {
+      const outcome = await applyReconcileChoice({
+        divergenceId: field.sourceId,
+        choice: input.direction === "SYNARAVA_TO_SHOPIFY" ? "SYNARAVA" : "SHOPIFY",
+        expectedLocalFingerprint: input.expectedLocalFingerprint,
+        expectedShopifyFingerprint: input.expectedShopifyFingerprint,
+        actorUsername,
+      });
+      results.push(
+        outcome.ok
+          ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
+          : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "This change could not be applied.";
+      results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message });
+    }
   }
 
   const failedCount = results.filter((result) => !result.ok).length;

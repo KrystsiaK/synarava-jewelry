@@ -279,6 +279,34 @@ describe("applyCatalogConflictResolution", () => {
     expect(outcome.results.find((result) => result.productId === "product-b")).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
   });
 
+  it("survives applyReconcileChoice throwing (not just returning ok:false) for one entry — the rest of the batch still completes and is reported, not lost", async () => {
+    const before = translationField({ fieldKey: "translation:pt-PT:title", sourceId: "divergence-before" });
+    const throwing = translationField({ fieldKey: "translation:pt-PT:description", sourceId: "divergence-throws" });
+    const after = translationField({ fieldKey: "translation:pt-PT:seoTitle", sourceId: "divergence-after" });
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([before, throwing, after]));
+    mocks.applyReconcileChoice.mockImplementation(async ({ divergenceId }: { divergenceId: string }) => {
+      if (divergenceId === "divergence-throws") throw new Error("connection to database lost");
+      return { divergenceId, ok: true, message: "applied" };
+    });
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(before), entryFor(throwing), entryFor(after)],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(outcome.results).toHaveLength(3);
+    expect(outcome.results.find((result) => result.fieldKey === "translation:pt-PT:title")).toMatchObject({ ok: true });
+    expect(outcome.results.find((result) => result.fieldKey === "translation:pt-PT:description")).toMatchObject({
+      ok: false, reason: "WRITE_FAILED", message: expect.stringContaining("connection to database lost"),
+    });
+    // The entry queued *after* the throwing one must still run — a thrown
+    // error must not abort the rest of the loop.
+    expect(outcome.results.find((result) => result.fieldKey === "translation:pt-PT:seoTitle")).toMatchObject({ ok: true });
+    expect(outcome.appliedCount).toBe(2);
+    expect(outcome.failedCount).toBe(1);
+  });
+
   it("is idempotent: resubmitting the exact same request after a successful apply reports STALE instead of writing again", async () => {
     const field = translationField();
     mocks.getProductCatalogConflict.mockResolvedValueOnce(conflict([field]));
