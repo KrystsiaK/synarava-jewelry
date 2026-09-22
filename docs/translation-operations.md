@@ -16,13 +16,13 @@ Run `pnpm translations:backfill --dry-run --strict` before enabling writes. Revi
 
 ## Adding a new language
 
-Enabling a new storefront language is a data/configuration exercise, not a code change:
+Storefront publication depends on Shopify and the locale registry:
 
 1. **Enable and publish the language in Shopify Markets.** Synarava only ever treats a locale as commerce-ready once Shopify's own `shopLocales` reports it as published — this is the source of truth, not a local flag.
-2. **Sync it into Synarava Admin and choose a stable URL segment.** On **Admin → Localization**, run "Check Shopify" to pull the new locale into the `StorefrontLocale` registry, then confirm or set its `routeSegment` (the URL prefix, e.g. `/de`) — this segment is meant to stay fixed once chosen, since it becomes part of every canonical URL for that language.
+2. **Register the locale with a stable URL segment, then check Shopify.** A `StorefrontLocale` row must exist before the locale can appear on the site. The Russian row is supplied by migration `20260921160000_add_russian_locale` with `/ru`, initially unpublished. On **Admin → Localization**, run **Check Shopify** to refresh publication state from Shopify. The check updates existing rows; it does not create a row for an unmatched Shopify locale.
 3. **Fill in or import translations and pass review.** Every N-locale admin editor (Product, Collection, Page, Storefront Copy) automatically grows a tab for the new locale — no editor code changes. Until real content is entered, buyer-facing pages render the English source content as an honest fallback rather than an error or blank page. Sync each entity to Shopify from **Admin → Localization** once its translation is reviewed.
 
-No Prisma migration, TypeScript union, routing regex, or Shopify adapter needs to change for any of this — see `tasks/universal-localization-plan.md` for the architecture that makes that true.
+Buyer-facing UI text uses a bundled dictionary when one exists, with English fallback for missing keys. Russian has a partial bundled dictionary. New languages require a registry row and need their own dictionary to translate interface text; content fields are managed separately in the admin editors.
 
 ## Failure recovery
 

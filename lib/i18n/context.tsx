@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo } from "reac
 import { usePathname, useRouter } from "next/navigation";
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
+import ru from "@/messages/ru.json";
 import { flattenMessages } from "./utils";
 import { normalizeLocale, SUPPORTED_LOCALES, type Locale } from "./locales";
 import { localePath } from "./routing";
@@ -26,20 +27,19 @@ type TranslationValues = Record<string, string | number>;
 const STORAGE_LOCALE_KEY = "synarava-locale";
 
 const enFlat = flattenMessages(en as Record<string, unknown>);
-// Both supported dictionaries ship in the client bundle already (the same
-// source the old /api/translate route re-served over the network), so a
+// Bundled dictionaries ship in the client bundle already, so a
 // locale switch — and, critically, the very first SSR render — never has to
 // wait on a fetch. REV-20: SSR used to seed `messages` from enFlat
 // unconditionally and only fetch the PT dictionary in a post-mount effect,
 // so a PT page's initial HTML was English until that fetch resolved.
 //
-// Not every registered locale has a static dictionary file (adding one
-// isn't required to enable a language — see Task U9) — `dictionaries[locale]`
+// Not every registered locale has a static dictionary file — `dictionaries[locale]`
 // is simply undefined for those, and `t()` below already falls back to
 // `enFlat` for any key it can't find.
 const dictionaries: Partial<Record<Locale, Record<string, string>>> = {
   en: enFlat,
   pt: flattenMessages(pt as Record<string, unknown>),
+  ru: flattenMessages(ru as Record<string, unknown>),
 };
 
 // Built from SUPPORTED_LOCALES so a newly registered locale is recognized
@@ -92,7 +92,7 @@ export function TranslationProvider({
     // would force this whole subtree (the root layout wraps every page) out of
     // static rendering — setLocale only ever runs from a click handler, never
     // during render, so this is safe.
-    const rest = pathname.replace(/^\/(en|pt)(?=\/|$)/, "");
+    const rest = pathname.replace(LOCALE_PATH_PATTERN, "");
     const { search, hash } = window.location;
     router.push(`${localePath(newLocale, rest === "" ? "/" : rest)}${search}${hash}`);
   }
