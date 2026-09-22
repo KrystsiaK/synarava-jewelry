@@ -211,10 +211,15 @@ export function parseCharacteristicsForm(formData: FormData) {
   });
 }
 
+const BOOLEAN_LABELS: Record<Locale, { yes: string; no: string }> = {
+  en: { yes: "Yes", no: "No" },
+  pt: { yes: "Sim", no: "Não" },
+};
+
 export function characteristicDisplayValue(value: ProductCharacteristicValue, locale: Locale = "en") {
   if (value.valueType === "BOOLEAN") {
-    if (locale === "pt") return value.booleanValue ? "Sim" : "Não";
-    return value.booleanValue ? "Yes" : "No";
+    const labels = BOOLEAN_LABELS[locale];
+    return value.booleanValue ? labels.yes : labels.no;
   }
   if (value.valueType === "NUMBER") {
     return `${value.numberValue ?? ""}${value.unit ? ` ${value.unit}` : ""}`.trim();

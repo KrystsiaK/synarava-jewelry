@@ -529,5 +529,34 @@
       "metaTitle": "Consumer Dispute Resolution",
       "metaDescription": "Alternative and online dispute resolution channels available to Synarava customers."
     }
+  },
+  "legal": {
+    "common": {
+      "lastUpdated": "Last updated",
+      "contents": "Contents",
+      "backToStore": "← Back to store"
+    },
+    "privacy": {
+      "metaTitle": "Privacy Policy | Synarava",
+      "metaDescription": "How Synarava Jewelry collects, uses, and protects your personal data.",
+      "title": "Privacy Policy",
+      "nextLabel": "Terms & Conditions →",
+      "postalAddressLabel": "Postal address"
+    },
+    "offer": {
+      "metaTitle": "Public Offer Agreement | Synarava",
+      "metaDescription": "Terms of the public offer for the purchase of Synarava Jewelry products.",
+      "title": "Public Offer Agreement",
+      "nextLabel": "Privacy Policy →"
+    }
+  },
+  "home": {
+    "editShowcase": {
+      "eyebrow": "A few to start with",
+      "title": "The Edit",
+      "body": "Four pieces, four sides of Synarava.",
+      "ctaLabel": "View piece",
+      "viewAllLabel": "View all products"
+    }
   }
 }

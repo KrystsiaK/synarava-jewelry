@@ -9,12 +9,9 @@ import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
 import {
   SERVICE_SECTIONS,
-  SERVICE_SECTION_DEFAULTS_EN,
-  SERVICE_SECTION_DEFAULTS_PT,
-  SERVICE_PAGE_TITLE_DEFAULTS_EN,
-  SERVICE_PAGE_TITLE_DEFAULTS_PT,
-  SERVICE_PAGE_INTRO_DEFAULTS_EN,
-  SERVICE_PAGE_INTRO_DEFAULTS_PT,
+  SERVICE_SECTION_DEFAULTS,
+  SERVICE_PAGE_TITLE_DEFAULTS,
+  SERVICE_PAGE_INTRO_DEFAULTS,
 } from "@/lib/content/service-page-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,18 +39,17 @@ export default async function ShippingPage() {
   const { locale } = await getServerTranslations();
   const page = await getPageBySlug("shipping", locale);
   const content = page?.content;
-  const isPt = locale === "pt";
-  const introDefaults = (isPt ? SERVICE_PAGE_INTRO_DEFAULTS_PT : SERVICE_PAGE_INTRO_DEFAULTS_EN).shipping;
+  const introDefaults = SERVICE_PAGE_INTRO_DEFAULTS[locale].shipping;
 
   return (
     <ServicePage
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || (isPt ? SERVICE_PAGE_TITLE_DEFAULTS_PT : SERVICE_PAGE_TITLE_DEFAULTS_EN).shipping}
+      title={page?.title || SERVICE_PAGE_TITLE_DEFAULTS[locale].shipping}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
       sections={resolveLegalSections(
         SERVICE_SECTIONS.shipping,
         content?.serviceSections,
-        (isPt ? SERVICE_SECTION_DEFAULTS_PT : SERVICE_SECTION_DEFAULTS_EN).shipping,
+        SERVICE_SECTION_DEFAULTS[locale].shipping,
       )}
       heroImage={content?.heroImage}
     />

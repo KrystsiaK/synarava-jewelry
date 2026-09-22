@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/i18n/locales";
 import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 
 // Verbatim extraction of the hardcoded copy that shipped on /privacy (EN)
@@ -9,7 +10,7 @@ import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 // Anchor ids are derived from the numbered English label (e.g. "1. Data
 // Controller" -> "data-controller") and stay in English across locales so a
 // link written against one locale's page still resolves on the other.
-export const PRIVACY_SECTIONS_EN: LegalSectionMeta[] = [
+const privacySectionsEn: LegalSectionMeta[] = [
   { id: "data-controller", label: "1. Data Controller" },
   { id: "data-we-collect", label: "2. Data We Collect" },
   { id: "legal-basis", label: "3. Legal Basis" },
@@ -22,7 +23,7 @@ export const PRIVACY_SECTIONS_EN: LegalSectionMeta[] = [
   { id: "contact", label: "10. Contact" },
 ];
 
-export const PRIVACY_SECTIONS_PT: LegalSectionMeta[] = [
+const privacySectionsPt: LegalSectionMeta[] = [
   { id: "data-controller", label: "1. Responsável pelo tratamento" },
   { id: "data-we-collect", label: "2. Dados que recolhemos" },
   { id: "legal-basis", label: "3. Fundamentos jurídicos" },
@@ -37,7 +38,7 @@ export const PRIVACY_SECTIONS_PT: LegalSectionMeta[] = [
 
 export const PRIVACY_LAST_UPDATED_DEFAULT = "5 September 2026";
 
-export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = {
+const privacySectionDefaultsEn: Record<string, LegalSectionDefault> = {
   "data-controller": {
     title: "Who is responsible for your data",
     body: [
@@ -176,7 +177,7 @@ export const PRIVACY_SECTION_DEFAULTS_EN: Record<string, LegalSectionDefault> = 
   },
 };
 
-export const PRIVACY_SECTION_DEFAULTS_PT: Record<string, LegalSectionDefault> = {
+const privacySectionDefaultsPt: Record<string, LegalSectionDefault> = {
   "data-controller": {
     title: "Quem é responsável pelos seus dados",
     body: [
@@ -271,4 +272,17 @@ export const PRIVACY_SECTION_DEFAULTS_PT: Record<string, LegalSectionDefault> = 
       "Podemos atualizar este aviso quando o tratamento mudar. Indicaremos a data e comunicaremos alterações materiais. Se uma nova finalidade exigir consentimento, pedi-lo-emos antes de iniciar o tratamento.",
     ].join("\n\n"),
   },
+};
+
+// Locale-keyed so a page component looks up its defaults with
+// `PRIVACY_SECTIONS[locale]` instead of a `locale === "pt"` branch — adding a
+// language here is a new key, not a new conditional.
+export const PRIVACY_SECTIONS: Record<Locale, LegalSectionMeta[]> = {
+  en: privacySectionsEn,
+  pt: privacySectionsPt,
+};
+
+export const PRIVACY_SECTION_DEFAULTS: Record<Locale, Record<string, LegalSectionDefault>> = {
+  en: privacySectionDefaultsEn,
+  pt: privacySectionDefaultsPt,
 };

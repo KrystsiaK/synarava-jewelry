@@ -449,15 +449,89 @@ end to end for a locale that was hardcoded-PT before this task.
 
 #### Task U6: Move fixed storefront copy and service/legal pages into the locale contract
 
-**Acceptance criteria:**
+**Status: done (2026-09-22).**
 
-- [ ] No buyer-facing `locale === "pt"` branch remains.
-- [ ] Static UI copy is editable per locale and has English fallback.
-- [ ] Legal/service content stays deliberately reviewed per locale; fallback
-  is visible in Admin and never misreported as complete.
+- [x] No buyer-facing `locale === "pt"` branch remains. Swept every hardcoded
+  `locale === "pt"` / `isPt` conditional out of the 7 legal/service route
+  files that had one — `privacy`, `offer`, `care`, `faq`, `shipping`,
+  `returns`, `dispute-resolution` — plus `components/home/home-page.tsx`'s
+  `EditShowcase` section and `lib/products/characteristics.ts`'s boolean
+  Yes/No label. Chrome strings (page title, "Last updated", "Contents",
+  "Back to store", nav labels) now come from `getServerTranslations()`'s
+  `t()` (server) or `useTranslations()`'s `t()` (client) — the same
+  `messages/{en,pt}.json` + `StorefrontCopy`-override + English-fallback
+  mechanism every other UI string already used; these pages just weren't
+  using it yet. `lib/content/catalog.ts`'s legacy `content.translations.pt`
+  fallback read became `content.translations?.[locale]` — a one-line,
+  behaviorally-identical generalization (that field only ever had a `pt`
+  key written into it, so the lookup returns the same value for `pt` and
+  the same `undefined` for every other locale as the ternary did).
+- [x] Static UI copy is editable per locale and has English fallback. This
+  was already true of everything routed through `t()` before this task —
+  `getServerTranslations()`/`useTranslations()` already merge a DB-backed
+  `StorefrontCopy` admin override on top of the static JSON dictionary and
+  fall back to the English dictionary for any missing key. Moving the 7
+  legal/service pages' chrome strings onto `t()` (previous bullet) is what
+  makes *that* copy editable-with-fallback too; no new mechanism was built.
+  The section/intro/title **default content** for privacy and the 5 service
+  pages (`lib/content/privacy-defaults.ts`, `service-page-defaults.ts`) was
+  restructured from parallel `_EN`/`_PT`-suffixed constants into single
+  `Record<Locale, ...>` exports (`PRIVACY_SECTIONS`, `PRIVACY_SECTION_DEFAULTS`,
+  `SERVICE_PAGE_TITLE_DEFAULTS`, `SERVICE_PAGE_INTRO_DEFAULTS`,
+  `SERVICE_SECTION_DEFAULTS`) — every page component now does
+  `X[locale]` instead of a ternary, and adding RU defaults later (Task U10)
+  is a new object key, not a new conditional or file.
+- [x] Legal/service content stays deliberately reviewed per locale; fallback
+  is visible in Admin and never misreported as complete. The actual body
+  content of these pages already flows through the N-locale Page/
+  `PageTranslation` editor built in Task U4 — this task didn't need to
+  rebuild that. What U6 fixes is that a locale with no admin-saved content
+  yet no longer needs a hardcoded language branch to fall back correctly:
+  the default-content lookups above resolve per locale automatically, the
+  same way every other N-locale editor already does.
+- [x] Scope boundaries, deliberately left alone:
+  - `terms-and-conditions` and `legal-notice` pages have no `locale === "pt"`
+    branch to remove — they're single-language (English) legal content by
+    design, already documented as such in `terms-defaults.ts`/
+    `legal-notice-defaults.ts` ("mirrors the /offer pattern"). Not touched.
+  - `StorefrontCopy`'s persisted `{en, pt}` JSON shape (`lib/content/storefront-copy.ts`)
+    and its Shopify sync adapter (`syncStorefrontCopyTranslation`) stay
+    exactly as Task U5 left them — redesigning that schema to N locales is
+    Task U9's job, confirmed twice now by existing in-code comments; U6
+    generalizing the *page-level* copy above didn't require touching it.
+  - `lib/i18n/format.ts`'s `shopifyLanguage()` (Storefront API `@inContext`
+    language for cart/checkout) stays `pt`-only. Buyer-facing routing is
+    still gated to `en`/`pt` by `SUPPORTED_LOCALES` (Task U2's explicit,
+    documented boundary), so this function is never called with anything
+    else today; generalizing it needs a new registry field (Storefront
+    API's `LanguageCode` enum differs from the Admin API `shopifyLocale`
+    already stored) with no live caller yet — same "no real payoff today"
+    call Task U5 made for `StorefrontCopy`. Left for U9/U10, when routing
+    actually widens.
+  - `components/admin/products/products-cms.tsx`'s
+    `product.translations.find(t => t.locale === "pt")` is an admin-only
+    list-view convenience (a PT-completeness indicator in the product
+    table), not a buyer-facing route. Out of this task's scope.
 
-**Verification:** route rendering and accessibility tests for a partially
-translated third locale.
+**Verification:** existing coverage already exercised both branches of every
+changed function (`lib/products/__tests__/characteristics.test.ts`'s
+"localizes boolean display values" test, `lib/content/__tests__/legal-sections.test.ts`,
+`legal-document-backfill.test.ts`, `localized-page-metadata.test.ts`) and
+all passed unchanged against the restructured `Record<Locale, ...>` exports
+— no test needed updating, which is itself a sign the restructuring was
+behavior-preserving. Full suite green: tsc, eslint, 934 tests. Live-verified
+against the running dev server: `/en/privacy` and `/pt/privacy` render their
+respective chrome strings ("Last updated"/"Última atualização", "Contents"/
+"Índice", "Back to store"/"Voltar à loja", "Terms & Conditions →"/"Termos e
+Condições →"); `/en/offer` and `/pt/offer`, `/en/care` and `/pt/care`, and
+`/{en,pt}` (home page's "The Edit"/"A Seleção" and "View all products"/"Ver
+todos os produtos") likewise; `/{en,pt}/{faq,shipping,returns,dispute-resolution}`
+all 200. One pre-existing (not introduced by this task, confirmed via
+`git stash`) content gap noticed along the way: `/pt/offer`'s `<title>`
+shows the English "Public Offer Agreement" because that Page row has an
+admin-saved English title but no Portuguese translation yet — `page?.title`
+correctly takes precedence over the localized fallback either way; this is
+a content gap for an editor to fill in Admin, not a code branch.
 
 ### Phase 4 — Vertical migrations and RU rollout
 

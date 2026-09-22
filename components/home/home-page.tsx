@@ -866,21 +866,14 @@ function EditShowcase({
   ctaLabel?: string;
   selectedProductIds?: string[];
 }) {
-  const { locale } = useTranslations();
+  const { locale, t } = useTranslations();
   const items = resolveHomeEditProducts(products, selectedProductIds);
-  const defaults = locale === "pt"
-      ? {
-        eyebrow: "Algumas peças para começar",
-        title: "A Seleção",
-        body: "Quatro peças, quatro lados da Synarava.",
-        ctaLabel: "Ver peça",
-      }
-    : {
-        eyebrow: "A few to start with",
-        title: "The Edit",
-        body: "Four pieces, four sides of Synarava.",
-        ctaLabel: "View piece",
-      };
+  const defaults = {
+    eyebrow: t("home.editShowcase.eyebrow"),
+    title: t("home.editShowcase.title"),
+    body: t("home.editShowcase.body"),
+    ctaLabel: t("home.editShowcase.ctaLabel"),
+  };
 
   if (items.length === 0) {
     return null;
@@ -952,7 +945,7 @@ function EditShowcase({
             href={localePath(locale, "/shop")}
             className="edit-showcase-all-link group inline-flex min-h-11 items-center gap-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#171513] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
           >
-            {locale === "pt" ? "Ver todos os produtos" : "View all products"}
+            {t("home.editShowcase.viewAllLabel")}
             <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
           </Link>
         </div>

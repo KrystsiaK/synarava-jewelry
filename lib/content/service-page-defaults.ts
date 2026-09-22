@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/i18n/locales";
 import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 
 // Verbatim extraction of the hardcoded copy that shipped on /care, /faq,
@@ -40,7 +41,7 @@ export const SERVICE_SECTIONS: Record<ServicePageSlug, LegalSectionMeta[]> = {
   ],
 };
 
-export const SERVICE_PAGE_TITLE_DEFAULTS_EN: Record<ServicePageSlug, string> = {
+const servicePageTitleDefaultsEn: Record<ServicePageSlug, string> = {
   care: "Keep it well",
   faq: "Before you choose",
   returns: "A considered return",
@@ -48,7 +49,7 @@ export const SERVICE_PAGE_TITLE_DEFAULTS_EN: Record<ServicePageSlug, string> = {
   "dispute-resolution": "Consumer dispute resolution",
 };
 
-export const SERVICE_PAGE_TITLE_DEFAULTS_PT: Record<ServicePageSlug, string> = {
+const servicePageTitleDefaultsPt: Record<ServicePageSlug, string> = {
   care: "Cuide bem",
   faq: "Antes de escolher",
   returns: "Uma devolução ponderada",
@@ -56,7 +57,7 @@ export const SERVICE_PAGE_TITLE_DEFAULTS_PT: Record<ServicePageSlug, string> = {
   "dispute-resolution": "Resolução de litígios de consumo",
 };
 
-export const SERVICE_PAGE_INTRO_DEFAULTS_EN: Record<ServicePageSlug, ServicePageIntroDefaults> = {
+const servicePageIntroDefaultsEn: Record<ServicePageSlug, ServicePageIntroDefaults> = {
   care: {
     eyebrow: "Service / Care & Safety",
     intro: "Care depends on material and intended use. Always follow the product-specific details first; the guidance below is a general starting point.",
@@ -79,7 +80,7 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_EN: Record<ServicePageSlug, ServicePage
   },
 };
 
-export const SERVICE_PAGE_INTRO_DEFAULTS_PT: Record<ServicePageSlug, ServicePageIntroDefaults> = {
+const servicePageIntroDefaultsPt: Record<ServicePageSlug, ServicePageIntroDefaults> = {
   care: {
     eyebrow: "Serviço / Cuidados e segurança",
     intro: "Os cuidados dependem do material e da utilização. Siga primeiro os detalhes específicos do produto; as orientações abaixo são um ponto de partida geral.",
@@ -102,7 +103,7 @@ export const SERVICE_PAGE_INTRO_DEFAULTS_PT: Record<ServicePageSlug, ServicePage
   },
 };
 
-export const SERVICE_SECTION_DEFAULTS_EN: Record<ServicePageSlug, Record<string, LegalSectionDefault>> = {
+const serviceSectionDefaultsEn: Record<ServicePageSlug, Record<string, LegalSectionDefault>> = {
   care: {
     jewelry: {
       title: "Jewelry",
@@ -187,7 +188,7 @@ export const SERVICE_SECTION_DEFAULTS_EN: Record<ServicePageSlug, Record<string,
   },
 };
 
-export const SERVICE_SECTION_DEFAULTS_PT: Record<ServicePageSlug, Record<string, LegalSectionDefault>> = {
+const serviceSectionDefaultsPt: Record<ServicePageSlug, Record<string, LegalSectionDefault>> = {
   care: {
     jewelry: {
       title: "Joalharia",
@@ -270,6 +271,24 @@ export const SERVICE_SECTION_DEFAULTS_PT: Record<ServicePageSlug, Record<string,
       body: "Também pode apresentar uma reclamação através do Livro de Reclamações Eletrónico oficial português.\nwww.livroreclamacoes.pt",
     },
   },
+};
+
+// Locale-keyed so page components look up `SERVICE_PAGE_TITLE_DEFAULTS[locale]`
+// etc. instead of a `locale === "pt"` branch — adding a language here is a
+// new key, not a new conditional.
+export const SERVICE_PAGE_TITLE_DEFAULTS: Record<Locale, Record<ServicePageSlug, string>> = {
+  en: servicePageTitleDefaultsEn,
+  pt: servicePageTitleDefaultsPt,
+};
+
+export const SERVICE_PAGE_INTRO_DEFAULTS: Record<Locale, Record<ServicePageSlug, ServicePageIntroDefaults>> = {
+  en: servicePageIntroDefaultsEn,
+  pt: servicePageIntroDefaultsPt,
+};
+
+export const SERVICE_SECTION_DEFAULTS: Record<Locale, Record<ServicePageSlug, Record<string, LegalSectionDefault>>> = {
+  en: serviceSectionDefaultsEn,
+  pt: serviceSectionDefaultsPt,
 };
 
 export const SHOP_HERO_DEFAULTS_EN = {

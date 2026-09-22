@@ -529,5 +529,34 @@
       "metaTitle": "Resolução de litígios de consumo",
       "metaDescription": "Meios de resolução alternativa e em linha de litígios disponíveis para clientes Synarava."
     }
+  },
+  "legal": {
+    "common": {
+      "lastUpdated": "Última atualização",
+      "contents": "Índice",
+      "backToStore": "← Voltar à loja"
+    },
+    "privacy": {
+      "metaTitle": "Política de Privacidade | Synarava",
+      "metaDescription": "Como a Synarava recolhe, utiliza e protege os seus dados pessoais.",
+      "title": "Política de Privacidade",
+      "nextLabel": "Termos e Condições →",
+      "postalAddressLabel": "Morada postal"
+    },
+    "offer": {
+      "metaTitle": "Condições gerais de venda | Synarava",
+      "metaDescription": "Condições gerais para a compra de produtos Synarava.",
+      "title": "Condições gerais de venda",
+      "nextLabel": "Política de privacidade →"
+    }
+  },
+  "home": {
+    "editShowcase": {
+      "eyebrow": "Algumas peças para começar",
+      "title": "A Seleção",
+      "body": "Quatro peças, quatro lados da Synarava.",
+      "ctaLabel": "Ver peça",
+      "viewAllLabel": "Ver todos os produtos"
+    }
   }
 }

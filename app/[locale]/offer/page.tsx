@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 
 import { LegalDocumentPage } from "@/components/legal/legal-document-page";
 import { getPageBySlug } from "@/lib/content/catalog";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
 import {
   OFFER_INTRO_DEFAULT,
@@ -14,12 +15,13 @@ import {
 } from "@/lib/content/offer-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getRequestLocale();
+  const { t, locale } = await getServerTranslations();
   const page = await getPageBySlug("offer", locale);
-  const title = page?.title || (locale === "pt" ? "Condições gerais de venda | Synarava" : "Public Offer Agreement | Synarava");
-  const description = page?.excerpt || (locale === "pt"
-    ? "Condições gerais para a compra de produtos Synarava."
-    : "Terms of the public offer for the purchase of Synarava Jewelry products.");
+  const { title, description } = localizedPageMetadataCopy({
+    page,
+    fallbackTitle: t("legal.offer.metaTitle"),
+    fallbackDescription: t("legal.offer.metaDescription"),
+  });
   return {
     title,
     description,
@@ -34,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function OfferPage() {
-  const locale = await getRequestLocale();
+  const { t, locale } = await getServerTranslations();
   const page = await getPageBySlug("offer", locale);
   const heroImage = page?.content.heroImage;
   const homeHref = localePath(locale, "/");
@@ -49,16 +51,16 @@ export default async function OfferPage() {
     <LegalDocumentPage
       heroImage={heroImage}
       eyebrowLabel="Legal"
-      title={page?.title || (locale === "pt" ? "Condições gerais de venda" : "Public Offer Agreement")}
+      title={page?.title || t("legal.offer.title")}
       intro={intro}
-      lastUpdatedLabel={locale === "pt" ? "Última atualização" : "Last updated"}
+      lastUpdatedLabel={t("legal.common.lastUpdated")}
       lastUpdated={lastUpdated}
-      contentsLabel={locale === "pt" ? "Índice" : "Contents"}
+      contentsLabel={t("legal.common.contents")}
       sections={sections}
       backHref={homeHref}
-      backLabel={locale === "pt" ? "← Voltar à loja" : "← Back to store"}
+      backLabel={t("legal.common.backToStore")}
       nextHref={privacyHref}
-      nextLabel={locale === "pt" ? "Política de privacidade →" : "Privacy Policy →"}
+      nextLabel={t("legal.offer.nextLabel")}
     />
   );
 }

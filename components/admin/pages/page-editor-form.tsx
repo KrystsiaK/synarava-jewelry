@@ -20,7 +20,7 @@ import type { EditablePageContent, EditablePageCopy } from "@/components/admin/p
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
-import { PRIVACY_SECTIONS_EN } from "@/lib/content/privacy-defaults";
+import { PRIVACY_SECTIONS } from "@/lib/content/privacy-defaults";
 import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
 import { SERVICE_SECTIONS, type ServicePageSlug } from "@/lib/content/service-page-defaults";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
@@ -229,7 +229,7 @@ export function PageEditor({
   // Collections" callout at the bottom of /shop — dead only for Service and
   // Collections pages.
   const hideShopCalloutFields = isServicePage || isCollectionsPage;
-  const legalSections = isOfferPage ? OFFER_SECTIONS : isTermsPage ? TERMS_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS_EN : isLegalNoticePage ? LEGAL_NOTICE_SECTIONS : [];
+  const legalSections = isOfferPage ? OFFER_SECTIONS : isTermsPage ? TERMS_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS.en : isLegalNoticePage ? LEGAL_NOTICE_SECTIONS : [];
   const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
   const { pushToast } = useAdminToast();
   const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];

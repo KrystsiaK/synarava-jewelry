@@ -9,12 +9,9 @@ import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
 import {
   SERVICE_SECTIONS,
-  SERVICE_SECTION_DEFAULTS_EN,
-  SERVICE_SECTION_DEFAULTS_PT,
-  SERVICE_PAGE_TITLE_DEFAULTS_EN,
-  SERVICE_PAGE_TITLE_DEFAULTS_PT,
-  SERVICE_PAGE_INTRO_DEFAULTS_EN,
-  SERVICE_PAGE_INTRO_DEFAULTS_PT,
+  SERVICE_SECTION_DEFAULTS,
+  SERVICE_PAGE_TITLE_DEFAULTS,
+  SERVICE_PAGE_INTRO_DEFAULTS,
 } from "@/lib/content/service-page-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,18 +39,17 @@ export default async function DisputeResolutionPage() {
   const { locale } = await getServerTranslations();
   const page = await getPageBySlug("dispute-resolution", locale);
   const content = page?.content;
-  const isPt = locale === "pt";
-  const introDefaults = (isPt ? SERVICE_PAGE_INTRO_DEFAULTS_PT : SERVICE_PAGE_INTRO_DEFAULTS_EN)["dispute-resolution"];
+  const introDefaults = SERVICE_PAGE_INTRO_DEFAULTS[locale]["dispute-resolution"];
 
   return (
     <ServicePage
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || (isPt ? SERVICE_PAGE_TITLE_DEFAULTS_PT : SERVICE_PAGE_TITLE_DEFAULTS_EN)["dispute-resolution"]}
+      title={page?.title || SERVICE_PAGE_TITLE_DEFAULTS[locale]["dispute-resolution"]}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
       sections={resolveLegalSections(
         SERVICE_SECTIONS["dispute-resolution"],
         content?.serviceSections,
-        (isPt ? SERVICE_SECTION_DEFAULTS_PT : SERVICE_SECTION_DEFAULTS_EN)["dispute-resolution"],
+        SERVICE_SECTION_DEFAULTS[locale]["dispute-resolution"],
       )}
       heroImage={content?.heroImage}
     />

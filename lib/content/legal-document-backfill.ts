@@ -1,5 +1,5 @@
 import type { LegalSectionDefault, LegalSectionMeta } from "@/lib/content/legal-sections";
-import { PRIVACY_SECTIONS_EN, PRIVACY_SECTIONS_PT, PRIVACY_SECTION_DEFAULTS_EN, PRIVACY_SECTION_DEFAULTS_PT, PRIVACY_LAST_UPDATED_DEFAULT } from "@/lib/content/privacy-defaults";
+import { PRIVACY_SECTIONS, PRIVACY_SECTION_DEFAULTS, PRIVACY_LAST_UPDATED_DEFAULT } from "@/lib/content/privacy-defaults";
 import { OFFER_SECTIONS, OFFER_SECTION_DEFAULTS, OFFER_INTRO_DEFAULT, OFFER_LAST_UPDATED_DEFAULT } from "@/lib/content/offer-defaults";
 import { TERMS_SECTIONS, TERMS_SECTION_DEFAULTS, TERMS_INTRO_DEFAULT, TERMS_LAST_UPDATED_DEFAULT } from "@/lib/content/terms-defaults";
 import { LEGAL_NOTICE_SECTIONS, LEGAL_NOTICE_SECTION_DEFAULTS, LEGAL_NOTICE_INTRO_DEFAULT, LEGAL_NOTICE_LAST_UPDATED_DEFAULT } from "@/lib/content/legal-notice-defaults";
@@ -37,8 +37,8 @@ export type LegalDocumentConfig = {
 export const LEGAL_DOCUMENT_CONFIGS: LegalDocumentConfig[] = [
   {
     slug: "privacy",
-    en: { sections: PRIVACY_SECTIONS_EN, sectionDefaults: PRIVACY_SECTION_DEFAULTS_EN, lastUpdatedDefault: PRIVACY_LAST_UPDATED_DEFAULT },
-    pt: { sections: PRIVACY_SECTIONS_PT, sectionDefaults: PRIVACY_SECTION_DEFAULTS_PT },
+    en: { sections: PRIVACY_SECTIONS.en, sectionDefaults: PRIVACY_SECTION_DEFAULTS.en, lastUpdatedDefault: PRIVACY_LAST_UPDATED_DEFAULT },
+    pt: { sections: PRIVACY_SECTIONS.pt, sectionDefaults: PRIVACY_SECTION_DEFAULTS.pt },
   },
   {
     slug: "offer",

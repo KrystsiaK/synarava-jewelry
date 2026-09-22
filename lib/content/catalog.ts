@@ -902,7 +902,7 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
     locale,
     source: { title: page.title, excerpt: page.excerpt, content: content as Record<string, unknown> },
     translation: normalizedTranslation,
-    legacyTranslation: locale === "pt" ? content.translations?.pt as Record<string, unknown> | undefined : undefined,
+    legacyTranslation: (content.translations as Record<string, Record<string, unknown>> | undefined)?.[locale],
   });
 
   return {
