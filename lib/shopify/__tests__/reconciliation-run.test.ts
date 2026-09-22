@@ -120,7 +120,7 @@ describe("runTranslationReconciliation", () => {
     expect(checkedLocales).toEqual(["en", "pt-PT", "ru"]);
   });
 
-  it("retires stale unresolved rows for the exact (binding, locale) it just rechecked, keeping only the field still found different", async () => {
+  it("unconditionally retires every unresolved row for the exact (binding, locale) it just rechecked before inserting fresh ones — including a field still found different, so resolving the new row can never uncover a stale duplicate", async () => {
     // Both the interactive-transaction form (createOrReuseRun's advisory lock)
     // and the array-of-promises form (persistDifferences' inserts) go through
     // the same $transaction mock here.
@@ -159,17 +159,27 @@ describe("runTranslationReconciliation", () => {
     await runTranslationReconciliation({ trigger: "MANUAL", scope: { locale: "en" } });
 
     const retireCall = mocks.executeRaw.mock.calls.find(
-      ([query]) => (query as { sql: string }).sql.includes("NOT IN"),
+      ([query]) => (query as { sql: string }).sql.includes('UPDATE "ShopifyFieldDivergence"'),
     );
     expect(retireCall).toBeTruthy();
     const [query] = retireCall!;
+    // No field-key exclusion: every previously unresolved row for this
+    // (binding, locale) is retired, even the field the fresh check still
+    // reports as different — a new row for it is inserted right after.
+    expect((query as { sql: string }).sql).not.toContain("NOT IN");
     expect((query as { sql: string }).sql).toContain('"bindingId" = ?');
     expect((query as { sql: string }).sql).toContain('"resolvedAt" IS NULL');
-    expect((query as { values: unknown[] }).values).toEqual(["binding-1", "en", "title"]);
+    expect((query as { values: unknown[] }).values).toEqual(["binding-1", "en"]);
 
     const insertCall = mocks.executeRaw.mock.calls.find(
       ([query]) => (query as { sql: string }).sql.includes("INSERT INTO \"ShopifyFieldDivergence\""),
     );
     expect(insertCall).toBeTruthy();
+
+    // Retire must run before the insert, or the fresh row it's about to
+    // write could be immediately resolved by the same sweep.
+    const retireIndex = mocks.executeRaw.mock.calls.indexOf(retireCall!);
+    const insertIndex = mocks.executeRaw.mock.calls.indexOf(insertCall!);
+    expect(retireIndex).toBeLessThan(insertIndex);
   });
 });

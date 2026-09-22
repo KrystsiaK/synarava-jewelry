@@ -262,26 +262,21 @@ function json(value: unknown) {
 }
 
 /**
- * Retires unresolved rows for this exact (binding, locale) pair that this
- * check no longer found a difference for — a scoped recheck must not leave
- * a now-fixed field claiming to still conflict forever, but it also must
- * only touch the (binding, locale) it actually just checked, not every row
- * in the table.
+ * Retires every unresolved row for this exact (binding, locale) pair —
+ * this check's `differences` is the complete, authoritative current state
+ * for that pair, about to be inserted fresh below. This must happen even
+ * for a field that's still differing: leaving its old row unresolved and
+ * merely adding a second, newer row for the same field means resolving
+ * that newer row (via the apply flow) uncovers the stale old one, which
+ * then reappears in `getLatestReconcileDifferences()` as if it were
+ * current. Only the (binding, locale) actually rechecked is touched, not
+ * every row in the table.
  */
-async function retireStaleDifferences(bindingId: string, locale: string, keepFieldKeys: string[]) {
-  if (keepFieldKeys.length === 0) {
-    await db.$executeRaw(Prisma.sql`
-      UPDATE "ShopifyFieldDivergence"
-      SET "resolvedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "bindingId" = ${bindingId} AND "locale" = ${locale} AND "resolvedAt" IS NULL
-    `);
-    return;
-  }
+async function retireStaleDifferences(bindingId: string, locale: string) {
   await db.$executeRaw(Prisma.sql`
     UPDATE "ShopifyFieldDivergence"
     SET "resolvedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
     WHERE "bindingId" = ${bindingId} AND "locale" = ${locale} AND "resolvedAt" IS NULL
-      AND "fieldKey" NOT IN (${Prisma.join(keepFieldKeys)})
   `);
 }
 
@@ -298,7 +293,7 @@ async function persistDifferences({
   locale: string;
   differences: ReturnType<typeof planReconcile>["differences"];
 }) {
-  await retireStaleDifferences(bindingId, locale, differences.map((difference) => difference.fieldKey));
+  await retireStaleDifferences(bindingId, locale);
   if (differences.length === 0) return;
 
   await db.$transaction(

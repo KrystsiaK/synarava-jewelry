@@ -4,7 +4,6 @@ const mocks = vi.hoisted(() => ({
   inspectProductSyncState: vi.fn(),
   getLatestReconcileDifferences: vi.fn(),
   getPublishedStorefrontLocales: vi.fn(),
-  findTranslationBinding: vi.fn(),
   findManyProduct: vi.fn(),
 }));
 
@@ -16,9 +15,6 @@ vi.mock("@/lib/shopify/product-sync", () => ({
 }));
 vi.mock("@/lib/shopify/reconciliation-run", () => ({
   getLatestReconcileDifferences: mocks.getLatestReconcileDifferences,
-}));
-vi.mock("@/lib/shopify/translation-sync", () => ({
-  findTranslationBinding: mocks.findTranslationBinding,
 }));
 vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getPublishedStorefrontLocales: mocks.getPublishedStorefrontLocales,
@@ -52,7 +48,6 @@ beforeEach(() => {
   mocks.getPublishedStorefrontLocales.mockResolvedValue(LOCALES);
   mocks.getLatestReconcileDifferences.mockResolvedValue([]);
   mocks.findManyProduct.mockResolvedValue([]);
-  mocks.findTranslationBinding.mockResolvedValue(null);
 });
 
 describe("getProductCatalogConflict", () => {
@@ -85,27 +80,44 @@ describe("getProductCatalogConflict", () => {
     expect(result.fields).toEqual([]);
   });
 
-  it("excludes commerce EN-duplicate labels once a translation binding exists for the product", async () => {
+  it("excludes a commerce EN-duplicate label only when translation reconcile actually reports that exact field as conflicting under en", async () => {
     mocks.inspectProductSyncState.mockResolvedValue(
       inspection({ state: "CONFLICT", differences: [{ field: "Name", local: "A", shopify: "B" }] }),
     );
-    mocks.findTranslationBinding.mockResolvedValue({ id: "binding-1" });
+    mocks.getLatestReconcileDifferences.mockResolvedValue([translationDiff({ locale: "en", fieldKey: "title" })]);
 
     const result = await getProductCatalogConflict("product-1");
 
-    expect(result.fields).toEqual([]);
+    // Only the translation-origin field remains — the commerce duplicate is dropped, not lost.
+    expect(result.fields).toHaveLength(1);
+    expect(result.fields[0]).toMatchObject({ origin: "TRANSLATION", scope: { code: "en" } });
   });
 
-  it("keeps the commerce EN-duplicate label as a fallback when the product has no translation binding yet", async () => {
+  it("keeps the commerce EN-duplicate label whenever translation reconcile has not reported that exact field for en — never inferred merely from a binding existing", async () => {
     mocks.inspectProductSyncState.mockResolvedValue(
       inspection({ state: "CONFLICT", differences: [{ field: "Name", local: "A", shopify: "B" }] }),
     );
-    mocks.findTranslationBinding.mockResolvedValue(null);
+    // No translation differences at all — e.g. the binding exists but this
+    // product hasn't been (re)checked yet, or a run has simply never
+    // reported "title" as conflicting under en.
+    mocks.getLatestReconcileDifferences.mockResolvedValue([]);
 
     const result = await getProductCatalogConflict("product-1");
 
     expect(result.fields).toHaveLength(1);
     expect(result.fields[0]).toMatchObject({ origin: "COMMERCE", label: "Name" });
+  });
+
+  it("keeps the commerce EN-duplicate label when translation reconcile only conflicts on a different field (e.g. PT title)", async () => {
+    mocks.inspectProductSyncState.mockResolvedValue(
+      inspection({ state: "CONFLICT", differences: [{ field: "Name", local: "A", shopify: "B" }] }),
+    );
+    mocks.getLatestReconcileDifferences.mockResolvedValue([translationDiff({ locale: "pt-PT", fieldKey: "title" })]);
+
+    const result = await getProductCatalogConflict("product-1");
+
+    expect(result.fields).toHaveLength(2);
+    expect(result.fields.some((field) => field.origin === "COMMERCE" && field.label === "Name")).toBe(true);
   });
 
   it("resolves a PT translation conflict to its registry locale name", async () => {

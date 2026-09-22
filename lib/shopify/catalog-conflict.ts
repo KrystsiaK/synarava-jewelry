@@ -3,28 +3,28 @@ import "server-only";
 import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
-import { findTranslationBinding } from "./translation-sync";
 
 import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
 import { inspectProductSyncState, type ProductSyncDifference } from "./product-sync";
 
 // Commerce inspection compares Name/Handle/Description/SEO title/SEO
-// description as flat product attributes, but those same fields are also
-// localized content owned by translation reconciliation's "en" locale once
-// this product has a translation binding (PRODUCT_FIELD_REGISTRY marks them
-// `mode: "localized"`). Surfacing both would show the same underlying drift
-// twice under different UI shapes, so the commerce side is dropped in favor
-// of the locale-scoped version — but only when a binding actually exists;
-// otherwise translation reconcile will never cover this product's EN
-// content and dropping the commerce version would silently lose the
+// description as flat product attributes read straight off the local
+// Product row (see productSourceCopy in reconciliation-source.ts — the
+// same Product columns feed translation reconcile's "en" locale). So a
+// commerce difference for one of these labels and a translation-reconcile
+// CONFLICT for the matching field key under locale "en" are two views of
+// the exact same drift. Only drop the commerce version when reconcile has
+// actually reported that exact field as conflicting for this product —
+// never merely because a translation binding exists — otherwise a product
+// whose binding exists but hasn't been (re)checked yet would lose the
 // conflict entirely (see catalog-conflict-resolution-plan.md open note).
-const COMMERCE_LOCALE_DUPLICATE_LABELS = new Set([
-  "Name",
-  "Handle",
-  "Description",
-  "SEO title",
-  "SEO description",
-]);
+const COMMERCE_TRANSLATION_FIELD_KEY: Record<string, string> = {
+  Name: "title",
+  Handle: "localizedHandle",
+  Description: "description",
+  "SEO title": "seoTitle",
+  "SEO description": "seoDescription",
+};
 
 export type CatalogConflictDirection = "SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY";
 
@@ -129,25 +129,30 @@ function translationField(difference: ReconcileDifferenceView, locales: Storefro
  * translation conflicts.
  */
 export async function getProductCatalogConflict(productId: string): Promise<ProductCatalogConflict> {
-  const [inspection, differences, translationBinding, locales] = await Promise.all([
+  const [inspection, differences, locales] = await Promise.all([
     inspectProductSyncState(productId),
     getLatestReconcileDifferences(),
-    findTranslationBinding("PRODUCT", productId),
     getPublishedStorefrontLocales(),
   ]);
+
+  const productDifferences = differences.filter((difference) =>
+    difference.rootEntityType === "PRODUCT" && difference.rootEntityId === productId && difference.kind === "CONFLICT",
+  );
+  const enConflictFieldKeys = new Set(
+    productDifferences.filter((difference) => difference.locale === "en").map((difference) => difference.fieldKey),
+  );
 
   const fields: CatalogConflictField[] = [];
 
   if (inspection.state === "CONFLICT") {
     for (const difference of inspection.differences) {
-      if (translationBinding && COMMERCE_LOCALE_DUPLICATE_LABELS.has(difference.field)) continue;
+      const translationFieldKey = COMMERCE_TRANSLATION_FIELD_KEY[difference.field];
+      if (translationFieldKey && enConflictFieldKeys.has(translationFieldKey)) continue;
       fields.push(commerceField(difference));
     }
   }
 
-  for (const difference of differences) {
-    if (difference.rootEntityType !== "PRODUCT" || difference.rootEntityId !== productId) continue;
-    if (difference.kind !== "CONFLICT") continue;
+  for (const difference of productDifferences) {
     fields.push(translationField(difference, locales));
   }
 
