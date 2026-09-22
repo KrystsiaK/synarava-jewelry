@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
@@ -41,10 +43,12 @@ export type CatalogConflictField = {
   synaravaValue: string;
   shopifyValue: string;
   baseValue: string | null;
-  localFingerprint: string | null;
-  shopifyFingerprint: string | null;
+  localFingerprint: string;
+  shopifyFingerprint: string;
   allowedDirections: CatalogConflictDirection[];
   blockedReason: string | null;
+  /** The underlying ShopifyFieldDivergence row id for a TRANSLATION field (what applyReconcileChoice needs); null for COMMERCE, which applies as a whole-product write instead of one row per field. */
+  sourceId: string | null;
 };
 
 export type ProductCatalogConflict = {
@@ -63,6 +67,11 @@ function commerceTargetKind(label: string): "NATIVE" | "METAFIELD" {
   return label.startsWith("Characteristic:") || label.startsWith("Certificate:") ? "METAFIELD" : "NATIVE";
 }
 
+/** Change-detection fingerprint for a commerce value — `inspectProductSyncState`'s `compare()` already trims and normalizes it to a plain string ("—" for empty), so no further normalization is needed before hashing. */
+function commerceFingerprint(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
 function commerceField(difference: ProductSyncDifference): CatalogConflictField {
   return {
     fieldKey: `commerce:${slugFieldKey(difference.field)}`,
@@ -73,10 +82,11 @@ function commerceField(difference: ProductSyncDifference): CatalogConflictField 
     synaravaValue: difference.local,
     shopifyValue: difference.shopify,
     baseValue: null,
-    localFingerprint: null,
-    shopifyFingerprint: null,
+    localFingerprint: commerceFingerprint(difference.local),
+    shopifyFingerprint: commerceFingerprint(difference.shopify),
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     blockedReason: null,
+    sourceId: null,
   };
 }
 
@@ -109,6 +119,7 @@ function translationField(difference: ReconcileDifferenceView, locales: Storefro
     shopifyFingerprint: difference.shopifyFingerprint,
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     blockedReason: null,
+    sourceId: difference.id,
   };
 }
 

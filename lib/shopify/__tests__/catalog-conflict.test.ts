@@ -70,6 +70,36 @@ describe("getProductCatalogConflict", () => {
     expect(result.fields[0]).toMatchObject({ scope: { kind: "SHARED" }, origin: "COMMERCE", label: "Vendor" });
   });
 
+  it("gives a commerce field real, stable sha256 fingerprints and no sourceId (whole-product apply, not one row per field)", async () => {
+    mocks.inspectProductSyncState.mockResolvedValue(
+      inspection({ state: "CONFLICT", differences: [{ field: "Vendor", local: "Synarava", shopify: "Other" }] }),
+    );
+
+    const result = await getProductCatalogConflict("product-1");
+
+    const field = result.fields[0];
+    expect(field.localFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(field.shopifyFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(field.localFingerprint).not.toEqual(field.shopifyFingerprint);
+    expect(field.sourceId).toBeNull();
+
+    // Same value on both sides -> same fingerprint, deterministic hash.
+    mocks.inspectProductSyncState.mockResolvedValue(
+      inspection({ state: "CONFLICT", differences: [{ field: "Vendor", local: "Same", shopify: "Same" }] }),
+    );
+    const same = await getProductCatalogConflict("product-1");
+    expect(same.fields[0].localFingerprint).toEqual(same.fields[0].shopifyFingerprint);
+  });
+
+  it("carries the underlying divergence row id as sourceId on a translation field", async () => {
+    mocks.inspectProductSyncState.mockResolvedValue(inspection());
+    mocks.getLatestReconcileDifferences.mockResolvedValue([translationDiff({ id: "divergence-42" })]);
+
+    const result = await getProductCatalogConflict("product-1");
+
+    expect(result.fields[0].sourceId).toBe("divergence-42");
+  });
+
   it("drops one-directional commerce state without surfacing a conflict field", async () => {
     mocks.inspectProductSyncState.mockResolvedValue(
       inspection({ state: "REMOTE_CHANGES", differences: [{ field: "Vendor", local: "Synarava", shopify: "Other" }] }),

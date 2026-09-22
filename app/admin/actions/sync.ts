@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
+import {
+  applyCatalogConflictResolution,
+  previewCatalogConflictResolution,
+  type CatalogConflictApplyEntryInput,
+  type CatalogConflictApplyScope,
+} from "@/lib/shopify/catalog-conflict-apply";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import {
   fetchShopifyShopIdentity,
@@ -163,6 +169,42 @@ export async function inspectProductSyncAction(productId: string) {
     return { inspection: await inspectProductSyncState(productId) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not inspect Shopify changes." };
+  }
+}
+
+/** Resolves a bulk direction, a single product's direction, or a hand-picked manual field list into the concrete fields it would touch — nothing is written. See docs/admin/catalog-conflict-resolution-ux.md dialogs 1-3. */
+export async function previewCatalogConflictResolutionAction(scope: CatalogConflictApplyScope) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    return { preview: await previewCatalogConflictResolution(scope) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not preview the conflict resolution." };
+  }
+}
+
+/** Applies the entries a caller reviewed via previewCatalogConflictResolutionAction. Every entry is re-validated against the current conflict state before anything is written — a stale, already-resolved, or unacknowledged-clear entry is reported per-field rather than blocking the rest of the batch. */
+export async function applyCatalogConflictResolutionAction(input: {
+  entries: CatalogConflictApplyEntryInput[];
+  acknowledgeClears: boolean;
+}) {
+  const session = await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    const outcome = await applyCatalogConflictResolution({ ...input, actorUsername: session.username });
+    revalidateStorefront();
+    revalidatePath("/admin/products");
+    return {
+      outcome,
+      success: outcome.appliedCount > 0
+        ? `${outcome.appliedCount} change${outcome.appliedCount === 1 ? "" : "s"} applied${outcome.failedCount > 0 ? `; ${outcome.failedCount} could not be applied` : ""}.`
+        : undefined,
+      error: outcome.appliedCount === 0
+        ? "None of the selected changes could be applied. Review the results below."
+        : undefined,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not apply the conflict resolution." };
   }
 }
 
