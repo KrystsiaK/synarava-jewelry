@@ -25,15 +25,24 @@
 
 ## Этапы и задачи
 
-### 1. Единый read model конфликта товара
+### 1. Единый read model конфликта товара — ✅ реализовано (2026-09-22)
 
-**Результат:** агрегатор связывает commerce inspection и переводные divergences по product ID. Структура содержит field key, label, locale либо `SHARED`, target, обе версии, base при наличии, fingerprints, допустимые направления и причину блокировки.
+**Результат:** `lib/shopify/catalog-conflict.ts` — `getProductCatalogConflict(productId)` связывает commerce inspection (`inspectProductSyncState`) и переводные divergences (`getLatestReconcileDifferences`) по product ID. Каждое поле — `CatalogConflictField`: `fieldKey`, `label`, `scope` (`{kind:"SHARED"}` либо `{kind:"LOCALE", code, name, nativeName}`), `origin`, `targetKind`, обе версии значения, `baseValue`, fingerprints, `allowedDirections`, `blockedReason`. `listConflictedProductIds()` — дешёвый catalog-wide список для сигналов (без live Shopify fetch на товар).
 
-**Критерии:** конфликт одного языка не помечает остальные; shared commerce не получает язык; несколько локалей одного товара отображаются отдельно; языки берутся из реестра без фиксированного списка; отсутствие ещё не созданного перевода не выдается за конфликт; stale/failed check не превращается в «0 конфликтов».
+**Принятые решения (соответствуют разделу «Решения, требующие проверки», п.1):**
+- Commerce-инспекция включается в конфликт только при `state === "CONFLICT"` (двустороннее расхождение); `REMOTE_CHANGES`/`LOCAL_CHANGES` остаются односторонним сценарием и не попадают в поля конфликта.
+- Метки `Name`/`Handle`/`Description`/`SEO title`/`SEO description` из commerce-инспекции **исключены** — тот же контент уже приходит из translation-reconcile под локалью `en` (в `PRODUCT_FIELD_REGISTRY` это `mode: "localized"` поля), иначе одно и то же расхождение показывалось бы дважды в разной форме.
+- Перевод считается конфликтом только при `kind === "CONFLICT"`; `LOCAL_ONLY`/`SHOPIFY_ONLY` остаются вне этого read model (свои сценарии импорта/push).
+- `allowedDirections` пока всегда содержит оба направления, `blockedReason` всегда `null` — реальная проверка «можно ли безопасно записать поле» относится к этапу 2 (scoped apply contract); типы уже держат место под неё.
+- `listConflictedProductIds()` берёт commerce-часть из персистентного `Product.syncStatus === "CONFLICT"` (его выставляют вебхуки), а не через live-инспекцию каждого товара — иначе список каталога делал бы N обращений к Shopify на каждую загрузку страницы.
 
-**Проверка:** table-driven tests для shared/EN/PT/RU, четвёртой зарегистрированной локали, мультиязычного товара, отсутствующего перевода/binding и устаревшего run. Сверка ответа агрегатора с реальным `ProductSyncInspection` и `ReconcileDifferenceView`.
+**Критерии:** ✅ конфликт одного языка не помечает остальные; shared commerce не получает язык; несколько локалей одного товара отображаются отдельно; языки берутся из реестра без фиксированного списка (проверено на 4-й локали DE); отсутствие ещё не созданного перевода не выдается за конфликт; stale/failed check не превращается в «0 конфликтов» (`translationChecked: false`, поля не заполняются).
 
-**Зависимости:** нет. **Вероятные места:** `lib/shopify/product-sync.ts`, `lib/shopify/reconciliation-run.ts`, новый каталоговый query/service, focused tests.
+**Проверка:** `lib/shopify/__tests__/catalog-conflict.test.ts` — 15 table-driven тестов (shared/EN/PT/RU/DE, мультиязычный товар, чужой productId, LOCAL_ONLY/SHOPIFY_ONLY, stale/failed/missing run, union списка конфликтов). `npx tsc --noEmit` чист.
+
+**Зависимости:** нет. **Места:** `lib/shopify/catalog-conflict.ts` (новый), `lib/shopify/__tests__/catalog-conflict.test.ts` (новый).
+
+**Дальше:** этап 2 (scoped preview/apply contract) — единственный потребитель этого read model пока не подключён; UI (этапы 3–5) и запись (этап 2) ещё предстоит связать с `getProductCatalogConflict`/`listConflictedProductIds`.
 
 ### 2. Контракт preview/apply и защита записи
 
