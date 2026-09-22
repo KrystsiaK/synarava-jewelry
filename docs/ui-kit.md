@@ -59,7 +59,8 @@ These primitives should be used across all screens:
 - `ArtifactPanel`
   - glass or framed information card
 - `ArtifactButton`
-  - primary/secondary CTA with hard-edged silhouette
+  - shared primary/secondary CTA styling for buttons and links; the red primary variant always has white text
+  - `PrimaryCtaButton` uses the same primary styling for magnetic editorial links and form actions
 - `MediaFrame`
   - image wrapper with optional mirrored crop, overlay, caption
 - `DividerOrnament`

@@ -12,7 +12,12 @@ describe("ArtifactButton", () => {
     render(<ArtifactButton>Explore</ArtifactButton>);
     const btn = screen.getByRole("button");
     expect(btn).toHaveClass("bg-[#7f1424]");
-    expect(btn).toHaveClass("text-[#fff2f3]");
+    expect(btn).toHaveClass("!text-white");
+  });
+
+  it("keeps white text when a primary button receives a local text class", () => {
+    render(<ArtifactButton className="text-black">Explore</ArtifactButton>);
+    expect(screen.getByRole("button")).toHaveClass("!text-white");
   });
 
   it("applies secondary variant classes", () => {
@@ -74,6 +79,7 @@ describe("ArtifactLink", () => {
   it("applies primary variant by default", () => {
     render(<ArtifactLink href="/shop">Shop</ArtifactLink>);
     expect(screen.getByRole("link")).toHaveClass("bg-[#7f1424]");
+    expect(screen.getByRole("link")).toHaveClass("!text-white");
   });
 
   it("applies secondary variant", () => {

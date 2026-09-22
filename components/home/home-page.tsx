@@ -20,7 +20,7 @@ import { ease } from "@/lib/animation";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { PrimaryCtaButton } from "@/components/ui";
+import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
@@ -1305,13 +1305,13 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
             <h2 className="mt-5 max-w-[10ch] text-balance font-serif text-[clamp(3rem,14vw,4.5rem)] font-bold leading-[0.88] tracking-[-0.04em] text-linen">
               {title}
             </h2>
-            <Link
+            <ArtifactLink
               href={ctaHref!}
-              className="mt-8 inline-flex min-h-14 items-center gap-4 bg-couture-red px-6 py-3 font-sans text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white"
+              showArrow
+              className="mt-8 gap-4 px-6 text-[0.66rem] tracking-[0.18em]"
             >
               {ctaLabel}
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
+            </ArtifactLink>
           </div>
 
           {images.length > 0 ? (
@@ -1494,13 +1494,12 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
           </h2>
 
           <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
-            <Link
+            <PrimaryCtaButton
               href={ctaHref!}
-              className="group relative inline-flex min-h-16 items-center gap-8 bg-couture-red px-8 py-4 font-sans text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white transition-[filter,transform] duration-200 ease-out hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-linen active:scale-[0.98] [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
+              className="min-h-16 gap-8 text-[0.7rem] tracking-[0.2em] hover:brightness-110 focus-visible:outline-linen [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
             >
               {ctaLabel}
-              <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
+            </PrimaryCtaButton>
             <Link
               href={localePath(locale, "/about")}
               className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
