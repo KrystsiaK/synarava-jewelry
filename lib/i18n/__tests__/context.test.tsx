@@ -5,6 +5,11 @@ import { TranslationProvider, useTranslations } from "../context";
 
 const mockUsePathname = usePathname as ReturnType<typeof vi.fn>;
 
+beforeEach(() => {
+  mockUsePathname.mockReturnValue("/");
+  window.history.replaceState({}, "", "/");
+});
+
 function CartLabel() {
   const { t, locale } = useTranslations();
   return <p>{locale}:{t("nav.cart")}</p>;
@@ -13,6 +18,11 @@ function CartLabel() {
 function SwitchButton() {
   const { setLocale } = useTranslations();
   return <button type="button" onClick={() => setLocale("pt")}>Switch</button>;
+}
+
+function SwitchToRussianButton() {
+  const { setLocale } = useTranslations();
+  return <button type="button" onClick={() => setLocale("ru")}>Switch to Russian</button>;
 }
 
 describe("TranslationProvider (REV-20)", () => {
@@ -34,6 +44,13 @@ describe("TranslationProvider (REV-20)", () => {
     );
 
     expect(screen.getByText("en:Cart")).toBeInTheDocument();
+  });
+
+  it("renders the Russian dictionary on the first render", () => {
+    mockUsePathname.mockReturnValue("/ru");
+    render(<TranslationProvider initialLocale="ru"><CartLabel /></TranslationProvider>);
+
+    expect(screen.getByText("ru:Корзина")).toBeInTheDocument();
   });
 
   it("layers admin-editable overrides on top of the static dictionary", () => {
@@ -99,5 +116,23 @@ describe("TranslationProvider (REV-20)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Switch" }));
 
     expect(useRouter().push).toHaveBeenCalledWith("/pt/shop?collection=rings#featured");
+  });
+
+  it("replaces a Russian route prefix when switching to Portuguese", () => {
+    mockUsePathname.mockReturnValue("/ru/shop");
+    render(<TranslationProvider initialLocale="ru"><SwitchButton /></TranslationProvider>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch" }));
+
+    expect(useRouter().push).toHaveBeenCalledWith("/pt/shop");
+  });
+
+  it("switches from English to Russian without duplicating the route prefix", () => {
+    mockUsePathname.mockReturnValue("/en/shop");
+    render(<TranslationProvider initialLocale="en"><SwitchToRussianButton /></TranslationProvider>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Russian" }));
+
+    expect(useRouter().push).toHaveBeenCalledWith("/ru/shop");
   });
 });

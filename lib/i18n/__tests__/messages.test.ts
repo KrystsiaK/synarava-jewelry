@@ -1,5 +1,6 @@
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
+import ru from "@/messages/ru.json";
 import { flattenMessages } from "@/lib/i18n/utils";
 
 describe("storefront message dictionaries", () => {
@@ -13,5 +14,12 @@ describe("storefront message dictionaries", () => {
   it("does not leave blank translated values", () => {
     const values = Object.values(flattenMessages(pt as Record<string, unknown>));
     expect(values.every((value) => value.trim().length > 0)).toBe(true);
+  });
+
+  it("keeps Russian translations nonblank", () => {
+    const russian = flattenMessages(ru as Record<string, unknown>);
+
+    expect(Object.keys(russian).length).toBeGreaterThan(0);
+    expect(Object.values(russian).every((value) => value.trim().length > 0)).toBe(true);
   });
 });
