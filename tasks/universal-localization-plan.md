@@ -381,17 +381,71 @@ Task U1 — not a code change to any of these three editors.
 
 #### Task U5: Generalize Shopify locale adapters and reconciliation
 
-**Acceptance criteria:**
+**Status: done (2026-09-22).**
 
-- [ ] All adapters receive a registry locale rather than importing a
-  Portuguese constant.
-- [ ] Push, pull, snapshot, retry and conflict resolution work independently
-  for every published target locale.
-- [ ] Locale health reports the exact missing Shopify scope/publication for
-  the affected language.
+- [x] All adapters receive a registry locale rather than importing a
+  Portuguese constant. `SHOPIFY_PORTUGUESE_ADMIN_LOCALE` deleted outright
+  (zero remaining consumers). `registerProductTranslation`/
+  `fetchProductTranslation`/`fetchProductTranslationIndex`
+  (`lib/shopify/translations.ts`), the equivalent Page/Collection/editorial
+  metaobject functions, and `editorial-translation-sync.ts`'s sync targets
+  all now take an explicit `locale` param instead of a hardcoded one.
+  `reconciliation-source.ts`'s `contentLocaleForShopify` replaced a
+  string-prefix heuristic with a real registry lookup
+  (`getPublishedStorefrontLocales().find(l => l.shopifyLocale === locale)`),
+  throwing for any locale the registry doesn't know about instead of
+  silently guessing.
+- [x] Push, pull, snapshot, retry and conflict resolution work independently
+  for every published target locale. `product-sync.ts`'s pull/push/preview
+  paths, `translation-sync.ts`'s snapshot writer, and
+  `reconciliation-run.ts`'s sweep all loop
+  `getPublishedStorefrontLocales().filter(l => !l.isDefault)` instead of a
+  fixed EN/PT pair. `ShopifyTranslationBinding.lastSyncedSnapshot` (a single
+  JSON column that can only hold one locale) is a rollout-era shim that
+  structurally cannot generalize to N locales — left unwritten going
+  forward (still read as a graceful legacy fallback) rather than force-fit.
+  **Real bug caught only during the rewrite, not by any test beforehand:**
+  `reconciliation-run.ts`'s main loop fetched
+  `fetchResourceTranslationState` once per binding using a hardcoded PT
+  locale and reused that single fetch for every locale being checked —
+  meaning a non-PT locale's reconcile check was silently comparing against
+  Portuguese's remote state. Fixed by moving the fetch inside the per-locale
+  loop so each locale gets its own independent Shopify read.
+  **Pre-existing regression from Task U4, found and fixed while working in
+  this area:** `EntityLocaleSyncControl`'s client-side
+  `locale === "EN" ? "en" : "pt-PT"` mapping had been broken since Task U4
+  switched the admin editors to lowercase registry codes — every "Check"
+  click, regardless of which locale tab was open, queried Shopify using
+  `pt-PT`. Fixed by dropping the client-side mapping entirely; the API
+  route now resolves the registry code to a Shopify locale server-side via
+  a new `resolveShopifyLocale()` helper.
+- [x] Locale health reports the exact missing Shopify scope/publication for
+  the affected language. `testShopifyAdminConnection`'s `portuguesePublished:
+  boolean` field replaced with `unpublishedLocales: { code, name,
+  shopifyLocale }[]`, computed by diffing every registered non-default
+  locale against Shopify's actually-published `shopLocales`. The two
+  duplicated hardcoded-PT admin-notice strings in `app/admin/actions/sync.ts`
+  collapsed into one `translationLocaleNotice()` helper driven by that list.
+- [x] `StorefrontCopy` deliberately left out of scope — its DB shape is a
+  fixed `{en, pt}` pair (not a per-locale row table like Product/Collection/
+  Page), so generalizing its Shopify sync now would mean redesigning its
+  schema, which is Task U9's job, not U5's. `syncStorefrontCopyTranslation`
+  and its one `STOREFRONT_COPY_PT_LOCALE` constant were kept exactly as
+  they were, with a comment pointing at U9.
 
-**Verification:** mocked GraphQL tests for `pt-PT` and `ru`, plus a
-reconciliation dry-run containing two non-default locales.
+**Verification:** mocked-GraphQL tests added for a second locale (Russian)
+alongside every existing Portuguese case — `translations.test.ts` (register
++ fetch round-trip), `reconciliation-run.test.ts` (a reconcile sweep
+asserting one binding is checked independently against `["en", "pt-PT",
+"ru"]`, not a hardcoded pair), `admin.test.ts` (the new `unpublishedLocales`
+shape). Full suite green: tsc, eslint, 934 tests. Live-verified against the
+real connected Shopify store: opened a genuinely Shopify-linked product
+("AXIS Turquoise Necklace"), switched to its RU tab (confirmed the initial
+GET-driven sync-status check already resolved correctly for a non-PT
+locale), then clicked "Check" to trigger a live POST reconcile request for
+RU specifically — completed with no error and stayed "In sync," which
+exercises `resolveShopifyLocale()` and `runTranslationReconciliation()`
+end to end for a locale that was hardcoded-PT before this task.
 
 #### Task U6: Move fixed storefront copy and service/legal pages into the locale contract
 

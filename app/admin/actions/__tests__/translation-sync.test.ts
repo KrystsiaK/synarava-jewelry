@@ -18,6 +18,12 @@ vi.mock("@/lib/shopify/editorial-translation-sync", () => ({
 vi.mock("@/lib/shopify/product-sync", () => ({ pushProductToShopify: mocks.pushProduct }));
 vi.mock("@/lib/shopify/collection-translations", () => ({ registerCollectionTranslation: vi.fn() }));
 vi.mock("@/lib/shopify/translation-sync", () => ({ ensureTranslationBinding: vi.fn(), recordSyncEvent: vi.fn() }));
+vi.mock("@/lib/i18n/storefront-locale-registry", () => ({
+  listStorefrontLocales: vi.fn().mockResolvedValue([
+    { code: "en", routeSegment: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, isPublished: true },
+    { code: "pt", routeSegment: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, isPublished: true },
+  ]),
+}));
 vi.mock("@/lib/db", () => ({ db: {} }));
 
 import { retryTranslationSyncAction } from "@/app/admin/actions/translation-sync";
@@ -34,7 +40,7 @@ beforeEach(() => {
 describe("retryTranslationSyncAction", () => {
   it("passes the authenticated actor to an idempotent Page sync", async () => {
     await expect(retryTranslationSyncAction("PAGE", "page-1")).resolves.toEqual({ success: "Translation synced." });
-    expect(mocks.syncPage).toHaveBeenCalledWith("page-1", "editor@example.com");
+    expect(mocks.syncPage).toHaveBeenCalledWith("page-1", expect.objectContaining({ code: "pt" }), "editor@example.com");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin/translations");
   });
 

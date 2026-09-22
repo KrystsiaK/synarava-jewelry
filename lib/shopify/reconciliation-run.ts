@@ -5,8 +5,8 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import type { LocalizedRecord } from "@/lib/i18n/admin-localization";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
-import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 import { loadReconcileSubject } from "@/lib/shopify/reconciliation-source";
 import { sourceContentAsRemoteValues } from "@/lib/shopify/source-content";
 import {
@@ -15,7 +15,11 @@ import {
 } from "@/lib/shopify/translation-reconciliation";
 import { fetchResourceTranslationState } from "@/lib/shopify/translations";
 
-const RECONCILE_LOCALES = ["en", SHOPIFY_PORTUGUESE_ADMIN_LOCALE] as const;
+/** "en" plus every published registry locale's Shopify-side code (e.g. "pt-PT") — the full set of locales a reconcile sweep checks. */
+async function reconcileLocales(): Promise<string[]> {
+  const translationLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
+  return ["en", ...translationLocales.map((locale) => locale.shopifyLocale)];
+}
 
 export type ReconcileTrigger = "AUTO" | "MANUAL" | "ENTITY" | "LOCALE";
 export type ReconcileRunStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED";
@@ -234,16 +238,14 @@ async function createOrReuseRun({
   });
 }
 
-async function lastSnapshot(bindingId: string, legacySnapshot: unknown, locale: string) {
+async function lastSnapshot(bindingId: string, locale: string) {
   const rows = await db.$queryRaw<SnapshotRow[]>(Prisma.sql`
     SELECT "values"
     FROM "ShopifyTranslationSnapshot"
     WHERE "bindingId" = ${bindingId} AND "locale" = ${locale}
     LIMIT 1
   `);
-  return rows[0]?.values
-    ?? (locale === SHOPIFY_PORTUGUESE_ADMIN_LOCALE ? legacySnapshot as LocalizedRecord | null : null)
-    ?? null;
+  return rows[0]?.values ?? null;
 }
 
 function json(value: unknown) {
@@ -353,8 +355,9 @@ export async function runTranslationReconciliation({
     };
   }
 
-  const locales = scope?.locale ? [scope.locale] : [...RECONCILE_LOCALES];
-  if (locales.some((locale) => !RECONCILE_LOCALES.includes(locale as (typeof RECONCILE_LOCALES)[number]))) {
+  const availableLocales = await reconcileLocales();
+  const locales = scope?.locale ? [scope.locale] : availableLocales;
+  if (locales.some((locale) => !availableLocales.includes(locale))) {
     return {
       run: await finishRun(runId, {
         status: "FAILED",
@@ -365,6 +368,11 @@ export async function runTranslationReconciliation({
       reused: false,
     };
   }
+  // translatableContent (the source/EN copy) comes back from
+  // fetchResourceTranslationState regardless of which locale is requested —
+  // the query just needs some valid, non-default one to ask translations()
+  // for. Any currently-published translation locale works.
+  const [anyTranslationLocale] = availableLocales.filter((locale) => locale !== "en");
 
   try {
     const bindings = await db.shopifyTranslationBinding.findMany({
@@ -380,26 +388,22 @@ export async function runTranslationReconciliation({
     // less valuable than predictable Shopify throttling behavior. A bounded
     // concurrency pool can be added after observing real run timings.
     for (const binding of bindings) {
-      let state: Awaited<ReturnType<typeof fetchResourceTranslationState>>;
-      try {
-        state = await fetchResourceTranslationState(binding.shopifyResourceId, SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
-        if (!state) throw new Error("Shopify no longer exposes this resource as translatable.");
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        failures.push(`${binding.entityId}: ${message}`);
-        continue;
-      }
-
       for (const locale of locales) {
         try {
           const subject = await loadReconcileSubject(binding, locale);
           if (!subject || !scopeMatches(scope, binding.id, subject)) continue;
 
+          if (locale === "en" && !anyTranslationLocale) {
+            throw new Error("No published translation locale is registered to read Shopify's source content through.");
+          }
+          const state = await fetchResourceTranslationState(binding.shopifyResourceId, locale === "en" ? anyTranslationLocale : locale);
+          if (!state) throw new Error("Shopify no longer exposes this resource as translatable.");
+
           const translations = locale === "en"
             ? sourceContentAsRemoteValues(state.translatableContent)
             : state.translations;
           const remote = projectRemoteTranslationWithMetadata(subject.registry, translations);
-          const base = await lastSnapshot(binding.id, binding.lastSyncedSnapshot, locale);
+          const base = await lastSnapshot(binding.id, locale);
           const plan = planReconcile(subject.registry, base, subject.local, remote.values, remote.metadata);
           await persistDifferences({
             runId,

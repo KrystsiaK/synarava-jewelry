@@ -1,7 +1,6 @@
 import "server-only";
 
 import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
-import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 import { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 import { registerTranslations } from "@/lib/shopify/translations";
 
@@ -185,10 +184,11 @@ export async function ensureEditorialMetaobject({
 export async function registerEditorialMetaobjectTranslation(
   resourceId: string,
   values: Record<string, EditorialValue>,
+  locale: string,
 ) {
   return registerTranslations({
     resourceId,
-    locale: SHOPIFY_PORTUGUESE_ADMIN_LOCALE,
+    locale,
     values: serializeEditorialFields(values),
   });
 }

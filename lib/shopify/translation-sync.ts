@@ -27,7 +27,16 @@ export async function findTranslationBinding(resourceType: TranslationResourceTy
   return db.shopifyTranslationBinding.findUnique({ where: { resourceType_entityId: { resourceType, entityId } } });
 }
 
-/** Dual-writes the locale-aware common ancestor and the legacy PT column during rollout. */
+/**
+ * Writes the locale-aware common ancestor snapshot. `ShopifyTranslationBinding.lastSyncedSnapshot`
+ * (a single JSON column, one binding wide) used to get a parallel write here
+ * for Portuguese specifically, as a rollout-era fallback for readers before
+ * every (binding, locale) pair had its own `ShopifyTranslationSnapshot` row.
+ * That column can only ever hold one locale's data, so it can't be
+ * generalized to N locales — it's left unwritten (but still read as a
+ * last-resort fallback by older bindings) rather than kept accurate for
+ * only one arbitrary locale.
+ */
 export async function saveTranslationSnapshot({
   bindingId,
   locale,
@@ -38,29 +47,23 @@ export async function saveTranslationSnapshot({
   values: Record<string, unknown>;
 }) {
   const serialized = JSON.stringify(values);
-  await db.$transaction([
-    db.$executeRaw(Prisma.sql`
-      INSERT INTO "ShopifyTranslationSnapshot" (
-        "id", "bindingId", "locale", "values", "syncedAt", "createdAt", "updatedAt"
-      ) VALUES (
-        ${`${bindingId}:${locale}`},
-        ${bindingId},
-        ${locale},
-        CAST(${serialized} AS JSONB),
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
-      )
-      ON CONFLICT ("bindingId", "locale") DO UPDATE SET
-        "values" = EXCLUDED."values",
-        "syncedAt" = CURRENT_TIMESTAMP,
-        "updatedAt" = CURRENT_TIMESTAMP
-    `),
-    ...(locale === "pt-PT" ? [db.shopifyTranslationBinding.update({
-      where: { id: bindingId },
-      data: { lastSyncedSnapshot: values as Prisma.InputJsonValue },
-    })] : []),
-  ]);
+  await db.$executeRaw(Prisma.sql`
+    INSERT INTO "ShopifyTranslationSnapshot" (
+      "id", "bindingId", "locale", "values", "syncedAt", "createdAt", "updatedAt"
+    ) VALUES (
+      ${`${bindingId}:${locale}`},
+      ${bindingId},
+      ${locale},
+      CAST(${serialized} AS JSONB),
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP
+    )
+    ON CONFLICT ("bindingId", "locale") DO UPDATE SET
+      "values" = EXCLUDED."values",
+      "syncedAt" = CURRENT_TIMESTAMP,
+      "updatedAt" = CURRENT_TIMESTAMP
+  `);
 }
 
 /** Every push/pull/reconcile attempt gets its own event row — the audit trail tasks/plan.md's sync model requires, independent of ProductSyncEvent's commerce sync history. */

@@ -18,8 +18,12 @@ import {
 import { registerPageTranslation } from "@/lib/shopify/page-translations";
 import { upsertShopifyPage } from "@/lib/shopify/page-resource";
 import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
+import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
 
 export type TargetResult = { target: "PAGE" | "METAOBJECT"; status: "SUCCEEDED" | "FAILED"; error?: string };
+
+/** The registry fields these adapters need: the local DB locale code, and the Shopify-side locale to register translations against. */
+export type SyncTargetLocale = Pick<StorefrontLocaleRecord, "code" | "shopifyLocale" | "name">;
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -76,10 +80,10 @@ const PAGE_METAOBJECT_FIELDS = localizedFields(PAGE_FIELD_REGISTRY).flatMap((fie
   field.shopifyTarget?.kind === "metaobject" ? [field.shopifyTarget.key] : [],
 );
 
-async function recordTargetFailure(bindingId: string, error: unknown, actorUsername?: string | null) {
+async function recordTargetFailure(bindingId: string, error: unknown, locale: SyncTargetLocale, actorUsername?: string | null) {
   await recordSyncEvent({
     bindingId,
-    locale: "pt",
+    locale: locale.code,
     direction: "PUSH",
     status: "FAILED",
     error: errorMessage(error),
@@ -87,13 +91,13 @@ async function recordTargetFailure(bindingId: string, error: unknown, actorUsern
   });
 }
 
-async function completeTarget(bindingId: string, snapshot: Record<string, unknown>, actorUsername?: string | null) {
-  await saveTranslationSnapshot({ bindingId, locale: "pt-PT", values: snapshot });
-  await recordSyncEvent({ bindingId, locale: "pt", direction: "PUSH", status: "SUCCEEDED", actorUsername });
+async function completeTarget(bindingId: string, snapshot: Record<string, unknown>, locale: SyncTargetLocale, actorUsername?: string | null) {
+  await saveTranslationSnapshot({ bindingId, locale: locale.shopifyLocale, values: snapshot });
+  await recordSyncEvent({ bindingId, locale: locale.code, direction: "PUSH", status: "SUCCEEDED", actorUsername });
 }
 
 /** Syncs PAGE-native copy and structured page copy independently so one target can be retried without replaying the other. */
-export async function syncPageEditorialTranslation(pageId: string, actorUsername?: string | null): Promise<TargetResult[]> {
+export async function syncPageEditorialTranslation(pageId: string, locale: SyncTargetLocale, actorUsername?: string | null): Promise<TargetResult[]> {
   const page = await db.page.findUnique({
     where: { id: pageId },
     include: { translations: true },
@@ -101,11 +105,11 @@ export async function syncPageEditorialTranslation(pageId: string, actorUsername
   if (!page) throw new Error("Page not found.");
 
   const en = page.translations.find((translation) => translation.locale === "en");
-  const pt = page.translations.find((translation) => translation.locale === "pt");
-  if (!pt) throw new Error("Portuguese page translation is missing.");
+  const translation = page.translations.find((item) => item.locale === locale.code);
+  if (!translation) throw new Error(`${locale.name} page translation is missing.`);
 
   const enContent = normalizePageTranslationContent(en?.content ?? page.content);
-  const ptContent = normalizePageTranslationContent(pt.content);
+  const translationContent = normalizePageTranslationContent(translation.content);
   const shopifyPage = await upsertShopifyPage({
     resourceId: page.shopifyPageId,
     title: en?.title ?? page.title,
@@ -127,11 +131,11 @@ export async function syncPageEditorialTranslation(pageId: string, actorUsername
     shopifyResourceId: shopifyPage.id,
   });
   const nativeSnapshot = pageNativeSnapshot({
-    localizedHandle: pt.localizedHandle,
-    title: pt.title,
-    body: ptContent.body ?? "",
-    seoTitle: pt.seoTitle,
-    seoDescription: pt.seoDescription,
+    localizedHandle: translation.localizedHandle,
+    title: translation.title,
+    body: translationContent.body ?? "",
+    seoTitle: translation.seoTitle,
+    seoDescription: translation.seoDescription,
   });
   try {
     await registerPageTranslation(shopifyPage.id, {
@@ -140,16 +144,16 @@ export async function syncPageEditorialTranslation(pageId: string, actorUsername
       bodyHtml: nativeSnapshot.body,
       seoTitle: nativeSnapshot.seoTitle,
       seoDescription: nativeSnapshot.seoDescription,
-    });
-    await completeTarget(nativeBinding.id, nativeSnapshot, actorUsername);
+    }, locale.shopifyLocale);
+    await completeTarget(nativeBinding.id, nativeSnapshot, locale, actorUsername);
     results.push({ target: "PAGE", status: "SUCCEEDED" });
   } catch (error) {
-    await recordTargetFailure(nativeBinding.id, error, actorUsername);
+    await recordTargetFailure(nativeBinding.id, error, locale, actorUsername);
     results.push({ target: "PAGE", status: "FAILED", error: errorMessage(error) });
   }
 
   const enStructured = pageStructuredValues(en?.excerpt ?? page.excerpt, en?.content ?? page.content);
-  const ptStructured = pageStructuredValues(pt.excerpt, pt.content);
+  const translationStructured = pageStructuredValues(translation.excerpt, translation.content);
   const metaobject = await ensureEditorialMetaobject({
     definition: "page_section_copy",
     name: "Page section copy",
@@ -164,17 +168,17 @@ export async function syncPageEditorialTranslation(pageId: string, actorUsername
     shopifyResourceId: metaobject.id,
   });
   try {
-    await registerEditorialMetaobjectTranslation(metaobject.id, ptStructured);
-    await completeTarget(structuredBinding.id, ptStructured, actorUsername);
+    await registerEditorialMetaobjectTranslation(metaobject.id, translationStructured, locale.shopifyLocale);
+    await completeTarget(structuredBinding.id, translationStructured, locale, actorUsername);
     results.push({ target: "METAOBJECT", status: "SUCCEEDED" });
   } catch (error) {
-    await recordTargetFailure(structuredBinding.id, error, actorUsername);
+    await recordTargetFailure(structuredBinding.id, error, locale, actorUsername);
     results.push({ target: "METAOBJECT", status: "FAILED", error: errorMessage(error) });
   }
 
   const failed = results.find((result) => result.status === "FAILED");
   await db.pageTranslation.update({
-    where: { pageId_locale: { pageId: page.id, locale: "pt" } },
+    where: { pageId_locale: { pageId: page.id, locale: locale.code } },
     data: {
       syncStatus: failed ? "FAILED" : "SYNCED",
       syncError: failed?.error ?? null,
@@ -183,6 +187,12 @@ export async function syncPageEditorialTranslation(pageId: string, actorUsername
   });
   return results;
 }
+
+// Deliberately still Portuguese-only: StorefrontCopy itself (lib/content/storefront-copy.ts)
+// is a fixed `{ en, pt }` shape, not yet a registry-keyed record — that's
+// Task U9's job ("Storefront Copy and navigation migration"), not U5's. This
+// function can't take an arbitrary locale until that data model changes.
+const STOREFRONT_COPY_PT_LOCALE: SyncTargetLocale = { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese" };
 
 export async function syncStorefrontCopyTranslation(actorUsername?: string | null): Promise<TargetResult[]> {
   const setting = await db.siteSetting.findUnique({ where: { key: STOREFRONT_COPY_KEY } });
@@ -205,17 +215,18 @@ export async function syncStorefrontCopyTranslation(actorUsername?: string | nul
     shopifyResourceId: metaobject.id,
   });
   try {
-    await registerEditorialMetaobjectTranslation(metaobject.id, value.pt);
-    await completeTarget(binding.id, value.pt, actorUsername);
+    await registerEditorialMetaobjectTranslation(metaobject.id, value.pt, STOREFRONT_COPY_PT_LOCALE.shopifyLocale);
+    await completeTarget(binding.id, value.pt, STOREFRONT_COPY_PT_LOCALE, actorUsername);
     return [{ target: "METAOBJECT", status: "SUCCEEDED" }];
   } catch (error) {
-    await recordTargetFailure(binding.id, error, actorUsername);
+    await recordTargetFailure(binding.id, error, STOREFRONT_COPY_PT_LOCALE, actorUsername);
     return [{ target: "METAOBJECT", status: "FAILED", error: errorMessage(error) }];
   }
 }
 
 export async function syncProductEditorialTranslation(
   productId: string,
+  locale: SyncTargetLocale,
   actorUsername?: string | null,
 ): Promise<TargetResult[]> {
   const product = await db.product.findUnique({
@@ -225,8 +236,8 @@ export async function syncProductEditorialTranslation(
   if (!product) throw new Error("Product not found.");
 
   const en = product.translations.find((translation) => translation.locale === "en");
-  const pt = product.translations.find((translation) => translation.locale === "pt");
-  if (!pt) throw new Error("Portuguese product translation is missing.");
+  const translation = product.translations.find((item) => item.locale === locale.code);
+  if (!translation) throw new Error(`${locale.name} product translation is missing.`);
 
   const source = {
     shortDescription: en?.shortDescription ?? product.shortDescription,
@@ -238,13 +249,13 @@ export async function syncProductEditorialTranslation(
     details: en?.details ?? product.details,
   };
   const translated = {
-    shortDescription: pt.shortDescription,
-    materialLine: pt.materialLine,
-    symbolismLabel: pt.symbolismLabel,
-    symbolismTitle: pt.symbolismTitle,
-    symbolismBody: pt.symbolismBody,
-    symbolismBody2: pt.symbolismBody2,
-    details: pt.details,
+    shortDescription: translation.shortDescription,
+    materialLine: translation.materialLine,
+    symbolismLabel: translation.symbolismLabel,
+    symbolismTitle: translation.symbolismTitle,
+    symbolismBody: translation.symbolismBody,
+    symbolismBody2: translation.symbolismBody2,
+    details: translation.details,
   };
   return syncMetaobjectTarget({
     definition: "product_detail_copy",
@@ -254,12 +265,14 @@ export async function syncProductEditorialTranslation(
     source: metaobjectValues(PRODUCT_FIELD_REGISTRY, source),
     translated: metaobjectValues(PRODUCT_FIELD_REGISTRY, translated),
     fieldKeys: metaobjectFieldKeys(PRODUCT_FIELD_REGISTRY, "product_detail_copy"),
+    locale,
     actorUsername,
   });
 }
 
 export async function syncCollectionEditorialTranslation(
   collectionId: string,
+  locale: SyncTargetLocale,
   actorUsername?: string | null,
 ): Promise<TargetResult[]> {
   const collection = await db.collection.findUnique({
@@ -269,8 +282,8 @@ export async function syncCollectionEditorialTranslation(
   if (!collection) throw new Error("Collection not found.");
 
   const en = collection.translations.find((translation) => translation.locale === "en");
-  const pt = collection.translations.find((translation) => translation.locale === "pt");
-  if (!pt) throw new Error("Portuguese collection translation is missing.");
+  const translation = collection.translations.find((item) => item.locale === locale.code);
+  if (!translation) throw new Error(`${locale.name} collection translation is missing.`);
 
   const source = {
     subtitle: en?.subtitle ?? collection.subtitle,
@@ -282,13 +295,13 @@ export async function syncCollectionEditorialTranslation(
     searchSummary: en?.searchSummary ?? collection.searchSummary,
   };
   const translated = {
-    subtitle: pt.subtitle,
-    manifesto: pt.manifesto,
-    symbolismLabel: pt.symbolismLabel,
-    symbolismTitle: pt.symbolismTitle,
-    symbolismBody: pt.symbolismBody,
-    symbolismBody2: pt.symbolismBody2,
-    searchSummary: pt.searchSummary,
+    subtitle: translation.subtitle,
+    manifesto: translation.manifesto,
+    symbolismLabel: translation.symbolismLabel,
+    symbolismTitle: translation.symbolismTitle,
+    symbolismBody: translation.symbolismBody,
+    symbolismBody2: translation.symbolismBody2,
+    searchSummary: translation.searchSummary,
   };
   return syncMetaobjectTarget({
     definition: "collection_section_copy",
@@ -298,6 +311,7 @@ export async function syncCollectionEditorialTranslation(
     source: metaobjectValues(COLLECTION_FIELD_REGISTRY, source),
     translated: metaobjectValues(COLLECTION_FIELD_REGISTRY, translated),
     fieldKeys: metaobjectFieldKeys(COLLECTION_FIELD_REGISTRY, "collection_section_copy"),
+    locale,
     actorUsername,
   });
 }
@@ -310,6 +324,7 @@ async function syncMetaobjectTarget({
   source,
   translated,
   fieldKeys,
+  locale,
   actorUsername,
 }: {
   definition: string;
@@ -319,6 +334,7 @@ async function syncMetaobjectTarget({
   source: Record<string, unknown>;
   translated: Record<string, unknown>;
   fieldKeys: string[];
+  locale: SyncTargetLocale;
   actorUsername?: string | null;
 }): Promise<TargetResult[]> {
   const metaobject = await ensureEditorialMetaobject({ definition, name, handle, values: source, fieldKeys });
@@ -328,11 +344,11 @@ async function syncMetaobjectTarget({
     shopifyResourceId: metaobject.id,
   });
   try {
-    await registerEditorialMetaobjectTranslation(metaobject.id, translated);
-    await completeTarget(binding.id, translated, actorUsername);
+    await registerEditorialMetaobjectTranslation(metaobject.id, translated, locale.shopifyLocale);
+    await completeTarget(binding.id, translated, locale, actorUsername);
     return [{ target: "METAOBJECT", status: "SUCCEEDED" }];
   } catch (error) {
-    await recordTargetFailure(binding.id, error, actorUsername);
+    await recordTargetFailure(binding.id, error, locale, actorUsername);
     return [{ target: "METAOBJECT", status: "FAILED", error: errorMessage(error) }];
   }
 }

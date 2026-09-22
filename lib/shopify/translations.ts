@@ -1,7 +1,6 @@
 import "server-only";
 
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
-import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 
 export type TranslatableContent = {
   key: string;
@@ -292,6 +291,7 @@ export async function fetchTranslatableResourceIndex(resourceType: TranslatableR
 export async function registerProductTranslation(
   resourceId: string,
   copy: ShopifyProductTranslationCopy,
+  locale: string,
 ) {
   const values = Object.fromEntries(
     Object.entries(PRODUCT_TRANSLATION_KEYS).map(([localKey, shopifyKey]) => [
@@ -299,16 +299,16 @@ export async function registerProductTranslation(
       copy[localKey as keyof ShopifyProductTranslationCopy],
     ]),
   );
-  return registerTranslations({ resourceId, locale: SHOPIFY_PORTUGUESE_ADMIN_LOCALE, values });
+  return registerTranslations({ resourceId, locale, values });
 }
 
-export async function fetchProductTranslation(resourceId: string) {
-  const translations = await fetchResourceTranslation(resourceId, SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+export async function fetchProductTranslation(resourceId: string, locale: string) {
+  const translations = await fetchResourceTranslation(resourceId, locale);
   return translations ? productTranslationSnapshot(translations) : null;
 }
 
-export async function fetchProductTranslationIndex() {
-  const raw = await fetchTranslatableResourceIndex("PRODUCT", SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+export async function fetchProductTranslationIndex(locale: string) {
+  const raw = await fetchTranslatableResourceIndex("PRODUCT", locale);
   const result = new Map<string, ShopifyProductTranslationSnapshot | null>();
   for (const [resourceId, translations] of raw) {
     result.set(resourceId, productTranslationSnapshot(translations));

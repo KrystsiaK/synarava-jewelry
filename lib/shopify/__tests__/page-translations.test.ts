@@ -30,7 +30,7 @@ describe("Shopify page translations", () => {
       bodyHtml: "<p>Feito para ser usado.</p>",
       seoTitle: "",
       seoDescription: "",
-    });
+    }, "pt-PT");
 
     expect(mocks.shopifyAdminRequest.mock.calls[2]?.[1]).toMatchObject({
       resourceId: "gid://shopify/Page/1",
@@ -50,7 +50,7 @@ describe("Shopify page translations", () => {
       ] },
     });
 
-    await expect(fetchPageTranslation("gid://shopify/Page/1")).resolves.toEqual({
+    await expect(fetchPageTranslation("gid://shopify/Page/1", "pt-PT")).resolves.toEqual({
       handle: "",
       title: "Manifesto",
       bodyHtml: "<p>Texto.</p>",

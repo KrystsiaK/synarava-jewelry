@@ -1,6 +1,5 @@
 import "server-only";
 
-import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 import {
   fetchResourceTranslation,
   fetchTranslatableResourceIndex,
@@ -52,6 +51,7 @@ function collectionTranslationSnapshot(translations: RemoteTranslation[]): Shopi
 export async function registerCollectionTranslation(
   resourceId: string,
   copy: ShopifyCollectionTranslationCopy,
+  locale: string,
 ) {
   const values = Object.fromEntries(
     Object.entries(COLLECTION_TRANSLATION_KEYS).map(([localKey, shopifyKey]) => [
@@ -59,16 +59,16 @@ export async function registerCollectionTranslation(
       copy[localKey as keyof ShopifyCollectionTranslationCopy],
     ]),
   );
-  return registerTranslations({ resourceId, locale: SHOPIFY_PORTUGUESE_ADMIN_LOCALE, values });
+  return registerTranslations({ resourceId, locale, values });
 }
 
-export async function fetchCollectionTranslation(resourceId: string) {
-  const translations = await fetchResourceTranslation(resourceId, SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+export async function fetchCollectionTranslation(resourceId: string, locale: string) {
+  const translations = await fetchResourceTranslation(resourceId, locale);
   return translations ? collectionTranslationSnapshot(translations) : null;
 }
 
-export async function fetchCollectionTranslationIndex() {
-  const raw = await fetchTranslatableResourceIndex("COLLECTION", SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+export async function fetchCollectionTranslationIndex(locale: string) {
+  const raw = await fetchTranslatableResourceIndex("COLLECTION", locale);
   const result = new Map<string, ShopifyCollectionTranslationSnapshot | null>();
   for (const [resourceId, translations] of raw) {
     result.set(resourceId, collectionTranslationSnapshot(translations));

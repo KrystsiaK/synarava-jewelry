@@ -47,7 +47,7 @@ describe("Shopify translations", () => {
       descriptionHtml: "",
       seoTitle: "",
       seoDescription: "",
-    })).resolves.toMatchObject({ registeredKeys: ["title"] });
+    }, "pt-PT")).resolves.toMatchObject({ registeredKeys: ["title"] });
 
     expect(mocks.shopifyAdminRequest).toHaveBeenCalledTimes(5);
     expect(mocks.shopifyAdminRequest.mock.calls[4]?.[1]).toMatchObject({
@@ -66,7 +66,7 @@ describe("Shopify translations", () => {
       descriptionHtml: "",
       seoTitle: "",
       seoDescription: "",
-    });
+    }, "pt-PT");
 
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[0]).toContain("translationsRemove");
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[1]).toEqual({
@@ -84,7 +84,7 @@ describe("Shopify translations", () => {
       ] },
     });
 
-    await expect(fetchProductTranslation("gid://shopify/Product/1")).resolves.toEqual({
+    await expect(fetchProductTranslation("gid://shopify/Product/1", "pt-PT")).resolves.toEqual({
       title: "Anel",
       handle: "",
       descriptionHtml: "<p>Feito em Lisboa.</p>",
@@ -93,6 +93,40 @@ describe("Shopify translations", () => {
       updatedAt: "2026-09-10T10:02:00.000Z",
       outdated: true,
     });
+  });
+
+  // Proves registerProductTranslation/fetchProductTranslation are genuinely
+  // locale-generic — not just "still works for the one locale they used to
+  // hardcode" — by exercising a second, unrelated locale (Russian) end to
+  // end through both the write and read paths.
+  it("registers and reads back a Russian translation the same way as Portuguese", async () => {
+    mocks.shopifyAdminRequest
+      .mockResolvedValueOnce({ translationsRemove: { userErrors: [], translations: [] } })
+      .mockResolvedValueOnce({ translatableResource: { translatableContent: [{ key: "title", digest: "title-digest" }] } })
+      .mockResolvedValueOnce({ translationsRegister: { userErrors: [], translations: [{ key: "title", value: "Кольцо" }] } });
+
+    await expect(registerProductTranslation("gid://shopify/Product/1", {
+      title: "Кольцо",
+      descriptionHtml: "",
+      seoTitle: "",
+      seoDescription: "",
+    }, "ru")).resolves.toMatchObject({ registeredKeys: ["title"] });
+
+    expect(mocks.shopifyAdminRequest.mock.calls[0]?.[1]).toEqual({
+      resourceId: "gid://shopify/Product/1",
+      locales: ["ru"],
+      translationKeys: ["handle", "body_html", "meta_title", "meta_description"],
+    });
+    expect(mocks.shopifyAdminRequest.mock.calls[2]?.[1]).toMatchObject({
+      translations: [expect.objectContaining({ locale: "ru", key: "title", value: "Кольцо" })],
+    });
+
+    mocks.shopifyAdminRequest.mockReset().mockResolvedValue({
+      translatableResource: { translations: [
+        { key: "title", value: "Кольцо", updatedAt: "2026-09-10T10:00:00Z", outdated: false },
+      ] },
+    });
+    await expect(fetchProductTranslation("gid://shopify/Product/1", "ru")).resolves.toMatchObject({ title: "Кольцо" });
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[0]).toContain("updatedAt outdated");
   });
 
@@ -164,7 +198,7 @@ describe("Shopify translations", () => {
         nodes: [{ resourceId: "gid://shopify/Product/2", translations: [] }],
       } });
 
-    const translations = await fetchProductTranslationIndex();
+    const translations = await fetchProductTranslationIndex("pt-PT");
     expect(translations.get("gid://shopify/Product/1")).toMatchObject({ title: "Anel" });
     expect(translations.get("gid://shopify/Product/2")).toBeNull();
     expect(mocks.shopifyAdminRequest.mock.calls[1]?.[1]).toEqual({ after: "next", resourceType: "PRODUCT" });

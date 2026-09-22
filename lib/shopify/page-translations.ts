@@ -1,6 +1,5 @@
 import "server-only";
 
-import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
 import {
   fetchResourceTranslation,
   registerTranslations,
@@ -51,7 +50,7 @@ function pageTranslationSnapshot(
   };
 }
 
-export async function registerPageTranslation(resourceId: string, copy: ShopifyPageTranslationCopy) {
+export async function registerPageTranslation(resourceId: string, copy: ShopifyPageTranslationCopy, locale: string) {
   const values = Object.fromEntries(
     Object.entries(PAGE_TRANSLATION_KEYS).map(([localKey, shopifyKey]) => [
       shopifyKey,
@@ -60,12 +59,12 @@ export async function registerPageTranslation(resourceId: string, copy: ShopifyP
   );
   return registerTranslations({
     resourceId,
-    locale: SHOPIFY_PORTUGUESE_ADMIN_LOCALE,
+    locale,
     values,
   });
 }
 
-export async function fetchPageTranslation(resourceId: string) {
-  const translations = await fetchResourceTranslation(resourceId, SHOPIFY_PORTUGUESE_ADMIN_LOCALE);
+export async function fetchPageTranslation(resourceId: string, locale: string) {
+  const translations = await fetchResourceTranslation(resourceId, locale);
   return translations ? pageTranslationSnapshot(translations) : null;
 }

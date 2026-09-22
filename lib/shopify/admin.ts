@@ -1,7 +1,7 @@
 import "server-only";
 
 import { env } from "@/lib/env";
-import { SHOPIFY_PORTUGUESE_ADMIN_LOCALE } from "@/lib/shopify/locales";
+import { listStorefrontLocales } from "@/lib/i18n/storefront-locale-registry";
 
 type GraphQLError = { message: string; path?: Array<string | number> };
 type AdminResponse<T> = { data?: T; errors?: GraphQLError[] };
@@ -203,6 +203,9 @@ export async function fetchShopifyShopIdentity() {
 
 export type ShopifyShopLocale = { locale: string; name: string; primary: boolean; published: boolean };
 
+/** A registered translation locale (`StorefrontLocale`, non-default) not found enabled/published in Shopify's `shopLocales`. */
+export type MissingLocalePublication = { code: string; name: string; shopifyLocale: string };
+
 export async function fetchShopifyLocales(): Promise<ShopifyShopLocale[]> {
   const data = await shopifyAdminRequest<{ shopLocales: ShopifyShopLocale[] }>(
     `query SynaravaShopLocales {
@@ -249,6 +252,13 @@ export async function testShopifyAdminConnection() {
   if (!canReadLocales) missingTranslationScopes.push("read_locales or read_markets_home");
 
   const locales = canReadLocales ? await fetchShopifyLocales() : [];
+  const publishedShopifyLocales = new Set(
+    locales.filter((locale) => locale.published).map((locale) => locale.locale.toLowerCase()),
+  );
+  const registeredTranslationLocales = (await listStorefrontLocales()).filter((locale) => !locale.isDefault);
+  const unpublishedLocales: MissingLocalePublication[] = registeredTranslationLocales
+    .filter((locale) => !publishedShopifyLocales.has(locale.shopifyLocale.toLowerCase()))
+    .map((locale) => ({ code: locale.code, name: locale.name, shopifyLocale: locale.shopifyLocale }));
 
   return {
     shopName: data.shop.name,
@@ -264,9 +274,7 @@ export async function testShopifyAdminConnection() {
     missingWishlistScopes,
     missingEditorialScopes,
     locales,
-    portuguesePublished: locales.some(
-      (locale) => locale.locale.toLowerCase() === SHOPIFY_PORTUGUESE_ADMIN_LOCALE.toLowerCase() && locale.published,
-    ),
+    unpublishedLocales,
   };
 }
 

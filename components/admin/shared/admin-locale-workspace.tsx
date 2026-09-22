@@ -187,7 +187,13 @@ export function AdminLocaleTabs({
             SHOPIFY: {statusLabel(ptStatus)}
           </span>
         ) : null}
-        {syncScope ? <EntityLocaleSyncControl scope={syncScope} locale={active} /> : null}
+        {syncScope ? (
+          <EntityLocaleSyncControl
+            scope={syncScope}
+            locale={active}
+            localeLabel={locales.find((item) => item.code === active)?.label ?? active}
+          />
+        ) : null}
       </div>
     </div>
   );

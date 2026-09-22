@@ -11,22 +11,36 @@ import {
   syncPageEditorialTranslation,
   syncProductEditorialTranslation,
   syncStorefrontCopyTranslation,
+  type SyncTargetLocale,
 } from "@/lib/shopify/editorial-translation-sync";
 import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
+import { listStorefrontLocales } from "@/lib/i18n/storefront-locale-registry";
 import { syncStorefrontLocalesFromShopify } from "@/lib/shopify/storefront-locale-sync";
 import { registerProductTranslation } from "@/lib/shopify/translations";
 import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
 
 export type TranslationOverviewEntity = "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY";
 
-async function syncCollection(collectionId: string, actorUsername: string) {
+/** Resolves the registered locale to sync, defaulting to the first published translation locale (today, always Portuguese) when the caller doesn't request one — same default every editor used before the registry drove this. */
+async function resolveSyncTargetLocale(requestedCode?: string): Promise<SyncTargetLocale> {
+  const locales = (await listStorefrontLocales()).filter((locale) => !locale.isDefault);
+  const locale = requestedCode
+    ? locales.find((item) => item.code === requestedCode)
+    : locales[0];
+  if (!locale) {
+    throw new Error(requestedCode ? `Locale "${requestedCode}" is not registered.` : "No translation locale is registered.");
+  }
+  return locale;
+}
+
+async function syncCollection(collectionId: string, locale: SyncTargetLocale, actorUsername: string) {
   const collection = await db.collection.findUnique({
     where: { id: collectionId },
-    include: { translations: { where: { locale: "pt" } } },
+    include: { translations: { where: { locale: locale.code } } },
   });
   if (!collection?.shopifyCollectionId) throw new Error("Collection is not linked to Shopify.");
   const translation = collection.translations[0];
-  if (!translation) throw new Error("Portuguese collection translation is missing.");
+  if (!translation) throw new Error(`${locale.name} collection translation is missing.`);
   const binding = await ensureTranslationBinding({
     resourceType: "COLLECTION",
     entityId: collection.id,
@@ -46,11 +60,11 @@ async function syncCollection(collectionId: string, actorUsername: string) {
       descriptionHtml: snapshot.description,
       seoTitle: snapshot.seoTitle,
       seoDescription: snapshot.seoDescription,
-    });
+    }, locale.shopifyLocale);
     await Promise.all([
-      saveTranslationSnapshot({ bindingId: binding.id, locale: "pt-PT", values: snapshot }),
+      saveTranslationSnapshot({ bindingId: binding.id, locale: locale.shopifyLocale, values: snapshot }),
       recordSyncEvent({
-        bindingId: binding.id, locale: "pt", direction: "PUSH", status: "SUCCEEDED", actorUsername,
+        bindingId: binding.id, locale: locale.code, direction: "PUSH", status: "SUCCEEDED", actorUsername,
       }),
     ]);
   } catch (error) {
@@ -58,13 +72,13 @@ async function syncCollection(collectionId: string, actorUsername: string) {
     await Promise.all([
       db.collectionTranslation.update({ where: { id: translation.id }, data: { syncStatus: "FAILED", syncError: message } }),
       recordSyncEvent({
-        bindingId: binding.id, locale: "pt", direction: "PUSH", status: "FAILED", error: message, actorUsername,
+        bindingId: binding.id, locale: locale.code, direction: "PUSH", status: "FAILED", error: message, actorUsername,
       }),
     ]);
     throw error;
   }
 
-  const editorialResults = await syncCollectionEditorialTranslation(collection.id, actorUsername);
+  const editorialResults = await syncCollectionEditorialTranslation(collection.id, locale, actorUsername);
   const editorialFailure = editorialResults.find((result) => result.status === "FAILED");
   if (editorialFailure) {
     await db.collectionTranslation.update({
@@ -79,13 +93,13 @@ async function syncCollection(collectionId: string, actorUsername: string) {
   });
 }
 
-async function syncProductNativeTranslation(productId: string, actorUsername: string) {
+async function syncProductNativeTranslation(productId: string, locale: SyncTargetLocale, actorUsername: string) {
   const product = await db.product.findUnique({
     where: { id: productId },
     select: {
       shopifyProductId: true,
       translations: {
-        where: { locale: "pt" },
+        where: { locale: locale.code },
         select: {
           localizedHandle: true,
           title: true,
@@ -98,7 +112,7 @@ async function syncProductNativeTranslation(productId: string, actorUsername: st
   });
   if (!product?.shopifyProductId) throw new Error("Product is not linked to Shopify.");
   const translation = product.translations[0];
-  if (!translation) throw new Error("Portuguese product translation is missing.");
+  if (!translation) throw new Error(`${locale.name} product translation is missing.`);
 
   const binding = await ensureTranslationBinding({
     resourceType: "PRODUCT",
@@ -119,12 +133,12 @@ async function syncProductNativeTranslation(productId: string, actorUsername: st
       descriptionHtml: snapshot.description,
       seoTitle: snapshot.seoTitle,
       seoDescription: snapshot.seoDescription,
-    });
+    }, locale.shopifyLocale);
     await Promise.all([
-      saveTranslationSnapshot({ bindingId: binding.id, locale: "pt-PT", values: snapshot }),
+      saveTranslationSnapshot({ bindingId: binding.id, locale: locale.shopifyLocale, values: snapshot }),
       recordSyncEvent({
         bindingId: binding.id,
-        locale: "pt",
+        locale: locale.code,
         direction: "PUSH",
         status: "SUCCEEDED",
         actorUsername,
@@ -134,12 +148,12 @@ async function syncProductNativeTranslation(productId: string, actorUsername: st
     const message = error instanceof Error ? error.message : String(error);
     await Promise.all([
       db.productTranslation.update({
-        where: { productId_locale: { productId, locale: "pt" } },
+        where: { productId_locale: { productId, locale: locale.code } },
         data: { syncStatus: "FAILED", syncError: message },
       }),
       recordSyncEvent({
         bindingId: binding.id,
-        locale: "pt",
+        locale: locale.code,
         direction: "PUSH",
         status: "FAILED",
         error: message,
@@ -150,34 +164,40 @@ async function syncProductNativeTranslation(productId: string, actorUsername: st
   }
 }
 
-export async function retryTranslationSyncAction(entityType: TranslationOverviewEntity, entityId: string) {
+/** `localeCode` selects which registered translation locale to sync; omit it to use the first published one (today, always Portuguese) — every caller before the registry drove this synced exactly one locale. */
+export async function retryTranslationSyncAction(entityType: TranslationOverviewEntity, entityId: string, localeCode?: string) {
   const session = await requireAdminSession("/admin/translations");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
 
   try {
+    if (entityType === "STOREFRONT_COPY") {
+      const results = await syncStorefrontCopyTranslation(session.username);
+      const failed = results.find((result) => result.status === "FAILED");
+      if (failed) throw new Error(failed.error);
+      revalidatePath("/admin/translations");
+      return { success: "Translation synced." };
+    }
+
+    const locale = await resolveSyncTargetLocale(localeCode);
     if (entityType === "PRODUCT") {
-      await syncProductNativeTranslation(entityId, session.username);
-      const editorialResults = await syncProductEditorialTranslation(entityId, session.username);
+      await syncProductNativeTranslation(entityId, locale, session.username);
+      const editorialResults = await syncProductEditorialTranslation(entityId, locale, session.username);
       const editorialFailure = editorialResults.find((target) => target.status === "FAILED");
       if (editorialFailure) {
         await db.productTranslation.update({
-          where: { productId_locale: { productId: entityId, locale: "pt" } },
+          where: { productId_locale: { productId: entityId, locale: locale.code } },
           data: { syncStatus: "FAILED", syncError: editorialFailure.error },
         });
         throw new Error(editorialFailure.error);
       }
       await db.productTranslation.update({
-        where: { productId_locale: { productId: entityId, locale: "pt" } },
+        where: { productId_locale: { productId: entityId, locale: locale.code } },
         data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
       });
     } else if (entityType === "COLLECTION") {
-      await syncCollection(entityId, session.username);
-    } else if (entityType === "PAGE") {
-      const results = await syncPageEditorialTranslation(entityId, session.username);
-      const failed = results.find((result) => result.status === "FAILED");
-      if (failed) throw new Error(failed.error);
+      await syncCollection(entityId, locale, session.username);
     } else {
-      const results = await syncStorefrontCopyTranslation(session.username);
+      const results = await syncPageEditorialTranslation(entityId, locale, session.username);
       const failed = results.find((result) => result.status === "FAILED");
       if (failed) throw new Error(failed.error);
     }

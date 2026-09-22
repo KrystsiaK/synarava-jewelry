@@ -19,10 +19,6 @@ type EntityState = {
   differences?: ReconcileDifferenceView[];
 };
 
-function shopifyLocale(locale: AdminLocale) {
-  return locale === "EN" ? "en" : "pt-PT";
-}
-
 function stateLabel(state: EntityState | null, checking: boolean, error: string | null) {
   if (checking) return "Checking…";
   if (error) return "Check unavailable";
@@ -41,13 +37,22 @@ async function responseJson(response: Response) {
   return payload;
 }
 
-export function EntityLocaleSyncControl({ scope, locale }: { scope: EntitySyncScope; locale: AdminLocale }) {
+export function EntityLocaleSyncControl({
+  scope,
+  locale,
+  localeLabel,
+}: {
+  scope: EntitySyncScope;
+  /** The registry locale code (e.g. "pt", "ru") — the API route resolves this to Shopify's own locale code, so this component never needs that mapping itself. */
+  locale: AdminLocale;
+  /** Human-readable name for `locale` (e.g. "Português"), for display only. */
+  localeLabel: string;
+}) {
   const [state, setState] = useState<EntityState | null>(null);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const remoteLocale = shopifyLocale(locale);
-  const query = new URLSearchParams({ ...scope, locale: remoteLocale }).toString();
+  const query = new URLSearchParams({ ...scope, locale }).toString();
 
   const refreshState = useCallback(async () => {
     const next = await responseJson(await fetch(`/admin/api/shopify/reconcile?${query}`, {
@@ -81,7 +86,7 @@ export function EntityLocaleSyncControl({ scope, locale }: { scope: EntitySyncSc
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ trigger: "LOCALE", scope: { ...scope, locale: remoteLocale } }),
+        body: JSON.stringify({ trigger: "LOCALE", scope: { ...scope, locale } }),
       }));
       await refreshState();
     } catch (caught) {
@@ -94,7 +99,7 @@ export function EntityLocaleSyncControl({ scope, locale }: { scope: EntitySyncSc
   const count = state?.differenceCount ?? 0;
   const label = stateLabel(state, checking, error);
   const reviewHref = `/admin/translations?${query}`;
-  const title = error ?? state?.run?.error ?? `${locale} content: ${label}`;
+  const title = error ?? state?.run?.error ?? `${localeLabel} content: ${label}`;
 
   return (
     <>
@@ -111,7 +116,7 @@ export function EntityLocaleSyncControl({ scope, locale }: { scope: EntitySyncSc
         className="adm-entity-sync__check"
         onClick={() => void checkLanguage()}
         disabled={checking}
-        aria-label={`Check ${locale === "EN" ? "English" : "Portuguese"} against Shopify`}
+        aria-label={`Check ${localeLabel} against Shopify`}
       >
         <RefreshCw size={14} aria-hidden="true" />
         <span>Check</span>
@@ -127,7 +132,7 @@ export function EntityLocaleSyncControl({ scope, locale }: { scope: EntitySyncSc
       >
         <header className="adm-sync-modal__header">
           <div>
-            <h2>Shopify sync · {locale === "EN" ? "English" : "Portuguese"}</h2>
+            <h2>Shopify sync · {localeLabel}</h2>
             <p>{error ?? stateLabel(state, checking, null)}</p>
           </div>
           <button type="button" className="adm-sync-modal__close" onClick={() => setOpen(false)} aria-label="Close sync details">

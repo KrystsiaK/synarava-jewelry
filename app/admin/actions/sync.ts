@@ -9,6 +9,7 @@ import {
   fetchShopifyShopIdentity,
   hasShopifyAdminConfig,
   testShopifyAdminConnection,
+  type MissingLocalePublication,
 } from "@/lib/shopify/admin";
 import {
   assertShopifyStoreBinding,
@@ -32,6 +33,16 @@ export type ShopifySyncSelection = {
   remoteProductIds: string[];
   localProductIds: string[];
 };
+
+/** One sentence naming every registered translation locale Shopify hasn't enabled/published yet, or "" if none. */
+function translationLocaleNotice(missingTranslationScopes: string[], unpublishedLocales: MissingLocalePublication[]) {
+  if (missingTranslationScopes.length > 0) {
+    return ` Translation sync is unavailable: missing ${missingTranslationScopes.join(", ")}.`;
+  }
+  if (unpublishedLocales.length === 0) return "";
+  const names = unpublishedLocales.map((locale) => `${locale.name} (${locale.shopifyLocale})`).join(", ");
+  return ` ${names} ${unpublishedLocales.length === 1 ? "is" : "are"} not enabled/published in Shopify Markets; translation sync will be skipped for ${unpublishedLocales.length === 1 ? "it" : "them"}.`;
+}
 
 async function assertConfiguredShopifyStore() {
   const shop = await fetchShopifyShopIdentity();
@@ -96,11 +107,7 @@ export async function testShopifyConnectionAction() {
       };
     }
 
-    const translationNotice = connection.missingTranslationScopes.length > 0
-      ? ` Portuguese translation sync is unavailable: missing ${connection.missingTranslationScopes.join(", ")}.`
-      : !connection.portuguesePublished
-        ? " Portuguese (Portugal, pt-PT) is not enabled/published in Shopify Markets; translation sync will be skipped."
-        : "";
+    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales);
     let reviewNotice = connection.missingReviewScopes.length > 0
       ? ` Product review publishing is unavailable: missing ${connection.missingReviewScopes.join(", ")}.`
       : "";
@@ -343,11 +350,7 @@ export async function rebindShopifyStoreAction(expectedShopDomain: string) {
     }
     const result = await rebindShopifyStore(expectedShopDomain, connection.shopDomain);
     revalidatePath("/admin/products");
-    const translationNotice = connection.missingTranslationScopes.length > 0
-      ? ` Portuguese translation sync is unavailable: missing ${connection.missingTranslationScopes.join(", ")}.`
-      : !connection.portuguesePublished
-        ? " Portuguese (Portugal, pt-PT) is not enabled/published in Shopify Markets; translation sync will be skipped."
-        : "";
+    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales);
     return {
       success: `Catalog is ready to link with ${result.shopDomain}. Run Preview sync to match cloned products by SKU or handle before applying changes.${translationNotice}`,
       result,

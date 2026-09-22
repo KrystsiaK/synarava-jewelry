@@ -29,7 +29,7 @@ describe("Shopify collection translations", () => {
       descriptionHtml: "Peças fundamentadas.",
       seoTitle: "",
       seoDescription: "",
-    })).resolves.toMatchObject({ registeredKeys: ["title"] });
+    }, "pt-PT")).resolves.toMatchObject({ registeredKeys: ["title"] });
 
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[1]).toMatchObject({
       resourceId: "gid://shopify/Collection/1",
@@ -45,7 +45,7 @@ describe("Shopify collection translations", () => {
       ] },
     });
 
-    await expect(fetchCollectionTranslation("gid://shopify/Collection/1")).resolves.toEqual({
+    await expect(fetchCollectionTranslation("gid://shopify/Collection/1", "pt-PT")).resolves.toEqual({
       handle: "",
       name: "Rituais da Terra",
       descriptionHtml: "<p>Peças.</p>",
@@ -58,7 +58,7 @@ describe("Shopify collection translations", () => {
 
   it("returns null for a resource with no Portuguese translation yet", async () => {
     mocks.shopifyAdminRequest.mockResolvedValue({ translatableResource: { translations: [] } });
-    await expect(fetchCollectionTranslation("gid://shopify/Collection/1")).resolves.toBeNull();
+    await expect(fetchCollectionTranslation("gid://shopify/Collection/1", "pt-PT")).resolves.toBeNull();
   });
 
   it("indexes collection translations across pages", async () => {
@@ -74,7 +74,7 @@ describe("Shopify collection translations", () => {
         nodes: [{ resourceId: "gid://shopify/Collection/2", translations: [] }],
       } });
 
-    const index = await fetchCollectionTranslationIndex();
+    const index = await fetchCollectionTranslationIndex("pt-PT");
     expect(index.get("gid://shopify/Collection/1")).toMatchObject({ name: "Rituais" });
     expect(index.get("gid://shopify/Collection/2")).toBeNull();
     expect(mocks.shopifyAdminRequest.mock.calls[1]?.[1]).toEqual({ after: "next", resourceType: "COLLECTION" });

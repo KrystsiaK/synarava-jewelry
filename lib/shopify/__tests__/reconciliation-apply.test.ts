@@ -36,6 +36,12 @@ vi.mock("@/lib/shopify/reconciliation-source", () => ({
   loadReconcileSubject: mocks.loadSubject,
   writeLocalReconcileField: mocks.writeLocal,
 }));
+vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
+  getPublishedStorefrontLocales: vi.fn().mockResolvedValue([
+    { code: "en", isDefault: true, shopifyLocale: "en" },
+    { code: "pt", isDefault: false, shopifyLocale: "pt-PT" },
+  ]),
+}));
 vi.mock("@/lib/shopify/translations", () => ({
   fetchResourceTranslation: mocks.fetchTranslation,
   fetchResourceTranslationState: mocks.fetchState,

@@ -14,6 +14,7 @@ import {
 import type { LocalizedRecord } from "@/lib/i18n/admin-localization";
 import { shopifyValueForLocal } from "@/lib/i18n/sync-comparison";
 import { normalizePageTranslationContent } from "@/lib/pages/localization";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 export type ReconcileBindingSource = {
   id: string;
@@ -103,10 +104,13 @@ function pageSourceCopy(page: Record<string, unknown>) {
   return pageCopy({ ...page, localizedHandle: page.slug });
 }
 
-export function contentLocaleForShopify(locale: string): string {
-  if (locale.toLowerCase().startsWith("en")) return "en";
-  if (locale.toLowerCase().startsWith("pt")) return "pt";
-  throw new Error(`Locale ${locale} is not supported by the Synarava translation editor.`);
+/** Maps a Shopify-side locale code (e.g. "pt-PT") to the registry's own locale code (e.g. "pt") — a lookup against `StorefrontLocale`, not a string-prefix guess, so it works for any registered locale, not just the ones whose Shopify code happens to start with their registry code. */
+export async function contentLocaleForShopify(locale: string): Promise<string> {
+  if (locale.toLowerCase() === "en") return "en";
+  const registered = await getPublishedStorefrontLocales();
+  const match = registered.find((item) => item.shopifyLocale.toLowerCase() === locale.toLowerCase());
+  if (!match) throw new Error(`Locale ${locale} is not supported by the Synarava translation editor.`);
+  return match.code;
 }
 
 function rootIdForMetaobject(entityId: string, definition: string) {
@@ -116,9 +120,9 @@ function rootIdForMetaobject(entityId: string, definition: string) {
 
 export async function loadReconcileSubject(
   binding: ReconcileBindingSource,
-  locale = "pt-PT",
+  locale: string,
 ): Promise<ReconcileSubject | null> {
-  const contentLocale = contentLocaleForShopify(locale);
+  const contentLocale = await contentLocaleForShopify(locale);
   const english = contentLocale === "en";
   if (binding.resourceType === "PRODUCT") {
     const product = await db.product.findUnique({
@@ -174,6 +178,9 @@ export async function loadReconcileSubject(
   if (binding.resourceType !== "METAOBJECT") return null;
 
   if (binding.entityId === STOREFRONT_COPY_KEY) {
+    // StorefrontCopy is still a fixed { en, pt } shape (Task U9's job, not
+    // this task's) — a non-English, non-Portuguese contentLocale has no
+    // field to read here yet.
     const setting = await db.siteSetting.findUnique({ where: { key: STOREFRONT_COPY_KEY } });
     const copy = setting?.value as StorefrontCopy | null;
     const localizedCopy = english ? copy?.en : copy?.pt;
@@ -266,7 +273,7 @@ export async function writeLocalReconcileField({
   fieldKey: string;
   shopifyValue: unknown;
 }) {
-  const contentLocale = contentLocaleForShopify(locale);
+  const contentLocale = await contentLocaleForShopify(locale);
   const english = contentLocale === "en";
   const subject = await loadReconcileSubject(binding, locale);
   if (!subject) throw new Error("The local translation no longer exists.");
@@ -301,7 +308,7 @@ export async function writeLocalReconcileField({
       ]);
     } else {
       await db.productTranslation.update({
-        where: { productId_locale: { productId: subject.rootEntityId, locale: "pt" } },
+        where: { productId_locale: { productId: subject.rootEntityId, locale: contentLocale } },
         data: { [fieldKey]: stored } as Prisma.ProductTranslationUpdateInput,
       });
     }
@@ -330,7 +337,7 @@ export async function writeLocalReconcileField({
       ]);
     } else {
       await db.collectionTranslation.update({
-        where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: "pt" } },
+        where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: contentLocale } },
         data: { [fieldKey]: value } as Prisma.CollectionTranslationUpdateInput,
       });
     }
@@ -359,7 +366,7 @@ export async function writeLocalReconcileField({
         ]);
       } else {
         await db.pageTranslation.update({
-          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "pt" } },
+          where: { pageId_locale: { pageId: subject.rootEntityId, locale: contentLocale } },
           data: { [fieldKey]: value } as Prisma.PageTranslationUpdateInput,
         });
       }
@@ -369,7 +376,7 @@ export async function writeLocalReconcileField({
     const page = english
       ? await db.page.findUnique({ where: { id: subject.rootEntityId }, select: { content: true } })
       : await db.pageTranslation.findUnique({
-          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "pt" } },
+          where: { pageId_locale: { pageId: subject.rootEntityId, locale: contentLocale } },
           select: { content: true },
         });
     if (!page) throw new Error("The page translation no longer exists.");
@@ -393,13 +400,15 @@ export async function writeLocalReconcileField({
       ]);
     } else {
       await db.pageTranslation.update({
-        where: { pageId_locale: { pageId: subject.rootEntityId, locale: "pt" } },
+        where: { pageId_locale: { pageId: subject.rootEntityId, locale: contentLocale } },
         data: { content: storedContent },
       });
     }
     return value;
   }
 
+  // StorefrontCopy is still a fixed { en, pt } shape (Task U9's job) — see
+  // the same note in loadReconcileSubject above.
   const setting = await db.siteSetting.findUnique({ where: { key: STOREFRONT_COPY_KEY } });
   const current = setting?.value as StorefrontCopy | null;
   if (!current) throw new Error("Storefront copy no longer exists.");

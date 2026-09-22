@@ -5,6 +5,7 @@ import { Prisma, type TranslationResourceType } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { fingerprintSyncValue } from "@/lib/i18n/sync-comparison";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 import {
   contentLocaleForShopify,
@@ -122,8 +123,16 @@ function shopifyWireValue(value: unknown) {
 }
 
 async function fetchRemoteValues(resourceId: string, locale: string) {
-  if (contentLocaleForShopify(locale) === "en") {
-    const state = await fetchResourceTranslationState(resourceId, "pt-PT");
+  if (await contentLocaleForShopify(locale) === "en") {
+    // translatableContent (the source/EN copy) comes back the same
+    // regardless of which locale we ask translations() for — the query
+    // just requires some valid, non-default one. Any currently-published
+    // registry locale works; there's nothing PT-specific about this read.
+    const [anyTranslationLocale] = (await getPublishedStorefrontLocales()).filter((item) => !item.isDefault);
+    if (!anyTranslationLocale) {
+      throw new Error("No published translation locale is registered to read Shopify's source content through.");
+    }
+    const state = await fetchResourceTranslationState(resourceId, anyTranslationLocale.shopifyLocale);
     if (!state) return null;
     return sourceContentAsRemoteValues(state.translatableContent);
   }
@@ -156,7 +165,7 @@ export async function applyReconcileChoice({
       throw new Error("The review is stale. Check Shopify again before applying changes.");
     }
 
-    const contentLocale = contentLocaleForShopify(row.locale);
+    const contentLocale = await contentLocaleForShopify(row.locale);
     const subject = await loadReconcileSubject(binding, row.locale);
     if (!subject) throw new Error("The local translation no longer exists.");
     const field = subject.registry.fields.find((candidate) => candidate.key === row.fieldKey);
@@ -262,7 +271,7 @@ export async function applyReconcileChoice({
     try {
       const event = await recordSyncEvent({
         bindingId: row.bindingId,
-        locale: contentLocaleForShopify(row.locale),
+        locale: await contentLocaleForShopify(row.locale),
         direction,
         status: "FAILED",
         error: message,

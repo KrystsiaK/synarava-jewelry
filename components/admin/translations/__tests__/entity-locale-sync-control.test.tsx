@@ -16,7 +16,7 @@ describe("EntityLocaleSyncControl", () => {
     }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<EntityLocaleSyncControl scope={{ entityType: "PRODUCT", entityId: "product-1" }} locale="EN" />);
+    render(<EntityLocaleSyncControl scope={{ entityType: "PRODUCT", entityId: "product-1" }} locale="en" localeLabel="English" />);
 
     await waitFor(() => expect(screen.getByText("1 difference")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Review" }));

@@ -14,6 +14,16 @@ describe("Shopify Admin authentication", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
+    // Isolated from the real registry so these tests stay deterministic as
+    // more locales get registered in the dev DB over time. vi.doMock (not
+    // the hoisted vi.mock) because this file dynamically re-imports
+    // @/lib/shopify/admin after vi.resetModules() in every test.
+    vi.doMock("@/lib/i18n/storefront-locale-registry", () => ({
+      listStorefrontLocales: vi.fn().mockResolvedValue([
+        { code: "en", routeSegment: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, isPublished: true },
+        { code: "pt", routeSegment: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, isPublished: true },
+      ]),
+    }));
     mockedEnv.SHOPIFY_STORE_DOMAIN = "synarava.myshopify.com";
     mockedEnv.SHOPIFY_CLIENT_ID = "client-id";
     mockedEnv.SHOPIFY_CLIENT_SECRET = "client-secret";
@@ -150,7 +160,7 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingEditorialScopes).toEqual([]);
     expect(connection.missingReviewScopes).toEqual([]);
     expect(connection.missingWishlistScopes).toEqual([]);
-    expect(connection.portuguesePublished).toBe(true);
+    expect(connection.unpublishedLocales).toEqual([]);
   });
 
   it("keeps translation scopes out of the blocking missingScopes list", async () => {
@@ -183,7 +193,7 @@ describe("Shopify Admin authentication", () => {
       "write_product_reviews", "read_metaobjects", "read_customers", "read_orders", "read_products",
     ]);
     expect(connection.missingWishlistScopes).toEqual(["read_customers", "write_customers"]);
-    expect(connection.portuguesePublished).toBe(false);
+    expect(connection.unpublishedLocales).toEqual([{ code: "pt", name: "Portuguese", shopifyLocale: "pt-PT" }]);
   });
 
   it("reports missing locale access without querying the protected shopLocales field", async () => {
@@ -211,6 +221,6 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingScopes).toEqual([]);
     expect(connection.missingTranslationScopes).toContain("read_locales or read_markets_home");
     expect(connection.locales).toEqual([]);
-    expect(connection.portuguesePublished).toBe(false);
+    expect(connection.unpublishedLocales).toEqual([{ code: "pt", name: "Portuguese", shopifyLocale: "pt-PT" }]);
   });
 });

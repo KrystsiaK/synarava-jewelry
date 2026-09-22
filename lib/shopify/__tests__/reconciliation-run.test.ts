@@ -5,6 +5,10 @@ const mocks = vi.hoisted(() => ({
   executeRaw: vi.fn(),
   transaction: vi.fn(),
   findMany: vi.fn(),
+  loadReconcileSubject: vi.fn(),
+  fetchResourceTranslationState: vi.fn(),
+  planReconcile: vi.fn(),
+  projectRemoteTranslationWithMetadata: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -16,6 +20,25 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/shopify/admin", () => ({ hasShopifyAdminConfig: () => true }));
+vi.mock("@/lib/shopify/reconciliation-source", () => ({
+  loadReconcileSubject: mocks.loadReconcileSubject,
+}));
+vi.mock("@/lib/shopify/translations", () => ({
+  fetchResourceTranslationState: mocks.fetchResourceTranslationState,
+}));
+vi.mock("@/lib/shopify/translation-reconciliation", () => ({
+  planReconcile: mocks.planReconcile,
+  projectRemoteTranslationWithMetadata: mocks.projectRemoteTranslationWithMetadata,
+}));
+// Two published, non-default locales — proves the reconcile sweep loops
+// over every registered target locale, not a hardcoded Portuguese pair.
+vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
+  getPublishedStorefrontLocales: vi.fn().mockResolvedValue([
+    { code: "en", isDefault: true, shopifyLocale: "en" },
+    { code: "pt", isDefault: false, shopifyLocale: "pt-PT" },
+    { code: "ru", isDefault: false, shopifyLocale: "ru" },
+  ]),
+}));
 
 import { runTranslationReconciliation } from "@/lib/shopify/reconciliation-run";
 
@@ -59,5 +82,41 @@ describe("runTranslationReconciliation", () => {
 
     // advisory lock + insert (createOrReuseRun) + update (finishRun) — the run must be closed out, not left RUNNING.
     expect(mocks.executeRaw).toHaveBeenCalledTimes(3);
+  });
+
+  it("checks one binding independently against every published locale — English plus two non-default ones", async () => {
+    mocks.findMany.mockResolvedValue([{
+      id: "binding-1",
+      shopifyResourceId: "gid://shopify/Product/1",
+      entityId: "product-1",
+      lastSyncedSnapshot: null,
+      createdAt: new Date(),
+    }]);
+    mocks.loadReconcileSubject.mockResolvedValue({
+      rootEntityType: "PRODUCT",
+      rootEntityId: "product-1",
+      label: "Ring",
+      registry: { entity: "product", fields: [] },
+      local: {},
+    });
+    mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
+    mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
+    mocks.planReconcile.mockReturnValue({ differences: [] });
+    // lastSnapshot: one $queryRaw per locale, none found.
+    mocks.queryRaw
+      .mockResolvedValueOnce([]) // lastSnapshot(en)
+      .mockResolvedValueOnce([]) // lastSnapshot(pt-PT)
+      .mockResolvedValueOnce([]) // lastSnapshot(ru)
+      .mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 3, differenceCount: 0 })]); // runById after finishRun
+
+    const result = await runTranslationReconciliation({ trigger: "MANUAL" });
+
+    expect(result).toMatchObject({
+      run: { status: "SUCCEEDED", checkedCount: 3, differenceCount: 0 },
+      reused: false,
+    });
+    expect(mocks.loadReconcileSubject).toHaveBeenCalledTimes(3);
+    const checkedLocales = mocks.loadReconcileSubject.mock.calls.map((call) => call[1]);
+    expect(checkedLocales).toEqual(["en", "pt-PT", "ru"]);
   });
 });
