@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 
-import { getPageBySlug, getShopFilterData, listBestSellingShopifyProductIds } from "@/lib/content/catalog";
-import { listShopListingProducts } from "@/lib/content/shop-listing";
+import { db } from "@/lib/db";
+import { getPageBySlug, getShopFilterData } from "@/lib/content/catalog";
+import { listShopCatalogPage } from "@/lib/content/shop-listing";
+import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { ShopPage } from "@/components/shop/shop-page";
+import type { ShopProductTypeTile } from "@/components/shop/shop-discovery";
 import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -46,6 +49,39 @@ type Props = {
   }>;
 };
 
+/** Cover image + count per product type, from one lean scan (no variants/translations/relations). */
+async function getProductTypeTiles(productTypes: { slug: string; name: string }[]): Promise<ShopProductTypeTile[]> {
+  if (productTypes.length === 0) return [];
+  const rows = await db.product.findMany({
+    where: { status: "ACTIVE", visibility: "PUBLIC", productType: { not: null } },
+    orderBy: { createdAt: "desc" },
+    select: { productType: true, imageUrl: true, slug: true },
+  });
+  const byType = new Map<string, { image: string; count: number }>();
+  for (const row of rows) {
+    const type = row.productType?.trim();
+    if (!type) continue;
+    const existing = byType.get(type);
+    byType.set(type, {
+      image: existing?.image ?? storefrontMedia(row.imageUrl, row.slug),
+      count: (existing?.count ?? 0) + 1,
+    });
+  }
+  return productTypes.flatMap((type) => {
+    const entry = byType.get(type.slug);
+    return entry ? [{ slug: type.slug, name: type.name, image: entry.image, count: entry.count }] : [];
+  });
+}
+
+async function getDepartmentSlugsInUse(): Promise<Set<string>> {
+  const rows = await db.productCollection.findMany({
+    where: { collection: { isPrimaryNav: true }, product: { status: "ACTIVE", visibility: "PUBLIC" } },
+    select: { collection: { select: { slug: true } } },
+    distinct: ["collectionId"],
+  });
+  return new Set(rows.map((row) => row.collection.slug));
+}
+
 export default async function Page({ searchParams }: Props) {
   const rawFilters = (await searchParams) ?? {};
   const filters = {
@@ -54,50 +90,47 @@ export default async function Page({ searchParams }: Props) {
     sort: normalizeShopSort(rawFilters.sort),
   };
   const { t, locale } = await getServerTranslations();
-  const [{ departments, categories, productTypes, tags, collections, materials, finishes, origins }, archiveProducts, bestSellingShopifyProductIds, page] = await Promise.all([
+  const [
+    filterData,
+    firstPage,
+    newest,
+    popular,
+    archiveCount,
+    departmentSlugsInUse,
+    page,
+  ] = await Promise.all([
     getShopFilterData(locale),
-    listShopListingProducts(locale),
-    listBestSellingShopifyProductIds(),
+    listShopCatalogPage({ filters, locale, limit: 24 }),
+    listShopCatalogPage({ filters: { sort: "newest" }, locale, limit: 8 }),
+    listShopCatalogPage({ filters: { sort: "popular" }, locale, limit: 8 }),
+    db.product.count({ where: { status: "ACTIVE", visibility: "PUBLIC" } }),
+    getDepartmentSlugsInUse(),
     getPageBySlug("shop", locale),
   ]);
-
-  const productTypeTiles = productTypes.flatMap((productType) => {
-    const typeProducts = archiveProducts.filter((product) => product.productType === productType.slug);
-    const image = typeProducts[0]?.image;
-    return image ? [{ ...productType, image, count: typeProducts.length }] : [];
-  });
-  const productsByShopifyId = new Map(
-    archiveProducts.flatMap((product) => (
-      product.shopifyProductId ? [[product.shopifyProductId, product.slug] as const] : []
-    )),
-  );
-  const popularProductSlugs = bestSellingShopifyProductIds?.flatMap((id) => {
-    const slug = productsByShopifyId.get(id);
-    return slug ? [slug] : [];
-  }) ?? null;
+  const { departments, categories, productTypes, tags, collections, materials, finishes, origins } = filterData;
+  const productTypeTiles = await getProductTypeTiles(productTypes);
 
   return (
     <ShopPage
-      products={archiveProducts}
-      popularProductSlugs={popularProductSlugs}
+      initialPage={firstPage}
+      newestProducts={newest.nodes}
+      popularProducts={popular.nodes}
+      showPopular={popular.popularAvailable && popular.nodes.length > 0}
       heroImage={page?.content.heroImage}
       heroTitle={page?.title || t("nav.shop")}
       heroDescription={page?.content.body || t("shop.heroDescription")}
-      archiveCount={archiveProducts.length}
+      archiveCount={archiveCount}
       productTypeTiles={productTypeTiles}
       collectionsCalloutEyebrow={page?.content.eyebrow}
       collectionsCalloutTitle={page?.content.secondaryTitle}
       collectionsCalloutCtaLabel={page?.content.ctaLabel}
       collectionsCalloutSecondaryLabel={page?.content.secondaryBody}
       filterProps={{
-        departments: departments.map((department) => {
-          const hasProducts = archiveProducts.some((product) => product.departmentSlug === department.slug);
-          return {
-            value: department.slug,
-            label: department.name,
-            hint: hasProducts ? undefined : t("shop.filters.comingSoon"),
-          };
-        }),
+        departments: departments.map((department) => ({
+          value: department.slug,
+          label: department.name,
+          hint: departmentSlugsInUse.has(department.slug) ? undefined : t("shop.filters.comingSoon"),
+        })),
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
         productTypes: productTypes.map((type) => ({ value: type.slug, label: type.name })),
         collections: collections.map((c) => ({ value: c.slug, label: c.name })),

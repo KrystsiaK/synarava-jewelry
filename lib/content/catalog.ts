@@ -12,6 +12,7 @@ import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields"
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
+import { buildShopProductWhere } from "@/lib/catalog/shop-where";
 import { getCachedShopifyCollectionBestSelling } from "@/lib/shopify/collection-order";
 import { formatCurrency } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -642,7 +643,6 @@ export async function listShopProducts(
 ) {
   if (options.shopifyProductIds?.length === 0) return [];
   const locale = options.locale ?? await getRequestLocale();
-  const q = filters.q?.trim();
   const sort = normalizeShopSort(filters.sort);
   const orderBy = sort === "newest"
     ? [{ createdAt: "desc" as const }]
@@ -656,74 +656,8 @@ export async function listShopProducts(
 
   const products = await db.product.findMany({
     where: {
-      status: "ACTIVE",
-      visibility: "PUBLIC",
+      ...buildShopProductWhere(filters, locale),
       ...(options.shopifyProductIds ? { shopifyProductId: { in: options.shopifyProductIds } } : {}),
-      ...(filters.category ? { shopifyCategoryId: filters.category } : {}),
-      ...(filters.availability === "in-stock"
-        ? {
-            variants: {
-              some: {
-                status: "ACTIVE",
-                OR: [{ stockOnHand: { gt: 0 } }, { inventoryPolicy: "CONTINUE" }, { tracked: false }],
-              },
-            },
-          }
-        : {}),
-      ...(filters.tag
-        ? {
-            tags: {
-              some: {
-                tag: {
-                  slug: filters.tag,
-                },
-              },
-            },
-          }
-        : {}),
-      ...(filters.collection
-        ? {
-            collections: {
-              some: {
-                collection: {
-                  slug: filters.collection,
-                },
-              },
-            },
-          }
-        : {}),
-      ...(filters.material ? { characteristics: { some: { key: "material", textValue: filters.material } } } : {}),
-      ...(filters.finish ? { characteristics: { some: { key: "finish", textValue: filters.finish } } } : {}),
-      ...(filters.origin ? { characteristics: { some: { key: "origin", textValue: filters.origin } } } : {}),
-      ...(filters.certified ? { characteristics: { some: { key: filters.certified, booleanValue: true } } } : {}),
-      ...(q
-        ? {
-            OR: [
-              { sku: { contains: q, mode: "insensitive" } },
-              { slug: { contains: q, mode: "insensitive" } },
-              { seriesLabel: { contains: q, mode: "insensitive" } },
-              ...(locale === "en" ? [
-                { name: { contains: q, mode: "insensitive" as const } },
-                { shortDescription: { contains: q, mode: "insensitive" as const } },
-                { materialLine: { contains: q, mode: "insensitive" as const } },
-                { searchSummary: { contains: q, mode: "insensitive" as const } },
-                { searchDocument: { contains: q, mode: "insensitive" as const } },
-              ] : []),
-              {
-                translations: {
-                  some: {
-                    locale,
-                    OR: [
-                      { title: { contains: q, mode: "insensitive" } },
-                      { shortDescription: { contains: q, mode: "insensitive" } },
-                      { description: { contains: q, mode: "insensitive" } },
-                    ],
-                  },
-                },
-              },
-            ],
-          }
-        : {}),
     },
     include: {
       tags: {
@@ -781,8 +715,7 @@ export async function listShopProducts(
 
   const localizedProducts = orderedProducts
     .map((product) => toSummary(product, locale))
-    .filter((product) => product.image)
-    .filter((product) => !filters.department || product.departmentSlug === filters.department);
+    .filter((product) => product.image);
 
   // price-asc/desc re-sort here rather than trusting the DB-level orderBy above:
   // Product.priceCents is a snapshot from the last Shopify pull's first variant,

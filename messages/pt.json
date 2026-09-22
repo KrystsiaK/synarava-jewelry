@@ -75,6 +75,13 @@
     "featuredProduct": "Produto em destaque / {department}",
     "resultsHeading": "Resultados da loja",
     "loadMoreProducts": "Carregar mais produtos",
+    "catalog": {
+      "loading": "A carregar produtos…",
+      "loadingMore": "A carregar mais produtos…",
+      "allLoaded": "Todos os produtos foram carregados.",
+      "error": "Não foi possível carregar os produtos.",
+      "retry": "Tentar novamente"
+    },
     "discovery": {
       "newTitle": "Novidades",
       "newDescription": "As peças mais recentes da seleção Synarava.",

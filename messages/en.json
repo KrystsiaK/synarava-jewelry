@@ -75,6 +75,13 @@
     "featuredProduct": "Featured product / {department}",
     "resultsHeading": "Shop results",
     "loadMoreProducts": "Load more products",
+    "catalog": {
+      "loading": "Loading products…",
+      "loadingMore": "Loading more products…",
+      "allLoaded": "All products loaded.",
+      "error": "Couldn't load products.",
+      "retry": "Retry"
+    },
     "discovery": {
       "newTitle": "New arrivals",
       "newDescription": "The latest pieces to enter the Synarava selection.",
