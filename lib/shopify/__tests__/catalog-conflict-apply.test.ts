@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getProductCatalogConflict: vi.fn(),
   listConflictedProductIds: vi.fn(),
   applyReconcileChoice: vi.fn(),
+  applyCommerceField: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/catalog-conflict", async () => {
@@ -17,19 +18,29 @@ vi.mock("@/lib/shopify/catalog-conflict", async () => {
 vi.mock("@/lib/shopify/reconciliation-apply", () => ({
   applyReconcileChoice: mocks.applyReconcileChoice,
 }));
+vi.mock("@/lib/shopify/commerce-field-apply", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/shopify/commerce-field-apply")>("@/lib/shopify/commerce-field-apply");
+  return {
+    ...actual,
+    applyCommerceField: mocks.applyCommerceField,
+  };
+});
 
 import { applyCatalogConflictResolution, previewCatalogConflictResolution } from "@/lib/shopify/catalog-conflict-apply";
 import type { CatalogConflictField, ProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
 
+// A commerce field with no scoped write yet (see SCOPED_COMMERCE_FIELD_LABELS
+// in commerce-field-apply.ts) — Status is a real example: Product.status has
+// a Synarava-only "UNLISTED" value with no Shopify equivalent.
 function commerceField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
   return {
-    fieldKey: "commerce:vendor",
-    label: "Vendor",
+    fieldKey: "commerce:status",
+    label: "Status",
     scope: { kind: "SHARED" },
     origin: "COMMERCE",
     targetKind: "NATIVE",
-    synaravaValue: "Synarava",
-    shopifyValue: "Other",
+    synaravaValue: "ACTIVE",
+    shopifyValue: "DRAFT",
     baseValue: null,
     localFingerprint: "local-fp",
     shopifyFingerprint: "shopify-fp",
@@ -38,6 +49,18 @@ function commerceField(overrides: Partial<CatalogConflictField> = {}): CatalogCo
     sourceId: null,
     ...overrides,
   };
+}
+
+// A commerce field that DOES have a scoped write (Vendor is a plain scalar
+// with a single-field Shopify mutation — see commerce-field-apply.ts).
+function scopedCommerceField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
+  return commerceField({
+    fieldKey: "commerce:vendor",
+    label: "Vendor",
+    synaravaValue: "Synarava",
+    shopifyValue: "Other",
+    ...overrides,
+  });
 }
 
 function translationField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
@@ -79,25 +102,36 @@ describe("previewCatalogConflictResolution", () => {
     expect(preview.truncated).toBe(false);
   });
 
-  it("resolves a PRODUCT scope to that product's translation fields, excluding its commerce field", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([commerceField(), translationField()]));
+  it("resolves a PRODUCT scope to translation and scoped-commerce fields, excluding an unsupported commerce field", async () => {
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([commerceField(), scopedCommerceField(), translationField()]));
 
     const preview = await previewCatalogConflictResolution({ kind: "PRODUCT", productId: "product-1", direction: "SHOPIFY_TO_SYNARAVA" });
 
-    expect(preview.entries).toHaveLength(1);
-    expect(preview.entries[0].field.origin).toBe("TRANSLATION");
+    expect(preview.entries).toHaveLength(2);
+    expect(preview.entries.map((entry) => entry.field.fieldKey).sort()).toEqual(["commerce:vendor", "translation:pt-PT:title"]);
+    expect(preview.excluded).toContainEqual(expect.objectContaining({ fieldKey: "commerce:status" }));
     expect(mocks.listConflictedProductIds).not.toHaveBeenCalled();
   });
 
-  it("always excludes commerce fields with a clear reason, for BULK, PRODUCT, and MANUAL scopes alike", async () => {
+  it("excludes a commerce field with no scoped write, with a clear reason", async () => {
     mocks.getProductCatalogConflict.mockResolvedValue(conflict([commerceField()]));
 
     const preview = await previewCatalogConflictResolution({ kind: "PRODUCT", productId: "product-1", direction: "SYNARAVA_TO_SHOPIFY" });
 
     expect(preview.entries).toEqual([]);
     expect(preview.excluded).toEqual([
-      expect.objectContaining({ fieldKey: "commerce:vendor", reason: expect.stringContaining("scoped write") }),
+      expect.objectContaining({ fieldKey: "commerce:status", reason: expect.stringContaining("scoped write") }),
     ]);
+  });
+
+  it("resolves a scoped commerce field (Vendor) into entries, not excluded", async () => {
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([scopedCommerceField()]));
+
+    const preview = await previewCatalogConflictResolution({ kind: "PRODUCT", productId: "product-1", direction: "SYNARAVA_TO_SHOPIFY" });
+
+    expect(preview.excluded).toEqual([]);
+    expect(preview.entries).toHaveLength(1);
+    expect(preview.entries[0].field.label).toBe("Vendor");
   });
 
   it("resolves a MANUAL scope to only the selected field keys, excluding one no longer conflicting", async () => {
@@ -171,7 +205,7 @@ describe("applyCatalogConflictResolution", () => {
     expect(outcome.results[0]).toMatchObject({ ok: true });
   });
 
-  it("never writes a commerce field — always reports UNSUPPORTED, with no scoped write attempted", async () => {
+  it("never writes an unsupported commerce field — always reports UNSUPPORTED, with no write attempted", async () => {
     const field = commerceField();
     mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
 
@@ -184,11 +218,48 @@ describe("applyCatalogConflictResolution", () => {
     expect(outcome.results[0]).toMatchObject({ ok: false, reason: "UNSUPPORTED" });
     expect(outcome.results[0].message).toMatch(/scoped write/);
     expect(mocks.applyReconcileChoice).not.toHaveBeenCalled();
+    expect(mocks.applyCommerceField).not.toHaveBeenCalled();
+  });
+
+  it("applies a scoped commerce field (Vendor) through applyCommerceField", async () => {
+    const field = scopedCommerceField();
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.applyCommerceField.mockResolvedValue({ ok: true, message: "Synarava was applied to Shopify." });
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(field, "SYNARAVA_TO_SHOPIFY")],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(mocks.applyCommerceField).toHaveBeenCalledWith({
+      productId: "product-1",
+      label: "Vendor",
+      direction: "SYNARAVA_TO_SHOPIFY",
+      shopifyValue: field.shopifyValue,
+      synaravaValue: field.synaravaValue,
+    });
+    expect(outcome).toMatchObject({ appliedCount: 1, failedCount: 0 });
+    expect(outcome.results[0]).toMatchObject({ ok: true });
+  });
+
+  it("does not lose the batch when applyCommerceField throws instead of returning ok:false", async () => {
+    const field = scopedCommerceField();
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.applyCommerceField.mockRejectedValue(new Error("connection reset"));
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(field, "SYNARAVA_TO_SHOPIFY")],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(outcome.results[0]).toMatchObject({ ok: false, reason: "WRITE_FAILED", message: expect.stringContaining("connection reset") });
   });
 
   it("does not let one approved field's write silently carry an unrelated STALE commerce field along — the commerce field is independently rejected regardless of any other field's outcome", async () => {
     const approvedTranslation = translationField({ fieldKey: "translation:pt-PT:title" });
-    const staleCommerce = commerceField({ fieldKey: "commerce:vendor" });
+    const staleCommerce = scopedCommerceField();
     mocks.getProductCatalogConflict.mockResolvedValue(conflict([approvedTranslation, staleCommerce]));
     mocks.applyReconcileChoice.mockResolvedValue({ divergenceId: "divergence-1", ok: true, message: "applied" });
 

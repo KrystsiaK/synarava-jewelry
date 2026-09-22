@@ -6,6 +6,7 @@ import {
   type CatalogConflictDirection,
   type CatalogConflictField,
 } from "./catalog-conflict";
+import { applyCommerceField, SCOPED_COMMERCE_FIELD_LABELS } from "./commerce-field-apply";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
 // A bulk scope resolves every currently conflicted product — capped so one
@@ -18,25 +19,28 @@ const MAX_BULK_PRODUCTS = 50;
 // manual selections) — a defensive bound on request size, not a tuned value.
 const MAX_APPLY_ENTRIES = 200;
 
-// Commerce fields have no safe scoped write yet: pushProductToShopify and
-// pullShopifyProduct are whole-product — a forced push/pull rewrites every
-// commerce field *and* every published locale's translation (see their own
-// per-locale loops in product-sync.ts), using a conflict check
+// Most commerce fields still have no safe scoped write: pushProductToShopify
+// and pullShopifyProduct are whole-product — a forced push/pull rewrites
+// every commerce field *and* every published locale's translation (see their
+// own per-locale loops in product-sync.ts), using a conflict check
 // (decideProductTranslationPull / push's inline per-locale fetch+compare)
 // that is a *separate* code path from the reconcile system this module's
-// read model (getProductCatalogConflict) is built on. The two can disagree
-// about what currently conflicts, so there is no reliable way from here to
-// confirm a whole-product write would touch *only* the fields this apply
-// call approved — approving one commerce field and calling force push/pull
-// would silently carry along every other commerce field and every locale's
-// translation, including ones marked STALE or blocked on this same call.
-// Until inspectProductSyncState/push/pull get a true field-scoped rewrite
-// (tracked as an open item in catalog-conflict-resolution-plan.md stage 1),
-// commerce fields are reported UNSUPPORTED here rather than offering a
-// write guarantee this contract cannot keep. Whole-product commerce/
-// translation resolution for one product remains available through the
-// existing pushSingleProductToShopifyAction/pullSingleProductFromShopifyAction.
-const COMMERCE_UNSUPPORTED_REASON = "Commerce fields don't have a scoped write yet — resolving one commerce field would also silently overwrite every other commerce field and translation locale on this product. Use the product's existing Push/Pull action to resolve commerce as a whole.";
+// read model (getProductCatalogConflict) is built on. That combination is
+// why those two functions stay off-limits here. A narrow slice of plain
+// scalar fields (SCOPED_COMMERCE_FIELD_LABELS, in commerce-field-apply.ts —
+// Vendor, Product type, Variant SKU, Price, Compare-at price) instead has
+// its own single-field Shopify mutation (productUpdate/
+// productVariantsBulkUpdate with only that key) and a single-column Prisma
+// write — no other field is touched. Everything else stays UNSUPPORTED.
+// Whole-product commerce/translation resolution for one product remains
+// available through the existing
+// pushSingleProductToShopifyAction/pullSingleProductFromShopifyAction — but
+// not from inside this contract's dialogs (see catalog-conflict-resolution-plan.md stage 2).
+const COMMERCE_UNSUPPORTED_REASON = "This commerce field doesn't have a scoped write yet. Use the product's existing Push/Pull action to resolve commerce as a whole.";
+
+function isScopedCommerceField(field: CatalogConflictField): boolean {
+  return field.origin === "COMMERCE" && SCOPED_COMMERCE_FIELD_LABELS.has(field.label);
+}
 
 export type CatalogConflictApplyScope =
   | { kind: "BULK"; direction: CatalogConflictDirection }
@@ -82,9 +86,9 @@ function willClear(field: CatalogConflictField, direction: CatalogConflictDirect
  * function backs a bulk direction, a single product's direction, and a
  * hand-picked manual field list, so preview and apply always agree on what
  * "this scope" means. Fields whose direction isn't allowed, that are no
- * longer conflicting, or that are COMMERCE-origin (see
- * COMMERCE_UNSUPPORTED_REASON above) are reported in `excluded`, never
- * silently dropped.
+ * longer conflicting, or that are COMMERCE-origin outside
+ * SCOPED_COMMERCE_FIELD_LABELS (see COMMERCE_UNSUPPORTED_REASON above) are
+ * reported in `excluded`, never silently dropped.
  */
 export async function previewCatalogConflictResolution(scope: CatalogConflictApplyScope): Promise<CatalogConflictPreview> {
   const entries: ResolvedCatalogConflictEntry[] = [];
@@ -95,7 +99,7 @@ export async function previewCatalogConflictResolution(scope: CatalogConflictApp
     const conflict = await getProductCatalogConflict(productId);
     for (const field of conflict.fields) {
       if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
-      if (field.origin === "COMMERCE") {
+      if (field.origin === "COMMERCE" && !isScopedCommerceField(field)) {
         excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: COMMERCE_UNSUPPORTED_REASON });
         continue;
       }
@@ -178,11 +182,12 @@ function staleResult(entry: CatalogConflictApplyEntryInput, message: string): Ca
  * fingerprints must still match, or the entry is reported STALE and
  * skipped rather than overwritten.
  *
- * Only TRANSLATION-origin fields are actually written here, individually,
- * through the existing per-field applyReconcileChoice (already atomic,
- * fingerprint-checked, and verified by a read-after-write). COMMERCE-origin
- * fields are always reported UNSUPPORTED — see COMMERCE_UNSUPPORTED_REASON
- * at the top of this file for why a scoped commerce write isn't safe yet.
+ * TRANSLATION-origin fields apply individually through the existing
+ * per-field applyReconcileChoice (already atomic, fingerprint-checked, and
+ * verified by a read-after-write). COMMERCE-origin fields apply through
+ * applyCommerceField only when their label is in
+ * SCOPED_COMMERCE_FIELD_LABELS; every other commerce field is reported
+ * UNSUPPORTED — see COMMERCE_UNSUPPORTED_REASON at the top of this file.
  *
  * A repeated submission of the same input is safe: once an entry has been
  * applied, the underlying value/fingerprint has changed, so re-validation
@@ -202,7 +207,8 @@ export async function applyCatalogConflictResolution({
   }
 
   const results: CatalogConflictApplyEntryResult[] = [];
-  const ready: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyTranslation: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyCommerce: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
 
   const productIds = [...new Set(entries.map((entry) => entry.productId))];
   const conflictsByProduct = new Map(
@@ -220,7 +226,7 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
-    if (field.origin === "COMMERCE") {
+    if (field.origin === "COMMERCE" && !isScopedCommerceField(field)) {
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: COMMERCE_UNSUPPORTED_REASON });
       continue;
     }
@@ -232,10 +238,10 @@ export async function applyCatalogConflictResolution({
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "NEEDS_CLEAR_CONFIRMATION", message: "This would clear a non-empty value. Confirm clearing before applying." });
       continue;
     }
-    ready.push({ input: entry, field });
+    (field.origin === "TRANSLATION" ? readyTranslation : readyCommerce).push({ input: entry, field });
   }
 
-  for (const { input, field } of ready) {
+  for (const { input, field } of readyTranslation) {
     if (!field.sourceId) {
       results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: "This translated field is missing its source record." });
       continue;
@@ -254,6 +260,29 @@ export async function applyCatalogConflictResolution({
         expectedLocalFingerprint: input.expectedLocalFingerprint,
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,
         actorUsername,
+      });
+      results.push(
+        outcome.ok
+          ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
+          : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "This change could not be applied.";
+      results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message });
+    }
+  }
+
+  for (const { input, field } of readyCommerce) {
+    // applyCommerceField itself catches its own write errors and returns
+    // {ok:false}, but wrapped defensively anyway so a bug there can never
+    // take the rest of this batch down with it (same reasoning as above).
+    try {
+      const outcome = await applyCommerceField({
+        productId: input.productId,
+        label: field.label,
+        direction: input.direction,
+        shopifyValue: field.shopifyValue,
+        synaravaValue: field.synaravaValue,
       });
       results.push(
         outcome.ok
