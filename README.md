@@ -117,11 +117,13 @@ then SKU, then handle. Ambiguous identities are recorded as conflicts instead of
 The Admin API token needs
 `read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`, and
 `write_publications`. Product localization also needs `read_translations`, `write_translations`,
-and `read_locales`. Enable and publish Portuguese (Portugal), locale `pt-PT`, in Shopify under
-**Settings → Languages**, then assign it to the relevant market and domain. After changing scopes,
+and `read_locales`. Enable and publish each language you want to synchronize in Shopify Markets,
+then import it into the admin locale registry. Portuguese (`pt-PT`) and Russian (`ru`) are already
+supported by the registry; translated content still needs to be entered and reviewed per product.
+After changing scopes,
 release the updated Shopify app configuration and approve the new permissions for the store; replace
 `SHOPIFY_ADMIN_ACCESS_TOKEN` if Shopify issues a new token. The admin connection test verifies the
-granted scopes and that `pt-PT` is published before localized product sync is used.
+granted scopes and reports any registered locales that Shopify has not published.
 
 Collection priority is Shopify's manual collection order. In the admin product table, choose a
 collection and the **Collection priority** sort, then drag rows or use the arrow controls. Each move
@@ -150,12 +152,12 @@ Customer wishlists are stored in the Shopify Customer `synarava.wishlist` metafi
 Admin API `read_customers` and `write_customers` scopes. Missing wishlist access degrades to an empty
 wishlist instead of preventing the authenticated customer profile from loading.
 
-English product content is synchronized as Shopify's base product content. Reviewed Portuguese
-product content is registered through Shopify's Translation API, and Portuguese edits made in
-Shopify Translate & Adapt are read back during **Pull**, **Compare catalogs**, or **Reconcile**. Shopify
-does not expose a translation-update webhook, so translation-only edits are detected by these
-explicit reconciliation actions. Concurrent PT edits are marked as conflicts instead of being
-silently overwritten; Synarava-only editorial fields are preserved.
+English product content is synchronized as Shopify's base product content. Reviewed content for
+each registered, published translation locale is registered through Shopify's Translation API.
+Edits made in Shopify Translate & Adapt are read back during **Pull**, **Compare catalogs**, or
+the admin reconciliation check. Shopify does not expose a translation-update webhook, so
+translation-only edits are detected by reconciliation. Concurrent edits in any locale require
+an explicit decision; Synarava-only editorial fields are preserved.
 Install Shopify's free **Translate & Adapt** app in each store where staff should edit these fields
 inside Shopify Admin; API synchronization itself uses the translation scopes above.
 
@@ -163,10 +165,10 @@ The catalog records the canonical `*.myshopify.com` store it is linked to. If cr
 changed to a duplicated Shopify store, **Check Shopify link** offers an explicit rebind action.
 Rebinding clears only old store-specific IDs, then **Compare catalogs** matches the duplicated products
 and collections by SKU/handle before any data is applied. The new store still needs its own app
-installation/token, required scopes, published `pt-PT` locale, publication ID, and inventory
-location ID. Editorial pages remain owned by this application; they are not synchronized to
-Shopify. The public app URL must be
-HTTPS so Shopify can deliver signed webhooks.
+installation/token, required scopes, published locales, publication ID, and inventory
+location ID. Editorial page layout remains owned by this application; supported page copy
+is synchronized to Shopify Pages or app-owned metaobjects through the localization system.
+The public app URL must be HTTPS so Shopify can deliver signed webhooks.
 
 ## Railway
 

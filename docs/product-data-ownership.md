@@ -10,11 +10,12 @@ The synchronization boundary has three explicit layers:
 2. **Shopify product metafields** — structured specifications, certificates, care information, fit, composition, provenance, and other reusable customer-facing facts are stored in the `synarava` namespace. Synarava provides the editing UI and mirrors these values bidirectionally.
 3. **Synarava-only editorial content** — symbolism, material stories, craftsmanship narrative, editorial photography, lookbook composition, and storefront art direction remain local when Shopify cannot represent them without losing structure or editorial intent.
 
-Localized Shopify product title, description, and SEO copy are shared fields. Portuguese values can
-be edited in either Synarava or Shopify Translate & Adapt and are reconciled explicitly. Shopify has
-no translation-update webhook, so translation-only changes are discovered by Pull, Preview sync,
-or Reconcile. Concurrent edits require an explicit winner; Synarava-only localized fields are never
-cleared by that decision.
+Localized Shopify product title, description, and SEO copy are shared fields. Values for every
+registered Shopify locale, including Portuguese and Russian when that product's translation exists,
+can be edited in either Synarava or Shopify Translate & Adapt and are reconciled explicitly. Shopify
+has no translation-update webhook, so translation-only changes are discovered by Pull, Preview sync,
+or Reconcile. Concurrent edits require an explicit winner for the affected locale and field;
+Synarava-only localized fields and other locales are not cleared by that decision.
 
 ## Ownership rules
 

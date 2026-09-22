@@ -2,7 +2,7 @@
 
 ## Статус
 
-**In implementation — 2026-09-20.** Detection, field-level review, scoped writes, locale-aware EN/PT handling, and the editor conflict entry points are implemented; live Shopify round trips, recovery history, observability, and rollout validation remain open.
+**In implementation — 2026-09-20; original design baseline.** Detection, field-level review, scoped writes, locale-aware reconciliation, and editor conflict entry points have since been implemented. This document retains the original EN/PT examples and initial problem list as design history; they do not describe every current screen or limit the now registry-based language support. For the next catalog UI implementation, use [`catalog-conflict-resolution-plan.md`](./catalog-conflict-resolution-plan.md) and its linked UX specification. Live Shopify round trips, recovery history, observability, and rollout validation remain open here.
 
 Этот документ дополняет, но не заменяет [`tasks/plan.md`](./plan.md). Старый план описывает EN/PT-платформу; здесь отдельно спроектирован ежедневный workflow проверки расхождений, понятного merge и безопасного точечного sync для обычного администратора.
 
@@ -26,7 +26,7 @@
 - Технические детали доступны в раскрываемом блоке «Technical details», но не мешают обычному workflow.
 - Сигнал «всё синхронизировано» показывается только после успешной свежей проверки. Отсутствие данных не считается успехом.
 
-## Что сейчас не работает достаточно хорошо
+## Исходные проблемы на дату создания плана (история)
 
 1. При открытии админки Shopify не сверяется автоматически; интерфейс показывает только локальные статусы предыдущих операций.
 2. `/admin/translations` выводит все сущности, включая `SYNCED`, из-за чего реальные проблемы теряются среди неактивных строк.

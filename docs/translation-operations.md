@@ -2,9 +2,9 @@
 
 ## Daily workflow
 
-Edit every registered locale (English plus any translation locale — Portuguese, Russian, and so on) in the same admin editor. The sticky locale tabs render one per registered locale and only change the visible panel; they do not save, upload media, or duplicate shared relations. Save the entity, then use **Admin → Localization** to review `MISSING`, `PENDING`, `FAILED`, and `CONFLICT` resources.
+Edit every registered locale (English plus any translation locale — Portuguese, Russian, and so on) in the same admin editor. The sticky locale tabs render one per registered locale and only change the visible panel; they do not save, upload media, or duplicate shared relations. Save the entity, then use **Admin → Localization** to check Shopify and review the fields that differ. The page distinguishes changes made only in Synarava, only in Shopify, and on both sides.
 
-`Retry` is available only for missing, pending, or failed resources. It performs an idempotent Shopify upsert/register. Conflicts never retry automatically: open the linked editor, review both versions, and deliberately choose which side wins using the entity's sync controls.
+Use **Check now** to refresh the comparison. For a difference, review both values and choose the version to keep for each field before applying. An entity editor also has **Sync details** / **Review** beside the active language tab; **Compare and decide** opens the scoped comparison in Localization. A failed or incomplete check is not evidence that the values match. Catalog-specific conflict dialogs are a planned improvement, described in [`admin/catalog-conflict-resolution-ux.md`](./admin/catalog-conflict-resolution-ux.md).
 
 ## Shopify prerequisites
 
@@ -26,10 +26,10 @@ No Prisma migration, TypeScript union, routing regex, or Shopify adapter needs t
 
 ## Failure recovery
 
-1. Do not delete local EN/PT content. Shopify write failures leave the local translation intact and record a failed audit event.
+1. Do not delete saved content in any locale. Shopify write failures leave the local translation intact and record a failed audit event.
 2. Fix locale publication, scopes, definition capability, or the reported field mismatch.
-3. Retry the individual resource from **Localization**. Confirm its status becomes `SYNCED` and that actor/direction/result appear in the audit line.
-4. For a conflict, compare local and Shopify values before choosing push or pull. Never use a bulk retry to resolve conflicts.
+3. Run **Check now** (or **Check** for the affected language in its editor), review the current values, and apply only the intended fields. Confirm that the next successful check shows no remaining difference for those fields.
+4. For a conflict, compare local and Shopify values before choosing either version. Do not use a broad product push/pull as a substitute for reviewing localized fields.
 
 ## Rollback
 

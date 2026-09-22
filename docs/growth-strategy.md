@@ -49,6 +49,9 @@ material compliance and operational risk.
   add to cart, checkout start, and checkout completion.
 - Robots, dynamic sitemap generation, canonical metadata, Open Graph metadata,
   Organization JSON-LD, and collection breadcrumbs exist.
+- Published locales have indexable URL prefixes, sitemap language alternates,
+  and localized metadata. Russian is registered; its content still needs
+  translation and review where English fallback is currently shown.
 
 ### Main gaps
 
@@ -64,8 +67,8 @@ material compliance and operational risk.
   need a dedicated audit.
 - Sitemap timestamps are generated at request time instead of using the real
   content update time.
-- Locale selection is cookie-based; indexable locale URLs and `hreflang` are
-  not yet part of the SEO architecture.
+- Completing and reviewing non-English content remains an editorial task;
+  locale URL and language alternate infrastructure is already in place.
 - Newsletter UI exists, but a complete subscription, welcome, post-purchase,
   review, and win-back lifecycle is not connected.
 
