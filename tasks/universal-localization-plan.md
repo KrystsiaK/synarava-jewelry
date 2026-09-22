@@ -829,13 +829,56 @@ still 200s after the characteristics refactor.
 
 #### Task U12: Release gates
 
-**Acceptance criteria:**
+**Status: done (2026-09-22).**
 
-- [ ] Full unit, integration, lint and typecheck suites pass.
-- [ ] Browser route matrix covers default, regional (`pt-PT`) and simple
-  (`ru`) locales.
-- [ ] Shopify connection health confirms every published locale.
-- [ ] Documentation explains adding a new language in three data/config steps.
+- [x] Full unit, integration, lint and typecheck suites pass. `tsc --noEmit`,
+  `eslint .`, and `vitest run` (187 files / 936 tests, including the three
+  real-DB integration tests) all green locally. Also fixed a real,
+  pre-existing gap while checking this: the CI `quality` job's
+  `DATABASE_URL` pointed at a Postgres that was never actually started, so
+  the three real-DB integration tests (added in Task U4, before this
+  session) had been failing in CI on every push since they were added —
+  unrelated to any code under test. Added the same `postgres` service block
+  the separate `storefront-smoke` job already used, plus a `pnpm prisma:push`
+  step, to the `quality` job (`.github/workflows/ci.yml`).
+- [x] Browser route matrix covers default, regional (`pt-PT`) and simple
+  (`ru`) locales. `e2e/localization.spec.ts` ("EN/PT route matrix" →
+  "EN/PT/RU route matrix") already covered EN/PT; added a third test
+  covering Russian specifically as the "simple (no reviewed content yet)"
+  case the release gate cares about — asserts `/ru/shipping` resolves
+  `lang="ru"` (not silently `"en"`) and renders the correct English
+  fallback title, and that `/ru`'s home page renders with the language
+  switcher visible. All 3 tests pass locally against the dev server. This
+  spec isn't wired into the on-every-push CI job (only `e2e/smoke.spec.ts`
+  is, deliberately, for CI speed) — it's a `pnpm test:e2e` release-checklist
+  item, not something this task changed.
+- [x] Shopify connection health confirms every published locale. Already
+  true since Task U5: `testShopifyAdminConnection()`'s `unpublishedLocales`
+  diffs *every* registered non-default locale against Shopify's actually-
+  published `shopLocales`, not a hardcoded Portuguese check — verified by
+  `lib/shopify/__tests__/admin.test.ts`'s existing coverage and this
+  session's live confirmation that `ru` already resolves as published. No
+  new code needed here, just confirming the criterion was already met.
+- [x] Documentation explains adding a new language in three data/config
+  steps. `docs/translation-operations.md` was written for the old EN/PT-only
+  era ("Edit English and Portuguese in the same admin editor," "Portuguese
+  (`pt-PT`) must be published") — updated to describe the current N-locale
+  reality and added an "Adding a new language" section spelling out the
+  same three steps the plan's own goal statement describes (enable/publish
+  in Shopify Markets → sync into the registry and choose a URL segment →
+  enter/import and review translations), phrased for an operator following
+  this doc rather than someone reading the architecture plan. Also noted
+  honestly, rather than silently claiming otherwise, that
+  `pnpm translations:backfill`'s completeness report is still Portuguese-only
+  (`scripts/lib/translation-coverage.mjs`, deliberately left out of Task
+  U11's scope) — an operator enabling a different language needs to verify
+  completeness manually via Admin until that tool is generalized.
+
+**Verification:** full suite green as above. Live-verified: `/ru` end to end
+(home, shop, collections, about, every legal/service page, a real product)
+already covered by this session's earlier RU-enablement verification: all
+return 200 with correct `lang="ru"` and English-fallback content.
+`e2e/localization.spec.ts` passes 3/3 against the local dev server.
 
 ## Non-goals
 
