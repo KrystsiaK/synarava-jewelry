@@ -276,17 +276,32 @@ describe("applyCommerceField — refreshes persisted sync state after a successf
     });
   });
 
-  it("does not mark UNLINKED/REMOTE_MISSING products SYNCED just because differences happens to be empty there too", async () => {
+  it("REGRESSION: reports failure — not ok:true — when the post-write re-check comes back REMOTE_MISSING, since the comparison never ran and an empty differences list there proves nothing", async () => {
     mocks.inspectProductSyncState
       .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] }))
       .mockResolvedValueOnce(inspection({ state: "REMOTE_MISSING", differences: [] }));
-    mocks.updateProduct.mockResolvedValueOnce({ vendor: null });
+    mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself succeeds
 
-    await applyCommerceField({
+    const result = await applyCommerceField({
       productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
     });
 
-    // Only the one call for the field write itself — no second (sync-state refresh) call.
+    expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED", message: expect.stringContaining("no longer exists") });
+    // Only the one call for the field write itself — no second (sync-state refresh) call, never marked SYNCED.
+    expect(mocks.updateProduct).toHaveBeenCalledTimes(1);
+  });
+
+  it("REGRESSION: reports failure — not ok:true — when the post-write re-check comes back UNLINKED, for the same reason", async () => {
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] }))
+      .mockResolvedValueOnce(inspection({ state: "UNLINKED", differences: [] }));
+    mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself succeeds
+
+    const result = await applyCommerceField({
+      productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED", message: expect.stringContaining("no longer linked") });
     expect(mocks.updateProduct).toHaveBeenCalledTimes(1);
   });
 

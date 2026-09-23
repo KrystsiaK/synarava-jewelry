@@ -165,50 +165,69 @@ async function writeToShopify(productId: string, label: string, value: string, v
   throw new Error(`${label} is not a supported commerce field.`);
 }
 
-/**
- * Re-inspects the product right after a successful field write and (a)
- * reports whether *this specific field* is still showing up as a
- * conflict, and (b) as a side effect, persists the product's true sync
- * state when nothing is left to reconcile at all.
- *
- * (a) matters because the write's own internal read-back check (in
- * writeLocally/writeToShopify) only confirms the mutation/update accepted
- * and echoed the value we sent — it does not confirm that the
- * authoritative comparison this whole system is built on
- * (inspectProductSyncState/compare()) now agrees the field is resolved.
- * Those can disagree: something could change again immediately after our
- * write (a race with another process/webhook), or the echoed value could
- * satisfy our own equality check while compare()'s normalization still
- * sees a difference. Without this check, applyCommerceField would report
- * `ok: true` while the field is still visibly conflicting — success shown
- * to the admin, conflict still there.
- *
- * (b) deliberately keys off `inspection.differences.length`, not
- * `inspection.state`: inspectProductSyncState derives `state` partly from
- * the *persisted* `syncStatus`/`shopifyUpdatedAt` columns this function is
- * responsible for fixing, and partly from a timestamp check
- * (`remote.updatedAt > local.shopifyUpdatedAt`) that Shopify's own mutation
- * just bumped. Right after this write resolves the *only* remaining
- * difference, both of those stale columns still read as before — the
- * persisted `syncStatus` is still "CONFLICT" and `shopifyUpdatedAt` is
- * still older than the just-mutated `remote.updatedAt` — so `state` comes
- * back "CONFLICT" even with an empty `differences` list. Trusting `state`
- * here would leave a fully-resolved product stuck showing a conflict
- * badge forever. `differences.length === 0` is the actual ground truth:
- * nothing left to reconcile, regardless of what those two stale columns
- * say — and this call itself corrects them by writing the fresh
- * `remoteUpdatedAt` back.
- *
- * UNLINKED/REMOTE_MISSING mean the comparison itself couldn't run (no
- * Shopify link, or the remote product is gone) — `differences` is also
- * empty there, but for a different reason, so those are left untouched
- * rather than misreported as SYNCED.
- */
-async function refreshAfterWrite(productId: string, label: string): Promise<{ stillConflicting: boolean }> {
-  const inspection = await inspectProductSyncState(productId);
-  const stillConflicting = inspection.differences.some((item) => item.field === label);
+export type RefreshAfterWriteResult =
+  | { status: "resolved" }
+  | { status: "still-conflicting" }
+  | { status: "unverifiable"; message: string };
 
-  if (inspection.state !== "UNLINKED" && inspection.state !== "REMOTE_MISSING" && inspection.differences.length === 0) {
+/**
+ * Re-inspects the product right after a successful field write to decide
+ * whether the write can actually be reported as resolved, and — only when
+ * it can — persists the product's true sync state.
+ *
+ * The write's own internal read-back check (in writeLocally/writeToShopify)
+ * only confirms the mutation/update accepted and echoed the value we sent
+ * — it does not confirm that the authoritative comparison this whole
+ * system is built on (inspectProductSyncState/compare()) now agrees the
+ * field is resolved. Those can disagree: something could change again
+ * immediately after our write (a race with another process/webhook), or
+ * the echoed value could satisfy our own equality check while compare()'s
+ * normalization still sees a difference. Without this re-check,
+ * applyCommerceField would report `ok: true` while the field is still
+ * visibly conflicting — success shown to the admin, conflict still there.
+ *
+ * `state === "UNLINKED" | "REMOTE_MISSING"` is checked *first* and always
+ * returns "unverifiable": inspectProductSyncState returns an unconditional
+ * empty `differences` array for both — the comparison never even ran (no
+ * Shopify link, or the remote product is gone) — so an empty list there
+ * carries no information about whether the applied field is actually
+ * resolved. Treating that empty list the same as "nothing left to
+ * reconcile" (as a naive `differences.length === 0` check would) is
+ * indistinguishable from a genuine resolution and would silently report
+ * success for a write we have no evidence actually landed. `differences`
+ * is only trustworthy as "nothing left to reconcile" once we know the
+ * comparison actually ran.
+ *
+ * Once a real comparison ran (any other state), "resolved" is
+ * `differences.length === 0` — deliberately not `inspection.state`, which
+ * is derived partly from the *persisted* `syncStatus`/`shopifyUpdatedAt`
+ * columns this function is responsible for fixing, and partly from a
+ * timestamp check (`remote.updatedAt > local.shopifyUpdatedAt`) that
+ * Shopify's own mutation just bumped. Right after this write resolves the
+ * *only* remaining difference, both of those stale columns still read as
+ * before — the persisted `syncStatus` is still "CONFLICT" and
+ * `shopifyUpdatedAt` is still older than the just-mutated
+ * `remote.updatedAt` — so `state` comes back "CONFLICT" even with an
+ * empty `differences` list. Trusting `state` here would leave a
+ * fully-resolved product stuck showing a conflict badge forever.
+ */
+async function refreshAfterWrite(productId: string, label: string): Promise<RefreshAfterWriteResult> {
+  const inspection = await inspectProductSyncState(productId);
+
+  if (inspection.state === "UNLINKED" || inspection.state === "REMOTE_MISSING") {
+    return {
+      status: "unverifiable",
+      message: inspection.state === "REMOTE_MISSING"
+        ? "The linked Shopify product no longer exists — this field's write could not be verified. Nothing is marked resolved."
+        : "This product is no longer linked to Shopify — this field's write could not be verified. Nothing is marked resolved.",
+    };
+  }
+
+  if (inspection.differences.some((item) => item.field === label)) {
+    return { status: "still-conflicting" };
+  }
+
+  if (inspection.differences.length === 0) {
     await db.product.update({
       where: { id: productId },
       data: {
@@ -220,7 +239,7 @@ async function refreshAfterWrite(productId: string, label: string): Promise<{ st
     });
   }
 
-  return { stillConflicting };
+  return { status: "resolved" };
 }
 
 /**
@@ -299,8 +318,11 @@ export async function applyCommerceField({
     return { ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This change could not be applied." };
   }
 
-  const { stillConflicting } = await refreshAfterWrite(productId, label);
-  if (stillConflicting) {
+  const refreshResult = await refreshAfterWrite(productId, label);
+  if (refreshResult.status === "unverifiable") {
+    return { ok: false, reason: "WRITE_FAILED", message: refreshResult.message };
+  }
+  if (refreshResult.status === "still-conflicting") {
     return {
       ok: false,
       reason: "WRITE_FAILED",
