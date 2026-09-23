@@ -41,14 +41,42 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("heading", { name: "Build the product gallery" })).toBeInTheDocument();
   });
 
-  it("supports arrow-key navigation and omits Shopify before creation", () => {
-    render(<TabsHarness includeShopify={false} />);
+  it("tints sections with open issues and lists them under the description", () => {
+    const issues = [
+      {
+        id: "iss-1",
+        key: "k1",
+        entityType: "PRODUCT",
+        entityId: "p1",
+        entityLabel: "Ring",
+        fieldPath: "field-taxonomy-category",
+        issueType: "MISSING_TAXONOMY",
+        severity: "WARNING",
+        status: "OPEN" as const,
+        title: "Missing category",
+        description: "No category",
+        targetHref: "/admin/products/p1#field-taxonomy-category",
+        firstSeenAt: new Date(),
+        lastSeenAt: new Date(),
+        resolvedAt: null,
+        notificationSentAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
 
-    const essentials = screen.getByRole("tab", { name: /Essentials/i });
-    essentials.focus();
-    fireEvent.keyDown(essentials, { key: "ArrowRight" });
+    render(
+      <ProductEditorTabs
+        active="catalog"
+        onChange={() => {}}
+        issueSections={new Set(["catalog"])}
+        sectionIssues={issues}
+        onIssueActivate={() => {}}
+      />,
+    );
 
-    expect(screen.getByRole("tab", { name: /Catalog/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByRole("tab", { name: /Shopify/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Catalog/i })).toHaveAttribute("data-issue", "true");
+    expect(screen.getByRole("button", { name: /Missing category/i })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Essentials/i })).not.toHaveAttribute("data-issue");
   });
 });

@@ -9,6 +9,7 @@ import type {
   ReconcileDifferenceView,
   ReconcileRunSummary,
 } from "@/lib/shopify/reconciliation-run";
+import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
 
 export type ReconcileDifferenceRow = ReconcileDifferenceView & { href: string };
 type DifferenceFilter = "ALL" | ReconcileDifferenceView["kind"];
@@ -443,16 +444,20 @@ export function TranslationsCms({
           </ul>
 
           {clearCount > 0 ? (
-            <label className="adm-apply-review__clear">
-              <input type="checkbox" checked={acknowledgedClears} onChange={(event) => setAcknowledgedClears(event.target.checked)} />
-              <span>I understand that {clearCount} selected value{clearCount === 1 ? "" : "s"} will be cleared.</span>
-            </label>
+            <AdminCheckboxControl
+              className="adm-apply-review__clear"
+              checked={acknowledgedClears}
+              onChange={(event) => setAcknowledgedClears(event.target.checked)}
+              label={`I understand that ${clearCount} selected value${clearCount === 1 ? "" : "s"} will be cleared.`}
+            />
           ) : null}
           {selected.length > 1 ? (
-            <label className="adm-apply-review__confirm">
-              <input type="checkbox" checked={acknowledgedBatch} onChange={(event) => setAcknowledgedBatch(event.target.checked)} />
-              <span>I reviewed all {selected.length} selected changes and their destinations.</span>
-            </label>
+            <AdminCheckboxControl
+              className="adm-apply-review__confirm"
+              checked={acknowledgedBatch}
+              onChange={(event) => setAcknowledgedBatch(event.target.checked)}
+              label={`I reviewed all ${selected.length} selected changes and their destinations.`}
+            />
           ) : null}
         </aside>
       ) : null}

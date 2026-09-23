@@ -71,7 +71,7 @@ describe("ShopifyCategoryField", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Clear" }));
+    await user.click(screen.getByRole("button", { name: "Clear field" }));
 
     expect(container.querySelector<HTMLInputElement>('input[name="shopifyCategoryId"]')).toHaveValue("");
     expect(container.querySelector<HTMLInputElement>('input[name="shopifyCategoryName"]')).toHaveValue("");

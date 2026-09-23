@@ -141,9 +141,7 @@ export function collectionToDraft(collection: AdminCollection, translationLocale
   };
 }
 
-export function fieldClass(error?: string) {
-  return error ? "adm-field adm-field--error" : "adm-field";
-}
+export { fieldClass } from "@/components/admin/shared/admin-field-shell";
 
 export function submitLabel(base: string, pending: boolean, pendingLabel: string) {
   return pending ? pendingLabel : base;

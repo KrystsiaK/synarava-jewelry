@@ -122,7 +122,7 @@ export function useAdminFormValidation<FieldName extends string>({
   return { clearFieldError, fieldErrorId, fieldErrors, fieldId, fieldProps, showFieldErrors, validate };
 }
 
-export function AdminFieldError({ id, message }: { id: string; message?: string }) {
+export function AdminFieldError({ id, message }: { id?: string; message?: string }) {
   if (!message) return null;
   return <p data-component="AdminFieldError" id={id} className="adm-field-error">{message}</p>;
 }

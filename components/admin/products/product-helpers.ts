@@ -2,6 +2,7 @@ import { parseProductDetails } from "@/lib/content/product-details";
 import { productCollectionPosition } from "@/lib/catalog/collection-order";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
+import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductDraft, ProductLocaleDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
 
 export const PRODUCT_SAVE_FAILURE_MESSAGE =
@@ -218,6 +219,56 @@ export function productStatusLabel(product: ProductRecord) {
 
 export function issuesForField(issues: AdminIssueSummary[], fieldPath: string) {
   return issues.filter((issue) => issue.fieldPath === fieldPath && issue.status === "OPEN");
+}
+
+/**
+ * Maps a scanned issue field id to the product editor section that owns it.
+ * Keep in sync with hash routing in `product-edit-form`.
+ */
+export function productEditorSectionForField(fieldPath: string): ProductEditorSection | null {
+  if (fieldPath === "field-imageUrl") return "media";
+  if (fieldPath.startsWith("field-taxonomy-")) return "catalog";
+  if (fieldPath.startsWith("field-details-")) return "details";
+  return null;
+}
+
+/**
+ * Locale for a language-scoped issue, or `null` when the field is shared
+ * across locales (Shopify category, collection, gallery cover, shared media).
+ */
+export function productEditorLocaleForField(fieldPath: string): string | null {
+  // Scanned product issues today are all shared. Reserved for future
+  // locale-tagged field paths / metadata (e.g. missing PT title).
+  void fieldPath;
+  return null;
+}
+
+export function openProductIssues(issues: AdminIssueSummary[]) {
+  return issues.filter((issue) => issue.status === "OPEN");
+}
+
+export function issuesForSection(issues: AdminIssueSummary[], section: ProductEditorSection) {
+  return openProductIssues(issues).filter(
+    (issue) => productEditorSectionForField(issue.fieldPath) === section,
+  );
+}
+
+export function sectionsWithOpenIssues(issues: AdminIssueSummary[]) {
+  const sections = new Set<ProductEditorSection>();
+  for (const issue of openProductIssues(issues)) {
+    const section = productEditorSectionForField(issue.fieldPath);
+    if (section) sections.add(section);
+  }
+  return sections;
+}
+
+export function localesWithOpenIssues(issues: AdminIssueSummary[]) {
+  const locales = new Set<string>();
+  for (const issue of openProductIssues(issues)) {
+    const locale = productEditorLocaleForField(issue.fieldPath);
+    if (locale) locales.add(locale);
+  }
+  return locales;
 }
 
 export function productActionCopy(target: ProductRowAction) {

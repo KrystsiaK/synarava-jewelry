@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, RefreshCw, TriangleAlert } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, HardDriveUpload, RefreshCw, TriangleAlert } from "lucide-react";
 
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import { centsToPrice } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
@@ -25,20 +26,42 @@ export function ProgressBar({ pending }: { pending: boolean }) {
 export function SaveButtons({
   onOpenConfirm,
   pending,
+  iconOnly = false,
 }: {
   onOpenConfirm: () => void;
   pending: boolean;
+  iconOnly?: boolean;
 }) {
-  return (
-    <button data-component="SaveButtons"
+  const label = pending ? "Saving product…" : "Save product locally. Shopify does not change until you push.";
+  const button = (
+    <button
+      data-component="SaveButtons"
       type="button"
       onClick={onOpenConfirm}
       disabled={pending}
-      className="adm-btn-primary"
+      className={
+        iconOnly
+          ? "adm-btn-ghost grid size-12 place-items-center p-0"
+          : "adm-btn-primary"
+      }
+      aria-label={pending ? "Saving product" : "Save product"}
     >
-      {pending ? "Saving..." : "Save product"}
+      {iconOnly ? (
+        pending ? (
+          <RefreshCw className="size-7 animate-spin" strokeWidth={2.75} aria-hidden="true" />
+        ) : (
+          <HardDriveUpload className="size-7" strokeWidth={2.75} aria-hidden="true" />
+        )
+      ) : pending ? (
+        "Saving..."
+      ) : (
+        "Save product"
+      )}
     </button>
   );
+
+  if (!iconOnly) return button;
+  return <Tooltip content={label}>{button}</Tooltip>;
 }
 
 function syncPresentation(product: ProductRecord, dirty: boolean, inspection: ProductSyncInspection | null) {

@@ -8,7 +8,7 @@ describe("AdminHelp", () => {
     render(<AdminHelp label="Hero image guidance">Upload a landscape image for the page hero.</AdminHelp>);
 
     const trigger = screen.getByRole("button", { name: "Hero image guidance" });
-    expect(trigger.querySelector("svg.lucide-circle-question-mark")).toBeInTheDocument();
+    expect(trigger.querySelector("svg.lucide-info")).toBeInTheDocument();
 
     fireEvent.focus(trigger);
     expect(screen.getByRole("tooltip")).toHaveTextContent("Upload a landscape image for the page hero.");

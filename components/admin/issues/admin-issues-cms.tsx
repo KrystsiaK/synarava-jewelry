@@ -27,9 +27,12 @@ function issueTone(issue: AdminIssueSummary) {
 export function AdminIssueInlineWarning({
   issues,
   className = "",
+  onIssueActivate,
 }: {
   issues: AdminIssueSummary[];
   className?: string;
+  /** In-editor jump: open the owning tab/locale and focus the control. */
+  onIssueActivate?: (issue: AdminIssueSummary) => void;
 }) {
   if (issues.length === 0) return null;
 
@@ -43,17 +46,67 @@ export function AdminIssueInlineWarning({
         borderRadius: "8px",
       }}
     >
-      {issues.map((issue) => (
-        <Link
-          key={issue.id}
-          href={issue.targetHref}
-          className="flex items-start gap-2 font-bold uppercase tracking-[0.08em]"
-        >
-          <AlertTriangle size={14} strokeWidth={1.8} className="mt-0.5 shrink-0" />
-          <span>{issue.title}</span>
-        </Link>
-      ))}
+      {issues.map((issue) => {
+        const content = (
+          <>
+            <AlertTriangle size={14} strokeWidth={1.8} className="mt-0.5 shrink-0" />
+            <span>{issue.title}</span>
+          </>
+        );
+
+        if (onIssueActivate) {
+          return (
+            <button
+              key={issue.id}
+              type="button"
+              onClick={() => onIssueActivate(issue)}
+              className="flex items-start gap-2 text-left font-bold uppercase tracking-[0.08em]"
+            >
+              {content}
+            </button>
+          );
+        }
+
+        return (
+          <Link
+            key={issue.id}
+            href={issue.targetHref}
+            className="flex items-start gap-2 font-bold uppercase tracking-[0.08em]"
+          >
+            {content}
+          </Link>
+        );
+      })}
     </div>
+  );
+}
+
+/** Field-attached issue copy: plain text under the control (use inside `.adm-field-unit`). */
+export function AdminFieldIssue({
+  issues,
+  id,
+}: {
+  issues: AdminIssueSummary[];
+  id?: string;
+}) {
+  if (issues.length === 0) return null;
+
+  return (
+    <p
+      data-component="AdminFieldIssue"
+      id={id}
+      className="adm-field-error"
+      role="alert"
+    >
+      {issues.map((issue, index) => (
+        <span key={issue.id}>
+          {index > 0 ? " · " : null}
+          <Link href={issue.targetHref} className="underline-offset-2 hover:underline">
+            {issue.title}
+          </Link>
+        </span>
+      ))}
+    </p>
   );
 }
 

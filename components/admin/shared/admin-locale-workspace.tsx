@@ -112,6 +112,15 @@ export type AdminLocaleTabsProps = {
   panelId?: (locale: AdminLocale) => string;
   /** Locale codes with unsaved edits — shows a dirty marker on that tab. */
   dirtyLocales?: ReadonlySet<string> | readonly string[];
+  /** Locale codes with open language-scoped QA issues — tints that tab. */
+  issueLocales?: ReadonlySet<string> | readonly string[];
+  /**
+   * Nest inside a parent locale shell (product editor). Drops default sticky
+   * chrome; pair with `stacked` to stick flush under the product workspace header.
+   */
+  embedded?: boolean;
+  /** Stick under `.adm-product-workspace-header`; top radius matches the locale panel shell. */
+  stacked?: boolean;
 };
 
 /**
@@ -130,15 +139,20 @@ export function AdminLocaleTabs({
   tabId,
   panelId,
   dirtyLocales,
+  issueLocales,
+  embedded = false,
+  stacked = false,
 }: AdminLocaleTabsProps) {
   const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({});
   const fallbackId = useId();
   const idFor = tabId ?? ((locale: AdminLocale) => `${fallbackId}-tab-${locale}`);
   const panelIdFor = panelId;
-  const sourceCode = locales[0]?.code;
   const dirtySet = dirtyLocales instanceof Set
     ? dirtyLocales
     : new Set(dirtyLocales ?? []);
+  const issueSet = issueLocales instanceof Set
+    ? issueLocales
+    : new Set(issueLocales ?? []);
 
   function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const lastIndex = locales.length - 1;
@@ -156,12 +170,18 @@ export function AdminLocaleTabs({
   }
 
   return (
-    <div className="adm-locale-workspace-header">
+    <div
+      className={[
+        "adm-locale-workspace-header",
+        embedded ? "adm-locale-workspace-header--embedded" : "",
+        stacked ? "adm-locale-workspace-header--stacked" : "",
+      ].filter(Boolean).join(" ")}
+    >
       {sharedHeader}
       <div
         role="tablist"
         aria-label="Content language"
-        className="flex flex-wrap items-center gap-1.5 pb-4"
+        className={`flex flex-wrap items-center gap-1.5 ${embedded ? "pb-0" : "pb-4"}`}
       >
         <span className="adm-section-tag mr-1">LOCALE /</span>
         {locales.map((locale, index) => (
@@ -179,6 +199,7 @@ export function AdminLocaleTabs({
             onKeyDown={(event) => onTabKeyDown(event, index)}
             data-active={active === locale.code ? "true" : undefined}
             data-dirty={dirtySet.has(locale.code) ? "true" : undefined}
+            data-issue={issueSet.has(locale.code) ? "true" : undefined}
             className="adm-locale-tab"
           >
             {locale.code}
@@ -189,11 +210,15 @@ export function AdminLocaleTabs({
                 aria-label="Unsaved edits"
               />
             ) : null}
+            {issueSet.has(locale.code) ? (
+              <span
+                className="ml-1 inline-block size-1.5 rounded-full bg-[var(--adm-danger)]"
+                title="Open problem"
+                aria-label="Open problem"
+              />
+            ) : null}
           </button>
         ))}
-        <span className="adm-section-tag ml-2">
-          {active === sourceCode ? `// ${sourceCode} — SOURCE` : `// ${active} — TRANSLATION`}
-        </span>
         {ptStatus ? (
           <span className={`${statusBadgeClass(ptStatus)} ${trailing ? "" : "ml-auto"}`} role="status" aria-live="polite">
             SHOPIFY: {statusLabel(ptStatus)}

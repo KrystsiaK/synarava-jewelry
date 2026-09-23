@@ -229,7 +229,7 @@ describe("EditProductForm", () => {
     expect(screen.getByText(/Legacy cover image/i)).toBeInTheDocument();
   });
 
-  it("marks a section dirty and offers Save this branch when linked", async () => {
+  it("marks a section dirty when edited while linked", async () => {
     mocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
@@ -239,7 +239,7 @@ describe("EditProductForm", () => {
 
     await user.type(screen.getByLabelText(/Name/), " Updated");
     expect(screen.getByLabelText("Essentials has unsaved edits")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save this branch" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Save this branch" })).not.toBeInTheDocument();
   });
 
   it("keeps the editor available when the save action rejects", async () => {

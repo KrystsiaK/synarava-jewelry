@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 
 import {
   deleteProductAction,
@@ -16,24 +17,20 @@ import {
   pushSingleProductToShopifyAction,
 } from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import {
-  AdminFormAlert,
-  useAdminFormValidation,
-} from "@/components/admin/shared/admin-form-validation";
-import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
+import { AdminFormAlert, useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
-import { ProductBranchSyncBar } from "@/components/admin/products/product-branch-sync-bar";
+import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import {
-  buildScopedProductFormData,
   dirtyKeyForEdit,
   isSharedSection,
   localeHasDirty,
+  localeWorkspaceTone,
   sectionDirtyKey,
   snapshotFormData,
   SOURCE_LOCALE,
@@ -44,14 +41,20 @@ import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } fr
 import { useUnsavedLeaveGuard } from "@/components/admin/products/use-unsaved-leave-guard";
 import {
   getProductEditorDetails,
+  issuesForSection,
+  localesWithOpenIssues,
+  productEditorLocaleForField,
+  productEditorSectionForField,
   productToDraft,
   PRODUCT_SAVE_FAILURE_MESSAGE,
+  sectionsWithOpenIssues,
 } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import { Tooltip } from "@/components/ui/tooltip";
 
 const EMPTY_SIGNALS: CatalogConflictSignals = {
   state: "ready",
@@ -107,6 +110,7 @@ export function EditProductForm({
   const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${product.id}`, localeTabs);
   const rowRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const workspaceHeaderRef = useRef<HTMLDivElement>(null);
   const baselineRef = useRef<FormData | null>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const currentProduct = state.product ?? product;
@@ -131,22 +135,79 @@ export function EditProductForm({
       return dirtyScopes.has(sectionDirtyKey(activeLocale, section));
     }),
   );
-  const activeBranchDirty = dirtyScopes.has(dirtyKeyForEdit(activeLocale, activeSection));
-  const sectionTitle = ALL_SECTIONS.includes(activeSection)
-    ? ({
-        essentials: "Essentials",
-        catalog: "Catalog",
-        content: "Content",
-        media: "Media",
-        details: "Product page",
-        shopify: "Shopify",
-      } as const)[activeSection]
-    : activeSection;
+  const issueSections = sectionsWithOpenIssues(issues);
+  const issueLocales = localesWithOpenIssues(issues);
+  const activeSectionIssues = issuesForSection(issues, activeSection);
+  const localeTone = localeWorkspaceTone(activeLocale);
+  const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
+
+  function focusIssueField(fieldPath: string) {
+    const target = document.getElementById(fieldPath);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    const focusable = target.matches("input, select, textarea, button, [tabindex]")
+      ? target
+      : target.querySelector<HTMLElement>("input, select, textarea, button, [tabindex]");
+    focusable?.focus({ preventScroll: true });
+  }
+
+  function activateIssue(issue: AdminIssueSummary) {
+    const section = productEditorSectionForField(issue.fieldPath);
+    const locale = productEditorLocaleForField(issue.fieldPath);
+    flushSync(() => {
+      if (locale) selectLocale(locale);
+      if (section) setActiveSection(section);
+    });
+    const nextHash = `#${issue.fieldPath}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, "", nextHash);
+    }
+    window.requestAnimationFrame(() => focusIssueField(issue.fieldPath));
+  }
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) return;
     rowRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [highlighted]);
+
+  useEffect(() => {
+    const header = workspaceHeaderRef.current;
+    const form = formRef.current;
+    if (!header || !form || typeof ResizeObserver === "undefined") return;
+
+    function syncStickyOffset() {
+      const node = workspaceHeaderRef.current;
+      const root = formRef.current;
+      if (!node || !root) return;
+      root.style.setProperty(
+        "--adm-product-workspace-sticky-height",
+        `${Math.ceil(node.getBoundingClientRect().height)}px`,
+      );
+      const localeHeader = root.querySelector<HTMLElement>(".adm-locale-workspace-header--stacked");
+      if (localeHeader) {
+        root.style.setProperty(
+          "--adm-locale-workspace-sticky-height",
+          `${Math.ceil(localeHeader.getBoundingClientRect().height)}px`,
+        );
+      }
+      const sectionTabs = root.querySelector<HTMLElement>(".adm-product-section-tabs");
+      if (sectionTabs) {
+        root.style.setProperty(
+          "--adm-product-section-tabs-sticky-height",
+          `${Math.ceil(sectionTabs.getBoundingClientRect().height)}px`,
+        );
+      }
+    }
+
+    syncStickyOffset();
+    const observer = new ResizeObserver(syncStickyOffset);
+    observer.observe(header);
+    const localeHeader = form.querySelector(".adm-locale-workspace-header--stacked");
+    if (localeHeader) observer.observe(localeHeader);
+    const sectionTabs = form.querySelector(".adm-product-section-tabs");
+    if (sectionTabs) observer.observe(sectionTabs);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!product.shopifyProductId) return;
@@ -172,19 +233,20 @@ export function EditProductForm({
     function openSectionForHash() {
       const fieldId = window.location.hash.slice(1);
       if (!fieldId) return;
-      if (fieldId === "field-imageUrl") setActiveSection("media");
-      else if (fieldId.startsWith("field-taxonomy-")) setActiveSection("catalog");
-      else if (fieldId.startsWith("field-details-")) setActiveSection("details");
+      const section = productEditorSectionForField(fieldId);
+      const locale = productEditorLocaleForField(fieldId);
+      if (locale) selectLocale(locale);
+      if (section) setActiveSection(section);
       else return;
 
-      window.requestAnimationFrame(() => {
-        document.getElementById(fieldId)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
+      window.requestAnimationFrame(() => focusIssueField(fieldId));
     }
 
     openSectionForHash();
     window.addEventListener("hashchange", openSectionForHash);
     return () => window.removeEventListener("hashchange", openSectionForHash);
+    // Mount-only: hash deep-links from /admin/issues and in-page activateIssue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function markDirty() {
@@ -299,40 +361,6 @@ export function EditProductForm({
     }
   }
 
-  function requestBranchSave() {
-    const form = formRef.current;
-    const baseline = baselineRef.current;
-    if (!form || !baseline) {
-      pushToast({ message: "Save baseline is not ready yet. Try again in a moment.", tone: "info" });
-      return;
-    }
-    if (activeSection === "media" || activeSection === "shopify") {
-      pushToast({ message: "This tab saves through its own gallery/sync actions.", tone: "info" });
-      return;
-    }
-
-    setState({});
-    const previousSection = activeSection;
-    const previousLocale = activeLocale;
-    if (previousSection !== "essentials") flushSync(() => setActiveSection("essentials"));
-    if (previousLocale !== SOURCE_LOCALE) flushSync(() => selectLocale(SOURCE_LOCALE));
-    const valid = validation.validate();
-    if (previousSection !== "essentials") flushSync(() => setActiveSection(previousSection));
-    if (previousLocale !== SOURCE_LOCALE) flushSync(() => selectLocale(previousLocale));
-    if (!valid) return;
-
-    const scoped = buildScopedProductFormData({
-      baseline,
-      current: new FormData(form),
-      section: activeSection,
-      locale: activeLocale,
-    });
-    void persistFormData(scoped, {
-      clearKeys: [dirtyKeyForEdit(activeLocale, activeSection)],
-      remountFields: false,
-    });
-  }
-
   function handleCheckShopify() {
     startTransition(async () => {
       const result = await inspectProductSyncAction(currentProduct.id);
@@ -402,8 +430,6 @@ export function EditProductForm({
     });
   }
 
-  const showSectionBranchSave = activeSection !== "media" && activeSection !== "shopify";
-
   return (
     <>
       <div
@@ -426,8 +452,8 @@ export function EditProductForm({
           <input type="hidden" name="productId" value={currentProduct.id} />
 
           <div
-            className="flex flex-wrap items-start justify-between gap-4 pb-4"
-            style={{ borderBottom: "1px solid var(--adm-border)" }}
+            ref={workspaceHeaderRef}
+            className="adm-product-workspace-header flex flex-wrap items-start justify-between gap-4"
           >
             <div>
               <p className="adm-section-tag">Product workspace</p>
@@ -435,7 +461,6 @@ export function EditProductForm({
               <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
                 /{currentProduct.slug}
               </p>
-              <AdminIssueInlineWarning issues={issues} className="mt-3" />
               {highlighted ? (
                 <p
                   className="mt-1 text-xs font-bold uppercase tracking-[0.08em]"
@@ -445,160 +470,179 @@ export function EditProductForm({
                 </p>
               ) : null}
             </div>
-            <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
+            <div className="flex flex-wrap items-center justify-end gap-1.5">
+              {currentProduct.shopifyProductId ? (
+                <ProductLocaleConflictControl
+                  scope="product"
+                  checkIconOnly
+                  productId={currentProduct.id}
+                  locale={SOURCE_LOCALE}
+                  localeLabel="this product"
+                  signals={conflictSignals}
+                  checking={conflictChecking}
+                  onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
+                  onCheck={() => void refreshConflicts()}
+                />
+              ) : null}
+              <Tooltip content="Delete this product permanently. Storefront pages for it will stop working.">
+                <button
+                  type="button"
+                  onClick={() => setDeleteOpen(true)}
+                  disabled={isPending}
+                  className="adm-btn-danger grid size-12 place-items-center p-0"
+                  aria-label="Delete product"
+                >
+                  <Trash2 className="size-7" strokeWidth={2.75} aria-hidden="true" />
+                </button>
+              </Tooltip>
+              <SaveButtons iconOnly onOpenConfirm={requestSave} pending={isPending} />
+            </div>
           </div>
 
           <ProgressBar pending={isPending} />
           <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
 
-          {/* Level 1 — whole product */}
-          {currentProduct.shopifyProductId ? (
-            <div className="grid gap-3">
-              <ProductSyncStrip
-                product={currentProduct}
-                dirty={isDirty}
-                inspection={inspection}
-                pending={isPending}
-                onCheck={handleCheckShopify}
-                onOpenDetail={() => setSyncDetailOpen(true)}
-              />
-              <ProductBranchSyncBar
-                level="product"
-                productId={currentProduct.id}
-                locale={SOURCE_LOCALE}
-                localeLabel="English"
-                signals={conflictSignals}
-                checking={conflictChecking}
-                dirty={isDirty}
-                onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
-                onCheck={() => void refreshConflicts()}
-              />
-            </div>
-          ) : null}
-
-          {/* Level 2 — language */}
-          <AdminLocaleTabs
-            active={activeLocale}
-            onSelect={selectLocale}
-            locales={localeTabs}
-            dirtyLocales={dirtyLocales}
-            ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
-          />
-          {currentProduct.shopifyProductId ? (
-            <ProductBranchSyncBar
-              level="locale"
-              productId={currentProduct.id}
-              locale={activeLocale}
-              localeLabel={activeLocaleLabel}
-              signals={conflictSignals}
-              checking={conflictChecking}
-              dirty={localeHasDirty(dirtyScopes, activeLocale, ALL_SECTIONS)}
-              onOpen={() => openConflicts({ kind: "productLocale", productId: currentProduct.id, locale: activeLocale })}
-              onCheck={() => void refreshConflicts(activeLocale)}
-            />
-          ) : null}
-
-          {/* Level 3 — section / tab */}
-          <ProductEditorTabs
-            active={activeSection}
-            onChange={setActiveSection}
-            dirtySections={dirtySections}
-          />
-          {currentProduct.shopifyProductId && activeSection !== "shopify" ? (
-            <ProductBranchSyncBar
-              level="section"
-              productId={currentProduct.id}
-              locale={activeLocale}
-              localeLabel={activeLocaleLabel}
-              sectionLabel={sectionTitle}
-              signals={conflictSignals}
-              checking={conflictChecking}
-              dirty={activeBranchDirty}
-              showSaveBranch={showSectionBranchSave}
-              onSaveBranch={requestBranchSave}
-              savePending={isPending}
-              onOpen={() => openConflicts({
-                kind: "productLocale",
-                productId: currentProduct.id,
-                locale: isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale,
-              })}
-              onCheck={() => void refreshConflicts(isSharedSection(activeSection) ? undefined : activeLocale)}
-            />
-          ) : null}
-
-          <div
-            id={`product-editor-panel-${activeSection}`}
-            role="tabpanel"
-            aria-labelledby={`product-editor-tab-${activeSection}`}
-            className="grid gap-4"
+          <section
+            data-component="ProductLocaleWorkspace"
+            data-locale={activeLocale}
+            className="rounded-xl border"
+            style={{
+              background: localeTone.background,
+              borderColor: localeTone.border,
+              ["--locale-tone-border" as string]: localeTone.border,
+              ["--locale-tone-accent" as string]: localeTone.accent,
+              ["--locale-tone-bg" as string]: localeTone.background,
+            }}
           >
-            <div hidden={activeSection !== "shopify"}>
-              <ProductSyncStrip
-                product={currentProduct}
-                dirty={isDirty}
-                inspection={inspection}
-                pending={isPending}
-                onCheck={handleCheckShopify}
-                onOpenDetail={() => setSyncDetailOpen(true)}
-              />
-            </div>
+            <AdminLocaleTabs
+              embedded
+              stacked
+              active={activeLocale}
+              onSelect={selectLocale}
+              locales={localeTabs}
+              dirtyLocales={dirtyLocales}
+              issueLocales={issueLocales}
+              ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
+              trailing={
+                currentProduct.shopifyProductId ? (
+                  <ProductLocaleConflictControl
+                    checkIconOnly
+                    productId={currentProduct.id}
+                    locale={activeLocale}
+                    localeLabel={`${activeLocaleLabel} (all sections)`}
+                    signals={conflictSignals}
+                    checking={conflictChecking}
+                    onOpen={() => openConflicts({
+                      kind: "productLocale",
+                      productId: currentProduct.id,
+                      locale: activeLocale,
+                    })}
+                    onCheck={() => void refreshConflicts(activeLocale)}
+                  />
+                ) : null
+              }
+            />
 
-            <div hidden={activeSection === "media"}>
-              <ProductFormFields
-                key={`${currentProduct.id}-${fieldsRevision}`}
-                draft={draft}
-                collections={collections}
-                variantExists={currentProduct.variants.length > 0}
-                issues={issues}
-                validation={validation}
-                translationLocales={translationLocales}
-                activeSection={activeSection}
-                activeLocale={activeLocale}
-                onLocaleChange={selectLocale}
-              />
-              <ProductDetailFields
-                key={`details-${currentProduct.id}-${fieldsRevision}`}
-                details={details}
-                translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-                mode="edit"
-                issues={issues}
-                collections={collections}
-                translationLocales={translationLocales}
-                activeSection={activeSection}
-                activeLocale={activeLocale}
-              />
-            </div>
-
-            <div hidden={activeSection !== "media"}>
-              <ProductMediaManager
-                product={currentProduct}
-                onChange={(next) => {
-                  setState({ success: "Gallery updated locally.", product: next });
-                  clearDirty([sectionDirtyKey("*", "media")]);
-                  onUpdated?.(next);
-                }}
-              />
-            </div>
-
-            <div hidden={activeSection !== "shopify"}>
-              <ShopifyProductMirror product={currentProduct} />
-            </div>
-          </div>
-
-          <div
-            className="flex flex-wrap items-center justify-between gap-4 pt-4"
-            style={{ borderTop: "1px solid var(--adm-border)" }}
-          >
-            <button
-              type="button"
-              onClick={() => setDeleteOpen(true)}
-              disabled={isPending}
-              className="adm-btn-danger"
+            <div
+              className="border-b"
+              style={{ borderColor: "var(--locale-tone-border)" }}
             >
-              Delete product
-            </button>
-            <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
-          </div>
+              <ProductEditorTabs
+                embedded
+                active={activeSection}
+                onChange={setActiveSection}
+                dirtySections={dirtySections}
+                issueSections={issueSections}
+                sectionIssues={activeSectionIssues}
+                onIssueActivate={activateIssue}
+                aside={
+                  currentProduct.shopifyProductId && activeSection !== "shopify" ? (
+                    <ProductLocaleConflictControl
+                      checkIconOnly
+                      productId={currentProduct.id}
+                      locale={syncLocale}
+                      localeLabel={
+                        isSharedSection(activeSection)
+                          ? `shared · ${activeSection}`
+                          : `${activeLocaleLabel} · ${activeSection}`
+                      }
+                      signals={conflictSignals}
+                      checking={conflictChecking}
+                      onOpen={() => openConflicts({
+                        kind: "productLocale",
+                        productId: currentProduct.id,
+                        locale: syncLocale,
+                      })}
+                      onCheck={() => void refreshConflicts(
+                        isSharedSection(activeSection) ? undefined : activeLocale,
+                      )}
+                    />
+                  ) : null
+                }
+              />
+            </div>
+
+            <div className="grid gap-4 p-4">
+              <div
+                id={`product-editor-panel-${activeSection}`}
+                role="tabpanel"
+                aria-labelledby={`product-editor-tab-${activeSection}`}
+                className="grid gap-4"
+              >
+                <div hidden={activeSection !== "shopify"}>
+                  <ProductSyncStrip
+                    product={currentProduct}
+                    dirty={isDirty}
+                    inspection={inspection}
+                    pending={isPending}
+                    onCheck={handleCheckShopify}
+                    onOpenDetail={() => setSyncDetailOpen(true)}
+                  />
+                </div>
+
+                <div hidden={activeSection === "media"}>
+                  <ProductFormFields
+                    key={`${currentProduct.id}-${fieldsRevision}`}
+                    draft={draft}
+                    collections={collections}
+                    variantExists={currentProduct.variants.length > 0}
+                    issues={issues}
+                    validation={validation}
+                    translationLocales={translationLocales}
+                    activeSection={activeSection}
+                    activeLocale={activeLocale}
+                    onLocaleChange={selectLocale}
+                  />
+                  <ProductDetailFields
+                    key={`details-${currentProduct.id}-${fieldsRevision}`}
+                    details={details}
+                    translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
+                    mode="edit"
+                    issues={issues}
+                    collections={collections}
+                    translationLocales={translationLocales}
+                    activeSection={activeSection}
+                    activeLocale={activeLocale}
+                  />
+                </div>
+
+                <div hidden={activeSection !== "media"}>
+                  <ProductMediaManager
+                    product={currentProduct}
+                    onChange={(next) => {
+                      setState({ success: "Gallery updated locally.", product: next });
+                      clearDirty([sectionDirtyKey("*", "media")]);
+                      onUpdated?.(next);
+                    }}
+                  />
+                </div>
+
+                <div hidden={activeSection !== "shopify"}>
+                  <ShopifyProductMirror product={currentProduct} />
+                </div>
+              </div>
+            </div>
+          </section>
         </form>
       </div>
 
@@ -619,7 +663,7 @@ export function EditProductForm({
       <AdminConfirmModal
         open={confirmOpen}
         title={`Save ${currentProduct.name}`}
-        description="This saves the whole product locally. Shopify will not change. Use Save this branch on a tab to persist only that section/locale while keeping other unsaved tabs in the form."
+        description="This saves the whole product locally. Shopify will not change until you push or resolve conflicts."
         confirmLabel="Yes, save changes"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {

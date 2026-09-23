@@ -3,19 +3,27 @@
 import { useEffect, useState } from "react";
 
 import {
-  AdminFieldError,
   type AdminFormValidation,
 } from "@/components/admin/shared/admin-form-validation";
+import { AdminCheckboxControl, AdminCheckboxField } from "@/components/admin/shared/admin-checkbox-field";
+import { AdminFieldShell } from "@/components/admin/shared/admin-field-shell";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
+import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
+import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
-import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
+import { OwnershipLabel } from "@/components/admin/shared/ownership-label";
+import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { slugify } from "@/lib/text/slug";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
-import { ShopifyCategoryField } from "@/components/admin/products/shopify-category-field";
+import {
+  ShopifyCategoryAttributes,
+  ShopifyCategoryControl,
+  ShopifyCategoryField,
+} from "@/components/admin/products/shopify-category-field";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
 import {
@@ -25,17 +33,10 @@ import {
 import { getProductEditorDetails, issuesForField } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 
+export { OwnershipLabel } from "@/components/admin/shared/ownership-label";
+
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
-
-export function OwnershipLabel({ children, owner }: { children: React.ReactNode; owner: "Shopify" | "Synarava" | "Shopify push" }) {
-  return (
-    <span data-component="OwnershipLabel" className="adm-label flex items-center justify-between gap-2">
-      <span>{children}</span>
-      <span className={owner === "Shopify" ? "text-[var(--adm-accent)]" : "text-[var(--adm-subtle)]"}>{owner}</span>
-    </span>
-  );
-}
 
 type ProductDetailsSource = {
   materialsEyebrow: string;
@@ -214,17 +215,19 @@ export function ProductDetailFields({
           </p>
         </div>
 
-        <label className="grid gap-2 md:max-w-sm">
-          <span className="adm-label">Department</span>
-          <select name="department" defaultValue={details.department} className="adm-field">
-            <option value="">No department</option>
-            {departmentCollections.map((department) => (
-              <option key={department.slug} value={department.slug}>
-                {department.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <AdminSelectField
+          label="Department"
+          name="department"
+          defaultValue={details.department}
+          className="md:max-w-sm"
+        >
+          <option value="">No department</option>
+          {departmentCollections.map((department) => (
+            <option key={department.slug} value={department.slug}>
+              {department.name}
+            </option>
+          ))}
+        </AdminSelectField>
 
         <p className="text-xs leading-5 text-[var(--adm-muted)]">
           Open only the characteristic groups that apply to this product. Closed groups stay saved and are still included when you save.
@@ -245,30 +248,56 @@ export function ProductDetailFields({
                   const name = `characteristic_${definition.key}`;
                   if (definition.type === "BOOLEAN") {
                     return (
-                      <div key={definition.key} className="grid min-w-0 content-start gap-2 border p-3" style={{ borderColor: "var(--adm-border)" }}>
-                        <label className="flex items-center gap-3 text-sm">
-                          <input type="checkbox" name={name} defaultChecked={Boolean(current.value)} />
-                          <span>{definition.label}</span>
-                        </label>
+                      <AdminCheckboxField
+                        key={definition.key}
+                        name={name}
+                        label={definition.label}
+                        defaultChecked={Boolean(current.value)}
+                      >
                         {"certificate" in definition ? (
-                          <input name={`${name}_certificate`} defaultValue={current.certificateUrl} className="adm-field" placeholder="Certificate URL" type="url" />
+                          <AdminTextField
+                            name={`${name}_certificate`}
+                            defaultValue={current.certificateUrl}
+                            placeholder="Certificate URL"
+                            type="url"
+                          />
                         ) : null}
-                      </div>
+                      </AdminCheckboxField>
                     );
                   }
-                  const input = (
-                    "multiline" in definition && definition.multiline
-                      ? <textarea name={name} defaultValue={String(current.value)} className="adm-field min-h-24" rows={3} />
-                      : <input name={name} defaultValue={String(current.value)} className="adm-field min-w-0 flex-1" type={definition.type === "NUMBER" ? "number" : "text"} step={definition.type === "NUMBER" ? "0.01" : undefined} />
-                  );
+                  if ("multiline" in definition && definition.multiline) {
+                    return (
+                      <AdminLongTextField
+                        key={definition.key}
+                        name={name}
+                        label={definition.label}
+                        defaultValue={String(current.value)}
+                        rows={3}
+                      />
+                    );
+                  }
+                  if ("unit" in definition) {
+                    return (
+                      <AdminTextField
+                        key={definition.key}
+                        label={definition.label}
+                        name={name}
+                        defaultValue={String(current.value)}
+                        type={definition.type === "NUMBER" ? "number" : "text"}
+                        step={definition.type === "NUMBER" ? "0.01" : undefined}
+                        endAdornment={definition.unit}
+                      />
+                    );
+                  }
                   return (
-                    <label key={definition.key} className="grid min-w-0 gap-2">
-                      <span className="adm-label">{definition.label}</span>
-                      <span className={"multiline" in definition && definition.multiline ? "grid" : "flex"}>
-                        {input}
-                        {"unit" in definition ? <span className="flex items-center border border-l-0 px-3 text-xs text-[var(--adm-muted)]" style={{ borderColor: "var(--adm-border)" }}>{definition.unit}</span> : null}
-                      </span>
-                    </label>
+                    <AdminTextField
+                      key={definition.key}
+                      label={definition.label}
+                      name={name}
+                      defaultValue={String(current.value)}
+                      type={definition.type === "NUMBER" ? "number" : "text"}
+                      step={definition.type === "NUMBER" ? "0.01" : undefined}
+                    />
                   );
                 })}
               </div>
@@ -290,41 +319,48 @@ export function ProductDetailFields({
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <input
+          <AdminTextField
             value={draft.materialsEyebrow}
             onChange={(event) => updateField("materialsEyebrow", event.target.value)}
             placeholder="Section eyebrow"
-            className="adm-field"
           />
-          <input
+          <AdminTextField
             value={draft.materialsTitle}
             onChange={(event) => updateField("materialsTitle", event.target.value)}
             placeholder="Section title"
-            className="adm-field"
           />
         </div>
         <div className="grid gap-4 xl:grid-cols-3">
-          {details.materials.map((material, index) => (
+          {details.materials.map((material, index) => {
+            const materialIssues = issuesForField(issues, `field-details-materials-${index}-image`);
+            return (
             <div
               key={`material-${index}`}
               id={`field-details-materials-${index}-image`}
-              className="grid gap-3 p-4"
-              style={{ border: "1px solid var(--adm-border)" }}
+              className="adm-field-unit grid gap-3 p-4"
+              style={{
+                border: materialIssues.length > 0
+                  ? "1px solid var(--adm-danger)"
+                  : "1px solid var(--adm-border)",
+                background: materialIssues.length > 0
+                  ? "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)"
+                  : undefined,
+              }}
             >
               <p className="adm-section-tag">MATERIAL {index + 1}</p>
-              <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-materials-${index}-image`)} />
-              <input
+              <AdminTextField
+                label="Title"
                 value={draft.materials[index].title}
                 onChange={(event) => updateMaterial(index, "title", event.target.value)}
                 placeholder="Lava Stone"
-                className="adm-field"
               />
-              <textarea
-                rows={4}
+              <AdminLongTextField
+                label="Story"
+                dialogLabel={`Material ${index + 1} story`}
                 value={draft.materials[index].body}
-                onChange={(event) => updateMaterial(index, "body", event.target.value)}
+                onChange={(value) => updateMaterial(index, "body", value)}
                 placeholder="Describe the material story."
-                className="adm-field"
+                rows={4}
               />
               {/* Image is shared across locales and always visible. */}
               <input
@@ -339,8 +375,10 @@ export function ProductDetailFields({
                 removeFieldName={`removeMaterialImage${index + 1}`}
                 removeLabel="Remove"
               />
+              <AdminFieldIssue issues={materialIssues} />
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -357,36 +395,36 @@ export function ProductDetailFields({
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <input
+          <AdminTextField
             value={draft.processEyebrow}
             onChange={(event) => updateField("processEyebrow", event.target.value)}
             placeholder="Process"
-            className="adm-field"
           />
-          <input
+          <AdminTextField
             value={draft.processTitle}
             onChange={(event) => updateField("processTitle", event.target.value)}
             placeholder="Human Precision"
-            className="adm-field"
           />
         </div>
-        {/* Media is shared across locales and always visible. */}
-        <input
-          type="hidden"
-          name="existingProcessMediaImage"
-          value={details.process.mediaImage}
-        />
-        <ImageFileField
-          name="processMediaImageFile"
-          currentImageUrl={mode === "edit" ? details.process.mediaImage : ""}
-          currentImageAlt={draft.processTitle || "Process media"}
-          currentImageLabel="Current process media"
-          previewAspect="video"
-          fieldId="field-details-process-mediaImage"
-          removeFieldName="removeProcessMediaImage"
-          removeLabel="Remove"
-        />
-        <AdminIssueInlineWarning issues={issuesForField(issues, "field-details-process-mediaImage")} />
+        <div className="adm-field-unit grid gap-3">
+          {/* Media is shared across locales and always visible. */}
+          <input
+            type="hidden"
+            name="existingProcessMediaImage"
+            value={details.process.mediaImage}
+          />
+          <ImageFileField
+            name="processMediaImageFile"
+            currentImageUrl={mode === "edit" ? details.process.mediaImage : ""}
+            currentImageAlt={draft.processTitle || "Process media"}
+            currentImageLabel="Current process media"
+            previewAspect="video"
+            fieldId="field-details-process-mediaImage"
+            removeFieldName="removeProcessMediaImage"
+            removeLabel="Remove"
+          />
+          <AdminFieldIssue issues={issuesForField(issues, "field-details-process-mediaImage")} />
+        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {draft.processStats.map((stat, index) => (
             <div
@@ -395,17 +433,15 @@ export function ProductDetailFields({
               style={{ border: "1px solid var(--adm-border)" }}
             >
               <p className="adm-section-tag">STAT {index + 1}</p>
-              <input
+              <AdminTextField
                 value={stat.value}
                 onChange={(event) => updateProcessStat(index, "value", event.target.value)}
                 placeholder="12"
-                className="adm-field"
               />
-              <input
+              <AdminTextField
                 value={stat.label}
                 onChange={(event) => updateProcessStat(index, "label", event.target.value)}
                 placeholder="Hours of weaving"
-                className="adm-field"
               />
             </div>
           ))}
@@ -425,48 +461,48 @@ export function ProductDetailFields({
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <input
+          <AdminTextField
             value={draft.lookbookEyebrow}
             onChange={(event) => updateField("lookbookEyebrow", event.target.value)}
             placeholder="Section eyebrow"
-            className="adm-field"
           />
-          <input
+          <AdminTextField
             value={draft.lookbookTitle}
             onChange={(event) => updateField("lookbookTitle", event.target.value)}
             placeholder="Section title"
-            className="adm-field"
           />
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
-          {details.lookbook.map((item, index) => (
+          {details.lookbook.map((item, index) => {
+            const lookbookIssues = issuesForField(issues, `field-details-lookbook-${index}-src`);
+            return (
             <div
               key={`lookbook-${index}`}
               id={`field-details-lookbook-${index}-src`}
-              className="grid gap-3 p-4"
-              style={{ border: "1px solid var(--adm-border)" }}
+              className="adm-field-unit grid gap-3 p-4"
+              style={{
+                border: lookbookIssues.length > 0
+                  ? "1px solid var(--adm-danger)"
+                  : "1px solid var(--adm-border)",
+                background: lookbookIssues.length > 0
+                  ? "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)"
+                  : undefined,
+              }}
             >
-              <AdminIssueInlineWarning issues={issuesForField(issues, `field-details-lookbook-${index}-src`)} />
               <div className="flex items-center justify-between gap-3">
                 <p className="adm-section-tag">LOOKBOOK {index + 1}</p>
                 {/* Featured is shared across locales and always visible. */}
-                <label
-                  className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-[0.08em] cursor-pointer"
-                  style={{ color: "var(--adm-muted)" }}
-                >
-                  <input
-                    type="checkbox"
-                    name={`lookbookFeatured${index + 1}`}
-                    defaultChecked={item.featured}
-                  />
-                  Featured
-                </label>
+                <AdminCheckboxControl
+                  name={`lookbookFeatured${index + 1}`}
+                  defaultChecked={item.featured}
+                  label="Featured"
+                  labelClassName="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--adm-muted)]"
+                />
               </div>
-              <input
+              <AdminTextField
                 value={draft.lookbookLabels[index] ?? ""}
                 onChange={(event) => updateLookbookLabel(index, event.target.value)}
                 placeholder="01 / The Ensemble"
-                className="adm-field"
               />
               {/* Image is shared across locales and always visible. */}
               <input
@@ -481,8 +517,10 @@ export function ProductDetailFields({
                 removeFieldName={`removeLookbookImage${index + 1}`}
                 removeLabel="Remove"
               />
+              <AdminFieldIssue issues={lookbookIssues} />
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>
@@ -591,6 +629,10 @@ export function ProductFormFields({
   const activeLabel = translationLocales.find((locale) => locale.code === activeLocale)?.label
     ?? (isEn ? "English" : activeLocale);
   const activeTranslation = isEn ? null : draft.translations[activeLocale];
+  const categoryIssues = issuesForField(issues, "field-taxonomy-category");
+  const collectionIssues = issuesForField(issues, "field-taxonomy-collection");
+  const tagsIssues = issuesForField(issues, "field-taxonomy-tags");
+  const coverIssues = issuesForField(issues, "field-imageUrl");
 
   useEffect(() => {
     // Fixes a real bug: the required "Name" field sits inside a `hidden`
@@ -628,17 +670,6 @@ export function ProductFormFields({
 
   return (
     <>
-      <div
-        className="flex flex-col gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4 md:flex-row md:items-center md:justify-between"
-        hidden={activeSection !== "essentials" && activeSection !== "content"}
-      >
-        <div>
-          <p className="adm-section-tag">[ SHOPIFY COMMERCE CORE ]</p>
-          <p className="mt-2 text-xs text-[var(--adm-muted)]">Every field is labelled by owner. Shopify fields form the sellable product; Synarava fields enrich it without being overwritten by catalog pulls.</p>
-        </div>
-        <span className="adm-badge-published w-fit">Shopify-backed</span>
-      </div>
-
       <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 
       {activeTranslation ? (
@@ -654,53 +685,76 @@ export function ProductFormFields({
         </div>
       ) : null}
 
-      <div className="grid items-start gap-4 md:grid-cols-2" hidden={activeSection !== "essentials"}>
-        {/*
-          The Name field is the one exception to "single field per concept"
-          in this form: it stays a dedicated EN input (plus a dedicated
-          input per translation locale below) because
-          useAdminFormValidation's native constraint scan
-          (collectNativeFieldErrors) only detects a blank *required* field
-          when that field is a real, named, non-hidden DOM node. A
-          type="hidden" mirror can never satisfy `required` (the HTML spec
-          excludes hidden inputs from constraint validation entirely), so
-          collapsing Name into a locale-switching value here would silently
-          break the existing Task 4 empty-name-while-on-a-translation-tab
-          protection below. Every other localized field here has no
-          `required` attribute and safely uses the single-field pattern.
-        */}
-        <div className="grid content-start gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
-          <label htmlFor={validation.fieldId("name")}>
-            <OwnershipLabel owner="Shopify">Name *</OwnershipLabel>
-          </label>
-          <input
-            name="name"
-            required
-            data-validation-message={PRODUCT_FIELD_MESSAGES.name}
-            value={nameValue}
-            onChange={(event) => updateName(event.target.value)}
-            {...validation.fieldProps("name")}
-            className={fieldErrors.name ? "adm-field adm-field--error" : "adm-field"}
-          />
-          <AdminFieldError id={validation.fieldErrorId("name")} message={fieldErrors.name} />
-        </div>
-        {activeTranslation ? (
-          <label className="grid content-start gap-2">
-            <span className="adm-label">Product name ({activeLabel})</span>
-            {/*
-              No `name` attribute here — this is only the editing surface for
-              whichever translation tab is active. The actual submitted value
-              per locale comes from the always-rendered hidden mirrors below,
-              same reasoning as HiddenCoreLocaleFields: without them, only the
-              locale active at submit time would have a title field with a
-              `name` attribute, silently dropping every other locale's title.
-            */}
-            <input
+      <div className="grid gap-5" hidden={activeSection !== "essentials"}>
+        <div className="grid items-start gap-x-4 gap-y-5 md:grid-cols-2">
+          {/*
+            The Name field is the one exception to "single field per concept"
+            in this form: it stays a dedicated EN input (plus a dedicated
+            input per translation locale below) because
+            useAdminFormValidation's native constraint scan
+            (collectNativeFieldErrors) only detects a blank *required* field
+            when that field is a real, named, non-hidden DOM node. A
+            type="hidden" mirror can never satisfy `required` (the HTML spec
+            excludes hidden inputs from constraint validation entirely), so
+            collapsing Name into a locale-switching value here would silently
+            break the existing Task 4 empty-name-while-on-a-translation-tab
+            protection below. Every other localized field here has no
+            `required` attribute and safely uses the single-field pattern.
+          */}
+          <div hidden={activeLocale !== SOURCE_LOCALE}>
+            <AdminTextField
+              label="Name"
+              owner="Shopify"
+              required
+              name="name"
+              data-validation-message={PRODUCT_FIELD_MESSAGES.name}
+              value={nameValue}
+              onChange={(event) => updateName(event.target.value)}
+              error={fieldErrors.name}
+              errorId={validation.fieldErrorId("name")}
+              {...validation.fieldProps("name")}
+            />
+          </div>
+          {activeTranslation ? (
+            <AdminTextField
+              label={`Product name (${activeLabel})`}
               value={titleByLocale[activeLocale] ?? ""}
               onChange={(event) => setTitleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
-              className="adm-field"
             />
-          </label>
+          ) : null}
+          <div hidden>
+            {translationLocales.map(({ code }) => (
+              <input
+                key={code}
+                type="hidden"
+                readOnly
+                name={adminLocaleFieldName(code, "title", SOURCE_LOCALE)}
+                value={titleByLocale[code] ?? ""}
+              />
+            ))}
+          </div>
+          <AdminTextField
+            label="Slug"
+            owner="Shopify"
+            required
+            name="slug"
+            data-validation-message={PRODUCT_FIELD_MESSAGES.slug}
+            value={slugValue}
+            onChange={(event) => updateSlug(event.target.value)}
+            error={fieldErrors.slug}
+            errorId={validation.fieldErrorId("slug")}
+            {...validation.fieldProps("slug")}
+          />
+        </div>
+
+        {activeTranslation ? (
+          <AdminTextField
+            label={`URL handle (${activeLabel}, optional)`}
+            help={<AdminHelp label="URL handle guidance">Blank uses the English slug.</AdminHelp>}
+            value={handleByLocale[activeLocale] ?? ""}
+            onChange={(event) => setHandleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
+            placeholder={draft.slug}
+          />
         ) : null}
         <div hidden>
           {translationLocales.map(({ code }) => (
@@ -708,107 +762,69 @@ export function ProductFormFields({
               key={code}
               type="hidden"
               readOnly
-              name={adminLocaleFieldName(code, "title", SOURCE_LOCALE)}
-              value={titleByLocale[code] ?? ""}
+              name={adminLocaleFieldName(code, "localizedHandle", SOURCE_LOCALE)}
+              value={handleByLocale[code] ?? ""}
             />
           ))}
         </div>
-        <div className="grid content-start gap-2">
-          <label htmlFor={validation.fieldId("slug")}>
-            <OwnershipLabel owner="Shopify">Slug *</OwnershipLabel>
-          </label>
-          <input
-            name="slug"
+
+        <div className="grid items-start gap-x-4 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
+          <AdminTextField
+            label="SKU"
+            owner="Shopify"
             required
-            data-validation-message={PRODUCT_FIELD_MESSAGES.slug}
-            value={slugValue}
-            onChange={(event) => updateSlug(event.target.value)}
-            {...validation.fieldProps("slug")}
-            className={fieldErrors.slug ? "adm-field adm-field--error" : "adm-field"}
-          />
-          <AdminFieldError id={validation.fieldErrorId("slug")} message={fieldErrors.slug} />
-        </div>
-      </div>
-
-      {activeTranslation ? (
-        <label className="grid gap-2" hidden={activeSection !== "essentials"}>
-          <span className="adm-label">URL handle ({activeLabel}, optional)</span>
-          {/* No `name` here — same reasoning as the Product name field above; the hidden mirrors below carry every locale's real value. */}
-          <input
-            value={handleByLocale[activeLocale] ?? ""}
-            onChange={(event) => setHandleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
-            className="adm-field"
-            placeholder={draft.slug}
-          />
-          <span className="text-xs text-[var(--adm-muted)]">Blank uses the English slug.</span>
-        </label>
-      ) : null}
-      <div hidden>
-        {translationLocales.map(({ code }) => (
-          <input
-            key={code}
-            type="hidden"
-            readOnly
-            name={adminLocaleFieldName(code, "localizedHandle", SOURCE_LOCALE)}
-            value={handleByLocale[code] ?? ""}
-          />
-        ))}
-      </div>
-
-      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4" hidden={activeSection !== "essentials"}>
-        <div className="grid content-start gap-2">
-          <label htmlFor={validation.fieldId("sku")}>
-            <OwnershipLabel owner="Shopify">SKU *</OwnershipLabel>
-          </label>
-          <input
             name="sku"
-            required
             data-validation-message={PRODUCT_FIELD_MESSAGES.sku}
             defaultValue={draft.sku}
+            error={fieldErrors.sku}
+            errorId={validation.fieldErrorId("sku")}
             {...validation.fieldProps("sku")}
-            className={fieldErrors.sku ? "adm-field adm-field--error" : "adm-field"}
           />
-          <AdminFieldError id={validation.fieldErrorId("sku")} message={fieldErrors.sku} />
-        </div>
-        <label className="grid content-start gap-2">
-          <OwnershipLabel owner="Synarava">Series label</OwnershipLabel>
-          <input name="seriesLabel" defaultValue={draft.seriesLabel} className="adm-field" />
-        </label>
-        <div className="grid content-start gap-2">
-          <label htmlFor={validation.fieldId("price")}>
-            <OwnershipLabel owner="Shopify">Price EUR *</OwnershipLabel>
-          </label>
-          <input
+          <AdminTextField
+            label="Series label"
+            owner="Synarava"
+            name="seriesLabel"
+            defaultValue={draft.seriesLabel}
+          />
+          <AdminTextField
+            label="Price EUR"
+            owner="Shopify"
+            required
             name="price"
             type="number"
-            required
             min="0.01"
             step="0.01"
             inputMode="decimal"
             data-validation-message={PRODUCT_FIELD_MESSAGES.price}
             defaultValue={draft.price}
+            error={fieldErrors.price}
+            errorId={validation.fieldErrorId("price")}
             {...validation.fieldProps("price")}
-            className={fieldErrors.price ? "adm-field adm-field--error" : "adm-field"}
           />
-          <AdminFieldError id={validation.fieldErrorId("price")} message={fieldErrors.price} />
+          <AdminTextField
+            label="Available quantity"
+            owner="Shopify"
+            help={(
+              <AdminHelp label="Inventory guidance">
+                {variantExists
+                  ? "Primary variant inventory synced with Shopify."
+                  : "No variant record yet. Enter quantity and save to create the primary variant."}
+              </AdminHelp>
+            )}
+            name="stockOnHand"
+            type="number"
+            min="0"
+            step="1"
+            inputMode="numeric"
+            defaultValue={draft.stockOnHand}
+          />
         </div>
-        <label className="grid content-start gap-2">
-          <OwnershipLabel owner="Shopify">Available quantity</OwnershipLabel>
-          <input name="stockOnHand" type="number" min="0" step="1" inputMode="numeric" defaultValue={draft.stockOnHand} className="adm-field" />
-          <span className="text-xs text-[var(--adm-subtle)]">{variantExists ? "Primary variant inventory synced with Shopify." : "No variant record yet. Enter quantity and save to create the primary variant."}</span>
-        </label>
-      </div>
 
-      {/* Vendor/brand and Product type are shared across locales — always visible, no PT counterpart. */}
-      <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "essentials"}>
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">Vendor / brand</OwnershipLabel>
-          <input name="vendor" defaultValue={draft.vendor} className="adm-field" />
-        </label>
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">Product type</OwnershipLabel>
-          <input name="productType" defaultValue={draft.productType} className="adm-field" />
-        </label>
+        {/* Vendor/brand and Product type are shared across locales — always visible, no PT counterpart. */}
+        <div className="grid items-start gap-x-4 gap-y-5 md:grid-cols-2">
+          <AdminTextField label="Vendor / brand" owner="Shopify" name="vendor" defaultValue={draft.vendor} />
+          <AdminTextField label="Product type" owner="Shopify" name="productType" defaultValue={draft.productType} />
+        </div>
       </div>
 
       <div hidden={activeSection !== "content"}>
@@ -822,10 +838,12 @@ export function ProductFormFields({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "content"}>
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Shopify">SEO title</OwnershipLabel>
-          <input value={coreDraft.seoTitle} onChange={(event) => updateCore("seoTitle", event.target.value)} className="adm-field" />
-        </label>
+        <AdminTextField
+          label="SEO title"
+          owner="Shopify"
+          value={coreDraft.seoTitle}
+          onChange={(event) => updateCore("seoTitle", event.target.value)}
+        />
         <AdminLongTextField
           label={<OwnershipLabel owner="Shopify">SEO description</OwnershipLabel>}
           dialogLabel="SEO description"
@@ -845,16 +863,29 @@ export function ProductFormFields({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "content"}>
-        <label className="grid gap-2">
-          <OwnershipLabel owner="Synarava">Material line</OwnershipLabel>
-          <input value={coreDraft.materialLine} onChange={(event) => updateCore("materialLine", event.target.value)} className="adm-field" />
-        </label>
-        <div className="grid content-start gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
-          <OwnershipLabel owner="Shopify">Catalog cover</OwnershipLabel>
-          <AdminIssueInlineWarning issues={issuesForField(issues, "field-imageUrl")} />
+        <AdminTextField
+          label="Material line"
+          owner="Synarava"
+          value={coreDraft.materialLine}
+          onChange={(event) => updateCore("materialLine", event.target.value)}
+        />
+        <div
+          className={`adm-field-unit border p-4 ${coverIssues.length > 0 ? "border-[var(--adm-danger)]" : "border-[var(--adm-border)] bg-[var(--adm-bg-soft)]"}`}
+          style={coverIssues.length > 0 ? { background: "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)" } : undefined}
+        >
+          <OwnershipLabel
+            owner="Shopify"
+            help={(
+              <AdminHelp label="Catalog cover guidance">
+                Managed by Product gallery below. The first image is the catalog cover and is sent first to Shopify.
+              </AdminHelp>
+            )}
+          >
+            Catalog cover
+          </OwnershipLabel>
           <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
           <input type="hidden" name="removeImage" value="0" />
-          <span className="text-xs leading-5 text-[var(--adm-subtle)]">Managed by Product gallery below. The first image is the catalog cover and is sent first to Shopify.</span>
+          <AdminFieldIssue issues={coverIssues} />
         </div>
       </div>
 
@@ -871,17 +902,15 @@ export function ProductFormFields({
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <input
+          <AdminTextField
             value={coreDraft.symbolismLabel}
             onChange={(event) => updateCore("symbolismLabel", event.target.value)}
             placeholder="Symbolic Language"
-            className="adm-field"
           />
-          <input
+          <AdminTextField
             value={coreDraft.symbolismTitle}
             onChange={(event) => updateCore("symbolismTitle", event.target.value)}
             placeholder="Wood, Lava, Embroidery"
-            className="adm-field"
           />
         </div>
         <AdminLongTextField label={<span className="adm-label">Symbolism body</span>} dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
@@ -889,15 +918,14 @@ export function ProductFormFields({
       </div>
 
       {activeTranslation ? (
-        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm" hidden={activeSection !== "content"}>
-          {/* No `name` here — same reasoning as the fields above; the hidden mirrors below carry every locale's real "on"/"" value. */}
-          <input
-            type="checkbox"
+        <div className="border-t border-[var(--adm-border)] pt-4" hidden={activeSection !== "content"}>
+          {/* No `name` here — hidden mirrors below carry every locale's real "on"/"" value. */}
+          <AdminCheckboxControl
             checked={reviewedByLocale[activeLocale] ?? false}
             onChange={(event) => setReviewedByLocale((prev) => ({ ...prev, [activeLocale]: event.target.checked }))}
+            label={`${activeLabel} translation reviewed`}
           />
-          <span>{activeLabel} translation reviewed</span>
-        </label>
+        </div>
       ) : null}
       <div hidden>
         {translationLocales.map(({ code }) => (
@@ -912,54 +940,76 @@ export function ProductFormFields({
       </div>
 
       {/* Taxonomy + state */}
-      <div className="grid items-start gap-4 lg:grid-cols-3" hidden={activeSection !== "catalog"}>
-        <div id="field-taxonomy-category" className="grid content-start gap-2">
-          <div className="adm-label-row">
-            <OwnershipLabel owner="Shopify">Product category</OwnershipLabel>
-            <AdminHelp>
-              This is the exact Shopify Standard Product Taxonomy category. Its Shopify ID powers
-              the Category section and filter on the site; Collections and Departments are
-              separate merchandising groups.
-            </AdminHelp>
-          </div>
-          <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-category")} />
+      <div className="grid gap-5" hidden={activeSection !== "catalog"}>
+        <div className="grid items-start gap-x-4 gap-y-5 lg:grid-cols-3">
           <ShopifyCategoryField
+            controlId="field-taxonomy-category-input"
             initialId={draft.shopifyCategoryId}
             initialName={draft.shopifyCategoryName}
-          />
-        </div>
-        <div id="field-taxonomy-collection" className="grid content-start gap-2">
-          <OwnershipLabel owner="Synarava">Collection</OwnershipLabel>
-          <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-collection")} />
-          <select name="collectionSlug" defaultValue={draft.collectionSlug} className="adm-field">
+            invalid={categoryIssues.length > 0}
+          >
+            <AdminFieldShell
+              id="field-taxonomy-category"
+              component="ShopifyCategoryFieldShell"
+              controlId="field-taxonomy-category-input"
+              label="Product category"
+              owner="Shopify"
+              help={(
+                <AdminHelp label="Product category guidance">
+                  This is the exact Shopify Standard Product Taxonomy category. Its Shopify ID powers
+                  the Category section and filter on the site; Collections and Departments are
+                  separate merchandising groups.
+                </AdminHelp>
+              )}
+              issue={<AdminFieldIssue issues={categoryIssues} />}
+            >
+              <ShopifyCategoryControl />
+            </AdminFieldShell>
+            <ShopifyCategoryAttributes />
+          </ShopifyCategoryField>
+          <AdminSelectField
+            unitId="field-taxonomy-collection"
+            id="field-taxonomy-collection-select"
+            label="Collection"
+            owner="Synarava"
+            name="collectionSlug"
+            defaultValue={draft.collectionSlug}
+            invalid={collectionIssues.length > 0}
+            issue={<AdminFieldIssue issues={collectionIssues} />}
+          >
             <option value="">No collection</option>
             {collections.map((collection) => (
               <option key={collection.id} value={collection.slug}>
                 {collection.name}
               </option>
             ))}
-          </select>
-        </div>
-        <div id="field-taxonomy-tags" className="grid content-start gap-2">
-          <OwnershipLabel owner="Shopify push">Tags</OwnershipLabel>
-          <AdminIssueInlineWarning issues={issuesForField(issues, "field-taxonomy-tags")} />
-          <input
+          </AdminSelectField>
+          <AdminTextField
+            unitId="field-taxonomy-tags"
+            id="field-taxonomy-tags-input"
+            label="Tags"
+            owner="Shopify push"
             name="tags"
             defaultValue={draft.tags}
             placeholder="lava, heritage, symbolic"
-            className="adm-field"
+            clearable
+            invalid={tagsIssues.length > 0}
+            issue={<AdminFieldIssue issues={tagsIssues} />}
           />
         </div>
-      </div>
 
-      <label className="grid gap-2 md:max-w-xs" hidden={activeSection !== "catalog"}>
-        <OwnershipLabel owner="Shopify">Site state</OwnershipLabel>
-        <select name="workflowState" defaultValue={draft.workflowState} className="adm-field">
+        <AdminSelectField
+          label="Site state"
+          owner="Shopify"
+          name="workflowState"
+          defaultValue={draft.workflowState}
+          className="md:max-w-xs"
+        >
           <option value="DRAFT">Draft — hidden</option>
           <option value="PUBLISHED">Published — visible</option>
           <option value="UNLISTED">Unlisted — direct link only</option>
-        </select>
-      </label>
+        </AdminSelectField>
+      </div>
     </>
   );
 }

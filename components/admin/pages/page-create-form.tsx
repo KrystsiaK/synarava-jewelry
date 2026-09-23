@@ -8,6 +8,8 @@ import {
   type PageActionState,
   type SavedPagePayload,
 } from "@/app/admin/actions/pages";
+import { AdminTextField } from "@/components/admin/shared/admin-text-field";
+import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
@@ -82,25 +84,17 @@ export function CreatePageForm({
       <AuthMessage error={state.error} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
-          <span className="adm-label">Title</span>
-          <input name="title" placeholder="Lookbook" className="adm-field" />
-        </label>
-        <label className="grid gap-2">
-          <span className="adm-label">Slug</span>
-          <input name="slug" placeholder="lookbook" className="adm-field" />
-        </label>
-        <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
-          <span className="adm-label">Eyebrow</span>
-          <input name="eyebrow" placeholder="Editorial note" className="adm-field" />
-        </label>
-        <label className="grid gap-2">
-          <span className="adm-label">Publishing state</span>
-          <select name="workflowState" defaultValue="PUBLISHED" className="adm-field">
-            <option value="DRAFT">Draft - hidden</option>
-            <option value="PUBLISHED">Published - visible</option>
-          </select>
-        </label>
+        <div hidden={activeLocale !== SOURCE_LOCALE}>
+          <AdminTextField label="Title" name="title" placeholder="Lookbook" />
+        </div>
+        <AdminTextField label="Slug" name="slug" placeholder="lookbook" />
+        <div hidden={activeLocale !== SOURCE_LOCALE}>
+          <AdminTextField label="Eyebrow" name="eyebrow" placeholder="Editorial note" />
+        </div>
+        <AdminSelectField label="Publishing state" name="workflowState" defaultValue="PUBLISHED">
+          <option value="DRAFT">Draft - hidden</option>
+          <option value="PUBLISHED">Published - visible</option>
+        </AdminSelectField>
       </div>
 
       {translationLocales.map(({ code, label }) => {
@@ -118,16 +112,16 @@ export function CreatePageForm({
               <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>Optional. Empty fields use the English source.</p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2"><span className="adm-label">Title ({code.toUpperCase()})</span><input name={fieldName("title")} className="adm-field" /></label>
-              <label className="grid gap-2"><span className="adm-label">URL handle ({code.toUpperCase()}, optional)</span><input name={fieldName("handle")} className="adm-field" placeholder="diario" /></label>
-              <label className="grid gap-2"><span className="adm-label">Eyebrow ({code.toUpperCase()})</span><input name={fieldName("eyebrow")} className="adm-field" /></label>
+              <AdminTextField label={`Title (${code.toUpperCase()})`} name={fieldName("title")} />
+              <AdminTextField label={`URL handle (${code.toUpperCase()}, optional)`} name={fieldName("handle")} placeholder="diario" />
+              <AdminTextField label={`Eyebrow (${code.toUpperCase()})`} name={fieldName("eyebrow")} />
             </div>
             <label className="grid gap-2"><span className="adm-label">Excerpt ({code.toUpperCase()})</span><textarea name={fieldName("excerpt")} rows={3} className="adm-field" /></label>
             <label className="grid gap-2"><span className="adm-label">Body ({code.toUpperCase()})</span><textarea name={fieldName("body")} rows={5} className="adm-field" /></label>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2"><span className="adm-label">CTA label ({code.toUpperCase()})</span><input name={fieldName("ctaLabel")} className="adm-field" /></label>
+              <AdminTextField label={`CTA label (${code.toUpperCase()})`} name={fieldName("ctaLabel")} />
               <label className="grid gap-2"><span className="adm-label">Quote ({code.toUpperCase()})</span><textarea name={fieldName("quote")} rows={3} className="adm-field" /></label>
-              <label className="grid gap-2"><span className="adm-label">Secondary title ({code.toUpperCase()})</span><input name={fieldName("secondaryTitle")} className="adm-field" /></label>
+              <AdminTextField label={`Secondary title (${code.toUpperCase()})`} name={fieldName("secondaryTitle")} />
               <label className="grid gap-2"><span className="adm-label">Secondary body ({code.toUpperCase()})</span><textarea name={fieldName("secondaryBody")} rows={3} className="adm-field" /></label>
             </div>
           </section>
@@ -150,14 +144,10 @@ export function CreatePageForm({
       </label>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
-          <span className="adm-label">CTA label</span>
-          <input name="ctaLabel" placeholder="Shop all products" className="adm-field" />
-        </label>
-        <label className="grid gap-2">
-          <span className="adm-label">CTA href</span>
-          <input name="ctaHref" placeholder="/shop" className="adm-field" />
-        </label>
+        <div hidden={activeLocale !== SOURCE_LOCALE}>
+          <AdminTextField label="CTA label" name="ctaLabel" placeholder="Shop all products" />
+        </div>
+        <AdminTextField label="CTA href" name="ctaHref" placeholder="/shop" />
       </div>
 
       <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
@@ -171,10 +161,7 @@ export function CreatePageForm({
       </label>
 
       <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== SOURCE_LOCALE}>
-        <label className="grid gap-2">
-          <span className="adm-label">Secondary title</span>
-          <input name="secondaryTitle" placeholder="Further reading" className="adm-field" />
-        </label>
+        <AdminTextField label="Secondary title" name="secondaryTitle" placeholder="Further reading" />
         <label className="grid gap-2">
           <span className="adm-label">Secondary body</span>
           <textarea

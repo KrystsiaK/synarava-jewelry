@@ -7,6 +7,7 @@ import {
   type StorefrontCopyActionState,
 } from "@/app/admin/actions/storefront-copy";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
@@ -80,28 +81,47 @@ export function StorefrontCopyEditor({
             ) : null}
           </div>
           <div className="grid gap-4">
-            {group.fields.map((field) => {
-              const Field = field.area ? "textarea" : "input";
-              return (
-                <div key={field.key} className="grid gap-2 md:grid-cols-2">
-                  {locales.map((locale) => (
-                    <label key={locale.code} className="grid gap-2" hidden={activeLocale !== locale.code}>
-                      <span className="adm-label flex items-center gap-1.5">
-                        {field.label} ({locale.code.toUpperCase()})
-                        {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
-                      </span>
-                      <Field
-                        name={`${locale.code}:${field.key}`}
-                        defaultValue={copy[locale.code]?.[field.key] ?? ""}
-                        placeholder={defaults[locale.code]?.[field.key] ?? englishDefaults[field.key] ?? ""}
-                        rows={field.area ? 3 : undefined}
-                        className="adm-field"
+            {group.fields.map((field) => (
+              <div key={field.key} className="grid gap-2 md:grid-cols-2">
+                {locales.map((locale) => {
+                  const localeLabel = `${field.label} (${locale.code.toUpperCase()})`;
+                  const hidden = activeLocale !== locale.code;
+                  const name = `${locale.code}:${field.key}`;
+                  const defaultValue = copy[locale.code]?.[field.key] ?? "";
+                  const placeholder = defaults[locale.code]?.[field.key] ?? englishDefaults[field.key] ?? "";
+
+                  if (field.area) {
+                    return (
+                      <label key={locale.code} className="grid gap-2" hidden={hidden}>
+                        <span className="adm-label flex items-center gap-1.5">
+                          {localeLabel}
+                          {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
+                        </span>
+                        <textarea
+                          name={name}
+                          defaultValue={defaultValue}
+                          placeholder={placeholder}
+                          rows={3}
+                          className="adm-field"
+                        />
+                      </label>
+                    );
+                  }
+
+                  return (
+                    <div key={locale.code} hidden={hidden}>
+                      <AdminTextField
+                        label={localeLabel}
+                        help={field.hint}
+                        name={name}
+                        defaultValue={defaultValue}
+                        placeholder={placeholder}
                       />
-                    </label>
-                  ))}
-                </div>
-              );
-            })}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </section>
       ))}

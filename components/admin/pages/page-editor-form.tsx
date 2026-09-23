@@ -9,6 +9,8 @@ import {
 } from "@/app/admin/actions/pages";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
+import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
@@ -344,17 +346,13 @@ export function PageEditor({
         {isHomePage ? <HomeSectionVisibilityEditor key={page.updatedAt.toISOString()} content={content} /> : null}
 
         {!isEn && !isBuiltInPage(page.slug) ? (
-          <label className="grid gap-2">
-            <span className="adm-label">URL handle ({activeLabel}, optional)</span>
-            {/* No `name` here — the hidden mirrors below carry every locale's real value, same reasoning as the Product editor. */}
-            <input
-              value={handleByLocale[activeLocale] ?? ""}
-              onChange={(event) => setHandleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
-              className="adm-field"
-              placeholder={page.slug}
-            />
-            <span className="text-xs" style={{ color: "var(--adm-muted)" }}>Blank uses the English slug.</span>
-          </label>
+          <AdminTextField
+            label={`URL handle (${activeLabel}, optional)`}
+            help={<AdminHelp label="URL handle guidance">Blank uses the English slug.</AdminHelp>}
+            value={handleByLocale[activeLocale] ?? ""}
+            onChange={(event) => setHandleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
+            placeholder={page.slug}
+          />
         ) : null}
         <div hidden>
           {translationLocales.map(({ code }) => (
@@ -369,28 +367,32 @@ export function PageEditor({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <span className="adm-label flex items-center gap-1.5">
-              {isHomePage ? "Hero headline" : "Title"}
-              {titleIsMetaOnly ? (
+          <AdminTextField
+            label={isHomePage ? "Hero headline" : "Title"}
+            help={
+              titleIsMetaOnly ? (
                 <AdminHelp>Browser tab title and search-engine result title. Not shown on the page itself.</AdminHelp>
               ) : isShopPage || isServicePage ? (
                 <AdminHelp>The big H1 heading on /{page.slug} — also sets the browser tab title.</AdminHelp>
-              ) : null}
-            </span>
-            <input value={draft.title} onChange={(event) => updateField("title", event.target.value)} className="adm-field" />
-          </label>
-          <label className="grid gap-2" hidden={!isServicePage && isCollectionsPage}>
-            <span className="adm-label flex items-center gap-1.5">
-              Eyebrow
-              {isServicePage ? (
-                <AdminHelp>Small label above the H1 on /{page.slug}.</AdminHelp>
-              ) : isShopPage ? (
-                <AdminHelp>The small red label above the heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp>
-              ) : null}
-            </span>
-            <input value={draft.eyebrow} onChange={(event) => updateField("eyebrow", event.target.value)} className="adm-field" />
-          </label>
+              ) : undefined
+            }
+            value={draft.title}
+            onChange={(event) => updateField("title", event.target.value)}
+          />
+          <div hidden={!isServicePage && isCollectionsPage}>
+            <AdminTextField
+              label="Eyebrow"
+              help={
+                isServicePage ? (
+                  <AdminHelp>Small label above the H1 on /{page.slug}.</AdminHelp>
+                ) : isShopPage ? (
+                  <AdminHelp>The small red label above the heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp>
+                ) : undefined
+              }
+              value={draft.eyebrow}
+              onChange={(event) => updateField("eyebrow", event.target.value)}
+            />
+          </div>
         </div>
 
         <label className="grid gap-2">
@@ -443,10 +445,11 @@ export function PageEditor({
               return (
                 <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
                   <p className="adm-section-tag">SECTION {index + 1} — {section.label}</p>
-                  <label className="grid gap-2">
-                    <span className="adm-label">Title</span>
-                    <input value={value?.title ?? ""} onChange={(event) => updateServiceSection(section.id, "title", event.target.value)} className="adm-field" />
-                  </label>
+                  <AdminTextField
+                    label="Title"
+                    value={value?.title ?? ""}
+                    onChange={(event) => updateServiceSection(section.id, "title", event.target.value)}
+                  />
                   <label className="grid gap-2">
                     <span className="adm-label">Body</span>
                     <textarea value={value?.body ?? ""} onChange={(event) => updateServiceSection(section.id, "body", event.target.value)} rows={3} className="adm-field" />
@@ -458,20 +461,24 @@ export function PageEditor({
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2" hidden={hideShopCalloutFields}>
-          <label className="grid gap-2">
-            <span className="adm-label flex items-center gap-1.5">
-              {isShopPage ? "Primary button label" : "CTA label"}
-              {isShopPage ? <AdminHelp>The button in the “Browse the Collections” callout at the bottom of /shop. Always links to /collections.</AdminHelp> : null}
-            </span>
-            <input value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} className="adm-field" />
-          </label>
-          <label className="grid gap-2" hidden={isShopPage}>
-            <span className="adm-label-row">
-              <span className="adm-label">CTA href</span>
-              <AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>
-            </span>
-            <input name="ctaHref" defaultValue={content.ctaHref ?? ""} className="adm-field" />
-          </label>
+          <AdminTextField
+            label={isShopPage ? "Primary button label" : "CTA label"}
+            help={
+              isShopPage ? (
+                <AdminHelp>The button in the “Browse the Collections” callout at the bottom of /shop. Always links to /collections.</AdminHelp>
+              ) : undefined
+            }
+            value={draft.ctaLabel}
+            onChange={(event) => updateField("ctaLabel", event.target.value)}
+          />
+          <div hidden={isShopPage}>
+            <AdminTextField
+              label="CTA href"
+              help={<AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>}
+              name="ctaHref"
+              defaultValue={content.ctaHref ?? ""}
+            />
+          </div>
         </div>
 
         {isOfferPage || isTermsPage || isPrivacyPage || isLegalNoticePage ? (
@@ -491,13 +498,13 @@ export function PageEditor({
                   <textarea value={draft.legalIntro} onChange={(event) => updateField("legalIntro", event.target.value)} rows={2} className="adm-field" />
                 </label>
               ) : null}
-              <label className="grid gap-2">
-                <span className="adm-label-row">
-                  <span className="adm-label">Last updated</span>
-                  <AdminHelp>Shared across languages — a display date, not translated copy.</AdminHelp>
-                </span>
-                <input name="legalLastUpdated" defaultValue={content.legalLastUpdated ?? ""} placeholder="e.g. 1 June 2025" className="adm-field" />
-              </label>
+              <AdminTextField
+                label="Last updated"
+                help={<AdminHelp>Shared across languages — a display date, not translated copy.</AdminHelp>}
+                name="legalLastUpdated"
+                defaultValue={content.legalLastUpdated ?? ""}
+                placeholder="e.g. 1 June 2025"
+              />
             </div>
 
             {legalSections.map((section) => {
@@ -505,10 +512,11 @@ export function PageEditor({
               return (
                 <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
                   <p className="adm-section-tag">{section.label}</p>
-                  <label className="grid gap-2">
-                    <span className="adm-label">Title</span>
-                    <input value={value?.title ?? ""} onChange={(event) => updateLegalSection(section.id, "title", event.target.value)} className="adm-field" />
-                  </label>
+                  <AdminTextField
+                    label="Title"
+                    value={value?.title ?? ""}
+                    onChange={(event) => updateLegalSection(section.id, "title", event.target.value)}
+                  />
                   <label className="grid gap-2">
                     <span className="adm-label">Body (Markdown)</span>
                     <textarea value={value?.body ?? ""} onChange={(event) => updateLegalSection(section.id, "body", event.target.value)} rows={6} className="adm-field font-mono text-xs" />
@@ -529,23 +537,26 @@ export function PageEditor({
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="adm-label">Department headline</span>
-                <input value={draft.departmentSectionTitle} onChange={(event) => updateField("departmentSectionTitle", event.target.value)} className="adm-field" />
-              </label>
-              <label className="grid gap-2">
-                <span className="adm-label">Department CTA label</span>
-                <input value={draft.departmentSectionCtaLabel} onChange={(event) => updateField("departmentSectionCtaLabel", event.target.value)} className="adm-field" />
-              </label>
+              <AdminTextField
+                label="Department headline"
+                value={draft.departmentSectionTitle}
+                onChange={(event) => updateField("departmentSectionTitle", event.target.value)}
+              />
+              <AdminTextField
+                label="Department CTA label"
+                value={draft.departmentSectionCtaLabel}
+                onChange={(event) => updateField("departmentSectionCtaLabel", event.target.value)}
+              />
             </div>
             <label className="grid gap-2">
               <span className="adm-label">Department description</span>
               <textarea value={draft.departmentSectionBody} onChange={(event) => updateField("departmentSectionBody", event.target.value)} rows={3} className="adm-field" />
             </label>
-            <label className="grid gap-2">
-              <span className="adm-label">Department image caption</span>
-              <input value={draft.departmentSectionImageCaption} onChange={(event) => updateField("departmentSectionImageCaption", event.target.value)} className="adm-field" />
-            </label>
+            <AdminTextField
+              label="Department image caption"
+              value={draft.departmentSectionImageCaption}
+              onChange={(event) => updateField("departmentSectionImageCaption", event.target.value)}
+            />
           </section>
         ) : null}
 
@@ -560,22 +571,30 @@ export function PageEditor({
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="adm-label">Archive background label</span>
-                <input value={draft.archiveSectionLabel} onChange={(event) => updateField("archiveSectionLabel", event.target.value)} placeholder="Recorded" className="adm-field" />
-              </label>
-              <label className="grid gap-2">
-                <span className="adm-label">The Edit eyebrow</span>
-                <input value={draft.editSectionEyebrow} onChange={(event) => updateField("editSectionEyebrow", event.target.value)} placeholder="A few to start with" className="adm-field" />
-              </label>
-              <label className="grid gap-2">
-                <span className="adm-label">The Edit title</span>
-                <input value={draft.editSectionTitle} onChange={(event) => updateField("editSectionTitle", event.target.value)} placeholder="The Edit" className="adm-field" />
-              </label>
-              <label className="grid gap-2">
-                <span className="adm-label">The Edit product CTA</span>
-                <input value={draft.editSectionCtaLabel} onChange={(event) => updateField("editSectionCtaLabel", event.target.value)} placeholder="View piece" className="adm-field" />
-              </label>
+              <AdminTextField
+                label="Archive background label"
+                value={draft.archiveSectionLabel}
+                onChange={(event) => updateField("archiveSectionLabel", event.target.value)}
+                placeholder="Recorded"
+              />
+              <AdminTextField
+                label="The Edit eyebrow"
+                value={draft.editSectionEyebrow}
+                onChange={(event) => updateField("editSectionEyebrow", event.target.value)}
+                placeholder="A few to start with"
+              />
+              <AdminTextField
+                label="The Edit title"
+                value={draft.editSectionTitle}
+                onChange={(event) => updateField("editSectionTitle", event.target.value)}
+                placeholder="The Edit"
+              />
+              <AdminTextField
+                label="The Edit product CTA"
+                value={draft.editSectionCtaLabel}
+                onChange={(event) => updateField("editSectionCtaLabel", event.target.value)}
+                placeholder="View piece"
+              />
               <label className="grid gap-2 md:col-span-2">
                 <span className="adm-label">The Edit description</span>
                 <textarea value={draft.editSectionBody} onChange={(event) => updateField("editSectionBody", event.target.value)} rows={2} placeholder="Four pieces, four sides of Synarava." className="adm-field" />
@@ -587,64 +606,72 @@ export function PageEditor({
                 </p>
                 <div className="grid gap-3 md:grid-cols-2">
                   {editProductIds.map((productId, index) => (
-                    <label key={index} className="grid gap-2">
-                      <span className="adm-label">Product {index + 1}</span>
-                      <select
-                        name={`editProductId${index + 1}`}
-                        value={productId}
-                        onChange={(event) => setEditProductIds((current) => current.map((id, slot) => slot === index ? event.target.value : id))}
-                        className="adm-field"
-                      >
-                        <option value="">Choose a product</option>
-                        {productOptions.map((product) => (
-                          <option
-                            key={product.id}
-                            value={product.id}
-                            disabled={product.id !== productId && editProductIds.includes(product.id)}
-                          >
-                            {product.title} · /{product.slug}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <AdminSelectField
+                      key={index}
+                      label={`Product ${index + 1}`}
+                      name={`editProductId${index + 1}`}
+                      value={productId}
+                      onChange={(event) => setEditProductIds((current) => current.map((id, slot) => slot === index ? event.target.value : id))}
+                    >
+                      <option value="">Choose a product</option>
+                      {productOptions.map((product) => (
+                        <option
+                          key={product.id}
+                          value={product.id}
+                          disabled={product.id !== productId && editProductIds.includes(product.id)}
+                        >
+                          {product.title} · /{product.slug}
+                        </option>
+                      ))}
+                    </AdminSelectField>
                   ))}
                 </div>
               </fieldset>
-              <label className="grid gap-2">
-                <span className="adm-label">Material eyebrow</span>
-                <input value={draft.materialSectionEyebrow} onChange={(event) => updateField("materialSectionEyebrow", event.target.value)} placeholder="Material glossary / scroll to turn" className="adm-field" />
-              </label>
-              <label className="grid gap-2">
-                <span className="adm-label">Material section title</span>
-                <input value={draft.materialSectionTitle} onChange={(event) => updateField("materialSectionTitle", event.target.value)} placeholder="Lexicon" className="adm-field" />
-              </label>
-              <label className="grid gap-2">
-                <span className="adm-label">Material note label</span>
-                <input value={draft.materialSectionNoteLabel} onChange={(event) => updateField("materialSectionNoteLabel", event.target.value)} placeholder="Material notes" className="adm-field" />
-              </label>
+              <AdminTextField
+                label="Material eyebrow"
+                value={draft.materialSectionEyebrow}
+                onChange={(event) => updateField("materialSectionEyebrow", event.target.value)}
+                placeholder="Material glossary / scroll to turn"
+              />
+              <AdminTextField
+                label="Material section title"
+                value={draft.materialSectionTitle}
+                onChange={(event) => updateField("materialSectionTitle", event.target.value)}
+                placeholder="Lexicon"
+              />
+              <AdminTextField
+                label="Material note label"
+                value={draft.materialSectionNoteLabel}
+                onChange={(event) => updateField("materialSectionNoteLabel", event.target.value)}
+                placeholder="Material notes"
+              />
             </div>
 
             {draft.materials.map((material, index) => (
               <div key={index} className="grid gap-4 border border-[var(--adm-border)] p-4">
                 <p className="adm-section-tag">LEXICON MATERIAL {index + 1}</p>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="grid gap-2">
-                    <span className="adm-label">Name</span>
-                    <input value={material.name} onChange={(event) => updateMaterial(index, "name", event.target.value)} className="adm-field" />
-                  </label>
-                  <label className="grid gap-2">
-                    <span className="adm-label">Category</span>
-                    <input value={material.category} onChange={(event) => updateMaterial(index, "category", event.target.value)} className="adm-field" />
-                  </label>
+                  <AdminTextField
+                    label="Name"
+                    value={material.name}
+                    onChange={(event) => updateMaterial(index, "name", event.target.value)}
+                  />
+                  <AdminTextField
+                    label="Category"
+                    value={material.category}
+                    onChange={(event) => updateMaterial(index, "category", event.target.value)}
+                  />
                 </div>
                 <label className="grid gap-2">
                   <span className="adm-label">Description</span>
                   <textarea value={material.description} onChange={(event) => updateMaterial(index, "description", event.target.value)} rows={3} className="adm-field" />
                 </label>
-                <label className="grid gap-2">
-                  <span className="adm-label">Properties (comma-separated, up to 3)</span>
-                  <input value={material.properties} onChange={(event) => updateMaterial(index, "properties", event.target.value)} placeholder="Recycled, Hypoallergenic, Handmade" className="adm-field" />
-                </label>
+                <AdminTextField
+                  label="Properties (comma-separated, up to 3)"
+                  value={material.properties}
+                  onChange={(event) => updateMaterial(index, "properties", event.target.value)}
+                  placeholder="Recycled, Hypoallergenic, Handmade"
+                />
                 <label className="grid gap-2">
                   <span className="adm-label-row">
                     <span className="adm-label">Image</span>
@@ -671,26 +698,33 @@ export function PageEditor({
 
         {isHomePage ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="adm-label">Manifesto label</span>
-              <input value={draft.manifestoSectionLabel} onChange={(event) => updateField("manifestoSectionLabel", event.target.value)} placeholder="A principle to keep" className="adm-field" />
-            </label>
-            <label className="grid gap-2">
-              <span className="adm-label">Manifesto attribution</span>
-              <input value={draft.manifestoSectionAttribution} onChange={(event) => updateField("manifestoSectionAttribution", event.target.value)} placeholder="The Synarava Manifesto // Vol 1." className="adm-field" />
-            </label>
+            <AdminTextField
+              label="Manifesto label"
+              value={draft.manifestoSectionLabel}
+              onChange={(event) => updateField("manifestoSectionLabel", event.target.value)}
+              placeholder="A principle to keep"
+            />
+            <AdminTextField
+              label="Manifesto attribution"
+              value={draft.manifestoSectionAttribution}
+              onChange={(event) => updateField("manifestoSectionAttribution", event.target.value)}
+              placeholder="The Synarava Manifesto // Vol 1."
+            />
           </div>
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Final call to action</h3> : null}
         <div className="grid gap-4 md:grid-cols-2" hidden={hideShopCalloutFields}>
-          <label className="grid gap-2">
-            <span className="adm-label flex items-center gap-1.5">
-              {isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : isShopPage ? "Collections callout heading" : "Secondary title"}
-              {isShopPage ? <AdminHelp>The heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp> : null}
-            </span>
-            <input value={draft.secondaryTitle} onChange={(event) => updateField("secondaryTitle", event.target.value)} className="adm-field" />
-          </label>
+          <AdminTextField
+            label={isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : isShopPage ? "Collections callout heading" : "Secondary title"}
+            help={
+              isShopPage ? (
+                <AdminHelp>The heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp>
+              ) : undefined
+            }
+            value={draft.secondaryTitle}
+            onChange={(event) => updateField("secondaryTitle", event.target.value)}
+          />
           <label className="grid gap-2">
             <span className="adm-label flex items-center gap-1.5">
               {isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : isShopPage ? "Secondary link label" : "Secondary body"}
@@ -702,48 +736,49 @@ export function PageEditor({
 
         {isHomePage ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="adm-label">Final CTA label</span>
-              <input value={draft.finalCtaLabel} onChange={(event) => updateField("finalCtaLabel", event.target.value)} className="adm-field" />
-            </label>
-            <label className="grid gap-2">
-              <span className="adm-label-row">
-                <span className="adm-label">Final CTA href</span>
-                <AdminHelp>Shared across languages.</AdminHelp>
-              </span>
-              <input name="finalCtaHref" defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""} className="adm-field" />
-            </label>
+            <AdminTextField
+              label="Final CTA label"
+              value={draft.finalCtaLabel}
+              onChange={(event) => updateField("finalCtaLabel", event.target.value)}
+            />
+            <AdminTextField
+              label="Final CTA href"
+              help={<AdminHelp>Shared across languages.</AdminHelp>}
+              name="finalCtaHref"
+              defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""}
+            />
             <label className="grid gap-2">
               <span className="adm-label">Footer statement</span>
               <textarea value={draft.finalFooterTitle} onChange={(event) => updateField("finalFooterTitle", event.target.value)} placeholder={"Objects shaped slowly,\nkept for a lifetime."} rows={2} className="adm-field" />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="adm-label">Contact label</span>
-                <input value={draft.finalContactLabel} onChange={(event) => updateField("finalContactLabel", event.target.value)} placeholder="synarava.shop@gmail.com" className="adm-field" />
-              </label>
-              <label className="grid gap-2">
-                <span className="adm-label-row">
-                  <span className="adm-label">Contact email</span>
-                  <AdminHelp>Shared across languages — an address, not translated copy.</AdminHelp>
-                </span>
-                <input name="finalContactEmail" type="email" defaultValue={content.finalContactEmail ?? ""} placeholder="synarava.shop@gmail.com" className="adm-field" />
-              </label>
+              <AdminTextField
+                label="Contact label"
+                value={draft.finalContactLabel}
+                onChange={(event) => updateField("finalContactLabel", event.target.value)}
+                placeholder="synarava.shop@gmail.com"
+              />
+              <AdminTextField
+                label="Contact email"
+                help={<AdminHelp>Shared across languages — an address, not translated copy.</AdminHelp>}
+                name="finalContactEmail"
+                type="email"
+                defaultValue={content.finalContactEmail ?? ""}
+                placeholder="synarava.shop@gmail.com"
+              />
             </div>
           </div>
         ) : null}
 
-        <label className="grid gap-2 md:max-w-xs">
-          <span className="adm-label">Publishing state after save</span>
-          <select
-            name="workflowState"
-            defaultValue={pageStatusLabel(page) === "PUBLISHED" ? "PUBLISHED" : "DRAFT"}
-            className="adm-field"
-          >
-            <option value="DRAFT">Draft - hidden</option>
-            <option value="PUBLISHED">Published - visible</option>
-          </select>
-        </label>
+        <AdminSelectField
+          className="md:max-w-xs"
+          label="Publishing state after save"
+          name="workflowState"
+          defaultValue={pageStatusLabel(page) === "PUBLISHED" ? "PUBLISHED" : "DRAFT"}
+        >
+          <option value="DRAFT">Draft - hidden</option>
+          <option value="PUBLISHED">Published - visible</option>
+        </AdminSelectField>
 
         <div
           className="flex justify-end pt-4"

@@ -11,6 +11,7 @@ import {
 } from "@/app/admin/actions/sync";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { Tooltip } from "@/components/ui/tooltip";
+import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
 import type {
   CatalogConflictApplyScope,
   CatalogConflictPreview,
@@ -343,7 +344,19 @@ function PreviewModal({ preview, productsById, applying, resultMessage, onClose,
         {resultMessage ? <p role="alert" className="rounded-lg border border-[var(--adm-warning)] p-3 text-sm">{resultMessage}</p> : null}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-        <div>{hasClears ? <label className="flex max-w-xl items-start gap-2 text-xs"><input type="checkbox" checked={acknowledgeClears} onChange={(event) => setAcknowledgeClears(event.target.checked)} className="mt-0.5" />I understand that the selected source contains empty values and the destination values shown above will be cleared.</label> : <span className="text-xs text-[var(--adm-muted)]">Nothing changes until you confirm.</span>}</div>
+        <div>
+          {hasClears ? (
+            <AdminCheckboxControl
+              className="max-w-xl text-xs"
+              checked={acknowledgeClears}
+              onChange={(event) => setAcknowledgeClears(event.target.checked)}
+              label="I understand that the selected source contains empty values and the destination values shown above will be cleared."
+              labelClassName="text-xs leading-5"
+            />
+          ) : (
+            <span className="text-xs text-[var(--adm-muted)]">Nothing changes until you confirm.</span>
+          )}
+        </div>
         <div className="flex gap-2"><button type="button" onClick={onClose} disabled={applying} className="adm-btn-secondary">Cancel</button><button type="button" onClick={() => onConfirm(acknowledgeClears)} disabled={applying || preview.entries.length === 0 || (hasClears && !acknowledgeClears)} className="adm-btn-primary">{applying ? "Applying…" : "Confirm changes"}</button></div>
       </footer>
     </AnimatedModal>

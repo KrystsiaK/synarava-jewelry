@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { saveSiteSeoAction, type SiteSeoActionState } from "@/app/admin/actions/site-seo";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import {
@@ -81,21 +82,32 @@ export function SiteSeoEditor({
           </div>
           <div className="grid gap-4">
             {SITE_SEO_FIELD_DEFS.map((field) => {
-              const Field = field.area ? "textarea" : "input";
+              if (field.area) {
+                return (
+                  <label key={field.key} className="grid gap-2">
+                    <span className="adm-label flex items-center gap-1.5">
+                      {field.label}
+                      <AdminHelp>{field.hint}</AdminHelp>
+                    </span>
+                    <textarea
+                      name={field.key}
+                      defaultValue={overrides[field.key] ?? ""}
+                      placeholder={SITE_SEO_DEFAULTS[field.key]}
+                      rows={3}
+                      className="adm-field"
+                    />
+                  </label>
+                );
+              }
               return (
-                <label key={field.key} className="grid gap-2">
-                  <span className="adm-label flex items-center gap-1.5">
-                    {field.label}
-                    <AdminHelp>{field.hint}</AdminHelp>
-                  </span>
-                  <Field
-                    name={field.key}
-                    defaultValue={overrides[field.key] ?? ""}
-                    placeholder={SITE_SEO_DEFAULTS[field.key]}
-                    rows={field.area ? 3 : undefined}
-                    className="adm-field"
-                  />
-                </label>
+                <AdminTextField
+                  key={field.key}
+                  label={field.label}
+                  help={field.hint}
+                  name={field.key}
+                  defaultValue={overrides[field.key] ?? ""}
+                  placeholder={SITE_SEO_DEFAULTS[field.key]}
+                />
               );
             })}
           </div>

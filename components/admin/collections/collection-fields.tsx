@@ -1,13 +1,19 @@
 "use client";
 
 import type { CollectionFieldName } from "@/app/admin/actions/collections";
+import { AdminFieldError } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminTextField } from "@/components/admin/shared/admin-text-field";
+import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
+import { FieldLabel } from "@/components/admin/shared/field-label";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { fieldClass } from "@/components/admin/collections/collection-helpers";
 import type { CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
+
+export { FieldLabel } from "@/components/admin/shared/field-label";
 
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
@@ -18,29 +24,8 @@ const EMPTY_TRANSLATION: CollectionLocaleDraft = {
   reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
 };
 
-export function FieldLabel({
-  children,
-  help,
-  required,
-}: {
-  children: React.ReactNode;
-  help?: React.ReactNode;
-  required?: boolean;
-}) {
-  return (
-    <span data-component="FieldLabel" className="adm-label-row">
-      <span className="adm-label">
-        {children}
-        {required ? <span style={{ color: "var(--adm-accent)", marginLeft: "0.25rem" }}>*</span> : null}
-      </span>
-      {help ? <AdminHelp>{help}</AdminHelp> : null}
-    </span>
-  );
-}
-
 export function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return <p data-component="FieldError" className="adm-field-error">{message}</p>;
+  return <AdminFieldError message={message} />;
 }
 
 export function WorkflowStateField({
@@ -196,68 +181,50 @@ export function CollectionFields({
       <HiddenLocaleFields draft={draft} translationLocales={translationLocales} />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-2">
-          <FieldLabel required={isEn}>Name</FieldLabel>
-          <input
-            required={isEn}
-            value={isEn ? draft.name : active!.name}
-            onChange={(e) => (isEn ? onChange("name", e.target.value) : updateActiveTranslation("name", e.target.value))}
-            className={fieldClass(isEn ? fieldErrors?.name : undefined)}
-            aria-invalid={isEn && Boolean(fieldErrors?.name)}
-            placeholder={isEn ? "Earth Rituals" : "Optional — shows the English name until filled in."}
-          />
-          <FieldError message={isEn ? fieldErrors?.name : undefined} />
-        </label>
-        <label className="grid gap-2">
-          <FieldLabel>Subtitle</FieldLabel>
-          <input
-            value={isEn ? draft.subtitle : active!.subtitle}
-            onChange={(e) => (isEn ? onChange("subtitle", e.target.value) : updateActiveTranslation("subtitle", e.target.value))}
-            className="adm-field"
-            placeholder={isEn ? "A short editorial line" : "Optional — shows the English subtitle until filled in."}
-          />
-        </label>
-        <label className="grid gap-2" hidden={isEn}>
-          <FieldLabel>URL handle ({activeLabel}, optional)</FieldLabel>
-          <input
+        <AdminTextField
+          label="Name"
+          required={isEn}
+          value={isEn ? draft.name : active!.name}
+          onChange={(e) => (isEn ? onChange("name", e.target.value) : updateActiveTranslation("name", e.target.value))}
+          error={isEn ? fieldErrors?.name : undefined}
+          placeholder={isEn ? "Earth Rituals" : "Optional — shows the English name until filled in."}
+        />
+        <AdminTextField
+          label="Subtitle"
+          value={isEn ? draft.subtitle : active!.subtitle}
+          onChange={(e) => (isEn ? onChange("subtitle", e.target.value) : updateActiveTranslation("subtitle", e.target.value))}
+          placeholder={isEn ? "A short editorial line" : "Optional — shows the English subtitle until filled in."}
+        />
+        <div hidden={isEn}>
+          <AdminTextField
+            label={`URL handle (${activeLabel}, optional)`}
             value={active?.localizedHandle ?? ""}
             onChange={(e) => updateActiveTranslation("localizedHandle", e.target.value)}
-            className="adm-field"
             placeholder={draft.slug}
           />
-        </label>
+        </div>
 
-        <label className="grid gap-2">
-          <FieldLabel required help="Auto-generated from the collection name until you edit it manually. Keep it short, lowercase, and URL-friendly.">
-            Slug
-          </FieldLabel>
-          <input
-            name="slug"
-            required
-            value={draft.slug}
-            onChange={(e) => onChange("slug", e.target.value)}
-            className={fieldClass(fieldErrors?.slug)}
-            aria-invalid={Boolean(fieldErrors?.slug)}
-            placeholder="earth-rituals"
-          />
-          <FieldError message={fieldErrors?.slug} />
-        </label>
+        <AdminTextField
+          label="Slug"
+          name="slug"
+          required
+          help="Auto-generated from the collection name until you edit it manually. Keep it short, lowercase, and URL-friendly."
+          value={draft.slug}
+          onChange={(e) => onChange("slug", e.target.value)}
+          error={fieldErrors?.slug}
+          placeholder="earth-rituals"
+        />
 
-        <label className="grid gap-2">
-          <FieldLabel required help="Short collection code used in site views and admin references.">
-            Accent code
-          </FieldLabel>
-          <input
-            name="code"
-            required
-            value={draft.code}
-            onChange={(e) => onChange("code", e.target.value)}
-            className={fieldClass(fieldErrors?.code)}
-            aria-invalid={Boolean(fieldErrors?.code)}
-            placeholder="COL-01"
-          />
-          <FieldError message={fieldErrors?.code} />
-        </label>
+        <AdminTextField
+          label="Accent code"
+          name="code"
+          required
+          help="Short collection code used in site views and admin references."
+          value={draft.code}
+          onChange={(e) => onChange("code", e.target.value)}
+          error={fieldErrors?.code}
+          placeholder="COL-01"
+        />
 
       </div>
 
@@ -355,24 +322,18 @@ export function CollectionFields({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <FieldLabel>Symbolism label</FieldLabel>
-            <input
-              value={isEn ? draft.symbolismLabel : active!.symbolismLabel}
-              onChange={(e) => (isEn ? onChange("symbolismLabel", e.target.value) : updateActiveTranslation("symbolismLabel", e.target.value))}
-              className="adm-field"
-              placeholder={isEn ? "Symbolic Language" : undefined}
-            />
-          </label>
-          <label className="grid gap-2">
-            <FieldLabel>Symbolism title</FieldLabel>
-            <input
-              value={isEn ? draft.symbolismTitle : active!.symbolismTitle}
-              onChange={(e) => (isEn ? onChange("symbolismTitle", e.target.value) : updateActiveTranslation("symbolismTitle", e.target.value))}
-              className="adm-field"
-              placeholder={isEn ? "Wood, Lava, Embroidery" : undefined}
-            />
-          </label>
+          <AdminTextField
+            label="Symbolism label"
+            value={isEn ? draft.symbolismLabel : active!.symbolismLabel}
+            onChange={(e) => (isEn ? onChange("symbolismLabel", e.target.value) : updateActiveTranslation("symbolismLabel", e.target.value))}
+            placeholder={isEn ? "Symbolic Language" : undefined}
+          />
+          <AdminTextField
+            label="Symbolism title"
+            value={isEn ? draft.symbolismTitle : active!.symbolismTitle}
+            onChange={(e) => (isEn ? onChange("symbolismTitle", e.target.value) : updateActiveTranslation("symbolismTitle", e.target.value))}
+            placeholder={isEn ? "Wood, Lava, Embroidery" : undefined}
+          />
         </div>
 
         <label className="grid gap-2">
@@ -412,14 +373,11 @@ export function CollectionFields({
           ) : null}
         </div>
 
-        <label className="flex items-center gap-3 text-sm">
-          <input
-            type="checkbox"
-            checked={active?.reviewed ?? false}
-            onChange={(e) => updateActiveTranslation("reviewed", e.target.checked)}
-          />
-          <span>{activeLabel} translation reviewed</span>
-        </label>
+        <AdminCheckboxControl
+          checked={active?.reviewed ?? false}
+          onChange={(e) => updateActiveTranslation("reviewed", e.target.checked)}
+          label={`${activeLabel} translation reviewed`}
+        />
       </div>
     </>
   );

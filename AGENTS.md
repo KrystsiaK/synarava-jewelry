@@ -44,6 +44,11 @@ Rules:
 - Reuse Shopify-native resources, collections, metafields, metaobjects, and semantics whenever Shopify supports the capability. Do not create a parallel local commerce concept; local data may only act as an explicit projection, cache, or Synarava-specific editorial layer.
 - Keep local projections synchronized with Shopify. When a Shopify capability requires approval or restricted access scopes, preserve the Shopify-native integration contract and surface the requirement instead of replacing it with an invented local substitute.
 
+## synarava-cms
+
+- Admin UI under `components/admin/` must reuse **synarava-cms** (`AdminTextField`, `AdminSelectField`, `AdminCheckboxField` / `AdminCheckboxControl`, `AdminLongTextField`, `AdminFieldShell`). Prefer imports from `@/components/synarava-cms`. Do not invent parallel raw field markup.
+- Contract: [`docs/admin/synarava-cms.md`](docs/admin/synarava-cms.md). Skill: `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`).
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

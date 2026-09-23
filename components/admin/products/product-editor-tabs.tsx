@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import {
   FileText,
   Gem,
@@ -10,6 +10,9 @@ import {
   Store,
   type LucideIcon,
 } from "lucide-react";
+
+import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 
 export type ProductEditorSection =
   | "essentials"
@@ -166,12 +169,26 @@ export function ProductEditorTabs({
   onChange,
   includeShopify = true,
   dirtySections,
+  issueSections,
+  sectionIssues,
+  onIssueActivate,
+  embedded = false,
+  aside = null,
 }: {
   active: ProductEditorSection;
   onChange: (section: ProductEditorSection) => void;
   includeShopify?: boolean;
   /** Sections with unsaved edits — shows a dirty marker on that tab. */
   dirtySections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
+  /** Sections with open QA issues — tints that tab. */
+  issueSections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
+  /** Open issues owned by the active section — listed under the description. */
+  sectionIssues?: AdminIssueSummary[];
+  onIssueActivate?: (issue: AdminIssueSummary) => void;
+  /** Inside the locale workspace shell — no nested card radii. */
+  embedded?: boolean;
+  /** Header actions for the active section (e.g. locale sync controls). */
+  aside?: React.ReactNode;
 }) {
   const tabs = includeShopify
     ? PRODUCT_EDITOR_TABS
@@ -181,6 +198,10 @@ export function ProductEditorTabs({
   const dirtySet = dirtySections instanceof Set
     ? dirtySections
     : new Set(dirtySections ?? []);
+  const issueSet = issueSections instanceof Set
+    ? issueSections
+    : new Set(issueSections ?? []);
+  const hasSectionIssues = Boolean(sectionIssues && sectionIssues.length > 0);
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     let nextIndex: number | null = null;
@@ -196,15 +217,22 @@ export function ProductEditorTabs({
   }
 
   return (
-    <div data-component="ProductEditorTabs" className="grid gap-4">
+    <div data-component="ProductEditorTabs" className="grid gap-0" data-embedded={embedded ? "true" : undefined}>
       <div
         role="tablist"
         aria-label="Product editor sections"
-        className={`grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-[var(--adm-border)] bg-[var(--adm-border)] md:grid-cols-3 ${includeShopify ? "xl:grid-cols-6" : "xl:grid-cols-5"}`}
+        className={[
+          "grid grid-cols-2 gap-px bg-[var(--locale-tone-border,var(--adm-border))] md:grid-cols-3",
+          includeShopify ? "xl:grid-cols-6" : "xl:grid-cols-5",
+          embedded
+            ? "adm-product-section-tabs border-0"
+            : "overflow-hidden rounded-t-lg border border-b-0 border-[var(--adm-border)]",
+        ].join(" ")}
       >
         {tabs.map((tab, index) => {
           const Icon = tab.icon;
           const selected = tab.id === activeTab.id;
+          const hasIssue = issueSet.has(tab.id);
           return (
             <button
               key={tab.id}
@@ -217,11 +245,22 @@ export function ProductEditorTabs({
               onClick={() => onChange(tab.id)}
               onKeyDown={(event) => handleKeyDown(event, index)}
               data-dirty={dirtySet.has(tab.id) ? "true" : undefined}
-              className="group flex min-h-16 items-center gap-3 bg-[var(--adm-panel)] px-3 py-3 text-left transition-colors hover:bg-[var(--adm-panel-elevated)] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--adm-accent)] aria-selected:bg-[var(--adm-accent-soft)]"
+              data-issue={hasIssue ? "true" : undefined}
+              className={[
+                "group flex min-h-16 items-center gap-3 px-3 py-3 text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--adm-accent)]",
+                hasIssue
+                  ? "bg-[color-mix(in_srgb,var(--adm-danger)_10%,var(--adm-panel))] hover:bg-[color-mix(in_srgb,var(--adm-danger)_14%,var(--adm-panel))] aria-selected:bg-[color-mix(in_srgb,var(--adm-danger)_16%,var(--adm-panel))]"
+                  : "bg-[var(--adm-panel)] hover:bg-[var(--adm-panel-elevated)] aria-selected:bg-[color-mix(in_srgb,var(--locale-tone-accent,var(--adm-accent))_14%,var(--adm-panel))]",
+              ].join(" ")}
             >
               <span
-                className="grid size-9 shrink-0 place-items-center rounded-md border text-[var(--adm-muted)] transition-colors group-aria-selected:border-[var(--adm-border-strong)] group-aria-selected:bg-[var(--adm-panel)] group-aria-selected:text-[var(--adm-accent)]"
-                style={{ borderColor: "var(--adm-border)" }}
+                className={[
+                  "grid size-9 shrink-0 place-items-center rounded-md border transition-colors group-aria-selected:bg-[var(--adm-panel)]",
+                  hasIssue
+                    ? "border-[color-mix(in_srgb,var(--adm-danger)_45%,var(--adm-border))] text-[var(--adm-danger)] group-aria-selected:border-[var(--adm-danger)] group-aria-selected:text-[var(--adm-danger)]"
+                    : "text-[var(--adm-muted)] group-aria-selected:border-[var(--locale-tone-accent,var(--adm-border-strong))] group-aria-selected:text-[var(--locale-tone-accent,var(--adm-accent))]",
+                ].join(" ")}
+                style={hasIssue ? undefined : { borderColor: "var(--adm-border)" }}
                 aria-hidden="true"
               >
                 <Icon size={18} strokeWidth={1.7} />
@@ -236,6 +275,13 @@ export function ProductEditorTabs({
                       aria-label={`${tab.label} has unsaved edits`}
                     />
                   ) : null}
+                  {hasIssue ? (
+                    <span
+                      className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--adm-danger)]"
+                      title="Open problem"
+                      aria-label={`${tab.label} has open problems`}
+                    />
+                  ) : null}
                 </span>
                 <span className="mt-0.5 block truncate text-[0.68rem] text-[var(--adm-muted)]">{tab.shortLabel}</span>
               </span>
@@ -244,22 +290,58 @@ export function ProductEditorTabs({
         })}
       </div>
 
-      <section
+      <header
         aria-live="polite"
-        className="grid min-h-36 items-center gap-5 overflow-hidden rounded-lg border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] px-5 py-5 md:grid-cols-[minmax(0,1fr)_13rem] md:px-6"
+        className={[
+          "flex flex-wrap items-center justify-between gap-3 px-5 py-4 md:px-6",
+          embedded
+            ? "adm-product-section-header border-t border-[var(--locale-tone-border,var(--adm-border))] bg-transparent"
+            : "border border-t-0 border-[var(--adm-border)] bg-[var(--adm-bg-soft)]",
+        ].join(" ")}
       >
-        <div>
-          <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--adm-ink)]">
-            {activeTab.title}
-          </h2>
-          <p className="mt-2 max-w-[68ch] text-sm leading-6 text-[var(--adm-muted)]">
-            {activeTab.description}
-          </p>
-        </div>
-        <div className="mx-auto h-28 w-full max-w-52 text-[var(--adm-ink)] md:mx-0">
+        <h2 className="min-w-0 text-xl font-semibold tracking-[-0.02em] text-[var(--adm-ink)]">
+          {activeTab.title}
+        </h2>
+        {aside != null ? (
+          <div className="flex shrink-0 items-center justify-end gap-1.5">{aside}</div>
+        ) : null}
+      </header>
+
+      <section
+        className={[
+          "grid items-center gap-5 px-5 py-5 md:grid-cols-[minmax(0,1fr)_auto] md:px-6",
+          embedded
+            ? "border-t border-[var(--locale-tone-border,var(--adm-border))] bg-transparent"
+            : "border border-t-0 border-[var(--adm-border)] bg-[var(--adm-bg-soft)]",
+        ].join(" ")}
+      >
+        <p className="max-w-[68ch] text-sm leading-6 text-[var(--adm-muted)]">
+          {activeTab.description}
+        </p>
+        <div className="mx-auto h-28 w-full max-w-52 text-[var(--adm-ink)] md:mx-0 md:justify-self-end">
           <ProductSectionGraphic section={activeTab.id} />
         </div>
       </section>
+
+      {hasSectionIssues ? (
+        <div
+          className={[
+            "px-5 py-4 md:px-6",
+            embedded
+              ? "border-t border-[var(--locale-tone-border,var(--adm-border))]"
+              : "border border-t-0 border-[var(--adm-border)] bg-[var(--adm-bg-soft)]",
+            !embedded ? "rounded-b-lg" : "",
+          ].join(" ")}
+        >
+          <AdminIssueInlineWarning
+            issues={sectionIssues!}
+            className="w-full"
+            onIssueActivate={onIssueActivate}
+          />
+        </div>
+      ) : !embedded ? (
+        <div className="rounded-b-lg border border-t-0 border-[var(--adm-border)]" aria-hidden="true" />
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,34 @@ import type { ProductEditorSection } from "@/components/admin/products/product-e
 
 export const SOURCE_LOCALE = "en";
 
+/** Soft chrome tint for the product editor's locale workspace shell. */
+export function localeWorkspaceTone(locale: string): {
+  background: string;
+  border: string;
+  accent: string;
+} {
+  const code = locale.toLowerCase();
+  if (code === "pt") {
+    return {
+      background: "color-mix(in srgb, #5f7a5a 11%, var(--adm-panel))",
+      border: "color-mix(in srgb, #5f7a5a 32%, var(--adm-border))",
+      accent: "#5f7a5a",
+    };
+  }
+  if (code === "ru") {
+    return {
+      background: "color-mix(in srgb, #5a6f8a 11%, var(--adm-panel))",
+      border: "color-mix(in srgb, #5a6f8a 32%, var(--adm-border))",
+      accent: "#5a6f8a",
+    };
+  }
+  return {
+    background: "color-mix(in srgb, var(--adm-accent) 11%, var(--adm-panel))",
+    border: "color-mix(in srgb, var(--adm-accent) 32%, var(--adm-border))",
+    accent: "var(--adm-accent)",
+  };
+}
+
 /** One branch in the product → locale → section sync tree. */
 export type ProductEditorBranch =
   | { level: "product" }

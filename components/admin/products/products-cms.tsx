@@ -14,6 +14,8 @@ import {
   checkCatalogConflictsAction,
   rebindShopifyStoreAction,
 } from "@/app/admin/actions/sync";
+import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
+import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -293,77 +295,62 @@ export function ProductsCms({
           className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_9rem_10rem_10rem_11rem]"
           style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
-          <label className="grid gap-2">
-            <span className="adm-label">Search</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Name, slug, SKU"
-              className="adm-field"
-            />
-          </label>
-          <label className="grid gap-2">
-            <span className="adm-label">Status</span>
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="adm-field"
-            >
-              <option value="ALL">All</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="DRAFT">Draft</option>
-              <option value="UNLISTED">Unlisted</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="adm-label">Category</span>
-            <select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-              className="adm-field"
-            >
-              <option value="ALL">All categories</option>
-              {categories.map((category) => (
-                <option key={category.slug} value={category.slug}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="adm-label">Collection</span>
-            <select
-              value={collectionFilter}
-              onChange={(event) => {
-                const value = event.target.value;
-                setCollectionFilter(value);
-                setSortBy(value === "ALL" ? "published" : "collection-priority");
-              }}
-              className="adm-field"
-            >
-              <option value="ALL">All collections</option>
-              {collections.map((collection) => (
-                <option key={collection.id} value={collection.id}>
-                  {collection.name}{collection.isStorefrontDefault ? " (global priority)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="adm-label">Sort by</span>
-            <select
-              value={sortBy}
-              onChange={(event) => setSortBy(event.target.value as ProductSortKey)}
-              className="adm-field"
-            >
-              {PRODUCT_SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <AdminTextField
+            label="Search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Name, slug, SKU"
+          />
+          <AdminSelectField
+            label="Status"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="ALL">All</option>
+            <option value="PUBLISHED">Published</option>
+            <option value="DRAFT">Draft</option>
+            <option value="UNLISTED">Unlisted</option>
+            <option value="ARCHIVED">Archived</option>
+          </AdminSelectField>
+          <AdminSelectField
+            label="Category"
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="ALL">All categories</option>
+            {categories.map((category) => (
+              <option key={category.slug} value={category.slug}>
+                {category.name}
+              </option>
+            ))}
+          </AdminSelectField>
+          <AdminSelectField
+            label="Collection"
+            value={collectionFilter}
+            onChange={(event) => {
+              const value = event.target.value;
+              setCollectionFilter(value);
+              setSortBy(value === "ALL" ? "published" : "collection-priority");
+            }}
+          >
+            <option value="ALL">All collections</option>
+            {collections.map((collection) => (
+              <option key={collection.id} value={collection.id}>
+                {collection.name}{collection.isStorefrontDefault ? " (global priority)" : ""}
+              </option>
+            ))}
+          </AdminSelectField>
+          <AdminSelectField
+            label="Sort by"
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as ProductSortKey)}
+          >
+            {PRODUCT_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </AdminSelectField>
         </div>
 
         <AuthMessage error={rowActionState.error} />
