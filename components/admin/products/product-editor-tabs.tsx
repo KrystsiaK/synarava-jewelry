@@ -88,78 +88,64 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   },
 ];
 
-function ProductSectionGraphic({ section }: { section: ProductEditorSection }) {
-  const common = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    strokeWidth: 2,
-  };
-
+function ProductSectionGraphic({ section: _section }: { section: ProductEditorSection }) {
   return (
     <svg
-      aria-hidden="true"
       className="h-full w-full"
-      viewBox="0 0 220 120"
-      fill="none"
+      viewBox="0 0 600 300"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-labelledby="product-section-graphic-title product-section-graphic-desc"
     >
-      <path d="M18 96C58 109 164 110 204 94" stroke="var(--adm-border-strong)" strokeWidth="1.5" />
-      {section === "essentials" ? (
-        <>
-          <path d="M58 25h78l29 29-66 49-63-50 22-28Z" fill="var(--adm-accent-soft)" stroke="var(--adm-accent)" strokeWidth="2" />
-          <path d="M84 42h31M73 57h51M88 72h30" {...common} />
-          <circle cx="145" cy="49" r="7" fill="var(--adm-panel)" stroke="var(--adm-accent)" strokeWidth="2" />
-          <path d="m152 78 14-13 17 18-14 13-17-18Z" fill="var(--adm-panel-elevated)" stroke="var(--adm-ink)" strokeWidth="2" />
-          <path d="m160 81 5 5 11-11" {...common} />
-        </>
-      ) : null}
-      {section === "content" ? (
-        <>
-          <path d="M55 18h91l22 22v64H55V18Z" fill="var(--adm-panel-elevated)" stroke="var(--adm-ink)" strokeWidth="2" />
-          <path d="M146 18v23h22" {...common} />
-          <path d="M76 48h53M76 62h70M76 76h47" stroke="var(--adm-muted)" strokeWidth="3" strokeLinecap="round" />
-          <path d="m153 67 5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2 5-10Z" fill="var(--adm-accent-soft)" stroke="var(--adm-accent)" strokeWidth="2" strokeLinejoin="round" />
-        </>
-      ) : null}
-      {section === "catalog" ? (
-        <>
-          <rect x="45" y="24" width="55" height="37" rx="6" fill="var(--adm-panel-elevated)" stroke="var(--adm-ink)" strokeWidth="2" />
-          <rect x="121" y="24" width="55" height="37" rx="6" fill="var(--adm-accent-soft)" stroke="var(--adm-accent)" strokeWidth="2" />
-          <rect x="83" y="76" width="55" height="29" rx="6" fill="var(--adm-panel)" stroke="var(--adm-ink)" strokeWidth="2" />
-          <path d="M73 61v7h76v-7M111 68v8" stroke="var(--adm-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M60 39h25M136 39h25M97 90h27" stroke="var(--adm-border-strong)" strokeWidth="3" strokeLinecap="round" />
-        </>
-      ) : null}
-      {section === "media" ? (
-        <>
-          <rect x="42" y="27" width="103" height="70" rx="8" fill="var(--adm-panel-elevated)" stroke="var(--adm-ink)" strokeWidth="2" />
-          <rect x="73" y="16" width="105" height="72" rx="8" fill="var(--adm-panel)" stroke="var(--adm-accent)" strokeWidth="2" />
-          <circle cx="99" cy="41" r="8" fill="var(--adm-accent-soft)" stroke="var(--adm-accent)" strokeWidth="2" />
-          <path d="m82 76 25-22 17 15 13-10 28 17H82Z" fill="var(--adm-accent-soft)" stroke="var(--adm-ink)" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M57 107h108" stroke="var(--adm-border-strong)" strokeWidth="2" strokeLinecap="round" />
-        </>
-      ) : null}
-      {section === "details" ? (
-        <>
-          <path d="M109 17 145 43l-14 43H87L73 43l36-26Z" fill="var(--adm-accent-soft)" stroke="var(--adm-accent)" strokeWidth="2" strokeLinejoin="round" />
-          <path d="m73 43 36 43 36-43M87 86l22-69 22 69M73 43h72" {...common} />
-          <path d="M45 93h128" stroke="var(--adm-ink)" strokeWidth="2" strokeLinecap="round" />
-          {[53, 67, 81, 95, 109, 123, 137, 151, 165].map((x, index) => (
-            <path key={x} d={`M${x} 93v${index % 2 === 0 ? 9 : 5}`} stroke="var(--adm-muted)" strokeWidth="2" />
-          ))}
-        </>
-      ) : null}
-      {section === "shopify" ? (
-        <>
-          <path d="M58 46h59v50H58V46Z" fill="var(--adm-panel-elevated)" stroke="var(--adm-ink)" strokeWidth="2" />
-          <path d="M71 46c0-14 7-24 17-24s17 10 17 24" {...common} />
-          <path d="M140 36h34v34h-34z" fill="var(--adm-accent-soft)" stroke="var(--adm-accent)" strokeWidth="2" />
-          <path d="m149 53 6 6 11-13" {...common} />
-          <path d="M124 57h12m-6-6 6 6-6 6M137 84h-12m6-6-6 6 6 6" stroke="var(--adm-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </>
-      ) : null}
+      <title id="product-section-graphic-title">Abstract catalog hierarchy</title>
+      <desc id="product-section-graphic-desc">
+        Two upper cards connect to one centered lower card above a shallow arc, drawn with restrained cubist geometry.
+      </desc>
+
+      <g fill="none" stroke="#201F1B" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M174 124 L176 143 L296 145" />
+        <path d="M426 123 L423 142 L304 145" />
+        <path d="M300 145 L298 166" />
+      </g>
+
+      <g stroke="#201F1B" strokeWidth="6" strokeLinejoin="round">
+        <path fill="#F4EEDF" d="M94 43 L242 38 L248 118 L101 124 Z" />
+        <path fill="#B6A895" d="M94 43 L151 40 L139 121 L101 124 Z" />
+        <path fill="#D0A846" d="M151 40 L242 38 L215 77 L139 121 Z" />
+        <path fill="#F4EEDF" d="M215 77 L248 118 L139 121 Z" />
+        <path fill="none" d="M151 40 L139 121 M215 77 L248 118" strokeWidth="4" />
+      </g>
+
+      <g stroke="#201F1B" strokeWidth="6" strokeLinejoin="round">
+        <path fill="#F4EEDF" d="M356 42 L503 47 L496 123 L350 118 Z" />
+        <path fill="#D0A846" d="M356 42 L430 45 L446 87 L350 118 Z" />
+        <path fill="#B6A895" d="M430 45 L503 47 L496 123 L446 87 Z" />
+        <path fill="#F4EEDF" d="M350 118 L446 87 L496 123 Z" />
+        <path fill="none" d="M430 45 L446 87 M350 118 L446 87" strokeWidth="4" />
+      </g>
+
+      <g stroke="#201F1B" strokeWidth="6" strokeLinejoin="round">
+        <path fill="#F4EEDF" d="M230 169 L370 164 L377 239 L224 243 Z" />
+        <path fill="#B6A895" d="M230 169 L294 167 L273 241 L224 243 Z" />
+        <path fill="#D0A846" d="M294 167 L370 164 L343 207 L273 241 Z" />
+        <path fill="#F4EEDF" d="M343 207 L377 239 L273 241 Z" />
+        <path fill="none" d="M294 167 L273 241 M343 207 L377 239" strokeWidth="4" />
+      </g>
+
+      <path
+        d="M78 272 C151 248 225 251 299 264 C372 277 449 278 522 257"
+        fill="none"
+        stroke="#201F1B"
+        strokeWidth="6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M112 266 C175 254 235 257 299 268"
+        fill="none"
+        stroke="#B6A895"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
