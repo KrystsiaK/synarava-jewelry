@@ -234,7 +234,7 @@ describe("applyCommerceField — refreshes persisted sync state after a successf
   it("clears the product off CONFLICT once nothing else differs, so it can drop out of the catalog-wide list", async () => {
     mocks.inspectProductSyncState
       .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] })) // pre-write check
-      .mockResolvedValueOnce(inspection({ state: "LOCAL_CHANGES", remoteUpdatedAt: "2026-09-23T00:00:00.000Z", differences: [] })); // post-write refresh
+      .mockResolvedValueOnce(inspection({ state: "SYNCED", remoteUpdatedAt: "2026-09-23T00:00:00.000Z", differences: [] })); // post-write refresh
     mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself
 
     const result = await applyCommerceField({
@@ -246,8 +246,48 @@ describe("applyCommerceField — refreshes persisted sync state after a successf
     expect(mocks.updateProduct).toHaveBeenCalledTimes(2);
     expect(mocks.updateProduct).toHaveBeenLastCalledWith({
       where: { id: "product-1" },
-      data: { syncStatus: "PENDING", syncError: null, shopifyUpdatedAt: new Date("2026-09-23T00:00:00.000Z") },
+      data: { syncStatus: "SYNCED", syncError: null, shopifyUpdatedAt: new Date("2026-09-23T00:00:00.000Z"), lastSyncedAt: expect.any(Date) },
     });
+  });
+
+  it("REGRESSION: still clears CONFLICT when the post-write inspection reports state:'CONFLICT' with an empty differences list — the real shape inspectProductSyncState returns right after the only difference is resolved, because the persisted syncStatus/shopifyUpdatedAt columns this call is about to fix haven't been updated yet", async () => {
+    // This is exactly what the real (unmocked) inspectProductSyncState
+    // computes post-write: differences is empty (nothing left to
+    // reconcile), but state still reads CONFLICT because localChanged is
+    // still true (persisted syncStatus is still "CONFLICT" at read time)
+    // and remoteChanged is still true (local.shopifyUpdatedAt is still
+    // older than remote.updatedAt, which Shopify's own mutation just
+    // bumped). A fix keyed off `state` instead of `differences.length`
+    // would wrongly leave the product stuck showing a conflict badge.
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] })) // pre-write check
+      .mockResolvedValueOnce(inspection({ state: "CONFLICT", remoteUpdatedAt: "2026-09-23T00:00:00.000Z", differences: [] })); // post-write: stale flags, but truly nothing left
+    mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself
+
+    const result = await applyCommerceField({
+      productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(mocks.updateProduct).toHaveBeenCalledTimes(2);
+    expect(mocks.updateProduct).toHaveBeenLastCalledWith({
+      where: { id: "product-1" },
+      data: { syncStatus: "SYNCED", syncError: null, shopifyUpdatedAt: new Date("2026-09-23T00:00:00.000Z"), lastSyncedAt: expect.any(Date) },
+    });
+  });
+
+  it("does not mark UNLINKED/REMOTE_MISSING products SYNCED just because differences happens to be empty there too", async () => {
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] }))
+      .mockResolvedValueOnce(inspection({ state: "REMOTE_MISSING", differences: [] }));
+    mocks.updateProduct.mockResolvedValueOnce({ vendor: null });
+
+    await applyCommerceField({
+      productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
+    });
+
+    // Only the one call for the field write itself — no second (sync-state refresh) call.
+    expect(mocks.updateProduct).toHaveBeenCalledTimes(1);
   });
 
   it("leaves the persisted sync state alone when another (unsupported) field is still genuinely conflicting — that conflict stays visible", async () => {

@@ -170,27 +170,40 @@ async function writeToShopify(productId: string, label: string, value: string, v
  * field write and persists it — the catalog-wide conflict list
  * (listConflictedProductIds) reads the *persisted* `syncStatus` flag, not
  * a live check, so a field-level fix that isn't written back here would
- * leave an already-resolved product showing as conflicted forever. Only
- * moves the flag off CONFLICT when the fresh inspection actually says so;
- * if other (unsupported) commerce fields still genuinely differ, the
- * fresh state is still CONFLICT and nothing here changes — the product
- * correctly stays visible for the remaining, real conflict.
+ * leave an already-resolved product showing as conflicted forever.
+ *
+ * Deliberately keys off `inspection.differences.length`, not
+ * `inspection.state`: inspectProductSyncState derives `state` partly from
+ * the *persisted* `syncStatus`/`shopifyUpdatedAt` columns this function
+ * exists to fix, and partly from a timestamp check
+ * (`remote.updatedAt > local.shopifyUpdatedAt`) that Shopify's own mutation
+ * just bumped. Right after this write resolves the *only* remaining
+ * difference, both of those stale columns still read as before — the
+ * persisted `syncStatus` is still "CONFLICT" and `shopifyUpdatedAt` is
+ * still older than the just-mutated `remote.updatedAt` — so `state` comes
+ * back "CONFLICT" even with an empty `differences` list. Trusting `state`
+ * here would leave a fully-resolved product stuck showing a conflict
+ * badge forever. `differences.length === 0` is the actual ground truth:
+ * nothing left to reconcile, regardless of what those two stale columns
+ * say — and this call itself corrects them by writing the fresh
+ * `remoteUpdatedAt` back.
+ *
+ * UNLINKED/REMOTE_MISSING mean the comparison itself couldn't run (no
+ * Shopify link, or the remote product is gone) — `differences` is also
+ * empty there, but for a different reason, so those are left untouched
+ * rather than misreported as SYNCED.
  */
 async function refreshProductSyncStatus(productId: string) {
   const inspection = await inspectProductSyncState(productId);
-  if (inspection.state === "CONFLICT") return;
-  const nextStatus = inspection.state === "SYNCED" ? "SYNCED" as const
-    : inspection.state === "LOCAL_CHANGES" ? "PENDING" as const
-    : inspection.state === "UNLINKED" ? "UNLINKED" as const
-    : null; // REMOTE_CHANGES / REMOTE_MISSING have no matching persisted flag here — leave it alone.
-  if (!nextStatus) return;
+  if (inspection.state === "UNLINKED" || inspection.state === "REMOTE_MISSING") return;
+  if (inspection.differences.length > 0) return;
   await db.product.update({
     where: { id: productId },
     data: {
-      syncStatus: nextStatus,
+      syncStatus: "SYNCED",
       syncError: null,
       ...(inspection.remoteUpdatedAt ? { shopifyUpdatedAt: new Date(inspection.remoteUpdatedAt) } : {}),
-      ...(nextStatus === "SYNCED" ? { lastSyncedAt: new Date() } : {}),
+      lastSyncedAt: new Date(),
     },
   });
 }
