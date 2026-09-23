@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   executeRaw: vi.fn(),
   transaction: vi.fn(),
   findMany: vi.fn(),
+  adminFindUnique: vi.fn(),
+  adminUpdate: vi.fn(),
   loadReconcileSubject: vi.fn(),
   fetchResourceTranslationState: vi.fn(),
   planReconcile: vi.fn(),
@@ -17,6 +19,10 @@ vi.mock("@/lib/db", () => ({
     $executeRaw: mocks.executeRaw,
     $transaction: mocks.transaction,
     shopifyTranslationBinding: { findMany: mocks.findMany },
+    adminSession: {
+      findUnique: mocks.adminFindUnique,
+      update: mocks.adminUpdate,
+    },
   },
 }));
 vi.mock("@/lib/shopify/admin", () => ({ hasShopifyAdminConfig: () => true }));
@@ -40,7 +46,11 @@ vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   ]),
 }));
 
-import { runTranslationReconciliation } from "@/lib/shopify/reconciliation-run";
+import {
+  hasSessionReconciled,
+  markSessionReconciled,
+  runTranslationReconciliation,
+} from "@/lib/shopify/reconciliation-run";
 
 function runRow(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -216,5 +226,29 @@ describe("runTranslationReconciliation", () => {
     // have run — in particular, no separate/earlier retire outside of it
     // (which would mean the retire could commit independently of the insert).
     expect(mocks.transaction).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("session reconcile markers", () => {
+  // AdminSession.id is UUID in Postgres; these helpers must use the typed
+  // client (not $queryRaw text binds) or AUTO reconcile 500s with uuid=text.
+  it("reads lastShopifyReconcileAt through adminSession.findUnique", async () => {
+    mocks.adminFindUnique.mockResolvedValue({ lastShopifyReconcileAt: new Date() });
+    await expect(hasSessionReconciled("11111111-1111-4111-8111-111111111111")).resolves.toBe(true);
+    expect(mocks.adminFindUnique).toHaveBeenCalledWith({
+      where: { id: "11111111-1111-4111-8111-111111111111" },
+      select: { lastShopifyReconcileAt: true },
+    });
+    expect(mocks.queryRaw).not.toHaveBeenCalled();
+  });
+
+  it("writes lastShopifyReconcileAt through adminSession.update", async () => {
+    mocks.adminUpdate.mockResolvedValue({});
+    await markSessionReconciled("11111111-1111-4111-8111-111111111111");
+    expect(mocks.adminUpdate).toHaveBeenCalledWith({
+      where: { id: "11111111-1111-4111-8111-111111111111" },
+      data: { lastShopifyReconcileAt: expect.any(Date) },
+    });
+    expect(mocks.executeRaw).not.toHaveBeenCalled();
   });
 });

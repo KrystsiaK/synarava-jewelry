@@ -81,22 +81,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Choose a valid language." }, { status: 400 });
   }
 
-  if (parsed.data.trigger === "AUTO" && await hasSessionReconciled(session.sessionId)) {
-    return NextResponse.json({ run: await getLatestReconcileRun(), reused: true });
-  }
-
-  let result;
   try {
-    result = await runTranslationReconciliation({
+    if (parsed.data.trigger === "AUTO" && await hasSessionReconciled(session.sessionId)) {
+      return NextResponse.json({ run: await getLatestReconcileRun(), reused: true });
+    }
+
+    const result = await runTranslationReconciliation({
       trigger: parsed.data.trigger,
       scope: shopifyLocale ? { ...scope, locale: shopifyLocale } : scope,
       requestedBy: session.username,
     });
+    if (parsed.data.trigger === "AUTO") await markSessionReconciled(session.sessionId);
+    return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ run: null, error: message }, { status: 500 });
   }
-  if (parsed.data.trigger === "AUTO") await markSessionReconciled(session.sessionId);
-
-  return NextResponse.json(result);
 }

@@ -482,19 +482,18 @@ export async function runTranslationReconciliation({
 }
 
 export async function hasSessionReconciled(sessionId: string) {
-  const rows = await db.$queryRaw<Array<{ checked: boolean }>>(Prisma.sql`
-    SELECT ("lastShopifyReconcileAt" IS NOT NULL) AS "checked"
-    FROM "AdminSession"
-    WHERE "id" = ${sessionId}
-    LIMIT 1
-  `);
-  return rows[0]?.checked ?? false;
+  // AdminSession.id is Postgres UUID; Prisma.$queryRaw binds strings as text and
+  // fails with `operator does not exist: uuid = text`. Use the typed client.
+  const session = await db.adminSession.findUnique({
+    where: { id: sessionId },
+    select: { lastShopifyReconcileAt: true },
+  });
+  return session?.lastShopifyReconcileAt != null;
 }
 
 export async function markSessionReconciled(sessionId: string) {
-  await db.$executeRaw(Prisma.sql`
-    UPDATE "AdminSession"
-    SET "lastShopifyReconcileAt" = CURRENT_TIMESTAMP
-    WHERE "id" = ${sessionId}
-  `);
+  await db.adminSession.update({
+    where: { id: sessionId },
+    data: { lastShopifyReconcileAt: new Date() },
+  });
 }
