@@ -183,14 +183,6 @@ export function variantCommerceChangeLabel(
   return VARIANT_CHANGE_LABELS[field];
 }
 
-export function variantCommerceChangeLabels(
-  differences: VariantCommerceDifference[],
-) {
-  return Array.from(
-    new Set(differences.map((difference) => variantCommerceChangeLabel(difference.field))),
-  );
-}
-
 export function diffCollectionMembership(
   desiredCollectionIds: string[],
   currentCollectionIds: string[],
@@ -201,18 +193,4 @@ export function diffCollectionMembership(
     toJoin: desiredCollectionIds.filter((id) => !current.has(id)),
     toLeave: currentCollectionIds.filter((id) => !desired.has(id)),
   };
-}
-
-export function classifyRemoteReconciliationAction({
-  hasUnresolvedConflict = false,
-  localHasChanges,
-  remoteHasChanges,
-}: {
-  hasUnresolvedConflict?: boolean;
-  localHasChanges: boolean;
-  remoteHasChanges: boolean;
-}) {
-  if (hasUnresolvedConflict || (localHasChanges && remoteHasChanges)) return "CONFLICT" as const;
-  if (remoteHasChanges) return "UPDATE_LOCAL" as const;
-  return "UP_TO_DATE" as const;
 }

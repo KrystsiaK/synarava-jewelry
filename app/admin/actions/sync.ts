@@ -10,7 +10,6 @@ import {
   type CatalogConflictApplyEntryInput,
   type CatalogConflictApplyScope,
 } from "@/lib/shopify/catalog-conflict-apply";
-import { isShopifyConfigured } from "@/lib/shopify/config";
 import {
   fetchShopifyShopIdentity,
   hasShopifyAdminConfig,
@@ -25,23 +24,16 @@ import {
 import {
   ensureProductWebhookSubscriptions,
   inspectProductSyncState,
-  previewShopifyReconciliation,
   pullShopifyProduct,
   pushProductToShopify,
-  reconcileShopifyProducts,
 } from "@/lib/shopify/product-sync";
 import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-reviews";
 import { env } from "@/lib/env";
-import { revalidateStorefront, writeAuditLog } from "./shared";
+import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
 import { runCatalogConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import { getProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
 import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
-
-export type ShopifySyncSelection = {
-  remoteProductIds: string[];
-  localProductIds: string[];
-};
 
 /** One sentence naming every registered translation locale Shopify hasn't enabled/published yet, or "" if none. */
 function translationLocaleNotice(missingTranslationScopes: string[], unpublishedLocales: MissingLocalePublication[]) {
@@ -59,112 +51,6 @@ async function assertConfiguredShopifyStore() {
   return shop;
 }
 
-export async function reconcileProductsAction() {
-  await requireAdminSession("/admin/products");
-  if (!isShopifyConfigured()) return { error: "Shopify is not configured." };
-  try {
-    await assertConfiguredShopifyStore();
-    if (env.APP_URL) {
-      await ensureProductWebhookSubscriptions(env.APP_URL);
-    }
-    const result = await reconcileShopifyProducts();
-    revalidateStorefront();
-    revalidatePath("/admin/products");
-    return {
-      success: `Reconciliation complete: ${result.pulled} pulled, ${result.pushed} pushed, ${result.archived} archived, ${result.conflicts} conflicts, ${result.failed} failed.`,
-      warning: result.translationGaps > 0
-        ? `${result.translationGaps} product${result.translationGaps === 1 ? "" : "s"} have a Portuguese gap (unreadable or conflicting) — English is shown as a fallback until it's resolved.`
-        : undefined,
-      result,
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Reconciliation failed." };
-  }
-}
-
-export async function testShopifyConnectionAction() {
-  await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) {
-    const missingVariables = [
-      !env.SHOPIFY_STORE_DOMAIN ? "SHOPIFY_STORE_DOMAIN" : null,
-      !env.SHOPIFY_CLIENT_ID && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_ID" : null,
-      !env.SHOPIFY_CLIENT_SECRET && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_SECRET" : null,
-    ].filter((value): value is string => Boolean(value));
-    return {
-      error: `Shopify Admin API is not configured. Missing: ${missingVariables.join(", ")}. Restart the dev server after changing environment variables.`,
-    };
-  }
-
-  try {
-    const connection = await testShopifyAdminConnection();
-    if (connection.missingScopes.length > 0) {
-      return {
-        error: `Connected to ${connection.shopName}, but required scopes are missing: ${connection.missingScopes.join(", ")}.`,
-        connection,
-      };
-    }
-
-    const binding = await ensureShopifyStoreBinding(connection.shopDomain);
-    if (binding.status === "MISMATCH") {
-      return {
-        error: `This Synarava catalog is linked to ${binding.boundShopDomain}, while these credentials point to ${binding.currentShopDomain}. Rebind explicitly before syncing.`,
-        connection,
-        storeMismatch: {
-          boundShopDomain: binding.boundShopDomain,
-          currentShopDomain: binding.currentShopDomain,
-        },
-      };
-    }
-
-    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales);
-    let reviewNotice = connection.missingReviewScopes.length > 0
-      ? ` Product review publishing is unavailable: missing ${connection.missingReviewScopes.join(", ")}.`
-      : "";
-    if (!reviewNotice && (!env.APP_URL || !env.SHOPIFY_WEBHOOK_SECRET)) {
-      reviewNotice = " Product review publishing is unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.";
-    } else if (!reviewNotice && env.APP_URL) {
-      try {
-        await ensureProductReviewWebhookSubscriptions(env.APP_URL);
-      } catch (error) {
-        reviewNotice = ` Product review webhooks could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`;
-      }
-    }
-
-    const wishlistNotice = connection.missingWishlistScopes.length > 0
-      ? ` Customer wishlist saving is unavailable: missing ${connection.missingWishlistScopes.join(", ")}.`
-      : "";
-
-    const optionalNotices = [translationNotice, reviewNotice, wishlistNotice].filter(Boolean);
-    return {
-      success: `Connected to ${connection.shopName}. Catalog access is ready: ${connection.productCount} products, ${connection.locations.length} locations, ${connection.publications.length} publications. Product data was not changed.`,
-      warning: optionalNotices.length ? `Optional features: ${optionalNotices.join(" ").trim()}` : undefined,
-      connection,
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Shopify connection test failed." };
-  }
-}
-
-export async function previewShopifyReconciliationAction() {
-  await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) {
-    return { error: "Shopify Admin API credentials are not configured." };
-  }
-
-  try {
-    await assertConfiguredShopifyStore();
-    const preview = await previewShopifyReconciliation();
-    const pullCount = preview.remote.filter((item) => item.action !== "CONFLICT" && item.action !== "UP_TO_DATE").length;
-    const conflictCount = preview.remote.filter((item) => item.action === "CONFLICT").length;
-    return {
-      success: `Compared ${preview.remote.length} Shopify products: ${pullCount} to import or update, ${preview.pushToShopify.length} to push, ${conflictCount} conflicts. Nothing was changed.`,
-      preview,
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Shopify reconciliation preview failed." };
-  }
-}
-
 export async function inspectProductSyncAction(productId: string) {
   await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
@@ -177,13 +63,62 @@ export async function inspectProductSyncAction(productId: string) {
 
 export async function checkCatalogConflictsAction() {
   const session = await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  if (!hasShopifyAdminConfig()) {
+    const missingVariables = [
+      !env.SHOPIFY_STORE_DOMAIN ? "SHOPIFY_STORE_DOMAIN" : null,
+      !env.SHOPIFY_CLIENT_ID && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_ID" : null,
+      !env.SHOPIFY_CLIENT_SECRET && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_SECRET" : null,
+    ].filter((value): value is string => Boolean(value));
+    return { error: `Shopify Admin API is not configured. Missing: ${missingVariables.join(", ")}.` };
+  }
   try {
-    await assertConfiguredShopifyStore();
+    const connection = await testShopifyAdminConnection();
+    if (connection.missingScopes.length > 0) {
+      return { error: `Connected to ${connection.shopName}, but required scopes are missing: ${connection.missingScopes.join(", ")}.` };
+    }
+    const binding = await ensureShopifyStoreBinding(connection.shopDomain);
+    if (binding.status === "MISMATCH") {
+      return {
+        error: `This catalog is linked to ${binding.boundShopDomain}, while the current credentials point to ${binding.currentShopDomain}. Rebind before checking conflicts.`,
+        storeMismatch: {
+          boundShopDomain: binding.boundShopDomain,
+          currentShopDomain: binding.currentShopDomain,
+        },
+      };
+    }
+
+    const notices: string[] = [];
+    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales).trim();
+    if (translationNotice) notices.push(translationNotice);
+    if (env.APP_URL && env.SHOPIFY_WEBHOOK_SECRET) {
+      try {
+        await ensureProductWebhookSubscriptions(env.APP_URL);
+      } catch (error) {
+        notices.push(`Product webhooks could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`);
+      }
+    } else {
+      notices.push("Automatic product updates are unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.");
+    }
+    if (connection.missingReviewScopes.length > 0) {
+      notices.push(`Product review publishing is unavailable: missing ${connection.missingReviewScopes.join(", ")}.`);
+    } else if (!env.APP_URL || !env.SHOPIFY_WEBHOOK_SECRET) {
+      notices.push("Product review publishing is unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.");
+    } else {
+      try {
+        await ensureProductReviewWebhookSubscriptions(env.APP_URL);
+      } catch (error) {
+        notices.push(`Product review webhooks could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`);
+      }
+    }
+    if (connection.missingWishlistScopes.length > 0) {
+      notices.push(`Customer wishlist saving is unavailable: missing ${connection.missingWishlistScopes.join(", ")}.`);
+    }
+
     const result = await runCatalogConflictCheck(session.username);
     revalidatePath("/admin/products");
     return {
       ...result,
+      warning: [result.warning, ...notices].filter(Boolean).join(" ") || undefined,
       success: result.signals.totalCount === 0
         ? "Conflict check complete. No conflicts found."
         : `Conflict check complete. Review ${result.signals.totalCount} product${result.signals.totalCount === 1 ? "" : "s"} in the conflict list.`,
@@ -282,8 +217,8 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
     const product = await getSavedProductPayload(productId);
     return {
       success: result.translationError
-        ? "Commerce changes pushed to Shopify; Portuguese translation needs attention."
-        : "Commerce and Portuguese translation pushed to Shopify.",
+        ? "Commerce changes pushed to Shopify; one or more translations need attention."
+        : "Commerce and registered translations pushed to Shopify.",
       translationWarning: result.translationError,
       product,
       inspection: await inspectProductSyncState(productId),
@@ -313,10 +248,10 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
     const savedProduct = await getSavedProductPayload(productId);
     return {
       success: pullResult.translationStatus === "CONFLICT"
-        ? "Shopify commerce data pulled. Portuguese has edits on both sides; choose Pull or Push to resolve it."
+        ? "Shopify commerce data pulled. One or more translations have edits on both sides; choose Pull or Push to resolve them."
         : pullResult.translationStatus === "UNAVAILABLE"
-          ? "Shopify commerce data pulled, but Portuguese could not be read. Check read_translations access."
-          : "Latest Shopify commerce and Portuguese translation data pulled. Synarava-only editorial fields were preserved.",
+          ? "Shopify commerce data pulled, but one or more translations could not be read. Check read_translations access."
+          : "Latest Shopify commerce and registered translations pulled. Synarava-only editorial fields were preserved.",
       translationWarning: pullResult.translationStatus === "CONFLICT" || pullResult.translationStatus === "UNAVAILABLE",
       product: savedProduct,
       inspection: await inspectProductSyncState(productId),
@@ -324,116 +259,6 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Shopify pull failed." };
   }
-}
-
-export async function syncShopifySelectionAction(selection: ShopifySyncSelection) {
-  await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) {
-    return { error: "Shopify Admin API credentials are not configured." };
-  }
-
-  const remoteProductIds = Array.from(new Set(selection.remoteProductIds)).slice(0, 100);
-  const localProductIds = Array.from(new Set(selection.localProductIds)).slice(0, 100);
-  if (remoteProductIds.length === 0 && localProductIds.length === 0) {
-    return { error: "Select at least one product to synchronize." };
-  }
-
-  try {
-    await assertConfiguredShopifyStore();
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Shopify store binding check failed." };
-  }
-
-  let pulled = 0;
-  let pushed = 0;
-  const failures: string[] = [];
-  const changedProductIds = new Set<string>();
-  // Commerce data (price, stock, images, status) is the thing sync exists to
-  // move. Portuguese translation is a best-effort add-on with a working
-  // fallback (the storefront shows English when PT is missing) — a PT-only
-  // hiccup must not make an otherwise-successful commerce sync read as
-  // "failed", so those are tallied separately and reported as one heads-up.
-  let translationUnavailableCount = 0;
-  const translationConflictIds: string[] = [];
-  let pushTranslationIssueCount = 0;
-
-  for (const shopifyProductId of remoteProductIds) {
-    try {
-      const linkedLocal = await db.product.findUnique({
-        where: { shopifyProductId },
-        select: { id: true },
-      });
-      if (linkedLocal) {
-        const inspection = await inspectProductSyncState(linkedLocal.id);
-        if (inspection.state === "LOCAL_CHANGES" || inspection.state === "CONFLICT") {
-          failures.push(`${shopifyProductId}: local commerce changes need an explicit conflict decision`);
-          continue;
-        }
-      }
-      const result = await pullShopifyProduct(shopifyProductId);
-      if (result.status === "CONFLICT") { failures.push(`${shopifyProductId}: commerce conflict needs an explicit decision`); continue; }
-      if (result.status === "LOCAL_CHANGES") { failures.push(`${shopifyProductId}: saved local commerce changes must be pushed or resolved first`); continue; }
-      pulled += 1;
-      changedProductIds.add(result.productId);
-      if (result.translationStatus === "CONFLICT") translationConflictIds.push(shopifyProductId);
-      else if (result.translationStatus === "UNAVAILABLE") translationUnavailableCount += 1;
-    } catch (error) {
-      failures.push(`${shopifyProductId}: ${error instanceof Error ? error.message : "pull failed"}`);
-    }
-  }
-
-  for (const productId of localProductIds) {
-    try {
-      const inspection = await inspectProductSyncState(productId);
-      if (inspection.state !== "UNLINKED" && inspection.state !== "LOCAL_CHANGES") {
-        failures.push(`${productId}: Shopify state changed; refresh the preview and resolve it explicitly`);
-        continue;
-      }
-      const result = await pushProductToShopify(productId);
-      if (result.ok) {
-        pushed += 1;
-        changedProductIds.add(productId);
-        if (result.translationError) pushTranslationIssueCount += 1;
-      }
-      else failures.push(`${productId}: ${result.error}`);
-    } catch (error) {
-      failures.push(`${productId}: ${error instanceof Error ? error.message : "push failed"}`);
-    }
-  }
-
-  revalidateStorefront();
-  revalidatePath("/admin/products");
-  const preview = await previewShopifyReconciliation();
-  const products = await Promise.all(Array.from(changedProductIds).map((id) => getSavedProductPayload(id)));
-  const summary = `${pulled} imported, ${pushed} pushed${failures.length ? `, ${failures.length} failed` : ""}.`;
-
-  const notices: string[] = [];
-  if (translationUnavailableCount > 0) {
-    notices.push(
-      `Portuguese couldn't be read for ${translationUnavailableCount} product${translationUnavailableCount === 1 ? "" : "s"} — commerce data was still imported, PT shows the English text until Shopify grants read_translations access.`,
-    );
-  }
-  if (translationConflictIds.length > 0) {
-    notices.push(
-      `${translationConflictIds.length} product${translationConflictIds.length === 1 ? "" : "s"} have Portuguese edits on both sides — open each and choose Pull or Push to resolve it.`,
-    );
-  }
-  if (pushTranslationIssueCount > 0) {
-    notices.push(
-      `Portuguese sync had an issue on ${pushTranslationIssueCount} pushed product${pushTranslationIssueCount === 1 ? "" : "s"} — commerce still pushed fine.`,
-    );
-  }
-
-  return {
-    success: failures.length < remoteProductIds.length + localProductIds.length
-      ? `Synchronization complete: ${summary}`
-      : undefined,
-    error: failures.length ? `Some products could not be synchronized: ${failures.join("; ")}` : undefined,
-    warning: notices.length ? notices.join(" ") : undefined,
-    preview,
-    products,
-    result: { pulled, pushed, failed: failures.length },
-  };
 }
 
 export async function rebindShopifyStoreAction(expectedShopDomain: string) {
@@ -449,54 +274,10 @@ export async function rebindShopifyStoreAction(expectedShopDomain: string) {
     revalidatePath("/admin/products");
     const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales);
     return {
-      success: `Catalog is ready to link with ${result.shopDomain}. Run Preview sync to match cloned products by SKU or handle before applying changes.${translationNotice}`,
+      success: `Catalog is now bound to ${result.shopDomain}. Product saves, Shopify webhooks, and conflict checks will establish the new store identities.${translationNotice}`,
       result,
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Shopify store rebind failed." };
-  }
-}
-
-export async function archiveMissingShopifyProductsAction(productIds: string[]) {
-  await requireAdminSession("/admin/products");
-  const selectedIds = Array.from(new Set(productIds)).slice(0, 100);
-  if (selectedIds.length === 0) return { error: "Select at least one product to archive." };
-
-  try {
-    const beforePreview = await previewShopifyReconciliation();
-    const confirmedMissingIds = new Set(beforePreview.archiveLocal.map((item) => item.productId));
-    const safeIds = selectedIds.filter((id) => confirmedMissingIds.has(id));
-    if (safeIds.length !== selectedIds.length) {
-      return { error: "The catalog changed after preview. Run Compare catalogs again before archiving." };
-    }
-
-    for (const productId of safeIds) {
-      const before = await db.product.findUnique({ where: { id: productId } });
-      if (!before) continue;
-      const after = await db.product.update({
-        where: { id: productId },
-        data: {
-          status: "ARCHIVED",
-          visibility: "PRIVATE",
-          syncStatus: "UNLINKED",
-          syncError: "Product no longer exists in Shopify.",
-        },
-      });
-      await writeAuditLog({
-        action: "SHOPIFY_MISSING_ARCHIVE",
-        entityType: "PRODUCT",
-        entityId: productId,
-        before,
-        after,
-      });
-    }
-
-    revalidateStorefront();
-    revalidatePath("/admin/products");
-    const preview = await previewShopifyReconciliation();
-    const products = await Promise.all(safeIds.map((id) => getSavedProductPayload(id)));
-    return { success: `${safeIds.length} missing product${safeIds.length === 1 ? "" : "s"} archived locally.`, preview, products };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Local archive failed." };
   }
 }

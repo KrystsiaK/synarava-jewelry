@@ -11,28 +11,21 @@ import {
 } from "@/app/admin/actions/products";
 import { reorderCollectionProductAction } from "@/app/admin/actions/catalog-order";
 import {
-  archiveMissingShopifyProductsAction,
   checkCatalogConflictsAction,
-  previewShopifyReconciliationAction,
   rebindShopifyStoreAction,
-  syncShopifySelectionAction,
-  testShopifyConnectionAction,
 } from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { ProductSyncModal } from "@/components/admin/products/product-sync-modal";
 import { CatalogConflictRowBadges, CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
 import { CatalogConflictWorkspace } from "@/components/admin/products/catalog-conflict-workspace";
-import type { ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
 import { productLocaleReadiness } from "@/lib/products/localization";
 import {
   ChevronDown,
   ChevronUp,
   Eye,
   GripVertical,
-  RefreshCw,
 } from "lucide-react";
 import { moveCollectionItem, syncedOrderPosition } from "@/lib/catalog/collection-order";
 import {
@@ -48,7 +41,6 @@ import type {
   ProductCmsProps,
   ProductRecord,
   ProductRowAction,
-  SyncConfirmation,
 } from "@/components/admin/products/product-types";
 
 export function ProductsCms({
@@ -70,17 +62,11 @@ export function ProductsCms({
   const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [rowActionState, setRowActionState] = useState<ProductActionState>({});
-  const [syncPreview, setSyncPreview] = useState<ShopifyReconciliationPreview | null>(null);
-  const [selectedRemoteIds, setSelectedRemoteIds] = useState<string[]>([]);
-  const [selectedLocalIds, setSelectedLocalIds] = useState<string[]>([]);
-  const [selectedArchiveIds, setSelectedArchiveIds] = useState<string[]>([]);
-  const [syncConfirmation, setSyncConfirmation] = useState<SyncConfirmation | null>(null);
   const [shopifyStoreMismatch, setShopifyStoreMismatch] = useState<{
     boundShopDomain: string;
     currentShopDomain: string;
   } | null>(null);
   const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
-  const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [conflictListOpen, setConflictListOpen] = useState(false);
   const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
     base: initialConflictSignals,
@@ -92,9 +78,6 @@ export function ProductsCms({
   const [focusedConflictProductId, setFocusedConflictProductId] = useState<string | null>(null);
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
-  const [isConnectionPending, startConnectionTransition] = useTransition();
-  const [isPreviewPending, startPreviewTransition] = useTransition();
-  const [isSyncPending, startSyncTransition] = useTransition();
   const [isStoreRebindPending, startStoreRebindTransition] = useTransition();
   const [isOrderPending, startOrderTransition] = useTransition();
   const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
@@ -116,8 +99,10 @@ export function ProductsCms({
       const result = await checkCatalogConflictsAction();
       if (!("signals" in result)) {
         pushToast({ message: result.error, tone: "error" });
+        setShopifyStoreMismatch("storeMismatch" in result ? result.storeMismatch ?? null : null);
         return;
       }
+      setShopifyStoreMismatch(null);
       pushToast({ message: result.success, tone: "success" });
       if (result.warning) pushToast({ message: result.warning, tone: "info" });
       setConflictSignals(result.signals);
@@ -188,16 +173,6 @@ export function ProductsCms({
     });
   }
 
-  function handleTestShopifyConnection() {
-    startConnectionTransition(async () => {
-      const result = await testShopifyConnectionAction();
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.warning) pushToast({ message: result.warning, tone: "info" });
-      setShopifyStoreMismatch(result.storeMismatch ?? null);
-    });
-  }
-
   function handleStoreRebind() {
     if (!shopifyStoreMismatch) return;
     startStoreRebindTransition(async () => {
@@ -206,104 +181,9 @@ export function ProductsCms({
       if (result.success) {
         pushToast({ message: result.success, tone: "success" });
         setShopifyStoreMismatch(null);
-        setSyncPreview(null);
         router.refresh();
       }
       setConfirmStoreRebind(false);
-    });
-  }
-
-  function handlePreviewShopifyReconciliation() {
-    startPreviewTransition(async () => {
-      const result = await previewShopifyReconciliationAction();
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.preview) {
-        setSyncPreview(result.preview);
-        setSelectedRemoteIds([]);
-        setSelectedLocalIds([]);
-        setSelectedArchiveIds([]);
-        setSyncModalOpen(true);
-      }
-    });
-  }
-
-  function handleResolved(shopifyProductId: string, updatedProduct?: ProductRecord) {
-    if (updatedProduct) {
-      setProducts((current) => normalizeProducts([
-        ...current.filter((product) => product.id !== updatedProduct.id),
-        updatedProduct,
-      ]));
-    }
-    setSyncPreview((current) => current
-      ? { ...current, remote: current.remote.filter((item) => item.shopifyProductId !== shopifyProductId) }
-      : current);
-    router.refresh();
-  }
-
-  function toggleSelection(id: string, selected: string[], setSelected: (ids: string[]) => void) {
-    setSelected(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
-  }
-
-  function runSync(remoteProductIds: string[], localProductIds: string[]) {
-    setSyncConfirmation(null);
-    startSyncTransition(async () => {
-      const result = await syncShopifySelectionAction({ remoteProductIds, localProductIds });
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.warning) pushToast({ message: result.warning, tone: "info" });
-      if (result.preview) setSyncPreview(result.preview);
-      if (result.products?.length) {
-        setProducts((current) => {
-          const changedIds = new Set(result.products.map((product) => product.id));
-          return normalizeProducts([...current.filter((product) => !changedIds.has(product.id)), ...result.products]);
-        });
-      }
-      setSelectedRemoteIds([]);
-      setSelectedLocalIds([]);
-      router.refresh();
-    });
-  }
-
-  function runArchive(productIds: string[]) {
-    setSyncConfirmation(null);
-    startSyncTransition(async () => {
-      const result = await archiveMissingShopifyProductsAction(productIds);
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.preview) setSyncPreview(result.preview);
-      if (result.products?.length) {
-        setProducts((current) => {
-          const changedIds = new Set(result.products.map((product) => product.id));
-          return normalizeProducts([...current.filter((product) => !changedIds.has(product.id)), ...result.products]);
-        });
-      }
-      setSelectedArchiveIds([]);
-      router.refresh();
-    });
-  }
-
-  function confirmSync(remoteProductIds: string[], localProductIds: string[], title: string) {
-    const count = remoteProductIds.length + localProductIds.length;
-    setSyncConfirmation({
-      title,
-      description: `${remoteProductIds.length} product${remoteProductIds.length === 1 ? "" : "s"} will be imported from Shopify and ${localProductIds.length} product${localProductIds.length === 1 ? "" : "s"} will be pushed to Shopify. Archive candidates are not included.`,
-      confirmLabel: `Sync ${count} product${count === 1 ? "" : "s"}`,
-      remoteProductIds,
-      localProductIds,
-      archiveProductIds: [],
-    });
-  }
-
-  function confirmArchive(productIds: string[]) {
-    setSyncConfirmation({
-      title: "Archive missing local products",
-      description: `${productIds.length} local product${productIds.length === 1 ? "" : "s"} no longer found in Shopify will be hidden from the site. The records remain available in admin.`,
-      confirmLabel: `Archive ${productIds.length} product${productIds.length === 1 ? "" : "s"}`,
-      remoteProductIds: [],
-      localProductIds: [],
-      archiveProductIds: productIds,
-      tone: "danger",
     });
   }
 
@@ -393,15 +273,6 @@ export function ProductsCms({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} compact />
-            <button
-              type="button"
-              className="adm-btn-secondary inline-flex items-center justify-center gap-2"
-              onClick={handleTestShopifyConnection}
-              disabled={isConnectionPending}
-            >
-              <RefreshCw className={`size-4 ${isConnectionPending ? "animate-spin" : ""}`} />
-              {isConnectionPending ? "Checking Shopify..." : "Check Shopify link"}
-            </button>
             {shopifyStoreMismatch ? (
               <button
                 type="button"
@@ -412,23 +283,11 @@ export function ProductsCms({
                 Rebind to {shopifyStoreMismatch.currentShopDomain}
               </button>
             ) : null}
-            <button
-              type="button"
-              className="adm-btn-secondary inline-flex items-center justify-center gap-2"
-              onClick={() => syncPreview ? setSyncModalOpen(true) : handlePreviewShopifyReconciliation()}
-              disabled={isPreviewPending}
-            >
-              <Eye className="size-4" />
-              {isPreviewPending ? "Comparing catalogs..." : "Compare catalogs"}
-            </button>
             <Link href="/admin/products/new" className="adm-btn-primary">
               New product
             </Link>
           </div>
         </div>
-        <p className="py-3 text-xs leading-5 text-[var(--adm-muted)]">
-          Check Shopify link verifies access and links this catalog to the store on first use; it can also register review webhooks. Compare catalogs opens the existing sync review — nothing is changed until you choose an action there. To reload every field of a product marked up to date, open it and choose Refresh from Shopify.
-        </p>
 
         <div
           className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_9rem_10rem_10rem_11rem]"
@@ -761,48 +620,11 @@ export function ProductsCms({
         onToast={(message, tone) => pushToast({ message, tone })}
       />
 
-      <ProductSyncModal
-        open={syncModalOpen}
-        onClose={() => setSyncModalOpen(false)}
-        preview={syncPreview}
-        pending={isSyncPending}
-        selectedRemoteIds={selectedRemoteIds}
-        setSelectedRemoteIds={setSelectedRemoteIds}
-        selectedLocalIds={selectedLocalIds}
-        setSelectedLocalIds={setSelectedLocalIds}
-        selectedArchiveIds={selectedArchiveIds}
-        setSelectedArchiveIds={setSelectedArchiveIds}
-        toggleSelection={toggleSelection}
-        runSync={runSync}
-        confirmSync={confirmSync}
-        confirmArchive={confirmArchive}
-        onResolved={handleResolved}
-      />
-
-      {syncConfirmation ? (
-        <AdminConfirmModal
-          open
-          title={syncConfirmation.title}
-          description={syncConfirmation.description}
-          confirmLabel={syncConfirmation.confirmLabel}
-          tone={syncConfirmation.tone}
-          pending={isSyncPending}
-          onCancel={() => setSyncConfirmation(null)}
-          onConfirm={() => {
-            if (syncConfirmation.archiveProductIds.length > 0) {
-              runArchive(syncConfirmation.archiveProductIds);
-              return;
-            }
-            runSync(syncConfirmation.remoteProductIds, syncConfirmation.localProductIds);
-          }}
-        />
-      ) : null}
-
       {shopifyStoreMismatch ? (
         <AdminConfirmModal
           open={confirmStoreRebind}
           title="Rebind catalog to another Shopify store"
-          description={`Synarava is linked to ${shopifyStoreMismatch.boundShopDomain}. Rebinding to ${shopifyStoreMismatch.currentShopDomain} clears only the old store-specific product, variant, inventory, and collection IDs. It does not delete local content or Shopify products. Afterward, run Compare catalogs to match the duplicated catalog by SKU or handle.`}
+          description={`Synarava is linked to ${shopifyStoreMismatch.boundShopDomain}. Rebinding to ${shopifyStoreMismatch.currentShopDomain} clears the old store-specific product, variant, inventory, and collection IDs. It does not delete local content or Shopify products. Existing records will reconnect through normal product saves, webhooks, and conflict checks.`}
           confirmLabel="Rebind store IDs"
           tone="danger"
           pending={isStoreRebindPending}

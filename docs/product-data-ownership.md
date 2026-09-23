@@ -13,8 +13,8 @@ The synchronization boundary has three explicit layers:
 Localized Shopify product title, description, and SEO copy are shared fields. Values for every
 registered Shopify locale, including Portuguese and Russian when that product's translation exists,
 can be edited in either Synarava or Shopify Translate & Adapt and are reconciled explicitly. Shopify
-has no translation-update webhook, so translation-only changes are discovered by Pull, Preview sync,
-or Reconcile. Concurrent edits require an explicit winner for the affected locale and field;
+has no translation-update webhook, so translation-only changes are discovered by a product refresh
+or the catalog conflict check. Concurrent edits require an explicit winner for the affected locale and field;
 Synarava-only localized fields and other locales are not cleared by that decision.
 
 ## Ownership rules

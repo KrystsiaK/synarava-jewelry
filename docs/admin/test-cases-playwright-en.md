@@ -213,20 +213,21 @@ and SYNC-16 asserts that state is handled gracefully.
 
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
-| SYNC-01 | "Test Shopify connection" reports shop/product/location/publication counts | positive | P2 | **E2E** | Sandbox. |
-| SYNC-02 | Connection test reports missing env vars when unconfigured | negative | P2 | **action** | Runs without a sandbox. |
-| SYNC-03 | Connection test reports missing scopes for an under-scoped token | negative | P3 | **E2E** | Needs a deliberately under-scoped token. |
-| SYNC-04 | "Preview sync" lists candidates and mutates nothing | positive | P2 | **E2E** | Assert DB unchanged afterwards. |
+| SYNC-01 | "Run conflict check" validates access, creates the initial store binding, registers available webhooks, and saves reconciliation state | positive | P1 | **E2E** | Sandbox. |
+| SYNC-02 | Conflict check reports missing configuration variables without replacing saved state with a false zero | negative | P2 | **action** | Runs without a sandbox. |
+| SYNC-03 | Conflict check reports missing required scopes before reconciliation | negative | P2 | **E2E** | Needs a deliberately under-scoped token. |
+| SYNC-04 | Credentials for a different shop return an explicit rebind choice and never rebind automatically | negative | P1 | **E2E** | |
 | SYNC-05 | Pushing a new local product stores `shopifyProductId`/`shopifyHandle` | positive | P1 | **E2E** | |
 | SYNC-06 | Pull updates Shopify-owned fields, leaves the Synarava CMS layer intact | positive | P1 | **E2E** | The core two-owners guarantee; assert an untouched editorial field explicitly. |
 | SYNC-07 | Simultaneous local+remote change surfaces `CONFLICT`, blocks unconfirmed push/pull | negative | P2 | **E2E** | |
 | SYNC-08 | "Use Shopify version" overwrites Shopify-owned fields only | positive | P2 | **E2E** | |
 | SYNC-09 | "Keep Synarava and push" pushes local values | positive | P2 | **E2E** | |
 | SYNC-10 | Remotely-deleted product reports `REMOTE_MISSING`, blocks push/pull | negative | P2 | **E2E** | |
-| SYNC-11 | Bulk import surfaces conflicts as failures, not silent skips | positive | P2 | **E2E** | |
-| SYNC-12 | "Push all local products" pushes everything pending | positive | P2 | **E2E** | |
-| SYNC-13 | "Archive selected" archives missing products with `syncError` set | positive | P2 | **E2E** | |
-| SYNC-14 | Archiving after a stale preview is rejected | negative | P3 | **action** | "The catalog changed after preview. Run Preview sync again before archiving." |
+| SYNC-11 | Confirmed rebind clears only store-specific IDs and preserves editorial data | positive | P1 | **E2E** | |
+| SYNC-12 | Missing optional translation/review/wishlist scopes are warnings and do not block the core check | edge | P2 | **E2E** | |
+| SYNC-13 | A successful no-conflict check displays an unambiguous current zero state | positive | P2 | **E2E** | |
+| SYNC-14 | A Shopify failure marks the check failed and does not hide previously saved conflicts | negative | P1 | **E2E** | |
+| SYNC-14B | Catalog toolbar has no legacy connection-test, compare, or bulk import/push/archive controls | positive | P2 | ✔ render | |
 | SYNC-15 | Push disabled ("Save core fields first") with zero variants | edge | P3 | ✔ render | `product-sync-strip.tsx` `canPush` requires `variants.length > 0`. |
 | SYNC-16 | Full product CRUD works with Shopify entirely unconfigured | positive | P1 | **E2E** | Default CI state — assert the sync panel says "not linked" rather than erroring. |
 | CATCONF-01 | Both Show conflicts entries open the same writable list | positive | P1 | ✔ render | `catalog-conflict-signals.test.tsx`. |

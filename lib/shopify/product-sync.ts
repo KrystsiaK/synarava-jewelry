@@ -10,16 +10,13 @@ import { characteristicDisplayValue, PRODUCT_CHARACTERISTICS } from "@/lib/produ
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
 import {
-  classifyRemoteReconciliationAction,
   compareVariantCommerce,
   diffCollectionMembership,
   pickShopifyProductImageUrl,
   refreshShopifyProductAfterPush,
   synaravaVisibilityForShopifyProduct,
-  type RemoteCommerceVariant,
   type RemoteProductStatus,
   variantCommerceChangeLabel,
-  variantCommerceChangeLabels,
 } from "@/lib/shopify/reconciliation";
 import {
   findManagedCollectionSourceId,
@@ -42,7 +39,6 @@ import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
   decideProductTranslationPull,
   fetchProductTranslation,
-  fetchProductTranslationIndex,
   registerProductTranslation,
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
@@ -120,14 +116,6 @@ type ShopifyProduct = {
     } | null;
   }> };
   metafields: { pageInfo: ShopifyPageInfo; nodes: ShopifyMetafield[] };
-};
-
-type ShopifyReconciliationProduct = {
-  id: string;
-  title: string;
-  handle: string;
-  updatedAt: string;
-  variants: { pageInfo: ShopifyPageInfo; nodes: RemoteCommerceVariant[] };
 };
 
 const COLLECTION_FIELDS = `
@@ -756,7 +744,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
 
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
-  // callers (reconcileShopifyProducts' translationGaps counter) only need a
+  // callers only need a
   // per-product signal, not a per-locale breakdown.
   const TRANSLATION_STATUS_RANK = { SYNCED: 0, LOCAL_CHANGES: 1, CONFLICT: 2, UNAVAILABLE: 3 } as const;
   let translationStatus: keyof typeof TRANSLATION_STATUS_RANK = "SYNCED";
@@ -1577,284 +1565,6 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     await db.productSyncEvent.update({ where: { id: event.id }, data: { status: "FAILED", error: message, completedAt: new Date() } });
     return { ok: false as const, error: message };
   }
-}
-
-/**
- * Full bidirectional catalog sync, run from the admin's "Reconcile" action.
- * Three passes, in order:
- *
- * 1. **Pull** — page through every Shopify product (100/page) via
- *    `savePulledProduct`, which applies the same identity-matching and
- *    conflict rules as a webhook pull.
- * 2. **Archive** — any local product with a `shopifyProductId` that was
- *    *not* seen in pass 1 no longer exists in Shopify (deleted remotely),
- *    so it's archived locally rather than left pointing at a dead ID.
- * 3. **Push** — any local product with no Shopify link at all
- *    (`shopifyProductId: null`) and not already `CONFLICT` is pushed to
- *    Shopify, creating it there for the first time.
- *
- * Returns counts, not the individual results — see
- * `previewShopifyReconciliation` for a dry-run breakdown of exactly which
- * products would move which way before committing to this.
- */
-export async function reconcileShopifyProducts() {
-  const results = { pulled: 0, pushed: 0, archived: 0, conflicts: 0, failed: 0, translationGaps: 0 };
-  const seenRemoteIds = new Set<string>();
-  let cursor: string | null = null;
-  do {
-    const data: { products: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: Array<{ id: string }> } } = await shopifyAdminRequest(
-      `query SynaravaProducts($after: String) {
-        products(first: 100, after: $after, sortKey: UPDATED_AT) {
-          pageInfo { hasNextPage endCursor }
-          nodes { id }
-        }
-      }`,
-      { after: cursor },
-    );
-    for (const item of data.products.nodes) {
-      seenRemoteIds.add(item.id);
-      const event = await db.productSyncEvent.create({ data: { shopifyProductId: item.id, direction: "RECONCILE", status: "PROCESSING", attemptCount: 1 } });
-      try {
-        const remote = await fetchShopifyProduct(item.id);
-        if (!remote) throw new ShopifyAdminError(`Shopify product ${item.id} disappeared during reconciliation.`);
-        const result = await savePulledProduct(remote, event.id);
-        // Portuguese being unreadable (missing read_translations scope) or in
-        // conflict never blocks the commerce pull that already succeeded here
-        // — the storefront falls back to English either way. Both are
-        // tallied for visibility, not as sync failures.
-        if (result.translationStatus === "CONFLICT" || result.translationStatus === "UNAVAILABLE") results.translationGaps += 1;
-        if (result.status === "CONFLICT") results.conflicts += 1;
-        else if (result.status === "SYNCED") results.pulled += 1;
-      } catch (error) {
-        results.failed += 1;
-        await db.productSyncEvent.update({ where: { id: event.id }, data: { status: "FAILED", error: error instanceof Error ? error.message : "Unknown reconciliation error.", completedAt: new Date() } });
-      }
-    }
-    cursor = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;
-  } while (cursor);
-
-  const linkedProducts = await db.product.findMany({
-    where: { shopifyProductId: { not: null } },
-    select: { id: true, shopifyProductId: true },
-  });
-  for (const product of linkedProducts) {
-    if (product.shopifyProductId && !seenRemoteIds.has(product.shopifyProductId)) {
-      await db.product.update({
-        where: { id: product.id },
-        data: { status: "ARCHIVED", visibility: "PRIVATE", syncStatus: "UNLINKED", syncError: "Product no longer exists in Shopify." },
-      });
-      results.archived += 1;
-    }
-  }
-
-  const unlinkedProducts = await db.product.findMany({
-    where: { shopifyProductId: null, syncStatus: { not: "CONFLICT" } },
-    select: { id: true },
-  });
-  for (const product of unlinkedProducts) {
-    const result = await pushProductToShopify(product.id);
-    if (result.ok) results.pushed += 1;
-    else results.failed += 1;
-  }
-  return results;
-}
-
-export type ShopifyReconciliationPreview = {
-  remote: Array<{
-    shopifyProductId: string;
-    title: string;
-    handle: string;
-    sku: string;
-    action: "CREATE_LOCAL" | "UPDATE_LOCAL" | "LINK_AND_UPDATE_LOCAL" | "UP_TO_DATE" | "CONFLICT";
-    localProductId: string | null;
-    localName: string | null;
-    changes: string[];
-  }>;
-  pushToShopify: Array<{ productId: string; name: string; slug: string; sku: string }>;
-  archiveLocal: Array<{ productId: string; name: string; shopifyProductId: string }>;
-};
-
-export async function previewShopifyReconciliation(): Promise<ShopifyReconciliationPreview> {
-  const remoteProducts: ShopifyReconciliationProduct[] = [];
-  let cursor: string | null = null;
-  do {
-    const data: {
-      products: {
-        pageInfo: { hasNextPage: boolean; endCursor: string | null };
-        nodes: ShopifyReconciliationProduct[];
-      };
-    } = await shopifyAdminRequest(
-      `query SynaravaReconciliationPreview($after: String) {
-        products(first: 100, after: $after, sortKey: UPDATED_AT) {
-          pageInfo { hasNextPage endCursor }
-          nodes {
-            id title handle updatedAt
-            variants(first: 100) {
-              pageInfo { hasNextPage endCursor }
-              nodes { id title sku price compareAtPrice inventoryQuantity }
-            }
-          }
-        }
-      }`,
-      { after: cursor },
-    );
-    for (const product of data.products.nodes) {
-      product.variants.nodes = await fetchRemainingProductConnection(
-        product.id,
-        "variants",
-        "id title sku price compareAtPrice inventoryQuantity",
-        product.variants,
-      );
-      remoteProducts.push(product);
-    }
-    cursor = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;
-  } while (cursor);
-
-  const previewTranslationLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
-  // Missing read_translations access must not make the whole reconciliation
-  // preview fail; see the same tolerance in savePulledProduct below.
-  const remoteTranslationsByLocale = new Map(
-    await Promise.all(previewTranslationLocales.map(async (locale) => [
-      locale.code,
-      await fetchProductTranslationIndex(locale.shopifyLocale).catch(() => new Map()),
-    ] as const)),
-  );
-
-  const localProducts = await db.product.findMany({
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      sku: true,
-      shopifyProductId: true,
-      shopifyUpdatedAt: true,
-      syncStatus: true,
-      translations: {
-        where: { locale: { in: previewTranslationLocales.map((locale) => locale.code) } },
-        select: {
-          locale: true,
-          title: true,
-          description: true,
-          seoTitle: true,
-          seoDescription: true,
-          syncStatus: true,
-          lastSyncedAt: true,
-        },
-      },
-      variants: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          shopifyVariantId: true,
-          sku: true,
-          priceCents: true,
-          compareAtCents: true,
-          stockOnHand: true,
-        },
-      },
-    },
-  });
-  const byRemoteId = new Map(
-    localProducts.flatMap((product) =>
-      product.shopifyProductId ? [[product.shopifyProductId, product] as const] : [],
-    ),
-  );
-  const bySku = new Map(localProducts.map((product) => [product.sku, product]));
-  const bySlug = new Map(localProducts.map((product) => [product.slug, product]));
-  const seenRemoteIds = new Set(remoteProducts.map((product) => product.id));
-  const matchedLocalIds = new Set<string>();
-
-  const remote = remoteProducts.map((product) => {
-    const sku = product.variants.nodes[0]?.sku?.trim() || `SHOPIFY-${product.id.split("/").pop()}`;
-    const existingById = byRemoteId.get(product.id);
-    const existing = existingById ?? bySku.get(sku) ?? bySlug.get(product.handle) ?? null;
-    if (existing) matchedLocalIds.add(existing.id);
-
-    let action: ShopifyReconciliationPreview["remote"][number]["action"] = "CREATE_LOCAL";
-    const variantDifferences = existingById
-      ? compareVariantCommerce(existingById.variants, product.variants.nodes)
-      : [];
-    const productDetailsChanged = Boolean(
-      existingById &&
-      (!existingById.shopifyUpdatedAt ||
-        new Date(product.updatedAt).getTime() > existingById.shopifyUpdatedAt.getTime()),
-    );
-    const translationDecisions = previewTranslationLocales.map((locale) => {
-      const localTranslation = existing?.translations.find((item) => item.locale === locale.code) ?? null;
-      const remoteTranslation = remoteTranslationsByLocale.get(locale.code)?.get(product.id) ?? null;
-      const decision = localTranslation || remoteTranslation
-        ? decideProductTranslationPull({
-            local: localTranslation ? {
-              title: localTranslation.title,
-              descriptionHtml: localTranslation.description ?? "",
-              seoTitle: localTranslation.seoTitle ?? "",
-              seoDescription: localTranslation.seoDescription ?? "",
-            } : null,
-            localSyncStatus: localTranslation?.syncStatus ?? "NOT_APPLICABLE",
-            localLastSyncedAt: localTranslation?.lastSyncedAt ?? null,
-            remote: remoteTranslation,
-          })
-        : "UNCHANGED";
-      return { locale, decision };
-    });
-    const changes = [
-      ...(productDetailsChanged ? ["Product details"] : []),
-      ...variantCommerceChangeLabels(variantDifferences),
-      ...translationDecisions
-        .filter(({ decision }) => decision === "APPLY_REMOTE")
-        .map(({ locale }) => `${locale.name} translation`),
-    ];
-    const remoteHasChanges = changes.length > 0;
-    const localHasChanges = Boolean(
-      existingById && ["PENDING", "FAILED", "CONFLICT"].includes(existingById.syncStatus),
-    );
-
-    if (existing?.shopifyProductId && existing.shopifyProductId !== product.id) action = "CONFLICT";
-    else if (translationDecisions.some(({ decision }) => decision === "CONFLICT")) action = "CONFLICT";
-    else if (existingById) action = classifyRemoteReconciliationAction({
-      hasUnresolvedConflict: existingById.syncStatus === "CONFLICT",
-      localHasChanges,
-      remoteHasChanges,
-    });
-    else if (existing) action = "LINK_AND_UPDATE_LOCAL";
-
-    return {
-      shopifyProductId: product.id,
-      title: product.title,
-      handle: product.handle,
-      sku,
-      action,
-      localProductId: existing?.id ?? null,
-      localName: existing?.name ?? null,
-      changes,
-    };
-  });
-
-  const remoteActionByLocalId = new Map(
-    remote.flatMap((item) => item.localProductId ? [[item.localProductId, item.action] as const] : []),
-  );
-
-  const pushToShopify = localProducts
-    .filter(
-      (product) => {
-        if (product.syncStatus === "CONFLICT") return false;
-        if (!product.shopifyProductId) return !matchedLocalIds.has(product.id);
-        const translationNeedsPush = product.translations.some((translation) =>
-          (["PENDING", "FAILED"] as string[]).includes(translation.syncStatus),
-        );
-        if (!(["PENDING", "FAILED"] as string[]).includes(product.syncStatus) && !translationNeedsPush) return false;
-        if (!seenRemoteIds.has(product.shopifyProductId)) return false;
-        return remoteActionByLocalId.get(product.id) === "UP_TO_DATE";
-      },
-    )
-    .map(({ id: productId, name, slug, sku }) => ({ productId, name, slug, sku }));
-
-  const archiveLocal = localProducts.flatMap((product) =>
-    product.shopifyProductId && !seenRemoteIds.has(product.shopifyProductId)
-      ? [{ productId: product.id, name: product.name, shopifyProductId: product.shopifyProductId }]
-      : [],
-  );
-
-  return { remote, pushToShopify, archiveLocal };
 }
 
 export async function ensureProductWebhookSubscriptions(callbackBaseUrl: string) {

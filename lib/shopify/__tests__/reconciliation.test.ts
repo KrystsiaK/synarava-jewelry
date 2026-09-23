@@ -1,14 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  classifyRemoteReconciliationAction,
   compareVariantCommerce,
   diffCollectionMembership,
   isSynaravaProductAccessible,
   pickShopifyProductImageUrl,
   refreshShopifyProductAfterPush,
   synaravaVisibilityForShopifyProduct,
-  variantCommerceChangeLabels,
   type LocalCommerceVariant,
   type RemoteCommerceVariant,
 } from "@/lib/shopify/reconciliation";
@@ -48,7 +46,6 @@ describe("compareVariantCommerce", () => {
         shopify: 9,
       },
     ]);
-    expect(variantCommerceChangeLabels(differences)).toEqual(["Available quantity"]);
   });
 
   it("detects variants added or removed in Shopify", () => {
@@ -60,30 +57,6 @@ describe("compareVariantCommerce", () => {
         shopify: "Missing",
       },
     ]);
-  });
-});
-
-describe("classifyRemoteReconciliationAction", () => {
-  it("offers a pull for Shopify-only changes", () => {
-    expect(
-      classifyRemoteReconciliationAction({ localHasChanges: false, remoteHasChanges: true }),
-    ).toBe("UPDATE_LOCAL");
-  });
-
-  it("marks simultaneous local and Shopify changes as a conflict", () => {
-    expect(
-      classifyRemoteReconciliationAction({ localHasChanges: true, remoteHasChanges: true }),
-    ).toBe("CONFLICT");
-  });
-
-  it("keeps an unresolved conflict visible", () => {
-    expect(
-      classifyRemoteReconciliationAction({
-        hasUnresolvedConflict: true,
-        localHasChanges: true,
-        remoteHasChanges: false,
-      }),
-    ).toBe("CONFLICT");
   });
 });
 

@@ -142,9 +142,10 @@ forward navigation rehydrates the matching filter state.
 Product reviews use Shopify's standard `product_review` metaobject plus the standard
 `reviews.rating` and `reviews.rating_count` product metafields. This integration requires Shopify
 approval for product-review syndication and the `write_product_reviews`, `read_metaobjects`,
-`read_customers`, `read_orders`, and `read_products` scopes. **Check Shopify link** enables the
-standard definition and registers filtered `metaobjects/create`, `metaobjects/update`, and
-`metaobjects/delete` webhooks when `APP_URL` and `SHOPIFY_WEBHOOK_SECRET` are configured.
+`read_customers`, `read_orders`, and `read_products` scopes. **Run conflict check** validates the
+Shopify connection and scopes, establishes the initial store binding, and registers filtered
+`metaobjects/create`, `metaobjects/update`, and `metaobjects/delete` webhooks when `APP_URL` and
+`SHOPIFY_WEBHOOK_SECRET` are configured.
 The storefront uses Shopify's official **Verified by Shop** badge only when syndicated reviews are
 actually present.
 
@@ -154,17 +155,17 @@ wishlist instead of preventing the authenticated customer profile from loading.
 
 English product content is synchronized as Shopify's base product content. Reviewed content for
 each registered, published translation locale is registered through Shopify's Translation API.
-Edits made in Shopify Translate & Adapt are read back during **Pull**, **Compare catalogs**, or
-the admin reconciliation check. Shopify does not expose a translation-update webhook, so
+Edits made in Shopify Translate & Adapt are read back during a product **Refresh from Shopify** or
+the catalog conflict check. Shopify does not expose a translation-update webhook, so
 translation-only edits are detected by reconciliation. Concurrent edits in any locale require
 an explicit decision; Synarava-only editorial fields are preserved.
 Install Shopify's free **Translate & Adapt** app in each store where staff should edit these fields
 inside Shopify Admin; API synchronization itself uses the translation scopes above.
 
 The catalog records the canonical `*.myshopify.com` store it is linked to. If credentials are
-changed to a duplicated Shopify store, **Check Shopify link** offers an explicit rebind action.
-Rebinding clears only old store-specific IDs, then **Compare catalogs** matches the duplicated products
-and collections by SKU/handle before any data is applied. The new store still needs its own app
+changed to a duplicated Shopify store, **Run conflict check** reports the mismatch and offers an
+explicit rebind action. Rebinding clears only old store-specific IDs; subsequent saves, webhooks,
+product refreshes, and conflict checks establish the new store identities. The new store still needs its own app
 installation/token, required scopes, published locales, publication ID, and inventory
 location ID. Editorial page layout remains owned by this application; supported page copy
 is synchronized to Shopify Pages or app-owned metaobjects through the localization system.

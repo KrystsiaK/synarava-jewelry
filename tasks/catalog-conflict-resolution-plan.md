@@ -53,10 +53,10 @@ Write-path каталога уже подключён: список, детал�
 
 ## Что уже есть
 
-- `components/admin/products/products-cms.tsx` открывает сравнение каталогов и `ProductSyncModal`.
+- `components/admin/products/products-cms.tsx` содержит единый вход в проверку и разрешение конфликтов. Старый параллельный `ProductSyncModal` удалён.
 - `components/admin/products/catalog-conflict-signals.tsx` показывает два одинаковых входа в read-only список, метки конкретных языков и shared-полей в строке товара. `lib/shopify/catalog-conflict-signals-server.ts` агрегирует сохранённый `Product.syncStatus` и unresolved translation differences без Shopify-запроса на каждый товар.
-- `components/admin/products/product-sync-modal.tsx` показывает импорт, push и архивирование в одном диалоге; отдельный commerce-конфликт раскрывается внутри карточки и может выполняться через forced push/pull.
-- `lib/shopify/product-sync.ts` содержит preview и inspection commerce-полей; `app/admin/actions/sync.ts` содержит действия для одного товара и selection. Inspection сейчас отдаёт строки без locale/field identity.
+- `components/admin/products/catalog-conflict-workspace.tsx` показывает список, детали, выбор полей и обязательное подтверждение массового или точечного решения.
+- `lib/shopify/product-sync.ts` сохраняет точечные push/pull и inspection commerce-полей; `app/admin/actions/sync.ts` содержит точечные действия и единый запуск conflict check. Удалённый legacy preview/import/push/archive flow больше не существует.
 - `lib/shopify/reconciliation-run.ts` и `/admin/api/shopify/reconcile/apply` дают field-level расхождения переводного содержимого с locale, fingerprints и результатом по полям; UI находится в `/admin/translations`.
 - `StorefrontLocale` уже поддерживает несколько языков, включая добавленный `ru`. У русского пока может не быть заполненного и проверенного текста конкретного товара; отсутствие перевода нельзя выдавать за обнаруженный конфликт.
 - У товара нет отдельного server-side признака «входящее изменение ещё не просмотрено этим администратором». Текущий `reviewedAt` относится к review перевода и не подходит.
@@ -65,7 +65,7 @@ Write-path каталога уже подключён: список, детал�
 
 1. Единицей интерфейса служит товар; единицей решения и записи служит поле с scope `product + locale/shared + target`. Показанный preview и серверный apply обязаны использовать одинаковый список полей.
 2. Shopify остаётся источником истины для commerce. Локальная запись допустима как синхронизированная проекция или Synarava-редакционный слой. Запись в Shopify использует его native product/translation ресурсы, без нового параллельного commerce-хранилища.
-3. Массовое действие выбирает только выявленные конфликты каталога. Односторонние изменения, новые/исчезнувшие товары и архивирование сохраняют самостоятельные сценарии.
+3. Массовое действие выбирает только выявленные конфликты каталога. Новые или исчезнувшие товары обрабатываются точечными действиями карточки, без отдельного bulk compare-процесса.
 4. Не обещать полное перезаписывание базы или магазина: scope показан по товарам/полям/языкам и повторно валидирован на сервере.
 5. По завершении каждого этапа обновлять нужную документацию и knowledge graph (`graphify update .`).
 
@@ -128,7 +128,7 @@ Write-path каталога уже подключён: список, детал�
 
 Учитывая (1)+(2) вместе — что реальный радиус действия force push/pull шире read model'а и не сводится к «проверить все commerce-поля» — единственный честный вариант без более глубокого переписывания `inspectProductSyncState`/push/pull (уже отмечено в этапе 1 как отдельная, более крупная задача) — **не предлагать через этот contract запись commerce-полей вовсе**. `previewCatalogConflictResolution` теперь сразу кладёт любое commerce-поле в `excluded` с объяснением; `applyCatalogConflictResolution` для commerce-поля всегда возвращает `{ok: false, reason: "UNSUPPORTED"}`, не вызывая ни `pushProductToShopify`, ни `pullShopifyProduct`. Группировка по `productId:direction`, чтение `db.product.shopifyProductId` и вся commerce-execution ветка удалены из файла целиком (не отключены флагом — их больше нет, меньше кода для чтения при следующем ревью). Проблемы 3 и 4 из списка выше исчезают как следствие: нет commerce-записи → нет смешения направлений и нет неверно учтённого `translationError`.
 
-`pushSingleProductToShopifyAction`/`pullSingleProductFromShopifyAction` (whole-product, forced) не менялись и остаются функционирующими сами по себе — но **этапы 3–5 не должны вызывать их из новых диалогов 1–3 конфликта каталога** как замену commerce-apply. Именно это — preview, который они обходят, и отсутствие защиты от stale-записи — и есть причина, по которой этот раунд правки исключил commerce из нового contract (см. «Статус честно» вверху раздела). Использовать их внутри Диалога 1's commerce icon-actions/bulk-directions значило бы вернуть ровно то небезопасное поведение, которое только что было устранено — preview показал бы одно, а нажатие кнопки вызвало бы неограниченную запись без повторной проверки. Пока commerce-writer (см. «Дальше» ниже) не появится, UI для commerce-полей должен показывать их как недоступные (`excluded`/`UNSUPPORTED`, с причиной) — так же, как это уже делает сам `catalog-conflict-apply.ts` — а не тихо перенаправлять на forced push/pull. Эти два action'а остаются на месте только для существующего, отдельного от конфликтного flow сценария (текущий `product-sync-modal.tsx`, если админ явно решает перезаписать товар целиком вне Диалогов 1–3) — не как часть нового contract.
+`pushSingleProductToShopifyAction`/`pullSingleProductFromShopifyAction` (whole-product, forced) не менялись и остаются точечными действиями страницы товара — но **этапы 3–5 не должны вызывать их из новых диалогов 1–3 конфликта каталога** как замену commerce-apply. Именно это — preview, который они обходят, и отсутствие защиты от stale-записи — и есть причина, по которой этот раунд правки исключил commerce из нового contract (см. «Статус честно» вверху раздела). Использовать их внутри Диалога 1's commerce icon-actions/bulk-directions значило бы вернуть ровно то небезопасное поведение, которое только что было устранено — preview показал бы одно, а нажатие кнопки вызвало бы неограниченную запись без повторной проверки. Пока commerce-writer (см. «Дальше» ниже) не появится, UI для commerce-полей должен показывать их как недоступные (`excluded`/`UNSUPPORTED`, с причиной) — так же, как это уже делает сам `catalog-conflict-apply.ts` — а не тихо перенаправлять на forced push/pull.
 
 **Исправленная проблема (код-ревью, раунд 2 стадии 2):** цикл `applyCatalogConflictResolution`, применяющий готовые translation-поля, вызывал `await applyReconcileChoice(...)` без `try/catch`. `applyReconcileChoice` (в `reconciliation-apply.ts`) сам оборачивает свою запись в try/catch, но `claimDifference(...)` — первый шаг, захват строки `ShopifyFieldDivergence` через `UPDATE ... RETURNING` — выполняется **до** этого try/catch. Если тот запрос бросал исключение (обрыв соединения с БД и т.п.), `applyReconcileChoice` пробрасывал ошибку наружу непойманной, весь `applyCatalogConflictResolution` реджектился, и вызывающая сторона теряла **все** уже посчитанные результаты — включая поля, которые в этом же вызове уже были успешно применены раньше по циклу. Это ломает контракт partial-success для сценария, который вполне реален (временный сбой БД на одной конкретной записи посреди батча).
 
@@ -200,13 +200,13 @@ Write-path каталога уже подключён: список, детал�
 
 ### 4. Список конфликтующих товаров — ✅ реализовано (2026-09-23)
 
-**Результат:** новый focused modal со списком, тремя icon-actions на товаре и двумя массовыми направлениями. Импорт новых товаров и архивирование остаются доступными отдельно, без смешения с конфликтами.
+**Результат:** новый focused modal со списком, тремя icon-actions на товаре и двумя массовыми направлениями. Старый параллельный bulk import/push/archive процесс удалён, чтобы не создавать вторую конфликтующую модель синхронизации.
 
 **Критерии:** иконки имеют tooltip при hover/focus, доступное имя и 44 px hit area; действия записи ведут в preview; недоступные направления объяснены; список поддерживает десятки товаров без деградации.
 
 **Проверка:** component interactions, клавиатура, длинный список, 0/1/N товаров, узкий экран.
 
-**Зависимости:** 1–3. **Вероятные места:** `components/admin/products/product-sync-modal.tsx` либо новые focused components, `products-cms.tsx`.
+**Зависимости:** 1–3. **Места:** `components/admin/products/catalog-conflict-workspace.tsx`, `products-cms.tsx`.
 
 **Реализация:** `CatalogConflictWorkspace` содержит focused список со scroll-body/fixed footer, двумя bulk-направлениями и тремя действиями на товар. Icon-actions имеют tooltip, `aria-label` и 44 px target. Любая операция записи сначала вызывает единый server preview; неподдерживаемые commerce-поля попадают в `Not included` с причиной и никогда не пишутся.
 

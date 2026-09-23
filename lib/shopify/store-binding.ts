@@ -46,11 +46,11 @@ export async function ensureShopifyStoreBinding(currentShopDomain: string) {
 export async function assertShopifyStoreBinding(currentShopDomain: string) {
   const classification = classifyShopifyStoreBinding(await getShopifyStoreBinding(), currentShopDomain);
   if (classification.status === "UNBOUND") {
-    throw new ShopifyAdminError("Test the Shopify connection once to bind this catalog before syncing.");
+    throw new ShopifyAdminError("Run the catalog conflict check once to bind this catalog before syncing.");
   }
   if (classification.status === "MISMATCH") {
     throw new ShopifyAdminError(
-      `This catalog is linked to ${classification.boundShopDomain}, but the current credentials belong to ${classification.currentShopDomain}. Test the connection and explicitly rebind before syncing.`,
+      `This catalog is linked to ${classification.boundShopDomain}, but the current credentials belong to ${classification.currentShopDomain}. Run the conflict check and explicitly rebind before syncing.`,
     );
   }
   return classification;
@@ -60,7 +60,7 @@ export async function rebindShopifyStore(expectedCurrentShopDomain: string, actu
   const expected = normalizeShopDomain(expectedCurrentShopDomain);
   const actual = normalizeShopDomain(actualCurrentShopDomain);
   if (expected !== actual) {
-    throw new ShopifyAdminError("The configured Shopify store changed after confirmation. Test the connection again.");
+    throw new ShopifyAdminError("The configured Shopify store changed after confirmation. Run the conflict check again.");
   }
   const classification = classifyShopifyStoreBinding(await getShopifyStoreBinding(), actual);
   if (classification.status !== "MISMATCH") {

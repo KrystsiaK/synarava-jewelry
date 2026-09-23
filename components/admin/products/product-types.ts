@@ -85,13 +85,3 @@ export type ProductRowAction = {
   product: ProductRecord;
   action: "publish" | "draft" | "archive" | "delete";
 };
-
-export type SyncConfirmation = {
-  title: string;
-  description: string;
-  confirmLabel: string;
-  remoteProductIds: string[];
-  localProductIds: string[];
-  archiveProductIds: string[];
-  tone?: "default" | "danger";
-};
