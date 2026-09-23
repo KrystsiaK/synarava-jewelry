@@ -21,6 +21,14 @@ function statusText(signals: CatalogConflictSignals) {
   return saved;
 }
 
+const conflictTone = {
+  border: "var(--adm-conflict)",
+  borderSoft: "color-mix(in srgb, var(--adm-conflict) 55%, var(--adm-border))",
+  fill: "color-mix(in srgb, var(--adm-conflict) 14%, var(--adm-panel))",
+  fillSoft: "color-mix(in srgb, var(--adm-conflict) 10%, var(--adm-panel))",
+  ink: "var(--adm-conflict)",
+} as const;
+
 export function CatalogConflictStatus({
   signals,
   onShow,
@@ -41,12 +49,12 @@ export function CatalogConflictStatus({
       <button
         type="button"
         onClick={onShow}
-        className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-warning)]"
-        style={{ borderColor: "var(--adm-warning)", background: "color-mix(in srgb, var(--adm-warning) 10%, var(--adm-panel))" }}
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-conflict)]"
+        style={{ borderColor: conflictTone.border, background: conflictTone.fill }}
         aria-label="Show conflicts"
         title={statusText(signals)}
       >
-        <GitCompareArrows className="size-4" style={{ color: "var(--adm-warning)" }} aria-hidden="true" />
+        <GitCompareArrows className="size-4" style={{ color: conflictTone.ink }} aria-hidden="true" />
         {plural(signals.totalCount!, "conflict", "conflicts")}
       </button>
     );
@@ -55,13 +63,13 @@ export function CatalogConflictStatus({
     <div
       className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 ${compact ? "text-xs" : "text-sm"}`}
       style={{
-        borderColor: "color-mix(in srgb, var(--adm-warning) 52%, var(--adm-border))",
-        background: "color-mix(in srgb, var(--adm-warning) 8%, var(--adm-panel))",
+        borderColor: conflictTone.borderSoft,
+        background: conflictTone.fillSoft,
         color: "var(--adm-ink)",
       }}
       role="status"
     >
-      <GitCompareArrows className="size-4 shrink-0" style={{ color: "var(--adm-warning)" }} aria-hidden="true" />
+      <GitCompareArrows className="size-4 shrink-0" style={{ color: conflictTone.ink }} aria-hidden="true" />
       <span className="font-semibold">{statusText(signals)}</span>
       {signals.totalCount !== null && signals.state !== "ready" && hasConflicts ? (
         <span className="text-[var(--adm-muted)]">{plural(signals.totalCount, "saved conflict", "saved conflicts")}</span>
@@ -110,12 +118,12 @@ export function CatalogConflictRowBadges({
       onClick={onShow}
       aria-label={`Show conflicts for ${productName}: ${fullDescription}`}
       title={fullDescription}
-      className="mt-2 flex min-h-11 max-w-full flex-wrap items-center gap-1.5 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-warning)]"
+      className="mt-2 flex min-h-11 max-w-full flex-wrap items-center gap-1.5 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-conflict)]"
     >
-      {signal.shared ? <span className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: "var(--adm-warning)", color: "var(--adm-ink)" }}><GitCompareArrows className="mr-1 inline size-3" aria-hidden="true" />Shared · conflict</span> : null}
+      {signal.shared ? <span className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: conflictTone.border, color: "var(--adm-ink)" }}><GitCompareArrows className="mr-1 inline size-3" style={{ color: conflictTone.ink }} aria-hidden="true" />Shared · conflict</span> : null}
       {visible.map((locale) => (
-        <span key={locale.code} className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: "var(--adm-warning)", color: "var(--adm-ink)" }} title={locale.nativeName}>
-          <Languages className="mr-1 inline size-3" aria-hidden="true" />{locale.code.toUpperCase()} · {plural(locale.count, "field", "fields")}
+        <span key={locale.code} className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: conflictTone.border, color: "var(--adm-ink)" }} title={locale.nativeName}>
+          <Languages className="mr-1 inline size-3" style={{ color: conflictTone.ink }} aria-hidden="true" />{locale.code.toUpperCase()} · {plural(locale.count, "field", "fields")}
         </span>
       ))}
       {remaining > 0 ? <span className="text-[0.68rem] font-semibold text-[var(--adm-muted)]">+{plural(remaining, "language", "languages")}</span> : null}

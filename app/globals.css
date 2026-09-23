@@ -1577,6 +1577,7 @@ body.admin-mode .artifact-footer {
   --adm-accent-soft: rgba(216, 182, 106, 0.12);
   --adm-success: #b8c98a;
   --adm-warning: #d8b66a;
+  --adm-conflict: #f0a03c;
   --adm-danger: #b94a48;
   --adm-danger-soft: rgba(185, 74, 72, 0.13);
   --adm-shadow: 0 18px 50px rgba(0, 0, 0, 0.26);
@@ -1614,6 +1615,7 @@ html[data-theme="light"] .admin-modal-root {
   --adm-accent-soft: rgba(138, 102, 31, 0.1);
   --adm-success: #456229;
   --adm-warning: #7b5b1c;
+  --adm-conflict: #e0891a;
   --adm-danger: #9d3836;
   --adm-danger-soft: rgba(157, 56, 54, 0.09);
   --adm-shadow: 0 6px 8px rgba(49, 41, 31, 0.08);

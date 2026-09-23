@@ -7,7 +7,7 @@ export const SCOPED_COMMERCE_FIELD_LABELS = new Set([
 ]);
 
 export const COMMERCE_UNSUPPORTED_REASON =
-  "This commerce field does not have a safe scoped write yet. Open the product and use its full Push/Pull action.";
+  "No safe field-by-field write yet (e.g. Status mixes Shopify status with Synarava UNLISTED/publication). Resolve via the product editor Push/Pull for the whole commerce record.";
 
 export function persistPayloadForCommerceInspection(inspection: {
   state: string;

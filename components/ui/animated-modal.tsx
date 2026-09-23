@@ -21,6 +21,19 @@ type AnimatedModalProps = {
 let nextModalId = 0;
 const activeModalIds = new Set<number>();
 
+/** Clear body scroll lock + app-shell inert only when the last modal unmounts.
+ *  Stacked save/restore of previousOverflow/previousInert leaves the page stuck
+ *  (overflow:hidden + inert) after Link navigation closes several layers at once. */
+function releaseDocumentLocksIfIdle() {
+  if (activeModalIds.size > 0) return;
+  document.body.style.overflow = "";
+  Array.from(document.body.children).forEach((element) => {
+    if (element instanceof HTMLElement && element.dataset.animatedModalRoot !== "true") {
+      element.inert = false;
+    }
+  });
+}
+
 function transitionDuration(variable: string, fallback: number) {
   if (typeof window === "undefined") return fallback;
   const value = window
@@ -80,17 +93,13 @@ export function AnimatedModal({
   useEffect(() => {
     if (!mounted) return;
     activeModalIds.add(modalId);
-    const previousOverflow = document.body.style.overflow;
-    // Never inert sibling modal portals. A lower stacked modal re-running this
-    // effect (e.g. unstable onClose identity) would otherwise freeze the top
-    // dialog: clicks and focus stop working while the UI still looks open.
+    // Never inert sibling modal portals — only the app shell behind the stack.
     const background = Array.from(document.body.children).filter(
       (element): element is HTMLElement =>
         element instanceof HTMLElement
         && element !== modalRootRef.current
         && element.dataset.animatedModalRoot !== "true",
     );
-    const previousInert = background.map((element) => element.inert);
     previousFocusRef.current = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
     background.forEach((element) => { element.inert = true; });
@@ -129,12 +138,11 @@ export function AnimatedModal({
       (firstFocusable ?? dialogRef.current)?.focus();
     });
     return () => {
-      document.body.style.overflow = previousOverflow;
-      background.forEach((element, index) => { element.inert = previousInert[index]; });
       window.removeEventListener("keydown", handleKeyDown);
       window.cancelAnimationFrame(focusFrame);
-      previousFocusRef.current?.focus();
       activeModalIds.delete(modalId);
+      releaseDocumentLocksIfIdle();
+      previousFocusRef.current?.focus();
     };
   }, [modalId, mounted]);
 

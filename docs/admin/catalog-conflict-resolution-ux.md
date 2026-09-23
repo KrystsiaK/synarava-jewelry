@@ -1,6 +1,6 @@
 # Разрешение конфликтов каталога: UX-спецификация
 
-**Статус:** контракт каталога `/admin/products` реализован 23 сентября 2026. Диалоги 1–3 пишут только через scoped preview/apply. Не покрыты scoped-записью: Status, storefront visibility, category, tags, collections, media, несколько variants, characteristics — они видны как `Not included` / Unavailable. Live Shopify round trip остаётся в [`../../tasks/catalog-conflict-resolution-plan.md`](../../tasks/catalog-conflict-resolution-plan.md) этапе 7. Это описание работающего UI, а не будущего состояния.
+**Статус:** контракт каталога `/admin/products` реализован 23 сентября 2026. Диалоги 1–3 пишут только через scoped preview/apply. Не покрыты scoped-записью: Status, storefront visibility, category, tags, collections, media, несколько variants, characteristics — они видны для сравнения, но **не выбираются** (`Can't choose here` / Not included); резолв — через product editor Push/Pull. Live Shopify round trip остаётся в [`../../tasks/catalog-conflict-resolution-plan.md`](../../tasks/catalog-conflict-resolution-plan.md) этапе 7. Это описание работающего UI, а не будущего состояния.
 
 ## Задача и границы
 

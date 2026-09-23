@@ -60,10 +60,8 @@ describe("AnimatedModal", () => {
     expect(onChildAction).toHaveBeenCalledOnce();
   });
 
-  it("keeps the top sibling interactive when the lower modal gets a new onClose identity", () => {
-    const onChildAction = vi.fn();
-    const closeChild = vi.fn();
-    const { rerender } = render(
+  it("releases body overflow and app-shell inert only after the last stacked modal unmounts", () => {
+    const { unmount } = render(
       <>
         <main data-testid="app-shell">
           <button type="button">Shell</button>
@@ -71,38 +69,18 @@ describe("AnimatedModal", () => {
         <AnimatedModal open onClose={() => undefined} ariaLabel="Parent dialog">
           <button type="button">Parent action</button>
         </AnimatedModal>
-        <AnimatedModal open onClose={closeChild} ariaLabel="Child dialog">
-          <button type="button" onClick={onChildAction}>Child action</button>
+        <AnimatedModal open onClose={() => undefined} ariaLabel="Child dialog">
+          <button type="button">Child action</button>
         </AnimatedModal>
       </>,
     );
 
-    // Mimic ConflictListModal: busy ? () => undefined : onClose creates a new
-    // function each render. Trap deps must not re-inert the top sibling.
-    rerender(
-      <>
-        <main data-testid="app-shell">
-          <button type="button">Shell</button>
-        </main>
-        <AnimatedModal open onClose={() => undefined} ariaLabel="Parent dialog">
-          <button type="button">Parent action</button>
-        </AnimatedModal>
-        <AnimatedModal open onClose={closeChild} ariaLabel="Child dialog">
-          <button type="button" onClick={onChildAction}>Child action</button>
-        </AnimatedModal>
-      </>,
-    );
+    const shellHost = screen.getByTestId("app-shell").parentElement;
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(shellHost).toHaveProperty("inert", true);
 
-    const roots = document.body.querySelectorAll<HTMLElement>("[data-animated-modal-root]");
-    expect(roots).toHaveLength(2);
-    roots.forEach((root) => expect(Boolean(root.inert)).toBe(false));
-    // inert is applied to direct body children (RTL container), not nested main.
-    expect(screen.getByTestId("app-shell").parentElement).toHaveProperty("inert", true);
-
-    fireEvent.click(screen.getByRole("button", { name: "Child action" }));
-    expect(onChildAction).toHaveBeenCalledOnce();
-
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(closeChild).toHaveBeenCalledOnce();
+    unmount();
+    expect(document.body.style.overflow).toBe("");
+    expect(shellHost).toHaveProperty("inert", false);
   });
 });

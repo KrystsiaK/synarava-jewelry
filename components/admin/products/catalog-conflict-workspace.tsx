@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine, Columns2, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
@@ -154,7 +153,7 @@ function orderedConflictFields(fields: CatalogConflictField[]) {
   });
 }
 
-function DetailsModal({ conflict, product, selections, loading, applying, onClose, onSelect, onSelectAll, onContinue }: {
+function DetailsModal({ conflict, product, selections, loading, applying, onClose, onSelect, onSelectAll, onContinue, onOpenEditor }: {
   conflict: ProductCatalogConflict | null;
   product?: ProductSummary;
   selections: Record<string, CatalogConflictDirection>;
@@ -164,6 +163,7 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
   onSelect: (fieldKey: string, direction: CatalogConflictDirection) => void;
   onSelectAll: (direction: CatalogConflictDirection) => void;
   onContinue: () => void;
+  onOpenEditor: (productId: string) => void;
 }) {
   if (!conflict && !loading) return null;
   const fields = conflict ? orderedConflictFields(conflict.fields) : [];
@@ -178,7 +178,7 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
           <h2 className="adm-title-sm mt-2">{product?.name ?? "Product conflict"}</h2>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
             {onlyBlocked
-              ? "These fields cannot be decided here yet. Open the product and use Push/Pull for the whole commerce record."
+              ? "These commerce fields are visible for comparison, but this dialog cannot write them yet. Close here and use Push/Pull on the product."
               : "Each language is independent. Pick either side for the fields you want to merge."}
           </p>
         </div>
@@ -191,9 +191,9 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
           </p>
         ) : null}
         {onlyBlocked ? (
-          <p className="rounded-lg border border-[var(--adm-warning)] p-3 text-sm">
-            Status, storefront visibility, and other unsupported commerce fields stay read-only in this dialog.
-            {conflict ? <> Open <Link href={`/admin/products/${conflict.productId}`} className="font-semibold underline underline-offset-2">the product editor</Link> and use its Push/Pull actions.</> : null}
+          <p className="rounded-lg border border-[var(--adm-conflict)] p-3 text-sm">
+            Status / storefront visibility and similar commerce fields stay read-only here on purpose — there is no safe per-field write yet.
+            {conflict ? <> Use the footer action to open the product editor and resolve with Push/Pull.</> : null}
           </p>
         ) : null}
         {fields.map((field) => (
@@ -212,7 +212,7 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
                 </>
               )}
             </div>
-            {field.blockedReason ? <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-warning)_9%,transparent)] p-3 text-xs text-[var(--adm-muted)]">Unavailable here: {field.blockedReason}</p> : null}
+            {field.blockedReason ? <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">Can't choose here: {field.blockedReason}</p> : null}
           </section>
         ))}
       </div>
@@ -228,7 +228,7 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
             <button type="button" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
           </>
         ) : conflict ? (
-          <Link href={`/admin/products/${conflict.productId}`} className="adm-btn-primary">Open product editor</Link>
+          <button type="button" disabled={busy} onClick={() => onOpenEditor(conflict.productId)} className="adm-btn-primary">Open product editor</button>
         ) : null}
       </footer>
     </AnimatedModal>
@@ -411,6 +411,10 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
             return next;
           })}
           onContinue={() => details && openPreview({ kind: "MANUAL", selections: Object.entries(selections).map(([fieldKey, direction]) => ({ productId: details.productId, fieldKey, direction })) })}
+          onOpenEditor={(productId) => {
+            closeAll();
+            router.push(`/admin/products/${productId}`);
+          }}
         />
       ) : null}
       {preview ? <PreviewModal preview={preview} productsById={productsById} applying={applying} resultMessage={resultMessage} onClose={() => { if (!applying) { setPreview(null); setResultMessage(null); } }} onConfirm={confirm} /> : null}

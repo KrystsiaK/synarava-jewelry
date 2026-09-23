@@ -6,9 +6,10 @@ const mocks = vi.hoisted(() => ({
   load: vi.fn(),
   preview: vi.fn(),
   refresh: vi.fn(),
+  push: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }) }));
 vi.mock("@/app/admin/actions/sync", () => ({
   applyCatalogConflictResolutionAction: mocks.apply,
   loadProductCatalogConflictAction: mocks.load,
@@ -149,7 +150,7 @@ describe("CatalogConflictWorkspace", () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField, field] } });
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByText(/Unavailable here/)).toBeInTheDocument();
+    expect(await screen.findByText(/Can't choose here/)).toBeInTheDocument();
     expect(screen.getByText("SHARED")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
     fireEvent.click(screen.getByRole("button", { name: "Review merge" }));
@@ -161,10 +162,12 @@ describe("CatalogConflictWorkspace", () => {
 
   it("sends only-blocked commerce conflicts to the product editor instead of a dead merge", async () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
-    renderWorkspace();
+    const { onClose } = renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByText(/cannot be decided here yet/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open product editor" })).toHaveAttribute("href", "/admin/products/p1");
+    expect(await screen.findByText(/cannot write them yet/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open product editor" }));
+    expect(onClose).toHaveBeenCalled();
+    expect(mocks.push).toHaveBeenCalledWith("/admin/products/p1");
     expect(screen.queryByRole("button", { name: "Review merge" })).not.toBeInTheDocument();
   });
 
