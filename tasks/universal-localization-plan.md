@@ -517,7 +517,7 @@ end to end for a locale that was hardcoded-PT before this task.
 **Verification:** existing coverage already exercised both branches of every
 changed function (`lib/products/__tests__/characteristics.test.ts`'s
 "localizes boolean display values" test, `lib/content/__tests__/legal-sections.test.ts`,
-`legal-document-backfill.test.ts`, `localized-page-metadata.test.ts`) and
+`localized-page-metadata.test.ts`) and
 all passed unchanged against the restructured `Record<Locale, ...>` exports
 — no test needed updating, which is itself a sign the restructuring was
 behavior-preserving. Full suite green: tsc, eslint, 934 tests. Live-verified
@@ -682,11 +682,6 @@ net this pattern is for:
   the correct, honest English default until a real Russian legal review
   happens — exactly the plan's own stated design for an incomplete
   translation, not a gap.
-- `lib/content/legal-document-backfill.ts`'s direct `.pt` accesses (not
-  locale-dynamic, always the literal `pt` key) needed non-null assertions
-  since the type can no longer promise every locale is present — safe here
-  because these specific properties are always defined by construction, not
-  data read at runtime.
 
 **What's still open** — deliberately not attempted here, since it's
 translation/content work, not code: `messages/ru.json` still doesn't exist

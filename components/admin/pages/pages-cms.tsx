@@ -53,16 +53,6 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
 
   return (
     <div data-component="PagesCms" className="grid gap-6">
-      <div className="adm-panel flex items-start gap-3 p-4">
-        <span style={{ color: "var(--adm-accent)", fontSize: "0.8rem" }}>◆</span>
-        <div className="adm-label-row">
-          <span className="adm-title-sm">Locale workspace: EN / PT</span>
-          <AdminHelp>
-            Each page stores independent EN and PT copy. Media, visibility, links, and section ordering remain shared.
-          </AdminHelp>
-        </div>
-      </div>
-
       <section className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"

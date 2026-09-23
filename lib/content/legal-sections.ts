@@ -22,11 +22,11 @@ function interpolate(text: string, vars: Record<string, string>): string {
  * admin-saved content is authoritative and `defaults` must never be the
  * live shipped copy — see isSavedLegalDocument below. Passing the real
  * `*_SECTION_DEFAULTS`/`*_DEFAULT` constants here is only correct while the
- * document has not been created/backfilled yet (page is null); once it
- * exists, callers pass `{}` / `""` so an admin-cleared field renders empty
- * instead of silently reverting to whatever the shipped copy says today.
- * Service pages (care/faq/shipping/returns/dispute-resolution) are not
- * bound by this — they still resolve against the live defaults every time.
+ * page row is null; once it exists, callers pass `{}` / `""` so an
+ * admin-cleared field renders empty instead of silently reverting to
+ * whatever the shipped copy says today. Service pages (care/faq/shipping/
+ * returns/dispute-resolution) are not bound by this — they still resolve
+ * against the live defaults every time.
  */
 export function resolveLegalSections(
   sections: LegalSectionMeta[],
@@ -58,9 +58,7 @@ export function resolveLegalText(
  * stop passing the live `*_SECTION_DEFAULTS`/`*_DEFAULT` constants into
  * resolveLegalSections/resolveLegalText for that request, so an
  * admin-cleared field renders empty rather than reverting to today's
- * shipped copy. lib/content/legal-document-backfill.ts is what makes this
- * safe to flip on: it guarantees every field already has real content
- * before this check starts being honored for a given document.
+ * shipped copy.
  */
 export function isSavedLegalDocument<T>(page: T | null | undefined): page is T {
   return page != null;
