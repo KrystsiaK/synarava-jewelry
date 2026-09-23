@@ -117,7 +117,7 @@ function groupKey(row: ReconcileDifferenceRow) {
 }
 
 function entityTypeLabel(type: ReconcileDifferenceView["rootEntityType"]) {
-  if (type === "STOREFRONT_COPY") return "Site copy";
+  if (type === "STOREFRONT_COPY") return "Header & Footer";
   return type.charAt(0) + type.slice(1).toLowerCase();
 }
 

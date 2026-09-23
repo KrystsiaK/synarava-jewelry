@@ -17,6 +17,7 @@ import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
 import { getStorefrontNavigation } from "@/lib/content/catalog";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
+import { getSiteSeo } from "@/lib/content/site-seo";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
 import { safeJsonLd } from "@/lib/seo/json-ld";
@@ -47,58 +48,61 @@ const organizationJsonLd = {
   sameAs: [],
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    template: "%s | Synarava",
-    default: "Synarava — Curated Goods with Character",
-  },
-  description:
-    "A curated shop for jewelry, pet accessories, creative products for kids, and tools for making by hand.",
-  keywords: [
-    "curated goods",
-    "handmade gifts",
-    "pet accessories",
-    "creative products for kids",
-    "jewelry making tools",
-    "handcrafted jewelry",
-    "couture jewelry",
-    "lava stone bracelet",
-    "folk jewelry",
-    "artisan jewelry",
-    "symbolic jewelry",
-    "collectible jewelry",
-    "Slavic jewelry",
-  ],
-  authors: [{ name: "Synarava" }],
-  creator: "Synarava",
-  openGraph: {
-    type: "website",
-    locale: "en_IE",
-    siteName: "Synarava",
-    title: "Synarava — Curated Goods with Character",
-    description:
-      "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
-    images: [{ url: "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Curated Goods with Character" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Synarava — Curated Goods with Character",
-    description:
-      "Selected, useful, and thoughtfully made goods for everyday life and creativity.",
-    images: ["/og-default.jpg"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+const TWITTER_DESCRIPTION_FALLBACK =
+  "Selected, useful, and thoughtfully made goods for everyday life and creativity.";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSiteSeo();
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      template: seo.titleTemplate,
+      default: seo.defaultTitle,
+    },
+    description: seo.description,
+    keywords: [
+      "curated goods",
+      "handmade gifts",
+      "pet accessories",
+      "creative products for kids",
+      "jewelry making tools",
+      "handcrafted jewelry",
+      "couture jewelry",
+      "lava stone bracelet",
+      "folk jewelry",
+      "artisan jewelry",
+      "symbolic jewelry",
+      "collectible jewelry",
+      "Slavic jewelry",
+    ],
+    authors: [{ name: "Synarava" }],
+    creator: "Synarava",
+    openGraph: {
+      type: "website",
+      locale: "en_IE",
+      siteName: "Synarava",
+      title: seo.ogTitle,
+      description: seo.ogDescription,
+      images: [{ url: "/og-default.jpg", width: 1200, height: 630, alt: seo.ogTitle }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seo.ogTitle,
+      description: seo.ogDescription || TWITTER_DESCRIPTION_FALLBACK,
+      images: ["/og-default.jpg"],
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
-  },
-};
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [

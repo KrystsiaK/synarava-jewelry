@@ -54,8 +54,8 @@
 - **Верхней панелью (topbar)**: логотип, переключатель темы (светлая/тёмная),
   индикатор открытых проблем (issues) со ссылкой, индикатор «Live CMS».
   Topbar зафиксирован сверху при прокрутке.
-- **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Copy`,
-  `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`, `Account`) и
+- **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Header & Footer`,
+  `Meta`, `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`, `Account`) и
   счётчик открытых проблем рядом с соответствующим пунктом.
   Home и About редактируются внутри `Pages` (`/admin/pages/home`,
   `/admin/pages/about`).
@@ -265,6 +265,27 @@
   WebM video to upload.»
 - Загрузка меняет видео сразу во всех местах на витрине, где используется
   этот слот (см. описание под каждым полем в самом интерфейсе).
+
+## 7a. Header & Footer (`/admin/settings`)
+
+- Редактирует **только подписи** шапки и футера (EN и другие зарегистрированные
+  локали). URL ссылок, колонки и email зашиты в коде витрины.
+- Группы: main links и cart/account в header; brand, navigation, service и legal
+  row в footer. Пустое поле = дефолт из `messages/*.json`.
+- Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
+  **Pages**, не здесь.
+- Переводы синхронизируются с Shopify metaobject `$app:storefront_copy`;
+  конфликты смотрят в **Localization**.
+
+## 7b. Meta (`/admin/meta`)
+
+- Глобальные SEO-дефолты сайта: default title, title template, description,
+  Open Graph title/description. Хранятся в `SiteSetting` (`site-seo-v1`),
+  пустое поле возвращает shipped default.
+- SEO отдельных страниц — в редакторе **Pages**; SEO товаров — в **Catalog**
+  (синхрон с Shopify). Раздел не является редактором Shopify metafields.
+- Хаб-ссылки на Pages, Catalog и Localization помогают не искать SEO в
+  неверном месте.
 
 ## 8. Проблемы / QA (`/admin/issues`)
 

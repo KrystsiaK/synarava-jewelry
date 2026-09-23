@@ -31,5 +31,5 @@ export async function saveStorefrontCopyAction(formData: FormData): Promise<Stor
   // things Storefront Copy still covers.
   revalidatePath("/", "layout");
 
-  return { success: "Site copy updated." };
+  return { success: "Header & Footer saved." };
 }

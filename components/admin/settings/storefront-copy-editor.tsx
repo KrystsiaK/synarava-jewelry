@@ -13,6 +13,11 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { STOREFRONT_COPY_GROUPS, STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 
+const SECTION_JUMPS = [
+  { href: "#copy-header-main", label: "Header" },
+  { href: "#copy-footer-brand", label: "Footer" },
+] as const;
+
 export function StorefrontCopyEditor({
   copy,
   defaults,
@@ -46,13 +51,25 @@ export function StorefrontCopyEditor({
         onSelect={selectLocale}
         locales={locales}
         ptStatus={ptStatus}
-        syncScope={{ entityType: "STOREFRONT_COPY", entityId: STOREFRONT_COPY_KEY }}
       />
       <AuthMessage error={state.error} />
-      <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-        Leave a field empty to fall back to the shipped default (shown as placeholder text). These
-        keys are also used as the English source and Portuguese translation across the site.
-      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+          Leave a field empty to fall back to the shipped default (shown as placeholder). Labels only — destinations stay fixed.
+        </p>
+        <nav className="flex gap-2 text-xs" aria-label="Jump to section">
+          {SECTION_JUMPS.map((jump) => (
+            <a
+              key={jump.href}
+              href={jump.href}
+              className="underline-offset-2 hover:underline"
+              style={{ color: "var(--adm-muted)" }}
+            >
+              {jump.label}
+            </a>
+          ))}
+        </nav>
+      </div>
 
       {STOREFRONT_COPY_GROUPS.map((group) => (
         <section key={group.id} id={`copy-${group.id}`} className="adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24">
@@ -91,7 +108,7 @@ export function StorefrontCopyEditor({
 
       <div className="flex justify-end" style={{ borderTop: "1px solid var(--adm-border)", paddingTop: "1rem" }}>
         <button type="submit" className="adm-btn-primary" disabled={isPending}>
-          {isPending ? "Saving..." : "Save site copy"}
+          {isPending ? "Saving..." : "Save Header & Footer"}
         </button>
       </div>
     </form>

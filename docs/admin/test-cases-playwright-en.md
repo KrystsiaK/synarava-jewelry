@@ -81,7 +81,7 @@ long-lived-tab recovery path in AUTH-20.
 | UI-02 | Topbar stays pinned while the page scrolls | positive | P3 | ✔ E2E | Same. |
 | UI-03 | No horizontal overflow on `/admin/products` at 778px | positive | P3 | ✔ E2E | Same. |
 | UI-04 | Open-issue counter shows when `AdminIssue` rows are `OPEN` and links correctly | positive | P2 | **E2E** | Seed an open issue, assert badge count and `href`. |
-| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Pages, Copy, Videos, Catalog, Problems, Collections, Localization, Account` (`admin-primitives.tsx`). Home and About are edited under Pages. |
+| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Pages, Header & Footer, Meta, Videos, Catalog, Problems, Collections, Localization, Account` (`admin-primitives.tsx`). Home and About are edited under Pages. |
 | UI-06 | Theme toggle switches and persists across navigation | positive | P3 | **E2E** | |
 | UI-07 | Dashboard tiles reflect actual counts | positive | P2 | **E2E** | **There are exactly three tiles: Pages, Products, Collections.** Categories/Tags tiles were removed with those sections. Status row also shows Products live/draft, Collections live, active locale (`EN`). |
 
