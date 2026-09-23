@@ -205,6 +205,43 @@ describe("EditProductForm", () => {
     expect(screen.getByText("A refined piece.")).toBeInTheDocument();
   });
 
+  it("keeps locale tabs above section tabs and always visible", async () => {
+    render(<EditProductForm product={makeProduct({ shopifyProductId: "gid://shopify/Product/1" })} collections={[]} />);
+    await act(async () => {});
+
+    expect(screen.getByRole("tablist", { name: "Content language" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "English" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Product editor sections" })).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: /Catalog/ }));
+    expect(screen.getByRole("tablist", { name: "Content language" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Português" })).toBeInTheDocument();
+  });
+
+  it("shows the legacy cover image on Media when the gallery is empty", async () => {
+    const user = userEvent.setup();
+    render(<EditProductForm product={makeProduct({ imageUrl: "/media/lava.jpg", media: [] })} collections={[]} />);
+    await act(async () => {});
+
+    await user.click(screen.getByRole("tab", { name: /Media/ }));
+    expect(screen.getByAltText("Lava Ring")).toHaveAttribute("src", expect.stringContaining("lava.jpg"));
+    expect(screen.getByText(/Legacy cover image/i)).toBeInTheDocument();
+  });
+
+  it("marks a section dirty and offers Save this branch when linked", async () => {
+    mocks.inspectProductSyncAction.mockResolvedValue({
+      inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
+    });
+    const user = userEvent.setup();
+    render(<EditProductForm product={makeProduct({ shopifyProductId: "gid://shopify/Product/1" })} collections={[]} />);
+    await act(async () => {});
+
+    await user.type(screen.getByLabelText(/Name/), " Updated");
+    expect(screen.getByLabelText("Essentials has unsaved edits")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save this branch" })).toBeEnabled();
+  });
+
   it("keeps the editor available when the save action rejects", async () => {
     mocks.saveProductAction.mockRejectedValue(new Error("Database write failed"));
     const user = userEvent.setup();

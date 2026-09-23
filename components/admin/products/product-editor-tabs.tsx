@@ -165,16 +165,22 @@ export function ProductEditorTabs({
   active,
   onChange,
   includeShopify = true,
+  dirtySections,
 }: {
   active: ProductEditorSection;
   onChange: (section: ProductEditorSection) => void;
   includeShopify?: boolean;
+  /** Sections with unsaved edits — shows a dirty marker on that tab. */
+  dirtySections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
 }) {
   const tabs = includeShopify
     ? PRODUCT_EDITOR_TABS
     : PRODUCT_EDITOR_TABS.filter((tab) => tab.id !== "shopify");
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeTab = tabs.find((tab) => tab.id === active) ?? tabs[0];
+  const dirtySet = dirtySections instanceof Set
+    ? dirtySections
+    : new Set(dirtySections ?? []);
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     let nextIndex: number | null = null;
@@ -210,6 +216,7 @@ export function ProductEditorTabs({
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(tab.id)}
               onKeyDown={(event) => handleKeyDown(event, index)}
+              data-dirty={dirtySet.has(tab.id) ? "true" : undefined}
               className="group flex min-h-16 items-center gap-3 bg-[var(--adm-panel)] px-3 py-3 text-left transition-colors hover:bg-[var(--adm-panel-elevated)] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--adm-accent)] aria-selected:bg-[var(--adm-accent-soft)]"
             >
               <span
@@ -220,7 +227,16 @@ export function ProductEditorTabs({
                 <Icon size={18} strokeWidth={1.7} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold text-[var(--adm-ink)]">{tab.label}</span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--adm-ink)]">
+                  {tab.label}
+                  {dirtySet.has(tab.id) ? (
+                    <span
+                      className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--adm-warning)]"
+                      title="Unsaved edits"
+                      aria-label={`${tab.label} has unsaved edits`}
+                    />
+                  ) : null}
+                </span>
                 <span className="mt-0.5 block truncate text-[0.68rem] text-[var(--adm-muted)]">{tab.shortLabel}</span>
               </span>
             </button>

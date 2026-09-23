@@ -110,6 +110,8 @@ export type AdminLocaleTabsProps = {
   /** ids for the panels this tab strip controls, so aria-controls/aria-labelledby line up when a caller renders its own panels instead of using AdminLocaleWorkspace. */
   tabId?: (locale: AdminLocale) => string;
   panelId?: (locale: AdminLocale) => string;
+  /** Locale codes with unsaved edits — shows a dirty marker on that tab. */
+  dirtyLocales?: ReadonlySet<string> | readonly string[];
 };
 
 /**
@@ -127,12 +129,16 @@ export function AdminLocaleTabs({
   sharedHeader,
   tabId,
   panelId,
+  dirtyLocales,
 }: AdminLocaleTabsProps) {
   const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({});
   const fallbackId = useId();
   const idFor = tabId ?? ((locale: AdminLocale) => `${fallbackId}-tab-${locale}`);
   const panelIdFor = panelId;
   const sourceCode = locales[0]?.code;
+  const dirtySet = dirtyLocales instanceof Set
+    ? dirtyLocales
+    : new Set(dirtyLocales ?? []);
 
   function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const lastIndex = locales.length - 1;
@@ -172,9 +178,17 @@ export function AdminLocaleTabs({
             onClick={() => onSelect(locale.code)}
             onKeyDown={(event) => onTabKeyDown(event, index)}
             data-active={active === locale.code ? "true" : undefined}
+            data-dirty={dirtySet.has(locale.code) ? "true" : undefined}
             className="adm-locale-tab"
           >
             {locale.code}
+            {dirtySet.has(locale.code) ? (
+              <span
+                className="ml-1 inline-block size-1.5 rounded-full bg-[var(--adm-warning)]"
+                title="Unsaved edits"
+                aria-label="Unsaved edits"
+              />
+            ) : null}
           </button>
         ))}
         <span className="adm-section-tag ml-2">

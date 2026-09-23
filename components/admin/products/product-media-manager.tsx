@@ -92,7 +92,19 @@ export function ProductMediaManager({
             );
           })}
         </div>
-      ) : <p className="text-sm text-[var(--adm-muted)]">No gallery images yet. The existing primary image remains available separately.</p>}
+      ) : product?.imageUrl ? (
+        <article className="grid max-w-sm gap-3 border border-[var(--adm-border)] p-3">
+          <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
+            <Image src={product.imageUrl} alt={product.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
+            <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">01 · Cover</span>
+          </div>
+          <p className="text-xs text-[var(--adm-muted)]">
+            Legacy cover image. Upload to the gallery to manage ordering, or keep this cover until the next gallery upload replaces it.
+          </p>
+        </article>
+      ) : (
+        <p className="text-sm text-[var(--adm-muted)]">No gallery images yet. Add images to build the product gallery.</p>
+      )}
     </section>
   );
 }

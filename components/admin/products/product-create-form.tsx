@@ -36,10 +36,6 @@ function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminL
   return [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
 }
 
-function sectionUsesLocale(section: ProductEditorSection) {
-  return section === "essentials" || section === "content" || section === "details";
-}
-
 export function CreateProductForm({
   collections,
   onCreated,
@@ -172,19 +168,17 @@ export function CreateProductForm({
           </AdminHelp>
         </div>
 
+        <AdminLocaleTabs
+          active={activeLocale}
+          onSelect={selectLocale}
+          locales={localeTabs}
+        />
+
         <ProductEditorTabs
           active={activeSection}
           onChange={setActiveSection}
           includeShopify={false}
         />
-
-        {sectionUsesLocale(activeSection) ? (
-          <AdminLocaleTabs
-            active={activeLocale}
-            onSelect={selectLocale}
-            locales={localeTabs}
-          />
-        ) : null}
 
         <div
           id={`product-editor-panel-${activeSection}`}
