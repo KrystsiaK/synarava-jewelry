@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -22,6 +22,7 @@ import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/share
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ProductSyncModal } from "@/components/admin/products/product-sync-modal";
+import { CatalogConflictListModal, CatalogConflictRowBadges, CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
 import type { ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
 import { productLocaleReadiness } from "@/lib/products/localization";
 import {
@@ -54,6 +55,7 @@ export function ProductsCms({
   tags,
   collections,
   issues = [],
+  initialConflictSignals,
 }: ProductCmsProps) {
   const [products, setProducts] = useState<ProductRecord[]>(() =>
     normalizeProducts(initialProducts),
@@ -77,6 +79,8 @@ export function ProductsCms({
   } | null>(null);
   const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [conflictListOpen, setConflictListOpen] = useState(false);
+  const [focusedConflictProductId, setFocusedConflictProductId] = useState<string | null>(null);
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
   const [isConnectionPending, startConnectionTransition] = useTransition();
@@ -86,6 +90,12 @@ export function ProductsCms({
   const [isOrderPending, startOrderTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
+  const closeConflictList = useCallback(() => setConflictListOpen(false), []);
+
+  function showConflicts(productId: string | null = null) {
+    setFocusedConflictProductId(productId);
+    setConflictListOpen(true);
+  }
 
   function handleUpdated(product: ProductRecord) {
     setProducts((current) =>
@@ -332,6 +342,14 @@ export function ProductsCms({
 
   return (
     <section data-component="ProductsCms" className="grid gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="adm-section-tag mb-3">[ SYN-ADM // CAT ]</p>
+          <h1 className="adm-page-title">Catalog</h1>
+          <p className="adm-page-subtitle">Products, categories, tags, media, and site publishing state.</p>
+        </div>
+        <CatalogConflictStatus signals={initialConflictSignals} onShow={() => showConflicts()} />
+      </div>
       <div className="adm-panel p-5">
         <div
           className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
@@ -345,6 +363,7 @@ export function ProductsCms({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <CatalogConflictStatus signals={initialConflictSignals} onShow={() => showConflicts()} compact />
             <button
               type="button"
               className="adm-btn-secondary inline-flex items-center justify-center gap-2"
@@ -371,7 +390,7 @@ export function ProductsCms({
               disabled={isPreviewPending}
             >
               <Eye className="size-4" />
-              {isPreviewPending ? "Comparing catalogs..." : syncPreview ? "Resolve conflicts" : "Compare catalogs"}
+              {isPreviewPending ? "Comparing catalogs..." : "Compare catalogs"}
             </button>
             <Link href="/admin/products/new" className="adm-btn-primary">
               New product
@@ -379,7 +398,7 @@ export function ProductsCms({
           </div>
         </div>
         <p className="py-3 text-xs leading-5 text-[var(--adm-muted)]">
-          Check Shopify link verifies access and links this catalog to the store on first use; it can also register review webhooks. Resolve conflicts compares the catalogs and opens a review modal — nothing is changed until you choose an action there. To reload every field of a product marked up to date, open it and choose Refresh from Shopify.
+          Check Shopify link verifies access and links this catalog to the store on first use; it can also register review webhooks. Compare catalogs opens the existing sync review — nothing is changed until you choose an action there. To reload every field of a product marked up to date, open it and choose Refresh from Shopify.
         </p>
 
         <div
@@ -588,6 +607,13 @@ export function ProductsCms({
                           </span>
                         ) : null}
                       </div>
+                      {initialConflictSignals.products[product.id] ? (
+                        <CatalogConflictRowBadges
+                          productName={product.name}
+                          signal={initialConflictSignals.products[product.id]}
+                          onShow={() => showConflicts(product.id)}
+                        />
+                      ) : null}
                       <AdminRecordDates record={product} />
                       <p className="mt-1 text-xs" style={{ color: "var(--adm-subtle)" }}>
                         {product.publishedAt
@@ -686,6 +712,14 @@ export function ProductsCms({
           onConfirm={runRowAction}
         />
       ) : null}
+
+      <CatalogConflictListModal
+        open={conflictListOpen}
+        onClose={closeConflictList}
+        signals={initialConflictSignals}
+        products={products.map((product) => ({ id: product.id, name: product.name, sku: product.sku }))}
+        focusedProductId={focusedConflictProductId}
+      />
 
       <ProductSyncModal
         open={syncModalOpen}
