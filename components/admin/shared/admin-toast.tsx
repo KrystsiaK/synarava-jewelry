@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 
 type AdminToastTone = "success" | "error" | "info";
 
@@ -146,6 +147,11 @@ function AdminToastCard({
 
 export function AdminToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<AdminToastItem[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const pushToast = useCallback((input: { message: string; tone: AdminToastTone }) => {
     const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -158,14 +164,22 @@ export function AdminToastProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({ pushToast }), [pushToast]);
 
+  const stack = (
+    <div
+      data-admin-toast-root="true"
+      className="adm-toast-stack pointer-events-none fixed left-1/2 top-4 z-[600] grid w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 gap-2 md:top-6"
+    >
+      {toasts.map((toast) => (
+        <AdminToastCard key={toast.id} toast={toast} onClose={removeToast} />
+      ))}
+    </div>
+  );
+
   return (
     <AdminToastContext.Provider value={value}>
       {children}
-      <div className="adm-toast-stack pointer-events-none fixed left-1/2 top-4 z-[260] grid w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 gap-2 md:top-6">
-        {toasts.map((toast) => (
-          <AdminToastCard key={toast.id} toast={toast} onClose={removeToast} />
-        ))}
-      </div>
+      {/* Portal above conflict modals (z-200…500). Stay outside inert app-shell. */}
+      {mounted ? createPortal(stack, document.body) : null}
     </AdminToastContext.Provider>
   );
 }

@@ -60,6 +60,32 @@ describe("AnimatedModal", () => {
     expect(onChildAction).toHaveBeenCalledOnce();
   });
 
+  it("does not make the admin toast portal inert while a modal is open", () => {
+    const toastRoot = document.createElement("div");
+    toastRoot.dataset.adminToastRoot = "true";
+    toastRoot.innerHTML = '<button type="button">Close notification</button>';
+    document.body.append(toastRoot);
+
+    try {
+      render(
+        <>
+          <main data-testid="app-shell">
+            <button type="button">Shell</button>
+          </main>
+          <AnimatedModal open onClose={() => undefined} ariaLabel="Dialog">
+            <button type="button">Dialog action</button>
+          </AnimatedModal>
+        </>,
+      );
+
+      expect(screen.getByTestId("app-shell").parentElement).toHaveProperty("inert", true);
+      expect(Boolean(toastRoot.inert)).toBe(false);
+      fireEvent.click(toastRoot.querySelector("button")!);
+    } finally {
+      toastRoot.remove();
+    }
+  });
+
   it("releases body overflow and app-shell inert only after the last stacked modal unmounts", () => {
     const { unmount } = render(
       <>

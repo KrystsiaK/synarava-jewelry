@@ -28,10 +28,21 @@ function releaseDocumentLocksIfIdle() {
   if (activeModalIds.size > 0) return;
   document.body.style.overflow = "";
   Array.from(document.body.children).forEach((element) => {
-    if (element instanceof HTMLElement && element.dataset.animatedModalRoot !== "true") {
+    if (
+      element instanceof HTMLElement
+      && element.dataset.animatedModalRoot !== "true"
+      && element.dataset.adminToastRoot !== "true"
+    ) {
       element.inert = false;
     }
   });
+}
+
+function isLockableBackground(element: Element, modalRoot: HTMLElement | null): element is HTMLElement {
+  return element instanceof HTMLElement
+    && element !== modalRoot
+    && element.dataset.animatedModalRoot !== "true"
+    && element.dataset.adminToastRoot !== "true";
 }
 
 function transitionDuration(variable: string, fallback: number) {
@@ -93,12 +104,8 @@ export function AnimatedModal({
   useEffect(() => {
     if (!mounted) return;
     activeModalIds.add(modalId);
-    // Never inert sibling modal portals — only the app shell behind the stack.
-    const background = Array.from(document.body.children).filter(
-      (element): element is HTMLElement =>
-        element instanceof HTMLElement
-        && element !== modalRootRef.current
-        && element.dataset.animatedModalRoot !== "true",
+    const background = Array.from(document.body.children).filter((element) =>
+      isLockableBackground(element, modalRootRef.current),
     );
     previousFocusRef.current = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
