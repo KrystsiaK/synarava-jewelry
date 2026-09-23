@@ -22,6 +22,7 @@ import {
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
@@ -48,6 +49,16 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
   products: {},
   recentlyUpdatedProducts: {},
 };
+
+const SOURCE_LOCALE = "en";
+
+function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {
+  return [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+}
+
+function sectionUsesLocale(section: ProductEditorSection) {
+  return section === "essentials" || section === "content" || section === "details";
+}
 
 export function EditProductForm({
   product,
@@ -82,6 +93,8 @@ export function EditProductForm({
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "product", productId: product.id });
   const [conflictChecking, setConflictChecking] = useState(false);
   const [activeSection, setActiveSection] = useState<ProductEditorSection>("essentials");
+  const localeTabs = productLocaleTabs(translationLocales);
+  const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${product.id}`, localeTabs);
   const rowRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
@@ -89,6 +102,8 @@ export function EditProductForm({
   const draft = productToDraft(currentProduct, translationLocales);
   const currentDepartment = currentProduct.collections.find((item) => item.collection.isPrimaryNav)?.collection.slug ?? "";
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics, currentDepartment);
+  const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
+  const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
   const { pushToast } = useAdminToast();
   const router = useRouter();
 
@@ -201,14 +216,23 @@ export function EditProductForm({
   function requestSave() {
     setState({});
     const previousSection = activeSection;
+    const previousLocale = activeLocale;
     if (previousSection !== "essentials") {
       flushSync(() => setActiveSection("essentials"));
     }
-    const valid = validation.validate();
-    if (valid && previousSection !== "essentials") {
-      flushSync(() => setActiveSection(previousSection));
+    if (previousLocale !== SOURCE_LOCALE) {
+      flushSync(() => selectLocale(SOURCE_LOCALE));
     }
-    if (valid) setConfirmOpen(true);
+    const valid = validation.validate();
+    if (valid) {
+      if (previousSection !== "essentials") {
+        flushSync(() => setActiveSection(previousSection));
+      }
+      if (previousLocale !== SOURCE_LOCALE) {
+        flushSync(() => selectLocale(previousLocale));
+      }
+      setConfirmOpen(true);
+    }
   }
 
   function handleCheckShopify() {
@@ -310,6 +334,21 @@ export function EditProductForm({
           <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
           <ProductEditorTabs active={activeSection} onChange={setActiveSection} />
 
+          {sectionUsesLocale(activeSection) ? (
+            <AdminLocaleTabs
+              active={activeLocale}
+              onSelect={selectLocale}
+              locales={localeTabs}
+              ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
+              trailing={conflictControl
+                ? conflictControl({
+                    locale: activeLocale,
+                    localeLabel: activeLocaleLabel,
+                  })
+                : undefined}
+            />
+          ) : null}
+
           <div
             id={activeSection === "media" ? undefined : `product-editor-panel-${activeSection}`}
             role={activeSection === "media" ? undefined : "tabpanel"}
@@ -331,27 +370,25 @@ export function EditProductForm({
             <ProductFormFields
               key={`${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
               draft={draft}
-              entityId={currentProduct.id}
               collections={collections}
               variantExists={currentProduct.variants.length > 0}
               issues={issues}
               validation={validation}
               translationLocales={translationLocales}
-              conflictControl={conflictControl}
               activeSection={activeSection}
+              activeLocale={activeLocale}
+              onLocaleChange={selectLocale}
             />
             <ProductDetailFields
               key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
               details={details}
               translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-              sku={draft.sku}
               mode="edit"
               issues={issues}
               collections={collections}
-              entityId={currentProduct.id}
               translationLocales={translationLocales}
-              conflictControl={conflictControl}
               activeSection={activeSection}
+              activeLocale={activeLocale}
             />
             <div hidden={activeSection !== "shopify"}>
               <ShopifyProductMirror product={currentProduct} />

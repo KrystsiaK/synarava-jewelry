@@ -153,9 +153,7 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     await user.clear(screen.getByLabelText(/Name/));
-    // Two locale tab strips render on this page (commerce/copy and the
-    // extended details section) — this exercises the first.
-    await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
+    await user.click(screen.getByRole("tab", { name: "Português" }));
     expect(screen.getByLabelText(/Name/)).not.toBeVisible();
 
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
@@ -177,7 +175,7 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     expect(screen.getByLabelText(/Vendor \/ brand/)).toBeVisible();
-    await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
+    await user.click(screen.getByRole("tab", { name: "Português" }));
     expect(screen.getByLabelText(/Vendor \/ brand/)).toBeVisible();
     expect(screen.getByLabelText(/Product type/)).toBeVisible();
   });
@@ -199,11 +197,11 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     expect(screen.getByText("A refined piece.")).toBeInTheDocument();
-    await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
+    await user.click(screen.getByRole("tab", { name: "Português" }));
     expect(screen.getByText("Uma peça refinada.")).toBeInTheDocument();
     expect(screen.queryByText("A refined piece.")).not.toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("tab", { name: "English" })[0]);
+    await user.click(screen.getByRole("tab", { name: "English" }));
     expect(screen.getByText("A refined piece.")).toBeInTheDocument();
   });
 

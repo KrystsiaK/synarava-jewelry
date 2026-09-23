@@ -65,13 +65,11 @@ describe("CreateProductForm", () => {
     const user = userEvent.setup();
     render(<CreateProductForm collections={collections} />);
 
-    // Two locale tab strips render on this page — commerce/copy and the
-    // extended details (materials/process/lookbook) section each keep
-    // their own. This test only exercises the first (commerce/copy) one.
-    expect(screen.getAllByRole("tab", { name: "English" })[0]).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getAllByRole("tab", { name: "Português" })[0]);
+    // One shared locale strip for the whole product workspace.
+    expect(screen.getByRole("tab", { name: "English" })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: "Português" }));
 
-    expect(screen.getAllByRole("tab", { name: "Português" })[0]).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Português" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByLabelText("Product name (Português)")).toBeInTheDocument();
     expect(screen.getByLabelText("Português translation reviewed")).toBeInTheDocument();
   });

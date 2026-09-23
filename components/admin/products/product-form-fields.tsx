@@ -8,7 +8,6 @@ import {
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
-import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
@@ -25,12 +24,9 @@ import {
 } from "@/lib/products/product-form-validation";
 import { getProductEditorDetails, issuesForField } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
-import type { ReactNode } from "react";
 
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
-
-type ProductConflictControlSlot = (args: { locale: string; localeLabel: string }) => ReactNode;
 
 export function OwnershipLabel({ children, owner }: { children: React.ReactNode; owner: "Shopify" | "Synarava" | "Shopify push" }) {
   return (
@@ -120,68 +116,61 @@ function HiddenDetailsLocaleFields({ draftByLocale }: { draftByLocale: Record<st
 export function ProductDetailFields({
   details,
   translationsDetails,
-  sku,
   mode,
   issues = [],
   collections,
-  entityId,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
-  conflictControl,
   activeSection = "details",
+  activeLocale,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   /** Every translation locale's details, keyed by locale code. */
   translationsDetails: Record<string, ProductLocaleDetailsDraft>;
-  sku: string;
   mode: "create" | "edit";
   issues?: AdminIssueSummary[];
   collections: CollectionOption[];
-  /** Existing persisted product only — omit while creating a new one. */
-  entityId?: string;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
-  /** Same catalog conflict control, scoped to the active details locale. */
-  conflictControl?: ProductConflictControlSlot;
   /** Top-level product workspace section. Hidden fields stay mounted so one save still submits the whole record. */
   activeSection?: ProductEditorSection;
+  /** Shared workspace locale from the product form shell. */
+  activeLocale: string;
 }) {
   const departmentCollections = collections
     .filter((collection) => collection.isPrimaryNav)
     .sort((a, b) => a.navSortOrder - b.navSortOrder);
-  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
-  const [detailsLocale, selectDetailsLocale] = useAdminActiveLocale(`product-details:${sku || "new"}`, tabs);
   const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductDetailsLocaleDraft>>(() => ({
     [SOURCE_LOCALE]: detailsDraftFrom(details),
     ...Object.fromEntries(translationLocales.map(({ code }) => [code, detailsDraftFrom(translationsDetails[code] ?? EMPTY_DETAILS_SOURCE)])),
   }));
-  const draft = draftByLocale[detailsLocale];
-  const isEn = detailsLocale === SOURCE_LOCALE;
+  const draft = draftByLocale[activeLocale] ?? draftByLocale[SOURCE_LOCALE];
+  const isEn = activeLocale === SOURCE_LOCALE;
 
   function updateField<K extends keyof ProductDetailsLocaleDraft>(key: K, value: ProductDetailsLocaleDraft[K]) {
-    setDraftByLocale((prev) => ({ ...prev, [detailsLocale]: { ...prev[detailsLocale], [key]: value } }));
+    setDraftByLocale((prev) => ({ ...prev, [activeLocale]: { ...prev[activeLocale], [key]: value } }));
   }
 
   function updateMaterial(index: number, key: "title" | "body", value: string) {
     setDraftByLocale((prev) => {
-      const materials = [...prev[detailsLocale].materials];
+      const materials = [...prev[activeLocale].materials];
       materials[index] = { ...materials[index], [key]: value };
-      return { ...prev, [detailsLocale]: { ...prev[detailsLocale], materials } };
+      return { ...prev, [activeLocale]: { ...prev[activeLocale], materials } };
     });
   }
 
   function updateProcessStat(index: number, key: "value" | "label", value: string) {
     setDraftByLocale((prev) => {
-      const processStats = [...prev[detailsLocale].processStats];
+      const processStats = [...prev[activeLocale].processStats];
       processStats[index] = { ...processStats[index], [key]: value };
-      return { ...prev, [detailsLocale]: { ...prev[detailsLocale], processStats } };
+      return { ...prev, [activeLocale]: { ...prev[activeLocale], processStats } };
     });
   }
 
   function updateLookbookLabel(index: number, value: string) {
     setDraftByLocale((prev) => {
-      const lookbookLabels = [...prev[detailsLocale].lookbookLabels];
+      const lookbookLabels = [...prev[activeLocale].lookbookLabels];
       lookbookLabels[index] = value;
-      return { ...prev, [detailsLocale]: { ...prev[detailsLocale], lookbookLabels } };
+      return { ...prev, [activeLocale]: { ...prev[activeLocale], lookbookLabels } };
     });
   }
 
@@ -202,20 +191,6 @@ export function ProductDetailFields({
       </div>
 
       <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
-
-      <div hidden={activeSection !== "details"}>
-        <AdminLocaleTabs
-          active={detailsLocale}
-          onSelect={selectDetailsLocale}
-          locales={tabs}
-          trailing={entityId && conflictControl
-            ? conflictControl({
-                locale: detailsLocale,
-                localeLabel: tabs.find((tab) => tab.code === detailsLocale)?.label ?? detailsLocale,
-              })
-            : undefined}
-        />
-      </div>
 
       {!isEn && activeSection === "details" ? (
         <p className="text-xs text-[var(--adm-muted)]">
@@ -571,27 +546,28 @@ function HiddenCoreLocaleFields({ draftByLocale }: { draftByLocale: Record<strin
 
 export function ProductFormFields({
   draft,
-  entityId,
   collections,
   variantExists = false,
   issues = [],
   validation,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
-  conflictControl,
   activeSection = "essentials",
+  activeLocale,
+  onLocaleChange,
 }: {
   draft: ProductDraft;
-  entityId?: string;
   collections: CollectionOption[];
   variantExists?: boolean;
   issues?: AdminIssueSummary[];
   validation: AdminFormValidation<ProductFieldName>;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
-  /** Same catalog conflict control, scoped to the active commerce locale. */
-  conflictControl?: ProductConflictControlSlot;
   /** Top-level product workspace section. All inputs remain mounted so switching tabs never drops unsaved values. */
   activeSection?: ProductEditorSection;
+  /** Shared workspace locale from the product form shell. */
+  activeLocale: string;
+  /** Lets validation force the source locale open when a required English field fails. */
+  onLocaleChange: (locale: string) => void;
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -606,15 +582,14 @@ export function ProductFormFields({
   );
   const [slugValue, setSlugValue] = useState(draft.slug);
   const [slugLocked, setSlugLocked] = useState(Boolean(draft.slug));
-  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
-  const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${draft.sku || "new"}`, tabs);
   const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductCoreLocaleDraft>>(() => ({
     [SOURCE_LOCALE]: coreDraftFrom(draft),
     ...Object.fromEntries(translationLocales.map(({ code }) => [code, coreDraftFrom(draft.translations[code] ?? draft)])),
   }));
-  const coreDraft = draftByLocale[activeLocale];
+  const coreDraft = draftByLocale[activeLocale] ?? draftByLocale[SOURCE_LOCALE];
   const isEn = activeLocale === SOURCE_LOCALE;
-  const activeLabel = tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
+  const activeLabel = translationLocales.find((locale) => locale.code === activeLocale)?.label
+    ?? (isEn ? "English" : activeLocale);
   const activeTranslation = isEn ? null : draft.translations[activeLocale];
 
   useEffect(() => {
@@ -625,7 +600,7 @@ export function ProductFormFields({
     // error until this forced the EN tab back open. See
     // admin-locale-panel.tsx / Task 4.
     const forced = localeOfFirstError(fieldErrors, translationLocales.map((locale) => locale.code));
-    if (forced) selectLocale(forced);
+    if (forced) onLocaleChange(forced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldErrors]);
 
@@ -664,20 +639,6 @@ export function ProductFormFields({
         <span className="adm-badge-published w-fit">Shopify-backed</span>
       </div>
 
-      <div hidden={activeSection !== "essentials" && activeSection !== "content"}>
-        <AdminLocaleTabs
-          active={activeLocale}
-          onSelect={selectLocale}
-          locales={tabs}
-          ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
-          trailing={entityId && conflictControl
-            ? conflictControl({
-                locale: activeLocale,
-                localeLabel: tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale,
-              })
-            : undefined}
-        />
-      </div>
       <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 
       {activeTranslation ? (

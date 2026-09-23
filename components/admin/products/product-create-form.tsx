@@ -14,6 +14,7 @@ import {
   useAdminFormValidation,
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
@@ -28,6 +29,16 @@ import {
 import type { CollectionOption, ProductDraft, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
+
+const SOURCE_LOCALE = "en";
+
+function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {
+  return [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+}
+
+function sectionUsesLocale(section: ProductEditorSection) {
+  return section === "essentials" || section === "content" || section === "details";
+}
 
 export function CreateProductForm({
   collections,
@@ -46,6 +57,8 @@ export function CreateProductForm({
   const [draftProduct, setDraftProduct] = useState<ProductRecord | null>(null);
   const [activeSection, setActiveSection] = useState<ProductEditorSection>("essentials");
   const [draft] = useState<ProductDraft>(() => emptyDraft(translationLocales));
+  const localeTabs = productLocaleTabs(translationLocales);
+  const [activeLocale, selectLocale] = useAdminActiveLocale("product:new", localeTabs);
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const { pushToast } = useAdminToast();
@@ -115,14 +128,23 @@ export function CreateProductForm({
   function requestSave() {
     setState({});
     const previousSection = activeSection;
+    const previousLocale = activeLocale;
     if (previousSection !== "essentials") {
       flushSync(() => setActiveSection("essentials"));
     }
-    const valid = validation.validate();
-    if (valid && previousSection !== "essentials") {
-      flushSync(() => setActiveSection(previousSection));
+    if (previousLocale !== SOURCE_LOCALE) {
+      flushSync(() => selectLocale(SOURCE_LOCALE));
     }
-    if (valid) setConfirmOpen(true);
+    const valid = validation.validate();
+    if (valid) {
+      if (previousSection !== "essentials") {
+        flushSync(() => setActiveSection(previousSection));
+      }
+      if (previousLocale !== SOURCE_LOCALE) {
+        flushSync(() => selectLocale(previousLocale));
+      }
+      setConfirmOpen(true);
+    }
   }
 
   return (
@@ -156,6 +178,14 @@ export function CreateProductForm({
           includeShopify={false}
         />
 
+        {sectionUsesLocale(activeSection) ? (
+          <AdminLocaleTabs
+            active={activeLocale}
+            onSelect={selectLocale}
+            locales={localeTabs}
+          />
+        ) : null}
+
         <div
           id={`product-editor-panel-${activeSection}`}
           role="tabpanel"
@@ -168,6 +198,8 @@ export function CreateProductForm({
             validation={validation}
             translationLocales={translationLocales}
             activeSection={activeSection}
+            activeLocale={activeLocale}
+            onLocaleChange={selectLocale}
           />
           <div hidden={activeSection !== "media"}>
             <ProductMediaManager
@@ -182,11 +214,11 @@ export function CreateProductForm({
           <ProductDetailFields
             details={getProductEditorDetails(null)}
             translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-            sku={draft.sku}
             mode="create"
             collections={collections}
             translationLocales={translationLocales}
             activeSection={activeSection}
+            activeLocale={activeLocale}
           />
         </div>
 
