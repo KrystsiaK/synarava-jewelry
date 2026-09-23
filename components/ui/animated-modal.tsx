@@ -51,9 +51,11 @@ export function AnimatedModal({
   const modalRootRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  const modalIdRef = useRef<number | null>(null);
-  if (modalIdRef.current === null) modalIdRef.current = ++nextModalId;
+  const [modalId] = useState(() => ++nextModalId);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (open) {
@@ -77,7 +79,6 @@ export function AnimatedModal({
 
   useEffect(() => {
     if (!mounted) return;
-    const modalId = modalIdRef.current!;
     activeModalIds.add(modalId);
     const previousOverflow = document.body.style.overflow;
     // Never inert sibling modal portals. A lower stacked modal re-running this
@@ -135,7 +136,7 @@ export function AnimatedModal({
       previousFocusRef.current?.focus();
       activeModalIds.delete(modalId);
     };
-  }, [mounted]);
+  }, [modalId, mounted]);
 
   if (!mounted) return null;
 
