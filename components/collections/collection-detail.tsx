@@ -324,21 +324,22 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
 function ProductCard({
   product,
   index,
-  isParentInView,
 }: {
   product: ProductSummary;
   index: number;
-  isParentInView: boolean;
 }) {
   const { locale } = useTranslations();
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-8%" });
   const isOffset = index === 1;
 
   return (
     <motion.div
+      ref={ref}
       className={isOffset ? "md:mt-24" : ""}
       initial={{ opacity: 0, y: 52 }}
-      animate={isParentInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.9, ease, delay: 0.08 + index * 0.12 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.9, ease, delay: 0.08 + Math.min(index, 5) * 0.12 }}
     >
       <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
         <motion.div
@@ -465,7 +466,6 @@ function ProductsSection({
                 key={product.slug}
                 product={product}
                 index={i}
-                isParentInView={isInView}
               />
             ))}
           </div>
