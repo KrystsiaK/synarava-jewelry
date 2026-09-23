@@ -2,11 +2,6 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
-import {
-  EntityLocaleSyncControl,
-  type EntitySyncScope,
-} from "@/components/admin/translations/entity-locale-sync-control";
-
 /**
  * A locale code as it appears in the admin — still whatever a caller passes
  * via `locales` (today, always the two below; no editor has real fields
@@ -105,8 +100,11 @@ export type AdminLocaleTabsProps = {
   locales?: AdminLocaleTab[];
   /** Sync/readiness status shown next to the tabs (Shopify push/pull state). The source locale has no sync status. */
   ptStatus?: AdminLocaleStatus;
-  /** Existing persisted entity only. Adds locale-scoped Shopify check/review controls without changing the form fields. */
-  syncScope?: EntitySyncScope;
+  /**
+   * Trailing slot for entity-scoped controls (e.g. product conflict entry).
+   * Callers close over the active locale; this file stays free of product imports.
+   */
+  trailing?: ReactNode;
   /** Content rendered once, sharing the sticky band with the tabs (e.g. a commerce-core banner). */
   sharedHeader?: ReactNode;
   /** ids for the panels this tab strip controls, so aria-controls/aria-labelledby line up when a caller renders its own panels instead of using AdminLocaleWorkspace. */
@@ -125,7 +123,7 @@ export function AdminLocaleTabs({
   onSelect,
   locales = EN_PT_LOCALE_TABS,
   ptStatus,
-  syncScope,
+  trailing,
   sharedHeader,
   tabId,
   panelId,
@@ -183,17 +181,11 @@ export function AdminLocaleTabs({
           {active === sourceCode ? `// ${sourceCode} — SOURCE` : `// ${active} — TRANSLATION`}
         </span>
         {ptStatus ? (
-          <span className={`${statusBadgeClass(ptStatus)} ${syncScope ? "" : "ml-auto"}`} role="status" aria-live="polite">
+          <span className={`${statusBadgeClass(ptStatus)} ${trailing ? "" : "ml-auto"}`} role="status" aria-live="polite">
             SHOPIFY: {statusLabel(ptStatus)}
           </span>
         ) : null}
-        {syncScope ? (
-          <EntityLocaleSyncControl
-            scope={syncScope}
-            locale={active}
-            localeLabel={locales.find((item) => item.code === active)?.label ?? active}
-          />
-        ) : null}
+        {trailing ? <div className="ml-auto flex items-center gap-2">{trailing}</div> : null}
       </div>
     </div>
   );

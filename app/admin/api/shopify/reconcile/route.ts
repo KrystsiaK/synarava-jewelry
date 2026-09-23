@@ -34,8 +34,8 @@ const queryScopeSchema = z.object({
 });
 
 /**
- * Every caller of this route (EntityLocaleSyncControl) knows only the
- * registry locale code shown in its own tab (e.g. "pt", "ru") — the same
+ * Callers of this route (and of `runProductConflictCheck`) know only the
+ * registry locale code shown in admin tabs (e.g. "pt", "ru") — the same
  * code every N-locale admin editor already uses. This resolves that to the
  * Shopify-side code (e.g. "pt-PT") the reconcile engine stores against,
  * so the client never needs its own copy of that mapping.

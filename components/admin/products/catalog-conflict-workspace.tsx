@@ -25,6 +25,12 @@ import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-sign
 type ProductSummary = { id: string; name: string; sku: string | null };
 type ToastTone = "success" | "error" | "info";
 
+/** Same conflict UI, different tree node: full catalog, one product, or one product locale. */
+export type CatalogConflictViewScope =
+  | { kind: "catalog" }
+  | { kind: "product"; productId: string }
+  | { kind: "productLocale"; productId: string; locale: string };
+
 const directionCopy: Record<CatalogConflictDirection, { short: string; full: string }> = {
   SHOPIFY_TO_SYNARAVA: { short: "Use Shopify", full: "Apply Shopify values to Synarava" },
   SYNARAVA_TO_SHOPIFY: { short: "Use Synarava", full: "Apply Synarava values to Shopify" },
@@ -32,6 +38,67 @@ const directionCopy: Record<CatalogConflictDirection, { short: string; full: str
 
 function plural(count: number, singular: string, pluralWord: string) {
   return `${count} ${count === 1 ? singular : pluralWord}`;
+}
+
+function normalizeLocaleCode(locale: string) {
+  return locale.trim().toLowerCase();
+}
+
+/** EN/source includes SHARED commerce + EN translation rows; other tabs are locale-only. */
+export function fieldMatchesViewLocale(field: CatalogConflictField, locale: string): boolean {
+  const code = normalizeLocaleCode(locale);
+  if (code === "en") {
+    return field.scope.kind === "SHARED"
+      || (field.scope.kind === "LOCALE" && normalizeLocaleCode(field.scope.code) === "en");
+  }
+  return field.scope.kind === "LOCALE" && normalizeLocaleCode(field.scope.code) === code;
+}
+
+export function filterConflictFieldsForView(
+  fields: CatalogConflictField[],
+  viewScope: CatalogConflictViewScope | undefined,
+): CatalogConflictField[] {
+  if (!viewScope || viewScope.kind === "catalog" || viewScope.kind === "product") return fields;
+  return fields.filter((field) => fieldMatchesViewLocale(field, viewScope.locale));
+}
+
+export function filterSignalsForView(
+  signals: CatalogConflictSignals,
+  viewScope: CatalogConflictViewScope | undefined,
+): CatalogConflictSignals {
+  if (!viewScope || viewScope.kind === "catalog") return signals;
+  const productId = viewScope.productId;
+  const signal = signals.products[productId];
+  if (!signal) {
+    return { ...signals, products: {}, totalCount: 0 };
+  }
+  if (viewScope.kind === "product") {
+    return { ...signals, products: { [productId]: signal }, totalCount: 1 };
+  }
+  const locale = normalizeLocaleCode(viewScope.locale);
+  const locales = signal.locales.filter((entry) => normalizeLocaleCode(entry.code) === locale);
+  const shared = locale === "en" ? signal.shared : false;
+  const hasLocaleConflict = locales.some((entry) => entry.count > 0);
+  if (!hasLocaleConflict && !shared && !signal.presence) {
+    return { ...signals, products: {}, totalCount: 0 };
+  }
+  return {
+    ...signals,
+    products: {
+      [productId]: {
+        ...signal,
+        shared,
+        locales,
+      },
+    },
+    totalCount: 1,
+  };
+}
+
+function isProductScoped(viewScope: CatalogConflictViewScope | undefined): viewScope is
+  | { kind: "product"; productId: string }
+  | { kind: "productLocale"; productId: string; locale: string } {
+  return viewScope?.kind === "product" || viewScope?.kind === "productLocale";
 }
 
 function LocaleMark({ field }: { field: CatalogConflictField }) {
@@ -74,13 +141,14 @@ function ValueCell({ label, value, selected, disabled, onSelect }: {
   );
 }
 
-function ConflictListModal({ open, onClose, signals, products, focusedProductId, busy, onPreview, onDetails }: {
+function ConflictListModal({ open, onClose, signals, products, focusedProductId, busy, hideBulk, onPreview, onDetails }: {
   open: boolean;
   onClose: () => void;
   signals: CatalogConflictSignals;
   products: ProductSummary[];
   focusedProductId: string | null;
   busy: boolean;
+  hideBulk?: boolean;
   onPreview: (scope: CatalogConflictApplyScope) => void;
   onDetails: (productId: string) => void;
 }) {
@@ -104,7 +172,11 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
         <div>
           <p className="adm-section-tag">[ CATALOG CONFLICTS ]</p>
           <h2 className="adm-title-sm mt-2">{plural(productIds.length, "product", "products")} need a decision</h2>
-          <p className="mt-1 max-w-2xl text-xs text-[var(--adm-muted)]">This is the list from the last conflict check. Choose a direction, or open one product field by field. Nothing is written until the final confirmation.</p>
+          <p className="mt-1 max-w-2xl text-xs text-[var(--adm-muted)]">
+            {hideBulk
+              ? "Conflicts for this product from the last check. Choose a direction, or open fields side by side. Nothing is written until the final confirmation."
+              : "This is the list from the last conflict check. Choose a direction, or open one product field by field. Nothing is written until the final confirmation."}
+          </p>
         </div>
         <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close catalog conflicts"><X className="size-4" /></button>
       </header>
@@ -142,10 +214,12 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
         <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost">Close</button>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2"><ArrowDownToLine className="size-4" />Use Shopify for all</button>
-          <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2"><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
-        </div>
+        {hideBulk ? null : (
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2"><ArrowDownToLine className="size-4" />Use Shopify for all</button>
+            <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2"><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
+          </div>
+        )}
       </footer>
     </AnimatedModal>
   );
@@ -276,13 +350,23 @@ function PreviewModal({ preview, productsById, applying, resultMessage, onClose,
   );
 }
 
-export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChange, products, focusedProductId, onToast }: {
+export function CatalogConflictWorkspace({
+  open,
+  onClose,
+  signals,
+  onSignalsChange,
+  products,
+  focusedProductId,
+  viewScope = { kind: "catalog" },
+  onToast,
+}: {
   open: boolean;
   onClose: () => void;
   signals: CatalogConflictSignals;
   onSignalsChange: (signals: CatalogConflictSignals) => void;
   products: ProductSummary[];
   focusedProductId: string | null;
+  viewScope?: CatalogConflictViewScope;
   onToast: (message: string, tone: ToastTone) => void;
 }) {
   const [details, setDetails] = useState<ProductCatalogConflict | null>(null);
@@ -294,13 +378,16 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [applying, startApplyTransition] = useTransition();
   const router = useRouter();
+  const scopedSignals = useMemo(() => filterSignalsForView(signals, viewScope), [signals, viewScope]);
+  const scopedFocusId = isProductScoped(viewScope) ? viewScope.productId : focusedProductId;
+  const hideBulk = isProductScoped(viewScope);
   const productsById = useMemo(() => {
     const map = new Map(products.map((product) => [product.id, product]));
-    for (const [productId, signal] of Object.entries(signals.products)) {
+    for (const [productId, signal] of Object.entries(scopedSignals.products)) {
       if (!map.has(productId) && signal.name) map.set(productId, { id: productId, name: signal.name, sku: signal.sku ?? null });
     }
     return map;
-  }, [products, signals.products]);
+  }, [products, scopedSignals.products]);
   const busy = applying || detailsLoading || previewLoading;
 
   function closeAll() {
@@ -325,8 +412,14 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
           return;
         }
         if (result.preview) {
+          const nextPreview = viewScope.kind === "productLocale"
+            ? {
+                ...result.preview,
+                entries: result.preview.entries.filter((entry) => fieldMatchesViewLocale(entry.field, viewScope.locale)),
+              }
+            : result.preview;
           setActiveScope(scope);
-          setPreview(result.preview);
+          setPreview(nextPreview);
         }
       })
       .finally(() => setPreviewLoading(false));
@@ -343,10 +436,52 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
           onToast(result.error, "error");
           return;
         }
-        if (result.conflict) setDetails(result.conflict);
+        if (result.conflict) {
+          setDetails({
+            ...result.conflict,
+            fields: filterConflictFieldsForView(result.conflict.fields, viewScope),
+          });
+        }
       })
       .finally(() => setDetailsLoading(false));
   }
+
+  /** Product-wide direction under a locale tab becomes MANUAL over only that locale's fields. */
+  function openProductDirection(productId: string, direction: CatalogConflictDirection) {
+    if (viewScope.kind !== "productLocale") {
+      openPreview({ kind: "PRODUCT", productId, direction });
+      return;
+    }
+    setPreviewLoading(true);
+    void loadProductCatalogConflictAction(productId)
+      .then((result) => {
+        if (result.error) {
+          onToast(result.error, "error");
+          setPreviewLoading(false);
+          return;
+        }
+        const fields = filterConflictFieldsForView(result.conflict?.fields ?? [], viewScope)
+          .filter((field) => !field.blockedReason && field.allowedDirections.includes(direction));
+        if (fields.length === 0) {
+          onToast("No supported fields for this language in that direction.", "info");
+          setPreviewLoading(false);
+          return;
+        }
+        setPreviewLoading(false);
+        openPreview({
+          kind: "MANUAL",
+          selections: fields.map((field) => ({ productId, fieldKey: field.fieldKey, direction })),
+        });
+      })
+      .catch(() => setPreviewLoading(false));
+  }
+
+  useEffect(() => {
+    if (!open || !isProductScoped(viewScope)) return;
+    openDetails(viewScope.productId);
+    // Auto-open details once when entering a product-scoped view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, viewScope.kind, isProductScoped(viewScope) ? viewScope.productId : null, viewScope.kind === "productLocale" ? viewScope.locale : null]);
 
   function confirm(acknowledgeClears: boolean) {
     if (!preview || applying) return;
@@ -406,7 +541,20 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
 
   return (
     <>
-      <ConflictListModal open={open} onClose={closeAll} signals={signals} products={products} focusedProductId={focusedProductId} busy={busy} onPreview={openPreview} onDetails={openDetails} />
+      <ConflictListModal
+        open={open}
+        onClose={closeAll}
+        signals={scopedSignals}
+        products={products}
+        focusedProductId={scopedFocusId}
+        busy={busy}
+        hideBulk={hideBulk}
+        onPreview={(scope) => {
+          if (scope.kind === "PRODUCT") openProductDirection(scope.productId, scope.direction);
+          else openPreview(scope);
+        }}
+        onDetails={openDetails}
+      />
       {details || detailsLoading ? (
         <DetailsModal
           conflict={details}

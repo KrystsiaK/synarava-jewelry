@@ -6,6 +6,9 @@ import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { ProductIncomingUpdateMarker } from "@/components/admin/products/product-incoming-update-marker";
+import { requireAdminSession } from "@/lib/auth/admin-session";
+import { getCatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals-server";
+import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 export default async function EditProductPage({
   params,
@@ -13,10 +16,15 @@ export default async function EditProductPage({
   params: Promise<{ productId: string }>;
 }) {
   const { productId } = await params;
-  const [{ products, collections, issues }, syncDifferences, translationLocales] = await Promise.all([
+  const session = await requireAdminSession("/admin/products");
+  const [{ products, collections, issues }, syncDifferences, translationLocales, conflictSignals] = await Promise.all([
     getAdminCatalogData(),
     getLatestReconcileDifferences(),
     getAdminTranslationLocales(),
+    getCatalogConflictSignals(session.username).catch((error): CatalogConflictSignals => {
+      console.error("[admin-product-edit] catalog conflict status unavailable", error);
+      return { state: "failed", totalCount: null, checkedAt: null, products: {}, recentlyUpdatedProducts: {} };
+    }),
   ]);
   const product = products.find((item) => item.id === productId);
   const productIssues = issues.filter(
@@ -67,6 +75,7 @@ export default async function EditProductPage({
         collections={collections}
         issues={productIssues}
         translationLocales={translationLocales}
+        initialConflictSignals={conflictSignals}
       />
     </div>
   );

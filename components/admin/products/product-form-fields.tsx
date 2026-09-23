@@ -24,9 +24,12 @@ import {
 } from "@/lib/products/product-form-validation";
 import { getProductEditorDetails, issuesForField } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
+import type { ReactNode } from "react";
 
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
+
+type ProductConflictControlSlot = (args: { locale: string; localeLabel: string }) => ReactNode;
 
 export function OwnershipLabel({ children, owner }: { children: React.ReactNode; owner: "Shopify" | "Synarava" | "Shopify push" }) {
   return (
@@ -122,6 +125,7 @@ export function ProductDetailFields({
   collections,
   entityId,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
+  conflictControl,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   /** Every translation locale's details, keyed by locale code. */
@@ -134,6 +138,8 @@ export function ProductDetailFields({
   entityId?: string;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
+  /** Same catalog conflict control, scoped to the active details locale. */
+  conflictControl?: ProductConflictControlSlot;
 }) {
   const departmentCollections = collections
     .filter((collection) => collection.isPrimaryNav)
@@ -194,7 +200,12 @@ export function ProductDetailFields({
         active={detailsLocale}
         onSelect={selectDetailsLocale}
         locales={tabs}
-        syncScope={entityId ? { entityType: "PRODUCT", entityId } : undefined}
+        trailing={entityId && conflictControl
+          ? conflictControl({
+              locale: detailsLocale,
+              localeLabel: tabs.find((tab) => tab.code === detailsLocale)?.label ?? detailsLocale,
+            })
+          : undefined}
       />
       <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
 
@@ -543,6 +554,7 @@ export function ProductFormFields({
   issues = [],
   validation,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
+  conflictControl,
 }: {
   draft: ProductDraft;
   entityId?: string;
@@ -552,6 +564,8 @@ export function ProductFormFields({
   validation: AdminFormValidation<ProductFieldName>;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
+  /** Same catalog conflict control, scoped to the active commerce locale. */
+  conflictControl?: ProductConflictControlSlot;
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -626,7 +640,12 @@ export function ProductFormFields({
         onSelect={selectLocale}
         locales={tabs}
         ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
-        syncScope={entityId ? { entityType: "PRODUCT", entityId } : undefined}
+        trailing={entityId && conflictControl
+          ? conflictControl({
+              locale: activeLocale,
+              localeLabel: tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale,
+            })
+          : undefined}
       />
       <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 

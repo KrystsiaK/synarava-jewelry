@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   inspectProductSyncAction: vi.fn(),
   pullSingleProductFromShopifyAction: vi.fn(),
   pushSingleProductToShopifyAction: vi.fn(),
+  checkProductConflictsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
 }));
 
@@ -22,6 +23,7 @@ vi.mock("@/app/admin/actions/sync", () => ({
   inspectProductSyncAction: mocks.inspectProductSyncAction,
   pullSingleProductFromShopifyAction: mocks.pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
+  checkProductConflictsAction: mocks.checkProductConflictsAction,
 }));
 
 vi.mock("@/app/admin/actions/taxonomy", () => ({
@@ -74,6 +76,10 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
+  mocks.checkProductConflictsAction.mockResolvedValue({
+    signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
+    success: "Conflict check complete. No conflicts found.",
+  });
   // The active-locale tab is remembered in sessionStorage per product sku, so
   // tests sharing a sku (they all use "LAVA-1") would otherwise leak their
   // tab state across `it()` blocks.

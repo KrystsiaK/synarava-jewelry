@@ -338,7 +338,6 @@ export function PageEditor({
           active={activeLocale}
           onSelect={selectLocale}
           locales={tabs}
-          syncScope={{ entityType: "PAGE", entityId: page.id }}
         />
         <AuthMessage error={state.error} />
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import { getPublishedStorefrontLocales, getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { buildCatalogConflictSignals, type CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
@@ -14,6 +14,12 @@ import {
   getLatestCatalogPresenceDifferences,
   scanAndSaveCatalogPresence,
 } from "@/lib/shopify/catalog-presence-server";
+
+async function resolveShopifyLocale(registryCode: string): Promise<string | null> {
+  if (registryCode === "en") return "en";
+  const locales = await getPublishedStorefrontLocales();
+  return locales.find((locale) => !locale.isDefault && locale.code === registryCode)?.shopifyLocale ?? null;
+}
 
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
   const [commerceProducts, differences, presenceDifferences, locales, run, lastSuccessfulRuns, recentlyUpdatedProducts] = await Promise.all([
@@ -43,6 +49,92 @@ export async function getCatalogConflictSignals(adminUsername?: string): Promise
     recentlyUpdatedProducts,
     now: new Date(),
   });
+}
+
+/**
+ * Scoped conflict check for one product (optional locale). Does not sweep the full catalog.
+ * Registry locale codes ("pt", "ru") are resolved to Shopify locale codes before reconcile.
+ */
+export async function runProductConflictCheck({
+  productId,
+  locale,
+  requestedBy,
+}: {
+  productId: string;
+  locale?: string;
+  requestedBy: string;
+}): Promise<{
+  signals: CatalogConflictSignals;
+  warning?: string;
+}> {
+  const shopifyLocale = locale ? await resolveShopifyLocale(locale) : null;
+  if (locale && !shopifyLocale) {
+    return {
+      signals: await getCatalogConflictSignals(requestedBy),
+      warning: `Locale ${locale} is not published in Shopify Markets.`,
+    };
+  }
+
+  const translationRun = await runTranslationReconciliation({
+    trigger: "LOCALE",
+    requestedBy,
+    scope: {
+      entityType: "PRODUCT",
+      entityId: productId,
+      ...(shopifyLocale ? { locale: shopifyLocale } : {}),
+    },
+  });
+
+  const commerceProductIds: string[] = [];
+  const failures: string[] = [];
+  try {
+    const inspection = await inspectProductSyncState(productId);
+    const persist = persistPayloadForCommerceInspection(inspection);
+    if (persist) await db.product.update({ where: { id: productId }, data: persist });
+    if (persist?.syncStatus === "CONFLICT") commerceProductIds.push(productId);
+  } catch (error) {
+    failures.push(error instanceof Error ? error.message : `Could not inspect ${productId}.`);
+  }
+
+  // Keep other products that already have CONFLICT status in the signal map so the
+  // catalog list does not silently drop them after a scoped editor check.
+  const otherConflicted = await db.product.findMany({
+    where: { syncStatus: "CONFLICT", id: { not: productId } },
+    select: { id: true },
+  });
+  for (const product of otherConflicted) {
+    if (!commerceProductIds.includes(product.id)) commerceProductIds.push(product.id);
+  }
+
+  const [differences, presenceDifferences, locales, recentlyUpdatedProducts] = await Promise.all([
+    getLatestReconcileDifferences(),
+    getLatestCatalogPresenceDifferences(),
+    getStorefrontLocales(),
+    listUnseenIncomingProductUpdates(requestedBy),
+  ]);
+
+  const signals = buildCatalogConflictSignals({
+    commerceProductIds,
+    differences,
+    presenceDifferences,
+    locales,
+    run: translationRun.run,
+    lastSuccessfulFullCheckAt: translationRun.run?.status === "SUCCEEDED" ? translationRun.run.completedAt : null,
+    connected: hasShopifyAdminConfig(),
+    recentlyUpdatedProducts,
+    now: new Date(),
+  });
+
+  if (failures.length > 0 && signals.state === "ready") signals.state = "failed";
+  const warnings = [
+    failures.length > 0 ? failures.join(" ") : undefined,
+    translationRun.run?.error ?? undefined,
+  ].filter((warning): warning is string => Boolean(warning));
+
+  return {
+    signals,
+    warning: warnings.length > 0 ? warnings.join(" ") : undefined,
+  };
 }
 
 /** Runs a real Shopify-backed sweep and returns the fresh signal directly, without relying on webhook-age commerce flags. */

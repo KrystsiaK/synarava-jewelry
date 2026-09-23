@@ -130,19 +130,18 @@ describe("AdminLocaleTabs with a custom locale list", () => {
   });
 });
 
-describe("AdminLocaleTabs syncScope", () => {
-  beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ run: { status: "SUCCEEDED" }, differenceCount: 0 }),
-    }));
-  });
-
-  it("shows the entity sync control only when a syncScope is given", async () => {
+describe("AdminLocaleTabs trailing", () => {
+  it("renders the trailing slot when provided", () => {
     const { rerender } = render(<AdminLocaleTabs active="EN" onSelect={() => {}} />);
-    expect(screen.queryByRole("button", { name: /Check .* against Shopify/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open conflicts" })).not.toBeInTheDocument();
 
-    rerender(<AdminLocaleTabs active="EN" onSelect={() => {}} syncScope={{ entityType: "PRODUCT", entityId: "p1" }} />);
-    expect(await screen.findByRole("button", { name: "Check English against Shopify" })).toBeInTheDocument();
+    rerender(
+      <AdminLocaleTabs
+        active="EN"
+        onSelect={() => {}}
+        trailing={<button type="button">Open conflicts</button>}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Open conflicts" })).toBeInTheDocument();
   });
 });

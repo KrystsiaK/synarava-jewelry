@@ -58,7 +58,13 @@ const blockedField = {
   sourceId: null,
 };
 
-function renderWorkspace(onSignalsChange = vi.fn(), onToast = vi.fn(), onClose = vi.fn(), signalState = signals) {
+function renderWorkspace(
+  onSignalsChange = vi.fn(),
+  onToast = vi.fn(),
+  onClose = vi.fn(),
+  signalState = signals,
+  viewScope?: Parameters<typeof CatalogConflictWorkspace>[0]["viewScope"],
+) {
   render(
     <CatalogConflictWorkspace
       open
@@ -67,6 +73,7 @@ function renderWorkspace(onSignalsChange = vi.fn(), onToast = vi.fn(), onClose =
       onSignalsChange={onSignalsChange}
       products={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
       focusedProductId={null}
+      viewScope={viewScope}
       onToast={onToast}
     />,
   );
@@ -219,5 +226,45 @@ describe("CatalogConflictWorkspace", () => {
       totalCount: 0,
       recentlyUpdatedProducts: expect.objectContaining({ p1: expect.objectContaining({ updatedAt: expect.any(String) }) }),
     }));
+  });
+
+  it("scopes the list to one product and hides catalog bulk actions", () => {
+    renderWorkspace(vi.fn(), vi.fn(), vi.fn(), {
+      ...signals,
+      totalCount: 2,
+      products: {
+        p1: signals.products.p1,
+        p2: { shared: true, locales: [] },
+      },
+    }, { kind: "product", productId: "p1" });
+
+    expect(screen.getByText("Amber ring")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Use Shopify for all/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Use Synarava for all/i })).not.toBeInTheDocument();
+  });
+
+  it("opens locale-scoped details with only that language's fields", async () => {
+    mocks.load.mockResolvedValue({
+      conflict: {
+        productId: "p1",
+        fields: [
+          field,
+          {
+            ...field,
+            fieldKey: "translation:pt:title",
+            scope: { kind: "LOCALE" as const, code: "pt", name: "Portuguese", nativeName: "Português" },
+            synaravaValue: "Anel",
+            shopifyValue: "Anel Shopify",
+          },
+          blockedField,
+        ],
+      },
+    });
+    renderWorkspace(vi.fn(), vi.fn(), vi.fn(), signals, { kind: "productLocale", productId: "p1", locale: "ru" });
+
+    expect(await screen.findByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
+    expect(screen.getByText("RU · Русский")).toBeInTheDocument();
+    expect(screen.queryByText("PT · Português")).not.toBeInTheDocument();
+    expect(screen.queryByText("SHARED")).not.toBeInTheDocument();
   });
 });

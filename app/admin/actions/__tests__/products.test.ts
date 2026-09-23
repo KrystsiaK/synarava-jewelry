@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/server", () => ({ after: (fn: () => void) => fn() }));
 
 vi.mock("@/lib/auth/admin-session", () => ({
   requireAdminSession: mocks.requireAdminSession,
@@ -18,6 +19,10 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/media/local-upload", () => ({ saveProductImageUpload: vi.fn() }));
 vi.mock("@/lib/s3", () => ({ getS3Bucket: vi.fn(), getS3PublicUrl: vi.fn() }));
 vi.mock("@/lib/shopify/config", () => ({ isShopifyConfigured: vi.fn(() => false) }));
+vi.mock("@/lib/shopify/admin", () => ({ hasShopifyAdminConfig: vi.fn(() => false) }));
+vi.mock("@/lib/shopify/catalog-conflict-signals-server", () => ({
+  runProductConflictCheck: vi.fn(),
+}));
 vi.mock("@/lib/shopify/product-sync", () => ({ deleteShopifyProduct: vi.fn() }));
 
 import { saveProductAction } from "../products";

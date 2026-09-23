@@ -9,6 +9,7 @@ import {
   type ProductActionState,
 } from "@/app/admin/actions/products";
 import {
+  checkProductConflictsAction,
   inspectProductSyncAction,
   pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction,
@@ -22,6 +23,8 @@ import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
+import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
+import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ShopifyProductMirror } from "@/components/admin/products/shopify-product-mirror";
 import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
@@ -34,6 +37,15 @@ import type { CollectionOption, ProductRecord } from "@/components/admin/product
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
+import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+
+const EMPTY_SIGNALS: CatalogConflictSignals = {
+  state: "ready",
+  totalCount: 0,
+  checkedAt: null,
+  products: {},
+  recentlyUpdatedProducts: {},
+};
 
 export function EditProductForm({
   product,
@@ -43,6 +55,7 @@ export function EditProductForm({
   onDeleted,
   highlighted = false,
   translationLocales = [{ code: "pt", label: "Português" }],
+  initialConflictSignals = EMPTY_SIGNALS,
 }: {
   product: ProductRecord;
   collections: CollectionOption[];
@@ -52,6 +65,7 @@ export function EditProductForm({
   highlighted?: boolean;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
+  initialConflictSignals?: CatalogConflictSignals;
 }) {
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
@@ -61,6 +75,10 @@ export function EditProductForm({
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
   const [conflictResolution, setConflictResolution] = useState<"shopify" | "synarava" | null>(null);
   const [syncDetailOpen, setSyncDetailOpen] = useState(false);
+  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "product", productId: product.id });
+  const [conflictChecking, setConflictChecking] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
@@ -85,6 +103,45 @@ export function EditProductForm({
     return () => { cancelled = true; };
   }, [product.id, product.shopifyProductId]);
 
+  async function refreshConflicts(locale?: string, options?: { quiet?: boolean }) {
+    setConflictChecking(true);
+    try {
+      const result = await checkProductConflictsAction({ productId: currentProduct.id, locale });
+      if ("error" in result && result.error && !("signals" in result && result.signals)) {
+        pushToast({ message: result.error, tone: "error" });
+        return;
+      }
+      if ("warning" in result && result.warning) pushToast({ message: result.warning, tone: "info" });
+      if ("signals" in result && result.signals) setConflictSignals(result.signals);
+      if (!options?.quiet && "success" in result && result.success) {
+        pushToast({ message: result.success, tone: "success" });
+      } else if (options?.quiet && "signals" in result && result.signals && (result.signals.totalCount ?? 0) > 0) {
+        pushToast({ message: ("success" in result && result.success) || "Conflicts found after save.", tone: "info" });
+      }
+    } finally {
+      setConflictChecking(false);
+    }
+  }
+
+  function openConflicts(locale: string) {
+    setConflictViewScope({ kind: "productLocale", productId: currentProduct.id, locale });
+    setConflictOpen(true);
+  }
+
+  const conflictControl = currentProduct.shopifyProductId
+    ? ({ locale, localeLabel }: { locale: string; localeLabel: string }) => (
+        <ProductLocaleConflictControl
+          productId={currentProduct.id}
+          locale={locale}
+          localeLabel={localeLabel}
+          signals={conflictSignals}
+          checking={conflictChecking}
+          onOpen={() => openConflicts(locale)}
+          onCheck={() => void refreshConflicts(locale)}
+        />
+      )
+    : undefined;
+
   async function formAction(formData: FormData) {
     startTransition(async () => {
       try {
@@ -105,6 +162,7 @@ export function EditProductForm({
               }
             : { state: "UNLINKED", remoteUpdatedAt: null, publications: [], differences: [] });
           onUpdated?.(result.product);
+          if (result.product.shopifyProductId) void refreshConflicts(undefined, { quiet: true });
         }
       } catch {
         setState({ error: PRODUCT_SAVE_FAILURE_MESSAGE });
@@ -235,6 +293,7 @@ export function EditProductForm({
             issues={issues}
             validation={validation}
             translationLocales={translationLocales}
+            conflictControl={conflictControl}
           />
           <ProductDetailFields
             key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
@@ -246,6 +305,7 @@ export function EditProductForm({
             collections={collections}
             entityId={currentProduct.id}
             translationLocales={translationLocales}
+            conflictControl={conflictControl}
           />
           <ShopifyProductMirror product={currentProduct} />
 
@@ -332,6 +392,17 @@ export function EditProductForm({
         }}
         pending={isPending}
         tone="danger"
+      />
+
+      <CatalogConflictWorkspace
+        open={conflictOpen}
+        onClose={() => setConflictOpen(false)}
+        signals={conflictSignals}
+        onSignalsChange={setConflictSignals}
+        products={[{ id: currentProduct.id, name: currentProduct.name, sku: currentProduct.sku }]}
+        focusedProductId={currentProduct.id}
+        viewScope={conflictViewScope}
+        onToast={(message, tone) => pushToast({ message, tone })}
       />
     </>
   );

@@ -31,7 +31,7 @@ import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-r
 import { env } from "@/lib/env";
 import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
-import { runCatalogConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import { runCatalogConflictCheck, runProductConflictCheck, getCatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals-server";
 import { getProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
 import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
 
@@ -125,6 +125,39 @@ export async function checkCatalogConflictsAction() {
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check catalog conflicts." };
+  }
+}
+
+/** Scoped product(+locale) conflict check — same engine as catalog, not a full catalog sweep. */
+export async function checkProductConflictsAction(input: { productId: string; locale?: string }) {
+  const session = await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  if (!input.productId.trim()) return { error: "Product id is required." };
+  try {
+    const result = await runProductConflictCheck({
+      productId: input.productId,
+      locale: input.locale,
+      requestedBy: session.username,
+    });
+    revalidatePath("/admin/products");
+    revalidatePath(`/admin/products/${input.productId}`);
+    return {
+      ...result,
+      success: result.signals.totalCount === 0
+        ? "Conflict check complete. No conflicts found."
+        : `Conflict check complete. ${result.signals.totalCount} product${result.signals.totalCount === 1 ? "" : "s"} need a decision.`,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not check product conflicts." };
+  }
+}
+
+export async function loadCatalogConflictSignalsAction() {
+  const session = await requireAdminSession("/admin/products");
+  try {
+    return { signals: await getCatalogConflictSignals(session.username) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not load conflict status." };
   }
 }
 

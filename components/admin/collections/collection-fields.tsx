@@ -192,7 +192,6 @@ export function CollectionFields({
         onSelect={selectLocale}
         locales={tabs}
         ptStatus={active?.syncStatus as AdminLocaleStatus | undefined}
-        syncScope={entityId ? { entityType: "COLLECTION", entityId } : undefined}
       />
       <HiddenLocaleFields draft={draft} translationLocales={translationLocales} />
 

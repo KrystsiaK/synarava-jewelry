@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createHash } from "node:crypto";
@@ -31,6 +32,8 @@ import {
   syncScopedCollectionMembership,
   syncStorefrontPriorityMembership,
 } from "@/lib/admin/collection-membership-sync";
+import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
+import { runProductConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import {
   asRecord,
   createDraftToken,
@@ -978,6 +981,17 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     before,
     after: savedProduct,
   });
+
+  if (savedProduct.shopifyProductId && hasShopifyAdminConfig()) {
+    after(() => {
+      void runProductConflictCheck({
+        productId: savedProduct.id,
+        requestedBy: currentUser.username,
+      }).catch((error) => {
+        console.error("[saveProduct] scoped conflict check failed", error);
+      });
+    });
+  }
 
   return {
     success: commerceChanged

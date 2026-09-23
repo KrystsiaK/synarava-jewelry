@@ -10,7 +10,7 @@ import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { STOREFRONT_COPY_GROUPS, STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy-fields";
+import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 
 const SECTION_JUMPS = [
