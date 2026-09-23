@@ -179,6 +179,15 @@ future changes:
 4. add translations for newly created primary-navigation collections when a
    localized label must differ from the collection name.
 
+## Later removal (September 2026)
+
+The primary-navigation / department layer described above was **removed** in
+migration `20260923220000_remove_collection_primary_navigation`: `isPrimaryNav`,
+`navSortOrder`, admin Department controls, `?department=` filtering, and
+`getStorefrontNavigation()` / `syncDepartmentCollectionMembership()`. Collections
+remain the grouping model; the jewelry storefront is a single catalog with
+marketing and storefront-default memberships only.
+
 ## Source trail
 
 The main implementation history runs from `67a81de` through `41d5b3b`. Git is

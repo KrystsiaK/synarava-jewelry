@@ -99,7 +99,7 @@ export function ProductCard({
             transition={{ type: "spring", stiffness: 360, damping: 28 }}
           >
             <p className="label-mono mb-1 text-[0.65rem] text-white/75">
-              {product.series || product.departmentName}
+              {product.series}
             </p>
             <div className="flex items-end justify-between gap-2">
               <p
@@ -126,7 +126,7 @@ export function ProductCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <span className="label-mono mb-1 block text-[0.72rem] text-muted-ink">
-              {product.series || product.departmentName}
+              {product.series}
             </span>
             <h3
               className="font-serif transition-colors duration-300 group-hover:text-couture-red"

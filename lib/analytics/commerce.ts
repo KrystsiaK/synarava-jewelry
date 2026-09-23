@@ -1,7 +1,6 @@
 export const COMMERCE_EVENT_NAME = "synarava:commerce-event";
 
 export type CommerceEvent =
-  | "department_entry"
   | "view_item"
   | "add_to_cart"
   | "begin_checkout"

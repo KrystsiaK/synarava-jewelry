@@ -125,7 +125,7 @@ const serviceSectionDefaultsEn: Record<ServicePageSlug, Record<string, LegalSect
   faq: {
     maker: {
       title: "Is everything made by Synarava?",
-      body: "No. Synarava is a curated shop across several departments. Product pages identify the maker or vendor and describe the materials and origin when that information is available.",
+      body: "No. Synarava is a curated jewelry shop. Product pages identify the maker or vendor and describe the materials and origin when that information is available.",
     },
     availability: {
       title: "How do I know an option is available?",

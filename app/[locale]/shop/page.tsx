@@ -35,7 +35,6 @@ export async function generateMetadata(): Promise<Metadata> {
 type Props = {
   searchParams?: Promise<{
     q?: string;
-    department?: string;
     availability?: string;
     category?: string;
     productType?: string;
@@ -73,15 +72,6 @@ async function getProductTypeTiles(productTypes: { slug: string; name: string }[
   });
 }
 
-async function getDepartmentSlugsInUse(): Promise<Set<string>> {
-  const rows = await db.productCollection.findMany({
-    where: { collection: { isPrimaryNav: true }, product: { status: "ACTIVE", visibility: "PUBLIC" } },
-    select: { collection: { select: { slug: true } } },
-    distinct: ["collectionId"],
-  });
-  return new Set(rows.map((row) => row.collection.slug));
-}
-
 export default async function Page({ searchParams }: Props) {
   const rawFilters = (await searchParams) ?? {};
   const filters = {
@@ -96,7 +86,6 @@ export default async function Page({ searchParams }: Props) {
     newest,
     popular,
     archiveCount,
-    departmentSlugsInUse,
     page,
   ] = await Promise.all([
     getShopFilterData(locale),
@@ -104,10 +93,9 @@ export default async function Page({ searchParams }: Props) {
     listShopCatalogPage({ filters: { sort: "newest" }, locale, limit: 8 }),
     listShopCatalogPage({ filters: { sort: "popular" }, locale, limit: 8 }),
     db.product.count({ where: { status: "ACTIVE", visibility: "PUBLIC" } }),
-    getDepartmentSlugsInUse(),
     getPageBySlug("shop", locale),
   ]);
-  const { departments, categories, productTypes, tags, collections, materials, finishes, origins } = filterData;
+  const { categories, productTypes, tags, collections, materials, finishes, origins } = filterData;
   const productTypeTiles = await getProductTypeTiles(productTypes);
 
   return (
@@ -126,11 +114,6 @@ export default async function Page({ searchParams }: Props) {
       collectionsCalloutCtaLabel={page?.content.ctaLabel}
       collectionsCalloutSecondaryLabel={page?.content.secondaryBody}
       filterProps={{
-        departments: departments.map((department) => ({
-          value: department.slug,
-          label: department.name,
-          hint: departmentSlugsInUse.has(department.slug) ? undefined : t("shop.filters.comingSoon"),
-        })),
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
         productTypes: productTypes.map((type) => ({ value: type.slug, label: type.name })),
         collections: collections.map((c) => ({ value: c.slug, label: c.name })),

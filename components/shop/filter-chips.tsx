@@ -6,7 +6,6 @@ import type { FilterOption, ShopFilters } from "./types";
 
 type FilterChipsProps = {
   filters: ShopFilters;
-  departments?: FilterOption[];
   categories: FilterOption[];
   productTypes: FilterOption[];
   collections: FilterOption[];
@@ -23,7 +22,6 @@ const labelOf = (value: string, options: FilterOption[]) =>
 
 export function FilterChips({
   filters,
-  departments = [],
   categories,
   productTypes,
   collections,
@@ -37,7 +35,6 @@ export function FilterChips({
   const { t } = useTranslations();
   const dimLabels: Record<keyof ShopFilters, string> = {
     q: t("shop.filters.searchLabel"),
-    department: t("shop.filters.department"),
     availability: t("shop.filters.availability"),
     category: t("shop.filters.category"),
     productType: t("shop.filters.productType"),
@@ -52,7 +49,6 @@ export function FilterChips({
   const chips: { key: keyof ShopFilters; value: string }[] = [];
 
   if (filters.q)          chips.push({ key: "q",          value: `"${filters.q}"` });
-  if (filters.department) chips.push({ key: "department", value: labelOf(filters.department, departments) });
   if (filters.availability) chips.push({ key: "availability", value: t("shop.filters.inStock") });
   if (filters.category)   chips.push({ key: "category",   value: labelOf(filters.category, categories) });
   if (filters.productType) chips.push({ key: "productType", value: labelOf(filters.productType, productTypes) });

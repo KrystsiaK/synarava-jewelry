@@ -24,6 +24,6 @@ describe("server translations", () => {
   it("uses an English fallback for keys missing from the partial Russian dictionary", async () => {
     const { t } = await getServerTranslations();
 
-    expect(t("shop.departments")).toBe("Departments");
+    expect(t("shop.allProducts")).toBe("All products");
   });
 });

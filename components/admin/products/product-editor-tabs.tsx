@@ -47,7 +47,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Placement & filters",
     title: "Place it in the catalog",
     description:
-      "Choose the Shopify category, Synarava collection, department, tags, and product characteristics. These settings power navigation, filters, and product discovery.",
+      "Choose the Shopify category, Synarava collection, tags, and product characteristics. These settings power filters and product discovery.",
     icon: Shapes,
   },
   {

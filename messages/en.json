@@ -59,20 +59,15 @@
     "save": "Save choices"
   },
   "shop": {
-    "departments": "Departments",
     "allProducts": "All products",
-    "jewelry": "Jewelry",
-    "pets": "Pets",
-    "kids": "Kids",
-    "jewelryMaking": "Jewelry Making",
     "heroEyebrow": "Synarava shop · Curated goods",
-    "heroDescription": "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
+    "heroDescription": "Curated jewelry and accessories, selected for craft, material, and everyday wear.",
     "availableCount": {
       "one": "product available",
       "other": "products available"
     },
     "selectionPromise": "Jewellery / Accessories / Everyday objects",
-    "featuredProduct": "Featured product / {department}",
+    "featuredProduct": "Featured product",
     "resultsHeading": "Shop results",
     "loadMoreProducts": "Load more products",
     "catalog": {
@@ -94,13 +89,9 @@
       "shopProductType": "Shop {productType}"
     },
     "empty": {
-      "preview": "Department preview",
       "count": "0 products found",
-      "comingSoon": "{department} is coming soon.",
       "noMatch": "No products matched.",
-      "comingSoonBody": "We are selecting the first products for this department. Until then, explore what is already available in the shop.",
       "noMatchBody": "The combination you selected returned no results. Try removing one filter at a time, or clear everything to browse the full shop.",
-      "thisDepartment": "This department",
       "active": "Active:",
       "browseAvailable": "Browse available products",
       "showAll": "Show all products"
@@ -126,7 +117,6 @@
       "priceAsc": "Price · low to high",
       "priceDesc": "Price · high to low",
       "nameAsc": "Name · A–Z",
-      "department": "Department",
       "category": "Category",
       "productType": "Product type",
       "availability": "Availability",
@@ -391,13 +381,9 @@
     "removeFromWishlist": "Remove from wishlist",
     "relatedTitle": "You may also like",
     "presentation": {
-      "jewelry": { "descriptionLabel": "Object notes", "descriptionTitle": "The piece, in full", "buyingTitle": "Fit and care" },
-      "pets": { "descriptionLabel": "Everyday use", "descriptionTitle": "Designed around care", "buyingTitle": "Choose the right fit" },
-      "kids": { "descriptionLabel": "How it works", "descriptionTitle": "Made for curious hands", "buyingTitle": "Age and supervision" },
-      "jewelry-making": { "descriptionLabel": "Maker notes", "descriptionTitle": "What the tool enables", "buyingTitle": "Contents and compatibility" }
+      "jewelry": { "descriptionLabel": "Object notes", "descriptionTitle": "The piece, in full", "buyingTitle": "Fit and care" }
     },
     "hero": {
-      "department": "Department",
       "category": "Category",
       "availability": "Availability",
       "variants": "Variants",

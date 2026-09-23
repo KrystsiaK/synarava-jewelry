@@ -133,18 +133,11 @@ describe("PageEditor", () => {
       slug: "home",
       title: "Home",
       content: {
-        departmentSectionEnabled: true,
-        departmentSectionTitle: "Choose where to begin.",
-        departmentSectionBody: "A considered way into the collection.",
-        departmentSectionImageCaption: "One point of view.",
-        departmentSectionCtaLabel: "Explore the shop",
         editSectionTitle: "The Edit",
         editSectionCtaLabel: "View piece",
         materialSectionNoteLabel: "Material notes",
         translations: {
           pt: {
-            departmentSectionTitle: "Escolha por onde começar.",
-            departmentSectionBody: "Uma entrada cuidada na coleção.",
             editSectionTitle: "A Seleção",
             editSectionCtaLabel: "Ver peça",
             materialSectionNoteLabel: "Notas de materiais",
@@ -155,11 +148,6 @@ describe("PageEditor", () => {
 
     expect(screen.getByLabelText("Hero headline")).toBeInTheDocument();
     expect(screen.getByLabelText("Search summary")).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Show department pathway" })).toBeChecked();
-    expect(screen.getByLabelText("Department headline")).toHaveValue("Choose where to begin.");
-    expect(screen.getByLabelText("Department description")).toHaveValue("A considered way into the collection.");
-    expect(screen.getByLabelText("Department image caption")).toHaveValue("One point of view.");
-    expect(screen.getByLabelText("Department CTA label")).toHaveValue("Explore the shop");
     expect(screen.getByRole("checkbox", { name: "Show hero" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show featured collections" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show material lexicon" })).toBeChecked();
@@ -175,41 +163,30 @@ describe("PageEditor", () => {
     expect(fieldByName(container, "finalContactEmail")).toBeInTheDocument();
 
     // The Portuguese values exist too, just under the PT tab, not a second copy of every field.
-    expect(hiddenFieldValue(container, "ptDepartmentSectionTitle")).toBe("Escolha por onde começar.");
     expect(hiddenFieldValue(container, "ptEditSectionTitle")).toBe("A Seleção");
     expect(hiddenFieldValue(container, "ptMaterialSectionNoteLabel")).toBe("Notas de materiais");
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    expect(screen.getByLabelText("Department headline")).toHaveValue("Escolha por onde começar.");
     expect(screen.getByLabelText("The Edit title")).toHaveValue("A Seleção");
     expect(screen.getByLabelText("The Edit product CTA")).toHaveValue("Ver peça");
     expect(screen.getByLabelText("Material note label")).toHaveValue("Notas de materiais");
   });
 
-  it("does not show home-only department controls for a regular page", () => {
-    render(<PageEditor page={makePage()} />);
-
-    expect(screen.queryByRole("checkbox", { name: "Show department pathway" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Department headline")).not.toBeInTheDocument();
-  });
-
-  it("submits the bilingual department pathway settings", async () => {
+  it("submits bilingual edit-section copy for the home page", async () => {
     mocks.savePageAction.mockImplementation(async (formData: FormData) => {
-      expect(formData.get("departmentSectionEnabled")).toBe("1");
-      expect(formData.get("departmentSectionTitle")).toBe("Choose where to begin.");
-      expect(formData.get("departmentSectionBody")).toBe("A considered way into the collection.");
-      expect(formData.get("ptDepartmentSectionTitle")).toBe("Escolha por onde começar.");
-      expect(formData.get("ptDepartmentSectionBody")).toBe("Uma entrada cuidada na coleção.");
+      expect(formData.get("editSectionTitle")).toBe("The Edit");
+      expect(formData.get("editSectionBody")).toBe("Four pieces to begin.");
+      expect(formData.get("ptEditSectionTitle")).toBe("A Seleção");
+      expect(formData.get("ptEditSectionBody")).toBe("Quatro peças para começar.");
       return { success: "Page saved." };
     });
     const user = userEvent.setup();
     render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
 
-    await user.click(screen.getByRole("checkbox", { name: "Show department pathway" }));
-    await user.type(screen.getByLabelText("Department headline"), "Choose where to begin.");
-    await user.type(screen.getByLabelText("Department description"), "A considered way into the collection.");
+    await user.type(screen.getByLabelText("The Edit title"), "The Edit");
+    await user.type(screen.getByLabelText("The Edit description"), "Four pieces to begin.");
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    await user.type(screen.getByLabelText("Department headline"), "Escolha por onde começar.");
-    await user.type(screen.getByLabelText("Department description"), "Uma entrada cuidada na coleção.");
+    await user.type(screen.getByLabelText("The Edit title"), "A Seleção");
+    await user.type(screen.getByLabelText("The Edit description"), "Quatro peças para começar.");
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
     await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
 
@@ -219,7 +196,6 @@ describe("PageEditor", () => {
   it("submits visibility settings for every home section", async () => {
     mocks.savePageAction.mockImplementation(async (formData: FormData) => {
       expect(formData.get("heroSectionEnabled")).toBe("1");
-      expect(formData.get("departmentSectionEnabled")).toBeNull();
       expect(formData.get("archiveSectionEnabled")).toBe("1");
       expect(formData.get("editSectionEnabled")).toBeNull();
       expect(formData.get("materialSectionEnabled")).toBeNull();

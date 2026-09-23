@@ -85,7 +85,7 @@ const CONTENT_LOCALE = [
 ];
 const CONTENT_SHARED = ["existingImageUrl", "removeImage", "imageFile"];
 const CATALOG_SHARED = [
-  "collectionSlug", "tags", "workflowState", "department",
+  "collectionSlug", "tags", "workflowState",
   "shopifyCategoryId", "shopifyCategoryName",
 ];
 const DETAILS_LOCALE_PREFIXES = [

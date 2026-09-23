@@ -28,7 +28,6 @@ import { validateProductPublication } from "@/lib/products/localization";
 import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import {
-  syncDepartmentCollectionMembership,
   syncScopedCollectionMembership,
   syncStorefrontPriorityMembership,
 } from "@/lib/admin/collection-membership-sync";
@@ -129,7 +128,6 @@ export type SavedProductPayload = {
       id: string;
       slug: string;
       name: string;
-      isPrimaryNav: boolean;
       isStorefrontDefault: boolean;
     };
   }[];
@@ -229,7 +227,6 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
               id: true,
               slug: true,
               name: true,
-              isPrimaryNav: true,
               isStorefrontDefault: true,
             },
           },
@@ -707,7 +704,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     }),
   );
 
-  const department = formValue(formData, "department");
   const details = {
     attributes: Array.from({ length: 8 }, (_, index) => ({
       label: formValue(formData, `attributeLabel${index + 1}`),
@@ -919,10 +915,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   await syncScopedCollectionMembership(
     product.id,
-    { isPrimaryNav: false, isStorefrontDefault: false },
+    { isStorefrontDefault: false },
     collection?.id ?? null,
   );
-  await syncDepartmentCollectionMembership(product.id, department);
   await syncStorefrontPriorityMembership(product.id, isPublished);
 
   await db.productTag.deleteMany({
@@ -1065,8 +1060,7 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     label: formValue(formData, `attributeLabel${index + 1}`),
     value: formValue(formData, `attributeValue${index + 1}`),
   })).filter((item) => item.label && item.value);
-  // department is no longer stored in details — it's ProductCollection
-  // membership. Strip any legacy key left over from before this migration.
+  // Strip legacy keys left over from before the department removal.
   const existingDetails = Object.fromEntries(
     Object.entries(asRecord(existingProduct?.details)).filter(([key]) => key !== "department"),
   );

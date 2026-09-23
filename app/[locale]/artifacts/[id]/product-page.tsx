@@ -98,7 +98,7 @@ export default async function ProductDetailPage({ params }: Props) {
       />
       <ProductDetail
         product={product}
-        fitVideoSrc={hasFitFilm(product.departmentSlug) ? videos.braceletFilm : undefined}
+        fitVideoSrc={hasFitFilm() ? videos.braceletFilm : undefined}
         reviews={reviews}
         isSignedIn={isSignedIn}
         submitReviewAction={submitProductReviewAction}

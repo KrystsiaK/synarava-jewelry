@@ -18,8 +18,6 @@ function product(id: string) {
     image: "/x.webp",
     inStock: true,
     searchText: id,
-    departmentSlug: null,
-    departmentName: "",
     categorySlug: null,
     categoryName: "",
     productType: "",

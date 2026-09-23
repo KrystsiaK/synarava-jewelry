@@ -77,7 +77,7 @@ describe("shop listing projection", () => {
         { status: "ACTIVE", stockOnHand: 2, inventoryPolicy: "DENY", tracked: true, priceCents: 1200, compareAtCents: 1500 },
       ],
       tags: [{ tag: { slug: "gift", name: "Gift" } }],
-      collections: [{ sortOrder: 0, collection: { slug: "jewelry", name: "Jewelry", isPrimaryNav: true, isStorefrontDefault: false } }],
+      collections: [{ sortOrder: 0, collection: { slug: "rings", name: "Rings", isStorefrontDefault: false } }],
       characteristics: [{ key: "material", textValue: "silver", booleanValue: null }],
     });
 
@@ -88,7 +88,7 @@ describe("shop listing projection", () => {
       compareAtAmount: 15,
       inStock: true,
       categoryName: "Rings",
-      departmentSlug: "jewelry",
+      collectionSlugs: ["rings"],
     });
     expect(products[0]).not.toHaveProperty("variantDetails");
     expect(products[0]).not.toHaveProperty("commerceMedia");
@@ -100,7 +100,7 @@ describe("shop listing projection", () => {
     expect(select.variants.select).not.toHaveProperty("selectedOptions");
   });
 
-  it("projects translated department names when an explicit Portuguese locale is supplied", async () => {
+  it("projects translated product copy when an explicit Portuguese locale is supplied", async () => {
     rows.push({
       slug: "anel", sku: "ANEL-1", shopifyProductId: null, name: "Ring", seriesLabel: null,
       shortDescription: "English", description: "English", materialLine: null,
@@ -110,19 +110,13 @@ describe("shop listing projection", () => {
       translations: [{ locale: "pt", title: "Anel", shortDescription: "Português", description: "Português", materialLine: null }],
       variants: [{ status: "ACTIVE", stockOnHand: 1, inventoryPolicy: "DENY", tracked: true, priceCents: 1000, compareAtCents: null }],
       tags: [],
-      collections: [{
-        sortOrder: 0,
-        collection: {
-          slug: "jewelry", name: "Jewelry", isPrimaryNav: true, isStorefrontDefault: false,
-          translations: [{ locale: "pt", name: "Joalharia" }],
-        },
-      }],
+      collections: [],
       characteristics: [],
     });
 
     await expect(listShopListingProducts("pt")).resolves.toMatchObject([{
       title: "Anel",
-      departmentName: "Joalharia",
+      shortDescription: "Português",
     }]);
   });
 });

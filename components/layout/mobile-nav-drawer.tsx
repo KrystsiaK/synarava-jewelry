@@ -6,17 +6,13 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { hasDepartmentTranslation, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
-
 type NavItem = { href: string; label: string; match: string };
-type Department = { slug: string; name: string };
 
 type MobileNavDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
   drawerRef: RefObject<HTMLElement | null>;
   navItems: NavItem[];
-  departments: Department[];
   isActive: (match: string) => boolean;
   isLoggedIn: boolean;
 };
@@ -26,7 +22,6 @@ export function MobileNavDrawer({
   onClose,
   drawerRef,
   navItems,
-  departments,
   isActive,
   isLoggedIn,
 }: MobileNavDrawerProps) {
@@ -66,22 +61,6 @@ export function MobileNavDrawer({
                 {item.label}
               </Link>
             ))}
-          </nav>
-
-          <nav className="mt-6" aria-label="Shop departments">
-            <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">{t("shop.departments")}</p>
-            <div className="grid grid-cols-2 gap-x-4">
-              {departments.map((department) => (
-                <Link
-                  key={department.slug}
-                  href={localePath(locale, `/shop?department=${department.slug}`)}
-                  onClick={onClose}
-                  className="min-h-11 border-b border-stroke py-3 text-sm text-muted transition-colors hover:text-foreground"
-                >
-                  {hasDepartmentTranslation(department.slug) ? t(`shop.${shopDepartmentTranslationKey(department.slug)}`) : department.name}
-                </Link>
-              ))}
-            </div>
           </nav>
 
           <div className="mt-7 flex flex-col gap-3">

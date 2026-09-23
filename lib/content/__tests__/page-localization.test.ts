@@ -16,7 +16,7 @@ import { getPageBySlug } from "@/lib/content/catalog";
 
 describe("getPageBySlug localization", () => {
   beforeEach(() => mocks.findRedirect.mockResolvedValue(null));
-  it("uses Portuguese department copy and falls back field-by-field for empty translations", async () => {
+  it("uses Portuguese edit-section copy and falls back field-by-field for empty translations", async () => {
     mocks.getRequestLocale.mockResolvedValue("pt");
     mocks.findUniquePage.mockResolvedValue({
       slug: "home",
@@ -25,15 +25,14 @@ describe("getPageBySlug localization", () => {
       status: "PUBLISHED",
       visibility: "PUBLIC",
       content: {
-        departmentSectionEnabled: true,
-        departmentSectionTitle: "Choose where to begin.",
-        departmentSectionBody: "English section body.",
-        departmentSectionCtaLabel: "Explore the shop",
+        editSectionTitle: "The Edit",
+        editSectionBody: "English section body.",
+        editSectionCtaLabel: "View piece",
         translations: {
           pt: {
-            departmentSectionTitle: "Escolha por onde começar.",
-            departmentSectionBody: "",
-            departmentSectionCtaLabel: "Explorar a loja",
+            editSectionTitle: "A Seleção",
+            editSectionBody: "",
+            editSectionCtaLabel: "Ver peça",
           },
         },
       },
@@ -41,10 +40,9 @@ describe("getPageBySlug localization", () => {
 
     await expect(getPageBySlug("home")).resolves.toMatchObject({
       content: {
-        departmentSectionEnabled: true,
-        departmentSectionTitle: "Escolha por onde começar.",
-        departmentSectionBody: "English section body.",
-        departmentSectionCtaLabel: "Explorar a loja",
+        editSectionTitle: "A Seleção",
+        editSectionBody: "English section body.",
+        editSectionCtaLabel: "Ver peça",
       },
     });
   });

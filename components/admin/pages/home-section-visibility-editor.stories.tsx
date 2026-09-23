@@ -15,7 +15,7 @@ const meta = {
     ),
   ],
   args: {
-    content: { departmentSectionEnabled: true },
+    content: { heroSectionEnabled: true, archiveSectionEnabled: true },
   },
 } satisfies Meta<typeof HomeSectionVisibilityEditor>;
 

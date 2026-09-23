@@ -74,7 +74,7 @@ export async function createTestProductVariant(
 export type CreateTestCollectionInput = Partial<
   Pick<
     Prisma.CollectionCreateInput,
-    "name" | "status" | "visibility" | "isPrimaryNav" | "navSortOrder" | "heroImageUrl"
+    "name" | "status" | "visibility" | "isStorefrontDefault" | "heroImageUrl"
   >
 > & { slugSuffix?: string };
 
@@ -87,8 +87,7 @@ export async function createTestCollection(runId: string, input: CreateTestColle
       name: input.name ?? `E2E Test Collection ${suffix}`,
       status: input.status ?? "DRAFT",
       visibility: input.visibility ?? "PRIVATE",
-      isPrimaryNav: input.isPrimaryNav ?? false,
-      navSortOrder: input.navSortOrder ?? 0,
+      isStorefrontDefault: input.isStorefrontDefault ?? false,
       heroImageUrl: input.heroImageUrl ?? null,
     },
   });

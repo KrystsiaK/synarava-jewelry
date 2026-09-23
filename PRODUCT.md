@@ -16,13 +16,13 @@ Synarava is a couture jewelry storefront with a lightweight CMS. The admin exist
 
 ## Home Page CMS
 
-The Home editor controls the storefront as seven explicit sections: Hero, Department pathway, Featured collections, The Edit product showcase, Material lexicon, Manifesto, and Final call to action. Every section has an independent visibility control. Hiding a section removes it from the storefront without deleting its saved content.
+The Home editor controls the storefront as six explicit sections: Hero, Featured collections, The Edit product showcase, Material lexicon, Manifesto, and Final call to action. Every section has an independent visibility control. Hiding a section removes it from the storefront without deleting its saved content.
 
 Editors can maintain the localized English and Portuguese copy used by these sections, including labels, headings, body copy, calls to action, manifesto attribution, footer statement, and contact details. Collection- and navigation-driven imagery and cards continue to come from the corresponding catalog records.
 
 The Edit is a four-slot merchandising surface. Editors choose four distinct published Shopify-backed products in display order; the storefront resolves the saved local product references against the synchronized catalog and keeps product names, prices, links, and imagery sourced from that projection.
 
-Visibility settings are shared across locales so the page structure stays consistent. Copy remains locale-specific. Existing page records preserve the established storefront by default: all original sections remain visible, while the newer Department pathway remains opt-in until explicitly enabled.
+Visibility settings are shared across locales so the page structure stays consistent. Copy remains locale-specific. Existing page records preserve the established storefront by default: all original sections remain visible.
 
 ## Shop Discovery and Filtering
 
@@ -30,7 +30,7 @@ The shop landing experience follows a deliberate discovery sequence: cinematic h
 
 Shop filters run against the catalog already loaded in the browser. Applying, removing, sorting, or searching updates the URL for shareable, back-button-safe state without reloading the route or moving the shopper away from the results they are viewing. Discovery links update the same client-side filter state, then intentionally move focus down the page to the full archive.
 
-Shopify taxonomy categories and collections serve different purposes. A product has one exact Shopify Standard Product Taxonomy category ID, which powers the storefront category tiles and category filter. Products can belong to multiple Shopify collections, which remain merchandising groups; primary-navigation collections are presented as Synarava departments. The local database is a synchronized storefront projection of those Shopify identities, not a parallel category system.
+Shopify taxonomy categories and collections serve different purposes. A product has one exact Shopify Standard Product Taxonomy category ID, which powers the storefront category tiles and category filter. Products can belong to multiple Shopify collections, which remain merchandising groups. The local database is a synchronized storefront projection of those Shopify identities, not a parallel category system.
 
 ## Brand Personality
 

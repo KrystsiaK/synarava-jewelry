@@ -22,8 +22,8 @@ import { CreateProductForm } from "@/components/admin/products/product-create-fo
 import type { CollectionOption } from "@/components/admin/products/product-types";
 
 const collections: CollectionOption[] = [
-  { id: "col-1", slug: "lava-collection", name: "Lava Collection", isPrimaryNav: false, navSortOrder: 0 },
-  { id: "col-2", slug: "jewelry", name: "Jewelry", isPrimaryNav: true, navSortOrder: 0 },
+  { id: "col-1", slug: "lava-collection", name: "Lava Collection", isStorefrontDefault: false, shopifyCollectionId: null },
+  { id: "col-2", slug: "featured", name: "Featured", isStorefrontDefault: true, shopifyCollectionId: null },
 ];
 
 beforeEach(() => {
@@ -49,15 +49,6 @@ describe("CreateProductForm", () => {
     expect(screen.getByText("Product gallery")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Catalog/ }));
     expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
-    await act(async () => {});
-  });
-
-  it("only offers primary-nav collections in the department select", async () => {
-    render(<CreateProductForm collections={collections} />);
-
-    const departmentSelect = screen.getByLabelText("Department");
-    expect(departmentSelect).toHaveTextContent("Jewelry");
-    expect(departmentSelect).not.toHaveTextContent("Lava Collection");
     await act(async () => {});
   });
 

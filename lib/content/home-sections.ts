@@ -1,6 +1,5 @@
 export type HomeSectionVisibilityFields = {
   heroSectionEnabled?: boolean;
-  departmentSectionEnabled?: boolean;
   archiveSectionEnabled?: boolean;
   editSectionEnabled?: boolean;
   materialSectionEnabled?: boolean;
@@ -10,7 +9,6 @@ export type HomeSectionVisibilityFields = {
 
 export type HomeSectionVisibility = {
   hero: boolean;
-  department: boolean;
   archive: boolean;
   edit: boolean;
   material: boolean;
@@ -23,7 +21,6 @@ export function resolveHomeSectionVisibility(
 ): HomeSectionVisibility {
   return {
     hero: content?.heroSectionEnabled !== false,
-    department: content?.departmentSectionEnabled === true,
     archive: content?.archiveSectionEnabled !== false,
     edit: content?.editSectionEnabled !== false,
     material: content?.materialSectionEnabled !== false,

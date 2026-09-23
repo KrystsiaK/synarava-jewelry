@@ -86,7 +86,6 @@ function ProductHero({
     ? plural("product.stock", product.stockOnHand)
     : t("product.currentlyUnavailable");
   const quickFacts = [
-    ...(product.departmentName ? [{ label: t("product.hero.department"), value: product.departmentName }] : []),
     ...(product.categoryName ? [{ label: t("product.hero.category"), value: product.categoryName }] : []),
     { label: t("product.hero.availability"), value: availability },
     ...(product.variantCount > 1
@@ -236,7 +235,7 @@ function ProductHero({
 
 function ProductSpecifications({ product }: { product: ProductSummary }) {
   const { t, locale } = useTranslations();
-  const presentation = getProductPresentation(product.departmentSlug, t);
+  const presentation = getProductPresentation(t);
   type SpecificationRow = {
     label: string;
     value: string;
@@ -279,7 +278,7 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     );
     return rank(rowsA) - rank(rowsB);
   });
-  if (!product.departmentName && specificationGroups.length === 0) return null;
+  if (specificationGroups.length === 0) return null;
 
   return (
     <section data-component="ProductSpecifications" className="border-y border-foreground/10 bg-surface py-16 md:py-20">
@@ -289,10 +288,9 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
           <h2 className="mt-4 max-w-sm font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none">
             {t("product.specifications.title")}
           </h2>
-          {product.departmentName ? (
+          {product.categoryName ? (
             <p className="mt-5 text-sm uppercase tracking-[0.16em] text-foreground/50">
-              {product.departmentName}
-              {product.categoryName ? ` / ${product.categoryName}` : ""}
+              {product.categoryName}
             </p>
           ) : null}
         </div>
@@ -600,8 +598,8 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
   }
 
   const processMedia = fitVideoSrc || product.process.mediaImage;
-  const processMediaLabel = hasFitFilm(product.departmentSlug) ? "Fit film" : "Process film";
-  const processMediaAlt = hasFitFilm(product.departmentSlug)
+  const processMediaLabel = hasFitFilm() ? "Fit film" : "Process film";
+  const processMediaAlt = hasFitFilm()
     ? `${product.title} worn on the body`
     : `${product.title} in use`;
   if (!product.process.eyebrow || !product.process.title) {
@@ -967,8 +965,8 @@ export function ProductDetail({
         items: [{
           item_id: product.sku || product.slug,
           item_name: product.title,
-          item_category: product.departmentSlug,
-          item_category2: product.categorySlug,
+          item_category: product.categorySlug ?? undefined,
+          item_category2: product.collectionSlug,
           item_list_name: product.collectionSlug,
           price: product.priceAmount,
           quantity: 1,
@@ -979,7 +977,7 @@ export function ProductDetail({
         available: product.stockOnHand > 0,
       },
     });
-  }, [product.categorySlug, product.collectionSlug, product.currency, product.departmentSlug, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
+  }, [product.categorySlug, product.collectionSlug, product.currency, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
 
   return (
     <main data-component="ProductDetail"

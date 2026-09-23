@@ -38,7 +38,7 @@ test.describe("Catalog resilience", () => {
     await page.goto("/shop", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Shop by department" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Filters/i })).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search products" })).toBeVisible();
   });
 

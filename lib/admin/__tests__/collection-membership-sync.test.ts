@@ -19,7 +19,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import {
-  syncDepartmentCollectionMembership,
   syncScopedCollectionMembership,
   syncStorefrontPriorityMembership,
 } from "../collection-membership-sync";
@@ -30,7 +29,7 @@ describe("syncScopedCollectionMembership", () => {
   it("leaves an already-correct membership untouched, preserving its sortOrder", async () => {
     mocks.findManyMembership.mockResolvedValue([{ id: "row-1", collectionId: "collection-a" }]);
 
-    await syncScopedCollectionMembership("product-1", { isPrimaryNav: true }, "collection-a");
+    await syncScopedCollectionMembership("product-1", { isStorefrontDefault: false }, "collection-a");
 
     expect(mocks.deleteManyMembership).not.toHaveBeenCalled();
     expect(mocks.createMembership).not.toHaveBeenCalled();
@@ -39,10 +38,10 @@ describe("syncScopedCollectionMembership", () => {
   it("replaces a stale membership without deleting memberships outside its scope", async () => {
     mocks.findManyMembership.mockResolvedValue([{ id: "row-1", collectionId: "collection-old" }]);
 
-    await syncScopedCollectionMembership("product-1", { isPrimaryNav: true }, "collection-new");
+    await syncScopedCollectionMembership("product-1", { isStorefrontDefault: false }, "collection-new");
 
     expect(mocks.findManyMembership).toHaveBeenCalledWith({
-      where: { productId: "product-1", collection: { isPrimaryNav: true } },
+      where: { productId: "product-1", collection: { isStorefrontDefault: false } },
       select: { id: true, collectionId: true },
     });
     expect(mocks.deleteManyMembership).toHaveBeenCalledWith({ where: { id: { in: ["row-1"] } } });
@@ -54,7 +53,7 @@ describe("syncScopedCollectionMembership", () => {
   it("clears the membership when no target collection applies", async () => {
     mocks.findManyMembership.mockResolvedValue([{ id: "row-1", collectionId: "collection-a" }]);
 
-    await syncScopedCollectionMembership("product-1", { isPrimaryNav: true }, null);
+    await syncScopedCollectionMembership("product-1", { isStorefrontDefault: false }, null);
 
     expect(mocks.deleteManyMembership).toHaveBeenCalledWith({ where: { id: { in: ["row-1"] } } });
     expect(mocks.createMembership).not.toHaveBeenCalled();
@@ -86,24 +85,5 @@ describe("syncStorefrontPriorityMembership", () => {
 
     expect(mocks.findFirstCollection).not.toHaveBeenCalled();
     expect(mocks.createMembership).not.toHaveBeenCalled();
-  });
-});
-
-describe("syncDepartmentCollectionMembership", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("resolves the department slug scoped to isPrimaryNav collections only", async () => {
-    mocks.findFirstCollection.mockResolvedValue({ id: "dept-rings" });
-    mocks.findManyMembership.mockResolvedValue([]);
-
-    await syncDepartmentCollectionMembership("product-1", "rings");
-
-    expect(mocks.findFirstCollection).toHaveBeenCalledWith({
-      where: { slug: "rings", isPrimaryNav: true },
-      select: { id: true },
-    });
-    expect(mocks.createMembership).toHaveBeenCalledWith({
-      data: { productId: "product-1", collectionId: "dept-rings" },
-    });
   });
 });

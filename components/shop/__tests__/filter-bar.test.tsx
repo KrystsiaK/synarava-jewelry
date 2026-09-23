@@ -6,11 +6,9 @@ import { FILTERS_STORAGE_KEY } from "../types";
 const historyPush = vi.spyOn(window.history, "pushState");
 
 const categories = [{ value: "bracelets", label: "Bracelets" }];
-const departments = [{ value: "jewelry", label: "Jewelry" }];
 const collections = [{ value: "heritage", label: "Heritage" }];
 const tags = [{ value: "oak", label: "Oak Wood" }];
 const defaultProps = {
-  departments,
   categories,
   collections,
   tags,

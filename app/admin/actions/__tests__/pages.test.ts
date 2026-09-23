@@ -58,18 +58,11 @@ beforeEach(() => {
 });
 
 describe("savePageAction", () => {
-  it("persists bilingual home department pathway settings", async () => {
+  it("persists bilingual home section settings", async () => {
     const formData = new FormData();
     formData.set("slug", "home");
     formData.set("title", "Home");
     formData.set("workflowState", "PUBLISHED");
-    formData.set("departmentSectionEnabled", "1");
-    formData.set("departmentSectionTitle", "Choose where to begin.");
-    formData.set("departmentSectionBody", "A considered way into the collection.");
-    formData.set("departmentSectionImageCaption", "One point of view.");
-    formData.set("departmentSectionCtaLabel", "Explore the shop");
-    formData.set("ptDepartmentSectionTitle", "Escolha por onde começar.");
-    formData.set("ptDepartmentSectionBody", "Uma entrada cuidada na coleção.");
     formData.set("heroSectionEnabled", "1");
     formData.set("archiveSectionEnabled", "1");
     formData.set("manifestoSectionEnabled", "1");
@@ -100,11 +93,6 @@ describe("savePageAction", () => {
     expect(mocks.upsertPage).toHaveBeenCalledWith(expect.objectContaining({
       update: expect.objectContaining({
         content: expect.objectContaining({
-          departmentSectionEnabled: true,
-          departmentSectionTitle: "Choose where to begin.",
-          departmentSectionBody: "A considered way into the collection.",
-          departmentSectionImageCaption: "One point of view.",
-          departmentSectionCtaLabel: "Explore the shop",
           heroSectionEnabled: true,
           archiveSectionEnabled: true,
           editSectionEnabled: false,
@@ -126,8 +114,6 @@ describe("savePageAction", () => {
           finalContactEmail: "studio@example.com",
           translations: {
             pt: expect.objectContaining({
-              departmentSectionTitle: "Escolha por onde começar.",
-              departmentSectionBody: "Uma entrada cuidada na coleção.",
               editSectionTitle: "A Seleção",
               editSectionCtaLabel: "Ver peça",
               materialSectionNoteLabel: "Notas de materiais",
@@ -143,7 +129,6 @@ describe("savePageAction", () => {
         locale: "pt",
         title: "Home",
         content: expect.objectContaining({
-          departmentSectionTitle: "Escolha por onde começar.",
           editSectionTitle: "A Seleção",
           editSectionCtaLabel: "Ver peça",
           materialSectionNoteLabel: "Notas de materiais",

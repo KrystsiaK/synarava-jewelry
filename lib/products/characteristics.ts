@@ -67,7 +67,7 @@ export const PRODUCT_CHARACTERISTIC_GROUPS = Array.from(
 
 // Merchant-owned characteristic taxonomy is code-defined, not admin-editable
 // (see docs/translation-field-registry.md) — so it translates the same way
-// the built-in department nav labels do (lib/catalog/taxonomy.ts): a static
+// the jewelry storefront helpers do (lib/catalog/taxonomy.ts): a static
 // PT map alongside the EN source, not a database row. Values entered per
 // product (textValue/numberValue/booleanValue) are shared/untranslated; only
 // these fixed labels are buyer-facing text.

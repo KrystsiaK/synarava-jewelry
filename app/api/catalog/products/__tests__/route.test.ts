@@ -33,10 +33,10 @@ describe("GET /api/catalog/products", () => {
   });
 
   it("normalizes locale, filters, cursor and page size before calling the shared loader", async () => {
-    await GET(request("?locale=pt&department=jewelry&sort=price-asc&cursor=abc&limit=500"));
+    await GET(request("?locale=pt&collection=rings&sort=price-asc&cursor=abc&limit=500"));
 
     expect(mocks.listShopCatalogPage).toHaveBeenCalledWith({
-      filters: expect.objectContaining({ department: "jewelry", sort: "price-asc" }),
+      filters: expect.objectContaining({ collection: "rings", sort: "price-asc" }),
       locale: "pt",
       cursor: "abc",
       limit: 48, // clamped to CATALOG_MAX_PAGE_SIZE

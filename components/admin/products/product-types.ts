@@ -9,8 +9,6 @@ export type CollectionOption = {
   id: string;
   slug: string;
   name: string;
-  isPrimaryNav: boolean;
-  navSortOrder: number;
   isStorefrontDefault: boolean;
   shopifyCollectionId: string | null;
 };

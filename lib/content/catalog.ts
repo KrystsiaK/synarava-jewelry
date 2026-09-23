@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import type { ShopDepartmentSlug } from "@/lib/catalog/taxonomy";
 import {
   parseProductDetails,
   type ProductAttribute,
@@ -96,8 +95,6 @@ export type ProductSummary = {
   collectionSlugs: string[];
   collectionName: string;
   materialLine: string;
-  departmentSlug: ShopDepartmentSlug | null;
-  departmentName: string;
   attributes: ProductAttribute[];
   characteristics: ProductCharacteristicValue[];
   categorySlug: string | null;
@@ -122,7 +119,6 @@ export type ProductSummary = {
 
 export type ShopFilters = {
   q?: string;
-  department?: string;
   availability?: "in-stock" | string;
   category?: string;
   productType?: string;
@@ -145,16 +141,11 @@ export type PageContent = {
   secondaryBody?: string;
   heroImage?: string;
   heroSectionEnabled?: boolean;
-  departmentSectionEnabled?: boolean;
   archiveSectionEnabled?: boolean;
   editSectionEnabled?: boolean;
   materialSectionEnabled?: boolean;
   manifestoSectionEnabled?: boolean;
   finalCtaSectionEnabled?: boolean;
-  departmentSectionTitle?: string;
-  departmentSectionBody?: string;
-  departmentSectionImageCaption?: string;
-  departmentSectionCtaLabel?: string;
   archiveSectionLabel?: string;
   editSectionEyebrow?: string;
   editSectionTitle?: string;
@@ -187,7 +178,6 @@ export type PageContent = {
       | "translations"
       | "heroImage"
       | "heroSectionEnabled"
-      | "departmentSectionEnabled"
       | "archiveSectionEnabled"
       | "editSectionEnabled"
       | "editProductIds"
@@ -284,7 +274,6 @@ function toSummary(product: {
       searchSummary: string | null;
       seoTitle: string | null;
       seoDescription: string | null;
-      isPrimaryNav: boolean;
       isStorefrontDefault: boolean;
       translations: Array<{
         locale: string;
@@ -326,15 +315,11 @@ function toSummary(product: {
     asset: { key: string; width: number | null; height: number | null };
   }>;
 }, locale: Locale): ProductSummary {
-  // "Collection" (curated/marketing grouping) and "department" (top-level
-  // storefront navigation) are both ProductCollection membership now —
-  // isPrimaryNav distinguishes which one a given membership row is.
+  // Marketing collection membership excludes the storefront-default (Featured) row.
   const leadCollection = product.collections.find(
-    (item) => !item.collection.isPrimaryNav && !item.collection.isStorefrontDefault,
+    (item) => !item.collection.isStorefrontDefault,
   )?.collection;
-  const primaryNavCollection = product.collections.find((item) => item.collection.isPrimaryNav)?.collection ?? null;
   const leadCollectionCopy = leadCollection ? resolveCollectionCopy(leadCollection, locale) : null;
-  const primaryNavCollectionName = primaryNavCollection ? resolveCollectionName(primaryNavCollection, locale) : "";
   const localized = resolveProductCopy(product, locale);
   const localizedHandle = product.translations.find((translation) => translation.locale === locale)?.localizedHandle;
   const activeSlug = resolveLocalizedHandle(locale, product.slug, localizedHandle);
@@ -397,7 +382,6 @@ function toSummary(product: {
       localized.description,
       localized.materialLine,
       product.shopifyCategoryName,
-      primaryNavCollectionName,
       ...product.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
     ].filter(Boolean).join(" "),
     variantCount: product.variants.length,
@@ -435,8 +419,6 @@ function toSummary(product: {
     collectionSlugs: product.collections.map((item) => item.collection.slug),
     collectionName: leadCollectionCopy?.name ?? "",
     materialLine: localized.materialLine,
-    departmentSlug: primaryNavCollection?.slug ?? null,
-    departmentName: primaryNavCollectionName,
     attributes: product.characteristics.length
       ? product.characteristics.map((item) => ({ label: characteristicLabel(item.key, item.label, locale), value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }, locale) }))
       : details.attributes ?? [],
@@ -466,28 +448,8 @@ function toSummary(product: {
   };
 }
 
-/**
- * The storefront's top-level navigation departments — Shopify-backed
- * collections marked `isPrimaryNav`, replacing the hard-coded
- * `SHOP_DEPARTMENTS` list. Seeded once by migration
- * `20260907223000_add_collection_primary_navigation`; admin can add more
- * by marking another collection primary-nav.
- */
-export async function getStorefrontNavigation(locale: Locale = "en") {
-  const collections = await db.collection.findMany({
-    where: { isPrimaryNav: true, status: "ACTIVE", visibility: "PUBLIC" },
-    orderBy: [{ navSortOrder: "asc" }, { name: "asc" }],
-    include: { translations: true },
-  });
-  return collections.map((collection) => ({
-    slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle),
-    name: resolveCollectionCopy(collection, locale).name,
-  }));
-}
-
 export async function getShopFilterData(locale: Locale = "en") {
-  const [departments, categoryRows, productTypeRows, tags, collections, characteristicRows] = await Promise.all([
-    getStorefrontNavigation(locale),
+  const [categoryRows, productTypeRows, tags, collections, characteristicRows] = await Promise.all([
     // Category is Shopify Standard Product Taxonomy now (item 1) — there's
     // no local category table to browse, so the filter options are just
     // the distinct categories actually in use, like materials/finishes below.
@@ -507,7 +469,7 @@ export async function getShopFilterData(locale: Locale = "en") {
       orderBy: { name: "asc" },
     }),
     db.collection.findMany({
-      where: { status: "ACTIVE", visibility: "PUBLIC", isPrimaryNav: false, isStorefrontDefault: false },
+      where: { status: "ACTIVE", visibility: "PUBLIC", isStorefrontDefault: false },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: { translations: true },
     }),
@@ -529,7 +491,6 @@ export async function getShopFilterData(locale: Locale = "en") {
   });
   const values = (key: string) => characteristicRows.filter((item) => item.key === key && item.textValue).map((item) => ({ slug: item.textValue!, name: item.textValue! }));
   return {
-    departments,
     categories,
     productTypes,
     tags,
@@ -680,7 +641,6 @@ export async function listShopProducts(
               searchSummary: true,
               seoTitle: true,
               seoDescription: true,
-              isPrimaryNav: true,
               isStorefrontDefault: true,
               translations: true,
             },
@@ -757,7 +717,6 @@ export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
               searchSummary: true,
               seoTitle: true,
               seoDescription: true,
-              isPrimaryNav: true,
               isStorefrontDefault: true,
               translations: true,
             },

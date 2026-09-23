@@ -137,9 +137,6 @@ export function ProductDetailFields({
   /** Shared workspace locale from the product form shell. */
   activeLocale: string;
 }) {
-  const departmentCollections = collections
-    .filter((collection) => collection.isPrimaryNav)
-    .sort((a, b) => a.navSortOrder - b.navSortOrder);
   const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductDetailsLocaleDraft>>(() => ({
     [SOURCE_LOCALE]: detailsDraftFrom(details),
     ...Object.fromEntries(translationLocales.map(({ code }) => [code, detailsDraftFrom(translationsDetails[code] ?? EMPTY_DETAILS_SOURCE)])),
@@ -207,27 +204,13 @@ export function ProductDetailFields({
       >
         <div>
           <p className="adm-label-row">
-            <span className="adm-label">Department &amp; characteristics</span>
+            <span className="adm-label">Characteristics</span>
             <AdminHelp>
-              Department drives the top-level shop navigation. Characteristics adapt the same
-              product page to jewelry, pet accessories, kids products, and jewelry-making supplies.
+              Open the groups that apply to this product. Characteristics adapt the product
+              passport and are mirrored to Shopify metafields when supported.
             </AdminHelp>
           </p>
         </div>
-
-        <AdminSelectField
-          label="Department"
-          name="department"
-          defaultValue={details.department}
-          className="md:max-w-sm"
-        >
-          <option value="">No department</option>
-          {departmentCollections.map((department) => (
-            <option key={department.slug} value={department.slug}>
-              {department.name}
-            </option>
-          ))}
-        </AdminSelectField>
 
         <p className="text-xs leading-5 text-[var(--adm-muted)]">
           Open only the characteristic groups that apply to this product. Closed groups stay saved and are still included when you save.
@@ -957,8 +940,7 @@ export function ProductFormFields({
               help={(
                 <AdminHelp label="Product category guidance">
                   This is the exact Shopify Standard Product Taxonomy category. Its Shopify ID powers
-                  the Category section and filter on the site; Collections and Departments are
-                  separate merchandising groups.
+                  the Category section and filter on the site; Collections are a separate merchandising group.
                 </AdminHelp>
               )}
               issue={<AdminFieldIssue issues={categoryIssues} />}
@@ -978,7 +960,9 @@ export function ProductFormFields({
             issue={<AdminFieldIssue issues={collectionIssues} />}
           >
             <option value="">No collection</option>
-            {collections.map((collection) => (
+            {collections
+              .filter((collection) => !collection.isStorefrontDefault)
+              .map((collection) => (
               <option key={collection.id} value={collection.slug}>
                 {collection.name}
               </option>

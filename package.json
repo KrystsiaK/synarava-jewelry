@@ -15,7 +15,6 @@
     "check:privacy": "node scripts/check-privacy-config.mjs",
     "auth:hash": "node scripts/hash-password.mjs",
     "media:migrate-s3": "node scripts/migrate-local-uploads-to-s3.mjs",
-    "catalog:backfill-departments": "node scripts/backfill-department-collections.mjs",
     "translations:backfill": "node scripts/backfill-translations.mjs",
     "legal:export": "node scripts/export-legal-documents.mjs",
     "lint": "eslint .",

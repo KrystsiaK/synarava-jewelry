@@ -5,8 +5,8 @@ import { buildSearchParams, countActiveFilters, filtersWithoutSort } from "../ty
 
 describe("shop query state", () => {
   it("keeps non-default sorting in the URL", () => {
-    expect(buildSearchParams({ department: "jewelry", sort: "price-desc" }))
-      .toBe("department=jewelry&sort=price-desc");
+    expect(buildSearchParams({ category: "necklaces", sort: "price-desc" }))
+      .toBe("category=necklaces&sort=price-desc");
   });
 
   it("serializes and counts availability", () => {

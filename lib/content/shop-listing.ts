@@ -7,7 +7,6 @@ import { formatCurrency } from "@/lib/i18n/format";
 import { resolveLocalizedContent } from "@/lib/i18n/localized-content";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
-import { resolveCollectionName } from "@/lib/collections/localization";
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 import { buildShopProductWhere } from "@/lib/catalog/shop-where";
 import {
@@ -36,8 +35,6 @@ export type ShopListingProduct = {
   image: string;
   inStock: boolean;
   searchText: string;
-  departmentSlug: string | null;
-  departmentName: string;
   categorySlug: string | null;
   categoryName: string;
   productType: string;
@@ -93,7 +90,6 @@ const SHOP_LISTING_SELECT = {
         select: {
           slug: true,
           name: true,
-          isPrimaryNav: true,
           isStorefrontDefault: true,
           translations: { select: { locale: true, name: true } },
         },
@@ -127,8 +123,6 @@ function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListin
   const primaryVariant = row.variants.find(isVariantPurchasable) ?? row.variants[0];
   const priceCents = primaryVariant?.priceCents ?? row.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
-  const department = row.collections.find((item) => item.collection.isPrimaryNav)?.collection;
-  const departmentName = department ? resolveCollectionName(department, locale) : "";
   return {
     id: row.id,
     shopifyProductId: row.shopifyProductId,
@@ -146,11 +140,9 @@ function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListin
     searchText: [
       row.slug, row.sku, row.seriesLabel, row.searchSummary, row.searchDocument,
       copy.title, copy.shortDescription, copy.description, copy.materialLine,
-      row.shopifyCategoryName, departmentName,
+      row.shopifyCategoryName,
       ...row.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
     ].filter(Boolean).join(" "),
-    departmentSlug: department?.slug ?? null,
-    departmentName,
     categorySlug: row.shopifyCategoryId,
     categoryName: categoryLeafLabel(row.shopifyCategoryName),
     productType: row.productType?.trim() ?? "",

@@ -168,17 +168,12 @@ of Draft.
 | PROD-U05 | The list badge and `Unlisted` filter both report UNLISTED correctly | positive | P2 | ✔ unit | `product-helpers.test.ts` covers `productStatusLabel`; filter itself is PROD-L08. |
 | PROD-U06 | The primary variant's status follows the product into UNLISTED | edge | P3 | **action** | Variant write mirrors the same ternary. |
 
-## 6. Products — department & primary-nav collections (`e2e/admin-products.spec.ts`)
+## 6. Products — retired department cases
 
-**New section.** Covers the boundary that was mis-handled in four separate
-call sites before Phase A item 3 and is now centralized.
-
-| ID | Scenario | Type | Prio | Layer | Notes |
-|----|----------|------|------|-------|-------|
-| PROD-D01 | The Department select offers **only** collections with `isPrimaryNav`, ordered by `navSortOrder` | positive | P1 | ✔ render | `product-create-form.test.ts` "only offers primary-nav collections". |
-| PROD-D02 | Changing the department does not disturb the marketing collection, and vice versa | edge | P1 | **action** | `syncDepartmentCollectionMembership` scopes every read/write to `isPrimaryNav: true`. This is the regression that bit four call sites. |
-| PROD-D03 | The edit form's Collection field shows the marketing collection, never the department | positive | P1 | ✔ unit | `product-helpers.test.ts` "excludes the primary-nav (department) collection". |
-| PROD-D04 | Clearing the department removes only the nav membership | edge | P2 | **action** | `staleIds` deletion path with `target === null`. |
+`PROD-D01`–`PROD-D04` were removed in September 2026 when the department /
+primary-nav collection model was deleted. Marketing vs storefront-default
+membership is still covered by `product-helpers.test.ts` (storefront-default
+exclusion) and `collection-membership-sync.test.ts`.
 
 ## 7. Products — variant-owned commerce fields (`e2e/admin-products.spec.ts`)
 
@@ -256,7 +251,7 @@ and SYNC-16 asserts that state is handled gracefully.
 | COL-09 | Removing the hero image is **always** blocked, in any workflow state | negative | P2 | **action** | **Resolved (§14.2):** unlike products, the hero image is required unconditionally, not only when publishing. |
 | COL-10 | Filling one field autosaves a Draft collection | positive | P3 | **E2E** | `autosaveCollectionDraftAction`; same debounce caveat as PROD-C36. |
 | COL-11 | Collection code auto-generates from the name and is deterministic | positive | P2 | ✔ unit | `collection-helpers.test.ts`. |
-| COL-12 | An `isPrimaryNav` collection appears in the storefront's top-level navigation | positive | P2 | **E2E** | `getStorefrontNavigation()`; ties the department model to the public site. |
+| COL-12 | *(retired)* Primary-nav storefront navigation | — | — | — | Removed with the department model (September 2026). |
 
 ## 11. Pages (`e2e/admin-pages.spec.ts`)
 

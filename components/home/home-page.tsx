@@ -28,11 +28,6 @@ import { buildFinalCtaImages } from "@/lib/content/home-media";
 import { resolveHomeEditProducts } from "@/lib/content/home-edit-section";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import {
-  resolveHomeDepartmentSection,
-  type HomeDepartmentSectionFields,
-  type ResolvedHomeDepartmentSection,
-} from "@/lib/content/home-department-section";
-import {
   resolveHomeSectionVisibility,
   type HomeSectionVisibilityFields,
 } from "@/lib/content/home-sections";
@@ -42,7 +37,7 @@ import {
   type HomeLexiconSectionFields,
 } from "@/lib/content/home-lexicon-section";
 
-type HomePageContent = HomeDepartmentSectionFields & HomeSectionVisibilityFields & HomeLexiconSectionFields & {
+type HomePageContent = HomeSectionVisibilityFields & HomeLexiconSectionFields & {
   eyebrow?: string;
   heroTitle?: string;
   heroBody?: string;
@@ -86,15 +81,7 @@ export interface HomePageProps {
   content?: HomePageContent;
   collections: CollectionItem[];
   products?: Pick<ShopListingProduct, "id" | "slug" | "title" | "sourceTitle" | "price" | "image" | "series" | "categoryName">[];
-  departments: DepartmentItem[];
   heroVideoSrc?: string | string[];
-}
-
-export interface DepartmentItem {
-  slug: string;
-  name: string;
-  count: number;
-  image: string;
 }
 
 type LexiconMaterial = {
@@ -453,123 +440,6 @@ function HeroSection({
           </div>
         ) : null}
       </motion.div>
-    </section>
-  );
-}
-
-const DEPARTMENT_NOTES: Record<string, string> = {
-  jewelry: "Adornment, form, and personal symbolism",
-  pets: "Considered objects for everyday care",
-  kids: "Creative tools for curious hands",
-  "jewelry-making": "Materials and tools for makers",
-};
-
-function DepartmentPathway({
-  departments,
-  section,
-}: {
-  departments: DepartmentItem[];
-  section: ResolvedHomeDepartmentSection;
-}) {
-  const { locale } = useTranslations();
-  const leadDepartment = departments.find((department) => department.image);
-
-  return (
-    <section data-component="DepartmentPathway" className="home-department-surface relative z-20 px-6 py-24 text-linen md:px-[4vw] md:py-32" aria-labelledby="department-pathway-title">
-      <div className="mx-auto grid max-w-[90rem] gap-12 md:grid-cols-[minmax(0,0.82fr)_minmax(24rem,1.18fr)] md:items-stretch md:gap-[7vw]">
-        <motion.div
-          className="relative min-h-[24rem] overflow-hidden md:min-h-[42rem]"
-          initial={{ opacity: 0, y: 28 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-10%" }}
-          transition={{ duration: 0.85, ease }}
-          style={{ clipPath: "polygon(9% 0, 100% 5%, 94% 100%, 0 91%)" }}
-        >
-          {leadDepartment ? (
-            <>
-              <Image
-                src={leadDepartment.image}
-                alt={`${leadDepartment.name} at Synarava`}
-                fill
-                sizes="(max-width: 768px) 100vw, 42vw"
-                className="object-cover grayscale brightness-[0.72] contrast-[1.08]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/62 via-black/5 to-transparent" aria-hidden="true" />
-              {section.imageCaption ? (
-                <p className="absolute bottom-9 left-9 max-w-[18rem] font-sans text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white/72">
-                  {section.imageCaption}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <div className="h-full w-full border border-linen/12 bg-linen/[0.035]" />
-          )}
-        </motion.div>
-
-        <motion.div
-          className="flex flex-col justify-center"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-10%" }}
-          transition={{ duration: 0.8, delay: 0.08, ease }}
-        >
-          <h2 id="department-pathway-title" className="max-w-[10ch] text-balance font-serif text-[clamp(2.8rem,6vw,5.4rem)] leading-[0.92] tracking-[-0.035em]">
-            {section.title}
-          </h2>
-          <p className="mt-6 max-w-[34rem] text-pretty font-sans text-sm leading-7 text-stone-beige md:text-base">
-            {section.body}
-          </p>
-
-          <div className="mt-10 border-t border-linen/14 md:mt-14">
-            {departments.map((department) => {
-              const content = (
-                <>
-                  <span>
-                    <span className="block font-serif text-[clamp(1.65rem,3vw,2.65rem)] leading-none text-linen">
-                      {department.name}
-                    </span>
-                    <span className="mt-2 block text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-stone-beige">
-                      {DEPARTMENT_NOTES[department.slug] ?? "Curated goods"}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-3 text-[0.64rem] font-semibold uppercase tracking-[0.16em]">
-                    {department.count > 0 ? (
-                      <>
-                        {department.count} {department.count === 1 ? "piece" : "pieces"}
-                        <ArrowRight className="size-4" aria-hidden="true" />
-                      </>
-                    ) : "Coming soon"}
-                  </span>
-                </>
-              );
-
-              return department.count > 0 ? (
-                <Link
-                  key={department.slug}
-                  href={localePath(locale, `/shop?department=${department.slug}`)}
-                  onClick={() => trackCommerceEvent("department_entry", {
-                    department: department.slug,
-                    source: "home",
-                  })}
-                  className="group flex min-h-28 items-center justify-between gap-6 border-b border-linen/20 py-5 text-stone-beige transition-colors hover:text-couture-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
-                >
-                  {content}
-                </Link>
-              ) : (
-                <div key={department.slug} className="flex min-h-28 items-center justify-between gap-6 border-b border-linen/15 py-5 text-stone-beige/70">
-                  {content}
-                </div>
-              );
-            })}
-          </div>
-
-          {section.ctaLabel ? (
-            <div className="mt-10">
-              <PrimaryCtaButton href={localePath(locale, "/shop")}>{section.ctaLabel}</PrimaryCtaButton>
-            </div>
-          ) : null}
-        </motion.div>
-      </div>
     </section>
   );
 }
@@ -1595,9 +1465,8 @@ function FinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, co
     : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />;
 }
 
-export function HomePage({ collections, products = [], departments, heroVideoSrc, content }: HomePageProps) {
+export function HomePage({ collections, products = [], heroVideoSrc, content }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
-  const departmentSection = resolveHomeDepartmentSection(content, departments.length > 0);
   const visibility = resolveHomeSectionVisibility(content);
   const configuredLexiconMaterials = resolveLexiconMaterials(content);
   const lexiconMaterials = configuredLexiconMaterials.length > 0
@@ -1629,7 +1498,6 @@ export function HomePage({ collections, products = [], departments, heroVideoSrc
         ctaLabel={content?.ctaLabel}
         ctaHref={content?.ctaHref}
       /> : null}
-      {visibility.department && departmentSection ? <DepartmentPathway departments={departments} section={departmentSection} /> : null}
       {visibility.archive ? <ArchivePathway collections={collections} sectionLabel={content?.archiveSectionLabel} /> : null}
       {visibility.edit ? <EditShowcase
         products={products}

@@ -38,7 +38,7 @@ export type HomeEditProductOption = {
   slug: string;
 };
 
-// One physical field per concept (Title, Body, Department headline, ...),
+// One physical field per concept (Title, Body, Edit title, ...),
 // not one copy per language: the field's *value* switches with the active
 // locale tab, everything else about it (label, position, layout) stays put.
 // Adding a third/fourth language later means adding a locale to this draft
@@ -56,10 +56,6 @@ type PageLocaleDraft = {
   quote: string;
   secondaryTitle: string;
   secondaryBody: string;
-  departmentSectionTitle: string;
-  departmentSectionBody: string;
-  departmentSectionImageCaption: string;
-  departmentSectionCtaLabel: string;
   archiveSectionLabel: string;
   editSectionEyebrow: string;
   editSectionTitle: string;
@@ -91,10 +87,6 @@ function draftFromCopy(copy: EditablePageCopy): PageLocaleDraft {
     quote: copy.quote ?? "",
     secondaryTitle: copy.secondaryTitle ?? "",
     secondaryBody: copy.secondaryBody ?? "",
-    departmentSectionTitle: copy.departmentSectionTitle ?? "",
-    departmentSectionBody: copy.departmentSectionBody ?? "",
-    departmentSectionImageCaption: copy.departmentSectionImageCaption ?? "",
-    departmentSectionCtaLabel: copy.departmentSectionCtaLabel ?? "",
     archiveSectionLabel: copy.archiveSectionLabel ?? "",
     editSectionEyebrow: copy.editSectionEyebrow ?? "",
     editSectionTitle: copy.editSectionTitle ?? "",
@@ -148,10 +140,6 @@ function HiddenLocaleFields({
           field("quote", draft.quote),
           field("secondaryTitle", draft.secondaryTitle),
           field("secondaryBody", draft.secondaryBody),
-          field("departmentSectionTitle", draft.departmentSectionTitle),
-          field("departmentSectionBody", draft.departmentSectionBody),
-          field("departmentSectionImageCaption", draft.departmentSectionImageCaption),
-          field("departmentSectionCtaLabel", draft.departmentSectionCtaLabel),
           field("archiveSectionLabel", draft.archiveSectionLabel),
           field("editSectionEyebrow", draft.editSectionEyebrow),
           field("editSectionTitle", draft.editSectionTitle),
@@ -524,39 +512,6 @@ export function PageEditor({
                 </div>
               );
             })}
-          </section>
-        ) : null}
-
-        {isHomePage ? (
-          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="department-copy-heading">
-            <div>
-              <p id="department-copy-heading" className="adm-section-tag">HOME / DEPARTMENT PATHWAY</p>
-              <p className="mt-2 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                This section stays hidden until it is enabled and both the English headline and description are filled.
-                Department links and imagery come from the primary navigation collections.
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <AdminTextField
-                label="Department headline"
-                value={draft.departmentSectionTitle}
-                onChange={(event) => updateField("departmentSectionTitle", event.target.value)}
-              />
-              <AdminTextField
-                label="Department CTA label"
-                value={draft.departmentSectionCtaLabel}
-                onChange={(event) => updateField("departmentSectionCtaLabel", event.target.value)}
-              />
-            </div>
-            <label className="grid gap-2">
-              <span className="adm-label">Department description</span>
-              <textarea value={draft.departmentSectionBody} onChange={(event) => updateField("departmentSectionBody", event.target.value)} rows={3} className="adm-field" />
-            </label>
-            <AdminTextField
-              label="Department image caption"
-              value={draft.departmentSectionImageCaption}
-              onChange={(event) => updateField("departmentSectionImageCaption", event.target.value)}
-            />
           </section>
         ) : null}
 

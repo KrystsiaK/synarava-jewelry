@@ -60,7 +60,6 @@ type CatalogState = {
 /* ─── Empty state ────────────────────────────────────────────────── */
 type EmptyStateProps = {
   filters: ShopFilters;
-  departments?: FilterOption[];
   categories: FilterOption[];
   productTypes?: FilterOption[];
   collections: FilterOption[];
@@ -70,31 +69,17 @@ type EmptyStateProps = {
 const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
-function EmptyState({ filters, departments = [], categories, productTypes = [], collections, tags, onSelectFilters }: EmptyStateProps & { onSelectFilters: (filters: ShopFilters) => void }) {
+function EmptyState({ filters, categories, productTypes = [], collections, tags, onSelectFilters }: EmptyStateProps & { onSelectFilters: (filters: ShopFilters) => void }) {
   const { t, locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
-  const isDepartmentLanding = Boolean(filters.department) && ![
-    filters.q,
-    filters.availability,
-    filters.category,
-    filters.productType,
-    filters.collection,
-    filters.tag,
-    filters.material,
-    filters.finish,
-    filters.origin,
-    filters.certified,
-  ].some(Boolean);
-  const departmentName = filters.department ? labelOf(filters.department, departments) : t("shop.empty.thisDepartment");
   const dim: Record<keyof ShopFilters, string> = {
-    q: t("shop.filters.searchLabel"), department: t("shop.filters.department"), availability: t("shop.filters.availability"), category: t("shop.filters.category"), productType: t("shop.filters.productType"), collection: t("shop.filters.collection"), tag: t("shop.filters.tag"),
+    q: t("shop.filters.searchLabel"), availability: t("shop.filters.availability"), category: t("shop.filters.category"), productType: t("shop.filters.productType"), collection: t("shop.filters.collection"), tag: t("shop.filters.tag"),
     material: t("shop.filters.material"), finish: t("shop.filters.finish"), origin: t("shop.filters.origin"), certified: t("shop.filters.certification"), sort: t("shop.filters.sort"),
   };
 
   const active: { key: keyof ShopFilters; label: string; nextFilters: ShopFilters }[] = [];
   if (filters.q) active.push({ key: "q", label: `"${filters.q}"`, nextFilters: { ...filters, q: undefined } });
-  if (filters.department) active.push({ key: "department", label: labelOf(filters.department, departments), nextFilters: { ...filters, department: undefined } });
   if (filters.availability) active.push({ key: "availability", label: t("shop.filters.inStock"), nextFilters: { ...filters, availability: undefined } });
   if (filters.category) active.push({ key: "category", label: labelOf(filters.category, categories), nextFilters: { ...filters, category: undefined } });
   if (filters.productType) active.push({ key: "productType", label: labelOf(filters.productType, productTypes), nextFilters: { ...filters, productType: undefined } });
@@ -116,12 +101,12 @@ function EmptyState({ filters, departments = [], categories, productTypes = [], 
       </div>
 
       <div>
-        <p className="label-mono mb-3 text-couture-red">{isDepartmentLanding ? t("shop.empty.preview") : t("shop.empty.count")}</p>
+        <p className="label-mono mb-3 text-couture-red">{t("shop.empty.count")}</p>
         <h2 className="font-serif text-[1.8rem] md:text-[2.2rem]">
-          {isDepartmentLanding ? t("shop.empty.comingSoon", { department: departmentName }) : t("shop.empty.noMatch")}
+          {t("shop.empty.noMatch")}
         </h2>
         <p className="mt-3 max-w-xl text-base leading-[1.85] text-foreground/55">
-          {isDepartmentLanding ? t("shop.empty.comingSoonBody") : t("shop.empty.noMatchBody")}
+          {t("shop.empty.noMatchBody")}
         </p>
       </div>
 
@@ -160,7 +145,7 @@ function EmptyState({ filters, departments = [], categories, productTypes = [], 
         }}
         className="inline-flex min-h-11 items-center bg-foreground px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-couture-red hover:text-white"
       >
-        {isDepartmentLanding ? t("shop.empty.browseAvailable") : t("shop.empty.showAll")}
+        {t("shop.empty.showAll")}
       </Link>
     </motion.div>
   );
@@ -224,7 +209,6 @@ export type ShopCatalogClientProps = {
   initialPage: InitialCatalogPage;
   filters: ShopFilters;
   onSelectFilters: (filters: ShopFilters) => void;
-  departments?: FilterOption[];
   categories: FilterOption[];
   productTypes?: FilterOption[];
   collections: FilterOption[];
@@ -236,7 +220,6 @@ export function ShopCatalogClient({
   initialPage,
   filters,
   onSelectFilters,
-  departments,
   categories,
   productTypes,
   collections,
@@ -534,7 +517,6 @@ export function ShopCatalogClient({
               ) : (
                 <EmptyState
                   filters={filters}
-                  departments={departments}
                   categories={categories}
                   productTypes={productTypes}
                   collections={collections}

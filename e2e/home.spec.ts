@@ -47,8 +47,8 @@ test.describe("Home page", () => {
     await switcher.getByRole("button", { name: "Light" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
-    const section = page.locator('section[aria-labelledby="department-pathway-title"]');
-    await expect(section.getByRole("heading", { name: "Choose where to begin." })).toBeVisible();
+    const section = page.locator('section[aria-labelledby="lexicon-title"]');
+    await expect(section.getByRole("heading", { level: 2 }).first()).toBeVisible();
 
     const colors = await section.evaluate((element) => {
       const sectionStyle = getComputedStyle(element);

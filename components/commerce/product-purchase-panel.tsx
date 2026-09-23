@@ -33,7 +33,7 @@ function selectionForVariant(variant: ProductSummary["variantDetails"][number]) 
 
 export function ProductPurchasePanel({ product, compact = false }: ProductPurchasePanelProps) {
   const { t, plural, locale } = useTranslations();
-  const presentation = getProductPresentation(product.departmentSlug, t);
+  const presentation = getProductPresentation(t);
   const careInstructions = product.characteristics.find((item) => item.key === "care_instructions")?.textValue?.trim()
     || product.publicMetafields?.find((item) => item.label.toLowerCase() === "care instructions")?.value.trim()
     || "";

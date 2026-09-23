@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import {
   getPageBySlug,
-  getStorefrontNavigation,
   listCollections,
   type PageContent,
 } from "@/lib/content/catalog";
@@ -34,12 +33,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   const locale = await getRequestLocale();
-  const [page, collectionData, videos, products, navigation] = await Promise.all([
+  const [page, collectionData, videos, products] = await Promise.all([
     getPageBySlug("home", locale),
     listCollections(locale),
     getSiteVideos(),
     listShopListingProducts(locale),
-    getStorefrontNavigation(locale),
   ]);
 
   const collections = collectionData
@@ -54,15 +52,6 @@ export default async function Page() {
     }));
 
   const content: PageContent = page?.content ?? {};
-  const departments = navigation.map((department) => {
-    const departmentProducts = products.filter((product) => product.departmentSlug === department.slug);
-    return {
-      slug: department.slug,
-      name: department.name,
-      count: departmentProducts.length,
-      image: departmentProducts[0]?.image ?? "",
-    };
-  });
 
   return (
     <HomePage
@@ -80,7 +69,6 @@ export default async function Page() {
         series: product.series,
         categoryName: product.categoryName,
       }))}
-      departments={departments}
       heroVideoSrc={[videos.homeBeads, videos.homeModel, videos.braceletFilm, videos.materialsFilm]}
     />
   );

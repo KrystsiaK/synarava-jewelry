@@ -113,8 +113,7 @@ Minimum commerce payloads:
 
 | Event | Required properties |
 | --- | --- |
-| `department_entry` | department, source |
-| `view_item` | product ID/slug, variant ID when selected, SKU, name, numeric value, currency, collection, department, availability |
+| `view_item` | product ID/slug, variant ID when selected, SKU, name, numeric value, currency, collection, availability |
 | `add_to_cart` | product and variant identifiers, quantity, numeric value, currency, cart ID/hash |
 | `begin_checkout` | item count, numeric value, currency, source, item snapshot |
 | `purchase` | Shopify order ID as transaction ID, numeric revenue, tax, shipping, currency, coupon, item snapshot |

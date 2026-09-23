@@ -115,8 +115,7 @@ export function EditProductForm({
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const currentProduct = state.product ?? product;
   const draft = productToDraft(currentProduct, translationLocales);
-  const currentDepartment = currentProduct.collections.find((item) => item.collection.isPrimaryNav)?.collection.slug ?? "";
-  const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics, currentDepartment);
+  const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
   const isDirty = dirtyScopes.size > 0;

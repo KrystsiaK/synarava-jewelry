@@ -259,7 +259,6 @@ export function ShopPage({
             initialPage={initialPage}
             filters={activeFilters}
             onSelectFilters={selectDiscoveryFilters}
-            departments={filterProps.departments}
             categories={filterProps.categories}
             productTypes={filterProps.productTypes}
             collections={filterProps.collections}

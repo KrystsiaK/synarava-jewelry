@@ -32,7 +32,6 @@ Synarava-only localized fields and other locales are not cleared by that decisio
 
 - **Product category** means a Shopify Standard Product Taxonomy category. Synarava stores its GID and full name; there is no editable local category lifecycle.
 - **Collection** is the only product-grouping model. The local record projects Shopify identity and membership while retaining Synarava-owned editorial presentation.
-- **Primary navigation group** is a collection with `isPrimaryNav`; the legacy `department` query parameter and admin label are compatibility vocabulary, not a separate entity or product field.
 - **Tags** are Shopify product tags edited on the product. Local tag rows are a synchronized read projection, not standalone admin-managed records.
 - Tags power search and filters; they are not printed as a keyword list in the product purchase area.
 - **Product type** is Shopify's free-form value and must round-trip without translation into a local enum.

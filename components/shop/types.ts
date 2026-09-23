@@ -2,7 +2,6 @@ import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 
 export type ShopFilters = {
   q?: string;
-  department?: string;
   availability?: "in-stock";
   category?: string;
   productType?: string;
@@ -18,7 +17,7 @@ export type ShopFilters = {
 export type FilterOption = {
   value: string;
   label: string;
-  /** Short secondary tag shown next to the label, e.g. "Soon" for an empty department. */
+  /** Short secondary tag shown next to the label. */
   hint?: string;
 };
 
@@ -27,7 +26,6 @@ export const FILTERS_STORAGE_KEY = "synarava:shop-filters";
 export function buildSearchParams(filters: ShopFilters): string {
   const params = new URLSearchParams();
   if (filters.q?.trim()) params.set("q", filters.q.trim());
-  if (filters.department) params.set("department", filters.department);
   if (filters.availability) params.set("availability", filters.availability);
   if (filters.category) params.set("category", filters.category);
   if (filters.productType) params.set("productType", filters.productType);
@@ -45,7 +43,7 @@ export function parseShopFilters(searchParams: URLSearchParams): ShopFilters {
   const availability = searchParams.get("availability");
   return {
     q: searchParams.get("q") || undefined,
-    department: searchParams.get("department") || undefined,
+    // Legacy `department` query param is ignored after department removal.
     availability: availability === "in-stock" ? "in-stock" : undefined,
     category: searchParams.get("category") || undefined,
     productType: searchParams.get("productType") || undefined,
@@ -60,7 +58,7 @@ export function parseShopFilters(searchParams: URLSearchParams): ShopFilters {
 }
 
 export function countActiveFilters(filters: ShopFilters): number {
-  return [filters.q, filters.department, filters.availability, filters.category, filters.productType, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
+  return [filters.q, filters.availability, filters.category, filters.productType, filters.collection, filters.tag, filters.material, filters.finish, filters.origin, filters.certified].filter(Boolean).length;
 }
 
 export function filtersWithoutSort(filters: ShopFilters): ShopFilters {

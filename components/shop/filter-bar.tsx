@@ -7,7 +7,7 @@ import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { isJewelryDepartment, supportsComplianceFilters } from "@/lib/catalog/taxonomy";
+import { supportsComplianceFilters } from "@/lib/catalog/taxonomy";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
 import {
@@ -23,7 +23,6 @@ import {
 } from "./types";
 
 export type FilterBarProps = {
-  departments?: FilterOption[];
   categories: FilterOption[];
   productTypes?: FilterOption[];
   collections: FilterOption[];
@@ -40,7 +39,6 @@ const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
 export function FilterBar({
-  departments = [],
   categories,
   productTypes = [],
   collections,
@@ -180,9 +178,8 @@ export function FilterBar({
   const availabilityOptions: FilterOption[] = [
     { value: "in-stock", label: t("shop.filters.inStock") },
   ];
-  const isJewelryContext = isJewelryDepartment(filters.department);
-  const showFinish = isJewelryContext;
-  const showCompliance = supportsComplianceFilters(filters.department);
+  const showFinish = true;
+  const showCompliance = supportsComplianceFilters();
 
   return (
     <div data-component="FilterBar" className="relative">
@@ -193,11 +190,6 @@ export function FilterBar({
 
           {/* Summary pills */}
           <div className="flex flex-wrap gap-1.5">
-            {pendingRestore.department && (
-              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
-                {labelOf(pendingRestore.department, departments)}
-              </span>
-            )}
             {pendingRestore.category && (
               <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 {labelOf(pendingRestore.category, categories)}
@@ -345,7 +337,7 @@ export function FilterBar({
         </div>
         {advancedOpen ? (
           <div className="flex flex-wrap items-center gap-2.5 border-t border-foreground/[0.06] px-5 py-4 lg:px-6">
-            {isJewelryContext ? <FilterDropdown label={t("shop.filters.collection")} options={collections} value={filters.collection ?? ""} onChange={(v) => setFilter("collection", v)} allLabel={t("shop.filters.allCollections")} /> : null}
+            <FilterDropdown label={t("shop.filters.collection")} options={collections} value={filters.collection ?? ""} onChange={(v) => setFilter("collection", v)} allLabel={t("shop.filters.allCollections")} />
             <FilterDropdown label={t("shop.filters.tag")} options={tags} value={filters.tag ?? ""} onChange={(v) => setFilter("tag", v)} allLabel={t("shop.filters.allTags")} />
             <FilterDropdown label={t("shop.filters.material")} options={materials} value={filters.material ?? ""} onChange={(v) => setFilter("material", v)} allLabel={t("shop.filters.allMaterials")} />
             {showFinish ? <FilterDropdown label={t("shop.filters.finish")} options={finishes} value={filters.finish ?? ""} onChange={(v) => setFilter("finish", v)} allLabel={t("shop.filters.allFinishes")} /> : null}
@@ -430,7 +422,6 @@ export function FilterBar({
         <div className="mt-3">
           <FilterChips
             filters={filters}
-            departments={departments}
             categories={categories}
             productTypes={productTypes}
             collections={collections}
@@ -505,18 +496,12 @@ function MobileFilterSheet({
     { key: "category", label: t("shop.filters.category"), options: categories },
     { key: "productType", label: t("shop.filters.productType"), options: productTypes },
     { key: "availability", label: t("shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
-    ...(isJewelryDepartment(local.department)
-      ? [{ key: "collection" as const, label: t("shop.filters.collection"), options: collections }]
-      : []),
+    { key: "collection", label: t("shop.filters.collection"), options: collections },
     { key: "tag", label: t("shop.filters.tag"), options: tags },
     { key: "material", label: t("shop.filters.material"), options: materials },
-    ...(isJewelryDepartment(local.department)
-      ? [{ key: "finish" as const, label: t("shop.filters.finish"), options: finishes }]
-      : []),
+    { key: "finish", label: t("shop.filters.finish"), options: finishes },
     { key: "origin", label: t("shop.filters.origin"), options: origins },
-    ...(supportsComplianceFilters(local.department)
-      ? [{ key: "certified" as const, label: t("shop.filters.compliance"), options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] }]
-      : []),
+    { key: "certified", label: t("shop.filters.compliance"), options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] },
   ];
 
   return (

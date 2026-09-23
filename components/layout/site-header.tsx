@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Menu, ShoppingBag, X } from "lucide-react";
+import { Menu, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
@@ -10,22 +10,18 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useTheme } from "@/components/theme/theme-provider";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { AdaptivePopover } from "@/components/ui/adaptive-popover";
 import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { useDrawerFocusTrap } from "@/components/layout/use-drawer-focus-trap";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { hasDepartmentTranslation, shopDepartmentTranslationKey } from "@/lib/catalog/taxonomy";
-
 type SiteHeaderProps = {
   // null means the cart count couldn't be fetched (e.g. Shopify unavailable) —
   // treated as "unknown", never rendered as an empty cart.
   initialCartCount: number | null;
   isLoggedIn?: boolean;
-  departments?: Array<{ slug: string; name: string }>;
 };
 
-export function SiteHeader({ initialCartCount, isLoggedIn = false, departments = [] }: SiteHeaderProps) {
+export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname.replace(/^\/(en|pt)(?=\/|$)/, "") || "/";
   const { resolvedTheme } = useTheme();
@@ -36,7 +32,6 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
     sourceCount: number | null;
   } | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isShopMenuOpen, setIsShopMenuOpen] = useState(false);
   const [hasScrolledHeader, setHasScrolledHeader] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -183,45 +178,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
         </div>
 
         <nav className="relative z-10 hidden items-center gap-5 min-[1200px]:flex xl:gap-12">
-          {navItems.map((item) => item.match === "/shop" ? (
-            <span key={item.href} className="flex items-center gap-1">
-              <Link
-                href={localePath(locale, item.href)}
-                aria-current={isActive(item.match) ? "page" : undefined}
-                className={`label-caps transition-colors hover:text-accent ${isActive(item.match) ? "border-b border-foreground pb-1 text-foreground" : "text-muted"}`}
-              >
-                {item.label}
-              </Link>
-              <AdaptivePopover
-                open={isShopMenuOpen}
-                onOpenChange={setIsShopMenuOpen}
-                role="menu"
-                ariaLabel="Shop departments"
-                minWidth={240}
-                renderTrigger={(props) => (
-                  <button
-                    {...props}
-                    type="button"
-                    aria-haspopup="menu"
-                    aria-label="Open shop departments"
-                    className="inline-flex size-11 items-center justify-center text-muted transition-colors hover:text-accent"
-                  >
-                    <ChevronDown className={`size-3.5 transition-transform motion-reduce:transition-none ${isShopMenuOpen ? "rotate-180" : ""}`} aria-hidden="true" />
-                  </button>
-                )}
-                className="border border-stroke bg-panel p-2 text-foreground shadow-[0_18px_45px_rgba(0,0,0,0.16)]"
-              >
-                <Link href={localePath(locale, "/shop")} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 px-3 py-3 label-caps hover:bg-foreground/[0.05]">
-                  {t("shop.allProducts")}
-                </Link>
-                {departments.map((department) => (
-                  <Link key={department.slug} href={localePath(locale, `/shop?department=${department.slug}`)} role="menuitem" onClick={() => setIsShopMenuOpen(false)} className="block min-h-11 border-t border-stroke px-3 py-3 label-caps text-muted hover:bg-foreground/[0.05] hover:text-foreground">
-                    {hasDepartmentTranslation(department.slug) ? t(`shop.${shopDepartmentTranslationKey(department.slug)}`) : department.name}
-                  </Link>
-                ))}
-              </AdaptivePopover>
-            </span>
-          ) : (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={localePath(locale, item.href)}
@@ -303,7 +260,6 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, departments =
         onClose={() => setIsMenuOpen(false)}
         drawerRef={drawerRef}
         navItems={navItems}
-        departments={departments}
         isActive={isActive}
         isLoggedIn={isLoggedIn}
       />

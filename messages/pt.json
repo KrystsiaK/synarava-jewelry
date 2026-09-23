@@ -59,20 +59,15 @@
     "save": "Guardar opções"
   },
   "shop": {
-    "departments": "Departamentos",
     "allProducts": "Todos os produtos",
-    "jewelry": "Joalharia",
-    "pets": "Animais",
-    "kids": "Crianças",
-    "jewelryMaking": "Criação de joias",
     "heroEyebrow": "Loja Synarava · Seleção cuidada",
-    "heroDescription": "Joalharia, acessórios para animais, produtos criativos para crianças e ferramentas para criar à mão.",
+    "heroDescription": "Joalharia e acessórios selecionados pelo ofício, material e uso quotidiano.",
     "availableCount": {
       "one": "produto disponível",
       "other": "produtos disponíveis"
     },
     "selectionPromise": "Joalharia / Acessórios / Objetos do dia a dia",
-    "featuredProduct": "Produto em destaque / {department}",
+    "featuredProduct": "Produto em destaque",
     "resultsHeading": "Resultados da loja",
     "loadMoreProducts": "Carregar mais produtos",
     "catalog": {
@@ -94,13 +89,9 @@
       "shopProductType": "Comprar {productType}"
     },
     "empty": {
-      "preview": "Pré-visualização do departamento",
       "count": "0 produtos encontrados",
-      "comingSoon": "{department} estará disponível em breve.",
       "noMatch": "Nenhum produto corresponde à pesquisa.",
-      "comingSoonBody": "Estamos a selecionar os primeiros produtos para este departamento. Entretanto, explore o que já está disponível na loja.",
       "noMatchBody": "A combinação selecionada não devolveu resultados. Remova um filtro de cada vez ou limpe tudo para explorar a loja completa.",
-      "thisDepartment": "Este departamento",
       "active": "Ativos:",
       "browseAvailable": "Ver produtos disponíveis",
       "showAll": "Mostrar todos os produtos"
@@ -126,7 +117,6 @@
       "priceAsc": "Preço · mais baixo primeiro",
       "priceDesc": "Preço · mais alto primeiro",
       "nameAsc": "Nome · A–Z",
-      "department": "Departamento",
       "category": "Categoria",
       "productType": "Tipo de produto",
       "availability": "Disponibilidade",
@@ -391,13 +381,9 @@
     "removeFromWishlist": "Remover dos favoritos",
     "relatedTitle": "Também pode gostar",
     "presentation": {
-      "jewelry": { "descriptionLabel": "Notas sobre a peça", "descriptionTitle": "A peça, por completo", "buyingTitle": "Ajuste e cuidados" },
-      "pets": { "descriptionLabel": "Uso diário", "descriptionTitle": "Pensado para o bem-estar", "buyingTitle": "Escolha o ajuste certo" },
-      "kids": { "descriptionLabel": "Como funciona", "descriptionTitle": "Feito para mãos curiosas", "buyingTitle": "Idade e supervisão" },
-      "jewelry-making": { "descriptionLabel": "Notas do artesão", "descriptionTitle": "Para que serve a ferramenta", "buyingTitle": "Conteúdo e compatibilidade" }
+      "jewelry": { "descriptionLabel": "Notas sobre a peça", "descriptionTitle": "A peça, por completo", "buyingTitle": "Ajuste e cuidados" }
     },
     "hero": {
-      "department": "Departamento",
       "category": "Categoria",
       "availability": "Disponibilidade",
       "variants": "Variantes",

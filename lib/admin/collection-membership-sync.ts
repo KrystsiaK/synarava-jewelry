@@ -7,9 +7,9 @@ import { db } from "@/lib/db";
 /**
  * Adds/removes a product's membership in the one collection matching
  * `scope`, leaving other collection memberships (and this membership's
- * `sortOrder`, when it already exists) untouched. Every admin save routes
- * department, marketing, and storefront-default membership through this so
- * none of them resets a Shopify collection-priority order to 0.
+ * `sortOrder`, when it already exists) untouched. Admin saves route
+ * marketing and storefront-default membership through this so neither
+ * resets a Shopify collection-priority order to 0.
  */
 export async function syncScopedCollectionMembership(
   productId: string,
@@ -29,14 +29,6 @@ export async function syncScopedCollectionMembership(
   if (targetCollectionId && !existing.some((item) => item.collectionId === targetCollectionId)) {
     await db.productCollection.create({ data: { productId, collectionId: targetCollectionId } });
   }
-}
-
-/** Keeps a product's storefront-navigation membership (its "department") in sync with the admin's department select. */
-export async function syncDepartmentCollectionMembership(productId: string, departmentSlug: string) {
-  const target = departmentSlug
-    ? await db.collection.findFirst({ where: { slug: departmentSlug, isPrimaryNav: true }, select: { id: true } })
-    : null;
-  await syncScopedCollectionMembership(productId, { isPrimaryNav: true }, target?.id ?? null);
 }
 
 /**

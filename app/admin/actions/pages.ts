@@ -124,7 +124,6 @@ function readSectionFields(formData: FormData, locale: string, kind: "legal" | "
 
 const TRANSLATABLE_PAGE_FIELDS = [
   "eyebrow", "body", "ctaLabel", "quote", "secondaryTitle", "secondaryBody",
-  "departmentSectionTitle", "departmentSectionBody", "departmentSectionImageCaption", "departmentSectionCtaLabel",
   "archiveSectionLabel", "editSectionEyebrow", "editSectionTitle", "editSectionBody", "editSectionCtaLabel",
   "materialSectionEyebrow", "materialSectionTitle", "materialSectionNoteLabel",
   "manifestoSectionLabel", "manifestoSectionAttribution",
@@ -217,7 +216,6 @@ const pageContentFieldsSchema = z.object({
   secondaryTitle: z.string().trim().default(""),
   secondaryBody: z.string().trim().default(""),
   heroSectionEnabled: z.string().trim().default(""),
-  departmentSectionEnabled: z.string().trim().default(""),
   archiveSectionEnabled: z.string().trim().default(""),
   editSectionEnabled: z.string().trim().default(""),
   materialSectionEnabled: z.string().trim().default(""),
@@ -254,10 +252,6 @@ const pageContentFieldsSchema = z.object({
   finalFooterTitle: z.string().trim().default(""),
   finalContactLabel: z.string().trim().default(""),
   finalContactEmail: z.string().trim().default(""),
-  departmentSectionTitle: z.string().trim().default(""),
-  departmentSectionBody: z.string().trim().default(""),
-  departmentSectionImageCaption: z.string().trim().default(""),
-  departmentSectionCtaLabel: z.string().trim().default(""),
   legalIntro: z.string().trim().default(""),
   legalLastUpdated: z.string().trim().default(""),
 });
@@ -276,7 +270,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   }
   const {
     pageId, workflowState, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
-    secondaryTitle, secondaryBody, heroSectionEnabled, departmentSectionEnabled,
+    secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionCtaLabel,
     editProductId1, editProductId2, editProductId3, editProductId4,
@@ -286,8 +280,6 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     material3Name, material3Category, material3Description, material3Properties,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail,
-    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
-    departmentSectionCtaLabel,
     legalIntro, legalLastUpdated,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
@@ -329,8 +321,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   ], materialImages);
   const englishTranslationContent = {
     eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
-    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
-    departmentSectionCtaLabel, archiveSectionLabel, editSectionEyebrow, editSectionTitle,
+    archiveSectionLabel, editSectionEyebrow, editSectionTitle,
     editSectionBody, editSectionCtaLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
@@ -347,10 +338,6 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       quote: fields.quote,
       secondaryTitle: fields.secondaryTitle,
       secondaryBody: fields.secondaryBody,
-      departmentSectionTitle: fields.departmentSectionTitle,
-      departmentSectionBody: fields.departmentSectionBody,
-      departmentSectionImageCaption: fields.departmentSectionImageCaption,
-      departmentSectionCtaLabel: fields.departmentSectionCtaLabel,
       archiveSectionLabel: fields.archiveSectionLabel,
       editSectionEyebrow: fields.editSectionEyebrow,
       editSectionTitle: fields.editSectionTitle,
@@ -387,7 +374,6 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       secondaryTitle,
       secondaryBody,
       heroSectionEnabled: heroSectionEnabled === "1",
-      departmentSectionEnabled: departmentSectionEnabled === "1",
       archiveSectionEnabled: archiveSectionEnabled === "1",
       editSectionEnabled: editSectionEnabled === "1",
       materialSectionEnabled: materialSectionEnabled === "1",
@@ -410,10 +396,6 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       finalFooterTitle,
       finalContactLabel,
       finalContactEmail,
-      departmentSectionTitle,
-      departmentSectionBody,
-      departmentSectionImageCaption,
-      departmentSectionCtaLabel,
       legalIntro,
       legalLastUpdated,
       legalSections,
@@ -537,7 +519,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   }
   const {
     pageId, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
-    secondaryTitle, secondaryBody, heroSectionEnabled, departmentSectionEnabled,
+    secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionCtaLabel,
     materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
@@ -546,8 +528,6 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     material3Name, material3Category, material3Description, material3Properties,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail,
-    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
-    departmentSectionCtaLabel,
     legalIntro, legalLastUpdated,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
@@ -568,10 +548,6 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       quote: fields.quote,
       secondaryTitle: fields.secondaryTitle,
       secondaryBody: fields.secondaryBody,
-      departmentSectionTitle: fields.departmentSectionTitle,
-      departmentSectionBody: fields.departmentSectionBody,
-      departmentSectionImageCaption: fields.departmentSectionImageCaption,
-      departmentSectionCtaLabel: fields.departmentSectionCtaLabel,
       archiveSectionLabel: fields.archiveSectionLabel,
       editSectionEyebrow: fields.editSectionEyebrow,
       editSectionTitle: fields.editSectionTitle,
@@ -610,7 +586,6 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       secondaryTitle,
       secondaryBody,
       heroSectionEnabled: heroSectionEnabled === "1",
-      departmentSectionEnabled: departmentSectionEnabled === "1",
       archiveSectionEnabled: archiveSectionEnabled === "1",
       editSectionEnabled: editSectionEnabled === "1",
       materialSectionEnabled: materialSectionEnabled === "1",
@@ -632,10 +607,6 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       finalFooterTitle,
       finalContactLabel,
       finalContactEmail,
-      departmentSectionTitle,
-      departmentSectionBody,
-      departmentSectionImageCaption,
-      departmentSectionCtaLabel,
       legalIntro,
       legalLastUpdated,
       legalSections,
@@ -674,8 +645,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
 
   const englishTranslationContent = {
     eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
-    departmentSectionTitle, departmentSectionBody, departmentSectionImageCaption,
-    departmentSectionCtaLabel, archiveSectionLabel, editSectionEyebrow, editSectionTitle,
+    archiveSectionLabel, editSectionEyebrow, editSectionTitle,
     editSectionBody, editSectionCtaLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,

@@ -126,8 +126,8 @@ describe("sortProducts", () => {
 
   it("sorts by the selected Shopify collection priority", () => {
     const prioritized = [
-      makeProduct({ id: "a", collections: [{ id: "a-link", sortOrder: 4, collection: { id: "featured", slug: "featured", name: "Featured", isPrimaryNav: false } }] }),
-      makeProduct({ id: "b", collections: [{ id: "b-link", sortOrder: 1, collection: { id: "featured", slug: "featured", name: "Featured", isPrimaryNav: false } }] }),
+      makeProduct({ id: "a", collections: [{ id: "a-link", sortOrder: 4, collection: { id: "featured", slug: "featured", name: "Featured", isStorefrontDefault: true } }] }),
+      makeProduct({ id: "b", collections: [{ id: "b-link", sortOrder: 1, collection: { id: "featured", slug: "featured", name: "Featured", isStorefrontDefault: true } }] }),
     ];
 
     expect(sortProducts(prioritized, "collection-priority", "featured").map((item) => item.id))
@@ -263,11 +263,11 @@ describe("productToDraft", () => {
     expect(draft.stockOnHand).toBe("7");
   });
 
-  it("excludes the primary-nav (department) collection from the marketing collection slug", () => {
+  it("excludes the storefront-default collection from the marketing collection slug", () => {
     const product = makeProduct({
       collections: [
-        { id: "link-1", sortOrder: 0, collection: { id: "col-1", slug: "rings", isPrimaryNav: false, name: "Rings" } },
-        { id: "link-2", sortOrder: 1, collection: { id: "col-2", slug: "jewelry", isPrimaryNav: true, name: "Jewelry" } },
+        { id: "link-1", sortOrder: 0, collection: { id: "col-1", slug: "rings", isStorefrontDefault: false, name: "Rings" } },
+        { id: "link-2", sortOrder: 1, collection: { id: "col-2", slug: "featured", isStorefrontDefault: true, name: "Featured" } },
       ],
     });
 

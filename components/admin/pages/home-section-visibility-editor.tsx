@@ -7,7 +7,6 @@ import { resolveHomeSectionVisibility } from "@/lib/content/home-sections";
 
 const HOME_SECTION_CONTROLS = [
   { key: "hero", name: "heroSectionEnabled", label: "Hero", ariaLabel: "Show hero", description: "Opening media, headline, introduction, and primary action." },
-  { key: "department", name: "departmentSectionEnabled", label: "Department pathway", ariaLabel: "Show department pathway", description: "Department links and imagery from primary navigation collections." },
   { key: "archive", name: "archiveSectionEnabled", label: "Featured collections", ariaLabel: "Show featured collections", description: "The first three published collections and their editorial cards." },
   { key: "edit", name: "editSectionEnabled", label: "The Edit", ariaLabel: "Show The Edit", description: "A four-piece product edit with prices, materials, and direct product links." },
   { key: "material", name: "materialSectionEnabled", label: "Material lexicon", ariaLabel: "Show material lexicon", description: "A scroll-led material view generated from featured collections." },

@@ -49,12 +49,11 @@ export function getProductDetailsTranslation(details: unknown) {
   };
 }
 
-export function getProductEditorDetails(details: unknown, characteristics: ProductRecord["characteristics"] = [], department = "") {
+export function getProductEditorDetails(details: unknown, characteristics: ProductRecord["characteristics"] = []) {
   const parsed = parseProductDetails(details);
   const translation = getProductDetailsTranslation(details);
 
   return {
-    department,
     attributes: translation.attributes,
     characteristics: Object.fromEntries(characteristics.map((item) => [item.key, {
       value: item.valueType === "BOOLEAN"
@@ -107,12 +106,11 @@ export function emptyDraft(translationLocales: AdminTranslationLocale[] = []): P
 
 export function productToDraft(product: ProductRecord, translationLocales: AdminTranslationLocale[] = []): ProductDraft {
   // Commerce fields are owned by the variant, not Product's own mirror
-  // columns (kept only as a Shopify pull identity anchor). Collection
-  // membership mixes marketing collections with the primary-nav
-  // ("department") one in the same array — exclude isPrimaryNav here too.
+  // columns (kept only as a Shopify pull identity anchor). Exclude the
+  // storefront-default (Featured) membership from the marketing select.
   const primaryVariant = product.variants[0];
   const marketingCollection = product.collections.find(
-    (item) => !item.collection.isPrimaryNav && !item.collection.isStorefrontDefault,
+    (item) => !item.collection.isStorefrontDefault,
   )?.collection;
   return {
     name: product.name,

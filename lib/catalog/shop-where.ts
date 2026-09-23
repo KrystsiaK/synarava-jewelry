@@ -11,9 +11,6 @@ export function buildShopProductWhere(filters: ShopFilters, locale: Locale): Pri
   const q = filters.q?.trim();
   const and: Prisma.ProductWhereInput[] = [];
 
-  if (filters.department) {
-    and.push({ collections: { some: { collection: { isPrimaryNav: true, slug: filters.department } } } });
-  }
   if (filters.collection) {
     and.push({ collections: { some: { collection: { slug: filters.collection } } } });
   }

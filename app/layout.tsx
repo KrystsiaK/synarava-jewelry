@@ -15,7 +15,6 @@ import { PrivacyConsentManager } from "@/components/privacy/privacy-consent-mana
 import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
-import { getStorefrontNavigation } from "@/lib/content/catalog";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { getSiteSeo } from "@/lib/content/site-seo";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
@@ -137,12 +136,11 @@ export default async function RootLayout({
     storefrontRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ROOT_DOMAIN,
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
-  const [cartCount, isLoggedIn, departments, storefrontCopy] = await Promise.all([
+  const [cartCount, isLoggedIn, storefrontCopy] = await Promise.all([
     // An unreachable/slow Shopify Storefront API must not block rendering of the
     // whole app (admin included) for a header badge that isn't essential to any page.
     getStorefrontCartCount().catch(() => null),
     hasShopifyCustomerSession(),
-    getStorefrontNavigation(initialLocale),
     getStorefrontCopy(),
   ]);
 
@@ -207,7 +205,7 @@ export default async function RootLayout({
                 ProductCard, CartShell, ShopFooter) that never checks useReducedMotion()
                 itself — a per-component audit isn't needed for new motion usage either. */}
             <MotionConfig reducedMotion="user">
-              <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} departments={departments} />
+              <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} />
               <div id="main-content" tabIndex={-1}>{children}</div>
               <SiteFooter />
             </MotionConfig>

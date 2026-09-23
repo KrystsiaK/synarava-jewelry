@@ -6,7 +6,6 @@ describe("resolveHomeSectionVisibility", () => {
   it("keeps existing storefront sections visible for legacy page content", () => {
     expect(resolveHomeSectionVisibility({})).toEqual({
       hero: true,
-      department: false,
       archive: true,
       edit: true,
       material: true,
@@ -18,7 +17,6 @@ describe("resolveHomeSectionVisibility", () => {
   it("honors explicit visibility choices for every home section", () => {
     expect(resolveHomeSectionVisibility({
       heroSectionEnabled: false,
-      departmentSectionEnabled: true,
       archiveSectionEnabled: false,
       editSectionEnabled: false,
       materialSectionEnabled: false,
@@ -26,7 +24,6 @@ describe("resolveHomeSectionVisibility", () => {
       finalCtaSectionEnabled: false,
     })).toEqual({
       hero: false,
-      department: true,
       archive: false,
       edit: false,
       material: false,
