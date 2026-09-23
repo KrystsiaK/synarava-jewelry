@@ -1,36 +1,71 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { PencilLine } from "lucide-react";
 
+import {
+  AdminFieldShell,
+  useAdminFieldIds,
+} from "@/components/admin/shared/admin-field-shell";
+import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label";
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import { cn } from "@/lib/ui";
 
-type AdminLongTextFieldProps = {
-  // Omit `name` when the caller submits this field itself (e.g. via its own
-  // hidden mirror inputs) and drives the displayed text with `value`/`onChange`
-  // — see product-form-fields.tsx's locale-switching fields.
+export type AdminLongTextFieldProps = {
+  // Omit `name` when the caller submits via hidden mirrors and drives `value`/`onChange`.
   name?: string;
-  label: React.ReactNode;
+  label?: ReactNode;
+  owner?: AdminFieldOwner;
+  help?: ReactNode;
+  required?: boolean;
   dialogLabel?: string;
   defaultValue?: string | null;
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  error?: string;
+  errorId?: string;
+  invalid?: boolean;
+  issue?: ReactNode;
+  disabled?: boolean;
+  className?: string;
+  unitId?: string;
+  id?: string;
+  /** Extra classes for the modal editor (e.g. font-mono for Markdown). */
+  editorClassName?: string;
 };
 
+/**
+ * Long copy: full-width text preview + Edit opens a modal.
+ * Preview is plain text (not an input) — modal editor may later become WYSIWYG.
+ * Shares AdminFieldShell error/owner/help chrome with text/select.
+ */
 export function AdminLongTextField({
   name,
   label,
+  owner,
+  help,
+  required = false,
   dialogLabel,
   defaultValue = "",
   value: controlledValue,
   onChange,
   placeholder = "No content yet.",
   rows = 12,
+  error,
+  errorId,
+  invalid = false,
+  issue,
+  disabled = false,
+  className,
+  unitId,
+  id,
+  editorClassName,
 }: AdminLongTextFieldProps) {
   const isControlled = controlledValue !== undefined;
   const titleId = useId();
+  const { controlId, messageId } = useAdminFieldIds(id, errorId);
   const hiddenFieldRef = useRef<HTMLTextAreaElement>(null);
   const initialValue = defaultValue ?? "";
   const [internalValue, setInternalValue] = useState(initialValue);
@@ -38,6 +73,7 @@ export function AdminLongTextField({
   const [draftValue, setDraftValue] = useState(value);
   const [open, setOpen] = useState(false);
   const plainLabel = dialogLabel ?? (typeof label === "string" ? label : name ?? "field");
+  const showError = Boolean(error) || invalid;
 
   useEffect(() => {
     if (isControlled) return;
@@ -55,6 +91,7 @@ export function AdminLongTextField({
   }, [initialValue, isControlled]);
 
   function openEditor() {
+    if (disabled) return;
     setDraftValue(value);
     setOpen(true);
   }
@@ -78,8 +115,20 @@ export function AdminLongTextField({
   }
 
   return (
-    <div data-component="AdminLongTextField" className="grid min-w-0 gap-2">
-      <div>{label}</div>
+    <AdminFieldShell
+      id={unitId}
+      component="AdminLongTextField"
+      label={label}
+      owner={owner}
+      help={help}
+      required={required}
+      error={error}
+      errorId={messageId}
+      issue={issue}
+      disabled={disabled}
+      className={cn("w-full min-w-0", className)}
+      controlId={controlId}
+    >
       {name ? (
         <textarea
           ref={hiddenFieldRef}
@@ -91,15 +140,24 @@ export function AdminLongTextField({
           className="sr-only"
         />
       ) : null}
-      <div className="adm-long-text-preview">
+
+      <div
+        data-slot="long-text-preview"
+        className={cn("adm-long-text-preview", showError ? "adm-long-text-preview--error" : null)}
+        aria-invalid={showError ? true : undefined}
+        aria-errormessage={showError ? messageId : undefined}
+      >
         <p className="adm-long-text-preview__copy" data-empty={value ? undefined : "true"}>
           {value || placeholder}
         </p>
         <button
           type="button"
+          id={controlId}
           className="adm-long-text-preview__action"
           onClick={openEditor}
+          disabled={disabled}
           aria-label={`Edit ${plainLabel}`}
+          aria-invalid={showError ? true : undefined}
         >
           <PencilLine aria-hidden="true" className="size-3.5" />
           Edit
@@ -118,7 +176,7 @@ export function AdminLongTextField({
         <div>
           <h3 id={titleId} className="adm-title-sm">{plainLabel}</h3>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
-            Edit the complete text here. The product form keeps a compact preview.
+            Edit the complete text here. The form keeps a compact preview.
           </p>
         </div>
         <textarea
@@ -129,7 +187,7 @@ export function AdminLongTextField({
             setDraftValue(event.target.value);
           }}
           rows={rows}
-          className="adm-field adm-long-text-editor"
+          className={cn("adm-field adm-long-text-editor", editorClassName)}
         />
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] pt-4">
           <span className="text-xs tabular-nums text-[var(--adm-subtle)]">
@@ -141,6 +199,6 @@ export function AdminLongTextField({
           </div>
         </div>
       </AnimatedModal>
-    </div>
+    </AdminFieldShell>
   );
 }

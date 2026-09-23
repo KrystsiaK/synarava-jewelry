@@ -11,7 +11,6 @@ import { X } from "lucide-react";
 
 import {
   AdminFieldShell,
-  fieldClass,
   useAdminFieldIds,
 } from "@/components/admin/shared/admin-field-shell";
 import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label";
@@ -67,7 +66,6 @@ export function AdminTextControl({
   const inputRef = useRef<HTMLInputElement>(null);
   const [hasValue, setHasValue] = useState(() => readHasValue(value ?? defaultValue));
   const showError = Boolean(error) || invalid || ariaInvalid === true;
-  const useGroup = clearable || startAdornment != null || endAdornment != null;
 
   useEffect(() => {
     if (value !== undefined) setHasValue(readHasValue(value));
@@ -86,33 +84,8 @@ export function AdminTextControl({
     el.focus();
   }
 
-  const input = (
-    <input
-      {...inputProps}
-      ref={inputRef}
-      id={controlId}
-      value={value}
-      defaultValue={defaultValue}
-      disabled={disabled}
-      aria-invalid={showError ? true : undefined}
-      aria-errormessage={showError ? ariaErrorMessage : undefined}
-      onChange={(event) => {
-        setHasValue(readHasValue(event.target.value));
-        onChange?.(event);
-      }}
-      onInput={(event) => {
-        setHasValue(readHasValue(event.currentTarget.value));
-        onInput?.(event);
-      }}
-      className={cn(
-        useGroup ? "adm-field adm-field--in-group" : fieldClass(showError ? error || "invalid" : undefined),
-        inputClassName,
-      )}
-    />
-  );
-
-  if (!useGroup) return input;
-
+  // Always use adm-field-group so every text control shares one chrome.
+  // Clear / adornments are optional slots inside that same border.
   return (
     <div
       data-slot="control-group"
@@ -128,7 +101,25 @@ export function AdminTextControl({
           {startAdornment}
         </span>
       ) : null}
-      {input}
+      <input
+        {...inputProps}
+        ref={inputRef}
+        id={controlId}
+        value={value}
+        defaultValue={defaultValue}
+        disabled={disabled}
+        aria-invalid={showError ? true : undefined}
+        aria-errormessage={showError ? ariaErrorMessage : undefined}
+        onChange={(event) => {
+          setHasValue(readHasValue(event.target.value));
+          onChange?.(event);
+        }}
+        onInput={(event) => {
+          setHasValue(readHasValue(event.currentTarget.value));
+          onInput?.(event);
+        }}
+        className={cn("adm-field adm-field--in-group", inputClassName)}
+      />
       {clearable ? (
         <button
           type="button"

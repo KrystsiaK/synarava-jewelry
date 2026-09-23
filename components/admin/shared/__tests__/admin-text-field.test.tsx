@@ -2,8 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { AdminHelp } from "@/components/admin/shared/admin-help";
-import { AdminTextField, fieldClass } from "@/components/admin/shared/admin-text-field";
+import { AdminHelp, AdminTextField, fieldClass } from "@/components/synarava-cms";
 
 describe("fieldClass", () => {
   it("reuses adm-field / adm-field--error tokens", () => {
@@ -31,7 +30,8 @@ describe("AdminTextField", () => {
     const input = screen.getByRole("textbox", { name: /SKU/i });
     expect(input).toHaveAttribute("id", "sku-field");
     expect(input).toHaveAttribute("required");
-    expect(input).toHaveClass("adm-field", "adm-field--error");
+    expect(input).toHaveClass("adm-field", "adm-field--in-group");
+    expect(input.closest("[data-slot='control-group']")).toHaveClass("adm-field-group", "adm-field-group--error");
     expect(input).toHaveAccessibleErrorMessage("Enter a SKU.");
     expect(screen.getByText("Shopify")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "SKU guidance" })).toBeInTheDocument();
@@ -44,6 +44,17 @@ describe("AdminTextField", () => {
     render(<AdminTextField label="Subtitle" help="Shown under the name." defaultValue="" />);
     expect(screen.getByRole("textbox", { name: /Subtitle/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Field guidance" })).toBeInTheDocument();
+  });
+
+  it("always uses one shared field-group chrome", () => {
+    const { container } = render(
+      <AdminTextField label="Name" name="name" defaultValue="Axis" />,
+    );
+    const group = container.querySelector("[data-slot='control-group']");
+    expect(group).toHaveClass("adm-field-group");
+    expect(group).toHaveAttribute("data-clearable", "false");
+    expect(screen.getByRole("textbox", { name: /Name/i })).toHaveClass("adm-field--in-group");
+    expect(screen.queryByRole("button", { name: "Clear field" })).not.toBeInTheDocument();
   });
 
   it("keeps end adornment inside one shared field border", () => {

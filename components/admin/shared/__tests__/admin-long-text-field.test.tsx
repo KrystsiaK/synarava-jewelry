@@ -2,10 +2,10 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
+import { AdminLongTextField } from "@/components/synarava-cms";
 
 describe("AdminLongTextField", () => {
-  it("keeps long copy compact and commits modal edits to the form", async () => {
+  it("keeps long copy as text preview and commits modal edits to the form", async () => {
     const onInput = vi.fn();
     const user = userEvent.setup();
     const { container } = render(
@@ -19,6 +19,8 @@ describe("AdminLongTextField", () => {
     );
     container.querySelector("form")!.addEventListener("input", onInput);
 
+    const preview = container.querySelector("[data-slot='long-text-preview']");
+    expect(preview).toHaveClass("adm-long-text-preview");
     expect(container.querySelector(".adm-long-text-preview__copy")).toHaveTextContent(
       /A long product description/,
     );
@@ -38,6 +40,24 @@ describe("AdminLongTextField", () => {
       "A shorter, clearer description.",
     );
     expect(onInput).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows error chrome on the full-width preview", () => {
+    const { container } = render(
+      <AdminLongTextField
+        label="Fit notes"
+        name="fit_notes"
+        error="Add fit notes."
+        errorId="fit-error"
+        defaultValue=""
+      />,
+    );
+
+    const preview = container.querySelector("[data-slot='long-text-preview']");
+    expect(preview).toHaveClass("adm-long-text-preview--error");
+    expect(preview).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Add fit notes.")).toBeInTheDocument();
+    expect(container.querySelector("[data-component='AdminLongTextField']")).toHaveClass("w-full");
   });
 
   it("discards modal edits when cancelled", async () => {

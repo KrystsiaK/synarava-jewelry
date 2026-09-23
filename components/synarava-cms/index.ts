@@ -22,7 +22,9 @@ export {
 } from "@/components/admin/shared/admin-text-field";
 
 export {
+  AdminSelectControl,
   AdminSelectField,
+  type AdminSelectControlProps,
   type AdminSelectFieldProps,
 } from "@/components/admin/shared/admin-select-field";
 
@@ -33,7 +35,7 @@ export {
   type AdminCheckboxFieldProps,
 } from "@/components/admin/shared/admin-checkbox-field";
 
-export { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
+export { AdminLongTextField, type AdminLongTextFieldProps } from "@/components/admin/shared/admin-long-text-field";
 
 export { AdminHelp } from "@/components/admin/shared/admin-help";
 

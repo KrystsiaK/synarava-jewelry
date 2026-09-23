@@ -6,11 +6,10 @@ import {
   saveStorefrontCopyAction,
   type StorefrontCopyActionState,
 } from "@/app/admin/actions/storefront-copy";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
-import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { AdminHelp, AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 
@@ -92,19 +91,16 @@ export function StorefrontCopyEditor({
 
                   if (field.area) {
                     return (
-                      <label key={locale.code} className="grid gap-2" hidden={hidden}>
-                        <span className="adm-label flex items-center gap-1.5">
-                          {localeLabel}
-                          {field.hint ? <AdminHelp>{field.hint}</AdminHelp> : null}
-                        </span>
-                        <textarea
+                      <div key={locale.code} hidden={hidden}>
+                        <AdminLongTextField
+                          label={localeLabel}
+                          help={field.hint}
                           name={name}
                           defaultValue={defaultValue}
                           placeholder={placeholder}
                           rows={3}
-                          className="adm-field"
                         />
-                      </label>
+                      </div>
                     );
                   }
 

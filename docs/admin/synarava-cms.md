@@ -5,6 +5,12 @@ Shared Synarava admin form controls (**synarava-cms**).
 **Default for all admin forms:** import from `@/components/synarava-cms` and reuse
 these primitives — do not invent parallel markup.
 
+**“Общий / shared control” means:** one library control, applied everywhere that
+type is used, with **identical** outer chrome (border, radius, focus, label row).
+Optional props (`clearable`, adornments) only add slots **inside** that chrome —
+they must not switch to a second look. Import-path cleanup alone is not done if
+two visual variants remain. Agent skill encodes this contract.
+
 | | |
 |--|--|
 | Public API | `@/components/synarava-cms` (`components/synarava-cms/index.ts`) |
@@ -16,9 +22,9 @@ these primitives — do not invent parallel markup.
 |--------|------|
 | `AdminFieldShell` | Label + owner + help + absolute error/`issue` (`.adm-field-unit`) |
 | `AdminTextField` / `AdminTextControl` | Labeled text / embeddable control |
-| `AdminSelectField` | Select |
+| `AdminSelectField` / `AdminSelectControl` | Select / embeddable select |
 | `AdminCheckboxField` / `AdminCheckboxControl` | Bordered checkbox / inline row |
-| `AdminLongTextField` | Modal long text |
+| `AdminLongTextField` | Full-width text preview + Edit modal (+ error chrome) |
 | `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
 | `fieldClass` / `useAdminFieldIds` | Shared helpers |
 
@@ -40,9 +46,12 @@ import { AdminTextField } from "@/components/synarava-cms";
 <AdminTextField label="Tags" clearable name="tags" />
 ```
 
-- Affixes and clear live **inside** one `.adm-field-group` border.
+- Every text control uses one `.adm-field-group` chrome (same border/focus).
+- Affixes and clear are optional slots **inside** that border.
 - `clearable`: × visible on `:focus-within` when the value is non-empty.
-- Embed / combobox: `AdminTextControl` (+ `clearable`).
+- Embed / combobox: `AdminTextControl` (same group chrome; optional `clearable`).
+- Product single-line fields consume `AdminTextField` / `AdminTextControl` via
+  `@/components/synarava-cms`. Story: `synarava-cms/AdminTextField`.
 
 ### Select
 
@@ -53,6 +62,13 @@ import { AdminSelectField } from "@/components/synarava-cms";
   <option value="">No collection</option>
 </AdminSelectField>
 ```
+
+- Same outer chrome as text: one `.adm-field-group` + `.adm-field--select` inside
+  (padding matches text inputs; caret reserved on the right).
+- Embed: `AdminSelectControl` (same group chrome).
+- All admin dropdowns (product Site state / Collection, pages publishing, CMS
+  filters) use this control via `@/components/synarava-cms`.
+  Story: `synarava-cms/AdminSelectField`.
 
 ### Checkbox
 
@@ -69,7 +85,22 @@ import { AdminCheckboxControl, AdminCheckboxField } from "@/components/synarava-
 
 ### Long text
 
-`AdminLongTextField` — preview + modal editor (not a raw `textarea.adm-field`).
+`AdminLongTextField` — full-width **text** preview + Edit opens a modal
+(not a raw `textarea.adm-field` on the form). Modal editor is plain textarea for
+now; WYSIWYG can replace it later without changing the preview contract.
+
+```tsx
+import { AdminLongTextField } from "@/components/synarava-cms";
+
+<AdminLongTextField label="Fit notes" name="fit_notes" error={…} />
+<AdminLongTextField label="Description" owner="Shopify" value={…} onChange={…} />
+```
+
+- Always `w-full` (use `className="col-span-full"` inside multi-column grids).
+- Error / invalid → `.adm-long-text-preview--error` + absolute shell error.
+- Applied across product, collections, pages, storefront copy, and site SEO
+  (no raw `textarea.adm-field` for long copy in admin forms).
+- Story: `synarava-cms/AdminLongTextField`.
 
 ### Tall / composite fields
 

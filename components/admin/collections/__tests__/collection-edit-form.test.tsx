@@ -47,13 +47,20 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 
+function longTextPreview(label: string | RegExp) {
+  const button = screen.getByRole("button", {
+    name: typeof label === "string" ? `Edit ${label}` : new RegExp(`Edit ${label.source}`, label.flags),
+  });
+  return button.closest("[data-component='AdminLongTextField']")?.querySelector(".adm-long-text-preview__copy");
+}
+
 describe("EditCollectionForm", () => {
   it("renders existing collection values", () => {
     render(<EditCollectionForm collection={makeCollection()} />);
 
     expect(screen.getByRole("heading", { name: "Wanderlust" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
-    expect(screen.getByLabelText(/^Collection summary\*/)).toHaveValue("A summer story.");
+    expect(longTextPreview("Collection summary")).toHaveTextContent("A summer story.");
   });
 
   it("switches the same Name field's value with the locale tab, preserving independent EN/PT input", async () => {

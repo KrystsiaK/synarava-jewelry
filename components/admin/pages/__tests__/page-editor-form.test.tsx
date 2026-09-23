@@ -39,6 +39,21 @@ function fieldByName(container: HTMLElement, name: string) {
   return container.querySelector<HTMLInputElement>(`[name="${name}"]`);
 }
 
+function longTextPreview(label: string | RegExp) {
+  const button = screen.getByRole("button", {
+    name: typeof label === "string" ? `Edit ${label}` : new RegExp(`Edit ${label.source}`, label.flags),
+  });
+  return button.closest("[data-component='AdminLongTextField']")?.querySelector(".adm-long-text-preview__copy");
+}
+
+async function fillLongText(user: ReturnType<typeof userEvent.setup>, label: string, text: string) {
+  await user.click(screen.getByRole("button", { name: `Edit ${label}` }));
+  const editor = screen.getByRole("textbox", { name: label });
+  await user.clear(editor);
+  await user.type(editor, text);
+  await user.click(screen.getByRole("button", { name: "Apply changes" }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   // The active-locale tab is remembered in sessionStorage per page slug, so
@@ -84,7 +99,7 @@ describe("PageEditor", () => {
 
     expect(screen.getByRole("heading", { name: "Journal" })).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Journal");
-    expect(screen.getByLabelText("Body")).toHaveValue("Body copy.");
+    expect(longTextPreview("Body")).toHaveTextContent("Body copy.");
   });
 
   it("switches the same Title field's value with the locale tab, keeping shared CTA href untouched", async () => {
@@ -98,7 +113,7 @@ describe("PageEditor", () => {
 
     await user.click(screen.getByRole("tab", { name: "Português" }));
     expect(screen.getByLabelText("Title")).toHaveValue("Diário");
-    expect(screen.getByLabelText("Body")).toHaveValue("Corpo.");
+    expect(longTextPreview("Body")).toHaveTextContent("Corpo.");
     expect(fieldByName(container, "ctaHref")).toHaveValue("/shop");
 
     await user.click(screen.getByRole("tab", { name: "English" }));
@@ -183,10 +198,10 @@ describe("PageEditor", () => {
     render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
 
     await user.type(screen.getByLabelText("The Edit title"), "The Edit");
-    await user.type(screen.getByLabelText("The Edit description"), "Four pieces to begin.");
+    await fillLongText(user, "The Edit description", "Four pieces to begin.");
     await user.click(screen.getByRole("tab", { name: "Português" }));
     await user.type(screen.getByLabelText("The Edit title"), "A Seleção");
-    await user.type(screen.getByLabelText("The Edit description"), "Quatro peças para começar.");
+    await fillLongText(user, "The Edit description", "Quatro peças para começar.");
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
     await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
 

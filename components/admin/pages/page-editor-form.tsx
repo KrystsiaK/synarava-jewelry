@@ -8,14 +8,12 @@ import {
   type SavedPagePayload,
 } from "@/app/admin/actions/pages";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
-import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
-import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminHelp, AdminLongTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
@@ -383,15 +381,17 @@ export function PageEditor({
           </div>
         </div>
 
-        <label className="grid gap-2">
-          <span className="adm-label flex items-center gap-1.5">
-            {isHomePage ? "Search summary" : "Excerpt"}
-            {hideDeadCopyFields ? (
+        <AdminLongTextField
+          label={isHomePage ? "Search summary" : "Excerpt"}
+          help={
+            hideDeadCopyFields ? (
               <AdminHelp>Search-engine result description (meta description). Not shown on the page itself.</AdminHelp>
-            ) : null}
-          </span>
-          <textarea value={draft.excerpt} onChange={(event) => updateField("excerpt", event.target.value)} rows={3} className="adm-field" />
-        </label>
+            ) : undefined
+          }
+          value={draft.excerpt}
+          onChange={(value) => updateField("excerpt", value)}
+          rows={3}
+        />
 
         <div className="grid gap-2">
           <div className="flex items-center gap-2">
@@ -408,17 +408,21 @@ export function PageEditor({
           />
         </div>
 
-        <label className="grid gap-2" hidden={isCollectionsPage}>
-          <span className="adm-label flex items-center gap-1.5">
-            {isHomePage ? "Hero description" : isAboutPage ? "About introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
-            {isShopPage ? (
-              <AdminHelp>The paragraph under the hero heading on /shop.</AdminHelp>
-            ) : isServicePage ? (
-              <AdminHelp>The paragraph under the heading on /{page.slug}, above the four sections below.</AdminHelp>
-            ) : null}
-          </span>
-          <textarea value={draft.body} onChange={(event) => updateField("body", event.target.value)} rows={5} className="adm-field" />
-        </label>
+        <div hidden={isCollectionsPage}>
+          <AdminLongTextField
+            label={isHomePage ? "Hero description" : isAboutPage ? "About introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
+            help={
+              isShopPage ? (
+                <AdminHelp>The paragraph under the hero heading on /shop.</AdminHelp>
+              ) : isServicePage ? (
+                <AdminHelp>The paragraph under the heading on /{page.slug}, above the four sections below.</AdminHelp>
+              ) : undefined
+            }
+            value={draft.body}
+            onChange={(value) => updateField("body", value)}
+            rows={5}
+          />
+        </div>
 
         {isServicePage ? (
           <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="service-sections-heading">
@@ -438,10 +442,12 @@ export function PageEditor({
                     value={value?.title ?? ""}
                     onChange={(event) => updateServiceSection(section.id, "title", event.target.value)}
                   />
-                  <label className="grid gap-2">
-                    <span className="adm-label">Body</span>
-                    <textarea value={value?.body ?? ""} onChange={(event) => updateServiceSection(section.id, "body", event.target.value)} rows={3} className="adm-field" />
-                  </label>
+                  <AdminLongTextField
+                    label="Body"
+                    value={value?.body ?? ""}
+                    onChange={(value) => updateServiceSection(section.id, "body", value)}
+                    rows={3}
+                  />
                 </div>
               );
             })}
@@ -481,10 +487,13 @@ export function PageEditor({
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {isOfferPage || isTermsPage || isLegalNoticePage ? (
-                <label className="grid gap-2 md:col-span-2">
-                  <span className="adm-label">Intro paragraph</span>
-                  <textarea value={draft.legalIntro} onChange={(event) => updateField("legalIntro", event.target.value)} rows={2} className="adm-field" />
-                </label>
+                <AdminLongTextField
+                  className="md:col-span-2"
+                  label="Intro paragraph"
+                  value={draft.legalIntro}
+                  onChange={(value) => updateField("legalIntro", value)}
+                  rows={2}
+                />
               ) : null}
               <AdminTextField
                 label="Last updated"
@@ -505,10 +514,13 @@ export function PageEditor({
                     value={value?.title ?? ""}
                     onChange={(event) => updateLegalSection(section.id, "title", event.target.value)}
                   />
-                  <label className="grid gap-2">
-                    <span className="adm-label">Body (Markdown)</span>
-                    <textarea value={value?.body ?? ""} onChange={(event) => updateLegalSection(section.id, "body", event.target.value)} rows={6} className="adm-field font-mono text-xs" />
-                  </label>
+                  <AdminLongTextField
+                    label="Body (Markdown)"
+                    value={value?.body ?? ""}
+                    onChange={(value) => updateLegalSection(section.id, "body", value)}
+                    rows={6}
+                    editorClassName="font-mono text-xs"
+                  />
                 </div>
               );
             })}
@@ -550,10 +562,14 @@ export function PageEditor({
                 onChange={(event) => updateField("editSectionCtaLabel", event.target.value)}
                 placeholder="View piece"
               />
-              <label className="grid gap-2 md:col-span-2">
-                <span className="adm-label">The Edit description</span>
-                <textarea value={draft.editSectionBody} onChange={(event) => updateField("editSectionBody", event.target.value)} rows={2} placeholder="Four pieces, four sides of Synarava." className="adm-field" />
-              </label>
+              <AdminLongTextField
+                className="md:col-span-2"
+                label="The Edit description"
+                value={draft.editSectionBody}
+                onChange={(value) => updateField("editSectionBody", value)}
+                rows={2}
+                placeholder="Four pieces, four sides of Synarava."
+              />
               <fieldset className="grid gap-3 md:col-span-2">
                 <legend className="adm-label">The Edit products</legend>
                 <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
@@ -617,10 +633,12 @@ export function PageEditor({
                     onChange={(event) => updateMaterial(index, "category", event.target.value)}
                   />
                 </div>
-                <label className="grid gap-2">
-                  <span className="adm-label">Description</span>
-                  <textarea value={material.description} onChange={(event) => updateMaterial(index, "description", event.target.value)} rows={3} className="adm-field" />
-                </label>
+                <AdminLongTextField
+                  label="Description"
+                  value={material.description}
+                  onChange={(value) => updateMaterial(index, "description", value)}
+                  rows={3}
+                />
                 <AdminTextField
                   label="Properties (comma-separated, up to 3)"
                   value={material.properties}
@@ -646,10 +664,14 @@ export function PageEditor({
         ) : null}
 
         {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Manifesto</h3> : null}
-        <label className="grid gap-2" hidden={hideDeadCopyFields}>
-          <span className="adm-label">{isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}</span>
-          <textarea value={draft.quote} onChange={(event) => updateField("quote", event.target.value)} rows={4} className="adm-field" />
-        </label>
+        <div hidden={hideDeadCopyFields}>
+          <AdminLongTextField
+            label={isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}
+            value={draft.quote}
+            onChange={(value) => updateField("quote", value)}
+            rows={4}
+          />
+        </div>
 
         {isHomePage ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -680,13 +702,17 @@ export function PageEditor({
             value={draft.secondaryTitle}
             onChange={(event) => updateField("secondaryTitle", event.target.value)}
           />
-          <label className="grid gap-2">
-            <span className="adm-label flex items-center gap-1.5">
-              {isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : isShopPage ? "Secondary link label" : "Secondary body"}
-              {isShopPage ? <AdminHelp>The small link under the button (e.g. “About Synarava”). Always links to /about.</AdminHelp> : null}
-            </span>
-            <textarea value={draft.secondaryBody} onChange={(event) => updateField("secondaryBody", event.target.value)} rows={isShopPage ? 1 : 3} className="adm-field" />
-          </label>
+          <AdminLongTextField
+            label={isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : isShopPage ? "Secondary link label" : "Secondary body"}
+            help={
+              isShopPage ? (
+                <AdminHelp>The small link under the button (e.g. “About Synarava”). Always links to /about.</AdminHelp>
+              ) : undefined
+            }
+            value={draft.secondaryBody}
+            onChange={(value) => updateField("secondaryBody", value)}
+            rows={isShopPage ? 2 : 3}
+          />
         </div>
 
         {isHomePage ? (
@@ -702,10 +728,14 @@ export function PageEditor({
               name="finalCtaHref"
               defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""}
             />
-            <label className="grid gap-2">
-              <span className="adm-label">Footer statement</span>
-              <textarea value={draft.finalFooterTitle} onChange={(event) => updateField("finalFooterTitle", event.target.value)} placeholder={"Objects shaped slowly,\nkept for a lifetime."} rows={2} className="adm-field" />
-            </label>
+            <AdminLongTextField
+              className="md:col-span-2"
+              label="Footer statement"
+              value={draft.finalFooterTitle}
+              onChange={(value) => updateField("finalFooterTitle", value)}
+              placeholder={"Objects shaped slowly,\nkept for a lifetime."}
+              rows={2}
+            />
             <div className="grid gap-4 sm:grid-cols-2">
               <AdminTextField
                 label="Contact label"

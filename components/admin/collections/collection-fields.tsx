@@ -2,18 +2,21 @@
 
 import type { CollectionFieldName } from "@/app/admin/actions/collections";
 import { AdminFieldError } from "@/components/admin/shared/admin-form-validation";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
-import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
-import { FieldLabel } from "@/components/admin/shared/field-label";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { fieldClass } from "@/components/admin/collections/collection-helpers";
 import type { CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
+import {
+  AdminHelp,
+  AdminLongTextField,
+  AdminTextField,
+  FieldLabel,
+} from "@/components/synarava-cms";
 
-export { FieldLabel } from "@/components/admin/shared/field-label";
+export { FieldLabel } from "@/components/synarava-cms";
 
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
@@ -253,47 +256,35 @@ export function CollectionFields({
         </label>
       </div>
 
-      <label className="grid gap-2">
-        <FieldLabel required={isEn}>Collection summary</FieldLabel>
-        <textarea
-          rows={3}
-          required={isEn}
-          value={isEn ? draft.description : active!.description}
-          onChange={(e) => (isEn ? onChange("description", e.target.value) : updateActiveTranslation("description", e.target.value))}
-          className={fieldClass(isEn ? fieldErrors?.description : undefined)}
-          aria-invalid={isEn && Boolean(fieldErrors?.description)}
-          placeholder={isEn ? "This text appears on the collection card and collection hero." : "Optional — shows the English summary until filled in."}
-        />
-        <FieldError message={isEn ? fieldErrors?.description : undefined} />
-      </label>
+      <AdminLongTextField
+        label="Collection summary"
+        required={isEn}
+        value={isEn ? draft.description : active!.description}
+        onChange={(value) => (isEn ? onChange("description", value) : updateActiveTranslation("description", value))}
+        error={isEn ? fieldErrors?.description : undefined}
+        rows={3}
+        placeholder={isEn ? "This text appears on the collection card and collection hero." : "Optional — shows the English summary until filled in."}
+      />
 
-      <label className="grid gap-2">
-        <FieldLabel required={isEn}>Manifesto</FieldLabel>
-        <textarea
-          rows={4}
-          required={isEn}
-          value={isEn ? draft.manifesto : active!.manifesto}
-          onChange={(e) => (isEn ? onChange("manifesto", e.target.value) : updateActiveTranslation("manifesto", e.target.value))}
-          className={fieldClass(isEn ? fieldErrors?.manifesto : undefined)}
-          aria-invalid={isEn && Boolean(fieldErrors?.manifesto)}
-          placeholder={isEn ? "This text powers the manifesto strip on the collection page." : "Optional — shows the English manifesto until filled in."}
-        />
-        <FieldError message={isEn ? fieldErrors?.manifesto : undefined} />
-      </label>
+      <AdminLongTextField
+        label="Manifesto"
+        required={isEn}
+        value={isEn ? draft.manifesto : active!.manifesto}
+        onChange={(value) => (isEn ? onChange("manifesto", value) : updateActiveTranslation("manifesto", value))}
+        error={isEn ? fieldErrors?.manifesto : undefined}
+        rows={4}
+        placeholder={isEn ? "This text powers the manifesto strip on the collection page." : "Optional — shows the English manifesto until filled in."}
+      />
 
-      <label className="grid gap-2">
-        <FieldLabel required={isEn}>Search summary</FieldLabel>
-        <textarea
-          rows={2}
-          required={isEn}
-          value={isEn ? draft.searchSummary : active!.searchSummary}
-          onChange={(e) => (isEn ? onChange("searchSummary", e.target.value) : updateActiveTranslation("searchSummary", e.target.value))}
-          className={fieldClass(isEn ? fieldErrors?.searchSummary : undefined)}
-          aria-invalid={isEn && Boolean(fieldErrors?.searchSummary)}
-          placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}
-        />
-        <FieldError message={isEn ? fieldErrors?.searchSummary : undefined} />
-      </label>
+      <AdminLongTextField
+        label="Search summary"
+        required={isEn}
+        value={isEn ? draft.searchSummary : active!.searchSummary}
+        onChange={(value) => (isEn ? onChange("searchSummary", value) : updateActiveTranslation("searchSummary", value))}
+        error={isEn ? fieldErrors?.searchSummary : undefined}
+        rows={2}
+        placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}
+      />
 
       <div
         className="grid gap-4 pt-4"
@@ -336,25 +327,19 @@ export function CollectionFields({
           />
         </div>
 
-        <label className="grid gap-2">
-          <FieldLabel>Symbolism body</FieldLabel>
-          <textarea
-            rows={4}
-            value={isEn ? draft.symbolismBody : active!.symbolismBody}
-            onChange={(e) => (isEn ? onChange("symbolismBody", e.target.value) : updateActiveTranslation("symbolismBody", e.target.value))}
-            className="adm-field"
-          />
-        </label>
+        <AdminLongTextField
+          label="Symbolism body"
+          value={isEn ? draft.symbolismBody : active!.symbolismBody}
+          onChange={(value) => (isEn ? onChange("symbolismBody", value) : updateActiveTranslation("symbolismBody", value))}
+          rows={4}
+        />
 
-        <label className="grid gap-2">
-          <FieldLabel>Symbolism secondary body</FieldLabel>
-          <textarea
-            rows={3}
-            value={isEn ? draft.symbolismBody2 : active!.symbolismBody2}
-            onChange={(e) => (isEn ? onChange("symbolismBody2", e.target.value) : updateActiveTranslation("symbolismBody2", e.target.value))}
-            className="adm-field"
-          />
-        </label>
+        <AdminLongTextField
+          label="Symbolism secondary body"
+          value={isEn ? draft.symbolismBody2 : active!.symbolismBody2}
+          onChange={(value) => (isEn ? onChange("symbolismBody2", value) : updateActiveTranslation("symbolismBody2", value))}
+          rows={3}
+        />
       </div>
 
       {/* Translation-only status — no English counterpart, so this stays locale-gated */}

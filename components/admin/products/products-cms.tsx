@@ -14,9 +14,8 @@ import {
   checkCatalogConflictsAction,
   rebindShopifyStoreAction,
 } from "@/app/admin/actions/sync";
-import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
-import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import { AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";

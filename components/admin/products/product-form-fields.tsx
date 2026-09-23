@@ -6,16 +6,18 @@ import {
   type AdminFormValidation,
 } from "@/components/admin/shared/admin-form-validation";
 import { AdminCheckboxControl, AdminCheckboxField } from "@/components/admin/shared/admin-checkbox-field";
-import { AdminFieldShell } from "@/components/admin/shared/admin-field-shell";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
-import { AdminLongTextField } from "@/components/admin/shared/admin-long-text-field";
-import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
-import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
-import { OwnershipLabel } from "@/components/admin/shared/ownership-label";
 import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
+import {
+  AdminFieldShell,
+  AdminHelp,
+  AdminLongTextField,
+  AdminSelectField,
+  AdminTextField,
+  OwnershipLabel,
+} from "@/components/synarava-cms";
 import { slugify } from "@/lib/text/slug";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
@@ -33,7 +35,7 @@ import {
 import { getProductEditorDetails, issuesForField } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 
-export { OwnershipLabel } from "@/components/admin/shared/ownership-label";
+export { OwnershipLabel } from "@/components/synarava-cms";
 
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
@@ -256,6 +258,7 @@ export function ProductDetailFields({
                         label={definition.label}
                         defaultValue={String(current.value)}
                         rows={3}
+                        className="col-span-full"
                       />
                     );
                   }
@@ -812,7 +815,8 @@ export function ProductFormFields({
 
       <div hidden={activeSection !== "content"}>
         <AdminLongTextField
-          label={<OwnershipLabel owner="Synarava">Short description</OwnershipLabel>}
+          label="Short description"
+          owner="Synarava"
           dialogLabel="Short description"
           value={coreDraft.shortDescription}
           onChange={(value) => updateCore("shortDescription", value)}
@@ -820,7 +824,7 @@ export function ProductFormFields({
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "content"}>
+      <div className="grid gap-4" hidden={activeSection !== "content"}>
         <AdminTextField
           label="SEO title"
           owner="Shopify"
@@ -828,7 +832,8 @@ export function ProductFormFields({
           onChange={(event) => updateCore("seoTitle", event.target.value)}
         />
         <AdminLongTextField
-          label={<OwnershipLabel owner="Shopify">SEO description</OwnershipLabel>}
+          label="SEO description"
+          owner="Shopify"
           dialogLabel="SEO description"
           value={coreDraft.seoDescription}
           onChange={(value) => updateCore("seoDescription", value)}
@@ -838,7 +843,8 @@ export function ProductFormFields({
 
       <div hidden={activeSection !== "content"}>
         <AdminLongTextField
-          label={<OwnershipLabel owner="Shopify">Description</OwnershipLabel>}
+          label="Description"
+          owner="Shopify"
           dialogLabel="Description"
           value={coreDraft.description}
           onChange={(value) => updateCore("description", value)}
@@ -896,8 +902,8 @@ export function ProductFormFields({
             placeholder="Wood, Lava, Embroidery"
           />
         </div>
-        <AdminLongTextField label={<span className="adm-label">Symbolism body</span>} dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
-        <AdminLongTextField label={<span className="adm-label">Symbolism continuation</span>} dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} rows={8} />
+        <AdminLongTextField label="Symbolism body" dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
+        <AdminLongTextField label="Symbolism continuation" dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} rows={8} />
       </div>
 
       {activeTranslation ? (

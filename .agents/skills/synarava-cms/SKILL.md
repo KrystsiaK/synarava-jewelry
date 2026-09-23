@@ -5,9 +5,10 @@ description: >-
   AdminSelectField, AdminCheckboxField/Control, AdminLongTextField,
   AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
   Use whenever editing admin UI, product/collection/page forms, CMS fields,
-  validation chrome, labels, adornments, clearable inputs, or anything under
-  components/admin/. Mandatory default: reuse synarava-cms — never invent
-  parallel raw input/select/checkbox markup.
+  validation chrome, labels, adornments, clearable inputs, shared/common
+  controls, library migration, or anything under components/admin/.
+  Mandatory: reuse synarava-cms; one shared control = identical chrome
+  everywhere after apply — never invent parallel markup or dual render modes.
 ---
 
 # synarava-cms
@@ -16,15 +17,31 @@ Canonical doc: [`docs/admin/synarava-cms.md`](../../../docs/admin/synarava-cms.m
 Public API: `@/components/synarava-cms`.  
 Implementation: `components/admin/shared/`. Tokens: `adm-field*`, `adm-check*` in `app/globals.css`.
 
+## Meaning of “общий / shared / library control”
+
+When the user says **общий компонент**, **shared control**, or **library control**:
+
+1. Build or extend **one** control in synarava-cms.
+2. **Apply it everywhere** that control type is used (product, collections, pages, …).
+3. After apply, instances must **look identical** — same border, radius, focus, label/owner row, error chrome.
+4. Optional props (`clearable`, adornments, `owner`, `help`) add **slots inside** that chrome. They must **not** switch to a second outer chrome or bare `<input className="adm-field">`.
+5. Import path cleanup alone is **not** done — if the UI still shows two looks, the work is incomplete.
+6. Do not explain “same component, different modes” as success when the user sees two borders.
+
+**Anti-pattern (text):** `AdminTextField` sometimes rendered bare `.adm-field`, sometimes `.adm-field-group` when `clearable`/adornments were set → Name/Slug looked unlike Tags. Fixed: text always uses one `.adm-field-group` chrome; × only when `clearable`.
+
+**Anti-pattern (select):** `AdminSelectField` used bare `.adm-field` while text used `.adm-field-group` → Site state looked unlike Tags and lost padding. Fixed: select always uses the same `.adm-field-group` chrome + `.adm-field--select` padding.
+
 ## Hard rules
 
 1. **Reuse synarava-cms.** New admin single-line text, select, or checkbox must come from `@/components/synarava-cms`. Raw `<input>` / `<select>` / `<textarea className="adm-field">` only for hidden mirrors, file inputs, or controls not yet in the library.
 2. **One stack.** Extend `AdminFieldShell` / existing pieces under `admin/shared`, re-export from `components/synarava-cms`. Do not create a parallel field system.
-3. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot.
-4. **Tall composites:** control inside the shell; extra panels (e.g. Shopify category attributes) **outside**.
-5. **Help** is an `i` tooltip beside the label (`AdminHelp` / `help` prop).
-6. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
-7. After contract changes, update `docs/admin/synarava-cms.md` and this skill; run `graphify update .`.
+3. **One chrome per control type.** No dual DOM/CSS paths that change the outer field look based on optional props.
+4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot.
+5. **Tall composites:** control inside the shell; extra panels (e.g. Shopify category attributes) **outside**.
+6. **Help** is an `i` tooltip beside the label (`AdminHelp` / `help` prop).
+7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
+8. After contract changes, update `docs/admin/synarava-cms.md` and this skill (keep `.agents` + `.claude` copies in sync); run `graphify update .`.
 
 ## Component map
 
@@ -34,16 +51,28 @@ Implementation: `components/admin/shared/`. Tokens: `adm-field*`, `adm-check*` i
 | Input without shell (combobox, embed) | `AdminTextControl` |
 | Unit / affix inside one border | `endAdornment` / `startAdornment` |
 | Clear (× on focus, non-empty) | `clearable` (+ `onClear` if controlled) |
-| Select | `AdminSelectField` |
+| Select | `AdminSelectField` / `AdminSelectControl` |
 | Checkbox in bordered band | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
-| Long copy | `AdminLongTextField` |
+| Long copy (preview + Edit modal) | `AdminLongTextField` |
 | Custom labeled block | `AdminFieldShell` + control |
 | Home section on/off | Keep existing **switch** UI — not checkbox |
+
+## Migration / “apply shared control” workflow
+
+When asked to move product (or any admin) fields onto the library:
+
+1. Confirm the shared control exists and its **canonical chrome** (Storybook / Tags-like text field).
+2. Replace call sites so they use that control from `@/components/synarava-cms`.
+3. **Visually verify** side-by-side: same type of field must match (border/focus), not only share a React name.
+4. If two looks remain → fix the library (one chrome), do not declare import-only migration done.
+5. Update docs + this skill if the contract changed.
 
 ## Checklist before shipping admin form UI
 
 - [ ] Imports from `@/components/synarava-cms` (or documented exception)
+- [ ] Same control type → identical outer chrome on every screen
+- [ ] Optional props only toggle inner slots (clear, affix), not alternate shells
 - [ ] Invalid → red field chrome + absolute error / `issue`
 - [ ] Labels aligned (`OwnershipLabel` / `FieldLabel` min-height with help icon)
 - [ ] No duplicate field primitives left behind

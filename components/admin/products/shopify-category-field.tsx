@@ -15,7 +15,7 @@ import {
   getShopifyCategoryAttributesAction,
   searchShopifyTaxonomyCategoriesAction,
 } from "@/app/admin/actions/taxonomy";
-import { AdminTextControl } from "@/components/admin/shared/admin-text-field";
+import { AdminTextControl } from "@/components/synarava-cms";
 import type { ShopifyTaxonomyCategory } from "@/lib/shopify/taxonomy-selection";
 import type { ShopifyTaxonomyCategoryAttribute } from "@/lib/shopify/taxonomy";
 

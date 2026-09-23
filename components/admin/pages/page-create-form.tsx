@@ -8,11 +8,10 @@ import {
   type PageActionState,
   type SavedPagePayload,
 } from "@/app/admin/actions/pages";
-import { AdminTextField } from "@/components/admin/shared/admin-text-field";
-import { AdminSelectField } from "@/components/admin/shared/admin-select-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
+import { AdminLongTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
@@ -116,32 +115,35 @@ export function CreatePageForm({
               <AdminTextField label={`URL handle (${code.toUpperCase()}, optional)`} name={fieldName("handle")} placeholder="diario" />
               <AdminTextField label={`Eyebrow (${code.toUpperCase()})`} name={fieldName("eyebrow")} />
             </div>
-            <label className="grid gap-2"><span className="adm-label">Excerpt ({code.toUpperCase()})</span><textarea name={fieldName("excerpt")} rows={3} className="adm-field" /></label>
-            <label className="grid gap-2"><span className="adm-label">Body ({code.toUpperCase()})</span><textarea name={fieldName("body")} rows={5} className="adm-field" /></label>
-            <div className="grid gap-4 md:grid-cols-2">
+            <AdminLongTextField label={`Excerpt (${code.toUpperCase()})`} name={fieldName("excerpt")} rows={3} />
+            <AdminLongTextField label={`Body (${code.toUpperCase()})`} name={fieldName("body")} rows={5} />
+            <div className="grid gap-4">
               <AdminTextField label={`CTA label (${code.toUpperCase()})`} name={fieldName("ctaLabel")} />
-              <label className="grid gap-2"><span className="adm-label">Quote ({code.toUpperCase()})</span><textarea name={fieldName("quote")} rows={3} className="adm-field" /></label>
+              <AdminLongTextField label={`Quote (${code.toUpperCase()})`} name={fieldName("quote")} rows={3} />
               <AdminTextField label={`Secondary title (${code.toUpperCase()})`} name={fieldName("secondaryTitle")} />
-              <label className="grid gap-2"><span className="adm-label">Secondary body ({code.toUpperCase()})</span><textarea name={fieldName("secondaryBody")} rows={3} className="adm-field" /></label>
+              <AdminLongTextField label={`Secondary body (${code.toUpperCase()})`} name={fieldName("secondaryBody")} rows={3} />
             </div>
           </section>
         );
       })}
 
-      <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
-        <span className="adm-label">Excerpt</span>
-        <textarea
+      <div hidden={activeLocale !== SOURCE_LOCALE}>
+        <AdminLongTextField
+          label="Excerpt"
           name="excerpt"
           rows={3}
-          className="adm-field"
           placeholder="Short summary for the page intro and metadata."
         />
-      </label>
+      </div>
 
-      <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
-        <span className="adm-label">Body</span>
-        <textarea name="body" rows={5} className="adm-field" placeholder="Main editorial body copy." />
-      </label>
+      <div hidden={activeLocale !== SOURCE_LOCALE}>
+        <AdminLongTextField
+          label="Body"
+          name="body"
+          rows={5}
+          placeholder="Main editorial body copy."
+        />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div hidden={activeLocale !== SOURCE_LOCALE}>
@@ -150,27 +152,23 @@ export function CreatePageForm({
         <AdminTextField label="CTA href" name="ctaHref" placeholder="/shop" />
       </div>
 
-      <label className="grid gap-2" hidden={activeLocale !== SOURCE_LOCALE}>
-        <span className="adm-label">Quote</span>
-        <textarea
+      <div hidden={activeLocale !== SOURCE_LOCALE}>
+        <AdminLongTextField
+          label="Quote"
           name="quote"
           rows={4}
-          className="adm-field"
           placeholder="Optional quote or highlighted statement."
         />
-      </label>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2" hidden={activeLocale !== SOURCE_LOCALE}>
+      <div className="grid gap-4" hidden={activeLocale !== SOURCE_LOCALE}>
         <AdminTextField label="Secondary title" name="secondaryTitle" placeholder="Further reading" />
-        <label className="grid gap-2">
-          <span className="adm-label">Secondary body</span>
-          <textarea
-            name="secondaryBody"
-            rows={3}
-            className="adm-field"
-            placeholder="Optional follow-up copy block."
-          />
-        </label>
+        <AdminLongTextField
+          label="Secondary body"
+          name="secondaryBody"
+          rows={3}
+          placeholder="Optional follow-up copy block."
+        />
       </div>
     </form>
   );

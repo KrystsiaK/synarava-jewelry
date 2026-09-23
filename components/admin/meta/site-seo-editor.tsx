@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { saveSiteSeoAction, type SiteSeoActionState } from "@/app/admin/actions/site-seo";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
-import { AdminTextField } from "@/components/admin/shared/admin-text-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
 import {
   SITE_SEO_DEFAULTS,
   SITE_SEO_FIELD_DEFS,
@@ -84,19 +83,15 @@ export function SiteSeoEditor({
             {SITE_SEO_FIELD_DEFS.map((field) => {
               if (field.area) {
                 return (
-                  <label key={field.key} className="grid gap-2">
-                    <span className="adm-label flex items-center gap-1.5">
-                      {field.label}
-                      <AdminHelp>{field.hint}</AdminHelp>
-                    </span>
-                    <textarea
-                      name={field.key}
-                      defaultValue={overrides[field.key] ?? ""}
-                      placeholder={SITE_SEO_DEFAULTS[field.key]}
-                      rows={3}
-                      className="adm-field"
-                    />
-                  </label>
+                  <AdminLongTextField
+                    key={field.key}
+                    label={field.label}
+                    help={field.hint}
+                    name={field.key}
+                    defaultValue={overrides[field.key] ?? ""}
+                    placeholder={SITE_SEO_DEFAULTS[field.key]}
+                    rows={3}
+                  />
                 );
               }
               return (
