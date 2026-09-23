@@ -273,21 +273,26 @@ export async function applyCatalogConflictResolution({
   }
 
   for (const { input, field } of readyCommerce) {
-    // applyCommerceField itself catches its own write errors and returns
-    // {ok:false}, but wrapped defensively anyway so a bug there can never
-    // take the rest of this batch down with it (same reasoning as above).
+    // applyCommerceField re-validates against a *fresh* live inspection
+    // immediately before writing (closing the window since this loop's own
+    // batch-level fingerprint check above), so its own fingerprint inputs
+    // are passed straight through rather than the (by-then-possibly-stale)
+    // field snapshot this loop fetched earlier. It catches its own write
+    // errors and returns {ok:false}, but wrapped defensively anyway so a
+    // bug there can never take the rest of this batch down with it (same
+    // reasoning as the translation loop above).
     try {
       const outcome = await applyCommerceField({
         productId: input.productId,
         label: field.label,
         direction: input.direction,
-        shopifyValue: field.shopifyValue,
-        synaravaValue: field.synaravaValue,
+        expectedLocalFingerprint: input.expectedLocalFingerprint,
+        expectedShopifyFingerprint: input.expectedShopifyFingerprint,
       });
       results.push(
         outcome.ok
           ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
-          : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
+          : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: outcome.reason, message: outcome.message },
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "This change could not be applied.";

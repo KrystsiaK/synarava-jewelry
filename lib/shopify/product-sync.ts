@@ -429,7 +429,7 @@ async function fetchTaxonomyMetafieldValues(productId: string, key: string): Pro
   return [...new Set(names)];
 }
 
-async function fetchShopifyProduct(id: string) {
+export async function fetchShopifyProduct(id: string) {
   const shopifyId = shopifyNumericId(id);
   const data = await shopifyAdminRequest<{ product: ShopifyProduct | null }>(
     `query SynaravaProduct($id: ID!) { product(id: $id) { ${PRODUCT_FIELDS} } }`,

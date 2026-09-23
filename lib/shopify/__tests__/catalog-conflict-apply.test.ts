@@ -236,8 +236,8 @@ describe("applyCatalogConflictResolution", () => {
       productId: "product-1",
       label: "Vendor",
       direction: "SYNARAVA_TO_SHOPIFY",
-      shopifyValue: field.shopifyValue,
-      synaravaValue: field.synaravaValue,
+      expectedLocalFingerprint: field.localFingerprint,
+      expectedShopifyFingerprint: field.shopifyFingerprint,
     });
     expect(outcome).toMatchObject({ appliedCount: 1, failedCount: 0 });
     expect(outcome.results[0]).toMatchObject({ ok: true });

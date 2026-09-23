@@ -67,8 +67,15 @@ function commerceTargetKind(label: string): "NATIVE" | "METAFIELD" {
   return label.startsWith("Characteristic:") || label.startsWith("Certificate:") ? "METAFIELD" : "NATIVE";
 }
 
-/** Change-detection fingerprint for a commerce value — `inspectProductSyncState`'s `compare()` already trims and normalizes it to a plain string ("—" for empty), so no further normalization is needed before hashing. */
-function commerceFingerprint(value: string): string {
+/**
+ * Change-detection fingerprint for a commerce value — `inspectProductSyncState`'s
+ * `compare()` already trims and normalizes it to a plain string ("—" for
+ * empty), so no further normalization is needed before hashing. Exported so
+ * `commerce-field-apply.ts` can recompute the identical hash when
+ * re-validating a field immediately before writing it — using a different
+ * hashing scheme there would silently break staleness detection.
+ */
+export function commerceFingerprint(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
