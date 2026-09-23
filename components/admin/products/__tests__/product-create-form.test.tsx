@@ -38,14 +38,16 @@ beforeEach(() => {
 
 describe("CreateProductForm", () => {
   it("renders the core Shopify-backed fields and the gallery manager", async () => {
+    const user = userEvent.setup();
     render(<CreateProductForm collections={collections} />);
 
-    expect(screen.getByRole("heading", { name: "Create product" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Build the product one area at a time" })).toBeInTheDocument();
     expect(screen.getByLabelText(/Name/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Slug/)).toBeInTheDocument();
     expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Price EUR/)).toBeInTheDocument();
     expect(screen.getByText("Product gallery")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Catalog/ }));
     expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
     await act(async () => {});
   });
@@ -107,6 +109,6 @@ describe("CreateProductForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Product could not be saved. Reload this page before trying again.",
     );
-    expect(screen.getByRole("heading", { name: "Create product", level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Build the product one area at a time", level: 2 })).toBeInTheDocument();
   });
 });

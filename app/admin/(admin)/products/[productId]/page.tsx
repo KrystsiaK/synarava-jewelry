@@ -60,7 +60,7 @@ export default async function EditProductPage({
           <div>
             <h1 className="adm-page-title">{product.name}</h1>
             <p className="adm-page-subtitle">
-              Edit one product record. The catalog table remains separate for scanning and filtering.
+              Move between focused editing areas without losing unsaved changes. Save once when the record is ready.
             </p>
           </div>
           <Link href="/admin/products" className="adm-btn-ghost">

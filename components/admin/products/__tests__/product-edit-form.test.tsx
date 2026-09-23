@@ -92,7 +92,7 @@ describe("EditProductForm", () => {
     render(<EditProductForm product={product} collections={[]} />);
     await act(async () => {});
 
-    expect(screen.getByRole("heading", { name: "Lava Ring" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Choose an area to edit" })).toBeInTheDocument();
     expect(screen.getByLabelText(/Name/)).toHaveValue("Lava Ring");
     expect(screen.getByLabelText(/SKU/)).toHaveValue("LAVA-1");
     expect(mocks.inspectProductSyncAction).not.toHaveBeenCalled();
@@ -219,6 +219,6 @@ describe("EditProductForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Product could not be saved. Reload this page before trying again.",
     );
-    expect(screen.getByRole("heading", { name: "Lava Ring" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Choose an area to edit" })).toBeInTheDocument();
   });
 });

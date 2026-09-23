@@ -17,6 +17,7 @@ import { slugify } from "@/lib/text/slug";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { ShopifyCategoryField } from "@/components/admin/products/shopify-category-field";
+import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
 import {
   PRODUCT_FIELD_MESSAGES,
@@ -126,6 +127,7 @@ export function ProductDetailFields({
   entityId,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   conflictControl,
+  activeSection = "details",
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   /** Every translation locale's details, keyed by locale code. */
@@ -140,6 +142,8 @@ export function ProductDetailFields({
   translationLocales?: AdminTranslationLocale[];
   /** Same catalog conflict control, scoped to the active details locale. */
   conflictControl?: ProductConflictControlSlot;
+  /** Top-level product workspace section. Hidden fields stay mounted so one save still submits the whole record. */
+  activeSection?: ProductEditorSection;
 }) {
   const departmentCollections = collections
     .filter((collection) => collection.isPrimaryNav)
@@ -182,11 +186,12 @@ export function ProductDetailFields({
   }
 
   return (
-    <div data-component="ProductDetailFields"
-      className="grid gap-6 pt-5"
-      style={{ borderTop: "1px solid var(--adm-border)" }}
+    <div
+      data-component="ProductDetailFields"
+      className="grid gap-6"
+      hidden={activeSection !== "catalog" && activeSection !== "details"}
     >
-      <div>
+      <div hidden={activeSection !== "details"}>
         <p className="adm-label-row">
           <span className="adm-section-tag">[ SYNARAVA CMS LAYER ]</span>
           <AdminHelp>
@@ -196,20 +201,23 @@ export function ProductDetailFields({
         <p className="mt-2 text-xs text-[var(--adm-muted)]">Characteristics are mirrored to Shopify metafields. Editorial photography, materials, process, and lookbook remain managed by Synarava.</p>
       </div>
 
-      <AdminLocaleTabs
-        active={detailsLocale}
-        onSelect={selectDetailsLocale}
-        locales={tabs}
-        trailing={entityId && conflictControl
-          ? conflictControl({
-              locale: detailsLocale,
-              localeLabel: tabs.find((tab) => tab.code === detailsLocale)?.label ?? detailsLocale,
-            })
-          : undefined}
-      />
       <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
 
-      {!isEn ? (
+      <div hidden={activeSection !== "details"}>
+        <AdminLocaleTabs
+          active={detailsLocale}
+          onSelect={selectDetailsLocale}
+          locales={tabs}
+          trailing={entityId && conflictControl
+            ? conflictControl({
+                locale: detailsLocale,
+                localeLabel: tabs.find((tab) => tab.code === detailsLocale)?.label ?? detailsLocale,
+              })
+            : undefined}
+        />
+      </div>
+
+      {!isEn && activeSection === "details" ? (
         <p className="text-xs text-[var(--adm-muted)]">
           Optional — blank fields show the English text to visitors of this language instead. Images
           stay shared with English and are not repeated here.
@@ -219,6 +227,7 @@ export function ProductDetailFields({
       <section
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
+        hidden={activeSection !== "catalog"}
       >
         <div>
           <p className="adm-label-row">
@@ -242,43 +251,54 @@ export function ProductDetailFields({
           </select>
         </label>
 
+        <p className="text-xs leading-5 text-[var(--adm-muted)]">
+          Open only the characteristic groups that apply to this product. Closed groups stay saved and are still included when you save.
+        </p>
+
         {PRODUCT_CHARACTERISTIC_GROUPS.map((group) => (
-          <fieldset key={group} className="grid gap-3 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>
-            <legend className="adm-section-tag px-2">{group}</legend>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {PRODUCT_CHARACTERISTICS.filter((item) => item.group === group).map((definition) => {
-                const current = details.characteristics[definition.key] ?? { value: definition.type === "BOOLEAN" ? false : "", certificateUrl: "" };
-                const name = `characteristic_${definition.key}`;
-                if (definition.type === "BOOLEAN") {
-                  return (
-                    <div key={definition.key} className="grid content-start gap-2 border p-3" style={{ borderColor: "var(--adm-border)" }}>
-                      <label className="flex items-center gap-3 text-sm">
-                        <input type="checkbox" name={name} defaultChecked={Boolean(current.value)} />
-                        <span>{definition.label}</span>
-                      </label>
-                      {"certificate" in definition ? (
-                        <input name={`${name}_certificate`} defaultValue={current.certificateUrl} className="adm-field" placeholder="Certificate URL" type="url" />
-                      ) : null}
-                    </div>
+          <details key={group} className="group min-w-0 border-t" style={{ borderColor: "var(--adm-border)" }}>
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-sm font-semibold text-[var(--adm-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--adm-accent)] [&::-webkit-details-marker]:hidden">
+              <span>{group}</span>
+              <span className="text-xs font-normal text-[var(--adm-muted)] group-open:hidden">Open fields</span>
+              <span className="hidden text-xs font-normal text-[var(--adm-muted)] group-open:inline">Close fields</span>
+            </summary>
+            <fieldset className="min-w-0 pb-5 pt-2">
+              <legend className="sr-only">{group}</legend>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {PRODUCT_CHARACTERISTICS.filter((item) => item.group === group).map((definition) => {
+                  const current = details.characteristics[definition.key] ?? { value: definition.type === "BOOLEAN" ? false : "", certificateUrl: "" };
+                  const name = `characteristic_${definition.key}`;
+                  if (definition.type === "BOOLEAN") {
+                    return (
+                      <div key={definition.key} className="grid min-w-0 content-start gap-2 border p-3" style={{ borderColor: "var(--adm-border)" }}>
+                        <label className="flex items-center gap-3 text-sm">
+                          <input type="checkbox" name={name} defaultChecked={Boolean(current.value)} />
+                          <span>{definition.label}</span>
+                        </label>
+                        {"certificate" in definition ? (
+                          <input name={`${name}_certificate`} defaultValue={current.certificateUrl} className="adm-field" placeholder="Certificate URL" type="url" />
+                        ) : null}
+                      </div>
+                    );
+                  }
+                  const input = (
+                    "multiline" in definition && definition.multiline
+                      ? <textarea name={name} defaultValue={String(current.value)} className="adm-field min-h-24" rows={3} />
+                      : <input name={name} defaultValue={String(current.value)} className="adm-field min-w-0 flex-1" type={definition.type === "NUMBER" ? "number" : "text"} step={definition.type === "NUMBER" ? "0.01" : undefined} />
                   );
-                }
-                const input = (
-                  "multiline" in definition && definition.multiline
-                    ? <textarea name={name} defaultValue={String(current.value)} className="adm-field min-h-24" rows={3} />
-                    : <input name={name} defaultValue={String(current.value)} className="adm-field min-w-0 flex-1" type={definition.type === "NUMBER" ? "number" : "text"} step={definition.type === "NUMBER" ? "0.01" : undefined} />
-                );
-                return (
-                  <label key={definition.key} className="grid gap-2">
-                    <span className="adm-label">{definition.label}</span>
-                    <span className={"multiline" in definition && definition.multiline ? "grid" : "flex"}>
-                      {input}
-                      {"unit" in definition ? <span className="flex items-center border border-l-0 px-3 text-xs text-[var(--adm-muted)]" style={{ borderColor: "var(--adm-border)" }}>{definition.unit}</span> : null}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
+                  return (
+                    <label key={definition.key} className="grid min-w-0 gap-2">
+                      <span className="adm-label">{definition.label}</span>
+                      <span className={"multiline" in definition && definition.multiline ? "grid" : "flex"}>
+                        {input}
+                        {"unit" in definition ? <span className="flex items-center border border-l-0 px-3 text-xs text-[var(--adm-muted)]" style={{ borderColor: "var(--adm-border)" }}>{definition.unit}</span> : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </details>
         ))}
       </section>
 
@@ -286,6 +306,7 @@ export function ProductDetailFields({
       <section
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
+        hidden={activeSection !== "details"}
       >
         <div>
           <p className="adm-label-row">
@@ -352,6 +373,7 @@ export function ProductDetailFields({
       <section
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
+        hidden={activeSection !== "details"}
       >
         <div>
           <p className="adm-label-row">
@@ -419,6 +441,7 @@ export function ProductDetailFields({
       <section
         className="grid gap-4 p-4"
         style={{ border: "1px solid var(--adm-border)" }}
+        hidden={activeSection !== "details"}
       >
         <div>
           <p className="adm-label-row">
@@ -555,6 +578,7 @@ export function ProductFormFields({
   validation,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   conflictControl,
+  activeSection = "essentials",
 }: {
   draft: ProductDraft;
   entityId?: string;
@@ -566,6 +590,8 @@ export function ProductFormFields({
   translationLocales?: AdminTranslationLocale[];
   /** Same catalog conflict control, scoped to the active commerce locale. */
   conflictControl?: ProductConflictControlSlot;
+  /** Top-level product workspace section. All inputs remain mounted so switching tabs never drops unsaved values. */
+  activeSection?: ProductEditorSection;
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -627,7 +653,10 @@ export function ProductFormFields({
 
   return (
     <>
-      <div className="flex flex-col gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4 md:flex-row md:items-center md:justify-between">
+      <div
+        className="flex flex-col gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4 md:flex-row md:items-center md:justify-between"
+        hidden={activeSection !== "essentials" && activeSection !== "content"}
+      >
         <div>
           <p className="adm-section-tag">[ SHOPIFY COMMERCE CORE ]</p>
           <p className="mt-2 text-xs text-[var(--adm-muted)]">Every field is labelled by owner. Shopify fields form the sellable product; Synarava fields enrich it without being overwritten by catalog pulls.</p>
@@ -635,22 +664,24 @@ export function ProductFormFields({
         <span className="adm-badge-published w-fit">Shopify-backed</span>
       </div>
 
-      <AdminLocaleTabs
-        active={activeLocale}
-        onSelect={selectLocale}
-        locales={tabs}
-        ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
-        trailing={entityId && conflictControl
-          ? conflictControl({
-              locale: activeLocale,
-              localeLabel: tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale,
-            })
-          : undefined}
-      />
+      <div hidden={activeSection !== "essentials" && activeSection !== "content"}>
+        <AdminLocaleTabs
+          active={activeLocale}
+          onSelect={selectLocale}
+          locales={tabs}
+          ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
+          trailing={entityId && conflictControl
+            ? conflictControl({
+                locale: activeLocale,
+                localeLabel: tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale,
+              })
+            : undefined}
+        />
+      </div>
       <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 
       {activeTranslation ? (
-        <div className="border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
+        <div className="border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4" hidden={activeSection !== "content"}>
           <p className="adm-section-tag">[ {activeLabel.toUpperCase()} ]</p>
           <p className="mt-2 text-xs text-[var(--adm-muted)]">
             Optional — publishing never blocks on this. Whatever is left blank here shows the English text
@@ -662,7 +693,7 @@ export function ProductFormFields({
         </div>
       ) : null}
 
-      <div className="grid items-start gap-4 md:grid-cols-2">
+      <div className="grid items-start gap-4 md:grid-cols-2" hidden={activeSection !== "essentials"}>
         {/*
           The Name field is the one exception to "single field per concept"
           in this form: it stays a dedicated EN input (plus a dedicated
@@ -739,7 +770,7 @@ export function ProductFormFields({
       </div>
 
       {activeTranslation ? (
-        <label className="grid gap-2">
+        <label className="grid gap-2" hidden={activeSection !== "essentials"}>
           <span className="adm-label">URL handle ({activeLabel}, optional)</span>
           {/* No `name` here — same reasoning as the Product name field above; the hidden mirrors below carry every locale's real value. */}
           <input
@@ -763,7 +794,7 @@ export function ProductFormFields({
         ))}
       </div>
 
-      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4" hidden={activeSection !== "essentials"}>
         <div className="grid content-start gap-2">
           <label htmlFor={validation.fieldId("sku")}>
             <OwnershipLabel owner="Shopify">SKU *</OwnershipLabel>
@@ -808,7 +839,7 @@ export function ProductFormFields({
       </div>
 
       {/* Vendor/brand and Product type are shared across locales — always visible, no PT counterpart. */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "essentials"}>
         <label className="grid gap-2">
           <OwnershipLabel owner="Shopify">Vendor / brand</OwnershipLabel>
           <input name="vendor" defaultValue={draft.vendor} className="adm-field" />
@@ -819,15 +850,17 @@ export function ProductFormFields({
         </label>
       </div>
 
-      <AdminLongTextField
-        label={<OwnershipLabel owner="Synarava">Short description</OwnershipLabel>}
-        dialogLabel="Short description"
-        value={coreDraft.shortDescription}
-        onChange={(value) => updateCore("shortDescription", value)}
-        rows={8}
-      />
+      <div hidden={activeSection !== "content"}>
+        <AdminLongTextField
+          label={<OwnershipLabel owner="Synarava">Short description</OwnershipLabel>}
+          dialogLabel="Short description"
+          value={coreDraft.shortDescription}
+          onChange={(value) => updateCore("shortDescription", value)}
+          rows={8}
+        />
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "content"}>
         <label className="grid gap-2">
           <OwnershipLabel owner="Shopify">SEO title</OwnershipLabel>
           <input value={coreDraft.seoTitle} onChange={(event) => updateCore("seoTitle", event.target.value)} className="adm-field" />
@@ -841,19 +874,21 @@ export function ProductFormFields({
         />
       </div>
 
-      <AdminLongTextField
-        label={<OwnershipLabel owner="Shopify">Description</OwnershipLabel>}
-        dialogLabel="Description"
-        value={coreDraft.description}
-        onChange={(value) => updateCore("description", value)}
-      />
+      <div hidden={activeSection !== "content"}>
+        <AdminLongTextField
+          label={<OwnershipLabel owner="Shopify">Description</OwnershipLabel>}
+          dialogLabel="Description"
+          value={coreDraft.description}
+          onChange={(value) => updateCore("description", value)}
+        />
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "content"}>
         <label className="grid gap-2">
           <OwnershipLabel owner="Synarava">Material line</OwnershipLabel>
           <input value={coreDraft.materialLine} onChange={(event) => updateCore("materialLine", event.target.value)} className="adm-field" />
         </label>
-        <div id="field-imageUrl" className="grid content-start gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
+        <div className="grid content-start gap-2 border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
           <OwnershipLabel owner="Shopify">Catalog cover</OwnershipLabel>
           <AdminIssueInlineWarning issues={issuesForField(issues, "field-imageUrl")} />
           <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
@@ -866,6 +901,7 @@ export function ProductFormFields({
       <div
         className="grid gap-4 pt-4"
         style={{ borderTop: "1px solid var(--adm-border)" }}
+        hidden={activeSection !== "content"}
       >
         <div>
           <p className="adm-label-row">
@@ -892,7 +928,7 @@ export function ProductFormFields({
       </div>
 
       {activeTranslation ? (
-        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm">
+        <label className="flex items-center gap-3 border-t border-[var(--adm-border)] pt-4 text-sm" hidden={activeSection !== "content"}>
           {/* No `name` here — same reasoning as the fields above; the hidden mirrors below carry every locale's real "on"/"" value. */}
           <input
             type="checkbox"
@@ -915,7 +951,7 @@ export function ProductFormFields({
       </div>
 
       {/* Taxonomy + state */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
+      <div className="grid items-start gap-4 lg:grid-cols-3" hidden={activeSection !== "catalog"}>
         <div id="field-taxonomy-category" className="grid content-start gap-2">
           <div className="adm-label-row">
             <OwnershipLabel owner="Shopify">Product category</OwnershipLabel>
@@ -955,7 +991,7 @@ export function ProductFormFields({
         </div>
       </div>
 
-      <label className="grid gap-2 md:max-w-xs">
+      <label className="grid gap-2 md:max-w-xs" hidden={activeSection !== "catalog"}>
         <OwnershipLabel owner="Shopify">Site state</OwnershipLabel>
         <select name="workflowState" defaultValue={draft.workflowState} className="adm-field">
           <option value="DRAFT">Draft — hidden</option>

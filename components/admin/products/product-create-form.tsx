@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { flushSync } from "react-dom";
 
 import {
   autosaveProductDraftAction,
@@ -17,6 +18,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
+import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { ProgressBar, SaveButtons } from "@/components/admin/products/product-sync-strip";
 import {
   emptyDraft,
@@ -42,6 +44,7 @@ export function CreateProductForm({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [draftId, setDraftId] = useState("");
   const [draftProduct, setDraftProduct] = useState<ProductRecord | null>(null);
+  const [activeSection, setActiveSection] = useState<ProductEditorSection>("essentials");
   const [draft] = useState<ProductDraft>(() => emptyDraft(translationLocales));
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
@@ -86,6 +89,9 @@ export function CreateProductForm({
         setState(result);
         setConfirmOpen(false);
         validation.showFieldErrors(result.fieldErrors ?? {});
+        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+          setActiveSection("essentials");
+        }
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.warning) pushToast({ message: result.warning, tone: "info" });
         if (result.syncWarning) pushToast({ message: `Saved locally. Sync failed: ${result.syncWarning}`, tone: "error" });
@@ -108,7 +114,15 @@ export function CreateProductForm({
 
   function requestSave() {
     setState({});
-    if (validation.validate()) setConfirmOpen(true);
+    const previousSection = activeSection;
+    if (previousSection !== "essentials") {
+      flushSync(() => setActiveSection("essentials"));
+    }
+    const valid = validation.validate();
+    if (valid && previousSection !== "essentials") {
+      flushSync(() => setActiveSection(previousSection));
+    }
+    if (valid) setConfirmOpen(true);
   }
 
   return (
@@ -120,9 +134,9 @@ export function CreateProductForm({
           style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
-            <p className="adm-section-tag">[ NEW UNIT ]</p>
+            <p className="adm-section-tag">Product workspace</p>
             <h2 className="adm-title-sm mt-2">
-              Create product
+              Build the product one area at a time
             </h2>
           </div>
           <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
@@ -136,32 +150,50 @@ export function CreateProductForm({
           </AdminHelp>
         </div>
 
-        <ProductFormFields
-          draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
-          collections={collections}
-          validation={validation}
-          translationLocales={translationLocales}
-        />
-        <ProductMediaManager
-          product={draftProduct}
-          ensureProduct={ensureDraftForGallery}
-          onChange={(product) => {
-            setDraftId(product.id);
-            setDraftProduct(product);
-          }}
-        />
-        <ProductDetailFields
-          details={getProductEditorDetails(null)}
-          translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-          sku={draft.sku}
-          mode="create"
-          collections={collections}
-          translationLocales={translationLocales}
+        <ProductEditorTabs
+          active={activeSection}
+          onChange={setActiveSection}
+          includeShopify={false}
         />
 
         <div
-          className="flex items-center justify-end pt-4"
+          id={`product-editor-panel-${activeSection}`}
+          role="tabpanel"
+          aria-labelledby={`product-editor-tab-${activeSection}`}
+          className="grid gap-4"
+        >
+          <ProductFormFields
+            draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
+            collections={collections}
+            validation={validation}
+            translationLocales={translationLocales}
+            activeSection={activeSection}
+          />
+          <div hidden={activeSection !== "media"}>
+            <ProductMediaManager
+              product={draftProduct}
+              ensureProduct={ensureDraftForGallery}
+              onChange={(product) => {
+                setDraftId(product.id);
+                setDraftProduct(product);
+              }}
+            />
+          </div>
+          <ProductDetailFields
+            details={getProductEditorDetails(null)}
+            translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
+            sku={draft.sku}
+            mode="create"
+            collections={collections}
+            translationLocales={translationLocales}
+            activeSection={activeSection}
+          />
+        </div>
+
+        <div
+          className="flex flex-wrap items-center justify-end gap-3 pt-4"
           style={{ borderTop: "1px solid var(--adm-border)" }}
+          hidden={activeSection === "media"}
         >
           <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import {
@@ -26,6 +27,7 @@ import { ProductDetailFields, ProductFormFields } from "@/components/admin/produ
 import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
+import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { ShopifyProductMirror } from "@/components/admin/products/shopify-product-mirror";
 import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
 import {
@@ -79,6 +81,7 @@ export function EditProductForm({
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "product", productId: product.id });
   const [conflictChecking, setConflictChecking] = useState(false);
+  const [activeSection, setActiveSection] = useState<ProductEditorSection>("essentials");
   const rowRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
@@ -102,6 +105,25 @@ export function EditProductForm({
     });
     return () => { cancelled = true; };
   }, [product.id, product.shopifyProductId]);
+
+  useEffect(() => {
+    function openSectionForHash() {
+      const fieldId = window.location.hash.slice(1);
+      if (!fieldId) return;
+      if (fieldId === "field-imageUrl") setActiveSection("media");
+      else if (fieldId.startsWith("field-taxonomy-")) setActiveSection("catalog");
+      else if (fieldId.startsWith("field-details-")) setActiveSection("details");
+      else return;
+
+      window.requestAnimationFrame(() => {
+        document.getElementById(fieldId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+
+    openSectionForHash();
+    window.addEventListener("hashchange", openSectionForHash);
+    return () => window.removeEventListener("hashchange", openSectionForHash);
+  }, []);
 
   async function refreshConflicts(locale?: string, options?: { quiet?: boolean }) {
     setConflictChecking(true);
@@ -149,6 +171,9 @@ export function EditProductForm({
         setState(result);
         setConfirmOpen(false);
         validation.showFieldErrors(result.fieldErrors ?? {});
+        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+          setActiveSection("essentials");
+        }
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.warning) pushToast({ message: result.warning, tone: "info" });
         if (result.product) {
@@ -175,7 +200,15 @@ export function EditProductForm({
 
   function requestSave() {
     setState({});
-    if (validation.validate()) setConfirmOpen(true);
+    const previousSection = activeSection;
+    if (previousSection !== "essentials") {
+      flushSync(() => setActiveSection("essentials"));
+    }
+    const valid = validation.validate();
+    if (valid && previousSection !== "essentials") {
+      flushSync(() => setActiveSection(previousSection));
+    }
+    if (valid) setConfirmOpen(true);
   }
 
   function handleCheckShopify() {
@@ -255,8 +288,8 @@ export function EditProductForm({
             style={{ borderBottom: "1px solid var(--adm-border)" }}
           >
             <div>
-              <p className="adm-section-tag">[ EDIT PRODUCT ]</p>
-              <h3 className="adm-title-sm mt-2">{currentProduct.name}</h3>
+              <p className="adm-section-tag">Product workspace</p>
+              <h2 className="adm-title-sm mt-2">Choose an area to edit</h2>
               <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
                 /{currentProduct.slug}
               </p>
@@ -275,43 +308,60 @@ export function EditProductForm({
 
           <ProgressBar pending={isPending} />
           <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
-          <ProductSyncStrip
-            product={currentProduct}
-            dirty={isDirty}
-            inspection={inspection}
-            pending={isPending}
-            onCheck={handleCheckShopify}
-            onOpenDetail={() => setSyncDetailOpen(true)}
-          />
-
-          <ProductFormFields
-            key={`${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
-            draft={draft}
-            entityId={currentProduct.id}
-            collections={collections}
-            variantExists={currentProduct.variants.length > 0}
-            issues={issues}
-            validation={validation}
-            translationLocales={translationLocales}
-            conflictControl={conflictControl}
-          />
-          <ProductDetailFields
-            key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
-            details={details}
-            translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-            sku={draft.sku}
-            mode="edit"
-            issues={issues}
-            collections={collections}
-            entityId={currentProduct.id}
-            translationLocales={translationLocales}
-            conflictControl={conflictControl}
-          />
-          <ShopifyProductMirror product={currentProduct} />
+          <ProductEditorTabs active={activeSection} onChange={setActiveSection} />
 
           <div
-            className="flex items-center justify-between gap-4 pt-4"
+            id={activeSection === "media" ? undefined : `product-editor-panel-${activeSection}`}
+            role={activeSection === "media" ? undefined : "tabpanel"}
+            aria-labelledby={activeSection === "media" ? undefined : `product-editor-tab-${activeSection}`}
+            className="grid gap-4"
+            hidden={activeSection === "media"}
+          >
+            <div hidden={activeSection !== "shopify"}>
+              <ProductSyncStrip
+                product={currentProduct}
+                dirty={isDirty}
+                inspection={inspection}
+                pending={isPending}
+                onCheck={handleCheckShopify}
+                onOpenDetail={() => setSyncDetailOpen(true)}
+              />
+            </div>
+
+            <ProductFormFields
+              key={`${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
+              draft={draft}
+              entityId={currentProduct.id}
+              collections={collections}
+              variantExists={currentProduct.variants.length > 0}
+              issues={issues}
+              validation={validation}
+              translationLocales={translationLocales}
+              conflictControl={conflictControl}
+              activeSection={activeSection}
+            />
+            <ProductDetailFields
+              key={`details-${currentProduct.id}-${new Date(currentProduct.updatedAt).getTime()}`}
+              details={details}
+              translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
+              sku={draft.sku}
+              mode="edit"
+              issues={issues}
+              collections={collections}
+              entityId={currentProduct.id}
+              translationLocales={translationLocales}
+              conflictControl={conflictControl}
+              activeSection={activeSection}
+            />
+            <div hidden={activeSection !== "shopify"}>
+              <ShopifyProductMirror product={currentProduct} />
+            </div>
+          </div>
+
+          <div
+            className="flex flex-wrap items-center justify-between gap-4 pt-4"
             style={{ borderTop: "1px solid var(--adm-border)" }}
+            hidden={activeSection === "media"}
           >
             <button
               type="button"
@@ -324,14 +374,21 @@ export function EditProductForm({
             <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
           </div>
         </form>
-        <ProductMediaManager
-          product={currentProduct}
-          onChange={(product) => {
-            setState({ success: "Gallery updated locally.", product });
-            setIsDirty(false);
-            onUpdated?.(product);
-          }}
-        />
+        <div
+          id="product-editor-panel-media"
+          role="tabpanel"
+          aria-labelledby="product-editor-tab-media"
+          hidden={activeSection !== "media"}
+        >
+          <ProductMediaManager
+            product={currentProduct}
+            onChange={(product) => {
+              setState({ success: "Gallery updated locally.", product });
+              setIsDirty(false);
+              onUpdated?.(product);
+            }}
+          />
+        </div>
       </div>
 
       <ProductSyncDetailModal

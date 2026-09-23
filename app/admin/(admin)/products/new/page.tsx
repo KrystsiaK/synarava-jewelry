@@ -18,7 +18,7 @@ export default async function NewProductPage() {
           <div>
             <h1 className="adm-page-title">New product</h1>
             <p className="adm-page-subtitle">
-              Create one catalog record. Collections stay on their own screen.
+              Start with the essentials, then add catalog placement, content, media, and product-page details.
             </p>
           </div>
           <Link href="/admin/products" className="adm-btn-ghost">

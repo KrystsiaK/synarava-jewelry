@@ -53,6 +53,34 @@ test.describe("Admin products CRUD", () => {
     await expect(page.getByRole("button", { name: "Save product" }).first()).toBeVisible();
   });
 
+  test("organizes product editing into focused task tabs", async ({ page, runId }) => {
+    const product = await createTestProduct(runId);
+
+    await page.goto(`/admin/products/${product.id}`);
+    await expect(page.getByRole("tab", { name: /Essentials/i })).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator('input[name="sku"]')).toBeVisible();
+
+    await page.getByRole("tab", { name: /Catalog/i }).click();
+    await expect(page.getByText("Department & characteristics")).toBeVisible();
+    await expect(page.locator('input[name="sku"]')).toBeHidden();
+
+    await page.getByRole("tab", { name: /Content/i }).click();
+    await expect(page.getByRole("button", { name: "Edit Short description" })).toBeVisible();
+
+    await page.getByRole("tab", { name: /Media/i }).click();
+    await expect(page.getByRole("region", { name: "Product gallery" })).toBeVisible();
+
+    await page.getByRole("tab", { name: /Product page/i }).click();
+    await expect(page.getByText("Materials", { exact: true })).toBeVisible();
+
+    await page.getByRole("tab", { name: /Shopify/i }).click();
+    await expect(page.getByRole("region", { name: "Commerce synchronization" })).toBeVisible();
+
+    await page.goto(`/admin/products/${product.id}#field-taxonomy-category`);
+    await expect(page.getByRole("tab", { name: /Catalog/i })).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("#field-taxonomy-category")).toBeVisible();
+  });
+
   test("publishes, drafts, archives, and deletes a product from the products table", async ({ page, runId }) => {
     // updateProductStatusAction refuses to publish without an image, so the
     // fixture needs one even though nothing renders/validates it here.
