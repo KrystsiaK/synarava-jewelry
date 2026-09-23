@@ -15,6 +15,62 @@ const difference = (rootEntityId: string, locale: string, fieldKey: string, kind
 });
 
 describe("buildCatalogConflictSignals", () => {
+  it("includes one-sided catalog products with their identity and allowed direction", () => {
+    const result = buildCatalogConflictSignals({
+      commerceProductIds: [],
+      differences: [],
+      presenceDifferences: [
+        {
+          id: "shopify:42",
+          kind: "SHOPIFY_ONLY",
+          localProductId: null,
+          shopifyProductId: "gid://shopify/Product/42",
+          name: "Shopify-only necklace",
+          handle: "shopify-only-necklace",
+          sku: "SO-42",
+          localFingerprint: "missing",
+          shopifyFingerprint: "remote",
+          remoteMissing: false,
+          matchReason: null,
+          localIdentity: null,
+          shopifyIdentity: { name: "Shopify-only necklace", handle: "shopify-only-necklace", sku: "SO-42" },
+        },
+        {
+          id: "local-7",
+          kind: "SYNARAVA_ONLY",
+          localProductId: "local-7",
+          shopifyProductId: null,
+          name: "Synarava-only ring",
+          handle: "synarava-only-ring",
+          sku: "LO-7",
+          localFingerprint: "local",
+          shopifyFingerprint: "missing",
+          remoteMissing: false,
+          matchReason: null,
+          localIdentity: { name: "Synarava-only ring", handle: "synarava-only-ring", sku: "LO-7" },
+          shopifyIdentity: null,
+        },
+      ],
+      locales,
+      run: { trigger: "MANUAL", status: "SUCCEEDED", completedAt: "2026-09-23T10:00:00.000Z" },
+      connected: true,
+      now: new Date("2026-09-23T10:01:00.000Z"),
+    });
+
+    expect(result.totalCount).toBe(2);
+    expect(result.products["shopify:42"]).toMatchObject({
+      presence: "SHOPIFY_ONLY",
+      name: "Shopify-only necklace",
+      sku: "SO-42",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    });
+    expect(result.products["local-7"]).toMatchObject({
+      presence: "SYNARAVA_ONLY",
+      localProductId: "local-7",
+      allowedDirections: ["SYNARAVA_TO_SHOPIFY"],
+    });
+  });
+
   it("deduplicates products, counts only conflicts, and follows the locale registry including RU and future locales", () => {
     const result = buildCatalogConflictSignals({
       commerceProductIds: ["a", "b"],

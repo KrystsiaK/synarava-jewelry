@@ -10,11 +10,16 @@ import { runTranslationReconciliation } from "@/lib/shopify/reconciliation-run";
 import { inspectProductSyncState } from "@/lib/shopify/product-sync";
 import { persistPayloadForCommerceInspection } from "@/lib/shopify/catalog-conflict-policy";
 import { listUnseenIncomingProductUpdates } from "@/lib/shopify/catalog-conflict-review";
+import {
+  getLatestCatalogPresenceDifferences,
+  scanAndSaveCatalogPresence,
+} from "@/lib/shopify/catalog-presence-server";
 
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
-  const [commerceProducts, differences, locales, run, lastSuccessfulRuns, recentlyUpdatedProducts] = await Promise.all([
+  const [commerceProducts, differences, presenceDifferences, locales, run, lastSuccessfulRuns, recentlyUpdatedProducts] = await Promise.all([
     db.product.findMany({ where: { syncStatus: "CONFLICT" }, select: { id: true } }),
     getLatestReconcileDifferences(),
+    getLatestCatalogPresenceDifferences(),
     getStorefrontLocales(),
     getLatestReconcileRun(),
     db.$queryRaw<Array<{ completedAt: Date }>>(Prisma.sql`
@@ -30,6 +35,7 @@ export async function getCatalogConflictSignals(adminUsername?: string): Promise
   return buildCatalogConflictSignals({
     commerceProductIds: commerceProducts.map((product) => product.id),
     differences,
+    presenceDifferences,
     locales,
     run,
     lastSuccessfulFullCheckAt: lastSuccessfulRuns[0]?.completedAt.toISOString() ?? null,
@@ -45,6 +51,14 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
   warning?: string;
 }> {
   const translationRun = await runTranslationReconciliation({ trigger: "MANUAL", requestedBy });
+  let presenceDifferences;
+  let presenceWarning: string | undefined;
+  try {
+    presenceDifferences = await scanAndSaveCatalogPresence(translationRun.run?.id ?? null);
+  } catch (error) {
+    presenceDifferences = await getLatestCatalogPresenceDifferences();
+    presenceWarning = error instanceof Error ? error.message : "Catalog presence could not be checked.";
+  }
   const linkedProducts = await db.product.findMany({
     where: { shopifyProductId: { not: null } },
     select: { id: true },
@@ -75,6 +89,7 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
   const signals = buildCatalogConflictSignals({
     commerceProductIds,
     differences,
+    presenceDifferences,
     locales,
     run: translationRun.run,
     lastSuccessfulFullCheckAt: completedAt,
@@ -83,11 +98,17 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
     now: new Date(),
   });
 
-  if (failures.length > 0 && signals.state === "ready") signals.state = "failed";
+  if ((failures.length > 0 || presenceWarning) && signals.state === "ready") signals.state = "failed";
+  const warnings = [
+    failures.length > 0
+      ? `${failures.length} commerce product${failures.length === 1 ? "" : "s"} could not be checked.`
+      : undefined,
+    presenceWarning ? `Catalog presence could not be checked: ${presenceWarning}` : undefined,
+    translationRun.run?.error ?? undefined,
+  ].filter((warning): warning is string => Boolean(warning));
+
   return {
     signals,
-    warning: failures.length > 0
-      ? `${failures.length} commerce product${failures.length === 1 ? "" : "s"} could not be checked.`
-      : translationRun.run?.error ?? undefined,
+    warning: warnings.length > 0 ? warnings.join(" ") : undefined,
   };
 }

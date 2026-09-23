@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   listConflictedProductIds: vi.fn(),
   applyReconcileChoice: vi.fn(),
   applyCommerceField: vi.fn(),
+  applyCatalogPresenceDifference: vi.fn(),
+  scanAndSaveCatalogPresence: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/catalog-conflict", async () => {
@@ -25,6 +27,10 @@ vi.mock("@/lib/shopify/commerce-field-apply", async () => {
     applyCommerceField: mocks.applyCommerceField,
   };
 });
+vi.mock("@/lib/shopify/catalog-presence-server", () => ({
+  applyCatalogPresenceDifference: mocks.applyCatalogPresenceDifference,
+  scanAndSaveCatalogPresence: mocks.scanAndSaveCatalogPresence,
+}));
 
 import { applyCatalogConflictResolution, previewCatalogConflictResolution } from "@/lib/shopify/catalog-conflict-apply";
 import type { CatalogConflictField, ProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
@@ -82,6 +88,32 @@ function translationField(overrides: Partial<CatalogConflictField> = {}): Catalo
   };
 }
 
+function presenceField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
+  return {
+    fieldKey: "presence:product",
+    label: "Product exists only in Shopify",
+    scope: { kind: "SHARED" },
+    origin: "PRESENCE",
+    targetKind: "NATIVE",
+    synaravaValue: "— Product is missing —",
+    shopifyValue: "Remote ring · SKU R-42",
+    baseValue: null,
+    localFingerprint: "missing",
+    shopifyFingerprint: "remote-fp",
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    blockedReason: null,
+    sourceId: null,
+    presenceDifference: {
+      id: "shopify:42", kind: "SHOPIFY_ONLY", localProductId: null,
+      shopifyProductId: "gid://shopify/Product/42", name: "Remote ring", handle: "remote-ring", sku: "R-42",
+      localFingerprint: "missing", shopifyFingerprint: "remote-fp", remoteMissing: false, matchReason: null,
+      localIdentity: null,
+      shopifyIdentity: { name: "Remote ring", handle: "remote-ring", sku: "R-42" },
+    },
+    ...overrides,
+  };
+}
+
 function conflict(fields: CatalogConflictField[], productId = "product-1"): ProductCatalogConflict {
   return { productId, fields };
 }
@@ -102,6 +134,18 @@ describe("previewCatalogConflictResolution", () => {
     expect(preview.truncated).toBe(false);
   });
 
+  it("includes a one-sided product only in its valid bulk direction", async () => {
+    mocks.listConflictedProductIds.mockResolvedValue(["shopify:42"]);
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([presenceField()], "shopify:42"));
+
+    const pull = await previewCatalogConflictResolution({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" });
+    const push = await previewCatalogConflictResolution({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" });
+
+    expect(pull.entries).toHaveLength(1);
+    expect(push.entries).toHaveLength(0);
+    expect(push.excluded[0].reason).toMatch(/only exists in Shopify/i);
+  });
+
   it("resolves a PRODUCT scope to translation and scoped-commerce fields, excluding an unsupported commerce field", async () => {
     mocks.getProductCatalogConflict.mockResolvedValue(conflict([commerceField(), scopedCommerceField(), translationField()]));
 
@@ -120,7 +164,7 @@ describe("previewCatalogConflictResolution", () => {
 
     expect(preview.entries).toEqual([]);
     expect(preview.excluded).toEqual([
-      expect.objectContaining({ fieldKey: "commerce:status", reason: expect.stringContaining("scoped write") }),
+      expect.objectContaining({ fieldKey: "commerce:status", reason: expect.stringContaining("field-by-field write") }),
     ]);
   });
 
@@ -205,6 +249,26 @@ describe("applyCatalogConflictResolution", () => {
     expect(outcome.results[0]).toMatchObject({ ok: true });
   });
 
+  it("refreshes catalog presence and applies a one-sided product through the presence resolver", async () => {
+    const field = presenceField();
+    mocks.scanAndSaveCatalogPresence.mockResolvedValue([]);
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field], "shopify:42"));
+    mocks.applyCatalogPresenceDifference.mockResolvedValue({ ok: true, localProductId: "product-new", message: "Product pulled from Shopify." });
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(field, "SHOPIFY_TO_SYNARAVA", "shopify:42")],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(mocks.scanAndSaveCatalogPresence).toHaveBeenCalledWith(null);
+    expect(mocks.applyCatalogPresenceDifference).toHaveBeenCalledWith({
+      difference: field.presenceDifference,
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+    expect(outcome.results[0]).toMatchObject({ ok: true, productId: "shopify:42", localProductId: "product-new" });
+  });
+
   it("never writes an unsupported commerce field — always reports UNSUPPORTED, with no write attempted", async () => {
     const field = commerceField();
     mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
@@ -216,7 +280,7 @@ describe("applyCatalogConflictResolution", () => {
     });
 
     expect(outcome.results[0]).toMatchObject({ ok: false, reason: "UNSUPPORTED" });
-    expect(outcome.results[0].message).toMatch(/scoped write/);
+    expect(outcome.results[0].message).toMatch(/field-by-field write/);
     expect(mocks.applyReconcileChoice).not.toHaveBeenCalled();
     expect(mocks.applyCommerceField).not.toHaveBeenCalled();
   });

@@ -165,7 +165,7 @@ export async function applyCatalogConflictResolutionAction(input: {
           && entry.fieldKey === result.fieldKey
           && entry.direction === "SHOPIFY_TO_SYNARAVA",
         ))
-        .map((result) => result.productId),
+        .map((result) => result.localProductId ?? result.productId),
     );
     let warning: string | undefined;
     try {

@@ -1,4 +1,5 @@
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
+import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
 import type { ReconcileDifferenceView, ReconcileRunSummary } from "@/lib/shopify/reconciliation-run";
 
 export type CatalogConflictSignalState = "ready" | "checking" | "stale" | "failed" | "disconnected";
@@ -13,6 +14,15 @@ export type CatalogConflictLocaleSignal = {
 export type CatalogConflictProductSignal = {
   shared: boolean;
   locales: CatalogConflictLocaleSignal[];
+  presence?: CatalogPresenceDifference["kind"] | "BOTH";
+  localProductId?: string | null;
+  shopifyProductId?: string | null;
+  name?: string;
+  handle?: string;
+  sku?: string;
+  remoteMissing?: boolean;
+  matchReason?: CatalogPresenceDifference["matchReason"];
+  allowedDirections?: Array<"SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY">;
 };
 
 export type CatalogConflictSignals = {
@@ -33,6 +43,7 @@ const STALE_AFTER_MS = 30 * 60 * 1000;
 export function buildCatalogConflictSignals({
   commerceProductIds,
   differences,
+  presenceDifferences = [],
   locales,
   run,
   lastSuccessfulFullCheckAt,
@@ -42,6 +53,7 @@ export function buildCatalogConflictSignals({
 }: {
   commerceProductIds: string[];
   differences: Difference[];
+  presenceDifferences?: CatalogPresenceDifference[];
   locales: Locale[];
   run: Run | null;
   lastSuccessfulFullCheckAt?: string | null;
@@ -54,7 +66,27 @@ export function buildCatalogConflictSignals({
   const products: Record<string, CatalogConflictProductSignal> = {};
   const seenFields = new Set<string>();
 
-  for (const productId of commerceProductIds) products[productId] = { shared: true, locales: [] };
+  for (const difference of presenceDifferences) {
+    products[difference.id] = {
+      shared: true,
+      locales: [],
+      presence: difference.kind,
+      localProductId: difference.localProductId,
+      shopifyProductId: difference.shopifyProductId,
+      name: difference.name,
+      handle: difference.handle,
+      sku: difference.sku,
+      remoteMissing: difference.remoteMissing,
+      matchReason: difference.matchReason,
+      allowedDirections: difference.kind === "SHOPIFY_ONLY"
+        ? ["SHOPIFY_TO_SYNARAVA"]
+        : ["SYNARAVA_TO_SHOPIFY"],
+    };
+  }
+  for (const productId of commerceProductIds) {
+    products[productId] = products[productId] ?? { shared: true, locales: [] };
+    products[productId].shared = true;
+  }
   for (const difference of differences) {
     if (difference.rootEntityType !== "PRODUCT" || difference.kind !== "CONFLICT") continue;
     const product = products[difference.rootEntityId] ?? { shared: false, locales: [] };

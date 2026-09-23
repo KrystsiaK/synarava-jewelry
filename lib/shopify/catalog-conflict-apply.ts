@@ -9,6 +9,7 @@ import {
 import { applyCommerceField } from "./commerce-field-apply";
 import { COMMERCE_UNSUPPORTED_REASON, SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
 import { applyReconcileChoice } from "./reconciliation-apply";
+import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
 
 // A bulk scope resolves every currently conflicted product — capped so one
 // request can't try to preview/apply an unbounded catalog in one go. A
@@ -80,6 +81,15 @@ function willClear(field: CatalogConflictField, direction: CatalogConflictDirect
   return isEmptyValue(source) && !isEmptyValue(destination);
 }
 
+function unsupportedDirectionReason(field: CatalogConflictField): string {
+  if (field.origin === "PRESENCE") {
+    return field.presenceDifference?.kind === "SHOPIFY_ONLY"
+      ? "This product only exists in Shopify. Pull it first, or run the Shopify → Synarava bulk action."
+      : "This product only exists in Synarava. Push it first, or run the Synarava → Shopify bulk action.";
+  }
+  return field.blockedReason ?? "This direction isn't supported for this field.";
+}
+
 /**
  * Resolves a scope into the concrete fields it would touch — the same
  * function backs a bulk direction, a single product's direction, and a
@@ -103,7 +113,7 @@ export async function previewCatalogConflictResolution(scope: CatalogConflictApp
         continue;
       }
       if (!field.allowedDirections.includes(direction)) {
-        excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: field.blockedReason ?? "This direction isn't supported for this field." });
+        excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: unsupportedDirectionReason(field) });
         continue;
       }
       if (field.blockedReason) {
@@ -163,6 +173,7 @@ export type CatalogConflictApplyEntryResult = {
   ok: boolean;
   reason?: "STALE" | "NEEDS_CLEAR_CONFIRMATION" | "WRITE_FAILED" | "UNSUPPORTED";
   message: string;
+  localProductId?: string;
 };
 
 export type CatalogConflictApplyOutcome = {
@@ -208,6 +219,11 @@ export async function applyCatalogConflictResolution({
   const results: CatalogConflictApplyEntryResult[] = [];
   const readyTranslation: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
   const readyCommerce: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyPresence: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
+
+  if (entries.some((entry) => entry.fieldKey === "presence:product")) {
+    await scanAndSaveCatalogPresence(null);
+  }
 
   const productIds = [...new Set(entries.map((entry) => entry.productId))];
   const conflictsByProduct = new Map(
@@ -237,7 +253,24 @@ export async function applyCatalogConflictResolution({
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "NEEDS_CLEAR_CONFIRMATION", message: "This would clear a non-empty value. Confirm clearing before applying." });
       continue;
     }
-    (field.origin === "TRANSLATION" ? readyTranslation : readyCommerce).push({ input: entry, field });
+    if (field.origin === "TRANSLATION") readyTranslation.push({ input: entry, field });
+    else if (field.origin === "PRESENCE") readyPresence.push({ input: entry, field });
+    else readyCommerce.push({ input: entry, field });
+  }
+
+  for (const { input, field } of readyPresence) {
+    if (!field.presenceDifference) {
+      results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: "This catalog-presence conflict is missing its source record." });
+      continue;
+    }
+    try {
+      const outcome = await applyCatalogPresenceDifference({ difference: field.presenceDifference, direction: input.direction });
+      results.push(outcome.ok
+        ? { productId: input.productId, localProductId: outcome.localProductId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
+        : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: outcome.reason, message: outcome.message });
+    } catch (error) {
+      results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This product could not be synchronized." });
+    }
   }
 
   for (const { input, field } of readyTranslation) {

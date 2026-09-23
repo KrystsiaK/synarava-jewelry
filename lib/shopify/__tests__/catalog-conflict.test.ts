@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getLatestReconcileDifferences: vi.fn(),
   getPublishedStorefrontLocales: vi.fn(),
   findManyProduct: vi.fn(),
+  getLatestCatalogPresenceDifferences: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -18,6 +19,9 @@ vi.mock("@/lib/shopify/reconciliation-run", () => ({
 }));
 vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getPublishedStorefrontLocales: mocks.getPublishedStorefrontLocales,
+}));
+vi.mock("@/lib/shopify/catalog-presence-server", () => ({
+  getLatestCatalogPresenceDifferences: mocks.getLatestCatalogPresenceDifferences,
 }));
 
 import { getProductCatalogConflict, listConflictedProductIds } from "@/lib/shopify/catalog-conflict";
@@ -43,14 +47,56 @@ function translationDiff(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function presenceDiff(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: "shopify:42", kind: "SHOPIFY_ONLY", localProductId: null,
+    shopifyProductId: "gid://shopify/Product/42", name: "Remote ring", handle: "remote-ring", sku: "R-42",
+    localFingerprint: "missing", shopifyFingerprint: "remote-fp", remoteMissing: false, matchReason: null,
+    localIdentity: null, shopifyIdentity: { name: "Remote ring", handle: "remote-ring", sku: "R-42" },
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getPublishedStorefrontLocales.mockResolvedValue(LOCALES);
   mocks.getLatestReconcileDifferences.mockResolvedValue([]);
   mocks.findManyProduct.mockResolvedValue([]);
+  mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([]);
 });
 
 describe("getProductCatalogConflict", () => {
+  it("returns a one-direction presence field without inspecting a virtual local product", async () => {
+    mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([presenceDiff()]);
+
+    const result = await getProductCatalogConflict("shopify:42");
+
+    expect(mocks.inspectProductSyncState).not.toHaveBeenCalled();
+    expect(result.fields[0]).toMatchObject({
+      origin: "PRESENCE",
+      label: "Product exists only in Shopify",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      synaravaValue: "— Product is missing —",
+      shopifyValue: "Remote ring · SKU R-42",
+    });
+  });
+
+  it("keeps local and Shopify identity distinct when Pull will link an existing local match", async () => {
+    mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([presenceDiff({
+      id: "local-42",
+      localProductId: "local-42",
+      matchReason: "SKU",
+      localIdentity: { name: "Local draft ring", handle: "draft-ring", sku: "R-42" },
+    })]);
+
+    const result = await getProductCatalogConflict("local-42");
+
+    expect(result.fields[0]).toMatchObject({
+      synaravaValue: "Local draft ring · SKU R-42",
+      shopifyValue: "Remote ring · SKU R-42",
+    });
+  });
+
   it("returns no fields when neither side has a conflict", async () => {
     mocks.inspectProductSyncState.mockResolvedValue(inspection());
 
@@ -251,6 +297,17 @@ describe("listConflictedProductIds", () => {
 
     expect(result.sort()).toEqual(["product-commerce", "product-translation"]);
     expect(mocks.findManyProduct).toHaveBeenCalledWith({ where: { syncStatus: "CONFLICT" }, select: { id: true } });
+  });
+
+  it("includes one-sided catalog products from the persisted presence snapshot", async () => {
+    mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([
+      presenceDiff(),
+      presenceDiff({ id: "local-7", kind: "SYNARAVA_ONLY", localProductId: "local-7", shopifyProductId: null }),
+    ]);
+
+    const result = await listConflictedProductIds();
+
+    expect(result.sort()).toEqual(["local-7", "shopify:42"]);
   });
 
   it("does not drop a product whose conflict came from an earlier, broader run than the most recent one", async () => {

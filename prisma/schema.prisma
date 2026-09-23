@@ -731,6 +731,17 @@ model ShopifyReconcileRun {
   @@index([completedAt])
 }
 
+// Latest catalog-level identity comparison. Field divergences belong to
+// ShopifyReconcileRun; products present on only one side need their own
+// persisted snapshot because a Shopify-only product has no local Product row.
+model ShopifyCatalogPresenceSnapshot {
+  id          String   @id @default("catalog")
+  runId       String?
+  differences Json
+  checkedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // Only unequal, actionable localized fields are stored. Equal fields and
 // shared commerce/media state never become disabled noise in the merge UI.
 model ShopifyFieldDivergence {

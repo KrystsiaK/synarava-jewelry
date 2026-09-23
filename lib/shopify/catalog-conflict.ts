@@ -9,6 +9,8 @@ import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-regist
 import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
 import { inspectProductSyncState, type ProductSyncDifference } from "./product-sync";
 import { COMMERCE_UNSUPPORTED_REASON, SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
+import type { CatalogPresenceDifference } from "./catalog-presence";
+import { getLatestCatalogPresenceDifferences } from "./catalog-presence-server";
 
 // Commerce inspection compares Name/Handle/Description/SEO title/SEO
 // description as flat product attributes read straight off the local
@@ -39,7 +41,7 @@ export type CatalogConflictField = {
   fieldKey: string;
   label: string;
   scope: CatalogConflictFieldScope;
-  origin: "COMMERCE" | "TRANSLATION";
+  origin: "COMMERCE" | "TRANSLATION" | "PRESENCE";
   targetKind: "NATIVE" | "METAFIELD" | "METAOBJECT";
   synaravaValue: string;
   shopifyValue: string;
@@ -50,6 +52,7 @@ export type CatalogConflictField = {
   blockedReason: string | null;
   /** The underlying ShopifyFieldDivergence row id for a TRANSLATION field (what applyReconcileChoice needs); null for COMMERCE, which applies as a whole-product write instead of one row per field. */
   sourceId: string | null;
+  presenceDifference?: CatalogPresenceDifference;
 };
 
 export type ProductCatalogConflict = {
@@ -132,6 +135,36 @@ function translationField(difference: ReconcileDifferenceView, locales: Storefro
   };
 }
 
+function presenceField(difference: CatalogPresenceDifference): CatalogConflictField {
+  const shopifyOnly = difference.kind === "SHOPIFY_ONLY";
+  const label = shopifyOnly
+    ? difference.localProductId
+      ? "Shopify product is not linked"
+      : "Product exists only in Shopify"
+    : difference.remoteMissing
+      ? "Product is missing in Shopify"
+      : "Product exists only in Synarava";
+  const summarize = (identity: { name: string; sku: string } | null) => identity
+    ? [identity.name, identity.sku ? `SKU ${identity.sku}` : ""].filter(Boolean).join(" · ")
+    : "— Product is missing —";
+  return {
+    fieldKey: "presence:product",
+    label,
+    scope: { kind: "SHARED" },
+    origin: "PRESENCE",
+    targetKind: "NATIVE",
+    synaravaValue: summarize(difference.localIdentity),
+    shopifyValue: summarize(difference.shopifyIdentity),
+    baseValue: null,
+    localFingerprint: difference.localFingerprint,
+    shopifyFingerprint: difference.shopifyFingerprint,
+    allowedDirections: shopifyOnly ? ["SHOPIFY_TO_SYNARAVA"] : ["SYNARAVA_TO_SHOPIFY"],
+    blockedReason: null,
+    sourceId: null,
+    presenceDifference: difference,
+  };
+}
+
 /**
  * Unified per-product conflict read model: links commerce inspection
  * (live Shopify fetch) with the latest translation-reconcile state by
@@ -149,6 +182,10 @@ function translationField(difference: ReconcileDifferenceView, locales: Storefro
  * translation conflicts.
  */
 export async function getProductCatalogConflict(productId: string): Promise<ProductCatalogConflict> {
+  const presenceDifferences = await getLatestCatalogPresenceDifferences();
+  const presence = presenceDifferences.find((difference) => difference.id === productId);
+  if (presence) return { productId, fields: [presenceField(presence)] };
+
   const [inspection, differences, locales] = await Promise.all([
     inspectProductSyncState(productId),
     getLatestReconcileDifferences(),
@@ -194,15 +231,17 @@ export async function getProductCatalogConflict(productId: string): Promise<Prod
  * threaded through here because it must never gate which conflicts show.
  */
 export async function listConflictedProductIds(): Promise<string[]> {
-  const [commerceConflicted, differences] = await Promise.all([
+  const [commerceConflicted, differences, presenceDifferences] = await Promise.all([
     db.product.findMany({ where: { syncStatus: "CONFLICT" }, select: { id: true } }),
     getLatestReconcileDifferences(),
+    getLatestCatalogPresenceDifferences(),
   ]);
 
   const productIds = new Set(commerceConflicted.map((product) => product.id));
   for (const difference of differences) {
     if (difference.rootEntityType === "PRODUCT" && difference.kind === "CONFLICT") productIds.add(difference.rootEntityId);
   }
+  for (const difference of presenceDifferences) productIds.add(difference.id);
 
   return [...productIds];
 }
