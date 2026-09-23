@@ -1,6 +1,6 @@
 # План: разрешение конфликтов каталога Shopify ↔ Synarava
 
-**Статус:** этапы 1–6 реализованы 23 сентября 2026. Этап 7 открыт как release gate. **BUG-1/BUG-2 закрыты 23 сентября 2026**; перед live Shopify — smoke BUG-3 + этап 7. UX-контракт: [`../docs/admin/catalog-conflict-resolution-ux.md`](../docs/admin/catalog-conflict-resolution-ux.md). Этот план касается только `/admin/products`; существующий широкий план Shopify reconciliation и его незавершённые задачи сохраняются отдельно.
+**Статус:** этапы 1–6 и presence-extension (товар только в Shopify/Synarava) реализованы 23 сентября 2026. Этап 7 открыт как release gate. **BUG-1/BUG-2 закрыты 23 сентября 2026**; перед live Shopify — smoke BUG-3 + этап 7. UX-контракт: [`../docs/admin/catalog-conflict-resolution-ux.md`](../docs/admin/catalog-conflict-resolution-ux.md). Этот план касается только `/admin/products`; существующий широкий план Shopify reconciliation и его незавершённые задачи сохраняются отдельно.
 
 ## Открытые баги (handoff)
 
@@ -79,8 +79,13 @@ Write-path каталога уже подключён: список, детал�
 - Commerce-инспекция включается в конфликт только при `state === "CONFLICT"` (двустороннее расхождение); `REMOTE_CHANGES`/`LOCAL_CHANGES` остаются односторонним сценарием и не попадают в поля конфликта.
 - Метки `Name`/`Handle`/`Description`/`SEO title`/`SEO description` из commerce-инспекции читают те же колонки `Product`, что и translation-reconcile под локалью `en` (см. `productSourceCopy` в `reconciliation-source.ts`) — это одно и то же расхождение в двух формах. Commerce-версия отбрасывается **только когда translation-reconcile уже сообщил именно про этот field key как `CONFLICT` под локалью `en`** (сверка по карте `COMMERCE_TRANSLATION_FIELD_KEY`, например `Name → title`), а не просто по факту существования `ShopifyTranslationBinding` — см. «исправленная проблема #2» ниже.
 - Перевод считается конфликтом только при `kind === "CONFLICT"`; `LOCAL_ONLY`/`SHOPIFY_ONLY` остаются вне этого read model (свои сценарии импорта/push).
-- `allowedDirections` пока всегда содержит оба направления, `blockedReason` всегда `null` — реальная проверка «можно ли безопасно записать поле» относится к этапу 2 (scoped apply contract); типы уже держат место под неё.
-- `listConflictedProductIds()` берёт commerce-часть из персистентного `Product.syncStatus === "CONFLICT"` (его выставляют вебхуки), а не через live-инспекцию каждого товара — иначе список каталога делал бы N обращений к Shopify на каждую загрузку страницы.
+- Отдельный catalog-presence read model сравнивает сам список товаров: Shopify-only и Synarava-only попадают в тот же workspace как однонаправленные product-level решения. Это не меняет правило выше для отсутствующего **значения перевода**: пустая локаль по-прежнему не становится field-conflict.
+
+### Presence-extension — ✅ реализовано (2026-09-23)
+
+Полная пагинированная выборка Shopify products сравнивается с локальными identity и сохраняется в `ShopifyCatalogPresenceSnapshot`. Сначала используется существующий Shopify ID; для непривязанной локальной записи допускается только уникальное совпадение SKU, затем handle. Перед apply каталог пересканируется, fingerprints проверяются заново, поэтому устаревший preview не создаёт дубль. Pull создаёт/связывает локальный товар и translation binding; Push создаёт Shopify product. Если ранее связанный Shopify product удалён, старые remote IDs и binding очищаются перед явным пересозданием. Bulk каждого направления включает только совместимые presence-записи, противоположные остаются в preview с причиной.
+- `allowedDirections` ограничивает presence-конфликт единственным допустимым Pull/Push; для обычных field-conflicts направления и `blockedReason` определяются scoped apply contract.
+- `listConflictedProductIds()` объединяет commerce-флаг `Product.syncStatus === "CONFLICT"`, translation divergences и последний catalog-presence snapshot. Live Shopify pagination выполняется только явным conflict check и перед presence-apply, а не при каждом рендере каталога.
 
 **Исправленная проблема #1 (код-ревью, раунд 1):** `getLatestReconcileDifferences()` фильтровала расхождения по id **единственного глобально последнего** run'а — после точечной проверки одного товара/локали расхождения всех остальных, всё ещё нерешённых товаров/локалей исчезали из ответа. Исправление — на уровне персистентности:
 - `persistDifferences` сначала «гасит» (`resolvedAt = now()`) старые нерешённые строки для проверенной пары `(bindingId, locale)`, затем вставляет свежие строки для того, что всё ещё различается.

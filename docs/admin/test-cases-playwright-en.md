@@ -236,7 +236,10 @@ and SYNC-16 asserts that state is handled gracefully.
 | CATCONF-04 | Unsupported commerce fields are excluded, never force-pushed | negative | P1 | ✔ unit | `commerce-field-apply.test.ts` / apply contract. |
 | CATCONF-05 | Shopify → Synarava sets a per-admin unseen watermark; Synarava → Shopify does not | positive | P1 | ✔ unit | `catalog-conflict-review.test.ts`. |
 | CATCONF-06 | Nested confirmation Escape closes only the top dialog | positive | P1 | ✔ render | `animated-modal.test.tsx`. |
-| CATCONF-07 | Live EN/PT (and RU when filled) apply round trip on a sandbox product | positive | P1 | **E2E** | Stage 7 gate. Skip without Shopify sandbox credentials. Do not mock. |
+| CATCONF-07 | Shopify-only product appears with Pull as its sole row action | positive | P1 | ✔ unit / **E2E round trip** | Component and resolver covered; sandbox confirms creation/link. |
+| CATCONF-08 | Synarava-only product appears with Push as its sole row action | positive | P1 | ✔ unit / **E2E round trip** | Component and resolver covered; sandbox confirms Shopify create. |
+| CATCONF-09 | Mixed one-sided bulk scopes include only compatible products and explain exclusions | edge | P1 | ✔ unit | Opposite direction stays Not included with reason. |
+| CATCONF-10 | Live EN/PT (and RU when filled) apply round trip on a sandbox product | positive | P1 | **E2E** | Stage 7 gate. Skip without Shopify sandbox credentials. Do not mock. |
 
 ## 10. Collections (`e2e/admin-collections.spec.ts`)
 

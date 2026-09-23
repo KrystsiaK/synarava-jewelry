@@ -203,6 +203,9 @@
 | CATCONF-04 🤖 | Unsupported commerce не пишется | Конфликт Status + Title | Детали | Status Unavailable / Not included; Title можно выбрать | P1 |
 | CATCONF-05 🤖 | Watermark только Shopify → Synarava | Успешный apply | Confirm Use Shopify | Появляется `Updated from Shopify · review`; Use Synarava маркер не ставит | P1 |
 | CATCONF-06 | Live round trip на тестовом товаре | Sandbox Shopify, заполненные EN/PT | Оба направления + ручной merge | Значения совпадают после записи; stale не перезаписывает | P1 |
+| CATCONF-07 🤖 | Товар только в Shopify | В Shopify есть товар без локальной пары | Run conflict check → Show conflicts | Видны имя/SKU и `Only in Shopify`; в строке только Pull; preview создаёт/связывает локальный товар после Confirm | P1 |
+| CATCONF-08 🤖 | Товар только в Synarava | Есть непривязанный локальный товар | Run conflict check → Show conflicts | Видны `Only in Synarava` и только Push; после Confirm товар создаётся в Shopify | P1 |
+| CATCONF-09 🤖 | Смешанный presence bulk | Один Shopify-only и один Synarava-only товар | Открыть оба bulk preview | Pull-bulk включает первый, Push-bulk — второй; противоположная карточка показана как Not included с причиной | P1 |
 
 ## 10. Коллекции
 

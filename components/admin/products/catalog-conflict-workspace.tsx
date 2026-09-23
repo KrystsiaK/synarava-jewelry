@@ -113,20 +113,28 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
         {productIds.map((productId) => {
           const product = productsById.get(productId);
           const signal = signals.products[productId];
+          const productName = product?.name ?? signal.name ?? `Product ${productId}`;
+          const productSku = product?.sku ?? signal.sku;
+          const allowedDirections = signal.allowedDirections ?? ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"];
+          const presenceLabel = signal.presence === "SHOPIFY_ONLY"
+            ? signal.localProductId ? "Not linked to Shopify" : "Only in Shopify"
+            : signal.presence === "SYNARAVA_ONLY"
+              ? signal.remoteMissing ? "Missing in Shopify" : "Only in Synarava"
+              : null;
           return (
             <article key={productId} ref={productId === focusedProductId ? focusedRef : undefined} tabIndex={productId === focusedProductId ? -1 : undefined} className="flex flex-col gap-4 rounded-xl border border-[var(--adm-border)] p-4 focus-visible:outline-2 focus-visible:outline-[var(--adm-warning)] sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <h3 className="truncate text-sm font-semibold">{product?.name ?? `Product ${productId}`}</h3>
-                {product?.sku ? <p className="mt-1 text-xs text-[var(--adm-muted)]">SKU {product.sku}</p> : null}
+                <h3 className="truncate text-sm font-semibold">{productName}</h3>
+                {productSku ? <p className="mt-1 text-xs text-[var(--adm-muted)]">SKU {productSku}</p> : null}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {signal.shared ? <span className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs">Shared commerce fields</span> : null}
+                  {presenceLabel ? <span className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs">{presenceLabel}</span> : signal.shared ? <span className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs">Shared commerce fields</span> : null}
                   {signal.locales.map((locale) => <span key={locale.code} className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs"><Languages className="mr-1 inline size-3" />{locale.code.toUpperCase()} · {locale.nativeName} · {plural(locale.count, "field", "fields")}</span>)}
                 </div>
               </div>
-              <div className="flex shrink-0 gap-2" aria-label={`Actions for ${product?.name ?? productId}`}>
-                <Tooltip content="Use Shopify for every supported conflicting field in this product"><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Shopify values"><ArrowDownToLine className="size-4" /></button></Tooltip>
-                <Tooltip content="Use Synarava for every supported conflicting field in this product"><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Synarava values"><ArrowUpFromLine className="size-4" /></button></Tooltip>
-                <Tooltip content="Compare fields and choose Shopify or Synarava separately"><button type="button" disabled={busy} onClick={() => onDetails(productId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Compare fields side by side"><Columns2 className="size-4" /></button></Tooltip>
+              <div className="flex shrink-0 gap-2" aria-label={`Actions for ${productName}`}>
+                {allowedDirections.includes("SHOPIFY_TO_SYNARAVA") ? <Tooltip content={signal.presence ? "Create or link this product in Synarava from Shopify" : "Use Shopify for every supported conflicting field in this product"}><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal.presence ? "Pull product from Shopify" : "Apply Shopify values"}><ArrowDownToLine className="size-4" /></button></Tooltip> : null}
+                {allowedDirections.includes("SYNARAVA_TO_SHOPIFY") ? <Tooltip content={signal.presence ? "Create this product in Shopify from Synarava" : "Use Synarava for every supported conflicting field in this product"}><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal.presence ? "Push product to Shopify" : "Apply Synarava values"}><ArrowUpFromLine className="size-4" /></button></Tooltip> : null}
+                {!signal.presence ? <Tooltip content="Compare fields and choose Shopify or Synarava separately"><button type="button" disabled={busy} onClick={() => onDetails(productId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Compare fields side by side"><Columns2 className="size-4" /></button></Tooltip> : null}
               </div>
             </article>
           );
@@ -212,7 +220,7 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
                 </>
               )}
             </div>
-            {field.blockedReason ? <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">Can't choose here: {field.blockedReason}</p> : null}
+            {field.blockedReason ? <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">Cannot choose here: {field.blockedReason}</p> : null}
           </section>
         ))}
       </div>
@@ -286,7 +294,13 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [applying, startApplyTransition] = useTransition();
   const router = useRouter();
-  const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+  const productsById = useMemo(() => {
+    const map = new Map(products.map((product) => [product.id, product]));
+    for (const [productId, signal] of Object.entries(signals.products)) {
+      if (!map.has(productId) && signal.name) map.set(productId, { id: productId, name: signal.name, sku: signal.sku ?? null });
+    }
+    return map;
+  }, [products, signals.products]);
   const busy = applying || detailsLoading || previewLoading;
 
   function closeAll() {
@@ -368,7 +382,7 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
             && entry.field.fieldKey === item.fieldKey
             && entry.direction === "SHOPIFY_TO_SYNARAVA",
           ))
-          .map((item) => item.productId),
+          .map((item) => item.localProductId ?? item.productId),
       );
       const fullyResolved = [...successfulProducts].filter((productId) =>
         !result.outcome!.results.some((item) => item.productId === productId && !item.ok)

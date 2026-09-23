@@ -58,12 +58,12 @@ const blockedField = {
   sourceId: null,
 };
 
-function renderWorkspace(onSignalsChange = vi.fn(), onToast = vi.fn(), onClose = vi.fn()) {
+function renderWorkspace(onSignalsChange = vi.fn(), onToast = vi.fn(), onClose = vi.fn(), signalState = signals) {
   render(
     <CatalogConflictWorkspace
       open
       onClose={onClose}
-      signals={signals}
+      signals={signalState}
       onSignalsChange={onSignalsChange}
       products={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
       focusedProductId={null}
@@ -146,11 +146,35 @@ describe("CatalogConflictWorkspace", () => {
     expect(await screen.findByRole("dialog", { name: "Confirm conflict resolution" })).toBeInTheDocument();
   });
 
+  it("shows a Shopify-only product by name with Pull as its only row action", () => {
+    renderWorkspace(vi.fn(), vi.fn(), vi.fn(), {
+      ...signals,
+      products: {
+        "shopify:42": {
+          shared: true,
+          locales: [],
+          presence: "SHOPIFY_ONLY",
+          localProductId: null,
+          shopifyProductId: "gid://shopify/Product/42",
+          name: "Remote ring",
+          sku: "R-42",
+          allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+        },
+      },
+    });
+
+    expect(screen.getByText("Remote ring")).toBeInTheDocument();
+    expect(screen.getByText("Only in Shopify")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pull product from Shopify" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Apply Synarava values" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Compare fields side by side" })).not.toBeInTheDocument();
+  });
+
   it("explains unsupported commerce fields and still allows a translation merge", async () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField, field] } });
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByText(/Can't choose here/)).toBeInTheDocument();
+    expect(await screen.findByText(/Cannot choose here/)).toBeInTheDocument();
     expect(screen.getByText("SHARED")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
     fireEvent.click(screen.getByRole("button", { name: "Review merge" }));
