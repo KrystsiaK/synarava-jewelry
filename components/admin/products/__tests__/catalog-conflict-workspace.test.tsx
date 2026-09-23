@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -93,7 +93,7 @@ describe("CatalogConflictWorkspace", () => {
     renderWorkspace();
     expect(screen.getByText(/RU · Русский · 1 field/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Review conflict details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
     expect(await screen.findByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
     expect(screen.getByText("RU · Русский")).toBeInTheDocument();
     expect(screen.getByText(/Only this language value is affected/)).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe("CatalogConflictWorkspace", () => {
 
   it("fills visible fields from Select Shopify without applying yet", async () => {
     renderWorkspace();
-    fireEvent.click(screen.getByRole("button", { name: "Review conflict details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
     expect(await screen.findByRole("button", { name: "Review merge" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
     expect(screen.getByRole("button", { name: "Review merge" })).toBeEnabled();
@@ -119,7 +119,7 @@ describe("CatalogConflictWorkspace", () => {
 
   it("keeps field decisions after cancelling the preview", async () => {
     renderWorkspace();
-    fireEvent.click(screen.getByRole("button", { name: "Review conflict details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
     await screen.findByRole("dialog", { name: "Choose conflict values" });
     fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
     fireEvent.click(screen.getByRole("button", { name: "Review merge" }));
@@ -148,7 +148,7 @@ describe("CatalogConflictWorkspace", () => {
   it("explains unsupported commerce fields and still allows a translation merge", async () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField, field] } });
     renderWorkspace();
-    fireEvent.click(screen.getByRole("button", { name: "Review conflict details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
     expect(await screen.findByText(/Unavailable here/)).toBeInTheDocument();
     expect(screen.getByText("SHARED")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
@@ -157,6 +157,29 @@ describe("CatalogConflictWorkspace", () => {
       kind: "MANUAL",
       selections: [{ productId: "p1", fieldKey: "translation:ru:title", direction: "SHOPIFY_TO_SYNARAVA" }],
     }));
+  });
+
+  it("sends only-blocked commerce conflicts to the product editor instead of a dead merge", async () => {
+    mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
+    renderWorkspace();
+    fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
+    expect(await screen.findByText(/cannot be decided here yet/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open product editor" })).toHaveAttribute("href", "/admin/products/p1");
+    expect(screen.queryByRole("button", { name: "Review merge" })).not.toBeInTheDocument();
+  });
+
+  it("does not trap the page behind Working with Shopify while details are still loading", async () => {
+    let resolveLoad: (value: { conflict: { productId: string; fields: typeof field[] } }) => void = () => undefined;
+    mocks.load.mockImplementation(() => new Promise((resolve) => { resolveLoad = resolve; }));
+    renderWorkspace();
+    fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
+    expect(await screen.findByText(/Loading live field comparison/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Working with Shopify")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close conflict details" }));
+    expect(screen.queryByRole("dialog", { name: "Choose conflict values" })).not.toBeInTheDocument();
+    await act(async () => {
+      resolveLoad({ conflict: { productId: "p1", fields: [field] } });
+    });
   });
 
   it("applies a confirmed preview and marks a Shopify-to-Synarava product as updated", async () => {

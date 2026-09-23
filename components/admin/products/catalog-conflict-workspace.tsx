@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDownToLine, ArrowUpFromLine, GitCompareArrows, Languages, LoaderCircle, Search, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Columns2, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
 import {
   applyCatalogConflictResolutionAction,
@@ -74,13 +75,13 @@ function ValueCell({ label, value, selected, disabled, onSelect }: {
   );
 }
 
-function ConflictListModal({ open, onClose, signals, products, focusedProductId, pending, onPreview, onDetails }: {
+function ConflictListModal({ open, onClose, signals, products, focusedProductId, busy, onPreview, onDetails }: {
   open: boolean;
   onClose: () => void;
   signals: CatalogConflictSignals;
   products: ProductSummary[];
   focusedProductId: string | null;
-  pending: boolean;
+  busy: boolean;
   onPreview: (scope: CatalogConflictApplyScope) => void;
   onDetails: (productId: string) => void;
 }) {
@@ -99,14 +100,14 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
   }, [focusedProductId, open]);
 
   return (
-    <AnimatedModal open={open} onClose={pending ? () => undefined : onClose} ariaLabel="Catalog conflicts" portalClassName="admin-modal-root" zIndexClassName="z-[200]" backdropZIndexClassName="z-[190]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,58rem)] w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
+    <AnimatedModal open={open} onClose={busy ? () => undefined : onClose} ariaLabel="Catalog conflicts" portalClassName="admin-modal-root" zIndexClassName="z-[200]" backdropZIndexClassName="z-[190]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,58rem)] w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--adm-border)] p-5">
         <div>
           <p className="adm-section-tag">[ CATALOG CONFLICTS ]</p>
           <h2 className="adm-title-sm mt-2">{plural(productIds.length, "product", "products")} need a decision</h2>
           <p className="mt-1 max-w-2xl text-xs text-[var(--adm-muted)]">This is the list from the last conflict check. Choose a direction, or open one product field by field. Nothing is written until the final confirmation.</p>
         </div>
-        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close catalog conflicts"><X className="size-4" /></button>
+        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close catalog conflicts"><X className="size-4" /></button>
       </header>
       <div className="min-h-0 space-y-3 overflow-y-auto p-5">
         {productIds.length === 0 ? <p className="adm-copy py-8 text-center">No saved conflicts. Run a conflict check to confirm the latest Shopify state.</p> : null}
@@ -124,19 +125,19 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
                 </div>
               </div>
               <div className="flex shrink-0 gap-2" aria-label={`Actions for ${product?.name ?? productId}`}>
-                <Tooltip content="Use Shopify for every supported conflicting field in this product"><button type="button" disabled={pending} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Shopify values"><ArrowDownToLine className="size-4" /></button></Tooltip>
-                <Tooltip content="Use Synarava for every supported conflicting field in this product"><button type="button" disabled={pending} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Synarava values"><ArrowUpFromLine className="size-4" /></button></Tooltip>
-                <Tooltip content="Compare fields and choose Shopify or Synarava separately"><button type="button" disabled={pending} onClick={() => onDetails(productId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Review conflict details"><Search className="size-4" /></button></Tooltip>
+                <Tooltip content="Use Shopify for every supported conflicting field in this product"><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Shopify values"><ArrowDownToLine className="size-4" /></button></Tooltip>
+                <Tooltip content="Use Synarava for every supported conflicting field in this product"><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Synarava values"><ArrowUpFromLine className="size-4" /></button></Tooltip>
+                <Tooltip content="Compare fields and choose Shopify or Synarava separately"><button type="button" disabled={busy} onClick={() => onDetails(productId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Compare fields side by side"><Columns2 className="size-4" /></button></Tooltip>
               </div>
             </article>
           );
         })}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost">Close</button>
+        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost">Close</button>
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={pending || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2"><ArrowDownToLine className="size-4" />Use Shopify for all</button>
-          <button type="button" disabled={pending || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2"><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
+          <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2"><ArrowDownToLine className="size-4" />Use Shopify for all</button>
+          <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2"><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
         </div>
       </footer>
     </AnimatedModal>
@@ -153,58 +154,91 @@ function orderedConflictFields(fields: CatalogConflictField[]) {
   });
 }
 
-function DetailsModal({ conflict, product, selections, pending, onClose, onSelect, onSelectAll, onContinue }: {
+function DetailsModal({ conflict, product, selections, loading, applying, onClose, onSelect, onSelectAll, onContinue }: {
   conflict: ProductCatalogConflict | null;
   product?: ProductSummary;
   selections: Record<string, CatalogConflictDirection>;
-  pending: boolean;
+  loading: boolean;
+  applying: boolean;
   onClose: () => void;
   onSelect: (fieldKey: string, direction: CatalogConflictDirection) => void;
   onSelectAll: (direction: CatalogConflictDirection) => void;
   onContinue: () => void;
 }) {
-  if (!conflict) return null;
-  const fields = orderedConflictFields(conflict.fields);
+  if (!conflict && !loading) return null;
+  const fields = conflict ? orderedConflictFields(conflict.fields) : [];
   const actionable = fields.filter((field) => !field.blockedReason && field.allowedDirections.length > 0);
+  const onlyBlocked = conflict !== null && fields.length > 0 && actionable.length === 0;
+  const busy = applying;
   return (
-    <AnimatedModal open onClose={pending ? () => undefined : onClose} ariaLabel="Choose conflict values" portalClassName="admin-modal-root" zIndexClassName="z-[300]" backdropZIndexClassName="z-[290]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,60rem)] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
+    <AnimatedModal open onClose={busy ? () => undefined : onClose} ariaLabel="Choose conflict values" portalClassName="admin-modal-root" zIndexClassName="z-[300]" backdropZIndexClassName="z-[290]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,60rem)] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
       <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5">
         <div>
           <p className="adm-section-tag">[ FIELD DECISIONS ]</p>
           <h2 className="adm-title-sm mt-2">{product?.name ?? "Product conflict"}</h2>
-          <p className="mt-1 text-xs text-[var(--adm-muted)]">Each language is independent. Pick either side for the fields you want to merge.</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">
+            {onlyBlocked
+              ? "These fields cannot be decided here yet. Open the product and use Push/Pull for the whole commerce record."
+              : "Each language is independent. Pick either side for the fields you want to merge."}
+          </p>
         </div>
-        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close conflict details"><X className="size-4" /></button>
+        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close conflict details"><X className="size-4" /></button>
       </header>
       <div className="min-h-0 space-y-4 overflow-y-auto p-5">
+        {loading && !conflict ? (
+          <p className="inline-flex items-center gap-2 text-sm text-[var(--adm-muted)]" role="status">
+            <LoaderCircle className="size-4 animate-spin" />Loading live field comparison…
+          </p>
+        ) : null}
+        {onlyBlocked ? (
+          <p className="rounded-lg border border-[var(--adm-warning)] p-3 text-sm">
+            Status, storefront visibility, and other unsupported commerce fields stay read-only in this dialog.
+            {conflict ? <> Open <Link href={`/admin/products/${conflict.productId}`} className="font-semibold underline underline-offset-2">the product editor</Link> and use its Push/Pull actions.</> : null}
+          </p>
+        ) : null}
         {fields.map((field) => (
           <section key={field.fieldKey} className="rounded-xl border border-[var(--adm-border)] p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2"><LocaleMark field={field} /><h3 className="text-sm font-semibold">{field.label}</h3>{field.origin === "TRANSLATION" ? <span className="text-xs text-[var(--adm-muted)]">Only this language value is affected</span> : null}</div>
             <div className="grid gap-3 md:grid-cols-2">
-              <ValueCell label="Synarava" value={field.synaravaValue} disabled={!field.allowedDirections.includes("SYNARAVA_TO_SHOPIFY")} selected={selections[field.fieldKey] === "SYNARAVA_TO_SHOPIFY"} onSelect={() => onSelect(field.fieldKey, "SYNARAVA_TO_SHOPIFY")} />
-              <ValueCell label="Shopify" value={field.shopifyValue} disabled={!field.allowedDirections.includes("SHOPIFY_TO_SYNARAVA")} selected={selections[field.fieldKey] === "SHOPIFY_TO_SYNARAVA"} onSelect={() => onSelect(field.fieldKey, "SHOPIFY_TO_SYNARAVA")} />
+              {field.blockedReason ? (
+                <>
+                  <ValueCell label="Synarava" value={field.synaravaValue} />
+                  <ValueCell label="Shopify" value={field.shopifyValue} />
+                </>
+              ) : (
+                <>
+                  <ValueCell label="Synarava" value={field.synaravaValue} disabled={!field.allowedDirections.includes("SYNARAVA_TO_SHOPIFY")} selected={selections[field.fieldKey] === "SYNARAVA_TO_SHOPIFY"} onSelect={() => onSelect(field.fieldKey, "SYNARAVA_TO_SHOPIFY")} />
+                  <ValueCell label="Shopify" value={field.shopifyValue} disabled={!field.allowedDirections.includes("SHOPIFY_TO_SYNARAVA")} selected={selections[field.fieldKey] === "SHOPIFY_TO_SYNARAVA"} onSelect={() => onSelect(field.fieldKey, "SHOPIFY_TO_SYNARAVA")} />
+                </>
+              )}
             </div>
             {field.blockedReason ? <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-warning)_9%,transparent)] p-3 text-xs text-[var(--adm-muted)]">Unavailable here: {field.blockedReason}</p> : null}
           </section>
         ))}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-secondary">Cancel</button>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" disabled={pending || actionable.length === 0} onClick={() => onSelectAll("SHOPIFY_TO_SYNARAVA")} className="adm-btn-ghost">Select Shopify for visible fields</button>
-          <button type="button" disabled={pending || actionable.length === 0} onClick={() => onSelectAll("SYNARAVA_TO_SHOPIFY")} className="adm-btn-ghost">Select Synarava for visible fields</button>
-          <span className="text-xs text-[var(--adm-muted)]">{Object.keys(selections).length} of {actionable.length} selected</span>
-        </div>
-        <button type="button" onClick={onContinue} disabled={pending || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
+        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-secondary">{onlyBlocked ? "Back to list" : "Cancel"}</button>
+        {!onlyBlocked ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" disabled={busy || loading || actionable.length === 0} onClick={() => onSelectAll("SHOPIFY_TO_SYNARAVA")} className="adm-btn-ghost">Select Shopify for visible fields</button>
+              <button type="button" disabled={busy || loading || actionable.length === 0} onClick={() => onSelectAll("SYNARAVA_TO_SHOPIFY")} className="adm-btn-ghost">Select Synarava for visible fields</button>
+              <span className="text-xs text-[var(--adm-muted)]">{Object.keys(selections).length} of {actionable.length} selected</span>
+            </div>
+            <button type="button" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
+          </>
+        ) : conflict ? (
+          <Link href={`/admin/products/${conflict.productId}`} className="adm-btn-primary">Open product editor</Link>
+        ) : null}
       </footer>
     </AnimatedModal>
   );
 }
 
-function PreviewModal({ preview, productsById, pending, resultMessage, onClose, onConfirm }: {
+function PreviewModal({ preview, productsById, applying, resultMessage, onClose, onConfirm }: {
   preview: CatalogConflictPreview;
   productsById: Map<string, ProductSummary>;
-  pending: boolean;
+  applying: boolean;
   resultMessage: string | null;
   onClose: () => void;
   onConfirm: (acknowledgeClears: boolean) => void;
@@ -212,8 +246,8 @@ function PreviewModal({ preview, productsById, pending, resultMessage, onClose, 
   const [acknowledgeClears, setAcknowledgeClears] = useState(false);
   const hasClears = preview.entries.some((entry) => entry.willClearNonEmptyValue);
   return (
-    <AnimatedModal open onClose={pending ? () => undefined : onClose} ariaLabel="Confirm conflict resolution" portalClassName="admin-modal-root" zIndexClassName="z-[400]" backdropZIndexClassName="z-[390]" className="adm-panel pointer-events-auto grid max-h-[min(90vh,64rem)] w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
-      <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5"><div><p className="adm-section-tag">[ FINAL PREVIEW ]</p><h2 className="adm-title-sm mt-2">Confirm {plural(preview.entries.length, "field change", "field changes")}</h2><p className="mt-1 text-xs text-[var(--adm-muted)]">This is the exact reviewed set. Current values are checked again immediately before every write.</p></div><button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close confirmation"><X className="size-4" /></button></header>
+    <AnimatedModal open onClose={applying ? () => undefined : onClose} ariaLabel="Confirm conflict resolution" portalClassName="admin-modal-root" zIndexClassName="z-[400]" backdropZIndexClassName="z-[390]" className="adm-panel pointer-events-auto grid max-h-[min(90vh,64rem)] w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
+      <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5"><div><p className="adm-section-tag">[ FINAL PREVIEW ]</p><h2 className="adm-title-sm mt-2">Confirm {plural(preview.entries.length, "field change", "field changes")}</h2><p className="mt-1 text-xs text-[var(--adm-muted)]">This is the exact reviewed set. Current values are checked again immediately before every write.</p></div><button type="button" onClick={onClose} disabled={applying} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close confirmation"><X className="size-4" /></button></header>
       <div className="min-h-0 space-y-4 overflow-y-auto p-5">
         {preview.entries.map((entry) => (
           <section key={`${entry.productId}:${entry.field.fieldKey}`} className="rounded-xl border border-[var(--adm-border)] p-4">
@@ -228,7 +262,7 @@ function PreviewModal({ preview, productsById, pending, resultMessage, onClose, 
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
         <div>{hasClears ? <label className="flex max-w-xl items-start gap-2 text-xs"><input type="checkbox" checked={acknowledgeClears} onChange={(event) => setAcknowledgeClears(event.target.checked)} className="mt-0.5" />I understand that the selected source contains empty values and the destination values shown above will be cleared.</label> : <span className="text-xs text-[var(--adm-muted)]">Nothing changes until you confirm.</span>}</div>
-        <div className="flex gap-2"><button type="button" onClick={onClose} disabled={pending} className="adm-btn-secondary">Cancel</button><button type="button" onClick={() => onConfirm(acknowledgeClears)} disabled={pending || preview.entries.length === 0 || (hasClears && !acknowledgeClears)} className="adm-btn-primary">{pending ? "Applying…" : "Confirm changes"}</button></div>
+        <div className="flex gap-2"><button type="button" onClick={onClose} disabled={applying} className="adm-btn-secondary">Cancel</button><button type="button" onClick={() => onConfirm(acknowledgeClears)} disabled={applying || preview.entries.length === 0 || (hasClears && !acknowledgeClears)} className="adm-btn-primary">{applying ? "Applying…" : "Confirm changes"}</button></div>
       </footer>
     </AnimatedModal>
   );
@@ -244,54 +278,71 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
   onToast: (message: string, tone: ToastTone) => void;
 }) {
   const [details, setDetails] = useState<ProductCatalogConflict | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [selections, setSelections] = useState<Record<string, CatalogConflictDirection>>({});
   const [preview, setPreview] = useState<CatalogConflictPreview | null>(null);
   const [activeScope, setActiveScope] = useState<CatalogConflictApplyScope | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [applying, startApplyTransition] = useTransition();
   const router = useRouter();
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+  const busy = applying || detailsLoading || previewLoading;
 
   function closeAll() {
+    if (applying) return;
     setPreview(null);
     setDetails(null);
+    setDetailsLoading(false);
+    setPreviewLoading(false);
     setSelections({});
     setResultMessage(null);
     onClose();
   }
 
   function openPreview(scope: CatalogConflictApplyScope) {
+    if (applying) return;
     setResultMessage(null);
-    startTransition(async () => {
-      const result = await previewCatalogConflictResolutionAction(scope);
-      if (result.error) return onToast(result.error, "error");
-      if (result.preview) {
-        setActiveScope(scope);
-        setPreview(result.preview);
-      }
-    });
+    setPreviewLoading(true);
+    void previewCatalogConflictResolutionAction(scope)
+      .then((result) => {
+        if (result.error) {
+          onToast(result.error, "error");
+          return;
+        }
+        if (result.preview) {
+          setActiveScope(scope);
+          setPreview(result.preview);
+        }
+      })
+      .finally(() => setPreviewLoading(false));
   }
 
   function openDetails(productId: string) {
-    startTransition(async () => {
-      const result = await loadProductCatalogConflictAction(productId);
-      if (result.error) return onToast(result.error, "error");
-      if (result.conflict) {
-        setSelections({});
-        setDetails(result.conflict);
-      }
-    });
+    if (applying) return;
+    setDetails(null);
+    setSelections({});
+    setDetailsLoading(true);
+    void loadProductCatalogConflictAction(productId)
+      .then((result) => {
+        if (result.error) {
+          onToast(result.error, "error");
+          return;
+        }
+        if (result.conflict) setDetails(result.conflict);
+      })
+      .finally(() => setDetailsLoading(false));
   }
 
   function confirm(acknowledgeClears: boolean) {
-    if (!preview) return;
+    if (!preview || applying) return;
     const submittedPreview = preview;
     const submittedScope = activeScope;
     setPreview(null);
     setDetails(null);
     setResultMessage(null);
     if (submittedScope?.kind === "BULK") onClose();
-    startTransition(async () => {
+    startApplyTransition(async () => {
       const result = await applyCatalogConflictResolutionAction({
         acknowledgeClears,
         entries: submittedPreview.entries.map((entry) => ({
@@ -341,26 +392,36 @@ export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChan
 
   return (
     <>
-      <ConflictListModal open={open} onClose={closeAll} signals={signals} products={products} focusedProductId={focusedProductId} pending={pending} onPreview={openPreview} onDetails={openDetails} />
-      <DetailsModal
-        conflict={details}
-        product={details ? productsById.get(details.productId) : undefined}
-        selections={selections}
-        pending={pending}
-        onClose={() => { setDetails(null); setSelections({}); }}
-        onSelect={(fieldKey, direction) => setSelections((current) => ({ ...current, [fieldKey]: direction }))}
-        onSelectAll={(direction) => setSelections((current) => {
-          if (!details) return current;
-          const next = { ...current };
-          for (const field of details.fields) {
-            if (!field.blockedReason && field.allowedDirections.includes(direction)) next[field.fieldKey] = direction;
-          }
-          return next;
-        })}
-        onContinue={() => details && openPreview({ kind: "MANUAL", selections: Object.entries(selections).map(([fieldKey, direction]) => ({ productId: details.productId, fieldKey, direction })) })}
-      />
-      {preview ? <PreviewModal preview={preview} productsById={productsById} pending={pending} resultMessage={resultMessage} onClose={() => { setPreview(null); setResultMessage(null); }} onConfirm={confirm} /> : null}
-      {pending ? (
+      <ConflictListModal open={open} onClose={closeAll} signals={signals} products={products} focusedProductId={focusedProductId} busy={busy} onPreview={openPreview} onDetails={openDetails} />
+      {details || detailsLoading ? (
+        <DetailsModal
+          conflict={details}
+          product={details ? productsById.get(details.productId) : undefined}
+          selections={selections}
+          loading={detailsLoading}
+          applying={applying}
+          onClose={() => { if (!applying) { setDetails(null); setDetailsLoading(false); setSelections({}); } }}
+          onSelect={(fieldKey, direction) => setSelections((current) => ({ ...current, [fieldKey]: direction }))}
+          onSelectAll={(direction) => setSelections((current) => {
+            if (!details) return current;
+            const next = { ...current };
+            for (const field of details.fields) {
+              if (!field.blockedReason && field.allowedDirections.includes(direction)) next[field.fieldKey] = direction;
+            }
+            return next;
+          })}
+          onContinue={() => details && openPreview({ kind: "MANUAL", selections: Object.entries(selections).map(([fieldKey, direction]) => ({ productId: details.productId, fieldKey, direction })) })}
+        />
+      ) : null}
+      {preview ? <PreviewModal preview={preview} productsById={productsById} applying={applying} resultMessage={resultMessage} onClose={() => { if (!applying) { setPreview(null); setResultMessage(null); } }} onConfirm={confirm} /> : null}
+      {previewLoading ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[450] grid place-items-center" role="status" aria-live="polite">
+          <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--adm-border)] bg-[var(--adm-panel)] px-4 py-3 text-sm font-semibold shadow-xl">
+            <LoaderCircle className="size-4 animate-spin" />Building preview…
+          </span>
+        </div>
+      ) : null}
+      {applying ? (
         <div className="fixed inset-0 z-[500] grid place-items-center bg-[color-mix(in_srgb,var(--adm-bg)_55%,transparent)]" role="alertdialog" aria-modal="true" aria-live="polite" aria-label="Working with Shopify">
           <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--adm-border)] bg-[var(--adm-panel)] px-4 py-3 text-sm font-semibold shadow-xl">
             <LoaderCircle className="size-4 animate-spin" />Working with Shopify…
