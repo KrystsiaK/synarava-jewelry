@@ -225,8 +225,8 @@ export function AdminTextField({
         endAdornment={endAdornment}
         clearable={clearable}
         onClear={onClear}
-        required={required || inputProps.required}
-        aria-invalid={ariaInvalid}
+        required={required}
+        aria-invalid={ariaInvalid === true ? true : undefined}
         aria-errormessage={ariaErrorMessage ?? messageId}
       />
     </AdminFieldShell>

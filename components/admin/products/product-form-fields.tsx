@@ -289,14 +289,14 @@ export function ProductDetailFields({
                       />
                     );
                   }
+                  // Remaining defs are TEXT-only (NUMBER always has `unit`, handled above).
                   return (
                     <AdminTextField
                       key={definition.key}
                       label={definition.label}
                       name={name}
                       defaultValue={String(current.value)}
-                      type={definition.type === "NUMBER" ? "number" : "text"}
-                      step={definition.type === "NUMBER" ? "0.01" : undefined}
+                      type="text"
                     />
                   );
                 })}

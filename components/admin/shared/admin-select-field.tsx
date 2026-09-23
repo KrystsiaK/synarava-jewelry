@@ -72,7 +72,7 @@ export function AdminSelectField({
         {...selectProps}
         id={controlId}
         disabled={disabled}
-        required={required || selectProps.required}
+        required={required}
         aria-invalid={showError ? true : undefined}
         aria-errormessage={showError ? (ariaErrorMessage ?? messageId) : undefined}
         className={cn(fieldClass(showError ? error || "invalid" : undefined), selectClassName)}
