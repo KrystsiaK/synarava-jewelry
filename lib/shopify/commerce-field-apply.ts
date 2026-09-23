@@ -166,16 +166,27 @@ async function writeToShopify(productId: string, label: string, value: string, v
 }
 
 /**
- * Recomputes this product's true sync state right after a successful
- * field write and persists it — the catalog-wide conflict list
- * (listConflictedProductIds) reads the *persisted* `syncStatus` flag, not
- * a live check, so a field-level fix that isn't written back here would
- * leave an already-resolved product showing as conflicted forever.
+ * Re-inspects the product right after a successful field write and (a)
+ * reports whether *this specific field* is still showing up as a
+ * conflict, and (b) as a side effect, persists the product's true sync
+ * state when nothing is left to reconcile at all.
  *
- * Deliberately keys off `inspection.differences.length`, not
+ * (a) matters because the write's own internal read-back check (in
+ * writeLocally/writeToShopify) only confirms the mutation/update accepted
+ * and echoed the value we sent — it does not confirm that the
+ * authoritative comparison this whole system is built on
+ * (inspectProductSyncState/compare()) now agrees the field is resolved.
+ * Those can disagree: something could change again immediately after our
+ * write (a race with another process/webhook), or the echoed value could
+ * satisfy our own equality check while compare()'s normalization still
+ * sees a difference. Without this check, applyCommerceField would report
+ * `ok: true` while the field is still visibly conflicting — success shown
+ * to the admin, conflict still there.
+ *
+ * (b) deliberately keys off `inspection.differences.length`, not
  * `inspection.state`: inspectProductSyncState derives `state` partly from
- * the *persisted* `syncStatus`/`shopifyUpdatedAt` columns this function
- * exists to fix, and partly from a timestamp check
+ * the *persisted* `syncStatus`/`shopifyUpdatedAt` columns this function is
+ * responsible for fixing, and partly from a timestamp check
  * (`remote.updatedAt > local.shopifyUpdatedAt`) that Shopify's own mutation
  * just bumped. Right after this write resolves the *only* remaining
  * difference, both of those stale columns still read as before — the
@@ -193,19 +204,23 @@ async function writeToShopify(productId: string, label: string, value: string, v
  * empty there, but for a different reason, so those are left untouched
  * rather than misreported as SYNCED.
  */
-async function refreshProductSyncStatus(productId: string) {
+async function refreshAfterWrite(productId: string, label: string): Promise<{ stillConflicting: boolean }> {
   const inspection = await inspectProductSyncState(productId);
-  if (inspection.state === "UNLINKED" || inspection.state === "REMOTE_MISSING") return;
-  if (inspection.differences.length > 0) return;
-  await db.product.update({
-    where: { id: productId },
-    data: {
-      syncStatus: "SYNCED",
-      syncError: null,
-      ...(inspection.remoteUpdatedAt ? { shopifyUpdatedAt: new Date(inspection.remoteUpdatedAt) } : {}),
-      lastSyncedAt: new Date(),
-    },
-  });
+  const stillConflicting = inspection.differences.some((item) => item.field === label);
+
+  if (inspection.state !== "UNLINKED" && inspection.state !== "REMOTE_MISSING" && inspection.differences.length === 0) {
+    await db.product.update({
+      where: { id: productId },
+      data: {
+        syncStatus: "SYNCED",
+        syncError: null,
+        ...(inspection.remoteUpdatedAt ? { shopifyUpdatedAt: new Date(inspection.remoteUpdatedAt) } : {}),
+        lastSyncedAt: new Date(),
+      },
+    });
+  }
+
+  return { stillConflicting };
 }
 
 /**
@@ -222,9 +237,16 @@ async function refreshProductSyncStatus(productId: string) {
  *
  * After a successful write, the mutation's own response (Shopify) or the
  * Prisma update's returned row (local) is checked against the intended
- * value, and the product's persisted sync state is refreshed so a fully
- * resolved product stops showing as conflicted in the catalog list —
- * while any other, still-differing field keeps it visible.
+ * value — and then, independently, a fresh inspectProductSyncState
+ * confirms the applied field itself no longer shows up as conflicting.
+ * That second check is the one that counts: if it still does (a race with
+ * another change, or a disagreement between the write's own echo check
+ * and the authoritative comparison), this reports failure rather than a
+ * false `ok: true` — an admin must never see success while the conflict
+ * persists. The same fresh inspection also refreshes the product's
+ * persisted sync state so a fully resolved product stops showing as
+ * conflicted in the catalog list, while any other, still-differing field
+ * keeps it visible.
  */
 export async function applyCommerceField({
   productId,
@@ -277,7 +299,14 @@ export async function applyCommerceField({
     return { ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This change could not be applied." };
   }
 
-  await refreshProductSyncStatus(productId);
+  const { stillConflicting } = await refreshAfterWrite(productId, label);
+  if (stillConflicting) {
+    return {
+      ok: false,
+      reason: "WRITE_FAILED",
+      message: "The write went through, but Shopify and Synarava still disagree on this field after re-checking. Nothing is marked resolved — try again.",
+    };
+  }
 
   return {
     ok: true,

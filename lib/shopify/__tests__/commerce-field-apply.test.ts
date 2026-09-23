@@ -312,6 +312,28 @@ describe("applyCommerceField — refreshes persisted sync state after a successf
     expect(mocks.updateProduct).not.toHaveBeenCalled();
   });
 
+  it("REGRESSION: reports failure, not ok:true, when the just-applied field is still conflicting after re-checking — the write's own echo check passing is not enough", async () => {
+    // The mutation itself succeeds and echoes back the value we sent (so
+    // writeToShopify's own read-back check is satisfied), but the fresh,
+    // independent inspectProductSyncState called right after still lists
+    // this exact field as differing (e.g. something changed again
+    // immediately, or the authoritative comparison disagrees with the
+    // mutation's own echo). The admin must not be told this succeeded.
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] })) // pre-write check
+      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] })); // post-write: Vendor is STILL in the list
+    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
+    mocks.request.mockResolvedValue({ productUpdate: { product: { id: "gid://shopify/Product/1", vendor: "Old Vendor", productType: null }, userErrors: [] } });
+
+    const result = await applyCommerceField({
+      productId: "product-1", label: "Vendor", direction: "SYNARAVA_TO_SHOPIFY", ...fingerprintsFor("Old Vendor", "New Vendor"),
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
+    // Still genuinely conflicting — must not be marked SYNCED either.
+    expect(mocks.updateProduct).not.toHaveBeenCalled();
+  });
+
   it("marks the product fully SYNCED when the write resolves the last difference and nothing else differs", async () => {
     mocks.inspectProductSyncState
       .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] }))
