@@ -5,6 +5,7 @@ import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sy
 import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
+import { ProductIncomingUpdateMarker } from "@/components/admin/products/product-incoming-update-marker";
 
 export default async function EditProductPage({
   params,
@@ -44,6 +45,7 @@ export default async function EditProductPage({
 
   return (
     <div className="space-y-8">
+      <ProductIncomingUpdateMarker productId={productId} />
       <div>
         <p className="adm-section-tag mb-3">[ SYN-ADM // CAT // EDIT ]</p>
         <div className="flex flex-wrap items-end justify-between gap-4">

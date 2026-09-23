@@ -34,6 +34,9 @@ import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-r
 import { env } from "@/lib/env";
 import { revalidateStorefront, writeAuditLog } from "./shared";
 import { getSavedProductPayload } from "./products";
+import { runCatalogConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import { getProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
+import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
 
 export type ShopifySyncSelection = {
   remoteProductIds: string[];
@@ -172,6 +175,34 @@ export async function inspectProductSyncAction(productId: string) {
   }
 }
 
+export async function checkCatalogConflictsAction() {
+  const session = await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    await assertConfiguredShopifyStore();
+    const result = await runCatalogConflictCheck(session.username);
+    revalidatePath("/admin/products");
+    return {
+      ...result,
+      success: result.signals.totalCount === 0
+        ? "Conflict check complete. No conflicts found."
+        : `Conflict check complete. ${result.signals.totalCount} product${result.signals.totalCount === 1 ? "" : "s"} need review.`,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not check catalog conflicts." };
+  }
+}
+
+export async function loadProductCatalogConflictAction(productId: string) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    return { conflict: await getProductCatalogConflict(productId) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not load this product's conflict details." };
+  }
+}
+
 /** Resolves a bulk direction, a single product's direction, or a hand-picked manual field list into the concrete fields it would touch — nothing is written. See docs/admin/catalog-conflict-resolution-ux.md dialogs 1-3. */
 export async function previewCatalogConflictResolutionAction(scope: CatalogConflictApplyScope) {
   await requireAdminSession("/admin/products");
@@ -192,10 +223,27 @@ export async function applyCatalogConflictResolutionAction(input: {
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
     const outcome = await applyCatalogConflictResolution({ ...input, actorUsername: session.username });
+    const incomingProductIds = new Set(
+      outcome.results
+        .filter((result) => result.ok && input.entries.some((entry) =>
+          entry.productId === result.productId
+          && entry.fieldKey === result.fieldKey
+          && entry.direction === "SHOPIFY_TO_SYNARAVA",
+        ))
+        .map((result) => result.productId),
+    );
+    let warning: string | undefined;
+    try {
+      await markIncomingProductUpdates([...incomingProductIds]);
+    } catch (error) {
+      console.error("[catalog-conflicts] applied values but could not record the review watermark", error);
+      warning = "Values were applied, but the new-from-Shopify review badge could not be saved.";
+    }
     revalidateStorefront();
     revalidatePath("/admin/products");
     return {
       outcome,
+      warning,
       success: outcome.appliedCount > 0
         ? `${outcome.appliedCount} change${outcome.appliedCount === 1 ? "" : "s"} applied${outcome.failedCount > 0 ? `; ${outcome.failedCount} could not be applied` : ""}.`
         : undefined,
@@ -206,6 +254,13 @@ export async function applyCatalogConflictResolutionAction(input: {
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not apply the conflict resolution." };
   }
+}
+
+export async function markProductIncomingUpdateViewedAction(productId: string) {
+  const session = await requireAdminSession(`/admin/products/${productId}`);
+  await markIncomingProductUpdateViewed(productId, session.username);
+  revalidatePath("/admin/products");
+  return { success: true as const };
 }
 
 export async function pushSingleProductToShopifyAction(productId: string, force = false) {

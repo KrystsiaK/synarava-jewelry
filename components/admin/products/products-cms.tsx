@@ -12,6 +12,7 @@ import {
 import { reorderCollectionProductAction } from "@/app/admin/actions/catalog-order";
 import {
   archiveMissingShopifyProductsAction,
+  checkCatalogConflictsAction,
   previewShopifyReconciliationAction,
   rebindShopifyStoreAction,
   syncShopifySelectionAction,
@@ -22,7 +23,8 @@ import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/share
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { ProductSyncModal } from "@/components/admin/products/product-sync-modal";
-import { CatalogConflictListModal, CatalogConflictRowBadges, CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
+import { CatalogConflictRowBadges, CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
+import { CatalogConflictWorkspace } from "@/components/admin/products/catalog-conflict-workspace";
 import type { ShopifyReconciliationPreview } from "@/lib/shopify/product-sync";
 import { productLocaleReadiness } from "@/lib/products/localization";
 import {
@@ -80,6 +82,13 @@ export function ProductsCms({
   const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [conflictListOpen, setConflictListOpen] = useState(false);
+  const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
+    base: initialConflictSignals,
+    value: initialConflictSignals,
+  });
+  const conflictSignals = conflictSignalsOverride.base === initialConflictSignals
+    ? conflictSignalsOverride.value
+    : initialConflictSignals;
   const [focusedConflictProductId, setFocusedConflictProductId] = useState<string | null>(null);
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
@@ -88,13 +97,32 @@ export function ProductsCms({
   const [isSyncPending, startSyncTransition] = useTransition();
   const [isStoreRebindPending, startStoreRebindTransition] = useTransition();
   const [isOrderPending, startOrderTransition] = useTransition();
+  const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
   const closeConflictList = useCallback(() => setConflictListOpen(false), []);
 
+  function setConflictSignals(value: typeof initialConflictSignals) {
+    setConflictSignalsOverride({ base: initialConflictSignals, value });
+  }
+
   function showConflicts(productId: string | null = null) {
     setFocusedConflictProductId(productId);
     setConflictListOpen(true);
+  }
+
+  function handleConflictCheck() {
+    startConflictCheckTransition(async () => {
+      const result = await checkCatalogConflictsAction();
+      if (!("signals" in result)) {
+        pushToast({ message: result.error, tone: "error" });
+        return;
+      }
+      pushToast({ message: result.success, tone: "success" });
+      if (result.warning) pushToast({ message: result.warning, tone: "info" });
+      setConflictSignals(result.signals);
+      router.refresh();
+    });
   }
 
   function handleUpdated(product: ProductRecord) {
@@ -348,7 +376,7 @@ export function ProductsCms({
           <h1 className="adm-page-title">Catalog</h1>
           <p className="adm-page-subtitle">Products, categories, tags, media, and site publishing state.</p>
         </div>
-        <CatalogConflictStatus signals={initialConflictSignals} onShow={() => showConflicts()} />
+        <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} />
       </div>
       <div className="adm-panel p-5">
         <div
@@ -363,7 +391,7 @@ export function ProductsCms({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <CatalogConflictStatus signals={initialConflictSignals} onShow={() => showConflicts()} compact />
+            <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} compact />
             <button
               type="button"
               className="adm-btn-secondary inline-flex items-center justify-center gap-2"
@@ -607,12 +635,21 @@ export function ProductsCms({
                           </span>
                         ) : null}
                       </div>
-                      {initialConflictSignals.products[product.id] ? (
+                      {conflictSignals.products[product.id] ? (
                         <CatalogConflictRowBadges
                           productName={product.name}
-                          signal={initialConflictSignals.products[product.id]}
+                          signal={conflictSignals.products[product.id]}
                           onShow={() => showConflicts(product.id)}
                         />
+                      ) : null}
+                      {conflictSignals.recentlyUpdatedProducts[product.id] ? (
+                        <Link
+                          href={`/admin/products/${product.id}`}
+                          className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--adm-warning)] px-2 py-1 text-[0.68rem] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-warning)]"
+                          title="Shopify values were applied after your last visit. Open the editor to review them."
+                        >
+                          <Eye className="size-3.5" aria-hidden="true" />Updated from Shopify · review
+                        </Link>
                       ) : null}
                       <AdminRecordDates record={product} />
                       <p className="mt-1 text-xs" style={{ color: "var(--adm-subtle)" }}>
@@ -713,12 +750,14 @@ export function ProductsCms({
         />
       ) : null}
 
-      <CatalogConflictListModal
+      <CatalogConflictWorkspace
         open={conflictListOpen}
         onClose={closeConflictList}
-        signals={initialConflictSignals}
+        signals={conflictSignals}
+        onSignalsChange={setConflictSignals}
         products={products.map((product) => ({ id: product.id, name: product.name, sku: product.sku }))}
         focusedProductId={focusedConflictProductId}
+        onToast={(message, tone) => pushToast({ message, tone })}
       />
 
       <ProductSyncModal

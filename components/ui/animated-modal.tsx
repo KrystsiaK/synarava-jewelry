@@ -18,6 +18,9 @@ type AnimatedModalProps = {
   backdropZIndexClassName?: string;
 };
 
+let nextModalId = 0;
+const activeModalIds = new Set<number>();
+
 function transitionDuration(variable: string, fallback: number) {
   if (typeof window === "undefined") return fallback;
   const value = window
@@ -47,6 +50,8 @@ export function AnimatedModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const modalRootRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const modalIdRef = useRef<number | null>(null);
+  if (modalIdRef.current === null) modalIdRef.current = ++nextModalId;
 
   useEffect(() => {
     if (open) {
@@ -70,6 +75,8 @@ export function AnimatedModal({
 
   useEffect(() => {
     if (!mounted) return;
+    const modalId = modalIdRef.current!;
+    activeModalIds.add(modalId);
     const previousOverflow = document.body.style.overflow;
     const background = Array.from(document.body.children).filter(
       (element): element is HTMLElement =>
@@ -81,6 +88,7 @@ export function AnimatedModal({
     background.forEach((element) => { element.inert = true; });
 
     function handleKeyDown(event: KeyboardEvent) {
+      if (modalId !== Math.max(...activeModalIds)) return;
       if (event.key === "Escape") onClose();
       if (event.key !== "Tab") return;
       const focusable = Array.from(
@@ -117,6 +125,7 @@ export function AnimatedModal({
       window.removeEventListener("keydown", handleKeyDown);
       window.cancelAnimationFrame(focusFrame);
       previousFocusRef.current?.focus();
+      activeModalIds.delete(modalId);
     };
   }, [mounted, onClose]);
 

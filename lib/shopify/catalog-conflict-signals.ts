@@ -20,6 +20,7 @@ export type CatalogConflictSignals = {
   totalCount: number | null;
   checkedAt: string | null;
   products: Record<string, CatalogConflictProductSignal>;
+  recentlyUpdatedProducts: Record<string, { updatedAt: string }>;
 };
 
 type Locale = Pick<StorefrontLocaleRecord, "code" | "shopifyLocale" | "name" | "nativeName" | "isDefault" | "sortOrder">;
@@ -36,6 +37,7 @@ export function buildCatalogConflictSignals({
   run,
   lastSuccessfulFullCheckAt,
   connected,
+  recentlyUpdatedProducts = [],
   now,
 }: {
   commerceProductIds: string[];
@@ -44,6 +46,7 @@ export function buildCatalogConflictSignals({
   run: Run | null;
   lastSuccessfulFullCheckAt?: string | null;
   connected: boolean;
+  recentlyUpdatedProducts?: Array<{ productId: string; updatedAt: string }>;
   now: Date;
 }): CatalogConflictSignals {
   const localeByShopifyCode = new Map(locales.map((locale) => [locale.isDefault ? locale.code : locale.shopifyLocale, locale]));
@@ -88,5 +91,11 @@ export function buildCatalogConflictSignals({
   else if (!checkedAt || now.getTime() - new Date(checkedAt).getTime() > STALE_AFTER_MS) state = "stale";
   else state = "ready";
 
-  return { state, totalCount: Object.keys(products).length, checkedAt, products };
+  return {
+    state,
+    totalCount: Object.keys(products).length,
+    checkedAt,
+    products,
+    recentlyUpdatedProducts: Object.fromEntries(recentlyUpdatedProducts.map((item) => [item.productId, { updatedAt: item.updatedAt }])),
+  };
 }

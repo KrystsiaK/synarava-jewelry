@@ -182,10 +182,30 @@ model Product {
   characteristics     ProductCharacteristic[]
   syncEvents          ProductSyncEvent[]
   translations        ProductTranslation[]
+  incomingUpdate      ProductIncomingUpdate?
 
   @@index([status, visibility, productType, publishedAt])
   @@index([status, visibility, publishedAt])
   @@index([categoryId])
+}
+
+model ProductIncomingUpdate {
+  productId String   @id
+  version   String
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  views     ProductIncomingUpdateView[]
+}
+
+model ProductIncomingUpdateView {
+  productId     String
+  adminUsername String
+  viewedVersion String
+  viewedAt      DateTime
+  incoming      ProductIncomingUpdate @relation(fields: [productId], references: [productId], onDelete: Cascade)
+
+  @@id([productId, adminUsername])
+  @@index([adminUsername])
 }
 
 model ProductTranslation {

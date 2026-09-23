@@ -6,7 +6,8 @@ import {
   type CatalogConflictDirection,
   type CatalogConflictField,
 } from "./catalog-conflict";
-import { applyCommerceField, SCOPED_COMMERCE_FIELD_LABELS } from "./commerce-field-apply";
+import { applyCommerceField } from "./commerce-field-apply";
+import { COMMERCE_UNSUPPORTED_REASON, SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
 // A bulk scope resolves every currently conflicted product — capped so one
@@ -36,8 +37,6 @@ const MAX_APPLY_ENTRIES = 200;
 // available through the existing
 // pushSingleProductToShopifyAction/pullSingleProductFromShopifyAction — but
 // not from inside this contract's dialogs (see catalog-conflict-resolution-plan.md stage 2).
-const COMMERCE_UNSUPPORTED_REASON = "This commerce field doesn't have a scoped write yet. Use the product's existing Push/Pull action to resolve commerce as a whole.";
-
 function isScopedCommerceField(field: CatalogConflictField): boolean {
   return field.origin === "COMMERCE" && SCOPED_COMMERCE_FIELD_LABELS.has(field.label);
 }

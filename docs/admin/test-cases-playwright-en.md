@@ -229,6 +229,13 @@ and SYNC-16 asserts that state is handled gracefully.
 | SYNC-14 | Archiving after a stale preview is rejected | negative | P3 | **action** | "The catalog changed after preview. Run Preview sync again before archiving." |
 | SYNC-15 | Push disabled ("Save core fields first") with zero variants | edge | P3 | ✔ render | `product-sync-strip.tsx` `canPush` requires `variants.length > 0`. |
 | SYNC-16 | Full product CRUD works with Shopify entirely unconfigured | positive | P1 | **E2E** | Default CI state — assert the sync panel says "not linked" rather than erroring. |
+| CATCONF-01 | Both Show conflicts entries open the same writable list | positive | P1 | ✔ render | `catalog-conflict-signals.test.tsx`. |
+| CATCONF-02 | Locale/shared badges survive into details and preview | positive | P1 | ✔ render | `catalog-conflict-workspace.test.tsx`. |
+| CATCONF-03 | Product/bulk/manual writes always go through preview first | positive | P1 | ✔ render + ✔ unit | Workspace + `catalog-conflict-apply.test.ts`. |
+| CATCONF-04 | Unsupported commerce fields are excluded, never force-pushed | negative | P1 | ✔ unit | `commerce-field-apply.test.ts` / apply contract. |
+| CATCONF-05 | Shopify → Synarava sets a per-admin unseen watermark; Synarava → Shopify does not | positive | P1 | ✔ unit | `catalog-conflict-review.test.ts`. |
+| CATCONF-06 | Nested confirmation Escape closes only the top dialog | positive | P1 | ✔ render | `animated-modal.test.tsx`. |
+| CATCONF-07 | Live EN/PT (and RU when filled) apply round trip on a sandbox product | positive | P1 | **E2E** | Stage 7 gate. Skip without Shopify sandbox credentials. Do not mock. |
 
 ## 10. Collections (`e2e/admin-collections.spec.ts`)
 

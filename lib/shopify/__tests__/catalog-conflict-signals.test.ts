@@ -30,6 +30,7 @@ describe("buildCatalogConflictSignals", () => {
       locales,
       run: { trigger: "MANUAL", status: "SUCCEEDED", completedAt: "2026-09-23T10:00:00.000Z" },
       connected: true,
+      recentlyUpdatedProducts: [{ productId: "c", updatedAt: "2026-09-23T09:59:00.000Z" }],
       now: new Date("2026-09-23T10:01:00.000Z"),
     });
 
@@ -44,6 +45,7 @@ describe("buildCatalogConflictSignals", () => {
     });
     expect(result.products["b"]?.locales).toMatchObject([{ code: "en", count: 1 }]);
     expect(result.products["c"]).toBeUndefined();
+    expect(result.recentlyUpdatedProducts["c"]).toEqual({ updatedAt: "2026-09-23T09:59:00.000Z" });
     expect(result.state).toBe("ready");
   });
 

@@ -197,6 +197,12 @@
 | SYNC-15 | Импорт без `read_locations` | Есть `read_inventory`, но нет `read_locations`; товар хранится на локации | «Compare catalogs» → «Apply all changes» | Импорт и остатки проходят без ошибки чтения `Location.name`; локация отображается по ID | P1 |
 | SYNC-15 🤖 | Push без вариантов | Товар создан автосохранением, варианта нет | Открыть карточку | Кнопка показывает «Save core fields first» и недоступна | P3 |
 | SYNC-16 | Каталог без настроенного Shopify | Shopify не настроен | Открыть `/admin/products`, создать/отредактировать товар | Панель синхронизации показывает «не привязано», обычный CRUD работает без ошибок | P1 |
+| CATCONF-01 🤖 | Оба входа Show conflicts открывают один список | Есть сохранённые конфликты | Нажать полный статус и компактный `N conflicts` | Один и тот же список товаров | P1 |
+| CATCONF-02 🤖 | Языковой корешок виден до preview | Конфликт RU | Детали → выбор поля → Review merge | `RU · Русский` на всех трёх слоях | P1 |
+| CATCONF-03 🤖 | Запись только после Confirm | Есть конфликт | Product/bulk действие | Сначала preview; Shopify не меняется до Confirm | P1 |
+| CATCONF-04 🤖 | Unsupported commerce не пишется | Конфликт Status + Title | Детали | Status Unavailable / Not included; Title можно выбрать | P1 |
+| CATCONF-05 🤖 | Watermark только Shopify → Synarava | Успешный apply | Confirm Use Shopify | Появляется `Updated from Shopify · review`; Use Synarava маркер не ставит | P1 |
+| CATCONF-06 | Live round trip на тестовом товаре | Sandbox Shopify, заполненные EN/PT | Оба направления + ручной merge | Значения совпадают после записи; stale не перезаписывает | P1 |
 
 ## 10. Коллекции
 

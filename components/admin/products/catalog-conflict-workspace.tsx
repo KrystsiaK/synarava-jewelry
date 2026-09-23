@@ -1,0 +1,372 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowDownToLine, ArrowUpFromLine, GitCompareArrows, Languages, LoaderCircle, Search, X } from "lucide-react";
+
+import {
+  applyCatalogConflictResolutionAction,
+  loadProductCatalogConflictAction,
+  previewCatalogConflictResolutionAction,
+} from "@/app/admin/actions/sync";
+import { AnimatedModal } from "@/components/ui/animated-modal";
+import { Tooltip } from "@/components/ui/tooltip";
+import type {
+  CatalogConflictApplyScope,
+  CatalogConflictPreview,
+} from "@/lib/shopify/catalog-conflict-apply";
+import type {
+  CatalogConflictDirection,
+  CatalogConflictField,
+  ProductCatalogConflict,
+} from "@/lib/shopify/catalog-conflict";
+import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+
+type ProductSummary = { id: string; name: string; sku: string | null };
+type ToastTone = "success" | "error" | "info";
+
+const directionCopy: Record<CatalogConflictDirection, { short: string; full: string }> = {
+  SHOPIFY_TO_SYNARAVA: { short: "Use Shopify", full: "Apply Shopify values to Synarava" },
+  SYNARAVA_TO_SHOPIFY: { short: "Use Synarava", full: "Apply Synarava values to Shopify" },
+};
+
+function plural(count: number, singular: string, pluralWord: string) {
+  return `${count} ${count === 1 ? singular : pluralWord}`;
+}
+
+function LocaleMark({ field }: { field: CatalogConflictField }) {
+  if (field.scope.kind === "SHARED") {
+    return <span className="inline-flex items-center rounded-md border border-[var(--adm-warning)] px-2 py-1 text-[0.68rem] font-semibold"><GitCompareArrows className="mr-1 size-3" />SHARED</span>;
+  }
+  return (
+    <span className="inline-flex items-center rounded-md border border-[var(--adm-warning)] px-2 py-1 text-[0.68rem] font-semibold" title={`${field.scope.name} · ${field.scope.nativeName}`}>
+      <Languages className="mr-1 size-3" />{field.scope.code.toUpperCase()} · {field.scope.nativeName}
+    </span>
+  );
+}
+
+function ValueCell({ label, value, selected, disabled, onSelect }: {
+  label: string;
+  value: string;
+  selected?: boolean;
+  disabled?: boolean;
+  onSelect?: () => void;
+}) {
+  const content = (
+    <>
+      <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--adm-muted)]">{label}</span>
+      <span className="mt-2 block whitespace-pre-wrap break-words text-sm text-[var(--adm-ink)]">{value || "— empty —"}</span>
+    </>
+  );
+  if (!onSelect) return <div className="min-w-0 rounded-lg border border-[var(--adm-border)] bg-[var(--adm-bg)] p-3">{content}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={disabled}
+      aria-pressed={selected}
+      className="min-h-24 min-w-0 rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+      style={{ borderColor: selected ? "var(--adm-warning)" : "var(--adm-border)", background: selected ? "color-mix(in srgb, var(--adm-warning) 10%, var(--adm-panel))" : "var(--adm-bg)" }}
+    >
+      {content}
+      <span className="mt-3 block text-xs font-semibold">{selected ? "Selected" : "Choose this value"}</span>
+    </button>
+  );
+}
+
+function ConflictListModal({ open, onClose, signals, products, focusedProductId, pending, onPreview, onDetails }: {
+  open: boolean;
+  onClose: () => void;
+  signals: CatalogConflictSignals;
+  products: ProductSummary[];
+  focusedProductId: string | null;
+  pending: boolean;
+  onPreview: (scope: CatalogConflictApplyScope) => void;
+  onDetails: (productId: string) => void;
+}) {
+  const focusedRef = useRef<HTMLElement>(null);
+  const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+  const productIds = useMemo(() => Object.keys(signals.products).sort((a, b) => {
+    if (a === focusedProductId) return -1;
+    if (b === focusedProductId) return 1;
+    return (productsById.get(a)?.name ?? a).localeCompare(productsById.get(b)?.name ?? b);
+  }), [focusedProductId, productsById, signals.products]);
+
+  useEffect(() => {
+    if (!open || !focusedProductId) return;
+    const frame = requestAnimationFrame(() => focusedRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [focusedProductId, open]);
+
+  return (
+    <AnimatedModal open={open} onClose={pending ? () => undefined : onClose} ariaLabel="Catalog conflicts" portalClassName="admin-modal-root" zIndexClassName="z-[200]" backdropZIndexClassName="z-[190]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,58rem)] w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--adm-border)] p-5">
+        <div>
+          <p className="adm-section-tag">[ CATALOG CONFLICTS ]</p>
+          <h2 className="adm-title-sm mt-2">{plural(productIds.length, "product", "products")} need a decision</h2>
+          <p className="mt-1 max-w-2xl text-xs text-[var(--adm-muted)]">Choose a direction for every supported field at once, or review one product field by field. No value changes until the final confirmation.</p>
+        </div>
+        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close catalog conflicts"><X className="size-4" /></button>
+      </header>
+      <div className="min-h-0 space-y-3 overflow-y-auto p-5">
+        {productIds.length === 0 ? <p className="adm-copy py-8 text-center">No saved conflicts. Run a conflict check to confirm the latest Shopify state.</p> : null}
+        {productIds.map((productId) => {
+          const product = productsById.get(productId);
+          const signal = signals.products[productId];
+          return (
+            <article key={productId} ref={productId === focusedProductId ? focusedRef : undefined} tabIndex={productId === focusedProductId ? -1 : undefined} className="flex flex-col gap-4 rounded-xl border border-[var(--adm-border)] p-4 focus-visible:outline-2 focus-visible:outline-[var(--adm-warning)] sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold">{product?.name ?? `Product ${productId}`}</h3>
+                {product?.sku ? <p className="mt-1 text-xs text-[var(--adm-muted)]">SKU {product.sku}</p> : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {signal.shared ? <span className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs">Shared commerce fields</span> : null}
+                  {signal.locales.map((locale) => <span key={locale.code} className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs"><Languages className="mr-1 inline size-3" />{locale.code.toUpperCase()} · {locale.nativeName} · {plural(locale.count, "field", "fields")}</span>)}
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2" aria-label={`Actions for ${product?.name ?? productId}`}>
+                <Tooltip content="Use Shopify for every supported conflicting field in this product"><button type="button" disabled={pending} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Shopify values"><ArrowDownToLine className="size-4" /></button></Tooltip>
+                <Tooltip content="Use Synarava for every supported conflicting field in this product"><button type="button" disabled={pending} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Synarava values"><ArrowUpFromLine className="size-4" /></button></Tooltip>
+                <Tooltip content="Compare fields and choose Shopify or Synarava separately"><button type="button" disabled={pending} onClick={() => onDetails(productId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Review conflict details"><Search className="size-4" /></button></Tooltip>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
+        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost">Close</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={pending || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2"><ArrowDownToLine className="size-4" />Use Shopify for all</button>
+          <button type="button" disabled={pending || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2"><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
+        </div>
+      </footer>
+    </AnimatedModal>
+  );
+}
+
+function orderedConflictFields(fields: CatalogConflictField[]) {
+  return fields.toSorted((left, right) => {
+    if (left.scope.kind !== right.scope.kind) return left.scope.kind === "SHARED" ? -1 : 1;
+    if (left.scope.kind === "LOCALE" && right.scope.kind === "LOCALE") {
+      return left.scope.code.localeCompare(right.scope.code) || left.label.localeCompare(right.label);
+    }
+    return left.label.localeCompare(right.label);
+  });
+}
+
+function DetailsModal({ conflict, product, selections, pending, onClose, onSelect, onSelectAll, onContinue }: {
+  conflict: ProductCatalogConflict | null;
+  product?: ProductSummary;
+  selections: Record<string, CatalogConflictDirection>;
+  pending: boolean;
+  onClose: () => void;
+  onSelect: (fieldKey: string, direction: CatalogConflictDirection) => void;
+  onSelectAll: (direction: CatalogConflictDirection) => void;
+  onContinue: () => void;
+}) {
+  if (!conflict) return null;
+  const fields = orderedConflictFields(conflict.fields);
+  const actionable = fields.filter((field) => !field.blockedReason && field.allowedDirections.length > 0);
+  return (
+    <AnimatedModal open onClose={pending ? () => undefined : onClose} ariaLabel="Choose conflict values" portalClassName="admin-modal-root" zIndexClassName="z-[300]" backdropZIndexClassName="z-[290]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,60rem)] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
+      <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5">
+        <div>
+          <p className="adm-section-tag">[ FIELD DECISIONS ]</p>
+          <h2 className="adm-title-sm mt-2">{product?.name ?? "Product conflict"}</h2>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">Each language is independent. Pick either side for the fields you want to merge.</p>
+        </div>
+        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close conflict details"><X className="size-4" /></button>
+      </header>
+      <div className="min-h-0 space-y-4 overflow-y-auto p-5">
+        {fields.map((field) => (
+          <section key={field.fieldKey} className="rounded-xl border border-[var(--adm-border)] p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2"><LocaleMark field={field} /><h3 className="text-sm font-semibold">{field.label}</h3>{field.origin === "TRANSLATION" ? <span className="text-xs text-[var(--adm-muted)]">Only this language value is affected</span> : null}</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <ValueCell label="Synarava" value={field.synaravaValue} disabled={!field.allowedDirections.includes("SYNARAVA_TO_SHOPIFY")} selected={selections[field.fieldKey] === "SYNARAVA_TO_SHOPIFY"} onSelect={() => onSelect(field.fieldKey, "SYNARAVA_TO_SHOPIFY")} />
+              <ValueCell label="Shopify" value={field.shopifyValue} disabled={!field.allowedDirections.includes("SHOPIFY_TO_SYNARAVA")} selected={selections[field.fieldKey] === "SHOPIFY_TO_SYNARAVA"} onSelect={() => onSelect(field.fieldKey, "SHOPIFY_TO_SYNARAVA")} />
+            </div>
+            {field.blockedReason ? <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-warning)_9%,transparent)] p-3 text-xs text-[var(--adm-muted)]">Unavailable here: {field.blockedReason}</p> : null}
+          </section>
+        ))}
+      </div>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
+        <button type="button" onClick={onClose} disabled={pending} className="adm-btn-secondary">Cancel</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" disabled={pending || actionable.length === 0} onClick={() => onSelectAll("SHOPIFY_TO_SYNARAVA")} className="adm-btn-ghost">Select Shopify for visible fields</button>
+          <button type="button" disabled={pending || actionable.length === 0} onClick={() => onSelectAll("SYNARAVA_TO_SHOPIFY")} className="adm-btn-ghost">Select Synarava for visible fields</button>
+          <span className="text-xs text-[var(--adm-muted)]">{Object.keys(selections).length} of {actionable.length} selected</span>
+        </div>
+        <button type="button" onClick={onContinue} disabled={pending || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
+      </footer>
+    </AnimatedModal>
+  );
+}
+
+function PreviewModal({ preview, productsById, pending, resultMessage, onClose, onConfirm }: {
+  preview: CatalogConflictPreview;
+  productsById: Map<string, ProductSummary>;
+  pending: boolean;
+  resultMessage: string | null;
+  onClose: () => void;
+  onConfirm: (acknowledgeClears: boolean) => void;
+}) {
+  const [acknowledgeClears, setAcknowledgeClears] = useState(false);
+  const hasClears = preview.entries.some((entry) => entry.willClearNonEmptyValue);
+  return (
+    <AnimatedModal open onClose={pending ? () => undefined : onClose} ariaLabel="Confirm conflict resolution" portalClassName="admin-modal-root" zIndexClassName="z-[400]" backdropZIndexClassName="z-[390]" className="adm-panel pointer-events-auto grid max-h-[min(90vh,64rem)] w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
+      <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5"><div><p className="adm-section-tag">[ FINAL PREVIEW ]</p><h2 className="adm-title-sm mt-2">Confirm {plural(preview.entries.length, "field change", "field changes")}</h2><p className="mt-1 text-xs text-[var(--adm-muted)]">This is the exact reviewed set. Current values are checked again immediately before every write.</p></div><button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close confirmation"><X className="size-4" /></button></header>
+      <div className="min-h-0 space-y-4 overflow-y-auto p-5">
+        {preview.entries.map((entry) => (
+          <section key={`${entry.productId}:${entry.field.fieldKey}`} className="rounded-xl border border-[var(--adm-border)] p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2"><LocaleMark field={entry.field} /><h3 className="text-sm font-semibold">{productsById.get(entry.productId)?.name ?? entry.productId} · {entry.field.label}</h3><span className="text-xs font-semibold text-[var(--adm-muted)]">{directionCopy[entry.direction].full}</span></div>
+            <div className="grid gap-3 md:grid-cols-2"><ValueCell label="Synarava" value={entry.field.synaravaValue} /><ValueCell label="Shopify" value={entry.field.shopifyValue} /></div>
+            {entry.willClearNonEmptyValue ? <p className="mt-3 text-xs font-semibold text-[var(--adm-warning)]">This change clears a non-empty destination value.</p> : null}
+          </section>
+        ))}
+        {preview.excluded.length > 0 ? <section className="rounded-xl border border-[var(--adm-warning)] p-4"><h3 className="text-sm font-semibold">Not included</h3><ul className="mt-2 space-y-2 text-xs text-[var(--adm-muted)]">{preview.excluded.map((item) => <li key={`${item.productId}:${item.fieldKey}`}>{productsById.get(item.productId)?.name ?? item.productId} · {item.label}: {item.reason}</li>)}</ul></section> : null}
+        {preview.truncated ? <p className="rounded-lg border border-[var(--adm-warning)] p-3 text-xs">This operation reached its safety limit. Resolve this batch, then run it again for the remaining conflicts.</p> : null}
+        {resultMessage ? <p role="alert" className="rounded-lg border border-[var(--adm-warning)] p-3 text-sm">{resultMessage}</p> : null}
+      </div>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
+        <div>{hasClears ? <label className="flex max-w-xl items-start gap-2 text-xs"><input type="checkbox" checked={acknowledgeClears} onChange={(event) => setAcknowledgeClears(event.target.checked)} className="mt-0.5" />I understand that the selected source contains empty values and the destination values shown above will be cleared.</label> : <span className="text-xs text-[var(--adm-muted)]">Nothing changes until you confirm.</span>}</div>
+        <div className="flex gap-2"><button type="button" onClick={onClose} disabled={pending} className="adm-btn-secondary">Cancel</button><button type="button" onClick={() => onConfirm(acknowledgeClears)} disabled={pending || preview.entries.length === 0 || (hasClears && !acknowledgeClears)} className="adm-btn-primary">{pending ? "Applying…" : "Confirm changes"}</button></div>
+      </footer>
+    </AnimatedModal>
+  );
+}
+
+export function CatalogConflictWorkspace({ open, onClose, signals, onSignalsChange, products, focusedProductId, onToast }: {
+  open: boolean;
+  onClose: () => void;
+  signals: CatalogConflictSignals;
+  onSignalsChange: (signals: CatalogConflictSignals) => void;
+  products: ProductSummary[];
+  focusedProductId: string | null;
+  onToast: (message: string, tone: ToastTone) => void;
+}) {
+  const [details, setDetails] = useState<ProductCatalogConflict | null>(null);
+  const [selections, setSelections] = useState<Record<string, CatalogConflictDirection>>({});
+  const [preview, setPreview] = useState<CatalogConflictPreview | null>(null);
+  const [activeScope, setActiveScope] = useState<CatalogConflictApplyScope | null>(null);
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+
+  function closeAll() {
+    setPreview(null);
+    setDetails(null);
+    setSelections({});
+    setResultMessage(null);
+    onClose();
+  }
+
+  function openPreview(scope: CatalogConflictApplyScope) {
+    setResultMessage(null);
+    startTransition(async () => {
+      const result = await previewCatalogConflictResolutionAction(scope);
+      if (result.error) return onToast(result.error, "error");
+      if (result.preview) {
+        setActiveScope(scope);
+        setPreview(result.preview);
+      }
+    });
+  }
+
+  function openDetails(productId: string) {
+    startTransition(async () => {
+      const result = await loadProductCatalogConflictAction(productId);
+      if (result.error) return onToast(result.error, "error");
+      if (result.conflict) {
+        setSelections({});
+        setDetails(result.conflict);
+      }
+    });
+  }
+
+  function confirm(acknowledgeClears: boolean) {
+    if (!preview) return;
+    const submittedPreview = preview;
+    const submittedScope = activeScope;
+    setPreview(null);
+    setDetails(null);
+    setResultMessage(null);
+    if (submittedScope?.kind === "BULK") onClose();
+    startTransition(async () => {
+      const result = await applyCatalogConflictResolutionAction({
+        acknowledgeClears,
+        entries: submittedPreview.entries.map((entry) => ({
+          productId: entry.productId,
+          fieldKey: entry.field.fieldKey,
+          direction: entry.direction,
+          expectedLocalFingerprint: entry.field.localFingerprint,
+          expectedShopifyFingerprint: entry.field.shopifyFingerprint,
+        })),
+      });
+      if (!result.outcome) {
+        onToast(result.error ?? "Could not apply the conflict resolution.", "error");
+        return;
+      }
+      if (result.error) onToast(result.error, result.outcome.appliedCount > 0 ? "info" : "error");
+      else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
+      if (result.warning) onToast(result.warning, "info");
+      const successfulProducts = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.productId));
+      const incomingProducts = new Set(
+        result.outcome.results
+          .filter((item) => item.ok && submittedPreview.entries.some((entry) =>
+            entry.productId === item.productId
+            && entry.field.fieldKey === item.fieldKey
+            && entry.direction === "SHOPIFY_TO_SYNARAVA",
+          ))
+          .map((item) => item.productId),
+      );
+      const fullyResolved = [...successfulProducts].filter((productId) =>
+        !result.outcome!.results.some((item) => item.productId === productId && !item.ok)
+        && !submittedPreview.excluded.some((item) => item.productId === productId),
+      );
+      if (fullyResolved.length > 0) {
+        const nextProducts = { ...signals.products };
+        fullyResolved.forEach((productId) => delete nextProducts[productId]);
+        const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
+        incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
+        onSignalsChange({ ...signals, products: nextProducts, recentlyUpdatedProducts, totalCount: Object.keys(nextProducts).length });
+      } else if (incomingProducts.size > 0) {
+        const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
+        incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
+        onSignalsChange({ ...signals, recentlyUpdatedProducts });
+      }
+      setSelections({});
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      <ConflictListModal open={open} onClose={closeAll} signals={signals} products={products} focusedProductId={focusedProductId} pending={pending} onPreview={openPreview} onDetails={openDetails} />
+      <DetailsModal
+        conflict={details}
+        product={details ? productsById.get(details.productId) : undefined}
+        selections={selections}
+        pending={pending}
+        onClose={() => { setDetails(null); setSelections({}); }}
+        onSelect={(fieldKey, direction) => setSelections((current) => ({ ...current, [fieldKey]: direction }))}
+        onSelectAll={(direction) => setSelections((current) => {
+          if (!details) return current;
+          const next = { ...current };
+          for (const field of details.fields) {
+            if (!field.blockedReason && field.allowedDirections.includes(direction)) next[field.fieldKey] = direction;
+          }
+          return next;
+        })}
+        onContinue={() => details && openPreview({ kind: "MANUAL", selections: Object.entries(selections).map(([fieldKey, direction]) => ({ productId: details.productId, fieldKey, direction })) })}
+      />
+      {preview ? <PreviewModal preview={preview} productsById={productsById} pending={pending} resultMessage={resultMessage} onClose={() => { setPreview(null); setResultMessage(null); }} onConfirm={confirm} /> : null}
+      {pending ? (
+        <div className="fixed inset-0 z-[500] grid place-items-center bg-[color-mix(in_srgb,var(--adm-bg)_55%,transparent)]" role="alertdialog" aria-modal="true" aria-live="polite" aria-label="Working with Shopify">
+          <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--adm-border)] bg-[var(--adm-panel)] px-4 py-3 text-sm font-semibold shadow-xl">
+            <LoaderCircle className="size-4 animate-spin" />Working with Shopify…
+          </span>
+        </div>
+      ) : null}
+    </>
+  );
+}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { AnimatedModal } from "@/components/ui/animated-modal";
 
@@ -21,5 +21,21 @@ describe("AnimatedModal", () => {
 
     unmount();
     expect(document.body.querySelector("[data-animated-modal-root]")).not.toBeInTheDocument();
+  });
+
+  it("lets only the topmost nested dialog handle Escape", () => {
+    const closeParent = vi.fn();
+    const closeChild = vi.fn();
+    render(
+      <AnimatedModal open onClose={closeParent} ariaLabel="Parent dialog">
+        <AnimatedModal open onClose={closeChild} ariaLabel="Child dialog">
+          <button type="button">Child action</button>
+        </AnimatedModal>
+      </AnimatedModal>,
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(closeChild).toHaveBeenCalledOnce();
+    expect(closeParent).not.toHaveBeenCalled();
   });
 });

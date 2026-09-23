@@ -5,6 +5,9 @@ import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
 
 import { commerceFingerprint } from "./catalog-conflict";
 import { fetchShopifyProduct, inspectProductSyncState } from "./product-sync";
+import { SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
+
+export { SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
 
 type UserError = { field?: string[] | null; message: string };
 
@@ -28,14 +31,6 @@ type UserError = { field?: string[] | null; message: string };
  * Characteristics (array-shaped, need real merge semantics). Each needs its
  * own design, not a slot in this set.
  */
-export const SCOPED_COMMERCE_FIELD_LABELS = new Set([
-  "Vendor",
-  "Product type",
-  "Variant SKU",
-  "Price",
-  "Compare-at price",
-]);
-
 const VARIANT_FIELD_LABELS = new Set(["Variant SKU", "Price", "Compare-at price"]);
 
 export type CommerceFieldApplyResult =

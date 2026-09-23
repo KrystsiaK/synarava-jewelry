@@ -8,6 +8,7 @@ import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-regist
 
 import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
 import { inspectProductSyncState, type ProductSyncDifference } from "./product-sync";
+import { COMMERCE_UNSUPPORTED_REASON, SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
 
 // Commerce inspection compares Name/Handle/Description/SEO title/SEO
 // description as flat product attributes read straight off the local
@@ -80,6 +81,7 @@ export function commerceFingerprint(value: string): string {
 }
 
 function commerceField(difference: ProductSyncDifference): CatalogConflictField {
+  const supported = SCOPED_COMMERCE_FIELD_LABELS.has(difference.field);
   return {
     fieldKey: `commerce:${slugFieldKey(difference.field)}`,
     label: difference.field,
@@ -91,8 +93,8 @@ function commerceField(difference: ProductSyncDifference): CatalogConflictField 
     baseValue: null,
     localFingerprint: commerceFingerprint(difference.local),
     shopifyFingerprint: commerceFingerprint(difference.shopify),
-    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
-    blockedReason: null,
+    allowedDirections: supported ? ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] : [],
+    blockedReason: supported ? null : COMMERCE_UNSUPPORTED_REASON,
     sourceId: null,
   };
 }
