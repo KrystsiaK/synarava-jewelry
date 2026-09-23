@@ -31,7 +31,7 @@ export default async function AdminTranslationsPage({ searchParams }: PageProps)
     if (difference.rootEntityType === "COLLECTION") href = `/admin/collections/${difference.rootEntityId}`;
     if (difference.rootEntityType === "PAGE") {
       const slug = pageSlugs.get(difference.rootEntityId);
-      href = slug === "home" ? "/admin/home" : slug === "about" ? "/admin/about" : `/admin/pages/${slug ?? difference.rootEntityId}`;
+      href = `/admin/pages/${slug ?? difference.rootEntityId}`;
     }
     return { ...difference, href };
   }).filter((difference) =>

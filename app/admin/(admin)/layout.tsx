@@ -35,7 +35,11 @@ export default async function AdminLayout({
       openIssues.map((issue) => {
         if (issue.entityType === "PRODUCT") return "/admin/products";
         if (issue.entityType === "COLLECTION") return "/admin/collections";
-        if (issue.entityType === "PAGE") return issue.targetHref?.includes("/home") ? "/admin/home" : issue.targetHref?.includes("/about") ? "/admin/about" : "/admin/pages";
+        if (issue.entityType === "PAGE") {
+          if (issue.targetHref?.includes("/home")) return "/admin/pages/home";
+          if (issue.targetHref?.includes("/about")) return "/admin/pages/about";
+          return "/admin/pages";
+        }
         if (issue.entityType === "CATEGORY") return "/admin/categories";
         if (issue.entityType === "TAG") return "/admin/tags";
         return "/admin/issues";
@@ -53,7 +57,7 @@ export default async function AdminLayout({
         if (difference.rootEntityType === "COLLECTION") return "/admin/collections";
         if (difference.rootEntityType === "STOREFRONT_COPY") return "/admin/settings";
         const slug = syncPageSlugs.get(difference.rootEntityId);
-        return slug === "home" ? "/admin/home" : slug === "about" ? "/admin/about" : "/admin/pages";
+        return slug ? `/admin/pages/${slug}` : "/admin/pages";
       }),
     ),
   );

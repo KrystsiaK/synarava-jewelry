@@ -103,8 +103,6 @@ export function AdminTopbarIssueLink({
 
 const NAV_ITEMS = [
   { href: "/admin", exact: true, label: "Overview", code: "CTRL" },
-  { href: "/admin/home", label: "Home", code: "HOME" },
-  { href: "/admin/about", label: "About", code: "ABOUT" },
   { href: "/admin/pages", label: "Pages", code: "PGS" },
   { href: "/admin/settings", label: "Copy", code: "COPY" },
   { href: "/admin/videos", label: "Videos", code: "VID" },

@@ -81,8 +81,7 @@ Accounts made it redundant.
 The implemented admin is intentionally small and task-focused:
 
 - `Overview` — content/catalog summary and QA entry point;
-- `Home` and `About` — dedicated editorial surfaces;
-- `Pages` — generic editorial pages;
+- `Pages` — editorial CMS for all pages including Home and About;
 - `Videos` — shared S3-backed storefront video assets;
 - `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;
 - `Collections` — Shopify-linked grouping, merchandising, and primary storefront navigation;

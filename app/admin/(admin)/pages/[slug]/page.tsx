@@ -36,6 +36,13 @@ export default async function EditPagePage({
     );
   }
 
+  const subtitle =
+    page.slug === "home"
+      ? "Control section visibility, localized editorial copy, calls to action, and contact details across the site's home page."
+      : page.slug === "about"
+        ? "Control the brand story, call to action, manifesto copy, and hero media."
+        : "Edit one page record. The page table remains separate for scanning and state actions.";
+
   return (
     <div className="space-y-8">
       <div>
@@ -43,9 +50,7 @@ export default async function EditPagePage({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="adm-page-title">{page.title}</h1>
-            <p className="adm-page-subtitle">
-              Edit one page record. The page table remains separate for scanning and state actions.
-            </p>
+            <p className="adm-page-subtitle">{subtitle}</p>
           </div>
           <Link href="/admin/pages" className="adm-btn-ghost">
             Back to pages
