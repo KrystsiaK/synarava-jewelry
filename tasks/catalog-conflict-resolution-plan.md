@@ -1,10 +1,55 @@
 # План: разрешение конфликтов каталога Shopify ↔ Synarava
 
-**Статус:** этапы 1–6 реализованы 23 сентября 2026. Этап 7 открыт только как release gate: live Shopify round trip, production build и авторизованный browser pass. UX-контракт: [`../docs/admin/catalog-conflict-resolution-ux.md`](../docs/admin/catalog-conflict-resolution-ux.md). Этот план касается только `/admin/products`; существующий широкий план Shopify reconciliation и его незавершённые задачи сохраняются отдельно.
+**Статус:** этапы 1–6 реализованы 23 сентября 2026. Этап 7 открыт как release gate. **BUG-1/BUG-2 закрыты 23 сентября 2026**; перед live Shopify — smoke BUG-3 + этап 7. UX-контракт: [`../docs/admin/catalog-conflict-resolution-ux.md`](../docs/admin/catalog-conflict-resolution-ux.md). Этот план касается только `/admin/products`; существующий широкий план Shopify reconciliation и его незавершённые задачи сохраняются отдельно.
+
+## Открытые баги (handoff)
+
+Стек модалок (sibling portals в `document.body`, не React-nesting):
+
+| Слой | Компонент | z-index |
+|---|---|---|
+| 1 | `ConflictListModal` | `z-[200]` / backdrop `z-[190]` |
+| 2 | `DetailsModal` `[ FIELD DECISIONS ]` | `z-[300]` / `z-[290]` |
+| 3 | `PreviewModal` | `z-[400]` / `z-[390]` |
+
+Файлы: `components/admin/products/catalog-conflict-workspace.tsx`, `components/ui/animated-modal.tsx`, тест `components/ui/__tests__/animated-modal.test.tsx`.
+
+### BUG-1 — P0: верхний `AnimatedModal` становится `inert` → Field Decisions «зависает» — ✅ закрыто (2026-09-23)
+
+**Было:** `[ FIELD DECISIONS ]` выглядел открытым, но клики/фокус/Escape не работали — нижний sibling-portal при повторном trap-эффекте (нестабильный `onClose` в deps) ставил верхнему `inert`.
+
+**Сделано в `animated-modal.tsx`:**
+1. `background` для `inert` исключает sibling `[data-animated-modal-root]` — inert только на app shell.
+2. `onCloseRef` + deps эффекта trap только `[mounted]` (inline `busy ? () => undefined : onClose` больше не перезапускает inert-проход).
+3. Focus steal только у topmost (`Math.max(...activeModalIds)`); Escape/backdrop через `onCloseRef`.
+
+**Проверка:** `components/ui/__tests__/animated-modal.test.tsx` — 4 теста зелёные (sibling portals не inert; rerender нижнего слоя с новым `onClose` identity оставляет верхний кликабельным; Escape только у top). Ручной pass Field Decisions желателен перед этапом 7.
+
+### BUG-2 — P1: иконка входа в Field Decisions выглядит как «лупа» / неудачная — ✅ закрыто
+
+**Было:** третья кнопка использовала `Search` (лупа). **Сделано:** заменена на `Columns2`, `aria-label="Compare fields side by side"`, tooltip «Compare fields…», hit area 44px. Дальнейшая замена на `GitCompareArrows` не требуется.
+
+### BUG-3 — P2 (не путать с BUG-1): only-blocked Status — выбирать нечего, но уйти должно быть можно
+
+**Симптом (частично ожидаемо):** для товара, где в конфликте только unsupported commerce (`Status`, storefront visibility, …), UI показывает read-only + «Open the product editor and use Push/Pull». Колонки не выбираются — `blockedReason` / `UNSUPPORTED` из этапа 2.
+
+**Не баг само по себе**, но при BUG-1 админ воспринимал это как «ничего нельзя делать». После фикса BUG-1 (✅) проверить вручную:
+- footer: `Back to list` закрывает Details, список снова интерактивен;
+- `Open product editor` — `Link` на `/admin/products/{id}` реально ведёт в editor (и не оставляет мёртвый overlay);
+- copy / warning box остаются, merge/Review merge скрыты при `onlyBlocked`.
+
+**Не расширять** в этом баге scoped writer для Status — это этап 2 / отдельный design (UNLISTED ↔ publication).
+
+### Порядок фикса
+
+1. BUG-1 (P0) — ✅ закрыто (`animated-modal` + 4 focused tests).
+2. BUG-2 (P1) — ✅ закрыто (`Search` → `Columns2`).
+3. BUG-3 — smoke после BUG-1 (ручной pass Field Decisions на only-blocked Status).
+4. Затем этап 7 (live Shopify).
 
 ## Передача в реализацию
 
-Write-path каталога уже подключён: список, детали, preview, scoped apply и per-admin watermark. Не начинать этап 4 заново. Осталось закрыть этап 7 на контролируемом тестовом товаре Shopify и не подменять его моками. UX-спецификация описывает целевой контракт; [`../docs/admin/admin-guide-ru.md`](../docs/admin/admin-guide-ru.md) описывает **уже работающий** интерфейс. Сверить запись с исходным кодом и актуальной официальной документацией Shopify до расширения commerce-writer'а. В проекте могут быть несвязанные незакоммиченные изменения: сохранить их и не перезаписывать.
+Write-path каталога уже подключён: список, детали, preview, scoped apply и per-admin watermark. **BUG-1/BUG-2 закрыты**; остаётся smoke BUG-3 и этап 7. Не начинать этап 4 заново и не уходить в расширение Status-writer. UX-спецификация описывает целевой контракт; [`../docs/admin/admin-guide-ru.md`](../docs/admin/admin-guide-ru.md) описывает **уже работающий** интерфейс. Сверить запись с исходным кодом и актуальной официальной документацией Shopify до расширения commerce-writer'а. В проекте могут быть несвязанные незакоммиченные изменения: сохранить их и не перезаписывать.
 
 ## Что уже есть
 
@@ -171,11 +216,11 @@ Write-path каталога уже подключён: список, детал�
 
 **Критерии:** merge недоступен, пока не выбрано ни одного поля; отмена preview возвращает к источнику с сохранённым выбором; язык (включая RU) либо `Общее` виден в каждой строке; bulk перечисляет все изменяемые товары и поля; на мобильном сравнение читается без горизонтального scroll.
 
-**Проверка:** keyboard/focus/Escape, light/dark, reduced motion, длинный текст, большое число строк. Проверить и при необходимости исправить nested modal focus/inert в `components/ui/animated-modal.tsx`.
+**Проверка:** keyboard/focus/Escape, light/dark, reduced motion, длинный текст, большое число строк. Nested modal focus/inert в `components/ui/animated-modal.tsx` — ✅ BUG-1 закрыт (sibling portals не получают `inert`).
 
 **Зависимости:** 2, 4. **Вероятные места:** новые компоненты comparison/confirmation, `components/ui/animated-modal.tsx`, styles.
 
-**Реализация:** детали загружают live unified conflict read model; в каждой строке есть постоянный языковой корешок (`RU · Русский`, `PT · Português`, следующий registry locale) или `SHARED`, две выбираемые колонки и объяснение недоступности. Тот же preview-компонент используется для bulk/product/manual scope, отдельно подтверждает очистку непустого значения и держит footer доступным. `AnimatedModal` теперь пропускает Escape/Tab только в верхний слой; Cancel закрывает лишь верхний слой и сохраняет решения.
+**Реализация:** детали загружают live unified conflict read model; в каждой строке есть постоянный языковой корешок (`RU · Русский`, `PT · Português`, следующий registry locale) или `SHARED`, две выбираемые колонки и объяснение недоступности. Тот же preview-компонент используется для bulk/product/manual scope, отдельно подтверждает очистку непустого значения и держит footer доступным. Escape/Tab только в верхний слой; sibling portals не inert (BUG-1 ✅). Иконка Compare — `Columns2` (BUG-2 ✅).
 
 ### 6. Прогресс, результат и непросмотренные входящие изменения — ✅ реализовано (2026-09-23)
 

@@ -50,6 +50,8 @@ export function AnimatedModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const modalRootRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const modalIdRef = useRef<number | null>(null);
   if (modalIdRef.current === null) modalIdRef.current = ++nextModalId;
 
@@ -78,9 +80,14 @@ export function AnimatedModal({
     const modalId = modalIdRef.current!;
     activeModalIds.add(modalId);
     const previousOverflow = document.body.style.overflow;
+    // Never inert sibling modal portals. A lower stacked modal re-running this
+    // effect (e.g. unstable onClose identity) would otherwise freeze the top
+    // dialog: clicks and focus stop working while the UI still looks open.
     const background = Array.from(document.body.children).filter(
       (element): element is HTMLElement =>
-        element instanceof HTMLElement && element !== modalRootRef.current,
+        element instanceof HTMLElement
+        && element !== modalRootRef.current
+        && element.dataset.animatedModalRoot !== "true",
     );
     const previousInert = background.map((element) => element.inert);
     previousFocusRef.current = document.activeElement as HTMLElement | null;
@@ -89,7 +96,7 @@ export function AnimatedModal({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (modalId !== Math.max(...activeModalIds)) return;
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
       if (event.key !== "Tab") return;
       const focusable = Array.from(
         dialogRef.current?.querySelectorAll<HTMLElement>(
@@ -114,6 +121,7 @@ export function AnimatedModal({
 
     window.addEventListener("keydown", handleKeyDown);
     const focusFrame = window.requestAnimationFrame(() => {
+      if (modalId !== Math.max(...activeModalIds)) return;
       const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
         'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
@@ -127,7 +135,7 @@ export function AnimatedModal({
       previousFocusRef.current?.focus();
       activeModalIds.delete(modalId);
     };
-  }, [mounted, onClose]);
+  }, [mounted]);
 
   if (!mounted) return null;
 
@@ -156,7 +164,7 @@ export function AnimatedModal({
       <button
         type="button"
         className={cn("modal-backdrop fixed inset-0 cursor-default", backdropZIndexClassName, visuallyOpen && "is-open")}
-        onClick={onClose}
+        onClick={() => onCloseRef.current()}
         aria-label="Close dialog"
         tabIndex={-1}
       />
