@@ -121,6 +121,7 @@ export function ProductsCms({
       pushToast({ message: result.success, tone: "success" });
       if (result.warning) pushToast({ message: result.warning, tone: "info" });
       setConflictSignals(result.signals);
+      if ((result.signals.totalCount ?? 0) > 0) showConflicts();
       router.refresh();
     });
   }

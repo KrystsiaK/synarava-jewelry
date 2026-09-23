@@ -8,6 +8,7 @@ import { buildCatalogConflictSignals, type CatalogConflictSignals } from "@/lib/
 import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
 import { runTranslationReconciliation } from "@/lib/shopify/reconciliation-run";
 import { inspectProductSyncState } from "@/lib/shopify/product-sync";
+import { persistPayloadForCommerceInspection } from "@/lib/shopify/catalog-conflict-policy";
 import { listUnseenIncomingProductUpdates } from "@/lib/shopify/catalog-conflict-review";
 
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
@@ -57,7 +58,9 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
   for (const product of linkedProducts) {
     try {
       const inspection = await inspectProductSyncState(product.id);
-      if (inspection.state === "CONFLICT" && inspection.differences.length > 0) commerceProductIds.push(product.id);
+      const persist = persistPayloadForCommerceInspection(inspection);
+      if (persist) await db.product.update({ where: { id: product.id }, data: persist });
+      if (persist?.syncStatus === "CONFLICT") commerceProductIds.push(product.id);
     } catch (error) {
       failures.push(error instanceof Error ? error.message : `Could not inspect ${product.id}.`);
     }

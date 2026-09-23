@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { persistPayloadForCommerceInspection } from "@/lib/shopify/catalog-conflict-policy";
 import { buildCatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 const locales = [
@@ -86,5 +87,31 @@ describe("buildCatalogConflictSignals", () => {
       expect(result.checkedAt).toBe("2026-09-23T09:55:00.000Z");
       expect(result.state).toBe(status === "RUNNING" ? "checking" : "failed");
     }
+  });
+});
+
+describe("persistPayloadForCommerceInspection", () => {
+  it("stores CONFLICT so the catalog list can reopen the same products after refresh", () => {
+    expect(persistPayloadForCommerceInspection({
+      state: "CONFLICT",
+      differences: [{ field: "Vendor" }],
+      remoteUpdatedAt: "2026-09-23T12:00:00.000Z",
+    })).toEqual({ syncStatus: "CONFLICT" });
+  });
+
+  it("does not persist a CONFLICT with no remaining field differences", () => {
+    expect(persistPayloadForCommerceInspection({
+      state: "CONFLICT",
+      differences: [],
+      remoteUpdatedAt: "2026-09-23T12:00:00.000Z",
+    })).toMatchObject({ syncStatus: "SYNCED" });
+  });
+
+  it("leaves one-sided commerce changes out of the conflict list", () => {
+    expect(persistPayloadForCommerceInspection({
+      state: "REMOTE_CHANGES",
+      differences: [{ field: "Vendor" }],
+      remoteUpdatedAt: null,
+    })).toBeNull();
   });
 });

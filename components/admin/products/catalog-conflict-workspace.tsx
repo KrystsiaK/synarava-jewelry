@@ -104,7 +104,7 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
         <div>
           <p className="adm-section-tag">[ CATALOG CONFLICTS ]</p>
           <h2 className="adm-title-sm mt-2">{plural(productIds.length, "product", "products")} need a decision</h2>
-          <p className="mt-1 max-w-2xl text-xs text-[var(--adm-muted)]">Choose a direction for every supported field at once, or review one product field by field. No value changes until the final confirmation.</p>
+          <p className="mt-1 max-w-2xl text-xs text-[var(--adm-muted)]">This is the list from the last conflict check. Choose a direction, or open one product field by field. Nothing is written until the final confirmation.</p>
         </div>
         <button type="button" onClick={onClose} disabled={pending} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close catalog conflicts"><X className="size-4" /></button>
       </header>

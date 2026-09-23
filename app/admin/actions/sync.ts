@@ -186,7 +186,7 @@ export async function checkCatalogConflictsAction() {
       ...result,
       success: result.signals.totalCount === 0
         ? "Conflict check complete. No conflicts found."
-        : `Conflict check complete. ${result.signals.totalCount} product${result.signals.totalCount === 1 ? "" : "s"} need review.`,
+        : `Conflict check complete. Review ${result.signals.totalCount} product${result.signals.totalCount === 1 ? "" : "s"} in the conflict list.`,
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check catalog conflicts." };
