@@ -122,12 +122,17 @@ export function EditProductForm({
   const currentProduct = state.product ?? product;
   const draft = productToDraft(currentProduct, translationLocales);
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
+  const taxonomySyncKey = `${currentProduct.id}:${fieldsRevision}:${draft.shopifyCategoryId}:${draft.collectionSlug}:${draft.tags}`;
   const [taxonomySatisfaction, setTaxonomySatisfaction] = useState<TaxonomySatisfaction>(() =>
     taxonomySatisfactionFromDraft(draft),
   );
-  useEffect(() => {
+  const [taxonomySyncedKey, setTaxonomySyncedKey] = useState(taxonomySyncKey);
+  // Adjust during render when the server draft remounts / fieldsRevision bumps
+  // (React “adjusting state when a prop changes” — no setState-in-effect).
+  if (taxonomySyncKey !== taxonomySyncedKey) {
+    setTaxonomySyncedKey(taxonomySyncKey);
     setTaxonomySatisfaction(taxonomySatisfactionFromDraft(draft));
-  }, [currentProduct.id, fieldsRevision, draft.shopifyCategoryId, draft.collectionSlug, draft.tags]);
+  }
   const visibleIssues = filterIssuesByTaxonomySatisfaction(issues, taxonomySatisfaction);
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];

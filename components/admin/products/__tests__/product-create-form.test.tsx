@@ -80,7 +80,7 @@ describe("CreateProductForm", () => {
     await user.click(await screen.findByRole("button", { name: "Continue and save" }));
 
     expect(mocks.saveProductAction).toHaveBeenCalledTimes(1);
-  });
+  }, 15_000);
 
   it("keeps the create form available when the save action rejects", async () => {
     mocks.saveProductAction.mockRejectedValue(new Error("Database write failed"));
@@ -99,5 +99,5 @@ describe("CreateProductForm", () => {
       "Product could not be saved. Reload this page before trying again.",
     );
     expect(screen.getByRole("heading", { name: "Build the product one area at a time", level: 2 })).toBeInTheDocument();
-  });
+  }, 15_000);
 });

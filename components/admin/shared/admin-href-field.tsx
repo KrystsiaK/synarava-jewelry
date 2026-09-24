@@ -84,22 +84,25 @@ export function AdminHrefControl({
 
   const flatHits = flattenHrefHits(result);
 
-  let runningIndex = 0;
-  const indexedSegments = result.segments.map((segment) => ({
-    id: segment.id,
-    label: segment.label,
-    hits: segment.hits.map((hit) => {
-      const index = runningIndex;
-      runningIndex += 1;
-      return { hit, index };
-    }),
-  }));
+  const indexedSegments = result.segments.reduce<
+    Array<{ id: string; label: string; hits: Array<{ hit: StorefrontHrefHit; index: number }> }>
+  >((segments, segment) => {
+    const offset = segments.reduce((sum, entry) => sum + entry.hits.length, 0);
+    return [
+      ...segments,
+      {
+        id: segment.id,
+        label: segment.label,
+        hits: segment.hits.map((hit, hitOffset) => ({ hit, index: offset + hitOffset })),
+      },
+    ];
+  }, []);
 
-  const publishDetectedWarning = useEffectEvent((status?: string) => {
+  const publishDetectedWarning = (status?: string) => {
     onDetectedWarningChange?.(hrefTargetWarning(status));
-  });
+  };
 
-  const commitHref = useEffectEvent((next: string, status?: string) => {
+  function commitHref(next: string, status?: string) {
     const normalized = normalizeHrefQuery(next);
     if (!isControlled) setUncontrolledHref(normalized);
     onValueChange?.(normalized);
@@ -113,7 +116,7 @@ export function AdminHrefControl({
       hiddenInputRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
       hiddenInputRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
     });
-  });
+  }
 
   const runSearch = useEffectEvent((search: string) => {
     startTransition(async () => {
@@ -149,9 +152,12 @@ export function AdminHrefControl({
     setQuery(href);
   });
 
-  useEffect(() => {
-    if (isControlled) setQuery(value);
-  }, [isControlled, value]);
+  // Controlled value wins — adjust during render (no setState-in-effect).
+  const [syncedValue, setSyncedValue] = useState(href);
+  if (isControlled && value !== syncedValue) {
+    setSyncedValue(value);
+    setQuery(value);
+  }
 
   useEffect(() => {
     inspectHref(href);

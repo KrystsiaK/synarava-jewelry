@@ -143,7 +143,12 @@ export async function proxy(request: NextRequest) {
   // Registered (published or not) — an unpublished/disabled locale still
   // matches here so it reaches app/[locale]/layout.tsx and gets a real 404
   // via notFound() there, instead of being treated as a bare content path.
-  const registeredSegments = locales.map((locale) => locale.routeSegment);
+  // Empty registry (DB down / unseeded CI): treat the emergency fallback as
+  // registered so `/en` is not rewritten to `/en/en` in a redirect loop.
+  const registeredSegments =
+    locales.length > 0
+      ? locales.map((locale) => locale.routeSegment)
+      : [FALLBACK_DEFAULT_SEGMENT];
   const firstSegment = isLocaleExempt ? null : pathname.split("/")[1] ?? "";
   const localeSegment = firstSegment && registeredSegments.includes(firstSegment) ? firstSegment : null;
 

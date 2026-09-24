@@ -4,6 +4,24 @@ import { listStorefrontLocales, type StorefrontLocaleRecord } from "./storefront
 
 const TTL_MS = 30_000;
 
+// Emergency-only: empty registry (unseeded CI `db push`, cold DB outage).
+// Not cached — every miss retries the DB so a real seed/self-heal sticks.
+export const EMERGENCY_FALLBACK_LOCALES: StorefrontLocaleRecord[] = [
+  {
+    id: "emergency-fallback-en",
+    code: "en",
+    routeSegment: "en",
+    shopifyLocale: "en",
+    intlLocale: "en",
+    name: "English",
+    nativeName: "English",
+    isDefault: true,
+    isPublished: true,
+    sortOrder: 0,
+    shopifyUpdatedAt: null,
+  },
+];
+
 // Routing runs on every request (proxy.ts) and must never block on a fresh
 // DB round trip or fail the whole site if the DB hiccups. A bounded-TTL
 // in-memory snapshot, refreshed lazily, keeps registry reads off the hot
@@ -17,6 +35,10 @@ export async function getStorefrontLocales(): Promise<StorefrontLocaleRecord[]> 
 
   try {
     const locales = await listStorefrontLocales();
+    if (locales.length === 0) {
+      console.error("[storefront-locale-cache] registry empty; using emergency en fallback");
+      return EMERGENCY_FALLBACK_LOCALES;
+    }
     cache = { locales, expiresAt: now + TTL_MS };
     return locales;
   } catch (error) {
@@ -25,7 +47,7 @@ export async function getStorefrontLocales(): Promise<StorefrontLocaleRecord[]> 
     // recovers and the next request's cache read succeeds.
     if (cache) return cache.locales;
     console.error("[storefront-locale-cache] registry read failed with no cached fallback", error);
-    return [];
+    return EMERGENCY_FALLBACK_LOCALES;
   }
 }
 

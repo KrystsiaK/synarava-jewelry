@@ -141,4 +141,22 @@ describe("registry-driven locale routing", () => {
     expect(response.status).toBe(308);
     expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
   });
+
+  it("does not redirect-loop /en when the registry is unreachable", async () => {
+    mocks.findMany.mockRejectedValue(new Error("connection refused"));
+
+    const response = await proxy(new NextRequest("https://synarava.test/en"));
+
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.status).toBeLessThan(300);
+  });
+
+  it("does not redirect-loop /en when the registry table is empty", async () => {
+    mocks.findMany.mockResolvedValue([]);
+
+    const response = await proxy(new NextRequest("https://synarava.test/en"));
+
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.status).toBeLessThan(300);
+  });
 });

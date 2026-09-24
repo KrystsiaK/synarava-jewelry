@@ -75,12 +75,10 @@ function useShopifyCategoryState({
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const resultListId = useId();
   const searchErrorId = useId();
-  const onSelectedIdChangeRef = useRef(onSelectedIdChange);
-  onSelectedIdChangeRef.current = onSelectedIdChange;
 
   function commitSelectedId(id: string) {
     setSelectedId(id);
-    onSelectedIdChangeRef.current?.(id);
+    onSelectedIdChange?.(id);
   }
 
   useEffect(() => {
