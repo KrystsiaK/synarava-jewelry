@@ -23,6 +23,15 @@ const eslintConfig = defineConfig([
     "artifacts/**",
     "edited-product-photos/**",
   ]),
+  // Vendored Bklit chart kit (portal axes, mount gates, motion measurement)
+  // uses patterns React 19 eslint forbids; keep other rules, relax those two.
+  {
+    files: ["components/charts/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
