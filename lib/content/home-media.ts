@@ -2,11 +2,15 @@ export type HomeCollectionMedia = {
   image?: string | null;
 };
 
+export type FinalCtaImage = {
+  image: string;
+};
+
 export function buildFinalCtaImages<T extends HomeCollectionMedia>(
   collections: T[],
-): T[] {
+): Array<T & FinalCtaImage> {
   const availableImages = collections.filter(
-    (collection): collection is T => Boolean(collection?.image),
+    (collection): collection is T & FinalCtaImage => Boolean(collection?.image),
   );
 
   if (availableImages.length === 0) {

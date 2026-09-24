@@ -1,4 +1,4 @@
-import { buildFinalCtaImages, type HomeCollectionMedia } from "@/lib/content/home-media";
+import { buildFinalCtaImages, type FinalCtaImage, type HomeCollectionMedia } from "@/lib/content/home-media";
 
 export type FinalCtaProductMedia = {
   id: string;
@@ -13,7 +13,7 @@ export function resolveFinalCtaImages(
   products: FinalCtaProductMedia[],
   selectedIds: string[] | undefined | null,
   fallback: HomeCollectionMedia[],
-): HomeCollectionMedia[] {
+): FinalCtaImage[] {
   const byId = new Map(
     products
       .filter((product): product is FinalCtaProductMedia & { image: string } => Boolean(product.image))
