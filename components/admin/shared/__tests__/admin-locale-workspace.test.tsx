@@ -120,13 +120,16 @@ describe("AdminLocaleTabs with a custom locale list", () => {
     expect(onSelect).toHaveBeenLastCalledWith("ru");
   });
 
-  it("labels the source locale from locales[0], not a hardcoded EN", () => {
+  it("treats locales[0] as the source tab order, not a hardcoded EN-first list", () => {
     const locales = [
       { code: "pt", label: "Português" },
       { code: "en", label: "English" },
     ];
     render(<AdminLocaleTabs active="pt" onSelect={() => {}} locales={locales} />);
-    expect(screen.getByText("// pt — SOURCE")).toBeInTheDocument();
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0]).toHaveAccessibleName("Português");
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[1]).toHaveAccessibleName("English");
   });
 });
 
