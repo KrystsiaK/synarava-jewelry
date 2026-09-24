@@ -61,7 +61,11 @@ describe("useAdminFormValidation", () => {
     expect(first).toHaveAttribute("aria-invalid", "true");
     expect(first).toHaveAccessibleErrorMessage("Enter the first value.");
     await waitFor(() => {
-      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
       expect(first).toHaveFocus();
     });
   });
