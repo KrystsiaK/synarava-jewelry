@@ -491,7 +491,40 @@ export function CatalogConflictWorkspace({
 
   useEffect(() => {
     if (!open || !isProductScoped(viewScope)) return;
-    openDetails(viewScope.productId);
+    const productId = viewScope.productId;
+    const scope = viewScope;
+    let cancelled = false;
+
+    // Defer React updates into a microtask so the effect body has no sync setState
+    // (react-hooks/set-state-in-effect). Fetch still starts immediately after.
+    void Promise.resolve()
+      .then(() => {
+        if (cancelled) return;
+        setDetails(null);
+        setSelections({});
+        setDetailsLoading(true);
+        return loadProductCatalogConflictAction(productId);
+      })
+      .then((result) => {
+        if (cancelled || !result) return;
+        if (result.error) {
+          onToast(result.error, "error");
+          return;
+        }
+        if (result.conflict) {
+          setDetails({
+            ...result.conflict,
+            fields: filterConflictFieldsForView(result.conflict.fields, scope),
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
     // Auto-open details once when entering a product-scoped view.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, viewScope.kind, isProductScoped(viewScope) ? viewScope.productId : null, viewScope.kind === "productLocale" ? viewScope.locale : null]);

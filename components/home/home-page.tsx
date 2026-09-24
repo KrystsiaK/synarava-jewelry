@@ -17,7 +17,6 @@ import type { ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ease } from "@/lib/animation";
-import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";

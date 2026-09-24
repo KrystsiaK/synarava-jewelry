@@ -8,9 +8,12 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+
+const emptySubscribe = () => () => undefined;
 
 type AdminToastTone = "success" | "error" | "info";
 
@@ -147,11 +150,8 @@ function AdminToastCard({
 
 export function AdminToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<AdminToastItem[]>([]);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Client-only portal mount without setState-in-effect (React docs: useSyncExternalStore).
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   const pushToast = useCallback((input: { message: string; tone: AdminToastTone }) => {
     const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;

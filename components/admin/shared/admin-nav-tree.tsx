@@ -2,8 +2,8 @@
 
 import {
   useEffect,
-  useRef,
   useState,
+  useSyncExternalStore,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
@@ -23,20 +23,17 @@ import {
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/ui";
 
+function subscribeToHash(onStoreChange: () => void) {
+  window.addEventListener("hashchange", onStoreChange);
+  return () => window.removeEventListener("hashchange", onStoreChange);
+}
+
+function readLocationHash() {
+  return window.location.hash.replace(/^#/, "");
+}
+
 function useLocationHash() {
-  const [hash, setHash] = useState("");
-
-  useEffect(() => {
-    function readHash() {
-      setHash(window.location.hash.replace(/^#/, ""));
-    }
-
-    readHash();
-    window.addEventListener("hashchange", readHash);
-    return () => window.removeEventListener("hashchange", readHash);
-  }, []);
-
-  return hash;
+  return useSyncExternalStore(subscribeToHash, readLocationHash, () => "");
 }
 
 function AdminNavCountBadge({
@@ -171,34 +168,37 @@ export function AdminNavTree({
   const hash = useLocationHash();
   const issueHrefSet = new Set(issueNavHrefs);
   const syncHrefSet = new Set(syncNavHrefs);
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
+  const routeKey = `${pathname}#${hash}`;
 
   // User-expanded branches beyond the route.
   const [manualOpen, setManualOpen] = useState<ReadonlySet<string>>(() => new Set());
   // User-collapsed branches that the route would otherwise keep open (clears on URL change).
   const [manualClosed, setManualClosed] = useState<ReadonlySet<string>>(() => new Set());
-  const [revealed, setRevealed] = useState<ReadonlySet<string>>(() => new Set());
+  const [manualRevealed, setManualRevealed] = useState<ReadonlySet<string>>(() => new Set());
+  const [navRouteKey, setNavRouteKey] = useState(routeKey);
 
-  // Deep-link sync: URL wins — reset manual open/close and reveal active overflow children.
-  useEffect(() => {
+  // Deep-link sync: URL wins — reset manual open/close when the route changes
+  // (React “adjusting state when a prop changes” — no setState-in-effect).
+  if (routeKey !== navRouteKey) {
+    setNavRouteKey(routeKey);
     setManualOpen(new Set());
     setManualClosed(new Set());
+    setManualRevealed(new Set());
+  }
 
-    const nextRevealed = new Set<string>();
-    for (const item of itemsRef.current) {
-      if (activeChildBeyondPreview(item, pathname, hash)) {
-        nextRevealed.add(item.id);
-      }
+  // Route-driven reveal of overflow children, unioned with user “Show more”.
+  const revealed = new Set(manualRevealed);
+  for (const item of items) {
+    if (activeChildBeyondPreview(item, pathname, hash)) {
+      revealed.add(item.id);
     }
-    setRevealed(nextRevealed);
+  }
 
-    // Same-document hash landing: scroll after paint.
-    if (hash) {
-      const frame = window.requestAnimationFrame(() => scrollToHashTarget(hash));
-      return () => window.cancelAnimationFrame(frame);
-    }
-    return undefined;
+  // Same-document hash landing: scroll after paint (DOM only, no React state).
+  useEffect(() => {
+    if (!hash) return;
+    const frame = window.requestAnimationFrame(() => scrollToHashTarget(hash));
+    return () => window.cancelAnimationFrame(frame);
   }, [pathname, hash]);
 
   function isOpen(item: AdminNavItemConfig) {
@@ -364,7 +364,7 @@ export function AdminNavTree({
                       type="button"
                       className="adm-nav-tree__more"
                       onClick={() =>
-                        setRevealed((current) => new Set(current).add(item.id))
+                        setManualRevealed((current) => new Set(current).add(item.id))
                       }
                     >
                       Show {hiddenCount} more
@@ -376,7 +376,7 @@ export function AdminNavTree({
                       type="button"
                       className="adm-nav-tree__more"
                       onClick={() =>
-                        setRevealed((current) => {
+                        setManualRevealed((current) => {
                           const next = new Set(current);
                           next.delete(item.id);
                           return next;

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useRef,
   useState,
   type ComponentProps,
@@ -64,12 +63,13 @@ export function AdminTextControl({
   ...inputProps
 }: AdminTextControlProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [hasValue, setHasValue] = useState(() => readHasValue(value ?? defaultValue));
+  const isControlled = value !== undefined;
+  const [uncontrolledHasValue, setUncontrolledHasValue] = useState(() =>
+    readHasValue(defaultValue),
+  );
+  // Controlled value: derive during render. Uncontrolled: track via input events.
+  const hasValue = isControlled ? readHasValue(value) : uncontrolledHasValue;
   const showError = Boolean(error) || invalid || ariaInvalid === true;
-
-  useEffect(() => {
-    if (value !== undefined) setHasValue(readHasValue(value));
-  }, [value]);
 
   function clearField() {
     const el = inputRef.current;
@@ -79,7 +79,7 @@ export function AdminTextControl({
     descriptor?.set?.call(el, "");
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
-    setHasValue(false);
+    if (!isControlled) setUncontrolledHasValue(false);
     onClear?.();
     el.focus();
   }
@@ -111,11 +111,11 @@ export function AdminTextControl({
         aria-invalid={showError ? true : undefined}
         aria-errormessage={showError ? ariaErrorMessage : undefined}
         onChange={(event) => {
-          setHasValue(readHasValue(event.target.value));
+          if (!isControlled) setUncontrolledHasValue(readHasValue(event.target.value));
           onChange?.(event);
         }}
         onInput={(event) => {
-          setHasValue(readHasValue(event.currentTarget.value));
+          if (!isControlled) setUncontrolledHasValue(readHasValue(event.currentTarget.value));
           onInput?.(event);
         }}
         className={cn("adm-field adm-field--in-group", inputClassName)}

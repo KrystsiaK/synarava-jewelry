@@ -8,6 +8,13 @@ import { ADMIN_STORAGE_STATE_PATH } from "./e2e/support/auth";
 // mechanics themselves and must start from a clean, unauthenticated context.
 const ADMIN_CRUD_SPEC_PATTERN = /e2e\/admin-(?!auth\.spec\.ts).*\.spec\.ts$/;
 
+// Bind and probe 127.0.0.1 explicitly. Playwright treats HTTP status >= 404 as
+// "not ready"; probing `/` can hang on SSR or return 404 before proxy redirect.
+// Port-only readiness only checks that next is listening.
+const E2E_HOST = "127.0.0.1";
+const E2E_PORT = 3000;
+const E2E_ORIGIN = `http://${E2E_HOST}:${E2E_PORT}`;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -16,7 +23,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: E2E_ORIGIN,
     trace: "on-first-retry",
   },
   projects: [
@@ -44,9 +51,13 @@ export default defineConfig({
   webServer: {
     // CI: production server after an explicit `pnpm build` step (see ci.yml).
     // Local: `next dev` with reuse so an already-running app is fine.
-    command: process.env.CI ? "pnpm start" : "pnpm dev",
-    url: "http://localhost:3000",
+    command: process.env.CI
+      ? `pnpm exec next start --hostname ${E2E_HOST} --port ${E2E_PORT}`
+      : "pnpm dev",
+    port: E2E_PORT,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
+    stdout: "pipe",
+    stderr: "pipe",
   },
 });
