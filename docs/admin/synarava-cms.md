@@ -15,7 +15,7 @@ two visual variants remain. Agent skill encodes this contract.
 |--|--|
 | Public API | `@/components/synarava-cms` (`components/synarava-cms/index.ts`) |
 | Implementation | `components/admin/shared/` |
-| Tokens | `.adm-field*`, `.adm-field-group*`, `.adm-check*` in `app/globals.css` |
+| Tokens | `.adm-field*`, `.adm-field-group*`, `.adm-check*`, `.adm-collapse*`, `.adm-panel*`, `.adm-band*` / `--adm-rhythm*` in `app/globals.css` |
 | Agent skill | `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`) |
 
 | Export | Role |
@@ -23,8 +23,12 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminFieldShell` | Label + owner + help + absolute error/`issue` (`.adm-field-unit`) |
 | `AdminTextField` / `AdminTextControl` | Labeled text / embeddable control |
 | `AdminSelectField` / `AdminSelectControl` | Select / embeddable select |
-| `AdminCheckboxField` / `AdminCheckboxControl` | Bordered checkbox / inline row |
+| `AdminCheckboxField` / `AdminCheckboxControl` | Checkbox row (+ optional follow-on) / inline row |
 | `AdminLongTextField` | Full-width text preview + Edit modal (+ error chrome) |
+| `AdminCollapsiblePanel` | Titled collapsible panel (chevron; header/body divider) |
+| `AdminPanel` | Rounded shell (`Root` / `Header` / `Body`); sticky header lifts by −radius |
+| `AdminNavTree` / `buildAdminNavItems` | Config-driven admin sidebar tree (expand, show-more, router sync) |
+| `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones) |
 | `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
 | `fieldClass` / `useAdminFieldIds` | Shared helpers |
 
@@ -33,7 +37,11 @@ two visual variants remain. Agent skill encodes this contract.
 ### Shell
 
 - `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `issue`, optional `unitId`.
-- Field-level errors are **absolute** inside the unit (reserved padding when an error node is present). They must not push sibling rows or paint over the next section.
+- Field-level errors are **absolute** inside the unit. Every `.adm-field-unit`
+  **always** reserves a one-line error band (`padding-bottom`) so siblings never
+  jump when validation appears. Long messages **ellipsis** in that band; full
+  copy is available via tooltip / `title`. They must not push sibling rows or
+  paint over the next section.
 - `invalid` forces error chrome without copy (issue-linked fields).
 
 ### Text
@@ -79,9 +87,123 @@ import { AdminCheckboxControl, AdminCheckboxField } from "@/components/synarava-
 <AdminCheckboxControl label="PT translation reviewed" checked={…} onChange={…} />
 ```
 
-- `AdminCheckboxField` = bordered band (characteristic-style).
+- One chrome: square control + label only — **no** outer bordered field band.
+- Checked mark is **light** (`#f8f7f4`) on `--adm-accent` so it stays readable in
+  light theme (`#7b5b1c`) and dark theme (`#d8b66a`).
+- `AdminCheckboxField` without children = same as `AdminCheckboxControl` (no wrapper).
+- `AdminCheckboxField` with children = `.adm-check-stack` under the row (e.g. certificate URL).
 - `AdminCheckboxControl` = row only (featured, reviewed, acknowledgements).
 - Home “site sections” stay **switches**, not these checkboxes.
+- Applied across product characteristics, lookbook featured, translation reviewed,
+  and conflict/apply acknowledgements via `@/components/synarava-cms`.
+
+### Panel shell
+
+```tsx
+import { AdminPanel } from "@/components/synarava-cms";
+
+<AdminPanel.Root stickyAbove="var(--adm-product-workspace-sticky-height, 5.5rem)">
+  <AdminPanel.Header sticky stickyBand="locale">…</AdminPanel.Header>
+  <AdminPanel.Body>…</AdminPanel.Body>
+</AdminPanel.Root>
+```
+
+- Rounded container (`--adm-panel-radius`, default `0.75rem`). Overflow stays **visible** so sticky pins to `.admin-content`.
+- Sticky header `top: calc(stickyAbove - radius)` — header **occupies** the rounded top; it is not inset below the crescents.
+- Sticky headers automatically get `.adm-band` + `.adm-band--sticky-radius`: `padding-top = band-pad-y + radius` so optical vertical padding stays equal after the −radius lift.
+- Nested sticky bands (tabs, section title) subtract the same radius once from the stack; they use equal `.adm-band` padding (no sticky-radius) because they sit flush under the previous band.
+- Applied on the product locale workspace.
+
+### Vertical rhythm + inset (sticky bands)
+
+All admin panel chrome padding comes from one token scale on `.admin-terminal` /
+`.admin-modal-root`, bridged into Tailwind `@theme` as `--spacing-adm-*`:
+
+| Token | Default | Use |
+|-------|---------|-----|
+| `--adm-rhythm` … `--adm-rhythm-6` | 4px steps | Generic spacing |
+| `--adm-inset-x` / `--spacing-adm-inset` | 16px | **One** horizontal gutter for every band/body inside a panel |
+| `--adm-band-pad-y` / `--spacing-adm-band-y` | 12px | Single-row chrome (locale, section title) |
+| `--adm-band-pad-y-lg` | 16px | Multi-line workspace title (Y only) |
+
+| Class / utility | Role |
+|-----------------|------|
+| `.adm-band` | Flex + band-y + **inset-x** |
+| `.adm-band--lg` | Larger Y; same inset-x |
+| `.adm-band--sticky-radius` | Extra top pad = `--adm-panel-radius` (first sticky under rounded panel) |
+| `.adm-inset-x` or Tailwind `px-adm-inset` | Horizontal gutter alone (body, description) |
+
+Do **not** invent per-screen `px-5` / `px-6` / `pad-x-lg` on panel chrome — change `--adm-inset-x` once.
+
+### Collapsible panel
+
+```tsx
+import { AdminCollapsiblePanel } from "@/components/synarava-cms";
+
+<AdminCollapsiblePanel title="Dimensions & fit">
+  {/* fields */}
+</AdminCollapsiblePanel>
+```
+
+- One chrome: bordered panel, title left, **one** chevron right (rotates when open).
+- Implemented as a **button** + animated panel (not native `&lt;details&gt;` — avoids double markers).
+- Open/close uses `grid-template-rows` 0fr→1fr (~220ms ease-out); chevron rotates with the same curve.
+- When open, soft header + **one** `.adm-collapse__rule` hairline (no inset/border-bottom on the header).
+- Applied to product characteristic groups and Shopify snapshot mirror.
+- Story: `synarava-cms/AdminCollapsiblePanel`.
+
+### Admin nav tree
+
+Config-driven sidebar navigation (`AdminNavTree` + `buildAdminNavItems`).
+
+```tsx
+import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
+
+<AdminNavTree
+  items={buildAdminNavItems({ pages, issueCount, syncCount })}
+  issueNavHrefs={issueNavHrefs}
+  syncNavHrefs={syncNavHrefs}
+/>
+```
+
+- **Expand in place:** Pages (DB titles) and Header & Footer (storefront copy groups). Catalog stays a leaf.
+- **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
+- **Signals:** left marker shows issue (red) / sync (gold) / both; badges on Problems / Localization; muted child count when Pages is collapsed.
+- **Truncation:** long labels ellipsize; tooltip on long titles.
+- **Focus:** no outline ring on nav items — soft background only.
+- Story: `synarava-cms/AdminNavTree`.
+
+### Admin section tabs
+
+Reusable card-strip tabs with a cool content well (`AdminSectionTabs`).
+
+```tsx
+import { AdminSectionTabs } from "@/components/synarava-cms";
+
+<AdminSectionTabs
+  items={[
+    { id: "content", label: "Content", detail: "Copy & search", icon: FileText },
+    { id: "catalog", label: "Catalog", tone: "issue" },
+    { id: "shopify", label: "Shopify", tone: "conflict", dirty: true },
+  ]}
+  active={active}
+  onChange={setActive}
+>
+  {/* Title + fields — share the cool well so “inside tab” is obvious */}
+</AdminSectionTabs>
+```
+
+| State | Look |
+|-------|------|
+| Idle | Warm/white (`--adm-tab-idle`) |
+| Idle hover | Cool lift (`--adm-tab-idle-hover`) |
+| Selected (+ hover) | Cool well (`--adm-tab-well`) + cool underline |
+| Issue (+ hover / selected) | Danger tint; issue wins over conflict |
+| Conflict (+ hover / selected) | Amber conflict tint |
+| Dirty | Amber dot only (does not replace tone) |
+
+Tokens: `--adm-cool`, `--adm-cool-soft`, `--adm-tab-well`, `--adm-conflict-soft`.  
+Product editor uses this via `ProductEditorTabs`. Story: `synarava-cms/AdminSectionTabs`.
 
 ### Long text
 
@@ -119,4 +241,4 @@ When adding a new control type, extend **synarava-cms** first (implementation un
 ## Graphify
 
 After changing synarava-cms modules, run `graphify update .`.
-Query: `graphify query "synarava-cms AdminTextField AdminSelectField AdminCheckboxField"`.
+Query: `graphify query "synarava-cms AdminTextField AdminSelectField AdminCheckboxField AdminCollapsiblePanel"`.

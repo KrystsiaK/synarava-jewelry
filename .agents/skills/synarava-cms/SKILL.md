@@ -3,6 +3,7 @@ name: synarava-cms
 description: >-
   synarava-cms — Synarava admin shared form library (AdminTextField,
   AdminSelectField, AdminCheckboxField/Control, AdminLongTextField,
+  AdminCollapsiblePanel, AdminPanel, AdminNavTree, AdminSectionTabs,
   AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
   Use whenever editing admin UI, product/collection/page forms, CMS fields,
   validation chrome, labels, adornments, clearable inputs, shared/common
@@ -15,7 +16,7 @@ description: >-
 
 Canonical doc: [`docs/admin/synarava-cms.md`](../../../docs/admin/synarava-cms.md).  
 Public API: `@/components/synarava-cms`.  
-Implementation: `components/admin/shared/`. Tokens: `adm-field*`, `adm-check*` in `app/globals.css`.
+Implementation: `components/admin/shared/`. Tokens: `adm-field*`, `adm-check*`, `adm-collapse*`, `adm-panel*`, `adm-band*` / `--adm-rhythm*` in `app/globals.css`.
 
 ## Meaning of “общий / shared / library control”
 
@@ -37,7 +38,7 @@ When the user says **общий компонент**, **shared control**, or **l
 1. **Reuse synarava-cms.** New admin single-line text, select, or checkbox must come from `@/components/synarava-cms`. Raw `<input>` / `<select>` / `<textarea className="adm-field">` only for hidden mirrors, file inputs, or controls not yet in the library.
 2. **One stack.** Extend `AdminFieldShell` / existing pieces under `admin/shared`, re-export from `components/synarava-cms`. Do not create a parallel field system.
 3. **One chrome per control type.** No dual DOM/CSS paths that change the outer field look based on optional props.
-4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot.
+4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). Every unit **always** reserves a one-line error band so siblings never jump; long messages ellipsis + tooltip/`title`. No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot.
 5. **Tall composites:** control inside the shell; extra panels (e.g. Shopify category attributes) **outside**.
 6. **Help** is an `i` tooltip beside the label (`AdminHelp` / `help` prop).
 7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
@@ -52,9 +53,14 @@ When the user says **общий компонент**, **shared control**, or **l
 | Unit / affix inside one border | `endAdornment` / `startAdornment` |
 | Clear (× on focus, non-empty) | `clearable` (+ `onClear` if controlled) |
 | Select | `AdminSelectField` / `AdminSelectControl` |
-| Checkbox in bordered band | `AdminCheckboxField` |
+| Checkbox + optional follow-on | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
 | Long copy (preview + Edit modal) | `AdminLongTextField` |
+| Collapsible section (chevron) | `AdminCollapsiblePanel` |
+| Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
+| Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` |
+| Section tabs + cool content well | `AdminSectionTabs` |
+| Sticky band padding / vertical rhythm | `.adm-band` + `--adm-inset-x` (Tailwind `px-adm-inset`); `--sticky-radius` when first sticky under panel |
 | Custom labeled block | `AdminFieldShell` + control |
 | Home section on/off | Keep existing **switch** UI — not checkbox |
 

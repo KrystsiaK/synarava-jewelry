@@ -16,7 +16,7 @@ export type AdminCheckboxControlProps = CheckboxProps & {
 };
 
 /**
- * Styled checkbox + label row. Use alone for inline/ack rows, or inside AdminCheckboxField.
+ * Checkbox + label row only — no outer field/card band.
  */
 export function AdminCheckboxControl({
   id,
@@ -57,7 +57,8 @@ export type AdminCheckboxFieldProps = CheckboxProps & {
 };
 
 /**
- * Bordered admin checkbox field — same visual band as text/select controls.
+ * Checkbox row with optional follow-on stack. Same chrome as AdminCheckboxControl —
+ * never a bordered field card.
  */
 export function AdminCheckboxField({
   label,
@@ -67,8 +68,20 @@ export function AdminCheckboxField({
   children,
   ...inputProps
 }: AdminCheckboxFieldProps) {
+  if (!children) {
+    return (
+      <AdminCheckboxControl
+        {...inputProps}
+        label={label}
+        className={className}
+        inputClassName={inputClassName}
+        labelClassName={labelClassName}
+      />
+    );
+  }
+
   return (
-    <div data-component="AdminCheckboxField" className={cn("adm-check-field", className)}>
+    <div data-component="AdminCheckboxField" className={cn("adm-check-stack", className)}>
       <AdminCheckboxControl
         {...inputProps}
         label={label}

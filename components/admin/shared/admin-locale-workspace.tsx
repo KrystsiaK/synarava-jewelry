@@ -116,10 +116,14 @@ export type AdminLocaleTabsProps = {
   issueLocales?: ReadonlySet<string> | readonly string[];
   /**
    * Nest inside a parent locale shell (product editor). Drops default sticky
-   * chrome; pair with `stacked` to stick flush under the product workspace header.
+   * chrome. Prefer wrapping with `AdminPanel.Header sticky` so the band occupies
+   * the panel radius (`top: stickyAbove - radius`) instead of sitting below it.
    */
   embedded?: boolean;
-  /** Stick under `.adm-product-workspace-header`; top radius matches the locale panel shell. */
+  /**
+   * @deprecated Prefer `AdminPanel.Header sticky`. Legacy: stick under workspace
+   * with `top: workspaceHeight - panelRadius`.
+   */
   stacked?: boolean;
 };
 
@@ -181,7 +185,7 @@ export function AdminLocaleTabs({
       <div
         role="tablist"
         aria-label="Content language"
-        className={`flex flex-wrap items-center gap-1.5 ${embedded ? "pb-0" : "pb-4"}`}
+        className={`flex w-full flex-wrap items-center gap-1.5 ${embedded ? "" : "pb-4"}`}
       >
         <span className="adm-section-tag mr-1">LOCALE /</span>
         {locales.map((locale, index) => (

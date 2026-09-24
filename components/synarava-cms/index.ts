@@ -37,7 +37,42 @@ export {
 
 export { AdminLongTextField, type AdminLongTextFieldProps } from "@/components/admin/shared/admin-long-text-field";
 
+export {
+  AdminCollapsiblePanel,
+  type AdminCollapsiblePanelProps,
+} from "@/components/admin/shared/admin-collapsible-panel";
+
+export {
+  AdminPanel,
+  AdminPanelRoot,
+  AdminPanelHeader,
+  AdminPanelBody,
+  type AdminPanelRootProps,
+  type AdminPanelHeaderProps,
+  type AdminPanelBodyProps,
+} from "@/components/admin/shared/admin-panel";
+
 export { AdminHelp } from "@/components/admin/shared/admin-help";
+
+export {
+  AdminSectionTabs,
+  type AdminSectionTabItem,
+  type AdminSectionTabsProps,
+  type AdminSectionTabTone,
+} from "@/components/admin/shared/admin-section-tabs";
+
+export {
+  AdminNavTree,
+  type AdminNavTreeProps,
+} from "@/components/admin/shared/admin-nav-tree";
+
+export {
+  buildAdminNavItems,
+  type AdminNavChildConfig,
+  type AdminNavItemConfig,
+  type AdminNavPageRef,
+  type AdminNavSignal,
+} from "@/components/admin/shared/admin-nav-config";
 
 export {
   OwnershipLabel,

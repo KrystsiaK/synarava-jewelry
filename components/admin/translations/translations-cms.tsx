@@ -9,7 +9,7 @@ import type {
   ReconcileDifferenceView,
   ReconcileRunSummary,
 } from "@/lib/shopify/reconciliation-run";
-import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
+import { AdminCheckboxControl } from "@/components/synarava-cms";
 
 export type ReconcileDifferenceRow = ReconcileDifferenceView & { href: string };
 type DifferenceFilter = "ALL" | ReconcileDifferenceView["kind"];

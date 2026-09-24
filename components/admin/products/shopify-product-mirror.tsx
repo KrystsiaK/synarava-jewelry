@@ -1,3 +1,4 @@
+import { AdminCollapsiblePanel } from "@/components/synarava-cms";
 import type { ProductRecord } from "@/components/admin/products/product-types";
 
 type Metafield = { namespace: string; key: string; type: string; value: string; resolvedValues?: string[] };
@@ -149,10 +150,11 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
       )}
 
       {product.shopifySnapshot != null && (
-        <details className="border-t border-[var(--adm-border)] pt-3 text-sm">
-          <summary className="cursor-pointer font-medium">Stored Shopify snapshot</summary>
-          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-all bg-[var(--adm-bg-soft)] p-3 text-xs">{JSON.stringify(product.shopifySnapshot, null, 2)}</pre>
-        </details>
+        <AdminCollapsiblePanel title="Stored Shopify snapshot">
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-[var(--adm-bg-soft)] p-3 text-xs">
+            {JSON.stringify(product.shopifySnapshot, null, 2)}
+          </pre>
+        </AdminCollapsiblePanel>
       )}
     </section>
   );

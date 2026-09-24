@@ -9,21 +9,28 @@ import {
   setPrimaryProductMediaAction,
   type ProductMediaActionState,
 } from "@/app/admin/actions/products";
+import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
+import { issuesForField } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
 
 export function ProductMediaManager({
   product,
   onChange,
   ensureProduct,
+  issues = [],
 }: {
   product: ProductRecord | null;
   onChange: (product: ProductRecord) => void;
   ensureProduct?: () => Promise<ProductRecord | null>;
+  issues?: AdminIssueSummary[];
 }) {
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const { pushToast } = useAdminToast();
+  const coverIssues = issuesForField(issues, "field-imageUrl");
+  const hasCoverIssues = coverIssues.length > 0;
 
   function apply(result: ProductMediaActionState) {
     if (result.error) pushToast({ message: result.error, tone: "error" });
@@ -60,11 +67,26 @@ export function ProductMediaManager({
   }
 
   return (
-    <section id="field-imageUrl" data-component="ProductMediaManager" className="grid gap-4 border border-[var(--adm-border)] p-4" aria-label="Product gallery">
+    <section
+      id="field-imageUrl"
+      data-component="ProductMediaManager"
+      className={`grid gap-4 border p-4 ${
+        hasCoverIssues ? "border-[var(--adm-danger)]" : "border-[var(--adm-border)]"
+      }`}
+      style={
+        hasCoverIssues
+          ? { background: "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)" }
+          : undefined
+      }
+      aria-label="Product gallery"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="adm-label">Product gallery</p>
-          <p className="mt-1 text-xs text-[var(--adm-muted)]">Upload up to 250 images. Position 1 is the catalog cover and is sent first to Shopify.</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">
+            Upload up to 250 images. Position 1 is the catalog cover and is sent first to Shopify.
+          </p>
+          <AdminFieldIssue issues={coverIssues} />
         </div>
         <label className={`adm-btn-ghost ${pending ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
           {pending ? "Uploading…" : "Add images"}

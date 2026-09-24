@@ -21,6 +21,7 @@ import { AdminFormAlert, useAdminFormValidation } from "@/components/admin/share
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
@@ -137,6 +138,18 @@ export function EditProductForm({
   const issueSections = sectionsWithOpenIssues(issues);
   const issueLocales = localesWithOpenIssues(issues);
   const activeSectionIssues = issuesForSection(issues, activeSection);
+  const productConflict = conflictSignals.products[currentProduct.id];
+  const conflictSections = new Set<ProductEditorSection>();
+  if (
+    productConflict
+    && (
+      productConflict.shared
+      || productConflict.locales.some((locale) => locale.count > 0)
+      || Boolean(productConflict.presence)
+    )
+  ) {
+    conflictSections.add("shopify");
+  }
   const localeTone = localeWorkspaceTone(activeLocale);
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
 
@@ -182,7 +195,9 @@ export function EditProductForm({
         "--adm-product-workspace-sticky-height",
         `${Math.ceil(node.getBoundingClientRect().height)}px`,
       );
-      const localeHeader = root.querySelector<HTMLElement>(".adm-locale-workspace-header--stacked");
+      const localeHeader =
+        root.querySelector<HTMLElement>('[data-sticky-band="locale"]')
+        ?? root.querySelector<HTMLElement>(".adm-locale-workspace-header--stacked");
       if (localeHeader) {
         root.style.setProperty(
           "--adm-locale-workspace-sticky-height",
@@ -201,7 +216,9 @@ export function EditProductForm({
     syncStickyOffset();
     const observer = new ResizeObserver(syncStickyOffset);
     observer.observe(header);
-    const localeHeader = form.querySelector(".adm-locale-workspace-header--stacked");
+    const localeHeader =
+      form.querySelector('[data-sticky-band="locale"]')
+      ?? form.querySelector(".adm-locale-workspace-header--stacked");
     if (localeHeader) observer.observe(localeHeader);
     const sectionTabs = form.querySelector(".adm-product-section-tabs");
     if (sectionTabs) observer.observe(sectionTabs);
@@ -452,7 +469,7 @@ export function EditProductForm({
 
           <div
             ref={workspaceHeaderRef}
-            className="adm-product-workspace-header flex flex-wrap items-start justify-between gap-4"
+            className="adm-product-workspace-header adm-band adm-band--lg justify-between gap-4"
           >
             <div>
               <p className="adm-section-tag">Product workspace</p>
@@ -501,10 +518,11 @@ export function EditProductForm({
           <ProgressBar pending={isPending} />
           <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
 
-          <section
+          <AdminPanel.Root
             data-component="ProductLocaleWorkspace"
             data-locale={activeLocale}
-            className="rounded-xl border"
+            stickyAbove="var(--adm-product-workspace-sticky-height, 5.5rem)"
+            className="border"
             style={{
               background: localeTone.background,
               borderColor: localeTone.border,
@@ -513,45 +531,51 @@ export function EditProductForm({
               ["--locale-tone-bg" as string]: localeTone.background,
             }}
           >
-            <AdminLocaleTabs
-              embedded
-              stacked
-              active={activeLocale}
-              onSelect={selectLocale}
-              locales={localeTabs}
-              dirtyLocales={dirtyLocales}
-              issueLocales={issueLocales}
-              ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
-              trailing={
-                currentProduct.shopifyProductId ? (
-                  <ProductLocaleConflictControl
-                    checkIconOnly
-                    productId={currentProduct.id}
-                    locale={activeLocale}
-                    localeLabel={`${activeLocaleLabel} (all sections)`}
-                    signals={conflictSignals}
-                    checking={conflictChecking}
-                    onOpen={() => openConflicts({
-                      kind: "productLocale",
-                      productId: currentProduct.id,
-                      locale: activeLocale,
-                    })}
-                    onCheck={() => void refreshConflicts(activeLocale)}
-                  />
-                ) : null
-              }
-            />
-
-            <div
-              className="border-b"
-              style={{ borderColor: "var(--locale-tone-border)" }}
+            <AdminPanel.Header
+              sticky
+              stickyBand="locale"
+              className="adm-panel__header--ruled"
+              style={{
+                background: localeTone.background,
+              }}
             >
+              <AdminLocaleTabs
+                embedded
+                active={activeLocale}
+                onSelect={selectLocale}
+                locales={localeTabs}
+                dirtyLocales={dirtyLocales}
+                issueLocales={issueLocales}
+                ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
+                trailing={
+                  currentProduct.shopifyProductId ? (
+                    <ProductLocaleConflictControl
+                      checkIconOnly
+                      productId={currentProduct.id}
+                      locale={activeLocale}
+                      localeLabel={`${activeLocaleLabel} (all sections)`}
+                      signals={conflictSignals}
+                      checking={conflictChecking}
+                      onOpen={() => openConflicts({
+                        kind: "productLocale",
+                        productId: currentProduct.id,
+                        locale: activeLocale,
+                      })}
+                      onCheck={() => void refreshConflicts(activeLocale)}
+                    />
+                  ) : null
+                }
+              />
+            </AdminPanel.Header>
+
+            <AdminPanel.Body>
               <ProductEditorTabs
                 embedded
                 active={activeSection}
                 onChange={setActiveSection}
                 dirtySections={dirtySections}
                 issueSections={issueSections}
+                conflictSections={conflictSections}
                 sectionIssues={activeSectionIssues}
                 onIssueActivate={activateIssue}
                 aside={
@@ -578,70 +602,71 @@ export function EditProductForm({
                     />
                   ) : null
                 }
-              />
-            </div>
-
-            <div className="grid gap-4 p-4">
-              <div
-                id={`product-editor-panel-${activeSection}`}
-                role="tabpanel"
-                aria-labelledby={`product-editor-tab-${activeSection}`}
-                className="grid gap-4"
               >
-                <div hidden={activeSection !== "shopify"}>
-                  <ProductSyncStrip
-                    product={currentProduct}
-                    dirty={isDirty}
-                    inspection={inspection}
-                    pending={isPending}
-                    onCheck={handleCheckShopify}
-                    onOpenDetail={() => setSyncDetailOpen(true)}
-                  />
-                </div>
+                <div className="adm-inset-x grid gap-4 py-4">
+                  <div
+                    id={`product-editor-panel-${activeSection}`}
+                    role="tabpanel"
+                    aria-labelledby={`product-editor-tab-${activeSection}`}
+                    className="grid gap-4"
+                  >
+                    <div hidden={activeSection !== "shopify"}>
+                      <ProductSyncStrip
+                        product={currentProduct}
+                        dirty={isDirty}
+                        inspection={inspection}
+                        pending={isPending}
+                        onCheck={handleCheckShopify}
+                        onOpenDetail={() => setSyncDetailOpen(true)}
+                      />
+                    </div>
 
-                <div hidden={activeSection === "media"}>
-                  <ProductFormFields
-                    key={`${currentProduct.id}-${fieldsRevision}`}
-                    draft={draft}
-                    collections={collections}
-                    variantExists={currentProduct.variants.length > 0}
-                    issues={issues}
-                    validation={validation}
-                    translationLocales={translationLocales}
-                    activeSection={activeSection}
-                    activeLocale={activeLocale}
-                    onLocaleChange={selectLocale}
-                  />
-                  <ProductDetailFields
-                    key={`details-${currentProduct.id}-${fieldsRevision}`}
-                    details={details}
-                    translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-                    mode="edit"
-                    issues={issues}
-                    collections={collections}
-                    translationLocales={translationLocales}
-                    activeSection={activeSection}
-                    activeLocale={activeLocale}
-                  />
-                </div>
+                    <div hidden={activeSection === "media"}>
+                      <ProductFormFields
+                        key={`${currentProduct.id}-${fieldsRevision}`}
+                        draft={draft}
+                        collections={collections}
+                        variantExists={currentProduct.variants.length > 0}
+                        issues={issues}
+                        validation={validation}
+                        translationLocales={translationLocales}
+                        activeSection={activeSection}
+                        activeLocale={activeLocale}
+                        onLocaleChange={selectLocale}
+                      />
+                      <ProductDetailFields
+                        key={`details-${currentProduct.id}-${fieldsRevision}`}
+                        details={details}
+                        translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
+                        mode="edit"
+                        issues={issues}
+                        collections={collections}
+                        translationLocales={translationLocales}
+                        activeSection={activeSection}
+                        activeLocale={activeLocale}
+                      />
+                    </div>
 
-                <div hidden={activeSection !== "media"}>
-                  <ProductMediaManager
-                    product={currentProduct}
-                    onChange={(next) => {
-                      setState({ success: "Gallery updated locally.", product: next });
-                      clearDirty([sectionDirtyKey("*", "media")]);
-                      onUpdated?.(next);
-                    }}
-                  />
-                </div>
+                    <div hidden={activeSection !== "media"}>
+                      <ProductMediaManager
+                        product={currentProduct}
+                        issues={issues}
+                        onChange={(next) => {
+                          setState({ success: "Gallery updated locally.", product: next });
+                          clearDirty([sectionDirtyKey("*", "media")]);
+                          onUpdated?.(next);
+                        }}
+                      />
+                    </div>
 
-                <div hidden={activeSection !== "shopify"}>
-                  <ShopifyProductMirror product={currentProduct} />
+                    <div hidden={activeSection !== "shopify"}>
+                      <ShopifyProductMirror product={currentProduct} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </section>
+              </ProductEditorTabs>
+            </AdminPanel.Body>
+          </AdminPanel.Root>
         </form>
       </div>
 

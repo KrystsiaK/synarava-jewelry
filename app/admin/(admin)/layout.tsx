@@ -9,6 +9,7 @@ import {
   AdminThemeToggle,
   AdminTopbarIssueLink,
 } from "@/components/admin/shared/admin-primitives";
+import { issueToNavHref } from "@/components/admin/shared/admin-nav-config";
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
@@ -27,24 +28,15 @@ export default async function AdminLayout({
     }),
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
-    db.page.findMany({ select: { id: true, slug: true } }),
+    db.page.findMany({
+      select: { id: true, slug: true, title: true },
+      orderBy: { slug: "asc" },
+    }),
   ]);
   const openIssueCount = openIssues.length;
+  const navPages = syncPages.map((page) => ({ slug: page.slug, title: page.title }));
   const issueNavHrefs = Array.from(
-    new Set(
-      openIssues.map((issue) => {
-        if (issue.entityType === "PRODUCT") return "/admin/products";
-        if (issue.entityType === "COLLECTION") return "/admin/collections";
-        if (issue.entityType === "PAGE") {
-          if (issue.targetHref?.includes("/home")) return "/admin/pages/home";
-          if (issue.targetHref?.includes("/about")) return "/admin/pages/about";
-          return "/admin/pages";
-        }
-        if (issue.entityType === "CATEGORY") return "/admin/categories";
-        if (issue.entityType === "TAG") return "/admin/tags";
-        return "/admin/issues";
-      }),
-    ),
+    new Set(openIssues.map((issue) => issueToNavHref(issue))),
   );
   if (openIssueCount > 0) issueNavHrefs.push("/admin/issues");
 
@@ -72,6 +64,7 @@ export default async function AdminLayout({
       <AdminSmartTopbar>
         <div className="min-w-0 flex items-center gap-3">
           <AdminMobileMenu
+            pages={navPages}
             issueCount={openIssueCount}
             issueNavHrefs={issueNavHrefs}
             syncCount={syncCount}
@@ -120,6 +113,7 @@ export default async function AdminLayout({
             </div>
 
             <AdminNav
+              pages={navPages}
               issueCount={openIssueCount}
               issueNavHrefs={issueNavHrefs}
               syncCount={syncCount}

@@ -36,7 +36,7 @@ export const ProductBasicsGrid: Story = {
         />
       </div>
 
-      <div className="grid items-start gap-x-4 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
         <AdminTextField
           label="SKU"
           owner="Shopify"

@@ -2,7 +2,6 @@
 
 import type { CollectionFieldName } from "@/app/admin/actions/collections";
 import { AdminFieldError } from "@/components/admin/shared/admin-form-validation";
-import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
@@ -10,6 +9,7 @@ import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locale
 import { fieldClass } from "@/components/admin/collections/collection-helpers";
 import type { CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
 import {
+  AdminCheckboxControl,
   AdminHelp,
   AdminLongTextField,
   AdminTextField,
@@ -183,7 +183,7 @@ export function CollectionFields({
       />
       <HiddenLocaleFields draft={draft} translationLocales={translationLocales} />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <AdminTextField
           label="Name"
           required={isEn}

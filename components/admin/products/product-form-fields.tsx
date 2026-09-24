@@ -5,18 +5,19 @@ import { useEffect, useState } from "react";
 import {
   type AdminFormValidation,
 } from "@/components/admin/shared/admin-form-validation";
-import { AdminCheckboxControl, AdminCheckboxField } from "@/components/admin/shared/admin-checkbox-field";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
 import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import {
+  AdminCheckboxControl,
+  AdminCheckboxField,
+  AdminCollapsiblePanel,
   AdminFieldShell,
   AdminHelp,
   AdminLongTextField,
   AdminSelectField,
   AdminTextField,
-  OwnershipLabel,
 } from "@/components/synarava-cms";
 import { slugify } from "@/lib/text/slug";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
@@ -219,15 +220,10 @@ export function ProductDetailFields({
         </p>
 
         {PRODUCT_CHARACTERISTIC_GROUPS.map((group) => (
-          <details key={group} className="group min-w-0 border-t" style={{ borderColor: "var(--adm-border)" }}>
-            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-sm font-semibold text-[var(--adm-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--adm-accent)] [&::-webkit-details-marker]:hidden">
-              <span>{group}</span>
-              <span className="text-xs font-normal text-[var(--adm-muted)] group-open:hidden">Open fields</span>
-              <span className="hidden text-xs font-normal text-[var(--adm-muted)] group-open:inline">Close fields</span>
-            </summary>
-            <fieldset className="min-w-0 pb-5 pt-2">
+          <AdminCollapsiblePanel key={group} title={group}>
+            <fieldset className="min-w-0">
               <legend className="sr-only">{group}</legend>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-2">
                 {PRODUCT_CHARACTERISTICS.filter((item) => item.group === group).map((definition) => {
                   const current = details.characteristics[definition.key] ?? { value: definition.type === "BOOLEAN" ? false : "", certificateUrl: "" };
                   const name = `characteristic_${definition.key}`;
@@ -288,7 +284,7 @@ export function ProductDetailFields({
                 })}
               </div>
             </fieldset>
-          </details>
+          </AdminCollapsiblePanel>
         ))}
       </section>
 
@@ -316,7 +312,7 @@ export function ProductDetailFields({
             placeholder="Section title"
           />
         </div>
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {details.materials.map((material, index) => {
             const materialIssues = issuesForField(issues, `field-details-materials-${index}-image`);
             return (
@@ -411,7 +407,7 @@ export function ProductDetailFields({
           />
           <AdminFieldIssue issues={issuesForField(issues, "field-details-process-mediaImage")} />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2">
           {draft.processStats.map((stat, index) => (
             <div
               key={`process-stat-${index}`}
@@ -618,7 +614,6 @@ export function ProductFormFields({
   const categoryIssues = issuesForField(issues, "field-taxonomy-category");
   const collectionIssues = issuesForField(issues, "field-taxonomy-collection");
   const tagsIssues = issuesForField(issues, "field-taxonomy-tags");
-  const coverIssues = issuesForField(issues, "field-imageUrl");
 
   useEffect(() => {
     // Fixes a real bug: the required "Name" field sits inside a `hidden`
@@ -672,7 +667,7 @@ export function ProductFormFields({
       ) : null}
 
       <div className="grid gap-5" hidden={activeSection !== "essentials"}>
-        <div className="grid items-start gap-x-4 gap-y-5 md:grid-cols-2">
+        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
           {/*
             The Name field is the one exception to "single field per concept"
             in this form: it stays a dedicated EN input (plus a dedicated
@@ -754,7 +749,7 @@ export function ProductFormFields({
           ))}
         </div>
 
-        <div className="grid items-start gap-x-4 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
           <AdminTextField
             label="SKU"
             owner="Shopify"
@@ -807,13 +802,13 @@ export function ProductFormFields({
         </div>
 
         {/* Vendor/brand and Product type are shared across locales — always visible, no PT counterpart. */}
-        <div className="grid items-start gap-x-4 gap-y-5 md:grid-cols-2">
+        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
           <AdminTextField label="Vendor / brand" owner="Shopify" name="vendor" defaultValue={draft.vendor} />
           <AdminTextField label="Product type" owner="Shopify" name="productType" defaultValue={draft.productType} />
         </div>
       </div>
 
-      <div hidden={activeSection !== "content"}>
+      <div className="grid gap-y-6" hidden={activeSection !== "content"}>
         <AdminLongTextField
           label="Short description"
           owner="Synarava"
@@ -822,9 +817,6 @@ export function ProductFormFields({
           onChange={(value) => updateCore("shortDescription", value)}
           rows={8}
         />
-      </div>
-
-      <div className="grid gap-4" hidden={activeSection !== "content"}>
         <AdminTextField
           label="SEO title"
           owner="Shopify"
@@ -839,9 +831,6 @@ export function ProductFormFields({
           onChange={(value) => updateCore("seoDescription", value)}
           rows={7}
         />
-      </div>
-
-      <div hidden={activeSection !== "content"}>
         <AdminLongTextField
           label="Description"
           owner="Shopify"
@@ -849,39 +838,22 @@ export function ProductFormFields({
           value={coreDraft.description}
           onChange={(value) => updateCore("description", value)}
         />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2" hidden={activeSection !== "content"}>
         <AdminTextField
           label="Material line"
           owner="Synarava"
           value={coreDraft.materialLine}
           onChange={(event) => updateCore("materialLine", event.target.value)}
         />
-        <div
-          className={`adm-field-unit border p-4 ${coverIssues.length > 0 ? "border-[var(--adm-danger)]" : "border-[var(--adm-border)] bg-[var(--adm-bg-soft)]"}`}
-          style={coverIssues.length > 0 ? { background: "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)" } : undefined}
-        >
-          <OwnershipLabel
-            owner="Shopify"
-            help={(
-              <AdminHelp label="Catalog cover guidance">
-                Managed by Product gallery below. The first image is the catalog cover and is sent first to Shopify.
-              </AdminHelp>
-            )}
-          >
-            Catalog cover
-          </OwnershipLabel>
-          <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
-          <input type="hidden" name="removeImage" value="0" />
-          <AdminFieldIssue issues={coverIssues} />
-        </div>
+      </div>
+      {/* Cover is managed in Product gallery (Media). Keep form mirrors for save. */}
+      <div hidden>
+        <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
+        <input type="hidden" name="removeImage" value="0" />
       </div>
 
       {/* Symbolism */}
       <div
-        className="grid gap-4 pt-4"
-        style={{ borderTop: "1px solid var(--adm-border)" }}
+        className="grid gap-y-6 pt-2"
         hidden={activeSection !== "content"}
       >
         <div>
@@ -890,7 +862,7 @@ export function ProductFormFields({
             <AdminHelp>If empty, the symbolism section stays hidden on the product page.</AdminHelp>
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
           <AdminTextField
             value={coreDraft.symbolismLabel}
             onChange={(event) => updateCore("symbolismLabel", event.target.value)}
@@ -930,7 +902,7 @@ export function ProductFormFields({
 
       {/* Taxonomy + state */}
       <div className="grid gap-5" hidden={activeSection !== "catalog"}>
-        <div className="grid items-start gap-x-4 gap-y-5 lg:grid-cols-3">
+        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
           <ShopifyCategoryField
             controlId="field-taxonomy-category-input"
             initialId={draft.shopifyCategoryId}

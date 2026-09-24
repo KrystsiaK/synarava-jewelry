@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { cn } from "@/lib/ui";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export type AdminFieldErrors<FieldName extends string = string> = Partial<Record<FieldName, string>>;
 
@@ -124,7 +125,26 @@ export function useAdminFormValidation<FieldName extends string>({
 
 export function AdminFieldError({ id, message }: { id?: string; message?: string }) {
   if (!message) return null;
-  return <p data-component="AdminFieldError" id={id} className="adm-field-error">{message}</p>;
+
+  const node = (
+    <p
+      data-component="AdminFieldError"
+      id={id}
+      className="adm-field-error"
+      title={message}
+    >
+      {message}
+    </p>
+  );
+
+  // Long messages ellipsis in the reserved band; tooltip shows the full copy.
+  if (message.length < 48) return node;
+
+  return (
+    <Tooltip content={message} side="bottom" delay={220} maxWidth={360}>
+      {node}
+    </Tooltip>
+  );
 }
 
 export function AdminFormAlert({ message, className }: { message?: string; className?: string }) {

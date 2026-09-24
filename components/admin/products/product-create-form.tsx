@@ -178,43 +178,43 @@ export function CreateProductForm({
           active={activeSection}
           onChange={setActiveSection}
           includeShopify={false}
-        />
-
-        <div
-          id={`product-editor-panel-${activeSection}`}
-          role="tabpanel"
-          aria-labelledby={`product-editor-tab-${activeSection}`}
-          className="grid gap-4"
         >
-          <ProductFormFields
-            draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
-            collections={collections}
-            validation={validation}
-            translationLocales={translationLocales}
-            activeSection={activeSection}
-            activeLocale={activeLocale}
-            onLocaleChange={selectLocale}
-          />
-          <div hidden={activeSection !== "media"}>
-            <ProductMediaManager
-              product={draftProduct}
-              ensureProduct={ensureDraftForGallery}
-              onChange={(product) => {
-                setDraftId(product.id);
-                setDraftProduct(product);
-              }}
+          <div
+            id={`product-editor-panel-${activeSection}`}
+            role="tabpanel"
+            aria-labelledby={`product-editor-tab-${activeSection}`}
+            className="grid gap-4 rounded-b-lg border border-t-0 border-[var(--adm-border)] px-[var(--adm-inset-x)] py-4"
+          >
+            <ProductFormFields
+              draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
+              collections={collections}
+              validation={validation}
+              translationLocales={translationLocales}
+              activeSection={activeSection}
+              activeLocale={activeLocale}
+              onLocaleChange={selectLocale}
+            />
+            <div hidden={activeSection !== "media"}>
+              <ProductMediaManager
+                product={draftProduct}
+                ensureProduct={ensureDraftForGallery}
+                onChange={(product) => {
+                  setDraftId(product.id);
+                  setDraftProduct(product);
+                }}
+              />
+            </div>
+            <ProductDetailFields
+              details={getProductEditorDetails(null)}
+              translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
+              mode="create"
+              collections={collections}
+              translationLocales={translationLocales}
+              activeSection={activeSection}
+              activeLocale={activeLocale}
             />
           </div>
-          <ProductDetailFields
-            details={getProductEditorDetails(null)}
-            translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-            mode="create"
-            collections={collections}
-            translationLocales={translationLocales}
-            activeSection={activeSection}
-            activeLocale={activeLocale}
-          />
-        </div>
+        </ProductEditorTabs>
 
         <div
           className="flex flex-wrap items-center justify-end gap-3 pt-4"

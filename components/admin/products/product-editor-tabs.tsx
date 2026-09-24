@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   FileText,
   Gem,
@@ -13,6 +13,11 @@ import {
 
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
+import {
+  AdminSectionTabs,
+  type AdminSectionTabItem,
+  type AdminSectionTabTone,
+} from "@/components/admin/shared/admin-section-tabs";
 
 export type ProductEditorSection =
   | "essentials"
@@ -150,24 +155,38 @@ function ProductSectionGraphic({ section: _section }: { section: ProductEditorSe
   );
 }
 
+function resolveTabTone(
+  id: ProductEditorSection,
+  issueSet: ReadonlySet<ProductEditorSection>,
+  conflictSet: ReadonlySet<ProductEditorSection>,
+): AdminSectionTabTone {
+  if (issueSet.has(id)) return "issue";
+  if (conflictSet.has(id)) return "conflict";
+  return "default";
+}
+
 export function ProductEditorTabs({
   active,
   onChange,
   includeShopify = true,
   dirtySections,
   issueSections,
+  conflictSections,
   sectionIssues,
   onIssueActivate,
   embedded = false,
   aside = null,
+  children = null,
 }: {
   active: ProductEditorSection;
   onChange: (section: ProductEditorSection) => void;
   includeShopify?: boolean;
-  /** Sections with unsaved edits — shows a dirty marker on that tab. */
+  /** Sections with unsaved edits — amber dirty dot. */
   dirtySections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
-  /** Sections with open QA issues — tints that tab. */
+  /** Sections with open QA issues — issue tone. */
   issueSections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
+  /** Sections with Shopify sync conflicts — conflict tone (issue wins if both). */
+  conflictSections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
   /** Open issues owned by the active section — listed under the description. */
   sectionIssues?: AdminIssueSummary[];
   onIssueActivate?: (issue: AdminIssueSummary) => void;
@@ -175,11 +194,15 @@ export function ProductEditorTabs({
   embedded?: boolean;
   /** Header actions for the active section (e.g. locale sync controls). */
   aside?: React.ReactNode;
+  /**
+   * Active section body (tabpanel fields). Must live here — not as a sibling —
+   * so sticky tabs/title share one containing block with the scrollable content.
+   */
+  children?: ReactNode;
 }) {
   const tabs = includeShopify
     ? PRODUCT_EDITOR_TABS
     : PRODUCT_EDITOR_TABS.filter((tab) => tab.id !== "shopify");
-  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeTab = tabs.find((tab) => tab.id === active) ?? tabs[0];
   const dirtySet = dirtySections instanceof Set
     ? dirtySections
@@ -187,147 +210,72 @@ export function ProductEditorTabs({
   const issueSet = issueSections instanceof Set
     ? issueSections
     : new Set(issueSections ?? []);
+  const conflictSet = conflictSections instanceof Set
+    ? conflictSections
+    : new Set(conflictSections ?? []);
   const hasSectionIssues = Boolean(sectionIssues && sectionIssues.length > 0);
 
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    let nextIndex: number | null = null;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (index + 1) % tabs.length;
-    if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (index - 1 + tabs.length) % tabs.length;
-    if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = tabs.length - 1;
-    if (nextIndex == null) return;
-
-    event.preventDefault();
-    onChange(tabs[nextIndex].id);
-    buttonRefs.current[nextIndex]?.focus();
-  }
+  const items: AdminSectionTabItem[] = tabs.map((tab) => ({
+    id: tab.id,
+    label: tab.label,
+    detail: tab.shortLabel,
+    icon: tab.icon,
+    dirty: dirtySet.has(tab.id),
+    tone: resolveTabTone(tab.id, issueSet, conflictSet),
+  }));
 
   return (
-    <div data-component="ProductEditorTabs" className="grid gap-0" data-embedded={embedded ? "true" : undefined}>
-      <div
-        role="tablist"
+    <div data-component="ProductEditorTabs">
+      <AdminSectionTabs
+        items={items}
+        active={activeTab.id}
+        onChange={(id) => onChange(id as ProductEditorSection)}
         aria-label="Product editor sections"
-        className={[
-          "grid grid-cols-2 gap-px bg-[var(--locale-tone-border,var(--adm-border))] md:grid-cols-3",
-          includeShopify ? "xl:grid-cols-6" : "xl:grid-cols-5",
-          embedded
-            ? "adm-product-section-tabs border-0"
-            : "overflow-hidden rounded-t-lg border border-b-0 border-[var(--adm-border)]",
-        ].join(" ")}
+        columns={tabs.length}
+        embedded={embedded}
+        idPrefix="product-editor-tab"
       >
-        {tabs.map((tab, index) => {
-          const Icon = tab.icon;
-          const selected = tab.id === activeTab.id;
-          const hasIssue = issueSet.has(tab.id);
-          return (
-            <button
-              key={tab.id}
-              ref={(element) => { buttonRefs.current[index] = element; }}
-              id={`product-editor-tab-${tab.id}`}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => onChange(tab.id)}
-              onKeyDown={(event) => handleKeyDown(event, index)}
-              data-dirty={dirtySet.has(tab.id) ? "true" : undefined}
-              data-issue={hasIssue ? "true" : undefined}
-              className={[
-                "group flex min-h-16 items-center gap-3 px-3 py-3 text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--adm-accent)]",
-                hasIssue
-                  ? "bg-[color-mix(in_srgb,var(--adm-danger)_10%,var(--adm-panel))] hover:bg-[color-mix(in_srgb,var(--adm-danger)_14%,var(--adm-panel))] aria-selected:bg-[color-mix(in_srgb,var(--adm-danger)_16%,var(--adm-panel))]"
-                  : "bg-[var(--adm-panel)] hover:bg-[var(--adm-panel-elevated)] aria-selected:bg-[color-mix(in_srgb,var(--locale-tone-accent,var(--adm-accent))_14%,var(--adm-panel))]",
-              ].join(" ")}
-            >
-              <span
-                className={[
-                  "grid size-9 shrink-0 place-items-center rounded-md border transition-colors group-aria-selected:bg-[var(--adm-panel)]",
-                  hasIssue
-                    ? "border-[color-mix(in_srgb,var(--adm-danger)_45%,var(--adm-border))] text-[var(--adm-danger)] group-aria-selected:border-[var(--adm-danger)] group-aria-selected:text-[var(--adm-danger)]"
-                    : "text-[var(--adm-muted)] group-aria-selected:border-[var(--locale-tone-accent,var(--adm-border-strong))] group-aria-selected:text-[var(--locale-tone-accent,var(--adm-accent))]",
-                ].join(" ")}
-                style={hasIssue ? undefined : { borderColor: "var(--adm-border)" }}
-                aria-hidden="true"
-              >
-                <Icon size={18} strokeWidth={1.7} />
-              </span>
-              <span className="min-w-0">
-                <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--adm-ink)]">
-                  {tab.label}
-                  {dirtySet.has(tab.id) ? (
-                    <span
-                      className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--adm-warning)]"
-                      title="Unsaved edits"
-                      aria-label={`${tab.label} has unsaved edits`}
-                    />
-                  ) : null}
-                  {hasIssue ? (
-                    <span
-                      className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--adm-danger)]"
-                      title="Open problem"
-                      aria-label={`${tab.label} has open problems`}
-                    />
-                  ) : null}
-                </span>
-                <span className="mt-0.5 block truncate text-[0.68rem] text-[var(--adm-muted)]">{tab.shortLabel}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <header
-        aria-live="polite"
-        className={[
-          "flex flex-wrap items-center justify-between gap-3 px-5 py-4 md:px-6",
-          embedded
-            ? "adm-product-section-header border-t border-[var(--locale-tone-border,var(--adm-border))] bg-transparent"
-            : "border border-t-0 border-[var(--adm-border)] bg-[var(--adm-bg-soft)]",
-        ].join(" ")}
-      >
-        <h2 className="min-w-0 text-xl font-semibold tracking-[-0.02em] text-[var(--adm-ink)]">
-          {activeTab.title}
-        </h2>
-        {aside != null ? (
-          <div className="flex shrink-0 items-center justify-end gap-1.5">{aside}</div>
-        ) : null}
-      </header>
-
-      <section
-        className={[
-          "grid items-center gap-5 px-5 py-5 md:grid-cols-[minmax(0,1fr)_auto] md:px-6",
-          embedded
-            ? "border-t border-[var(--locale-tone-border,var(--adm-border))] bg-transparent"
-            : "border border-t-0 border-[var(--adm-border)] bg-[var(--adm-bg-soft)]",
-        ].join(" ")}
-      >
-        <p className="max-w-[68ch] text-sm leading-6 text-[var(--adm-muted)]">
-          {activeTab.description}
-        </p>
-        <div className="mx-auto h-28 w-full max-w-52 text-[var(--adm-ink)] md:mx-0 md:justify-self-end">
-          <ProductSectionGraphic section={activeTab.id} />
-        </div>
-      </section>
-
-      {hasSectionIssues ? (
-        <div
-          className={[
-            "px-5 py-4 md:px-6",
+        <header
+          aria-live="polite"
+          className={
             embedded
-              ? "border-t border-[var(--locale-tone-border,var(--adm-border))]"
-              : "border border-t-0 border-[var(--adm-border)] bg-[var(--adm-bg-soft)]",
-            !embedded ? "rounded-b-lg" : "",
-          ].join(" ")}
+              ? "adm-product-section-header border-b"
+              : "adm-band flex flex-wrap items-center justify-between gap-3 border-b"
+          }
+          style={{ borderColor: "color-mix(in srgb, var(--adm-cool) 18%, var(--adm-border))" }}
         >
-          <AdminIssueInlineWarning
-            issues={sectionIssues!}
-            className="w-full"
-            onIssueActivate={onIssueActivate}
-          />
-        </div>
-      ) : !embedded ? (
-        <div className="rounded-b-lg border border-t-0 border-[var(--adm-border)]" aria-hidden="true" />
-      ) : null}
+          <h2 className="min-w-0 text-xl font-semibold tracking-[-0.02em] text-[var(--adm-ink)]">
+            {activeTab.title}
+          </h2>
+          {aside != null ? (
+            <div className="flex shrink-0 items-center justify-end gap-1.5">{aside}</div>
+          ) : null}
+        </header>
+
+        <section className="adm-section-tabs__intro adm-inset-x">
+          <p className="max-w-[68ch] text-sm leading-6 text-[var(--adm-muted)]">
+            {activeTab.description}
+          </p>
+          <div className="mx-auto h-28 w-full max-w-52 text-[var(--adm-ink)] md:mx-0 md:justify-self-end">
+            <ProductSectionGraphic section={activeTab.id} />
+          </div>
+        </section>
+
+        {hasSectionIssues ? (
+          <div
+            className="adm-inset-x py-[var(--adm-band-pad-y)]"
+            style={{ borderTop: "1px solid color-mix(in srgb, var(--adm-cool) 16%, var(--adm-border))" }}
+          >
+            <AdminIssueInlineWarning
+              issues={sectionIssues!}
+              className="w-full"
+              onIssueActivate={onIssueActivate}
+            />
+          </div>
+        ) : null}
+
+        {children}
+      </AdminSectionTabs>
     </div>
   );
 }

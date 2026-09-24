@@ -46,7 +46,8 @@ Rules:
 
 ## synarava-cms
 
-- Admin UI under `components/admin/` must reuse **synarava-cms** (`AdminTextField`, `AdminSelectField`, `AdminCheckboxField` / `AdminCheckboxControl`, `AdminLongTextField`, `AdminFieldShell`). Prefer imports from `@/components/synarava-cms`. Do not invent parallel raw field markup.
+- Admin UI under `components/admin/` must reuse **synarava-cms** (`AdminTextField`, `AdminSelectField`, `AdminCheckboxField` / `AdminCheckboxControl`, `AdminLongTextField`, `AdminCollapsiblePanel`, `AdminPanel`, `AdminNavTree`, `AdminSectionTabs`, `AdminFieldShell`). Prefer imports from `@/components/synarava-cms`. Do not invent parallel raw field markup.
+- Sticky chrome uses shared rhythm (`.adm-band`, `--adm-inset-x` / Tailwind `px-adm-inset`, `.adm-band--sticky-radius`) — one horizontal gutter inside panels; no ad-hoc `px-*` / `py-*` on headers.
 - Contract: [`docs/admin/synarava-cms.md`](docs/admin/synarava-cms.md). Skill: `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`).
 
 <!-- BEGIN:nextjs-agent-rules -->

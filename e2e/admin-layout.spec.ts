@@ -38,7 +38,7 @@ test.describe("Admin console layout", () => {
     expect(sidebarBox).not.toBeNull();
     expect(contentBox).not.toBeNull();
     expect(topbarBox).not.toBeNull();
-    expect(Math.round(sidebarBox!.width)).toBe(256);
+    expect(Math.round(sidebarBox!.width)).toBe(288);
     expect(Math.round(sidebarBox!.y)).toBe(Math.round(topbarBox!.height));
     expect(Math.round(contentBox!.x)).toBe(Math.round(sidebarBox!.width));
 

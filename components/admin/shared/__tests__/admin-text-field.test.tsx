@@ -80,4 +80,20 @@ describe("AdminTextField", () => {
     expect(input).toHaveValue("");
     expect(clear).toHaveAttribute("data-visible", "false");
   });
+
+  it("always reserves an error band under the control", () => {
+    const { container } = render(<AdminTextField label="SKU" name="sku" defaultValue="" />);
+    expect(container.querySelector(".adm-field-unit")).toHaveClass("adm-field-unit");
+    // Reserved via CSS padding-bottom on every unit (not only when error is present).
+    expect(container.querySelector("[data-component='AdminFieldError']")).not.toBeInTheDocument();
+  });
+
+  it("exposes long error copy via title for the ellipsed band", () => {
+    const long =
+      "This validation message is intentionally very long so the reserved one-line band must truncate it.";
+    render(<AdminTextField label="SKU" name="sku" error={long} errorId="sku-long-error" />);
+    const error = screen.getByText(long);
+    expect(error).toHaveAttribute("title", long);
+    expect(error).toHaveClass("adm-field-error");
+  });
 });

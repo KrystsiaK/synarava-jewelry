@@ -1,12 +1,19 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import {
+  buildAdminNavItems,
+  type AdminNavPageRef,
+} from "@/components/admin/shared/admin-nav-config";
+import { AdminNavTree } from "@/components/admin/shared/admin-nav-tree";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+
+export type { AdminNavPageRef };
 
 export function AdminThemeShell() {
   useEffect(() => {
@@ -101,110 +108,46 @@ export function AdminTopbarIssueLink({
 }
 
 
-const NAV_ITEMS = [
-  { href: "/admin", exact: true, label: "Overview", code: "CTRL" },
-  { href: "/admin/pages", label: "Pages", code: "PGS" },
-  { href: "/admin/settings", label: "Header & Footer", code: "HF" },
-  { href: "/admin/meta", label: "Meta", code: "META" },
-  { href: "/admin/videos", label: "Videos", code: "VID" },
-
-  { href: "/admin/products", label: "Catalog", code: "CAT" },
-  { href: "/admin/issues", label: "Problems", code: "QA" },
-  { href: "/admin/collections", label: "Collections", code: "COL" },
-  { href: "/admin/translations", label: "Localization", code: "I18N" },
-  { href: "/admin/account", label: "Account", code: "ACC" },
-] as const;
-
-function AdminNavCountBadge({ count, label }: { count: number; label: string }) {
-  if (count <= 0) return null;
-
-  return (
-    <span data-component="AdminNavCountBadge" className="adm-nav-issue-badge" aria-label={label}>
-      {count > 99 ? "99+" : count}
-    </span>
-  );
-}
-
 export function AdminNav({
+  pages = [],
   issueCount = 0,
   issueNavHrefs = [],
   syncCount = 0,
   syncNavHrefs = [],
   onNavigate,
 }: {
+  pages?: AdminNavPageRef[];
   issueCount?: number;
   issueNavHrefs?: string[];
   syncCount?: number;
   syncNavHrefs?: string[];
   onNavigate?: () => void;
 }) {
-  const pathname = usePathname();
-  const issueHrefSet = new Set(issueNavHrefs);
-  const syncHrefSet = new Set(syncNavHrefs);
+  const items = useMemo(
+    () => buildAdminNavItems({ pages, issueCount, syncCount }),
+    [pages, issueCount, syncCount],
+  );
 
   return (
-    <nav data-component="AdminNav" className="flex flex-col gap-1">
-      {NAV_ITEMS.map((item) => {
-        const active =
-          "exact" in item && item.exact
-            ? pathname === item.href
-            : pathname.startsWith(item.href);
-        const hasAttention = issueHrefSet.has(item.href) || syncHrefSet.has(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            data-active={active ? "true" : undefined}
-            className="adm-nav-item group"
-            onClick={onNavigate}
-          >
-            <span
-              className="adm-nav-arrow"
-              data-attention={hasAttention ? "true" : undefined}
-              aria-hidden="true"
-            >
-              {hasAttention ? "" : active ? "◆" : "·"}
-            </span>
-            <span className="flex-1">{item.label}</span>
-            {item.href === "/admin/issues" ? (
-              <AdminNavCountBadge count={issueCount} label={`${issueCount} open problems`} />
-            ) : item.href === "/admin/translations" ? (
-              <AdminNavCountBadge count={syncCount} label={`${syncCount} Shopify sync changes to review`} />
-            ) : (
-              <span
-                className="text-[0.58rem] font-bold uppercase tracking-[0.08em] opacity-30 transition-opacity group-hover:opacity-60"
-              >
-                {item.code}
-              </span>
-            )}
-          </Link>
-        );
-      })}
-
-      <hr className="adm-divider my-2" />
-
-      <a
-        href="/shop"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="adm-nav-item"
-        onClick={onNavigate}
-      >
-        <span className="adm-nav-arrow">{"↗"}</span>
-        <span className="flex-1">View site</span>
-      </a>
-    </nav>
+    <AdminNavTree
+      items={items}
+      issueNavHrefs={issueNavHrefs}
+      syncNavHrefs={syncNavHrefs}
+      onNavigate={onNavigate}
+    />
   );
 }
 
 export function AdminMobileMenu({
   footer,
+  pages = [],
   issueCount = 0,
   issueNavHrefs = [],
   syncCount = 0,
   syncNavHrefs = [],
 }: {
   footer?: ReactNode;
+  pages?: AdminNavPageRef[];
   issueCount?: number;
   issueNavHrefs?: string[];
   syncCount?: number;
@@ -286,6 +229,7 @@ export function AdminMobileMenu({
             </div>
 
             <AdminNav
+              pages={pages}
               issueCount={issueCount}
               issueNavHrefs={issueNavHrefs}
               syncCount={syncCount}

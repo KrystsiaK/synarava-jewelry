@@ -91,12 +91,15 @@ export function AdminFieldIssue({
 }) {
   if (issues.length === 0) return null;
 
+  const summary = issues.map((issue) => issue.title).join(" · ");
+
   return (
     <p
       data-component="AdminFieldIssue"
       id={id}
       className="adm-field-error"
       role="alert"
+      title={summary}
     >
       {issues.map((issue, index) => (
         <span key={issue.id}>

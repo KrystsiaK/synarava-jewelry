@@ -79,4 +79,18 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("button", { name: /Missing category/i })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Essentials/i })).not.toHaveAttribute("data-issue");
   });
+
+  it("keeps the tabpanel body inside the same root as sticky section chrome", () => {
+    render(
+      <ProductEditorTabs active="content" onChange={() => {}}>
+        <div role="tabpanel" aria-labelledby="product-editor-tab-content">
+          Panel body
+        </div>
+      </ProductEditorTabs>,
+    );
+
+    const root = screen.getByRole("tablist").closest("[data-component='ProductEditorTabs']");
+    const panel = screen.getByRole("tabpanel");
+    expect(root).toContainElement(panel);
+  });
 });

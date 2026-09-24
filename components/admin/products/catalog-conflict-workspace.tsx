@@ -11,7 +11,7 @@ import {
 } from "@/app/admin/actions/sync";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { Tooltip } from "@/components/ui/tooltip";
-import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
+import { AdminCheckboxControl } from "@/components/synarava-cms";
 import type {
   CatalogConflictApplyScope,
   CatalogConflictPreview,
