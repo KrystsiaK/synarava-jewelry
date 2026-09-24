@@ -55,9 +55,18 @@ describe("getStorefrontLocales", () => {
     }
   });
 
-  it("returns an empty list when the DB has never been reachable", async () => {
+  it("returns the emergency en fallback when the DB has never been reachable", async () => {
     mocks.findMany.mockRejectedValue(new Error("connection refused"));
-    expect(await getStorefrontLocales()).toEqual([]);
+    expect(await getStorefrontLocales()).toEqual([
+      expect.objectContaining({ code: "en", routeSegment: "en", isDefault: true, isPublished: true }),
+    ]);
+  });
+
+  it("returns the emergency en fallback when the registry table is empty", async () => {
+    mocks.findMany.mockResolvedValue([]);
+    expect(await getStorefrontLocales()).toEqual([
+      expect.objectContaining({ code: "en", routeSegment: "en", isDefault: true, isPublished: true }),
+    ]);
   });
 });
 

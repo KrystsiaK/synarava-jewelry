@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 
 import type { EditablePageContent } from "@/components/admin/pages/page-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
@@ -220,11 +220,9 @@ export function HomePageEditorSections({
   contactEmailFieldProps,
 }: HomePageEditorSectionsProps) {
   const [visibility, setVisibility] = useState(() => resolveHomeSectionVisibility(content));
-  const [finalCtaOpen, setFinalCtaOpen] = useState(true);
-
-  useEffect(() => {
-    if (contactEmailError || contactLabelError) setFinalCtaOpen(true);
-  }, [contactEmailError, contactLabelError]);
+  const [finalCtaUserOpen, setFinalCtaUserOpen] = useState(true);
+  // Validation errors force the panel open so the bad fields stay visible.
+  const finalCtaOpen = Boolean(contactEmailError || contactLabelError) || finalCtaUserOpen;
 
   function setSection(key: HomeSectionKey, enabled: boolean) {
     setVisibility((current) => ({ ...current, [key]: enabled }));
@@ -525,7 +523,7 @@ export function HomePageEditorSections({
       <AdminCollapsiblePanel
         title="06 / Final call to action"
         open={finalCtaOpen}
-        onOpenChange={setFinalCtaOpen}
+        onOpenChange={setFinalCtaUserOpen}
       >
         <div className="grid gap-4">
           <HomeSectionVisibilitySwitch

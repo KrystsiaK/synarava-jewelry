@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import {
   savePageAction,
@@ -329,8 +329,12 @@ export function PageEditor({
   }
 
   // After save + router.refresh, re-hydrate selection lists from the saved page.
-  // Depend on updatedAt only — not content identity — so typing/selecting is not wiped mid-edit.
-  useEffect(() => {
+  // Adjust during render on updatedAt only — not content identity — so typing
+  // is not wiped mid-edit (React “adjusting state when a prop changes”).
+  const savedUpdatedAt = page.updatedAt.getTime();
+  const [hydratedUpdatedAt, setHydratedUpdatedAt] = useState(savedUpdatedAt);
+  if (savedUpdatedAt !== hydratedUpdatedAt) {
+    setHydratedUpdatedAt(savedUpdatedAt);
     const nextContent = (page.content ?? {}) as EditablePageContent;
     const savedCollections = nextContent.archiveCollectionIds?.filter(Boolean) ?? [];
     setArchiveCollectionIds(savedCollections.length > 0 ? savedCollections : [""]);
@@ -339,13 +343,13 @@ export function PageEditor({
     syncMaterialImagesFromContent(nextContent);
     if (nextContent.editProductIds?.length) {
       setEditProductIds([...nextContent.editProductIds, "", "", "", ""].slice(0, 4));
-      return;
+    } else {
+      const approvedDefaults = DEFAULT_HOME_EDIT_PRODUCT_TITLES.map(
+        (title) => productOptions.find((product) => product.title === title)?.id ?? "",
+      );
+      setEditProductIds(approvedDefaults.every(Boolean) ? approvedDefaults : ["", "", "", ""]);
     }
-    const approvedDefaults = DEFAULT_HOME_EDIT_PRODUCT_TITLES.map(
-      (title) => productOptions.find((product) => product.title === title)?.id ?? "",
-    );
-    setEditProductIds(approvedDefaults.every(Boolean) ? approvedDefaults : ["", "", "", ""]);
-  }, [page.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: hydrate on server save only
+  }
 
   const draft = draftByLocale[activeLocale];
   const isEn = activeLocale === SOURCE_LOCALE;
