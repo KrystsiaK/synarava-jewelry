@@ -55,6 +55,9 @@ two visual variants remain. Agent skill encodes this contract.
   absolute band paints over the path. Keep issue copy in normal flow under the
   label (see `ProductMediaManager` / collection hero), or wrap it so it is not
   a direct unit child.
+- **Issue / validation scroll:** use `scrollAdminFieldIntoView` (`block: "start"`
+  + `[id^="field-"]` scroll-margin). Never `block: "center"` under sticky admin
+  chrome — it overshoots tall hero/media blocks.
 - `invalid` forces error chrome without copy (issue-linked fields).
 - `warning` — soft orange notice in the **same** absolute band as `error` (`.adm-field-warning` / `.adm-field-group--warning`). Error wins when both are set. Does not set `aria-invalid`.
 

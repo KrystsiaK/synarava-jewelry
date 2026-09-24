@@ -4955,7 +4955,13 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 }
 
 .admin-terminal [id^="field-"] {
-  scroll-margin-top: 6rem;
+  /* Clear sticky topbar; `scrollAdminFieldIntoView` uses block:start against this. */
+  scroll-margin-top: calc(var(--adm-topbar-height, 4.25rem) + 1.75rem);
+}
+
+.admin-content:has(.adm-editor-workspace-header, .adm-product-workspace-header) [id^="field-"] {
+  /* Product/page editors stack workspace + locale + section sticky bands. */
+  scroll-margin-top: 16rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

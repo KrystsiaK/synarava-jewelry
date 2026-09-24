@@ -22,6 +22,7 @@ import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal
 import { AdminFormAlert, useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
+import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
@@ -170,16 +171,6 @@ export function EditProductForm({
   const localeTone = localeWorkspaceTone(activeLocale);
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
 
-  function focusIssueField(fieldPath: string) {
-    const target = document.getElementById(fieldPath);
-    if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
-    const focusable = target.matches("input, select, textarea, button, [tabindex]")
-      ? target
-      : target.querySelector<HTMLElement>("input, select, textarea, button, [tabindex]");
-    focusable?.focus({ preventScroll: true });
-  }
-
   function activateIssue(issue: AdminIssueSummary) {
     const section = productEditorSectionForField(issue.fieldPath);
     const locale = productEditorLocaleForField(issue.fieldPath);
@@ -191,7 +182,7 @@ export function EditProductForm({
     if (window.location.hash !== nextHash) {
       window.history.replaceState(null, "", nextHash);
     }
-    window.requestAnimationFrame(() => focusIssueField(issue.fieldPath));
+    window.requestAnimationFrame(() => scrollAdminFieldIntoView(issue.fieldPath));
   }
 
   useEffect(() => {
@@ -272,7 +263,7 @@ export function EditProductForm({
       if (section) setActiveSection(section);
       else return;
 
-      window.requestAnimationFrame(() => focusIssueField(fieldId));
+      window.requestAnimationFrame(() => scrollAdminFieldIntoView(fieldId));
     }
 
     openSectionForHash();

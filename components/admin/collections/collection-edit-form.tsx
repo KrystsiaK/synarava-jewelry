@@ -11,6 +11,7 @@ import {
 import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
+import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -27,16 +28,6 @@ const initialState: CollectionActionState = {};
 
 function openIssues(issues: AdminIssueSummary[]) {
   return issues.filter((issue) => issue.status === "OPEN");
-}
-
-function focusIssueField(fieldPath: string) {
-  const target = document.getElementById(fieldPath);
-  if (!target) return;
-  target.scrollIntoView({ behavior: "smooth", block: "center" });
-  const focusable = target.matches("input, select, textarea, button, [tabindex]")
-    ? target
-    : target.querySelector<HTMLElement>("input, select, textarea, button, [tabindex]");
-  focusable?.focus({ preventScroll: true });
 }
 
 function DeleteCollectionForm({
@@ -125,7 +116,7 @@ export function EditCollectionForm({
     function openFieldForHash() {
       const fieldId = window.location.hash.slice(1);
       if (!fieldId) return;
-      window.requestAnimationFrame(() => focusIssueField(fieldId));
+      window.requestAnimationFrame(() => scrollAdminFieldIntoView(fieldId));
     }
 
     openFieldForHash();
@@ -138,7 +129,7 @@ export function EditCollectionForm({
     if (window.location.hash !== nextHash) {
       window.history.replaceState(null, "", nextHash);
     }
-    window.requestAnimationFrame(() => focusIssueField(issue.fieldPath));
+    window.requestAnimationFrame(() => scrollAdminFieldIntoView(issue.fieldPath));
   }
 
   async function formAction(formData: FormData) {
