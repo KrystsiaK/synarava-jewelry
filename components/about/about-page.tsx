@@ -7,6 +7,7 @@ import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { PrimaryCtaButton } from "@/components/ui";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
+import { resolveHeroBackdrop } from "@/lib/media/hero-media";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -33,6 +34,7 @@ function AboutHero({
 }: Pick<AboutPageProps, "title" | "excerpt" | "eyebrow" | "heroVideoSrc" | "heroImage">) {
   const reduceMotion = useReducedMotion();
   const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
+  const backdrop = resolveHeroBackdrop({ videoSrc: heroVideoSrc, imageSrc: heroImage });
 
   return (
     <header data-component="AboutHero" className="about-hero relative flex min-h-[100svh] items-end overflow-hidden bg-background text-foreground">
@@ -42,21 +44,11 @@ function AboutHero({
         animate={reduceMotion ? undefined : { scale: [1.02, 1.08] }}
         transition={{ duration: 12, ease: "linear", repeat: Infinity, repeatType: "mirror" }}
       >
-        {heroImage ? (
-          <Image
-            src={heroImage}
-            alt=""
-            fill
-            preload
-            sizes="100vw"
-            quality={85}
-            className="object-cover object-center"
-            aria-hidden="true"
-          />
-        ) : heroVideoSrc ? (
+        {backdrop.mode === "video" ? (
           <PerformanceVideo
             ref={videoRef}
-            src={heroVideoSrc}
+            src={backdrop.sources[0]}
+            poster={backdrop.poster}
             eager
             className="h-full w-full object-cover"
             autoPlay={!reduceMotion}
@@ -68,10 +60,21 @@ function AboutHero({
             onPlay={onPlay}
             onPause={onPause}
           />
+        ) : backdrop.mode === "image" ? (
+          <Image
+            src={backdrop.src}
+            alt=""
+            fill
+            preload
+            sizes="100vw"
+            quality={85}
+            className="object-cover object-center"
+            aria-hidden="true"
+          />
         ) : null}
       </motion.div>
 
-      {!heroImage && heroVideoSrc ? (
+      {backdrop.mode === "video" ? (
         <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-28 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
       ) : null}
 

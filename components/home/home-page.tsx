@@ -23,6 +23,7 @@ import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
+import { resolveHeroBackdrop } from "@/lib/media/hero-media";
 import { resolveFinalCtaImages } from "@/lib/content/home-final-cta-section";
 import { resolveHomeEditProducts } from "@/lib/content/home-edit-section";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
@@ -329,15 +330,12 @@ function HeroSection({
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const reduceMotion = useReducedMotion();
   const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
-  const videoSources = heroVideoSrc
-    ? Array.isArray(heroVideoSrc)
-      ? heroVideoSrc.filter(Boolean)
-      : [heroVideoSrc]
-    : [];
-  const hasVideo = videoSources.length > 0;
-  const activeVideoSrc = hasVideo
+  const backdrop = resolveHeroBackdrop({ videoSrc: heroVideoSrc, imageSrc: heroImage });
+  const videoSources = backdrop.mode === "video" ? backdrop.sources : [];
+  const activeVideoSrc = videoSources.length > 0
     ? videoSources[activeVideoIndex % videoSources.length]
     : undefined;
+  const videoPoster = backdrop.mode === "video" ? backdrop.poster : undefined;
 
   const scrollYProgress = useElementScrollProgress(containerRef, "hero");
   const smoothProgress = useSpring(scrollYProgress, SCROLL_SPRING);
@@ -371,9 +369,7 @@ function HeroSection({
         }}
       >
         <motion.div className="relative h-full w-full transform-gpu [backface-visibility:hidden]" style={{ transform: mediaTransform }}>
-          {heroImage ? (
-            <Image src={heroImage} alt="" fill preload quality={85} sizes="100vw" className="home-hero-media h-full w-full object-cover" aria-hidden="true" />
-          ) : activeVideoSrc ? (
+          {activeVideoSrc ? (
             <PerformanceVideo
               key={activeVideoSrc}
               ref={videoRef}
@@ -384,6 +380,7 @@ function HeroSection({
               playsInline
               preload="metadata"
               src={activeVideoSrc}
+              poster={videoPoster}
               className="home-hero-media h-full w-full object-cover"
               aria-hidden="true"
               onPlay={onPlay}
@@ -391,6 +388,8 @@ function HeroSection({
               onEnded={() => { onPause(); setActiveVideoIndex((index) => (index + 1) % videoSources.length); }}
               onError={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
             />
+          ) : backdrop.mode === "image" ? (
+            <Image src={backdrop.src} alt="" fill preload quality={85} sizes="100vw" className="home-hero-media h-full w-full object-cover" aria-hidden="true" />
           ) : null}
         </motion.div>
 

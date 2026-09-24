@@ -36,12 +36,18 @@ export {
 } from "@/components/admin/shared/admin-href-field";
 
 export {
+  AdminVideoControl,
+  AdminVideoField,
+  type AdminVideoControlProps,
+  type AdminVideoFieldProps,
+} from "@/components/admin/shared/admin-video-field";
+
+export {
   AdminCheckboxControl,
   AdminCheckboxField,
   type AdminCheckboxControlProps,
   type AdminCheckboxFieldProps,
 } from "@/components/admin/shared/admin-checkbox-field";
-
 export { AdminLongTextField, type AdminLongTextFieldProps } from "@/components/admin/shared/admin-long-text-field";
 
 export {

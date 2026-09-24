@@ -10,7 +10,7 @@ export default async function AdminVideosPage() {
         <p className="adm-section-tag mb-3">[ SYN-ADM // VID ]</p>
         <h1 className="adm-page-title">Videos</h1>
         <p className="adm-page-subtitle">
-          Upload and replace every site video in S3.
+          Upload hero and ambient films that replace static hero images on the storefront.
         </p>
       </div>
       <SiteVideosCms videos={videos} />

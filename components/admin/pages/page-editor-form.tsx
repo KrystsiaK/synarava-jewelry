@@ -667,7 +667,11 @@ export function PageEditor({
         <div className="grid gap-2">
           <div className="flex items-center gap-2">
             <span className="adm-label">Hero image</span>
-            <AdminHelp>Optional page-specific hero, shared across languages. Built-in pages show a neutral header when this is empty; uploaded images are converted to optimized WebP.</AdminHelp>
+            <AdminHelp>
+              {isAboutPage
+                ? "Optional page-specific hero still, shared across languages. When Bracelet film is uploaded under Videos, that film replaces this image on /about (the image can still act as the video poster). Uploaded images are converted to optimized WebP."
+                : "Optional page-specific hero, shared across languages. Built-in pages show a neutral header when this is empty; uploaded images are converted to optimized WebP."}
+            </AdminHelp>
           </div>
           <ImageFileField
             name="heroImageFile"

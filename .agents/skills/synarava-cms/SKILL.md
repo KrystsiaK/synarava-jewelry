@@ -2,7 +2,8 @@
 name: synarava-cms
 description: >-
   synarava-cms — Synarava admin shared form library (AdminTextField,
-  AdminSelectField, AdminHrefField/Control, AdminCheckboxField/Control, AdminLongTextField,
+  AdminSelectField, AdminHrefField/Control, AdminVideoField/Control,
+  AdminCheckboxField/Control, AdminLongTextField,
   AdminCollapsiblePanel, AdminPanel, AdminNavTree, AdminSectionTabs,
   AdminEntityList, AdminListWorkspace, AdminIconButton, AdminSignalChip, AdminSortChips,
   AdminStatusBadge, AdminOrderedList, AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
@@ -36,7 +37,7 @@ When the user says **общий компонент**, **shared control**, or **l
 
 ## Hard rules
 
-1. **Reuse synarava-cms.** New admin single-line text, select, or checkbox must come from `@/components/synarava-cms`. Raw `<input>` / `<select>` / `<textarea className="adm-field">` only for hidden mirrors, file inputs, or controls not yet in the library.
+1. **Reuse synarava-cms.** New admin single-line text, select, checkbox, or site-video upload must come from `@/components/synarava-cms`. Raw `<input>` / `<select>` / `<textarea className="adm-field">` only for hidden mirrors, still-image file inputs (`ImageFileField`), or controls not yet in the library.
 2. **One stack.** Extend `AdminFieldShell` / existing pieces under `admin/shared`, re-export from `components/synarava-cms`. Do not create a parallel field system.
 3. **One chrome per control type.** No dual DOM/CSS paths that change the outer field look based on optional props.
 4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). **Warnings** use the same band (`.adm-field-warning`, orange) via the `warning` prop — error wins if both are set. Every unit **always** reserves a one-line message band so siblings never jump; long messages ellipsis + tooltip/`title`. No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot. **Tall media** (`ImageFileField`): keep `AdminFieldIssue` in normal flow (not a direct unit child) so it does not paint over the preview path.
@@ -55,6 +56,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Clear (× on focus, non-empty) | `clearable` (+ `onClear` if controlled) |
 | Select | `AdminSelectField` / `AdminSelectControl` |
 | Storefront path combobox | `AdminHrefField` / `AdminHrefControl` |
+| Site video (MP4/WebM) upload + preview | `AdminVideoField` / `AdminVideoControl` |
 | Checkbox + optional follow-on | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
 | Long copy (preview + Edit modal) | `AdminLongTextField` |

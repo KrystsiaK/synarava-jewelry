@@ -281,7 +281,7 @@ export function HomePageEditorSections({
             <div className="flex items-center gap-2">
               <span className="adm-label">Hero image</span>
               <AdminHelp>
-                Optional page-specific hero, shared across languages. Built-in pages show a neutral header when this is empty; uploaded images are converted to optimized WebP.
+                Optional page-specific hero still, shared across languages. When any site video is uploaded under Videos, that film replaces this image on the storefront (the image can still act as the video poster). Uploaded images are converted to optimized WebP.
               </AdminHelp>
             </div>
             <ImageFileField

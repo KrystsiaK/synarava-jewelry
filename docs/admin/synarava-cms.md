@@ -24,6 +24,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminTextField` / `AdminTextControl` | Labeled text / embeddable control |
 | `AdminSelectField` / `AdminSelectControl` | Select / embeddable select |
 | `AdminHrefField` / `AdminHrefControl` | Segmented storefront path combobox (routes / pages / collections / products) |
+| `AdminVideoField` / `AdminVideoControl` | Site video (MP4/WebM) upload + current/selected preview |
 | `AdminCheckboxField` / `AdminCheckboxControl` | Checkbox row (+ optional follow-on) / inline row |
 | `AdminLongTextField` | Full-width text preview + Edit modal (+ error chrome) |
 | `AdminCollapsiblePanel` | Titled collapsible panel (chevron; header/body divider) |
@@ -128,6 +129,25 @@ import { AdminHrefField } from "@/components/synarava-cms";
 - Selecting a **draft** or **unlisted** target keeps the value (not blocked) and shows a soft orange `warning` under the field.
 - Hidden input stores the committed href (locale-free: `/shop`, `/products/…`).
 - Keyboard: ↑/↓, Enter, Esc. Embed: `AdminHrefControl`.
+
+### Video (site film upload)
+
+```tsx
+import { AdminHelp, AdminVideoField } from "@/components/synarava-cms";
+
+<AdminVideoField
+  label="Home — beads"
+  name="homeBeads"
+  help={<AdminHelp>First video in the home-page hero rotation.</AdminHelp>}
+  currentVideoUrl={videos.homeBeads || null}
+/>
+```
+
+- Labeled MP4 / WebM picker with **Selected** + **Current** preview panels (and an empty placeholder).
+- Same shell contract as other fields (`AdminFieldShell` + absolute error/warning band).
+- Embed without the shell: `AdminVideoControl`.
+- Applied on `/admin/videos` (`SiteVideosCms`). Storefront heroes prefer site video over a static hero image (`lib/media/hero-media.ts`); the image can still serve as `poster`.
+- Story: `synarava-cms/AdminVideoField`.
 
 ### Checkbox
 
@@ -397,7 +417,7 @@ Never put tall follow-on panels inside the same `adm-field-unit` as the absolute
 
 ## Out of library (for now)
 
-- File / image pickers (`ImageFileField`)
+- Still-image file pickers (`ImageFileField`) — site **video** uploads use `AdminVideoField`
 - Native hidden mirrors for locale tabs
 - Home section visibility switches
 

@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import {
+  AdminHelp,
+  AdminPanelBody,
+  AdminPanelHeader,
+  AdminPanelRoot,
+  AdminVideoField,
+} from "@/components/synarava-cms";
 import type { SiteVideos } from "@/lib/site-videos";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
@@ -13,10 +20,26 @@ const VIDEO_FIELDS: Array<{
   label: string;
   description: string;
 }> = [
-  { slot: "homeBeads", label: "Home — beads", description: "First video in the home-page hero rotation." },
-  { slot: "homeModel", label: "Home — model", description: "Second video in the home-page hero rotation." },
-  { slot: "braceletFilm", label: "Bracelet film", description: "Used on Home, About hero, and product fit-film sections." },
-  { slot: "materialsFilm", label: "Materials film", description: "Used on Home and the About page's “On the body” section." },
+  {
+    slot: "homeBeads",
+    label: "Home — beads",
+    description: "First video in the home-page hero rotation. Replaces the Home hero image when any site video is set.",
+  },
+  {
+    slot: "homeModel",
+    label: "Home — model",
+    description: "Second video in the home-page hero rotation.",
+  },
+  {
+    slot: "braceletFilm",
+    label: "Bracelet film",
+    description: "Used on Home hero rotation, About hero (replaces About hero image), and product fit-film sections.",
+  },
+  {
+    slot: "materialsFilm",
+    label: "Materials film",
+    description: "Used on Home hero rotation and the About page’s “On the body” section.",
+  },
 ];
 
 export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
@@ -85,52 +108,39 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
   }
 
   return (
-    <section data-component="SiteVideosCms" className="adm-panel grid gap-6 p-5 md:p-6">
-      <div className="grid gap-2">
-        <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
-        <h2 className="adm-title-sm">Site video</h2>
-        <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-          Upload MP4 or WebM files directly from this browser to Railway Bucket. Replacing a video changes every site placement listed below after cache revalidation. The bucket must allow PUT requests from this admin origin in its CORS policy.
-        </p>
-      </div>
+    <AdminPanelRoot data-component="SiteVideosCms">
+      <AdminPanelHeader sticky={false}>
+        <div className="grid gap-2">
+          <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
+          <h2 className="adm-title-sm">Site video</h2>
+          <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
+            Upload MP4 or WebM files directly from this browser to Railway Bucket. When a slot is set, it replaces the matching static hero image on the storefront. Replacing a video updates every placement listed under each field after cache revalidation. The bucket must allow PUT requests from this admin origin in its CORS policy.
+          </p>
+        </div>
+      </AdminPanelHeader>
 
-      <AuthMessage error={state.error} />
+      <AdminPanelBody className="grid gap-5">
+        <AuthMessage error={state.error} />
 
-      <form ref={formRef} action={submit} className="grid gap-5">
-        {VIDEO_FIELDS.map(({ slot, label, description }) => (
-          <fieldset key={slot} className="grid gap-3 border-t pt-5" style={{ borderColor: "var(--adm-border)" }}>
-            <div className="grid gap-1 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-6">
-              <div>
-                <legend className="adm-label">{label}</legend>
-                <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>{description}</p>
-              </div>
-              <p className="break-all text-xs md:max-w-sm" style={{ color: "var(--adm-muted)" }}>
-                Current: {videos[slot]}
-              </p>
-            </div>
-            {videos[slot] ? (
-              <video className="aspect-video max-h-52 w-full rounded object-cover md:max-w-md" src={videos[slot]} muted playsInline preload="metadata" />
-            ) : (
-              <div className="grid aspect-video max-h-52 w-full place-items-center rounded border text-xs uppercase tracking-[0.12em] md:max-w-md" style={{ borderColor: "var(--adm-border)", color: "var(--adm-muted)" }}>
-                No video uploaded
-              </div>
-            )}
-            <input
+        <form ref={formRef} action={submit} className="grid gap-5">
+          {VIDEO_FIELDS.map(({ slot, label, description }) => (
+            <AdminVideoField
+              key={slot}
               name={slot}
-              type="file"
-              accept="video/mp4,video/webm"
-              className="adm-field"
+              label={label}
+              help={<AdminHelp>{description}</AdminHelp>}
+              currentVideoUrl={videos[slot] || null}
               disabled={isPending}
             />
-          </fieldset>
-        ))}
+          ))}
 
-        <div className="flex justify-end pt-2">
-          <button type="submit" className="adm-btn-primary" disabled={isPending}>
-            {isPending ? "Uploading…" : "Upload selected videos"}
-          </button>
-        </div>
-      </form>
-    </section>
+          <div className="flex justify-end pt-2">
+            <button type="submit" className="adm-btn-primary" disabled={isPending}>
+              {isPending ? "Uploading…" : "Upload selected videos"}
+            </button>
+          </div>
+        </form>
+      </AdminPanelBody>
+    </AdminPanelRoot>
   );
 }
