@@ -59,6 +59,17 @@ describe("storefront Content Security Policy", () => {
     expect(csp).toContain("https://www.facebook.com");
     expect(imageDirective).toContain("https://www.googletagmanager.com");
   });
+
+  it("allows blob: media for admin local video previews", async () => {
+    const response = await proxy(new NextRequest("https://shop.synarava.test/admin/videos"));
+    const csp = response.headers.get("Content-Security-Policy") ?? "";
+    const mediaDirective = csp
+      .split("; ")
+      .find((directive) => directive.startsWith("media-src "));
+
+    expect(mediaDirective).toContain("blob:");
+    expect(mediaDirective).toContain("'self'");
+  });
 });
 
 describe("admin session proxy", () => {

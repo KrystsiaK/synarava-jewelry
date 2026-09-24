@@ -88,6 +88,10 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
             "Cache-Control": "public, max-age=31536000, immutable",
           },
           body: file,
+        }).catch(() => {
+          throw new Error(
+            "Could not reach the media bucket (Failed to fetch). Configure Railway Bucket CORS to allow PUT from this admin origin — see DEPLOY.md.",
+          );
         });
         if (!uploadResponse.ok) throw new Error(`Bucket upload failed for ${file.name}.`);
         return prepared.upload;
@@ -105,7 +109,10 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
       pushToast({ message: `${completed.count} video${completed.count === 1 ? "" : "s"} uploaded directly to Railway Bucket and published.`, tone: "success" });
       refreshPreservingScroll(router);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Video upload failed.";
+      const raw = error instanceof Error ? error.message : "Video upload failed.";
+      const message = raw === "Failed to fetch"
+        ? "Could not reach the media bucket (Failed to fetch). Configure Railway Bucket CORS to allow PUT from this admin origin — see DEPLOY.md."
+        : raw;
       setState({ error: message });
       pushToast({ message, tone: "error" });
     } finally {

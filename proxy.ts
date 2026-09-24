@@ -72,7 +72,7 @@ function cspFor(nonce: string) {
     `script-src ${scripts}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: https://cdn.shopify.com https://*.shopifycdn.com https://www.googletagmanager.com https://www.google-analytics.com https://www.facebook.com ${storage.join(" ")}`,
-    `media-src 'self' ${storage.join(" ")}`,
+    `media-src 'self' blob: ${storage.join(" ")}`,
     `connect-src ${connections}`,
     "font-src 'self' data: https://cdn.shopify.com https://*.shopifycdn.com",
     "object-src 'none'",
