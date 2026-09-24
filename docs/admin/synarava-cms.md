@@ -15,7 +15,7 @@ two visual variants remain. Agent skill encodes this contract.
 |--|--|
 | Public API | `@/components/synarava-cms` (`components/synarava-cms/index.ts`) |
 | Implementation | `components/admin/shared/` |
-| Tokens | `.adm-field*`, `.adm-field-group*`, `.adm-check*`, `.adm-collapse*`, `.adm-panel*`, `.adm-band*` / `--adm-rhythm*` in `app/globals.css` |
+| Tokens | `.adm-field*`, `.adm-field-group*`, `.adm-check*`, `.adm-collapse*`, `.adm-panel*`, `.adm-band*` / `--adm-rhythm*` / `--adm-z-*` in `app/globals.css` |
 | Agent skill | `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`) |
 
 | Export | Role |
@@ -52,6 +52,22 @@ two visual variants remain. Agent skill encodes this contract.
   paint over the next section.
 - `invalid` forces error chrome without copy (issue-linked fields).
 - `warning` — soft orange notice in the **same** absolute band as `error` (`.adm-field-warning` / `.adm-field-group--warning`). Error wins when both are set. Does not set `aria-invalid`.
+
+### Stacking (`--adm-z-*`)
+
+Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-modal-root`):
+
+| Token | Default | Use |
+|-------|---------|-----|
+| `--adm-z-field` | `0` | Field chrome, **including** `.adm-help` triggers — stay flat |
+| `--adm-z-popover` | `40` | Absolute menus — class `.adm-popover` (`AdminHrefField`, Shopify category search, …) |
+| `--adm-z-sticky` | `90` | Sticky locale / workspace bands (`90`–`95`) |
+| `--adm-z-modal-backdrop` | `190` | Modal backdrops |
+| `--adm-z-modal` | `200` | Modals (`200`+) |
+| `--adm-z-tooltip` | `280` | Portaled `.ui-tooltip` |
+| `--adm-z-toast` | `600` | `adm-toast-stack` |
+
+**Rule:** never elevate `.adm-help` (or other in-flow field chrome) into the popover band — that made info icons paint over open combobox lists. New absolute admin menus must use `.adm-popover` (or `z-index: var(--adm-z-popover)`), not ad-hoc `z-20`.
 
 ### Text
 

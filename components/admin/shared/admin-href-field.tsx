@@ -271,7 +271,7 @@ export function AdminHrefControl({
           id={resultListId}
           role="listbox"
           className={cn(
-            "absolute left-0 right-0 top-full z-20 mt-1 max-h-80 overflow-auto border border-[var(--adm-border-strong)] bg-[var(--adm-bg)] shadow-lg",
+            "adm-popover absolute left-0 right-0 top-full mt-1 max-h-80 overflow-auto border border-[var(--adm-border-strong)] bg-[var(--adm-bg)] shadow-lg",
           )}
         >
           {pending && !flatHits.length ? (

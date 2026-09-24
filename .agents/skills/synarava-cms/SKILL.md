@@ -17,7 +17,7 @@ description: >-
 
 Canonical doc: [`docs/admin/synarava-cms.md`](../../../docs/admin/synarava-cms.md).  
 Public API: `@/components/synarava-cms`.  
-Implementation: `components/admin/shared/`. Tokens: `adm-field*`, `adm-check*`, `adm-collapse*`, `adm-panel*`, `adm-band*` / `--adm-rhythm*` in `app/globals.css`.
+Implementation: `components/admin/shared/`. Tokens: `adm-field*`, `adm-check*`, `adm-collapse*`, `adm-panel*`, `adm-band*` / `--adm-rhythm*` / `--adm-z-*` (field < popover < sticky < modal < tooltip < toast) in `app/globals.css`. Absolute admin menus use `.adm-popover` — never elevate `.adm-help` into that band.
 
 ## Meaning of “общий / shared / library control”
 

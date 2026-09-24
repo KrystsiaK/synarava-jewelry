@@ -227,7 +227,7 @@ export function ShopifyCategoryControl() {
         <div
           id={resultListId}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-20 max-h-72 overflow-auto border border-[var(--adm-border-strong)] bg-[var(--adm-bg)] shadow-lg"
+          className="adm-popover absolute left-0 right-0 top-full max-h-72 overflow-auto border border-[var(--adm-border-strong)] bg-[var(--adm-bg)] shadow-lg"
         >
           {results.map((category) => (
             <button

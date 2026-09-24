@@ -1616,6 +1616,22 @@ body.admin-mode .artifact-footer {
   --spacing-adm-inset: var(--adm-inset-x);
   --spacing-adm-band-y: var(--adm-band-pad-y);
 
+  /*
+   * Admin stacking scale — keep field chrome flat so absolute popovers
+   * (href/category comboboxes) always paint above neighboring help icons.
+   * Sticky bands sit mid; portaled tooltips / modals / toasts sit above.
+   *
+   *   field (0) < popover (40) < sticky (90–95) < modal backdrop (190)
+   *   < modal (200+) < tooltip (280) < toast (600)
+   */
+  --adm-z-field: 0;
+  --adm-z-popover: 40;
+  --adm-z-sticky: 90;
+  --adm-z-modal-backdrop: 190;
+  --adm-z-modal: 200;
+  --adm-z-tooltip: 280;
+  --adm-z-toast: 600;
+
   color: var(--adm-text);
   font-family: var(--font-sans), sans-serif;
 }
@@ -3100,7 +3116,13 @@ select.adm-field option {
   align-self: flex-start;
   flex: 0 0 auto;
   width: max-content;
-  z-index: 20;
+  /* Flat — elevated z competed with .adm-popover (same 20) and painted over open comboboxes. Tooltips portal at --adm-z-tooltip. */
+  z-index: var(--adm-z-field, 0);
+}
+
+/* Absolute admin menus (href / category comboboxes). Always above field chrome. */
+.adm-popover {
+  z-index: var(--adm-z-popover, 40);
 }
 
 .adm-help__trigger {
@@ -3139,7 +3161,7 @@ select.adm-field option {
   --tooltip-enter-y: 0;
   position: fixed;
   inset: auto;
-  z-index: 280;
+  z-index: var(--adm-z-tooltip, 280);
   isolation: isolate;
   margin: 0;
   padding: 0;

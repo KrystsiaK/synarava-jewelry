@@ -105,6 +105,16 @@ describe("AdminHrefField", () => {
     expect(container.querySelector("[data-slot='control-group']")).toHaveClass("adm-field-group");
   });
 
+  it("opens the result list as an adm-popover above field chrome", async () => {
+    const user = userEvent.setup();
+    render(<AdminHrefField label="CTA href" name="ctaHref" defaultValue="" />);
+
+    await user.click(screen.getByRole("combobox", { name: /CTA href/i }));
+    const listbox = await screen.findByRole("listbox");
+    expect(listbox).toHaveClass("adm-popover");
+    expect(listbox.className).not.toMatch(/\bz-20\b/);
+  });
+
   it("shows an orange warning when the selected target is draft", async () => {
     mocks.search.mockResolvedValue({
       segments: [
