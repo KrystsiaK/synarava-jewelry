@@ -42,7 +42,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    // CI: production server after an explicit `pnpm build` step (see ci.yml).
+    // Local: `next dev` with reuse so an already-running app is fine.
+    command: process.env.CI ? "pnpm start" : "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

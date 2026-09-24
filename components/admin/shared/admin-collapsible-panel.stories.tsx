@@ -18,6 +18,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const CharacteristicGroups: Story = {
+  // Required by StoryObj when the component has required props; render owns the UI.
+  args: {
+    title: "Dimensions & fit",
+    children: null,
+  },
   render: () => (
     <div className="mx-auto grid max-w-3xl gap-3">
       <AdminCollapsiblePanel title="Dimensions & fit">

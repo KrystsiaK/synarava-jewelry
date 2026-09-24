@@ -113,5 +113,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma:push
+      # Build before smoke so Playwright starts `next start` (fast, deterministic)
+      # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
+      - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
