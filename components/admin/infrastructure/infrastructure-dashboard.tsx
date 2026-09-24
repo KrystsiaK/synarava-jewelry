@@ -1,5 +1,7 @@
 import {
-  AdminPanel,
+  AdminPanelBody,
+  AdminPanelHeader,
+  AdminPanelRoot,
   AdminStatusBadge,
 } from "@/components/synarava-cms";
 
@@ -31,8 +33,8 @@ function KpiCard({
   tone?: "published" | "error" | "pending" | "draft";
 }) {
   return (
-    <AdminPanel.Root>
-      <AdminPanel.Body className="space-y-2 p-4">
+    <AdminPanelRoot>
+      <AdminPanelBody className="space-y-2 p-4">
         <p className="adm-section-tag">{label}</p>
         <div className="flex items-center gap-2">
           {tone ? <AdminStatusBadge tone={tone}>{value}</AdminStatusBadge> : null}
@@ -42,8 +44,8 @@ function KpiCard({
             </p>
           ) : null}
         </div>
-      </AdminPanel.Body>
-    </AdminPanel.Root>
+      </AdminPanelBody>
+    </AdminPanelRoot>
   );
 }
 
@@ -91,8 +93,8 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
       </p>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <AdminPanel.Root>
-          <AdminPanel.Header>
+        <AdminPanelRoot>
+          <AdminPanelHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="adm-section-tag">Postgres</p>
@@ -102,8 +104,8 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
                 {postgres.ok ? "Reachable" : "Unreachable"}
               </AdminStatusBadge>
             </div>
-          </AdminPanel.Header>
-          <AdminPanel.Body className="space-y-5 p-5 md:p-6">
+          </AdminPanelHeader>
+          <AdminPanelBody className="space-y-5 p-5 md:p-6">
             {postgres.error ? (
               <p className="text-sm" style={{ color: "var(--adm-danger, #a6192e)" }}>
                 {postgres.error}
@@ -157,11 +159,11 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
                 <TableSizeBarChart tables={postgres.tables} />
               )}
             </div>
-          </AdminPanel.Body>
-        </AdminPanel.Root>
+          </AdminPanelBody>
+        </AdminPanelRoot>
 
-        <AdminPanel.Root>
-          <AdminPanel.Header>
+        <AdminPanelRoot>
+          <AdminPanelHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="adm-section-tag">Object storage</p>
@@ -171,8 +173,8 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
                 {s3.ok ? "HeadBucket OK" : "HeadBucket fail"}
               </AdminStatusBadge>
             </div>
-          </AdminPanel.Header>
-          <AdminPanel.Body className="space-y-4 p-5 md:p-6">
+          </AdminPanelHeader>
+          <AdminPanelBody className="space-y-4 p-5 md:p-6">
             {s3.error ? (
               <p className="text-sm" style={{ color: "var(--adm-danger, #a6192e)" }}>
                 {s3.error}
@@ -211,8 +213,8 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
                 ListObjectsV2 scan).
               </p>
             )}
-          </AdminPanel.Body>
-        </AdminPanel.Root>
+          </AdminPanelBody>
+        </AdminPanelRoot>
       </div>
     </div>
   );
