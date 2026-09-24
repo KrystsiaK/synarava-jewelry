@@ -50,7 +50,7 @@ export function WorkflowStateField({
     {
       value: "DRAFT",
       title: "Draft",
-      description: "Hidden from the site while you prepare content.",
+      description: "Hidden from the site; live member products also go to draft locally.",
     },
     {
       value: "PUBLISHED",
@@ -64,11 +64,12 @@ export function WorkflowStateField({
       <p className="adm-label-row">
         <span className="adm-section-tag">[ SITE STATE ]</span>
         <AdminHelp label="Site state guidance">
-          Draft keeps this collection private (hidden from the collections index and its detail page).
-          Published makes it public there. This control lives with the collection fields — not next to Delete.
+          Draft keeps this collection private (hidden from the collections index and its detail page)
+          and moves its live member products to Draft locally — Shopify commerce status is not pushed.
+          Published makes the collection public on the index and detail page; it does not auto-publish products.
         </AdminHelp>
       </p>
-      <FieldLabel required help="Draft collections stay private. Published collections appear on the collections index and their public detail page.">
+      <FieldLabel required help="Draft: collection private + member products draft locally (no Shopify push). Published: collection public; products keep their own status.">
         Site state
       </FieldLabel>
       <input type="hidden" name="workflowState" value={value} />

@@ -253,6 +253,7 @@ and SYNC-16 asserts that state is handled gracefully.
 | COL-11 | Collection code auto-generates from the name and is deterministic | positive | P2 | ✔ unit | `collection-helpers.test.ts`. |
 | COL-12 | *(retired)* Primary-nav storefront navigation | — | — | — | Removed with the department model (September 2026). |
 | COL-13 | Edit form shows Site state after identity fields; Delete help is delete-only | positive | P2 | **render** | `WorkflowStateField` at `#field-workflowState`; no orphan Publishing guidance near Delete. |
+| COL-14 | Drafting a collection drafts ACTIVE/UNLISTED member products locally | positive | P1 | **unit** / **action** | `draftMemberProductsLocally`; no Shopify `syncStatus` change. |
 
 ## 11. Pages (`e2e/admin-pages.spec.ts`)
 

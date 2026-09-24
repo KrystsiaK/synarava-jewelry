@@ -260,7 +260,11 @@ export function EditCollectionForm({
       <AdminConfirmModal
         open={confirmOpen}
         title={`Save ${collection.name}`}
-        description="This writes collection content and publishing state to the database. If the collection is Published, the public collection page and filters can update immediately."
+        description={
+          draft.workflowState === "DRAFT"
+            ? "This writes collection content and publishing state. Saving as Draft hides the collection and moves its live member products to Draft locally (Shopify commerce status unchanged)."
+            : "This writes collection content and publishing state to the database. If the collection is Published, the public collection page and filters can update immediately. Publishing the collection does not auto-publish its products."
+        }
         confirmLabel="Save collection"
         pending={isPending}
         onCancel={() => setConfirmOpen(false)}

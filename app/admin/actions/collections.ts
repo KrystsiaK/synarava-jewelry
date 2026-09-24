@@ -6,6 +6,10 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
+import {
+  collectionDraftCascadeNotice,
+  draftMemberProductsLocally,
+} from "@/lib/admin/draft-collection-products";
 import { db } from "@/lib/db";
 import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
@@ -428,10 +432,28 @@ export async function saveCollectionAction(
     after: savedCollection,
   });
 
+  const wasPublic = before?.status === "ACTIVE" && before?.visibility === "PUBLIC";
+  let cascadeNotice = "";
+  if (collectionId && wasPublic && !isPublished) {
+    const { draftedProductIds } = await draftMemberProductsLocally(savedCollection.id);
+    cascadeNotice = collectionDraftCascadeNotice(draftedProductIds.length);
+    if (draftedProductIds.length > 0) {
+      revalidatePath("/admin/products");
+      await writeAuditLog({
+        action: "STATUS_DRAFT_CASCADE",
+        entityType: "COLLECTION",
+        entityId: savedCollection.id,
+        before: null,
+        after: savedCollection,
+        metadata: { draftedProductIds },
+      });
+    }
+  }
+
   revalidateStorefront();
   const finalCollection = await getSavedCollectionPayload(savedCollection.id);
   return {
-    success: collectionId ? "Collection updated." : "Collection created.",
+    success: `${collectionId ? "Collection updated." : "Collection created."}${cascadeNotice}`,
     resetKey: collectionId ? undefined : Date.now(),
     collection: finalCollection,
   };
@@ -658,6 +680,23 @@ export async function updateCollectionStatusAction(
     select: savedCollectionSelect,
   });
 
+  let cascadeNotice = "";
+  if (action === "draft") {
+    const { draftedProductIds } = await draftMemberProductsLocally(collectionId);
+    cascadeNotice = collectionDraftCascadeNotice(draftedProductIds.length);
+    if (draftedProductIds.length > 0) {
+      revalidatePath("/admin/products");
+      await writeAuditLog({
+        action: "STATUS_DRAFT_CASCADE",
+        entityType: "COLLECTION",
+        entityId: collection.id,
+        before,
+        after: collection,
+        metadata: { draftedProductIds },
+      });
+    }
+  }
+
   await writeAuditLog({
     action: `STATUS_${action.toUpperCase()}`,
     entityType: "COLLECTION",
@@ -668,5 +707,8 @@ export async function updateCollectionStatusAction(
 
   revalidateStorefront();
   revalidatePath("/admin/collections");
-  return { success: `Collection moved to ${collection.status.toLowerCase()}.`, collection };
+  return {
+    success: `Collection moved to ${collection.status.toLowerCase()}.${cascadeNotice}`,
+    collection,
+  };
 }

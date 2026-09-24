@@ -80,7 +80,7 @@ export function collectionActionCopy(target: CollectionRowAction) {
     return {
       title: `Move ${target.collection.name} to draft`,
       description:
-        "This hides the collection page and removes it from public collection lists. Product records remain unchanged.",
+        "This hides the collection page and removes it from public collection lists. Every ACTIVE or UNLISTED product in this collection also moves to Draft locally (Shopify commerce status is not pushed).",
       confirmLabel: "Move to draft",
       tone: "default" as const,
     };

@@ -147,4 +147,11 @@ describe("collectionActionCopy", () => {
     expect(collectionActionCopy({ collection, action: "delete" }).tone).toBe("danger");
     expect(collectionActionCopy({ collection, action: "publish" }).title).toContain("Wanderlust");
   });
+
+  it("warns that drafting cascades to member products locally", () => {
+    const collection = makeCollection({ name: "Wanderlust" });
+    expect(collectionActionCopy({ collection, action: "draft" }).description).toMatch(
+      /product.*Draft locally/i,
+    );
+  });
 });
