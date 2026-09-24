@@ -190,6 +190,7 @@ export function buildAdminNavItems({
       code: "I18N",
       badge: syncCount > 0 ? { kind: "sync", count: syncCount } : undefined,
     },
+    { id: "infrastructure", href: "/admin/infrastructure", label: "Infrastructure", code: "INF" },
     { id: "account", href: "/admin/account", label: "Account", code: "ACC" },
   ];
 }

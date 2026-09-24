@@ -48,6 +48,7 @@ describe("admin-nav-config", () => {
     const settings = items.find((item) => item.id === "settings");
     const catalog = items.find((item) => item.id === "products");
     const problems = items.find((item) => item.id === "issues");
+    const infrastructure = items.find((item) => item.id === "infrastructure");
 
     expect(pages?.children).toHaveLength(2);
     expect(pages?.children?.[0]).toMatchObject({ href: "/admin/pages/home", label: "Home" });
@@ -56,6 +57,7 @@ describe("admin-nav-config", () => {
     );
     expect(catalog?.children).toBeUndefined();
     expect(problems?.badge).toEqual({ kind: "issues", count: 3 });
+    expect(infrastructure).toMatchObject({ href: "/admin/infrastructure", label: "Infrastructure" });
   });
 
   it("bubbles child sync/issue signals to the parent", () => {
