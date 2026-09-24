@@ -306,6 +306,28 @@ export function PageEditor({
     return saved.length > 0 ? saved : [""];
   });
 
+  /** Shared image URLs live in EN content; keep draft slots in sync after save remounts. */
+  function syncMaterialImagesFromContent(nextContent: EditablePageContent) {
+    const savedImages = nextContent.materialLexicon ?? [];
+    setDraftByLocale((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([locale, localeDraft]) => [
+          locale,
+          {
+            ...localeDraft,
+            materials: localeDraft.materials.map((material, index) => {
+              const savedImage = savedImages[index]?.image;
+              return {
+                ...material,
+                image: typeof savedImage === "string" ? savedImage : material.image,
+              };
+            }),
+          },
+        ]),
+      ),
+    );
+  }
+
   // After save + router.refresh, re-hydrate selection lists from the saved page.
   // Depend on updatedAt only — not content identity — so typing/selecting is not wiped mid-edit.
   useEffect(() => {
@@ -314,6 +336,7 @@ export function PageEditor({
     setArchiveCollectionIds(savedCollections.length > 0 ? savedCollections : [""]);
     setFinalCtaProductIds([...(nextContent.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4));
     setContactEnabled(nextContent.finalContactEnabled === true);
+    syncMaterialImagesFromContent(nextContent);
     if (nextContent.editProductIds?.length) {
       setEditProductIds([...nextContent.editProductIds, "", "", "", ""].slice(0, 4));
       return;
@@ -456,6 +479,9 @@ export function PageEditor({
         }
         setFinalCtaProductIds([...(saved.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4));
         setContactEnabled(saved.finalContactEnabled === true);
+        // Must run before remount (`key={page.updatedAt}`) clears the file input —
+        // otherwise Current keeps the pre-upload URL and the next save can write it back.
+        syncMaterialImagesFromContent(saved);
         onUpdated?.(result.page);
       }
     });

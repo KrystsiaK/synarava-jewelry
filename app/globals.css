@@ -4548,6 +4548,10 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   overflow: clip;
 }
 
+.adm-collapse-root {
+  min-width: 0;
+}
+
 .adm-collapse--warning {
   border-color: var(--adm-warning);
   background: color-mix(in srgb, var(--adm-panel) 90%, var(--adm-warning) 10%);
@@ -4555,16 +4559,6 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 
 .adm-collapse--warning[data-open="true"] > .adm-collapse__header {
   background: color-mix(in srgb, var(--adm-warning-soft) 70%, var(--adm-bg-soft));
-}
-
-.adm-collapse__caption {
-  margin: 0;
-  padding: 0 1rem 0.7rem;
-  color: var(--adm-warning);
-  font-family: var(--font-sans), sans-serif;
-  font-size: 0.72rem;
-  font-weight: 600;
-  line-height: 1.35;
 }
 
 .adm-collapse__header {
@@ -4918,7 +4912,7 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   min-width: 0;
 }
 
-.adm-ordered-list__collapse.adm-collapse {
+.adm-ordered-list__collapse.adm-collapse-root .adm-collapse {
   /* Keep overflow clip so closed 0fr panels do not leak height. */
   overflow: clip;
 }

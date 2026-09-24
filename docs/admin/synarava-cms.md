@@ -183,8 +183,9 @@ import { AdminCollapsiblePanel } from "@/components/synarava-cms";
 - Implemented as a **button** + animated panel (not native `&lt;details&gt;` — avoids double markers).
 - Open/close uses `grid-template-rows` 0fr→1fr (~220ms ease-out); chevron rotates with the same curve.
 - When open, soft header + **one** `.adm-collapse__rule` hairline (no inset/border-bottom on the header).
-- `tone="warning"` — orange border/fill (`.adm-collapse--warning`); optional always-visible
-  `caption` under the header (does not collapse away).
+- `tone="warning"` — orange border/fill (`.adm-collapse--warning`); optional `caption` string uses
+  shared `AdminFieldWarning` under the panel (same band as field warnings — no extra frame).
+  Stays visible when collapsed. Panel root is `.adm-field-unit` so the message band is reserved.
 - Closed panels keep fields in `FormData` (`visibility: hidden`, no `inert`). Parent forms that use `requestSubmit` must set `noValidate` so native constraints (e.g. `type="email"`) cannot block save on unfocusable fields — validation belongs in server actions.
 - Applied to product characteristic groups and Shopify snapshot mirror.
 - Story: `synarava-cms/AdminCollapsiblePanel`.

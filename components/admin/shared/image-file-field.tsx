@@ -157,7 +157,8 @@ export function ImageFileField({
         />
       ) : null}
 
-      {currentImageUrl ? (
+      {/* Hide Current while a replacement is selected — after save, Selected clears and Current shows the new URL. */}
+      {currentImageUrl && !selectedFile ? (
         <div
           id={fieldId}
           className="grid gap-3 p-3"
@@ -238,7 +239,7 @@ export function ImageFileField({
               className={previewClass}
               style={{
                 background: "color-mix(in srgb, var(--adm-ink) 3.5%, transparent)",
-                opacity: selectedFile ? 0.42 : 0.7,
+                opacity: 0.7,
               }}
               onLoad={(event) => {
                 if (event.currentTarget.naturalWidth === 0) {

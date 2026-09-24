@@ -50,7 +50,7 @@ describe("AdminCollapsiblePanel", () => {
     expect(screen.getByText("Visible")).toBeVisible();
   });
 
-  it("honors warning tone and a visible caption while collapsed", () => {
+  it("shows caption via shared AdminFieldWarning under the panel while collapsed", () => {
     render(
       <AdminCollapsiblePanel
         title="Material 02 Untitled"
@@ -61,11 +61,19 @@ describe("AdminCollapsiblePanel", () => {
       </AdminCollapsiblePanel>,
     );
 
-    const panel = screen.getByRole("button", { name: "Material 02 Untitled" })
+    const root = screen.getByRole("button", { name: "Material 02 Untitled" })
       .closest("[data-component='AdminCollapsiblePanel']");
-    expect(panel).toHaveAttribute("data-tone", "warning");
-    expect(panel).toHaveClass("adm-collapse--warning");
-    expect(screen.getByText("This specimen won't appear on the site.")).toBeVisible();
+    const card = root?.querySelector(".adm-collapse");
+    const warning = screen.getByRole("status");
+    expect(root).toHaveAttribute("data-tone", "warning");
+    expect(root).toHaveClass("adm-field-unit");
+    expect(card).toHaveClass("adm-collapse--warning");
+    expect(root).toHaveAttribute("data-open", "false");
+    expect(warning).toHaveAttribute("data-component", "AdminFieldWarning");
+    expect(warning).toHaveClass("adm-field-warning");
+    expect(warning).toHaveTextContent("This specimen won't appear on the site.");
+    expect(warning.closest(".adm-collapse")).toBeNull();
+    expect(warning.compareDocumentPosition(card!)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
   });
 
   it("honors controlled open without resetting on parent remount", () => {

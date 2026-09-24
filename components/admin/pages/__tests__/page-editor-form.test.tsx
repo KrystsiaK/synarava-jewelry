@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -318,5 +318,41 @@ describe("PageEditor", () => {
 
     expect(mocks.savePageAction).toHaveBeenCalledTimes(1);
     expect(onUpdated).toHaveBeenCalledWith(updatedPage);
+  });
+
+  it("replaces material Current image URLs from the saved page after save", async () => {
+    const user = userEvent.setup();
+    const initial = makePage({
+      slug: "home",
+      title: "Home",
+      content: {
+        materialLexicon: [
+          { name: "Pearl", category: "Organic", description: "Irregular.", properties: "Natural", image: "/pearl-old.webp" },
+          { name: "Oak", category: "Wood", description: "Ancient.", properties: "Warm", image: "/oak.webp" },
+        ],
+      },
+    });
+    const updated = makePage({
+      ...initial,
+      updatedAt: new Date("2026-01-03"),
+      content: {
+        materialLexicon: [
+          { name: "Pearl", category: "Organic", description: "Irregular.", properties: "Natural", image: "/pearl-new.webp" },
+          { name: "Oak", category: "Wood", description: "Ancient.", properties: "Warm", image: "/oak.webp" },
+        ],
+      },
+    });
+    mocks.savePageAction.mockResolvedValue({ success: "Page updated.", page: updated });
+
+    const { container } = render(<PageEditor page={initial} />);
+    expect(hiddenFieldValue(container, "material1Image")).toBe("/pearl-old.webp");
+
+    await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
+    await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
+
+    await waitFor(() => {
+      expect(hiddenFieldValue(container, "material1Image")).toBe("/pearl-new.webp");
+    });
+    expect(hiddenFieldValue(container, "material2Image")).toBe("/oak.webp");
   });
 });
