@@ -44,6 +44,7 @@ import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } fr
 import { useUnsavedLeaveGuard } from "@/components/admin/products/use-unsaved-leave-guard";
 import {
   getProductEditorDetails,
+  filterIssuesByTaxonomySatisfaction,
   issuesForSection,
   localesWithOpenIssues,
   productEditorLocaleForField,
@@ -51,6 +52,8 @@ import {
   productToDraft,
   PRODUCT_SAVE_FAILURE_MESSAGE,
   sectionsWithOpenIssues,
+  taxonomySatisfactionFromDraft,
+  type TaxonomySatisfaction,
 } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
@@ -119,6 +122,13 @@ export function EditProductForm({
   const currentProduct = state.product ?? product;
   const draft = productToDraft(currentProduct, translationLocales);
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
+  const [taxonomySatisfaction, setTaxonomySatisfaction] = useState<TaxonomySatisfaction>(() =>
+    taxonomySatisfactionFromDraft(draft),
+  );
+  useEffect(() => {
+    setTaxonomySatisfaction(taxonomySatisfactionFromDraft(draft));
+  }, [currentProduct.id, fieldsRevision, draft.shopifyCategoryId, draft.collectionSlug, draft.tags]);
+  const visibleIssues = filterIssuesByTaxonomySatisfaction(issues, taxonomySatisfaction);
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
   const isDirty = dirtyScopes.size > 0;
@@ -137,9 +147,9 @@ export function EditProductForm({
       return dirtyScopes.has(sectionDirtyKey(activeLocale, section));
     }),
   );
-  const issueSections = sectionsWithOpenIssues(issues);
-  const issueLocales = localesWithOpenIssues(issues);
-  const activeSectionIssues = issuesForSection(issues, activeSection);
+  const issueSections = sectionsWithOpenIssues(visibleIssues);
+  const issueLocales = localesWithOpenIssues(visibleIssues);
+  const activeSectionIssues = issuesForSection(visibleIssues, activeSection);
   const productConflict = conflictSignals.products[currentProduct.id];
   const conflictSections = new Set<ProductEditorSection>();
   if (
@@ -629,12 +639,13 @@ export function EditProductForm({
                         draft={draft}
                         collections={collections}
                         variantExists={currentProduct.variants.length > 0}
-                        issues={issues}
+                        issues={visibleIssues}
                         validation={validation}
                         translationLocales={translationLocales}
                         activeSection={activeSection}
                         activeLocale={activeLocale}
                         onLocaleChange={selectLocale}
+                        onTaxonomySatisfactionChange={setTaxonomySatisfaction}
                       />
                       <ProductDetailFields
                         key={`details-${currentProduct.id}-${fieldsRevision}`}

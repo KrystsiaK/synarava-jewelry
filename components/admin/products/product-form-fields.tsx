@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   type AdminFormValidation,
@@ -33,7 +33,8 @@ import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
 } from "@/lib/products/product-form-validation";
-import { getProductEditorDetails, issuesForField } from "@/components/admin/products/product-helpers";
+import { getProductEditorDetails, issuesForField, taxonomySatisfactionFromDraft } from "@/components/admin/products/product-helpers";
+import type { TaxonomySatisfaction } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 
 export { OwnershipLabel } from "@/components/synarava-cms";
@@ -574,6 +575,7 @@ export function ProductFormFields({
   activeSection = "essentials",
   activeLocale,
   onLocaleChange,
+  onTaxonomySatisfactionChange,
 }: {
   draft: ProductDraft;
   collections: CollectionOption[];
@@ -588,6 +590,8 @@ export function ProductFormFields({
   activeLocale: string;
   /** Lets validation force the source locale open when a required English field fails. */
   onLocaleChange: (locale: string) => void;
+  /** Keeps the section issue strip in sync when taxonomy fields are filled before Save. */
+  onTaxonomySatisfactionChange?: (satisfaction: TaxonomySatisfaction) => void;
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -606,6 +610,7 @@ export function ProductFormFields({
     [SOURCE_LOCALE]: coreDraftFrom(draft),
     ...Object.fromEntries(translationLocales.map(({ code }) => [code, coreDraftFrom(draft.translations[code] ?? draft)])),
   }));
+  const taxonomySatisfactionRef = useRef(taxonomySatisfactionFromDraft(draft));
   const coreDraft = draftByLocale[activeLocale] ?? draftByLocale[SOURCE_LOCALE];
   const isEn = activeLocale === SOURCE_LOCALE;
   const activeLabel = translationLocales.find((locale) => locale.code === activeLocale)?.label
@@ -614,6 +619,12 @@ export function ProductFormFields({
   const categoryIssues = issuesForField(issues, "field-taxonomy-category");
   const collectionIssues = issuesForField(issues, "field-taxonomy-collection");
   const tagsIssues = issuesForField(issues, "field-taxonomy-tags");
+
+  function updateTaxonomySatisfaction(patch: Partial<TaxonomySatisfaction>) {
+    const next = { ...taxonomySatisfactionRef.current, ...patch };
+    taxonomySatisfactionRef.current = next;
+    onTaxonomySatisfactionChange?.(next);
+  }
 
   useEffect(() => {
     // Fixes a real bug: the required "Name" field sits inside a `hidden`
@@ -908,6 +919,7 @@ export function ProductFormFields({
             initialId={draft.shopifyCategoryId}
             initialName={draft.shopifyCategoryName}
             invalid={categoryIssues.length > 0}
+            onSelectedIdChange={(id) => updateTaxonomySatisfaction({ hasCategory: Boolean(id.trim()) })}
           >
             <AdminFieldShell
               id="field-taxonomy-category"
@@ -917,8 +929,10 @@ export function ProductFormFields({
               owner="Shopify"
               help={(
                 <AdminHelp label="Product category guidance">
-                  This is the exact Shopify Standard Product Taxonomy category. Its Shopify ID powers
-                  the Category section and filter on the site; Collections are a separate merchandising group.
+                  Search Shopify&rsquo;s Standard Product Taxonomy (for example &ldquo;hair&rdquo; or
+                  &ldquo;rings&rdquo;) and click a result. Free text like &ldquo;Uncategorized&rdquo; is not a
+                  category — the Shopify ID is what powers site filters. Collections are a separate
+                  merchandising group below.
                 </AdminHelp>
               )}
               issue={<AdminFieldIssue issues={categoryIssues} />}
@@ -936,6 +950,7 @@ export function ProductFormFields({
             defaultValue={draft.collectionSlug}
             invalid={collectionIssues.length > 0}
             issue={<AdminFieldIssue issues={collectionIssues} />}
+            onChange={(event) => updateTaxonomySatisfaction({ hasCollection: Boolean(event.target.value.trim()) })}
           >
             <option value="">No collection</option>
             {collections
@@ -957,6 +972,8 @@ export function ProductFormFields({
             clearable
             invalid={tagsIssues.length > 0}
             issue={<AdminFieldIssue issues={tagsIssues} />}
+            onChange={(event) => updateTaxonomySatisfaction({ hasTags: Boolean(event.target.value.trim()) })}
+            onClear={() => updateTaxonomySatisfaction({ hasTags: false })}
           />
         </div>
 

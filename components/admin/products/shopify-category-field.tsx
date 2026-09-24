@@ -55,11 +55,13 @@ function useShopifyCategoryState({
   initialName,
   invalid = false,
   controlId,
+  onSelectedIdChange,
 }: {
   initialId: string;
   initialName: string;
   invalid?: boolean;
   controlId?: string;
+  onSelectedIdChange?: (id: string) => void;
 }): ShopifyCategoryContextValue {
   const [query, setQuery] = useState(initialName);
   const [selectedId, setSelectedId] = useState(initialId);
@@ -73,6 +75,13 @@ function useShopifyCategoryState({
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const resultListId = useId();
   const searchErrorId = useId();
+  const onSelectedIdChangeRef = useRef(onSelectedIdChange);
+  onSelectedIdChangeRef.current = onSelectedIdChange;
+
+  function commitSelectedId(id: string) {
+    setSelectedId(id);
+    onSelectedIdChangeRef.current?.(id);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -123,7 +132,7 @@ function useShopifyCategoryState({
 
   function choose(category: ShopifyTaxonomyCategory) {
     setQuery(category.fullName);
-    setSelectedId(category.id);
+    commitSelectedId(category.id);
     setSelectedName(category.fullName);
     setResults([]);
     setSearchError("");
@@ -132,7 +141,7 @@ function useShopifyCategoryState({
 
   function clear() {
     setQuery("");
-    setSelectedId("");
+    commitSelectedId("");
     setSelectedName("");
     setResults([]);
     setSearchError("");
@@ -141,7 +150,7 @@ function useShopifyCategoryState({
 
   function onQueryChange(value: string) {
     setQuery(value);
-    setSelectedId("");
+    commitSelectedId("");
     setSelectedName("");
     setResults([]);
     setSearchError("");
@@ -292,15 +301,23 @@ export function ShopifyCategoryField({
   initialName,
   invalid = false,
   controlId,
+  onSelectedIdChange,
   children,
 }: {
   initialId: string;
   initialName: string;
   invalid?: boolean;
   controlId?: string;
+  onSelectedIdChange?: (id: string) => void;
   children?: ReactNode;
 }) {
-  const state = useShopifyCategoryState({ initialId, initialName, invalid, controlId });
+  const state = useShopifyCategoryState({
+    initialId,
+    initialName,
+    invalid,
+    controlId,
+    onSelectedIdChange,
+  });
 
   return (
     <ShopifyCategoryContext.Provider value={state}>

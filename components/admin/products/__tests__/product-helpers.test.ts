@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   centsToPrice,
   emptyDraft,
+  filterIssuesByTaxonomySatisfaction,
   getProductDetailsTranslation,
   getProductEditorDetails,
   issuesForField,
@@ -332,6 +333,24 @@ describe("issuesForField", () => {
       makeIssue({ fieldPath: "field-other", status: "OPEN" }),
     ];
     expect(issuesForField(issues, "field-imageUrl")).toHaveLength(1);
+  });
+});
+
+describe("filterIssuesByTaxonomySatisfaction", () => {
+  it("hides taxonomy warnings once the form already satisfies them", () => {
+    const issues = [
+      makeIssue({ id: "1", fieldPath: "field-taxonomy-category", status: "OPEN", title: "Missing category" }),
+      makeIssue({ id: "2", fieldPath: "field-taxonomy-collection", status: "OPEN", title: "Missing collection" }),
+      makeIssue({ id: "3", fieldPath: "field-imageUrl", status: "OPEN", title: "Broken cover" }),
+    ];
+
+    expect(
+      filterIssuesByTaxonomySatisfaction(issues, {
+        hasCategory: true,
+        hasCollection: true,
+        hasTags: false,
+      }).map((issue) => issue.title),
+    ).toEqual(["Broken cover"]);
   });
 });
 

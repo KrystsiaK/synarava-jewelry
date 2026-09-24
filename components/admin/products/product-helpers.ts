@@ -219,6 +219,40 @@ export function issuesForField(issues: AdminIssueSummary[], fieldPath: string) {
   return issues.filter((issue) => issue.fieldPath === fieldPath && issue.status === "OPEN");
 }
 
+/** Whether taxonomy fields currently satisfy the QA "missing taxonomy" checks. */
+export type TaxonomySatisfaction = {
+  hasCategory: boolean;
+  hasCollection: boolean;
+  hasTags: boolean;
+};
+
+export function taxonomySatisfactionFromDraft(
+  draft: Pick<ProductDraft, "shopifyCategoryId" | "collectionSlug" | "tags">,
+): TaxonomySatisfaction {
+  return {
+    hasCategory: Boolean(draft.shopifyCategoryId.trim()),
+    hasCollection: Boolean(draft.collectionSlug.trim()),
+    hasTags: Boolean(draft.tags.trim()),
+  };
+}
+
+/**
+ * Hide sticky QA warnings once the form already has a satisfying value,
+ * so selecting a collection/category turns the field green before Save /
+ * Scan now. Open AdminIssue rows are still resolved on save/rescan.
+ */
+export function filterIssuesByTaxonomySatisfaction(
+  issues: AdminIssueSummary[],
+  satisfaction: TaxonomySatisfaction,
+) {
+  return openProductIssues(issues).filter((issue) => {
+    if (issue.fieldPath === "field-taxonomy-category" && satisfaction.hasCategory) return false;
+    if (issue.fieldPath === "field-taxonomy-collection" && satisfaction.hasCollection) return false;
+    if (issue.fieldPath === "field-taxonomy-tags" && satisfaction.hasTags) return false;
+    return true;
+  });
+}
+
 /**
  * Maps a scanned issue field id to the product editor section that owns it.
  * Keep in sync with hash routing in `product-edit-form`.

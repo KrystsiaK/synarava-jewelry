@@ -292,7 +292,7 @@ bucket `PUT` rather than moving real megabytes.
 |----|----------|------|------|-------|-------|
 | ISS-01 | Scan on a clean catalog reports zero open/new | positive | P2 | **E2E** | Hard to guarantee "clean" on a shared DB — scope assertions to seeded fixtures. |
 | ISS-02 | Product with a broken image URL is flagged ERROR | positive | P1 | **E2E** | Seed a product whose `/uploads/...` path does not exist. |
-| ISS-03 | Non-archived product missing category/tags/collection gets a WARNING for each | positive | P1 | **E2E** | Three independent assertions. |
+| ISS-03 | Non-archived product missing Shopify category / tags / marketing collection gets a WARNING for each | positive | P1 | **E2E** | Category = empty `shopifyCategoryId`. Collection ignores Featured-only membership. |
 | ISS-04 | Archived product is exempt from taxonomy checks but not from media checks | edge | P2 | **E2E** | `lib/admin/issues.ts:190` — `if (product.status !== "ARCHIVED")` gates taxonomy only. |
 | ISS-05 | Re-scanning after a fix marks the issue `RESOLVED` and drops the open count | positive | P1 | **E2E** | |
 | ISS-06 | "Open problem" navigates to the entity with the field anchored | positive | P2 | **E2E** | Assert the `#field-...` hash and that the element scrolled into view. |

@@ -31,6 +31,7 @@ import {
   syncScopedCollectionMembership,
   syncStorefrontPriorityMembership,
 } from "@/lib/admin/collection-membership-sync";
+import { resolveSatisfiedProductTaxonomyIssues } from "@/lib/admin/issues";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runProductConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import {
@@ -949,9 +950,15 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   revalidateStorefront();
   revalidatePath("/admin/products");
+  revalidatePath("/admin/issues");
   revalidateStorefrontPath(`/products/${product.slug}`);
 
   let savedProduct = await getSavedProductPayload(product.id);
+  await resolveSatisfiedProductTaxonomyIssues(savedProduct.id, {
+    hasCategory: Boolean(savedProduct.shopifyCategoryId),
+    hasTags: savedProduct.tags.length > 0,
+    hasCollection: savedProduct.collections.some((item) => !item.collection.isStorefrontDefault),
+  });
   const commerceChanged = !before || productCommerceSignature(before) !== productCommerceSignature(savedProduct);
   const nextSyncStatus = savedProduct.shopifyProductId
     ? before?.syncStatus === "CONFLICT"

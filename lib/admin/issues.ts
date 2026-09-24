@@ -5,6 +5,9 @@ import { Prisma } from "@prisma/client";
 
 import { parseProductDetails } from "@/lib/content/product-details";
 import { db } from "@/lib/db";
+import { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
+
+export { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
 
 type IssueDraft = {
   entityType: string;
@@ -168,13 +171,49 @@ async function sendIssueEmail(issues: IssueDraft[]) {
   }
 }
 
+export async function resolveSatisfiedProductTaxonomyIssues(
+  productId: string,
+  state: { hasCategory: boolean; hasTags: boolean; hasCollection: boolean },
+) {
+  const fieldPaths = [
+    state.hasCategory ? "field-taxonomy-category" : null,
+    state.hasTags ? "field-taxonomy-tags" : null,
+    state.hasCollection ? "field-taxonomy-collection" : null,
+  ].filter((path): path is string => Boolean(path));
+
+  if (fieldPaths.length === 0) return;
+
+  await db.adminIssue.updateMany({
+    where: {
+      status: "OPEN",
+      entityType: "PRODUCT",
+      entityId: productId,
+      issueType: "MISSING_TAXONOMY",
+      fieldPath: { in: fieldPaths },
+    },
+    data: {
+      status: "RESOLVED",
+      resolvedAt: new Date(),
+    },
+  });
+}
+
 export async function scanAdminIssues() {
   const [products, collections] = await Promise.all([
     db.product.findMany({
-      include: {
-        category: true,
-        tags: { include: { tag: true } },
-        collections: { include: { collection: true } },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        imageUrl: true,
+        details: true,
+        shopifyCategoryId: true,
+        tags: { select: { id: true } },
+        collections: {
+          select: {
+            collection: { select: { isStorefrontDefault: true } },
+          },
+        },
       },
       orderBy: { updatedAt: "desc" },
     }),
@@ -188,7 +227,9 @@ export async function scanAdminIssues() {
 
   for (const product of products) {
     if (product.status !== "ARCHIVED") {
-      if (!product.category) {
+      const gaps = productTaxonomyGaps(product);
+
+      if (gaps.missingCategory) {
         issues.push(
           missingTaxonomyIssue({
             productId: product.id,
@@ -196,12 +237,12 @@ export async function scanAdminIssues() {
             fieldPath: "field-taxonomy-category",
             label: "category",
             description:
-              "This product has no category. This often happens after a category was deleted.",
+              "This product has no Shopify Standard Product Taxonomy category. Search the taxonomy and pick a result — free text does not count.",
           }),
         );
       }
 
-      if (product.tags.length === 0) {
+      if (gaps.missingTags) {
         issues.push(
           missingTaxonomyIssue({
             productId: product.id,
@@ -214,7 +255,7 @@ export async function scanAdminIssues() {
         );
       }
 
-      if (product.collections.length === 0) {
+      if (gaps.missingCollection) {
         issues.push(
           missingTaxonomyIssue({
             productId: product.id,
@@ -222,7 +263,7 @@ export async function scanAdminIssues() {
             fieldPath: "field-taxonomy-collection",
             label: "collection",
             description:
-              "This product is not assigned to any collection, so it can disappear from collection-led site paths.",
+              "This product is not assigned to any marketing collection, so it can disappear from collection-led site paths.",
           }),
         );
       }
