@@ -81,7 +81,10 @@ export function AdminIssueInlineWarning({
   );
 }
 
-/** Field-attached issue copy: plain text under the control (use inside `.adm-field-unit`). */
+/** Field-attached issue copy: plain text under the control.
+ *  Use via `AdminFieldShell` `issue` for single-line fields (absolute band).
+ *  For tall media composites, render in normal flow — never as a direct
+ *  `.adm-field-unit > .adm-field-error` child over an image preview/path. */
 export function AdminFieldIssue({
   issues,
   id,
