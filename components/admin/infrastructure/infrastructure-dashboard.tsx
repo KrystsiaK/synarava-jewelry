@@ -92,7 +92,7 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
         read-only probes
       </p>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="flex flex-col gap-6">
         <AdminPanelRoot>
           <AdminPanelHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -105,48 +105,47 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
               </AdminStatusBadge>
             </div>
           </AdminPanelHeader>
-          <AdminPanelBody className="space-y-5 p-5 md:p-6">
+          <AdminPanelBody className="space-y-8 p-5 md:p-6">
             {postgres.error ? (
               <p className="text-sm" style={{ color: "var(--adm-danger, #a6192e)" }}>
                 {postgres.error}
               </p>
             ) : null}
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-              <div>
-                <MetricRow label="SELECT 1 latency" value={formatLatency(postgres.latencyMs)} />
-                <MetricRow label="Version" value={shortPostgresVersion(postgres.version)} />
-                <MetricRow label="Database size" value={formatBytes(postgres.databaseSizeBytes)} />
-                <MetricRow
-                  label="Last successful read"
-                  value={
-                    postgres.lastSuccessfulReadAt
-                      ? new Date(postgres.lastSuccessfulReadAt).toLocaleString()
-                      : "—"
-                  }
-                />
-                <MetricRow
-                  label="Connections"
-                  value={
-                    postgres.connections.unavailableReason
-                      ? "Unavailable"
-                      : `${postgres.connections.active ?? "—"} active / ${postgres.connections.idle ?? "—"} idle / ${postgres.connections.max ?? "—"} max`
-                  }
-                />
-                {postgres.connections.unavailableReason ? (
-                  <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>
-                    {postgres.connections.unavailableReason}
-                  </p>
-                ) : null}
-              </div>
-              <div>
-                <p className="adm-section-tag mb-3">Connections vs max</p>
-                <ConnectionsGauge
-                  active={postgres.connections.active}
-                  idle={postgres.connections.idle}
-                  max={postgres.connections.max}
-                />
-              </div>
+            <div className="space-y-1">
+              <MetricRow label="SELECT 1 latency" value={formatLatency(postgres.latencyMs)} />
+              <MetricRow label="Version" value={shortPostgresVersion(postgres.version)} />
+              <MetricRow label="Database size" value={formatBytes(postgres.databaseSizeBytes)} />
+              <MetricRow
+                label="Last successful read"
+                value={
+                  postgres.lastSuccessfulReadAt
+                    ? new Date(postgres.lastSuccessfulReadAt).toLocaleString()
+                    : "—"
+                }
+              />
+              <MetricRow
+                label="Connections"
+                value={
+                  postgres.connections.unavailableReason
+                    ? "Unavailable"
+                    : `${postgres.connections.active ?? "—"} active · ${postgres.connections.idle ?? "—"} idle · ${postgres.connections.max ?? "—"} max`
+                }
+              />
+              {postgres.connections.unavailableReason ? (
+                <p className="mt-2 text-xs" style={{ color: "var(--adm-muted)" }}>
+                  {postgres.connections.unavailableReason}
+                </p>
+              ) : null}
+            </div>
+
+            <div>
+              <p className="adm-section-tag mb-3">Connections vs max</p>
+              <ConnectionsGauge
+                active={postgres.connections.active}
+                idle={postgres.connections.idle}
+                max={postgres.connections.max}
+              />
             </div>
 
             <div>
