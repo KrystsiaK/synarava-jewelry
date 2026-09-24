@@ -9,7 +9,11 @@ import {
   AdminThemeToggle,
   AdminTopbarIssueLink,
 } from "@/components/admin/shared/admin-primitives";
-import { issueToNavHref } from "@/components/admin/shared/admin-nav-config";
+import {
+  countAdminNavSyncBySection,
+  issueToNavHref,
+  syncDifferenceToNavHref,
+} from "@/components/admin/shared/admin-nav-config";
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
@@ -40,20 +44,12 @@ export default async function AdminLayout({
   );
   if (openIssueCount > 0) issueNavHrefs.push("/admin/issues");
 
-  const syncCount = syncDifferences.length;
+  const syncCounts = countAdminNavSyncBySection(syncDifferences);
   const syncPageSlugs = new Map(syncPages.map((page) => [page.id, page.slug]));
   const syncNavHrefs = Array.from(
-    new Set<string>(
-      syncDifferences.map((difference) => {
-        if (difference.rootEntityType === "PRODUCT") return "/admin/products";
-        if (difference.rootEntityType === "COLLECTION") return "/admin/collections";
-        if (difference.rootEntityType === "STOREFRONT_COPY") return "/admin/settings";
-        const slug = syncPageSlugs.get(difference.rootEntityId);
-        return slug ? `/admin/pages/${slug}` : "/admin/pages";
-      }),
-    ),
+    new Set(syncDifferences.map((difference) => syncDifferenceToNavHref(difference, syncPageSlugs))),
   );
-  if (syncCount > 0) syncNavHrefs.push("/admin/translations");
+  if (syncCounts.total > 0) syncNavHrefs.push("/admin/translations");
 
   return (
     <AdminToastProvider>
@@ -67,7 +63,7 @@ export default async function AdminLayout({
             pages={navPages}
             issueCount={openIssueCount}
             issueNavHrefs={issueNavHrefs}
-            syncCount={syncCount}
+            syncCounts={syncCounts}
             syncNavHrefs={syncNavHrefs}
             footer={
               <div className="grid gap-3">
@@ -116,7 +112,7 @@ export default async function AdminLayout({
               pages={navPages}
               issueCount={openIssueCount}
               issueNavHrefs={issueNavHrefs}
-              syncCount={syncCount}
+              syncCounts={syncCounts}
               syncNavHrefs={syncNavHrefs}
             />
           </div>

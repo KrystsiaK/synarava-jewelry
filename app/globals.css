@@ -4118,9 +4118,9 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 }
 
 .adm-nav-item .adm-nav-arrow[data-attention="true"][data-signal="sync"] {
-  border-color: rgba(196, 146, 52, 0.62);
-  background: color-mix(in srgb, var(--adm-accent) 18%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--adm-conflict) 62%, transparent);
+  background: var(--adm-conflict-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-conflict) 12%, transparent);
 }
 
 .adm-nav-item .adm-nav-arrow[data-attention="true"]::after {
@@ -4135,16 +4135,43 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 }
 
 .adm-nav-item .adm-nav-arrow[data-attention="true"][data-signal="sync"]::after {
-  background: var(--adm-accent);
+  background: var(--adm-conflict);
 }
 
+/* Problems + conflicts: two dots so neither signal is lost under the other. */
 .adm-nav-item .adm-nav-arrow[data-attention="true"][data-signal="both"] {
-  border-color: rgba(185, 74, 72, 0.56);
-  background: var(--adm-danger-soft);
+  border-color: color-mix(in srgb, var(--adm-danger) 42%, var(--adm-conflict));
+  background: linear-gradient(
+    105deg,
+    var(--adm-danger-soft) 0 46%,
+    var(--adm-conflict-soft) 54% 100%
+  );
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-danger) 6%, transparent);
+}
+
+.adm-nav-item .adm-nav-arrow[data-attention="true"][data-signal="both"]::before,
+.adm-nav-item .adm-nav-arrow[data-attention="true"][data-signal="both"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.adm-nav-item .adm-nav-arrow[data-attention="true"][data-signal="both"]::before {
+  left: 0.2rem;
+  background: var(--adm-danger);
 }
 
 .adm-nav-item .adm-nav-arrow[data-attention="true"][data-signal="both"]::after {
-  background: var(--adm-danger);
+  inset: auto;
+  top: 50%;
+  right: 0.2rem;
+  left: auto;
+  background: var(--adm-conflict);
+  transform: translateY(-50%);
 }
 
 .adm-nav-arrow {
@@ -4175,9 +4202,20 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 
 .adm-nav-item:hover .adm-nav-arrow[data-attention="true"][data-signal="sync"],
 .adm-nav-item[data-active="true"] .adm-nav-arrow[data-attention="true"][data-signal="sync"] {
-  border-color: color-mix(in srgb, var(--adm-accent) 70%, transparent);
-  background: color-mix(in srgb, var(--adm-accent) 22%, transparent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--adm-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--adm-conflict) 78%, transparent);
+  background: color-mix(in srgb, var(--adm-conflict) 22%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--adm-conflict) 14%, transparent);
+}
+
+.adm-nav-item:hover .adm-nav-arrow[data-attention="true"][data-signal="both"],
+.adm-nav-item[data-active="true"] .adm-nav-arrow[data-attention="true"][data-signal="both"] {
+  border-color: color-mix(in srgb, var(--adm-danger) 50%, var(--adm-conflict));
+  background: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--adm-danger) 22%, transparent) 0 46%,
+    color-mix(in srgb, var(--adm-conflict) 22%, transparent) 54% 100%
+  );
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--adm-danger) 10%, transparent);
 }
 
 .adm-nav-badge,
@@ -4201,9 +4239,9 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 }
 
 .adm-nav-badge--sync {
-  border-color: color-mix(in srgb, var(--adm-accent) 55%, transparent);
-  background: color-mix(in srgb, var(--adm-accent) 16%, transparent);
-  color: color-mix(in srgb, var(--adm-accent) 88%, white);
+  border-color: color-mix(in srgb, var(--adm-conflict) 55%, transparent);
+  background: var(--adm-conflict-soft);
+  color: color-mix(in srgb, var(--adm-conflict) 82%, white);
 }
 
 .adm-nav-badge--count {
@@ -4223,8 +4261,8 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 
 .adm-nav-item:hover .adm-nav-badge--sync,
 .adm-nav-item[data-active="true"] .adm-nav-badge--sync {
-  border-color: color-mix(in srgb, var(--adm-accent) 70%, transparent);
-  color: color-mix(in srgb, var(--adm-accent) 92%, white);
+  border-color: color-mix(in srgb, var(--adm-conflict) 72%, transparent);
+  color: color-mix(in srgb, var(--adm-conflict) 92%, white);
 }
 
 .adm-nav-item:hover .adm-nav-badge--count,

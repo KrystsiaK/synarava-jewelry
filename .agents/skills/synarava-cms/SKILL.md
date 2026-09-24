@@ -62,7 +62,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Long copy (preview + Edit modal) | `AdminLongTextField` |
 | Collapsible section (chevron) | `AdminCollapsiblePanel` |
 | Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
-| Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` |
+| Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` (+ `syncCounts` for amber conflict badges per section) |
 | Section tabs + cool content well | `AdminSectionTabs` |
 | Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
 | Sticky list chrome (title / filters / body) | `AdminListWorkspace` (`.Root` / `.Header` / `.Filters` / `.Body`) |

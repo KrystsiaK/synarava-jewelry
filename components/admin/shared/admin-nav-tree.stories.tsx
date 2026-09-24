@@ -43,14 +43,27 @@ const demoPages = [
   { slug: "privacy", title: "Privacy Policy" },
 ];
 
+/** Red problems + amber conflicts on Catalog; split marker on Pages (both). */
 export const TreeWithSignals: Story = {
   args: {
     items: buildAdminNavItems({
       pages: demoPages,
       issueCount: 23,
-      syncCount: 4,
+      syncCounts: {
+        products: 12,
+        collections: 2,
+        pages: 3,
+        settings: 1,
+        total: 18,
+      },
     }),
-    issueNavHrefs: ["/admin/pages/care", "/admin/issues"],
-    syncNavHrefs: ["/admin/settings", "/admin/translations"],
+    issueNavHrefs: ["/admin/pages/care", "/admin/products", "/admin/issues"],
+    syncNavHrefs: [
+      "/admin/products",
+      "/admin/collections",
+      "/admin/pages/care",
+      "/admin/settings",
+      "/admin/translations",
+    ],
   },
 };

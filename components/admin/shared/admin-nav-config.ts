@@ -38,11 +38,74 @@ export type AdminNavPageRef = {
   title: string;
 };
 
+/** Per-section unresolved Shopify divergence counts for sidebar conflict badges. */
+export type AdminNavSyncCounts = {
+  products: number;
+  collections: number;
+  pages: number;
+  settings: number;
+  total: number;
+};
+
+export type AdminNavSyncEntityType =
+  | "PRODUCT"
+  | "COLLECTION"
+  | "PAGE"
+  | "STOREFRONT_COPY";
+
 export type BuildAdminNavItemsInput = {
   pages?: AdminNavPageRef[];
   issueCount?: number;
+  /** @deprecated Prefer `syncCounts.total` — kept for callers that only know the hub total. */
   syncCount?: number;
+  syncCounts?: Partial<AdminNavSyncCounts>;
 };
+
+const EMPTY_SYNC_COUNTS: AdminNavSyncCounts = {
+  products: 0,
+  collections: 0,
+  pages: 0,
+  settings: 0,
+  total: 0,
+};
+
+export function adminNavSyncSectionForEntity(
+  rootEntityType: AdminNavSyncEntityType,
+): keyof Omit<AdminNavSyncCounts, "total"> {
+  if (rootEntityType === "PRODUCT") return "products";
+  if (rootEntityType === "COLLECTION") return "collections";
+  if (rootEntityType === "PAGE") return "pages";
+  return "settings";
+}
+
+/** Tally unresolved divergences into sidebar section buckets. */
+export function countAdminNavSyncBySection(
+  differences: ReadonlyArray<{ rootEntityType: AdminNavSyncEntityType }>,
+): AdminNavSyncCounts {
+  const counts: AdminNavSyncCounts = { ...EMPTY_SYNC_COUNTS };
+  for (const difference of differences) {
+    counts.total += 1;
+    counts[adminNavSyncSectionForEntity(difference.rootEntityType)] += 1;
+  }
+  return counts;
+}
+
+/** Map a reconcile difference onto the most specific sidebar href. */
+export function syncDifferenceToNavHref(
+  difference: { rootEntityType: AdminNavSyncEntityType; rootEntityId: string },
+  pageSlugById: ReadonlyMap<string, string>,
+): string {
+  if (difference.rootEntityType === "PRODUCT") return "/admin/products";
+  if (difference.rootEntityType === "COLLECTION") return "/admin/collections";
+  if (difference.rootEntityType === "STOREFRONT_COPY") return "/admin/settings";
+  const slug = pageSlugById.get(difference.rootEntityId);
+  return slug ? `/admin/pages/${slug}` : "/admin/pages";
+}
+
+function syncBadge(count: number | undefined): AdminNavBadgeConfig | undefined {
+  if (!count || count <= 0) return undefined;
+  return { kind: "sync", count };
+}
 
 const DEFAULT_CHILD_PREVIEW = 8;
 
@@ -145,13 +208,23 @@ export function buildPagesNavChildren(pages: AdminNavPageRef[]): AdminNavChildCo
 /**
  * Canonical admin sidebar configuration.
  * Catalog stays a leaf; Pages + Header & Footer expand inline.
+ *
+ * Conflict (sync) badges sit on the section that owns the divergence —
+ * Catalog / Collections / Pages / Header & Footer — plus Localization as the
+ * review hub (total). Left markers still carry issue / sync / both.
  */
 export function buildAdminNavItems({
   pages = [],
   issueCount = 0,
   syncCount = 0,
+  syncCounts,
 }: BuildAdminNavItemsInput = {}): AdminNavItemConfig[] {
   const pageChildren = buildPagesNavChildren(pages);
+  const sync: AdminNavSyncCounts = {
+    ...EMPTY_SYNC_COUNTS,
+    ...syncCounts,
+    total: syncCounts?.total ?? syncCount ?? 0,
+  };
 
   return [
     { id: "overview", href: "/admin", exact: true, label: "Overview", code: "CTRL" },
@@ -163,6 +236,7 @@ export function buildAdminNavItems({
       children: pageChildren,
       childPreviewLimit: DEFAULT_CHILD_PREVIEW,
       showChildCount: true,
+      badge: syncBadge(sync.pages),
     },
     {
       id: "settings",
@@ -171,10 +245,17 @@ export function buildAdminNavItems({
       code: "HF",
       children: buildStorefrontCopyNavChildren(),
       childPreviewLimit: 12,
+      badge: syncBadge(sync.settings),
     },
     { id: "meta", href: "/admin/meta", label: "Meta", code: "META" },
     { id: "videos", href: "/admin/videos", label: "Videos", code: "VID" },
-    { id: "products", href: "/admin/products", label: "Catalog", code: "CAT" },
+    {
+      id: "products",
+      href: "/admin/products",
+      label: "Catalog",
+      code: "CAT",
+      badge: syncBadge(sync.products),
+    },
     {
       id: "issues",
       href: "/admin/issues",
@@ -182,13 +263,19 @@ export function buildAdminNavItems({
       code: "QA",
       badge: issueCount > 0 ? { kind: "issues", count: issueCount } : undefined,
     },
-    { id: "collections", href: "/admin/collections", label: "Collections", code: "COL" },
+    {
+      id: "collections",
+      href: "/admin/collections",
+      label: "Collections",
+      code: "COL",
+      badge: syncBadge(sync.collections),
+    },
     {
       id: "translations",
       href: "/admin/translations",
       label: "Localization",
       code: "I18N",
-      badge: syncCount > 0 ? { kind: "sync", count: syncCount } : undefined,
+      badge: syncBadge(sync.total),
     },
     { id: "infrastructure", href: "/admin/infrastructure", label: "Infrastructure", code: "INF" },
     { id: "account", href: "/admin/account", label: "Account", code: "ACC" },

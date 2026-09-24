@@ -9,11 +9,12 @@ import { Menu, X } from "lucide-react";
 import {
   buildAdminNavItems,
   type AdminNavPageRef,
+  type AdminNavSyncCounts,
 } from "@/components/admin/shared/admin-nav-config";
 import { AdminNavTree } from "@/components/admin/shared/admin-nav-tree";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
-export type { AdminNavPageRef };
+export type { AdminNavPageRef, AdminNavSyncCounts };
 
 export function AdminThemeShell() {
   useEffect(() => {
@@ -113,19 +114,22 @@ export function AdminNav({
   issueCount = 0,
   issueNavHrefs = [],
   syncCount = 0,
+  syncCounts,
   syncNavHrefs = [],
   onNavigate,
 }: {
   pages?: AdminNavPageRef[];
   issueCount?: number;
   issueNavHrefs?: string[];
+  /** @deprecated Prefer `syncCounts` — total only, no per-section badges. */
   syncCount?: number;
+  syncCounts?: Partial<AdminNavSyncCounts>;
   syncNavHrefs?: string[];
   onNavigate?: () => void;
 }) {
   const items = useMemo(
-    () => buildAdminNavItems({ pages, issueCount, syncCount }),
-    [pages, issueCount, syncCount],
+    () => buildAdminNavItems({ pages, issueCount, syncCount, syncCounts }),
+    [pages, issueCount, syncCount, syncCounts],
   );
 
   return (
@@ -144,13 +148,16 @@ export function AdminMobileMenu({
   issueCount = 0,
   issueNavHrefs = [],
   syncCount = 0,
+  syncCounts,
   syncNavHrefs = [],
 }: {
   footer?: ReactNode;
   pages?: AdminNavPageRef[];
   issueCount?: number;
   issueNavHrefs?: string[];
+  /** @deprecated Prefer `syncCounts`. */
   syncCount?: number;
+  syncCounts?: Partial<AdminNavSyncCounts>;
   syncNavHrefs?: string[];
 }) {
   const [open, setOpen] = useState(false);
@@ -233,6 +240,7 @@ export function AdminMobileMenu({
               issueCount={issueCount}
               issueNavHrefs={issueNavHrefs}
               syncCount={syncCount}
+              syncCounts={syncCounts}
               syncNavHrefs={syncNavHrefs}
               onNavigate={() => setOpen(false)}
             />

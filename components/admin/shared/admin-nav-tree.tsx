@@ -50,16 +50,24 @@ function AdminNavCountBadge({
   return (
     <span
       data-component="AdminNavCountBadge"
+      data-kind={kind}
       className={cn(
         "adm-nav-badge",
         kind === "sync" && "adm-nav-badge--sync",
         kind === "count" && "adm-nav-badge--count",
       )}
       aria-label={label}
+      title={label}
     >
       {count > 99 ? "99+" : count}
     </span>
   );
+}
+
+function navSignalLabel(signal: AdminNavSignal): string {
+  if (signal === "issue") return "Open problems";
+  if (signal === "sync") return "Shopify conflicts";
+  return "Open problems and Shopify conflicts";
 }
 
 function AdminNavMarker({
@@ -70,12 +78,14 @@ function AdminNavMarker({
   signal?: AdminNavSignal;
 }) {
   if (signal) {
+    const label = navSignalLabel(signal);
     return (
       <span
         className="adm-nav-arrow"
         data-attention="true"
         data-signal={signal}
         aria-hidden="true"
+        title={label}
       />
     );
   }
@@ -286,8 +296,10 @@ export function AdminNavTree({
                         kind={item.badge.kind}
                         label={
                           item.badge.kind === "issues"
-                            ? `${item.badge.count} open problems`
-                            : `${item.badge.count} Shopify sync changes to review`
+                            ? `${item.badge.count} open problem${item.badge.count === 1 ? "" : "s"}`
+                            : item.id === "translations"
+                              ? `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} to review`
+                              : `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} in ${item.label}`
                         }
                       />
                     ) : item.showChildCount && hasChildren && !open ? (

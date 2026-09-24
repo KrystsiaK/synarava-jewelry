@@ -91,10 +91,14 @@ export {
 
 export {
   buildAdminNavItems,
+  countAdminNavSyncBySection,
+  syncDifferenceToNavHref,
   type AdminNavChildConfig,
   type AdminNavItemConfig,
   type AdminNavPageRef,
   type AdminNavSignal,
+  type AdminNavSyncCounts,
+  type AdminNavSyncEntityType,
 } from "@/components/admin/shared/admin-nav-config";
 
 export {
