@@ -68,3 +68,7 @@ legal-document-backups/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local audit dumps (may contain bucket names)
+scripts/audit/infrastructure-audit-results.json
+scripts/audit/infrastructure-cleanup-results.json
