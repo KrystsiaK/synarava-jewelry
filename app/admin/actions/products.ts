@@ -31,6 +31,7 @@ import {
   syncScopedCollectionMembership,
   syncStorefrontPriorityMembership,
 } from "@/lib/admin/collection-membership-sync";
+import { liveProductRequiresPublishedCollectionMessage } from "@/lib/admin/collection-select-options";
 import { resolveSatisfiedProductTaxonomyIssues } from "@/lib/admin/issues";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runProductConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
@@ -725,8 +726,29 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   };
 
   const collection = collectionSlug
-    ? await db.collection.findUnique({ where: { slug: collectionSlug }, select: { id: true } })
+    ? await db.collection.findUnique({
+        where: { slug: collectionSlug },
+        select: { id: true, name: true, status: true, visibility: true },
+      })
     : null;
+
+  if (collectionSlug && !collection) {
+    return {
+      error: "Review the highlighted fields and try again.",
+      fieldErrors: { collectionSlug: "Choose a collection from the list." },
+    };
+  }
+
+  const liveCollectionError = liveProductRequiresPublishedCollectionMessage(
+    collection,
+    isPublished || isUnlisted,
+  );
+  if (liveCollectionError) {
+    return {
+      error: "Review the highlighted fields and try again.",
+      fieldErrors: { collectionSlug: liveCollectionError },
+    };
+  }
 
   const missingImage = (isPublished || isUnlisted) && !imageUrl;
   const publishWarning = publishGapsNotice({ missingTranslations, missingImage });
@@ -1274,6 +1296,21 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
         };
       }),
     });
+
+    const marketingCollection = before.collections.find((item) => !item.collection.isStorefrontDefault)?.collection;
+    if (marketingCollection) {
+      const fullCollection = await db.collection.findUnique({
+        where: { id: marketingCollection.id },
+        select: { name: true, status: true, visibility: true },
+      });
+      const liveCollectionError = liveProductRequiresPublishedCollectionMessage(fullCollection, true);
+      if (liveCollectionError) {
+        return {
+          error: liveCollectionError,
+          fieldErrors: { collectionSlug: liveCollectionError },
+        };
+      }
+    }
   }
   const publishWarning = publishGapsNotice({ missingTranslations, missingImage });
 

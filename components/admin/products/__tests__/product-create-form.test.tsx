@@ -22,8 +22,24 @@ import { CreateProductForm } from "@/components/admin/products/product-create-fo
 import type { CollectionOption } from "@/components/admin/products/product-types";
 
 const collections: CollectionOption[] = [
-  { id: "col-1", slug: "lava-collection", name: "Lava Collection", isStorefrontDefault: false, shopifyCollectionId: null },
-  { id: "col-2", slug: "featured", name: "Featured", isStorefrontDefault: true, shopifyCollectionId: null },
+  {
+    id: "col-1",
+    slug: "lava-collection",
+    name: "Lava Collection",
+    isStorefrontDefault: false,
+    shopifyCollectionId: null,
+    status: "ACTIVE",
+    visibility: "PUBLIC",
+  },
+  {
+    id: "col-2",
+    slug: "featured",
+    name: "Featured",
+    isStorefrontDefault: true,
+    shopifyCollectionId: null,
+    status: "ACTIVE",
+    visibility: "PUBLIC",
+  },
 ];
 
 beforeEach(() => {
@@ -49,6 +65,31 @@ describe("CreateProductForm", () => {
     expect(screen.getByText("Product gallery")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Catalog/ }));
     expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Featured" })).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("keeps draft collections in the Collection select with a Draft label", async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateProductForm
+        collections={[
+          ...collections,
+          {
+            id: "col-draft",
+            slug: "obsidian",
+            name: "Obsidian",
+            isStorefrontDefault: false,
+            shopifyCollectionId: null,
+            status: "DRAFT",
+            visibility: "PRIVATE",
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Catalog/ }));
+    expect(screen.getByRole("option", { name: "Obsidian (Draft)" })).toBeInTheDocument();
     await act(async () => {});
   });
 

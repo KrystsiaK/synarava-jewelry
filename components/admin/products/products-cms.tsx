@@ -35,6 +35,7 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
 import { CatalogConflictWorkspace } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
+import { collectionSelectOptionLabel } from "@/lib/admin/collection-select-options";
 import {
   AdminEntityList,
   AdminIconButton,
@@ -457,7 +458,8 @@ export function ProductsCms({
                 <option value="ALL">All collections</option>
                 {collections.map((collection) => (
                   <option key={collection.id} value={collection.id}>
-                    {collection.name}{collection.isStorefrontDefault ? " (global priority)" : ""}
+                    {collectionSelectOptionLabel(collection)}
+                    {collection.isStorefrontDefault ? " (global priority)" : ""}
                   </option>
                 ))}
               </AdminSelectField>

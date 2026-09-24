@@ -254,6 +254,9 @@ and SYNC-16 asserts that state is handled gracefully.
 | COL-12 | *(retired)* Primary-nav storefront navigation | — | — | — | Removed with the department model (September 2026). |
 | COL-13 | Edit form shows Site state after identity fields; Delete help is delete-only | positive | P2 | **render** | `WorkflowStateField` at `#field-workflowState`; no orphan Publishing guidance near Delete. |
 | COL-14 | Drafting a collection drafts ACTIVE/UNLISTED member products locally | positive | P1 | **unit** / **action** | `draftMemberProductsLocally`; no Shopify `syncStatus` change. |
+| COL-15 | Product Collection select keeps draft collections labeled `(Draft)` | positive | P2 | ✔ unit | `collection-select-options.test.ts`; archived only when currently assigned. |
+| COL-16 | Publishing/Unlisting a product while marketing collection is Draft is blocked | negative | P1 | ✔ unit / **action** | `liveProductRequiresPublishedCollectionMessage` + `saveProductAction` / row Publish. |
+| COL-17 | Shopify pull into a Draft collection does not throw; QA flags live+draft pairing | edge | P1 | ✔ unit | `productLiveInUnpublishedCollection`; issue type `LIVE_IN_UNPUBLISHED_COLLECTION`. |
 
 ## 11. Pages (`e2e/admin-pages.spec.ts`)
 
