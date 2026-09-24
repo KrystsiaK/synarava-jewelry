@@ -259,9 +259,15 @@ export function CollectionFields({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div
+        {/*
+          Tall media composite: do NOT wrap in `.adm-field-unit`.
+          Absolute error band is for single-line controls; here it paints over the path.
+          Mirror ProductMediaManager — issue copy stays in normal flow under the label.
+        */}
+        <section
           id="field-heroImageUrl"
-          className="adm-field-unit grid gap-2"
+          data-component="CollectionHeroField"
+          className="grid gap-2"
           style={
             hasHeroIssues
               ? {
@@ -279,11 +285,12 @@ export function CollectionFields({
           >
             Hero image
           </FieldLabel>
+          <AdminFieldIssue issues={heroIssues} />
           <ImageFileField
             key={fileInputKey}
             name="heroImageFile"
             required={!currentHeroImageUrl}
-            className={fieldClass(fieldErrors?.heroImageFile)}
+            className={fieldClass(fieldErrors?.heroImageFile ?? (hasHeroIssues ? "broken" : undefined))}
             aria-invalid={Boolean(fieldErrors?.heroImageFile) || hasHeroIssues}
             currentImageUrl={currentHeroImageUrl}
             currentImageAlt={currentHeroImageLabel ?? "Collection hero image"}
@@ -292,9 +299,8 @@ export function CollectionFields({
             removeFieldName="removeHeroImage"
             removeLabel="Remove"
           />
-          <AdminFieldIssue issues={heroIssues} />
           <FieldError message={fieldErrors?.heroImageFile} />
-        </div>
+        </section>
       </div>
 
       <AdminLongTextField

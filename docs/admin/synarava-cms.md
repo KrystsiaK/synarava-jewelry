@@ -50,6 +50,11 @@ two visual variants remain. Agent skill encodes this contract.
   jump when validation appears. Long messages **ellipsis** in that band; full
   copy is available via tooltip / `title`. They must not push sibling rows or
   paint over the next section.
+- **Tall media composites** (`ImageFileField` + preview/path): do **not** put
+  `AdminFieldIssue` as a direct `.adm-field-unit > .adm-field-error` child — the
+  absolute band paints over the path. Keep issue copy in normal flow under the
+  label (see `ProductMediaManager` / collection hero), or wrap it so it is not
+  a direct unit child.
 - `invalid` forces error chrome without copy (issue-linked fields).
 - `warning` — soft orange notice in the **same** absolute band as `error` (`.adm-field-warning` / `.adm-field-group--warning`). Error wins when both are set. Does not set `aria-invalid`.
 

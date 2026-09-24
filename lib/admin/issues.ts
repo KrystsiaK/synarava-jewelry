@@ -1,11 +1,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
+import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 
 import { parseProductDetails } from "@/lib/content/product-details";
 import { db } from "@/lib/db";
 import { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
+import { getS3, getS3Bucket } from "@/lib/s3";
 
 export { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
 
@@ -41,8 +43,37 @@ function publicFilePath(url: string) {
   return path.join(process.cwd(), "public", pathname.replace(/^\/+/, ""));
 }
 
+/** `/media/uploads/...` is the S3 proxy route — not a file under `public/`. */
+function mediaProxyKey(url: string) {
+  if (!url.startsWith("/media/")) return null;
+  const raw = decodeURIComponent(url.slice("/media/".length).split("?")[0] ?? "");
+  const parts = raw.split("/").filter(Boolean);
+  if (parts[0] !== "uploads" || parts.some((part) => part === "." || part === "..")) {
+    return null;
+  }
+  return parts.join("/");
+}
+
+async function s3ImageExists(url: string) {
+  const key = mediaProxyKey(url);
+  if (!key) return false;
+  try {
+    await getS3().send(
+      new HeadObjectCommand({
+        Bucket: getS3Bucket(),
+        Key: key,
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function localImageExists(url: string) {
   if (!url.startsWith("/")) return null;
+  // S3 proxy URLs must not be checked on disk — missing public/ files are expected.
+  if (url.startsWith("/media/")) return null;
   try {
     const stat = await fs.stat(publicFilePath(url));
     return stat.isFile();
@@ -90,10 +121,16 @@ async function remoteImageExists(url: string) {
 async function imageExists(url: string) {
   if (!url.trim()) return false;
   if (url.startsWith("data:")) return true;
+  if (url.startsWith("/media/")) return s3ImageExists(url);
   const local = await localImageExists(url);
   if (local !== null) return local;
   if (!/^https?:\/\//i.test(url)) return false;
   return remoteImageExists(url);
+}
+
+/** Exported for unit tests — same existence rules as the QA media scan. */
+export async function adminMediaExists(url: string) {
+  return imageExists(url);
 }
 
 function brokenMediaIssue(check: MediaCheck): IssueDraft {

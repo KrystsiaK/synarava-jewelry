@@ -331,6 +331,9 @@ export function ProductDetailFields({
               }}
             >
               <p className="adm-section-tag">MATERIAL {index + 1}</p>
+              <div className="min-w-0">
+                <AdminFieldIssue issues={materialIssues} />
+              </div>
               <AdminTextField
                 label="Title"
                 value={draft.materials[index].title}
@@ -358,7 +361,6 @@ export function ProductDetailFields({
                 removeFieldName={`removeMaterialImage${index + 1}`}
                 removeLabel="Remove"
               />
-              <AdminFieldIssue issues={materialIssues} />
             </div>
             );
           })}
@@ -396,6 +398,10 @@ export function ProductDetailFields({
             name="existingProcessMediaImage"
             value={details.process.mediaImage}
           />
+          {/* Wrapper keeps AdminFieldIssue out of the absolute `.adm-field-unit > .adm-field-error` band. */}
+          <div className="min-w-0">
+            <AdminFieldIssue issues={issuesForField(issues, "field-details-process-mediaImage")} />
+          </div>
           <ImageFileField
             name="processMediaImageFile"
             currentImageUrl={mode === "edit" ? details.process.mediaImage : ""}
@@ -406,7 +412,6 @@ export function ProductDetailFields({
             removeFieldName="removeProcessMediaImage"
             removeLabel="Remove"
           />
-          <AdminFieldIssue issues={issuesForField(issues, "field-details-process-mediaImage")} />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {draft.processStats.map((stat, index) => (
@@ -482,6 +487,9 @@ export function ProductDetailFields({
                   labelClassName="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--adm-muted)]"
                 />
               </div>
+              <div className="min-w-0">
+                <AdminFieldIssue issues={lookbookIssues} />
+              </div>
               <AdminTextField
                 value={draft.lookbookLabels[index] ?? ""}
                 onChange={(event) => updateLookbookLabel(index, event.target.value)}
@@ -500,7 +508,6 @@ export function ProductDetailFields({
                 removeFieldName={`removeLookbookImage${index + 1}`}
                 removeLabel="Remove"
               />
-              <AdminFieldIssue issues={lookbookIssues} />
             </div>
             );
           })}
