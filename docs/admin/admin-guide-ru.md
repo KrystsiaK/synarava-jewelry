@@ -322,14 +322,19 @@ legacy cover, пока не загружены изображения галер
 
 ## 7a. Header & Footer (`/admin/settings`)
 
-- Редактирует **только подписи** шапки и футера (EN и другие зарегистрированные
-  локали). URL ссылок, колонки и email зашиты в коде витрины.
-- Группы: main links и cart/account в header; brand, navigation, service и legal
-  row в footer. Пустое поле = дефолт из `messages/*.json`.
+- **Header — main links:** ordered list of name + path (storefront path autocomplete).
+  Add/remove/reorder like other CMS lists. Path is shared across locales; name is
+  per locale. Empty name falls back to the shipped default for Home / Shop /
+  Collections / About, or to the path for custom rows. Stored in `SiteSetting`
+  `header-nav-v1`.
+- **Chrome & footer labels:** cart/account and footer copy (EN and other registered
+  locales). Footer URLs, columns, and contact email stay fixed in storefront code.
+  Пустое поле = дефолт из `messages/*.json`. Stored in `storefront-copy-v1`.
 - Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
   **Pages**, не здесь.
-- Переводы синхронизируются с Shopify metaobject `$app:storefront_copy`;
-  конфликты смотрят в **Localization**.
+- Chrome/footer translations sync to Shopify metaobject `$app:storefront_copy`;
+  header main-link labels are local (no Shopify `MENU`/`LINK` binding yet).
+  Conflicts for synced fields show under **Localization**.
 
 ## 7b. Meta (`/admin/meta`)
 

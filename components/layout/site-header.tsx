@@ -12,16 +12,23 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { useDrawerFocusTrap } from "@/components/layout/use-drawer-focus-trap";
+import {
+  DEFAULT_HEADER_NAV_LABEL_KEYS,
+  type HeaderNavData,
+} from "@/lib/content/header-nav-fields";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+
 type SiteHeaderProps = {
   // null means the cart count couldn't be fetched (e.g. Shopify unavailable) —
   // treated as "unknown", never rendered as an empty cart.
   initialCartCount: number | null;
   isLoggedIn?: boolean;
+  /** Main links from header-nav-v1 (admin Header & Footer). */
+  headerNav: HeaderNavData;
 };
 
-export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderProps) {
+export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: SiteHeaderProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname.replace(/^\/(en|pt)(?=\/|$)/, "") || "/";
   const { resolvedTheme } = useTheme();
@@ -41,12 +48,16 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
       : initialCartCount;
   const hasCartItems = cartCount != null && cartCount > 0;
 
-  const navItems = [
-    { href: "/", label: t("nav.home"), match: "/" },
-    { href: "/shop", label: t("nav.shop"), match: "/shop" },
-    { href: "/collections", label: t("nav.collections"), match: "/collections" },
-    { href: "/about", label: t("nav.about"), match: "/about" },
-  ];
+  const localeLabels = headerNav.labels[locale];
+  const navItems = headerNav.items.map((item) => {
+    const override = localeLabels?.[item.id]?.trim();
+    const messageKey = DEFAULT_HEADER_NAV_LABEL_KEYS[item.id];
+    const label =
+      override ||
+      (messageKey ? t(messageKey) : "") ||
+      (item.href === "/" ? t("nav.home") : item.href.replace(/^\//, "") || item.href);
+    return { href: item.href, match: item.href, label };
+  });
 
   useEffect(() => {
     function handleCartUpdated(event: Event) {
@@ -180,7 +191,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false }: SiteHeaderP
         <nav className="relative z-10 hidden items-center gap-5 min-[1200px]:flex xl:gap-12">
           {navItems.map((item) => (
             <Link
-              key={item.href}
+              key={`${item.href}:${item.label}`}
               href={localePath(locale, item.href)}
               aria-current={isActive(item.match) ? "page" : undefined}
               className={`label-caps transition-colors hover:text-accent ${isActive(item.match) ? "border-b border-foreground pb-1 text-foreground" : "text-muted"}`}

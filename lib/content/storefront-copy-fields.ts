@@ -3,7 +3,8 @@
 // keys listed here are editable, everything else in messages/*.json still
 // requires a code change. Extend this list (not the form) to expose more.
 //
-// Labels only — link destinations and footer layout stay in code.
+// Header main links (label + path, add/remove) live in header-nav-v1 — not here.
+// Remaining groups are labels only; footer destinations stay fixed in code.
 
 // Lives here (not storefront-copy.ts) because that module is `server-only`
 // (it touches the database) — this constant is also needed by client
@@ -24,18 +25,6 @@ export type StorefrontCopyGroup = {
   title: string;
   description?: string;
   fields: StorefrontCopyField[];
-};
-
-const HEADER_MAIN_GROUP: StorefrontCopyGroup = {
-  id: "header-main",
-  title: "Header — main links",
-  description: "Primary navigation labels. Destinations are fixed in the site header.",
-  fields: [
-    { key: "nav.home", label: "Home" },
-    { key: "nav.shop", label: "Shop" },
-    { key: "nav.collections", label: "Collections" },
-    { key: "nav.about", label: "About" },
-  ],
 };
 
 const HEADER_CHROME_GROUP: StorefrontCopyGroup = {
@@ -108,7 +97,6 @@ const FOOTER_LEGAL_GROUP: StorefrontCopyGroup = {
 // Page record (Pages → that slug), not here.
 
 export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
-  HEADER_MAIN_GROUP,
   HEADER_CHROME_GROUP,
   FOOTER_BRAND_GROUP,
   FOOTER_NAV_GROUP,

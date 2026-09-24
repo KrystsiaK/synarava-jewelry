@@ -203,7 +203,7 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 />
 ```
 
-- **Expand in place:** Pages (DB titles) and Header & Footer (storefront copy groups). Catalog stays a leaf.
+- **Expand in place:** Pages (DB titles) and Header & Footer (header main links + storefront copy groups). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
 - **Signals:** left marker shows issue (red) / sync (gold) / both; badges on Problems / Localization; muted child count when Pages is collapsed.
 - **Truncation:** long labels ellipsize; tooltip on long titles.

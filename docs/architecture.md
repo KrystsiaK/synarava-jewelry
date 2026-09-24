@@ -50,7 +50,8 @@ its models were removed once Shopify covered the same ground.
 - `CollectionSection`
   - structured CMS blocks for collection detail pages
 - `SiteSetting`
-  - singleton-like global content: Header & Footer label overrides (`storefront-copy-v1`)
+  - singleton-like global content: Header main links (`header-nav-v1`: ordered
+    label + path), Header & Footer chrome label overrides (`storefront-copy-v1`),
     and site-wide SEO defaults (`site-seo-v1`)
 - `MediaAsset`
   - S3-backed asset registry shared by products, collections, pages, and users
@@ -83,7 +84,7 @@ The implemented admin is intentionally small and task-focused:
 
 - `Overview` — content/catalog summary and QA entry point;
 - `Pages` — editorial CMS for all pages including Home and About;
-- `Header & Footer` — storefront chrome labels (nav + footer text only; destinations fixed);
+- `Header & Footer` — header main links (name + path, add/remove) plus chrome/footer labels;
 - `Meta` — site-wide SEO defaults and links to page/product SEO editors;
 - `Videos` — shared S3-backed storefront video assets;
 - `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;

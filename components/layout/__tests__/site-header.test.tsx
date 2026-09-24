@@ -2,14 +2,20 @@ import { render, screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { usePathname } from "next/navigation";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { DEFAULT_HEADER_NAV_ITEMS } from "@/lib/content/header-nav-fields";
 import { SiteHeader } from "../site-header";
+
+const defaultHeaderNav = { items: DEFAULT_HEADER_NAV_ITEMS, labels: {} };
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <ThemeProvider initialPreference="light">{children}</ThemeProvider>;
 }
 
 function renderHeader(count = 0) {
-  return render(<SiteHeader initialCartCount={count} />, { wrapper: Wrapper });
+  return render(
+    <SiteHeader initialCartCount={count} headerNav={defaultHeaderNav} />,
+    { wrapper: Wrapper },
+  );
 }
 
 const mockUsePathname = usePathname as ReturnType<typeof vi.fn>;
@@ -37,6 +43,23 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("link", { name: "About" })).toBeInTheDocument();
   });
 
+  it("renders custom header nav labels and paths", () => {
+    render(
+      <SiteHeader
+        initialCartCount={0}
+        headerNav={{
+          items: [
+            { id: "home", href: "/" },
+            { id: "custom", href: "/care" },
+          ],
+          labels: { en: { custom: "Care guide" } },
+        }}
+      />,
+      { wrapper: Wrapper },
+    );
+    expect(screen.getByRole("link", { name: "Care guide" })).toHaveAttribute("href", "/en/care");
+  });
+
   it("renders Login link", () => {
     renderHeader();
     expect(screen.getAllByRole("link", { name: "Login" }).length).toBeGreaterThan(0);
@@ -48,7 +71,7 @@ describe("SiteHeader", () => {
   });
 
   it("hides the badge and omits an item count from the label when the cart count is unknown", () => {
-    render(<SiteHeader initialCartCount={null} />, { wrapper: Wrapper });
+    render(<SiteHeader initialCartCount={null} headerNav={defaultHeaderNav} />, { wrapper: Wrapper });
     expect(screen.getByRole("link", { name: "Cart" })).toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
@@ -77,14 +100,17 @@ describe("SiteHeader", () => {
   });
 
   it("accepts the refreshed server count after a local cart update", async () => {
-    const { rerender } = render(<SiteHeader initialCartCount={2} />, { wrapper: Wrapper });
+    const { rerender } = render(
+      <SiteHeader initialCartCount={2} headerNav={defaultHeaderNav} />,
+      { wrapper: Wrapper },
+    );
 
     act(() => {
       window.dispatchEvent(new CustomEvent("synarava:cart-updated", { detail: { count: 5 } }));
     });
     expect(await screen.findByText("5")).toBeInTheDocument();
 
-    rerender(<SiteHeader initialCartCount={3} />);
+    rerender(<SiteHeader initialCartCount={3} headerNav={defaultHeaderNav} />);
     await waitFor(() => expect(screen.getByText("3")).toBeInTheDocument());
   });
 
