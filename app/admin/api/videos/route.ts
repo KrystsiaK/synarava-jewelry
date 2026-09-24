@@ -8,12 +8,16 @@ import { revalidatePath } from "next/cache";
 import { getCurrentAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
+import {
+  resolveSiteVideoMimeType,
+  siteVideoContentTypesMatch,
+  type SiteVideoMimeType,
+} from "@/lib/media/video-mime";
 import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { SITE_VIDEO_SETTING_KEY, siteVideoSlots, type SiteVideoSlot } from "@/lib/site-videos";
 
 export const runtime = "nodejs";
 
-const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
@@ -21,7 +25,7 @@ type PreparedUpload = {
   slot: SiteVideoSlot;
   key: string;
   filename: string;
-  mimeType: string;
+  mimeType: SiteVideoMimeType;
   sizeBytes: number;
 };
 
@@ -41,21 +45,30 @@ function sanitizeBaseName(filename: string) {
 function validateVideo(input: Record<string, unknown>) {
   if (!isVideoSlot(input.slot)) throw new Error("Unknown video placement.");
   if (typeof input.filename !== "string" || !input.filename) throw new Error("Video filename is missing.");
-  if (typeof input.mimeType !== "string" || !VIDEO_TYPES.has(input.mimeType)) {
+  const mimeType = resolveSiteVideoMimeType({
+    mimeType: typeof input.mimeType === "string" ? input.mimeType : "",
+    filename: input.filename,
+  });
+  if (!mimeType) {
     throw new Error("Only MP4 and WebM video uploads are supported.");
   }
   if (typeof input.sizeBytes !== "number" || input.sizeBytes <= 0 || input.sizeBytes > MAX_VIDEO_BYTES) {
     throw new Error("Video must be 500 MB or smaller.");
   }
+  return mimeType;
 }
 
 function isPreparedUpload(value: unknown): value is PreparedUpload {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
+  const mimeType = resolveSiteVideoMimeType({
+    mimeType: typeof item.mimeType === "string" ? item.mimeType : "",
+    filename: typeof item.filename === "string" ? item.filename : "",
+  });
   return isVideoSlot(item.slot) &&
     typeof item.key === "string" && item.key.startsWith(`uploads/videos/${item.slot}/`) &&
     typeof item.filename === "string" &&
-    typeof item.mimeType === "string" && VIDEO_TYPES.has(item.mimeType) &&
+    Boolean(mimeType) &&
     typeof item.sizeBytes === "number" && item.sizeBytes > 0 && item.sizeBytes <= MAX_VIDEO_BYTES;
 }
 
@@ -76,14 +89,11 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
 
     if (body.action === "prepare") {
-      validateVideo(body);
+      const mimeType = validateVideo(body);
       const slot = body.slot as SiteVideoSlot;
-      const mimeType = body.mimeType as string;
       const sizeBytes = body.sizeBytes as number;
       const originalFilename = body.filename as string;
-      const extension = VIDEO_TYPES.has(mimeType)
-        ? (mimeType === "video/webm" ? ".webm" : ".mp4")
-        : path.extname(originalFilename).toLowerCase();
+      const extension = mimeType === "video/webm" ? ".webm" : ".mp4";
       const filename = `${sanitizeBaseName(originalFilename)}-${randomUUID()}${extension}`;
       const key = `uploads/videos/${slot}/${filename}`;
       const uploadUrl = await getSignedUrl(
@@ -106,7 +116,9 @@ export async function POST(request: Request) {
 
       for (const upload of uploads) {
         const object = await getS3().send(new HeadObjectCommand({ Bucket: getS3Bucket(), Key: upload.key }));
-        if (object.ContentLength !== upload.sizeBytes || object.ContentType !== upload.mimeType) {
+        const sizeMatches = Number(object.ContentLength) === upload.sizeBytes;
+        const typeMatches = siteVideoContentTypesMatch(object.ContentType, upload.mimeType);
+        if (!sizeMatches || !typeMatches) {
           throw new Error(`Uploaded file verification failed for ${upload.filename}.`);
         }
       }
