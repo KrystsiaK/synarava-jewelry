@@ -548,8 +548,22 @@
       "eyebrow": "Algumas peças para começar",
       "title": "A Seleção",
       "body": "Quatro peças, quatro lados da Synarava.",
-      "ctaLabel": "Ver peça",
       "viewAllLabel": "Ver todos os produtos"
+    },
+    "manifesto": {
+      "label": "Um princípio a guardar",
+      "quoteBefore": "O adornamento não é decoração.",
+      "quoteBridge": "É",
+      "quoteEmphasis": "intenção estrutural",
+      "quoteAfter": "aplicada à forma humana.",
+      "attribution": "O Manifesto Synarava // Vol 1."
+    },
+    "finalCta": {
+      "body": "A escolha final é instintiva.",
+      "title": "Escolha a peça que se lembra de si.",
+      "ctaLabel": "Entrar na coleção",
+      "aboutLabel": "Sobre nós",
+      "footerTitle": "Objectos moldados com tempo,\nguardados para uma vida."
     }
   }
 }

@@ -9,6 +9,7 @@ import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-ty
 import type { CollectionOption } from "@/components/admin/products/product-types";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 export function ProductCreateRoute({
   collections,
@@ -53,7 +54,7 @@ export function ProductEditRoute({
       issues={issues}
       translationLocales={translationLocales}
       initialConflictSignals={initialConflictSignals}
-      onUpdated={() => router.refresh()}
+      onUpdated={() => refreshPreservingScroll(router)}
       onDeleted={() => {
         router.push("/admin/products");
         router.refresh();

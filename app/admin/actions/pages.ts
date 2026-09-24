@@ -18,7 +18,9 @@ import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
 import { PRIVACY_SECTIONS } from "@/lib/content/privacy-defaults";
 import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
 import { SERVICE_SECTIONS } from "@/lib/content/service-page-defaults";
-import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
+import { MAX_HOME_LEXICON_MATERIALS } from "@/lib/content/home-lexicon-section";
+import { isValidOptionalEmail, OPTIONAL_EMAIL_ERROR } from "@/lib/admin/optional-email";
+import { hasLocaleField, readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import {
   asRecord,
@@ -34,6 +36,7 @@ export type PageActionState = {
   success?: string;
   page?: SavedPagePayload;
   deletedSlug?: string;
+  fieldErrors?: Partial<Record<"finalContactEmail" | "finalContactLabel", string>>;
 };
 
 export type SavedPagePayload = {
@@ -124,34 +127,50 @@ function readSectionFields(formData: FormData, locale: string, kind: "legal" | "
 
 const TRANSLATABLE_PAGE_FIELDS = [
   "eyebrow", "body", "ctaLabel", "quote", "secondaryTitle", "secondaryBody",
-  "archiveSectionLabel", "editSectionEyebrow", "editSectionTitle", "editSectionBody", "editSectionCtaLabel",
+  "archiveSectionLabel", "editSectionEyebrow", "editSectionTitle", "editSectionBody", "editSectionViewAllLabel",
   "materialSectionEyebrow", "materialSectionTitle", "materialSectionNoteLabel",
   "manifestoSectionLabel", "manifestoSectionAttribution",
   "finalCtaLabel", "finalFooterTitle", "finalContactLabel", "legalIntro",
 ] as const;
 
-/** Reads one locale's flat copy fields, title/handle, and the three lexicon materials straight from the raw FormData — a translation is optional everywhere, so nothing here needs `.min(1)`. */
+type MaterialTextEntry = {
+  name: string;
+  category: string;
+  description: string;
+  properties: string;
+};
+
+/** Lexicon slots are variable (min 2 / max 3); presence of `materialNName` marks each row. */
+function readMaterialTextEntries(formData: FormData, locale: string): MaterialTextEntry[] {
+  const entries: MaterialTextEntry[] = [];
+  for (let index = 1; index <= MAX_HOME_LEXICON_MATERIALS; index++) {
+    if (!hasLocaleField(formData, locale, `material${index}Name`)) break;
+    entries.push({
+      name: readLocaleField(formData, locale, `material${index}Name`),
+      category: readLocaleField(formData, locale, `material${index}Category`),
+      description: readLocaleField(formData, locale, `material${index}Description`),
+      properties: readLocaleField(formData, locale, `material${index}Properties`),
+    });
+  }
+  return entries;
+}
+
+/** Reads one locale's flat copy fields, title/handle, and lexicon materials straight from the raw FormData — a translation is optional everywhere, so nothing here needs `.min(1)`. */
 function readPageTranslationFields(formData: FormData, locale: string) {
   const fields = Object.fromEntries(
     TRANSLATABLE_PAGE_FIELDS.map((key) => [key, readLocaleField(formData, locale, key)]),
   ) as Record<(typeof TRANSLATABLE_PAGE_FIELDS)[number], string>;
-  const materials = [1, 2, 3].map((index) => ({
-    name: readLocaleField(formData, locale, `material${index}Name`),
-    category: readLocaleField(formData, locale, `material${index}Category`),
-    description: readLocaleField(formData, locale, `material${index}Description`),
-    properties: readLocaleField(formData, locale, `material${index}Properties`),
-  }));
   return {
     ...fields,
     title: readLocaleField(formData, locale, "title"),
     handle: readLocaleField(formData, locale, "handle"),
     excerpt: readLocaleField(formData, locale, "excerpt"),
-    materials,
+    materials: readMaterialTextEntries(formData, locale),
   };
 }
 
 function buildMaterialLexiconEntries(
-  entries: Array<{ name: string; category: string; description: string; properties: string }>,
+  entries: MaterialTextEntry[],
   images: Array<string | undefined> = [],
 ) {
   return entries.map((entry, index) => ({
@@ -161,6 +180,28 @@ function buildMaterialLexiconEntries(
     properties: entry.properties,
     image: images[index],
   }));
+}
+
+async function resolveMaterialImages(input: {
+  formData: FormData;
+  existingContent: Record<string, unknown>;
+  count: number;
+  pageSlug: string;
+  uploadedByUsername?: string | null;
+}) {
+  return Promise.all(
+    Array.from({ length: input.count }, (_, index) => {
+      const fromForm = String(input.formData.get(`material${index + 1}Image`) ?? "").trim();
+      return uploadOptionalPageAsset({
+        formData: input.formData,
+        fieldName: `material${index + 1}ImageFile`,
+        existingValue: fromForm || existingMaterialImage(input.existingContent, index),
+        removeFieldName: `removeMaterial${index + 1}Image`,
+        pageSlug: input.pageSlug,
+        uploadedByUsername: input.uploadedByUsername,
+      });
+    }),
+  );
 }
 
 async function uploadOptionalPageAsset(input: {
@@ -225,26 +266,18 @@ const pageContentFieldsSchema = z.object({
   editSectionEyebrow: z.string().trim().default(""),
   editSectionTitle: z.string().trim().default(""),
   editSectionBody: z.string().trim().default(""),
-  editSectionCtaLabel: z.string().trim().default(""),
+  editSectionViewAllLabel: z.string().trim().default(""),
   editProductId1: z.string().trim().default(""),
   editProductId2: z.string().trim().default(""),
   editProductId3: z.string().trim().default(""),
   editProductId4: z.string().trim().default(""),
+  finalCtaProductId1: z.string().trim().default(""),
+  finalCtaProductId2: z.string().trim().default(""),
+  finalCtaProductId3: z.string().trim().default(""),
+  finalCtaProductId4: z.string().trim().default(""),
   materialSectionEyebrow: z.string().trim().default(""),
   materialSectionTitle: z.string().trim().default(""),
   materialSectionNoteLabel: z.string().trim().default(""),
-  material1Name: z.string().trim().default(""),
-  material1Category: z.string().trim().default(""),
-  material1Description: z.string().trim().default(""),
-  material1Properties: z.string().trim().default(""),
-  material2Name: z.string().trim().default(""),
-  material2Category: z.string().trim().default(""),
-  material2Description: z.string().trim().default(""),
-  material2Properties: z.string().trim().default(""),
-  material3Name: z.string().trim().default(""),
-  material3Category: z.string().trim().default(""),
-  material3Description: z.string().trim().default(""),
-  material3Properties: z.string().trim().default(""),
   manifestoSectionLabel: z.string().trim().default(""),
   manifestoSectionAttribution: z.string().trim().default(""),
   finalCtaLabel: z.string().trim().default(""),
@@ -252,6 +285,7 @@ const pageContentFieldsSchema = z.object({
   finalFooterTitle: z.string().trim().default(""),
   finalContactLabel: z.string().trim().default(""),
   finalContactEmail: z.string().trim().default(""),
+  finalContactEnabled: z.string().trim().default(""),
   legalIntro: z.string().trim().default(""),
   legalLastUpdated: z.string().trim().default(""),
 });
@@ -272,14 +306,12 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     pageId, workflowState, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
     secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
-    archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionCtaLabel,
+    archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionViewAllLabel,
     editProductId1, editProductId2, editProductId3, editProductId4,
+    finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4,
     materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
-    material1Name, material1Category, material1Description, material1Properties,
-    material2Name, material2Category, material2Description, material2Properties,
-    material3Name, material3Category, material3Description, material3Properties,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
-    finalFooterTitle, finalContactLabel, finalContactEmail,
+    finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
     legalIntro, legalLastUpdated,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
@@ -287,12 +319,38 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   const legalSections = readSectionFields(formData, "en", "legal", LEGAL_SECTION_IDS);
   const serviceSections = readSectionFields(formData, "en", "service", SERVICE_SECTION_IDS);
   const editProductIds = [editProductId1, editProductId2, editProductId3, editProductId4].filter(Boolean);
+  const finalCtaProductIds = [finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4].filter(Boolean);
+  const archiveCollectionIds = [...new Set(
+    formData.getAll("archiveCollectionIds").map((value) => String(value).trim()).filter(Boolean),
+  )];
+  const materialEntries = readMaterialTextEntries(formData, "en");
+  const contactEnabled = finalContactEnabled === "1";
 
   if (!slug || !title) {
     return { error: "Page slug and title are required." };
   }
   if (editProductIds.length > 0 && (editProductIds.length !== 4 || new Set(editProductIds).size !== 4)) {
     return { error: "Choose four different products for The Edit, or leave all four product slots empty." };
+  }
+  if (finalCtaProductIds.length > 0 && (finalCtaProductIds.length !== 4 || new Set(finalCtaProductIds).size !== 4)) {
+    return { error: "Choose four different products for Final CTA collage photos, or leave all four photo slots empty." };
+  }
+  if (contactEnabled) {
+    const fieldErrors: NonNullable<PageActionState["fieldErrors"]> = {};
+    if (!finalContactLabel.trim()) {
+      fieldErrors.finalContactLabel = "Enter a contact link label.";
+    }
+    if (!finalContactEmail.trim()) {
+      fieldErrors.finalContactEmail = "Enter a contact email.";
+    } else if (!isValidOptionalEmail(finalContactEmail)) {
+      fieldErrors.finalContactEmail = OPTIONAL_EMAIL_ERROR;
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      return {
+        error: "Complete the Final CTA contact fields.",
+        fieldErrors,
+      };
+    }
   }
 
   const isPublished = workflowState === "PUBLISHED";
@@ -306,23 +364,18 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     pageSlug: slug,
     uploadedByUsername: currentUser?.username,
   });
-  const materialImages = await Promise.all([0, 1, 2].map((index) => uploadOptionalPageAsset({
+  const materialImages = await resolveMaterialImages({
     formData,
-    fieldName: `material${index + 1}ImageFile`,
-    existingValue: existingMaterialImage(existingContent, index),
-    removeFieldName: `removeMaterial${index + 1}Image`,
+    existingContent,
+    count: materialEntries.length,
     pageSlug: slug,
     uploadedByUsername: currentUser?.username,
-  })));
-  const materialLexicon = buildMaterialLexiconEntries([
-    { name: material1Name, category: material1Category, description: material1Description, properties: material1Properties },
-    { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
-    { name: material3Name, category: material3Category, description: material3Description, properties: material3Properties },
-  ], materialImages);
+  });
+  const materialLexicon = buildMaterialLexiconEntries(materialEntries, materialImages);
   const englishTranslationContent = {
     eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle,
-    editSectionBody, editSectionCtaLabel, materialSectionEyebrow,
+    editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
@@ -342,7 +395,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       editSectionEyebrow: fields.editSectionEyebrow,
       editSectionTitle: fields.editSectionTitle,
       editSectionBody: fields.editSectionBody,
-      editSectionCtaLabel: fields.editSectionCtaLabel,
+      editSectionViewAllLabel: fields.editSectionViewAllLabel,
       materialSectionEyebrow: fields.materialSectionEyebrow,
       materialSectionTitle: fields.materialSectionTitle,
       materialSectionNoteLabel: fields.materialSectionNoteLabel,
@@ -383,8 +436,10 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       editSectionEyebrow,
       editSectionTitle,
       editSectionBody,
-      editSectionCtaLabel,
+      editSectionViewAllLabel,
       editProductIds,
+      finalCtaProductIds,
+      archiveCollectionIds,
       materialSectionEyebrow,
       materialSectionTitle,
       materialSectionNoteLabel,
@@ -396,6 +451,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       finalFooterTitle,
       finalContactLabel,
       finalContactEmail,
+      finalContactEnabled: contactEnabled,
       legalIntro,
       legalLastUpdated,
       legalSections,
@@ -412,6 +468,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
           ctaHref,
           finalCtaHref,
           finalContactEmail,
+          finalContactEnabled: contactEnabled,
           ...(ptTranslation?.content ?? {}),
         },
       },
@@ -521,24 +578,25 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     pageId, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
     secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
-    archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionCtaLabel,
+    archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionViewAllLabel,
+    editProductId1, editProductId2, editProductId3, editProductId4,
+    finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4,
     materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
-    material1Name, material1Category, material1Description, material1Properties,
-    material2Name, material2Category, material2Description, material2Properties,
-    material3Name, material3Category, material3Description, material3Properties,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
-    finalFooterTitle, finalContactLabel, finalContactEmail,
+    finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
     legalIntro, legalLastUpdated,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
   const translationLocales = await getAdminTranslationLocales();
   const legalSections = readSectionFields(formData, "en", "legal", LEGAL_SECTION_IDS);
   const serviceSections = readSectionFields(formData, "en", "service", SERVICE_SECTION_IDS);
-  const draftMaterialLexicon = buildMaterialLexiconEntries([
-    { name: material1Name, category: material1Category, description: material1Description, properties: material1Properties },
-    { name: material2Name, category: material2Category, description: material2Description, properties: material2Properties },
-    { name: material3Name, category: material3Category, description: material3Description, properties: material3Properties },
-  ]);
+  const editProductIds = [editProductId1, editProductId2, editProductId3, editProductId4].filter(Boolean);
+  const finalCtaProductIds = [finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4].filter(Boolean);
+  const archiveCollectionIds = [...new Set(
+    formData.getAll("archiveCollectionIds").map((value) => String(value).trim()).filter(Boolean),
+  )];
+  const contactEnabled = finalContactEnabled === "1";
+  const draftMaterialLexicon = buildMaterialLexiconEntries(readMaterialTextEntries(formData, "en"));
   const translationsData = translationLocales.map(({ code, label }) => {
     const fields = readPageTranslationFields(formData, code);
     const content = {
@@ -552,7 +610,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       editSectionEyebrow: fields.editSectionEyebrow,
       editSectionTitle: fields.editSectionTitle,
       editSectionBody: fields.editSectionBody,
-      editSectionCtaLabel: fields.editSectionCtaLabel,
+      editSectionViewAllLabel: fields.editSectionViewAllLabel,
       materialSectionEyebrow: fields.materialSectionEyebrow,
       materialSectionTitle: fields.materialSectionTitle,
       materialSectionNoteLabel: fields.materialSectionNoteLabel,
@@ -595,7 +653,10 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       editSectionEyebrow,
       editSectionTitle,
       editSectionBody,
-      editSectionCtaLabel,
+      editSectionViewAllLabel,
+      editProductIds,
+      finalCtaProductIds,
+      archiveCollectionIds,
       materialSectionEyebrow,
       materialSectionTitle,
       materialSectionNoteLabel,
@@ -607,6 +668,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       finalFooterTitle,
       finalContactLabel,
       finalContactEmail,
+      finalContactEnabled: contactEnabled,
       legalIntro,
       legalLastUpdated,
       legalSections,
@@ -619,6 +681,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
           ctaHref,
           finalCtaHref,
           finalContactEmail,
+          finalContactEnabled: contactEnabled,
           ...(ptTranslation?.content ?? {}),
         },
       },
@@ -646,7 +709,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   const englishTranslationContent = {
     eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle,
-    editSectionBody, editSectionCtaLabel, materialSectionEyebrow,
+    editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,

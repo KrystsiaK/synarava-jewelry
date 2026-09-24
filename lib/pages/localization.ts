@@ -26,7 +26,7 @@ export const pageTranslationContentSchema = z.object({
   editSectionEyebrow: z.string().optional(),
   editSectionTitle: z.string().optional(),
   editSectionBody: z.string().optional(),
-  editSectionCtaLabel: z.string().optional(),
+  editSectionViewAllLabel: z.string().optional(),
   materialSectionEyebrow: z.string().optional(),
   materialSectionTitle: z.string().optional(),
   materialSectionNoteLabel: z.string().optional(),

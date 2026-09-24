@@ -5,6 +5,8 @@ import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
+
 import {
   deleteProductAction,
   saveProductAction,
@@ -413,7 +415,7 @@ export function EditProductForm({
       if (result.product) {
         applySyncedProduct(result.product, result.success);
         setSyncDetailOpen(false);
-        router.refresh();
+        refreshPreservingScroll(router);
       }
     });
   }
@@ -428,7 +430,7 @@ export function EditProductForm({
       if (result.product) {
         applySyncedProduct(result.product, result.success);
         setSyncDetailOpen(false);
-        router.refresh();
+        refreshPreservingScroll(router);
       }
     });
   }

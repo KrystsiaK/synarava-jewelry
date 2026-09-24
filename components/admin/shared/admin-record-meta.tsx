@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getAdminRecordHistoryAction, restoreAdminRecordVersionAction } from "@/app/admin/actions/history";
 import type { AdminAuditEntityType, AdminRecordHistoryItem } from "@/app/admin/actions/shared";
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 export type AdminRecordMeta = {
   createdAt: Date | string;
@@ -94,7 +95,7 @@ export function AdminRecordMetaModal({
       if (result.success) {
         const refreshed = await getAdminRecordHistoryAction({ entityType, entityId });
         setHistory(refreshed.history ?? []);
-        router.refresh();
+        refreshPreservingScroll(router);
       }
     });
   }

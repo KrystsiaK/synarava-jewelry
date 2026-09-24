@@ -1579,7 +1579,8 @@ body.admin-mode .artifact-footer {
   --adm-accent: #d8b66a;
   --adm-accent-soft: rgba(216, 182, 106, 0.12);
   --adm-success: #b8c98a;
-  --adm-warning: #d8b66a;
+  --adm-warning: #f0a03c;
+  --adm-warning-soft: rgba(240, 160, 60, 0.14);
   --adm-conflict: #f0a03c;
   --adm-conflict-soft: rgba(240, 160, 60, 0.14);
   --adm-danger: #b94a48;
@@ -1648,7 +1649,8 @@ html[data-theme="light"] .admin-modal-root {
   --adm-accent: #7b5b1c;
   --adm-accent-soft: rgba(138, 102, 31, 0.1);
   --adm-success: #456229;
-  --adm-warning: #7b5b1c;
+  --adm-warning: #c47a12;
+  --adm-warning-soft: rgba(196, 122, 18, 0.12);
   --adm-conflict: #e0891a;
   --adm-conflict-soft: rgba(224, 137, 26, 0.12);
   --adm-danger: #9d3836;
@@ -1691,6 +1693,10 @@ html[data-theme="light"] .adm-nav-badge:not(.adm-nav-badge--sync):not(.adm-nav-b
 html[data-theme="light"] .adm-btn-danger,
 html[data-theme="light"] .adm-field-error {
   color: var(--adm-danger);
+}
+
+html[data-theme="light"] .adm-field-warning {
+  color: var(--adm-warning);
 }
 
 html[data-theme="light"] .adm-topbar-issue-link:hover,
@@ -2867,6 +2873,18 @@ select.adm-field option {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-danger) 22%, transparent);
 }
 
+.adm-long-text-preview--warning {
+  border-color: var(--adm-warning);
+  background: transparent;
+}
+
+.adm-long-text-preview--warning:focus-within,
+.adm-long-text-preview--warning:hover {
+  border-color: var(--adm-warning);
+  background: transparent;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-warning) 22%, transparent);
+}
+
 .adm-long-text-preview__copy {
   display: -webkit-box;
   min-width: 0;
@@ -3409,7 +3427,9 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   min-width: 0;
 }
 
-/* Product editor: workspace chrome sticks first; locale band sticks flush under it. */
+/* Editor workspace chrome sticks first; locale band sticks flush under it.
+   Shared by product + page editors (product keeps the legacy class name). */
+.adm-editor-workspace-header,
 .adm-product-workspace-header {
   position: sticky;
   top: 0;
@@ -3425,10 +3445,17 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  .adm-editor-workspace-header,
   .adm-product-workspace-header {
     background: var(--adm-panel);
     backdrop-filter: none;
   }
+}
+
+/* Locale tabs sit under the sticky workspace title/save band. */
+.adm-editor-workspace-header ~ .adm-locale-workspace-header:not(.adm-locale-workspace-header--embedded),
+.adm-product-workspace-header ~ .adm-locale-workspace-header:not(.adm-locale-workspace-header--embedded) {
+  top: var(--adm-product-workspace-sticky-height, 5.5rem);
 }
 
 /* .admin-content is its own scroll container below the topbar, so `top: 0`
@@ -3786,7 +3813,8 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   scroll-margin-top: 7rem;
 }
 
-.admin-content:has(.adm-product-workspace-header) :is(input, textarea, select, button) {
+.admin-content:has(.adm-editor-workspace-header, .adm-product-workspace-header)
+  :is(input, textarea, select, button) {
   scroll-margin-top: 16rem;
 }
 
@@ -4274,7 +4302,16 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   line-height: 1.35;
 }
 
-.adm-field-unit > .adm-field-error {
+.adm-field-warning {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  color: var(--adm-warning);
+  line-height: 1.35;
+}
+
+.adm-field-unit > .adm-field-error,
+.adm-field-unit > .adm-field-warning {
   position: absolute;
   top: auto;
   bottom: 0.15rem;
@@ -4297,6 +4334,16 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 .adm-field--error:focus {
   border-color: var(--adm-danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-danger) 22%, transparent);
+}
+
+.adm-field--warning {
+  border-color: var(--adm-warning);
+  background: color-mix(in srgb, var(--adm-field) 92%, var(--adm-warning) 8%);
+}
+
+.adm-field--warning:focus {
+  border-color: var(--adm-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-warning) 22%, transparent);
 }
 
 /* Input + affix share one border/radius (units like mm, currency, etc.). */
@@ -4327,6 +4374,16 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 .adm-field-group--error:focus-within {
   border-color: var(--adm-danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-danger) 22%, transparent);
+}
+
+.adm-field-group--warning {
+  border-color: var(--adm-warning);
+  background: color-mix(in srgb, var(--adm-field) 92%, var(--adm-warning) 8%);
+}
+
+.adm-field-group--warning:focus-within {
+  border-color: var(--adm-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-warning) 22%, transparent);
 }
 
 .adm-field-group .adm-field--in-group {
@@ -4491,16 +4548,46 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   overflow: clip;
 }
 
+.adm-collapse--warning {
+  border-color: var(--adm-warning);
+  background: color-mix(in srgb, var(--adm-panel) 90%, var(--adm-warning) 10%);
+}
+
+.adm-collapse--warning[data-open="true"] > .adm-collapse__header {
+  background: color-mix(in srgb, var(--adm-warning-soft) 70%, var(--adm-bg-soft));
+}
+
+.adm-collapse__caption {
+  margin: 0;
+  padding: 0 1rem 0.7rem;
+  color: var(--adm-warning);
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.adm-collapse__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 3rem;
+  padding-right: 0.5rem;
+}
+
 .adm-collapse__summary {
   display: flex;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: flex-start;
+  gap: 0.65rem;
   box-sizing: border-box;
   min-height: 3rem;
   margin: 0;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -4514,6 +4601,15 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
 
 .adm-collapse__summary:hover {
   background: color-mix(in srgb, var(--adm-bg-soft) 70%, transparent);
+}
+
+/* With trailing actions, hover the whole header — not a title-only island. */
+.adm-collapse__header:has(.adm-collapse__trailing):hover {
+  background: color-mix(in srgb, var(--adm-bg-soft) 70%, transparent);
+}
+
+.adm-collapse__header:has(.adm-collapse__trailing) .adm-collapse__summary:hover {
+  background: transparent;
 }
 
 .adm-collapse__summary:focus {
@@ -4530,11 +4626,9 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   transform: none;
 }
 
-.adm-collapse[data-open="true"] > .adm-collapse__summary {
+.adm-collapse[data-open="true"] > .adm-collapse__header {
   /* Soft header only — the divider is .adm-collapse__rule, not a second edge here. */
   background: var(--adm-bg-soft);
-  border: none;
-  box-shadow: none;
 }
 
 .adm-collapse__title {
@@ -4547,28 +4641,95 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   letter-spacing: 0;
 }
 
+.adm-collapse__trailing {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding-block: 0.35rem;
+}
+
+.adm-collapse__toggle {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  box-sizing: border-box;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-muted);
+  cursor: pointer;
+}
+
+/* Separate expand chevron from reorder/remove cluster. */
+.adm-collapse__header:has(.adm-collapse__trailing) .adm-collapse__toggle {
+  width: 2.55rem;
+  margin-left: 0.1rem;
+  padding-left: 0.55rem;
+  box-shadow: inset 1px 0 0 var(--adm-border);
+  border-radius: 0 8px 8px 0;
+}
+
+.adm-collapse__toggle:hover {
+  background: var(--adm-accent-soft);
+  color: var(--adm-accent);
+}
+
+.adm-collapse__toggle:focus {
+  outline: none;
+}
+
+.adm-collapse__toggle:focus-visible {
+  outline: 2px solid var(--adm-accent);
+  outline-offset: -2px;
+}
+
+/* Quiet icon cluster in collapse headers — borders only on hover so they don't glue. */
+.adm-collapse__trailing .adm-icon-btn {
+  border-color: transparent;
+  background: transparent;
+}
+
+.adm-collapse__trailing .adm-icon-btn:hover:not(:disabled) {
+  border-color: var(--adm-border-strong);
+  background: var(--adm-accent-soft);
+  color: var(--adm-accent);
+}
+
+.adm-collapse__trailing .adm-icon-btn:disabled {
+  border-color: transparent;
+  background: transparent;
+}
+
 .adm-collapse__chevron {
   flex: 0 0 auto;
   display: block;
   width: 1rem;
   height: 1rem;
-  color: var(--adm-muted);
+  color: inherit;
   transition:
     transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
     color 140ms ease;
 }
 
-.adm-collapse__summary:hover .adm-collapse__chevron {
+.adm-collapse__summary:hover .adm-collapse__chevron,
+.adm-collapse__toggle:hover .adm-collapse__chevron {
   color: var(--adm-ink);
 }
 
-.adm-collapse[data-open="true"] > .adm-collapse__summary .adm-collapse__chevron {
+.adm-collapse[data-open="true"] .adm-collapse__chevron {
   transform: rotate(180deg);
   color: var(--adm-ink);
 }
 
-/* Exactly one hairline between header and body when open. */
+/* Exactly one hairline between header and body when open — full row width. */
 .adm-collapse__rule {
+  display: block;
+  width: 100%;
   height: 0;
   margin: 0;
   padding: 0;
@@ -4595,6 +4756,12 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   grid-template-rows: 1fr;
 }
 
+/* Closed: hide from hit-testing/focus, but keep fields in FormData (no inert). */
+.adm-collapse:not([data-open="true"]) > .adm-collapse__panel {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .adm-collapse__clip {
   min-height: 0;
   overflow: hidden;
@@ -4616,6 +4783,148 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   .adm-collapse__panel {
     transition: none;
   }
+}
+
+/* Sticky list chrome (catalog / pages / collections) — title + collapsible query band. */
+.adm-list-workspace__chrome {
+  display: grid;
+  width: 100%;
+  gap: var(--adm-rhythm-3);
+  min-width: 0;
+}
+
+.adm-list-workspace__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--adm-rhythm-3) var(--adm-rhythm-4);
+}
+
+.adm-list-workspace__title-row > :first-child {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.adm-list-workspace__title-row > :last-child {
+  flex: 0 0 auto;
+}
+
+.adm-list-workspace__filter-title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  min-width: 0;
+}
+
+.adm-list-workspace__filter-summary {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--adm-muted);
+}
+
+.adm-list-workspace__filters-body {
+  display: grid;
+  gap: var(--adm-rhythm-4);
+  padding: var(--adm-rhythm-3);
+}
+
+/* Browse chrome — no form validation band; keep the filter row optically tight. */
+.adm-list-workspace__filters-body .adm-field-unit {
+  padding-bottom: 0;
+}
+
+.adm-list-workspace__body {
+  padding: var(--adm-rhythm-4) var(--adm-inset-x) var(--adm-rhythm-5);
+}
+
+.adm-list-workspace__body > [data-component="AdminEntityList"] {
+  margin-top: 0;
+}
+
+/* Ordered list — up/down strip; DnD can replace .adm-ordered-list__controls later. */
+.adm-ordered-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.adm-ordered-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.adm-ordered-list__rows {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-ordered-list__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+  background: var(--adm-panel-elevated);
+}
+
+.adm-ordered-list__body {
+  min-width: 0;
+}
+
+.adm-ordered-list__body .adm-field-unit {
+  margin: 0;
+}
+
+.adm-ordered-list__controls {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.15rem;
+}
+
+.adm-ordered-list__inline-controls {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.adm-ordered-list__controls .adm-ordered-list__inline-controls {
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Collapse owns the row chrome — no double border / side strip. */
+.adm-ordered-list__row--solo {
+  display: block;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.adm-ordered-list__row--solo .adm-ordered-list__body {
+  min-width: 0;
+}
+
+.adm-ordered-list__collapse.adm-collapse {
+  /* Keep overflow clip so closed 0fr panels do not leak height. */
+  overflow: clip;
+}
+
+.adm-ordered-list__collapse .adm-collapse__body {
+  padding: 1.1rem 1rem 1.15rem;
 }
 
 .admin-terminal :focus-visible {

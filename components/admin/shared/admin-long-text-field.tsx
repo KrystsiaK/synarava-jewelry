@@ -26,6 +26,7 @@ export type AdminLongTextFieldProps = {
   rows?: number;
   error?: string;
   errorId?: string;
+  warning?: string;
   invalid?: boolean;
   issue?: ReactNode;
   disabled?: boolean;
@@ -55,6 +56,7 @@ export function AdminLongTextField({
   rows = 12,
   error,
   errorId,
+  warning,
   invalid = false,
   issue,
   disabled = false,
@@ -65,7 +67,7 @@ export function AdminLongTextField({
 }: AdminLongTextFieldProps) {
   const isControlled = controlledValue !== undefined;
   const titleId = useId();
-  const { controlId, messageId } = useAdminFieldIds(id, errorId);
+  const { controlId, messageId, warningId } = useAdminFieldIds(id, errorId);
   const hiddenFieldRef = useRef<HTMLTextAreaElement>(null);
   const initialValue = defaultValue ?? "";
   const [internalValue, setInternalValue] = useState(initialValue);
@@ -74,6 +76,7 @@ export function AdminLongTextField({
   const [open, setOpen] = useState(false);
   const plainLabel = dialogLabel ?? (typeof label === "string" ? label : name ?? "field");
   const showError = Boolean(error) || invalid;
+  const showWarning = !showError && Boolean(warning);
 
   useEffect(() => {
     if (isControlled) return;
@@ -124,6 +127,8 @@ export function AdminLongTextField({
       required={required}
       error={error}
       errorId={messageId}
+      warning={warning}
+      warningId={warningId}
       issue={issue}
       disabled={disabled}
       className={cn("w-full min-w-0", className)}
@@ -143,9 +148,13 @@ export function AdminLongTextField({
 
       <div
         data-slot="long-text-preview"
-        className={cn("adm-long-text-preview", showError ? "adm-long-text-preview--error" : null)}
+        className={cn(
+          "adm-long-text-preview",
+          showError ? "adm-long-text-preview--error" : showWarning ? "adm-long-text-preview--warning" : null,
+        )}
         aria-invalid={showError ? true : undefined}
         aria-errormessage={showError ? messageId : undefined}
+        aria-describedby={!showError && warning ? warningId : undefined}
       >
         <p className="adm-long-text-preview__copy" data-empty={value ? undefined : "true"}>
           {value || placeholder}

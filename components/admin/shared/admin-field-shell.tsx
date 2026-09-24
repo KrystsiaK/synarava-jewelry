@@ -2,13 +2,15 @@
 
 import { useId, type ReactNode } from "react";
 
-import { AdminFieldError } from "@/components/admin/shared/admin-form-validation";
+import { AdminFieldError, AdminFieldWarning } from "@/components/admin/shared/admin-form-validation";
 import { FieldLabel } from "@/components/admin/shared/field-label";
 import { OwnershipLabel, type AdminFieldOwner } from "@/components/admin/shared/ownership-label";
 import { cn } from "@/lib/ui";
 
-export function fieldClass(error?: string) {
-  return error ? "adm-field adm-field--error" : "adm-field";
+export function fieldClass(error?: string, warning?: string) {
+  if (error) return "adm-field adm-field--error";
+  if (warning) return "adm-field adm-field--warning";
+  return "adm-field";
 }
 
 export type AdminFieldShellProps = {
@@ -19,6 +21,9 @@ export type AdminFieldShellProps = {
   required?: boolean;
   error?: string;
   errorId?: string;
+  /** Soft orange notice in the same band as error (error wins when both set). */
+  warning?: string;
+  warningId?: string;
   /** Absolute under-control copy (e.g. AdminFieldIssue). Same band as AdminFieldError. */
   issue?: ReactNode;
   disabled?: boolean;
@@ -29,7 +34,7 @@ export type AdminFieldShellProps = {
   component?: string;
 };
 
-/** Shared label + absolute error shell used by AdminTextField / AdminSelectField. */
+/** Shared label + absolute error/warning shell used by AdminTextField / AdminSelectField. */
 export function AdminFieldShell({
   id,
   label,
@@ -38,6 +43,8 @@ export function AdminFieldShell({
   required = false,
   error,
   errorId,
+  warning,
+  warningId,
   issue,
   disabled = false,
   className,
@@ -47,6 +54,7 @@ export function AdminFieldShell({
 }: AdminFieldShellProps) {
   const reactId = useId();
   const messageId = errorId ?? `${reactId}-error`;
+  const softMessageId = warningId ?? `${reactId}-warning`;
 
   const labelNode = label == null ? null : owner ? (
     <OwnershipLabel owner={owner} help={help}>
@@ -67,7 +75,11 @@ export function AdminFieldShell({
       {labelNode ? <label htmlFor={controlId}>{labelNode}</label> : null}
       {children}
       {issue}
-      <AdminFieldError id={messageId} message={error} />
+      {error ? (
+        <AdminFieldError id={messageId} message={error} />
+      ) : (
+        <AdminFieldWarning id={softMessageId} message={warning} />
+      )}
     </div>
   );
 }
@@ -77,5 +89,6 @@ export function useAdminFieldIds(id?: string, errorId?: string) {
   return {
     controlId: id ?? `${reactId}-field`,
     messageId: errorId ?? `${reactId}-error`,
+    warningId: `${reactId}-warning`,
   };
 }

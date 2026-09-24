@@ -147,6 +147,31 @@ export function AdminFieldError({ id, message }: { id?: string; message?: string
   );
 }
 
+/** Same absolute band as AdminFieldError — orange warning, not blocking. */
+export function AdminFieldWarning({ id, message }: { id?: string; message?: string }) {
+  if (!message) return null;
+
+  const node = (
+    <p
+      data-component="AdminFieldWarning"
+      id={id}
+      className="adm-field-warning"
+      title={message}
+      role="status"
+    >
+      {message}
+    </p>
+  );
+
+  if (message.length < 48) return node;
+
+  return (
+    <Tooltip content={message} side="bottom" delay={220} maxWidth={360}>
+      {node}
+    </Tooltip>
+  );
+}
+
 export function AdminFormAlert({ message, className }: { message?: string; className?: string }) {
   if (!message) return null;
   return (

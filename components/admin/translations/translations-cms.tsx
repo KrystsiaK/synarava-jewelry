@@ -10,6 +10,7 @@ import type {
   ReconcileRunSummary,
 } from "@/lib/shopify/reconciliation-run";
 import { AdminCheckboxControl } from "@/components/synarava-cms";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 export type ReconcileDifferenceRow = ReconcileDifferenceView & { href: string };
 type DifferenceFilter = "ALL" | ReconcileDifferenceView["kind"];
@@ -188,7 +189,7 @@ export function TranslationsCms({
       });
       const payload = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(payload.error || "Shopify check could not be completed.");
-      router.refresh();
+      refreshPreservingScroll(router);
     } catch (error) {
       setCheckError(error instanceof Error ? error.message : "Shopify check could not be completed.");
     } finally {
@@ -250,7 +251,7 @@ export function TranslationsCms({
           body: JSON.stringify({ trigger: "MANUAL" }),
         });
       }
-      router.refresh();
+      refreshPreservingScroll(router);
     } catch (error) {
       setApplyMessage(error instanceof Error ? error.message : "The selected changes could not be applied.");
     } finally {

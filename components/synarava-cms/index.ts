@@ -29,6 +29,13 @@ export {
 } from "@/components/admin/shared/admin-select-field";
 
 export {
+  AdminHrefControl,
+  AdminHrefField,
+  type AdminHrefControlProps,
+  type AdminHrefFieldProps,
+} from "@/components/admin/shared/admin-href-field";
+
+export {
   AdminCheckboxControl,
   AdminCheckboxField,
   type AdminCheckboxControlProps,
@@ -53,6 +60,16 @@ export {
 } from "@/components/admin/shared/admin-panel";
 
 export { AdminHelp } from "@/components/admin/shared/admin-help";
+
+export {
+  AdminFieldError,
+  AdminFieldWarning,
+  AdminFormAlert,
+  useAdminFormValidation,
+  type AdminFieldErrors,
+  type AdminFormValidation,
+  type AdminValidationFieldProps,
+} from "@/components/admin/shared/admin-form-validation";
 
 export {
   AdminSectionTabs,
@@ -98,12 +115,31 @@ export {
 } from "@/components/admin/shared/admin-entity-list";
 
 export {
+  AdminListWorkspace,
+  AdminListWorkspaceRoot,
+  AdminListWorkspaceHeader,
+  AdminListWorkspaceFilters,
+  AdminListWorkspaceBody,
+  type AdminListWorkspaceRootProps,
+  type AdminListWorkspaceHeaderProps,
+  type AdminListWorkspaceFiltersProps,
+  type AdminListWorkspaceBodyProps,
+} from "@/components/admin/shared/admin-list-workspace";
+
+export {
   AdminStatusBadge,
   workflowStatusTone,
   type AdminStatusBadgeProps,
   type AdminStatusBadgeTone,
   type AdminWorkflowStatus,
 } from "@/components/admin/shared/admin-status-badge";
+
+export {
+  AdminOrderedList,
+  AdminOrderedListItemActions,
+  type AdminOrderedListItemControls,
+  type AdminOrderedListProps,
+} from "@/components/admin/shared/admin-ordered-list";
 
 export {
   OwnershipLabel,

@@ -27,12 +27,12 @@ describe("getPageBySlug localization", () => {
       content: {
         editSectionTitle: "The Edit",
         editSectionBody: "English section body.",
-        editSectionCtaLabel: "View piece",
+        editSectionViewAllLabel: "View all products",
         translations: {
           pt: {
             editSectionTitle: "A Seleção",
             editSectionBody: "",
-            editSectionCtaLabel: "Ver peça",
+            editSectionViewAllLabel: "Ver todos os produtos",
           },
         },
       },
@@ -42,7 +42,7 @@ describe("getPageBySlug localization", () => {
       content: {
         editSectionTitle: "A Seleção",
         editSectionBody: "English section body.",
-        editSectionCtaLabel: "Ver peça",
+        editSectionViewAllLabel: "Ver todos os produtos",
       },
     });
   });

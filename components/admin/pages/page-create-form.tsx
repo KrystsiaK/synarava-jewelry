@@ -11,7 +11,7 @@ import {
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminLongTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import { AdminHrefField, AdminListWorkspace, AdminLongTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
@@ -60,26 +60,34 @@ export function CreatePageForm({
   }
 
   return (
-    <form data-component="CreatePageForm" ref={formRef} action={formAction} className="adm-panel grid gap-5 p-5 md:p-6">
+    <form data-component="CreatePageForm" ref={formRef} action={formAction}>
       <input type="hidden" name="pageId" value={draftId} />
-      <div
-        className="flex flex-wrap items-start justify-between gap-4 pb-5"
-        style={{ borderBottom: "1px solid var(--adm-border)" }}
-      >
-        <div>
-          <p className="adm-section-tag">[ PAGE // NEW ]</p>
-          <h2 className="adm-title-sm mt-2">Untitled page</h2>
-          <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--adm-muted)" }}>
-            New custom pages are published at <code>/{`slug`}</code>. Built-in routes stay
-            protected from deletion.
-          </p>
-        </div>
-        <button type="submit" disabled={isPending} className="adm-btn-primary">
-          {isPending ? "Creating..." : "Create page"}
-        </button>
-      </div>
 
-      <AdminLocaleTabs active={activeLocale} onSelect={selectLocale} locales={tabs} />
+      <AdminListWorkspace.Root>
+        <AdminListWorkspace.Header
+          tag="[ PAGE // NEW ]"
+          title="Untitled page"
+          meta={
+            <>
+              New custom pages are published at <code>/{`slug`}</code>. Built-in routes stay
+              protected from deletion.
+            </>
+          }
+          actions={
+            <button type="submit" disabled={isPending} className="adm-btn-primary">
+              {isPending ? "Creating..." : "Create page"}
+            </button>
+          }
+        >
+          <AdminLocaleTabs
+            embedded
+            active={activeLocale}
+            onSelect={selectLocale}
+            locales={tabs}
+          />
+        </AdminListWorkspace.Header>
+
+        <AdminListWorkspace.Body className="grid gap-5">
       <AuthMessage error={state.error} />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -149,7 +157,7 @@ export function CreatePageForm({
         <div hidden={activeLocale !== SOURCE_LOCALE}>
           <AdminTextField label="CTA label" name="ctaLabel" placeholder="Shop all products" />
         </div>
-        <AdminTextField label="CTA href" name="ctaHref" placeholder="/shop" />
+        <AdminHrefField label="CTA href" name="ctaHref" placeholder="/products/…" />
       </div>
 
       <div hidden={activeLocale !== SOURCE_LOCALE}>
@@ -170,6 +178,8 @@ export function CreatePageForm({
           placeholder="Optional follow-up copy block."
         />
       </div>
+        </AdminListWorkspace.Body>
+      </AdminListWorkspace.Root>
     </form>
   );
 }

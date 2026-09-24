@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { adminLocaleFieldName, readLocaleField } from "@/lib/i18n/admin-locale-fields";
+import { adminLocaleFieldName, hasLocaleField, readLocaleField } from "@/lib/i18n/admin-locale-fields";
 
 describe("adminLocaleFieldName", () => {
   it("uses the bare key for the source locale", () => {
@@ -38,5 +38,16 @@ describe("readLocaleField", () => {
   it("returns an empty string for a missing or non-string field", () => {
     const formData = new FormData();
     expect(readLocaleField(formData, "ru", "title")).toBe("");
+  });
+});
+
+describe("hasLocaleField", () => {
+  it("detects bare and prefixed keys even when empty", () => {
+    const formData = new FormData();
+    formData.set("material1Name", "");
+    formData.set("ptMaterial2Name", "Oak");
+    expect(hasLocaleField(formData, "en", "material1Name")).toBe(true);
+    expect(hasLocaleField(formData, "en", "material2Name")).toBe(false);
+    expect(hasLocaleField(formData, "pt", "material2Name")).toBe(true);
   });
 });

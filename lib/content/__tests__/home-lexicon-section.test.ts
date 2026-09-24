@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   resolveLexiconMaterials,
   resolveLexiconNoteLabel,
+  lexiconMaterialStorefrontCaption,
+  lexiconMaterialStorefrontWarnings,
 } from "@/lib/content/home-lexicon-section";
 
 describe("resolveLexiconNoteLabel", () => {
@@ -51,10 +53,52 @@ describe("resolveLexiconMaterials", () => {
     }]);
   });
 
-  it("caps the result at three materials", () => {
+  it("caps the result at MAX_HOME_LEXICON_MATERIALS", () => {
     const material = { name: "M", description: "D", image: "/m.jpg" };
     expect(resolveLexiconMaterials({
       materialLexicon: [material, material, material, material],
     })).toHaveLength(3);
+  });
+});
+
+describe("lexiconMaterialStorefrontWarnings", () => {
+  it("warns on every empty storefront-required field", () => {
+    expect(lexiconMaterialStorefrontWarnings({
+      name: "",
+      category: "",
+      description: "",
+      image: "",
+      properties: "",
+    })).toEqual({
+      name: "Won't appear on the site without this.",
+      description: "Won't appear on the site without this.",
+      image: "Won't appear on the site without this.",
+    });
+  });
+
+  it("clears warnings only for filled required fields", () => {
+    expect(lexiconMaterialStorefrontWarnings({
+      name: "Pearl",
+      category: "",
+      description: "",
+      image: "",
+    })).toEqual({
+      name: undefined,
+      description: "Won't appear on the site without this.",
+      image: "Won't appear on the site without this.",
+    });
+  });
+});
+
+describe("lexiconMaterialStorefrontCaption", () => {
+  it("captions incomplete rows and clears when the specimen is complete", () => {
+    expect(lexiconMaterialStorefrontCaption({ name: "" })).toBe(
+      "This specimen won't appear on the site.",
+    );
+    expect(lexiconMaterialStorefrontCaption({
+      name: "Pearl",
+      description: "Natural.",
+      image: "/pearl.webp",
+    })).toBeUndefined();
   });
 });

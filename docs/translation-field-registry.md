@@ -65,7 +65,7 @@ page only uses the subset of keys its template renders (keys mirror
 | body | localized | when-published | native `PAGE.body_html` |
 | excerpt, eyebrow, ctaLabel, quote, secondaryTitle/Body, archive/The Edit/material/manifesto/final-cta section copy, materialLexicon, legalIntro, legalLastUpdated, legalSections | localized | optional (see code for exceptions) | metaobject `page_section_copy.*` |
 | seoTitle/seoDescription | localized | when-published | native `PAGE.meta_title`/`meta_description` |
-| slug, template, status, visibility, heroImage, ctaHref, finalCtaHref, finalContactEmail, section enabled flags | shared | — | — |
+| slug, template, status, visibility, heroImage, ctaHref, finalCtaHref, finalContactEmail, editProductIds, finalCtaProductIds, section enabled flags | shared | — | — |
 
 Flat legal policy pages that match a Shopify `SHOP_POLICY` (Privacy, Terms)
 sync `body`/`title` there instead of `PAGE` — resolved per-page in Task 16,

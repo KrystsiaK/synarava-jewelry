@@ -33,6 +33,7 @@ import {
   AdminEntityList,
   AdminHelp,
   AdminIconButton,
+  AdminListWorkspace,
   AdminStatusBadge,
 } from "@/components/synarava-cms";
 
@@ -108,24 +109,22 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
 
   return (
     <div data-component="CollectionsCms" className="grid gap-6">
-      <section className="adm-panel p-5">
-        <div
-          className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
-        >
-          <div>
-            <p className="adm-section-tag">[ CURRENT COLLECTIONS ]</p>
-            <h2 className="adm-title-sm mt-2">Collections table</h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/admin/collections/new" className="adm-btn-primary">
-              New collection
-            </Link>
-            <AdminHelp label="Collection editing guidance" align="end">
-              New collection opens the create route. Details opens record history. Draft, Publish, and Archive change site visibility. Delete removes the record.
-            </AdminHelp>
-          </div>
-        </div>
+      <AdminListWorkspace.Root>
+        <AdminListWorkspace.Header
+          tag="[ CURRENT COLLECTIONS ]"
+          title="Collections table"
+          actions={
+            <>
+              <Link href="/admin/collections/new" className="adm-btn-primary">
+                New collection
+              </Link>
+              <AdminHelp label="Collection editing guidance" align="end">
+                New collection opens the create route. Details opens record history. Draft, Publish, and Archive change site visibility. Delete removes the record.
+              </AdminHelp>
+            </>
+          }
+        />
+        <AdminListWorkspace.Body>
         <AuthMessage error={rowState.error} />
 
         <AdminEntityList.Root>
@@ -232,7 +231,8 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
             </AdminEntityList.Empty>
           )}
         </AdminEntityList.Root>
-      </section>
+        </AdminListWorkspace.Body>
+      </AdminListWorkspace.Root>
 
       {modalCopy ? (
         <AdminConfirmModal

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import {
   Archive,
   ChevronDown,
@@ -37,6 +38,7 @@ import { ProductListMetaLine, ProductListSignals } from "@/components/admin/prod
 import {
   AdminEntityList,
   AdminIconButton,
+  AdminListWorkspace,
   AdminSelectField,
   AdminSortChips,
   AdminStatusBadge,
@@ -244,7 +246,7 @@ export function ProductsCms({
       if (result.warning) pushToast({ message: result.warning, tone: "info" });
       setConflictSignals(result.signals);
       if ((result.signals.totalCount ?? 0) > 0) showConflicts();
-      router.refresh();
+      refreshPreservingScroll(router);
     });
   }
 
@@ -311,7 +313,7 @@ export function ProductsCms({
       if (result.success) {
         pushToast({ message: result.success, tone: "success" });
         setShopifyStoreMismatch(null);
-        router.refresh();
+        refreshPreservingScroll(router);
       }
       setConfirmStoreRebind(false);
     });
@@ -322,6 +324,17 @@ export function ProductsCms({
   const priorityMode = Boolean(selectedCollection) && sortBy === "collection-priority";
   const hasNarrowingFilters = Boolean(debouncedQuery.trim()) || statusFilter !== "ALL" || categoryFilter !== "ALL";
   const canReorder = priorityMode && !hasNarrowingFilters && Boolean(selectedCollection?.shopifyCollectionId);
+  const filterSummaryParts = [
+    query.trim() ? `“${query.trim()}”` : null,
+    statusFilter !== "ALL" ? statusFilter : null,
+    categoryFilter !== "ALL"
+      ? (categories.find((category) => category.slug === categoryFilter)?.name ?? categoryFilter)
+      : null,
+    collectionFilter !== "ALL"
+      ? (collections.find((collection) => collection.id === collectionFilter)?.name ?? "Collection")
+      : null,
+  ].filter(Boolean);
+  const filterSummary = filterSummaryParts.length > 0 ? filterSummaryParts.join(" · ") : undefined;
   // Actions: 4×2rem icons + 3×0.25rem gaps ≈ 8.75rem — keep nowrap (see AdminIconButton).
   const desktopTableGridClass = selectedCollection
     ? "xl:grid-cols-[5.5rem_minmax(12rem,1.6fr)_5.5rem_5rem_minmax(7rem,0.9fr)_9rem]"
@@ -376,96 +389,88 @@ export function ProductsCms({
         </div>
         <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} />
       </div>
-      <div className="adm-panel p-5">
-        <div
-          className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
+      <AdminListWorkspace.Root>
+        <AdminListWorkspace.Header
+          tag="[ CURRENT CATALOG ]"
+          title="Products list"
+          meta={`${products.length} of ${totalCount} · ${categories.length} categories · ${tags.length} tags · ${collections.length} collections`}
+          actions={
+            <>
+              <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} compact />
+              {shopifyStoreMismatch ? (
+                <button
+                  type="button"
+                  className="adm-btn-danger inline-flex items-center justify-center gap-2"
+                  onClick={() => setConfirmStoreRebind(true)}
+                  disabled={isStoreRebindPending}
+                >
+                  Rebind to {shopifyStoreMismatch.currentShopDomain}
+                </button>
+              ) : null}
+              <Link href="/admin/products/new" className="adm-btn-primary">
+                New product
+              </Link>
+            </>
+          }
         >
-          <div>
-            <p className="adm-section-tag">[ CURRENT CATALOG ]</p>
-            <h2 className="adm-title-sm mt-2">Products list</h2>
-            <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
-              {products.length} of {totalCount} · {categories.length} categories · {tags.length} tags · {collections.length} collections
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} compact />
-            {shopifyStoreMismatch ? (
-              <button
-                type="button"
-                className="adm-btn-danger inline-flex items-center justify-center gap-2"
-                onClick={() => setConfirmStoreRebind(true)}
-                disabled={isStoreRebindPending}
+          <AdminListWorkspace.Filters summary={filterSummary}>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1.2fr)_8rem_9rem_9rem]">
+              <AdminTextField
+                label="Search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Name, slug, SKU"
+                clearable
+              />
+              <AdminSelectField
+                label="Status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
               >
-                Rebind to {shopifyStoreMismatch.currentShopDomain}
-              </button>
-            ) : null}
-            <Link href="/admin/products/new" className="adm-btn-primary">
-              New product
-            </Link>
-          </div>
-        </div>
+                <option value="ALL">All</option>
+                <option value="PUBLISHED">Published</option>
+                <option value="DRAFT">Draft</option>
+                <option value="UNLISTED">Unlisted</option>
+                <option value="ARCHIVED">Archived</option>
+              </AdminSelectField>
+              <AdminSelectField
+                label="Category"
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+              >
+                <option value="ALL">All categories</option>
+                {categories.map((category) => (
+                  <option key={category.slug} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+              </AdminSelectField>
+              <AdminSelectField
+                label="Collection"
+                value={collectionFilter}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setCollectionFilter(value);
+                  setSortBy(value === "ALL" ? "published" : "collection-priority");
+                }}
+              >
+                <option value="ALL">All collections</option>
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name}{collection.isStorefrontDefault ? " (global priority)" : ""}
+                  </option>
+                ))}
+              </AdminSelectField>
+            </div>
+            <AdminSortChips
+              value={sortBy}
+              options={sortOptions}
+              onChange={setSortBy}
+            />
+          </AdminListWorkspace.Filters>
+        </AdminListWorkspace.Header>
 
-        <div
-          className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1.2fr)_8rem_9rem_9rem]"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
-        >
-          <AdminTextField
-            label="Search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Name, slug, SKU"
-            clearable
-          />
-          <AdminSelectField
-            label="Status"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="ALL">All</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="DRAFT">Draft</option>
-            <option value="UNLISTED">Unlisted</option>
-            <option value="ARCHIVED">Archived</option>
-          </AdminSelectField>
-          <AdminSelectField
-            label="Category"
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-          >
-            <option value="ALL">All categories</option>
-            {categories.map((category) => (
-              <option key={category.slug} value={category.slug}>
-                {category.name}
-              </option>
-            ))}
-          </AdminSelectField>
-          <AdminSelectField
-            label="Collection"
-            value={collectionFilter}
-            onChange={(event) => {
-              const value = event.target.value;
-              setCollectionFilter(value);
-              setSortBy(value === "ALL" ? "published" : "collection-priority");
-            }}
-          >
-            <option value="ALL">All collections</option>
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.id}>
-                {collection.name}{collection.isStorefrontDefault ? " (global priority)" : ""}
-              </option>
-            ))}
-          </AdminSelectField>
-        </div>
-
-        <div className="py-3" style={{ borderBottom: "1px solid var(--adm-border)" }}>
-          <AdminSortChips
-            value={sortBy}
-            options={sortOptions}
-            onChange={setSortBy}
-          />
-        </div>
-
+        <AdminListWorkspace.Body>
         <AuthMessage error={rowActionState.error ?? listError ?? undefined} />
 
         {selectedCollection ? (
@@ -657,7 +662,8 @@ export function ProductsCms({
             label={loadingMore ? "Loading more…" : "Scroll for more"}
           />
         </AdminEntityList.Root>
-      </div>
+        </AdminListWorkspace.Body>
+      </AdminListWorkspace.Root>
 
       {modalCopy ? (
         <AdminConfirmModal

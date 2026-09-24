@@ -26,6 +26,7 @@ import {
   AdminEntityList,
   AdminHelp,
   AdminIconButton,
+  AdminListWorkspace,
   AdminStatusBadge,
 } from "@/components/synarava-cms";
 
@@ -67,26 +68,22 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
 
   return (
     <div data-component="PagesCms" className="grid gap-6">
-      <section className="adm-panel p-5">
-        <div
-          className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
-        >
-          <div>
-            <p className="adm-section-tag">[ PAGES TABLE ]</p>
-            <div className="adm-label-row mt-2">
-              <h2 className="adm-title-sm">Pages table</h2>
+      <AdminListWorkspace.Root>
+        <AdminListWorkspace.Header
+          tag="[ PAGES TABLE ]"
+          title="Pages table"
+          actions={
+            <>
               <AdminHelp label="Page actions" align="end">
                 New page opens the create route. Details opens record history. Publish, Draft, and Archive change public visibility after confirmation.
               </AdminHelp>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/admin/pages/new" className="adm-btn-primary">
-              New page
-            </Link>
-          </div>
-        </div>
+              <Link href="/admin/pages/new" className="adm-btn-primary">
+                New page
+              </Link>
+            </>
+          }
+        />
+        <AdminListWorkspace.Body>
         <AuthMessage error={rowState.error} />
         <AdminEntityList.Root>
           <AdminEntityList.Header
@@ -169,7 +166,8 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
             );
           })}
         </AdminEntityList.Root>
-      </section>
+        </AdminListWorkspace.Body>
+      </AdminListWorkspace.Root>
 
       {modalCopy ? (
         <AdminConfirmModal

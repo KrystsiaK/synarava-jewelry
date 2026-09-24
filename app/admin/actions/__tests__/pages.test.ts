@@ -71,17 +71,41 @@ describe("savePageAction", () => {
     formData.set("editSectionEyebrow", "Shop the edit");
     formData.set("editSectionTitle", "The Edit");
     formData.set("editSectionBody", "Four pieces to begin.");
-    formData.set("editSectionCtaLabel", "View piece");
+    formData.set("editSectionViewAllLabel", "View all products");
     formData.set("editProductId1", "bird");
     formData.set("editProductId2", "moon");
     formData.set("editProductId3", "dog");
     formData.set("editProductId4", "pearl");
+    formData.set("finalCtaProductId1", "bird");
+    formData.set("finalCtaProductId2", "moon");
+    formData.set("finalCtaProductId3", "dog");
+    formData.set("finalCtaProductId4", "pearl");
+    formData.append("archiveCollectionIds", "col-a");
+    formData.append("archiveCollectionIds", "col-b");
     formData.set("ptEditSectionEyebrow", "Descubra a seleção");
     formData.set("ptEditSectionTitle", "A Seleção");
     formData.set("ptEditSectionBody", "Quatro peças para começar.");
-    formData.set("ptEditSectionCtaLabel", "Ver peça");
+    formData.set("ptEditSectionViewAllLabel", "Ver todos os produtos");
     formData.set("materialSectionTitle", "Lexicon");
     formData.set("materialSectionNoteLabel", "Material notes");
+    formData.set("material1Name", "Pearl");
+    formData.set("material1Category", "Organic");
+    formData.set("material1Description", "Irregular.");
+    formData.set("material1Properties", "Natural");
+    formData.set("material1Image", "/pearl.webp");
+    formData.set("material2Name", "Oak");
+    formData.set("material2Category", "Wood");
+    formData.set("material2Description", "Ancient.");
+    formData.set("material2Properties", "Warm");
+    formData.set("material2Image", "/oak.webp");
+    formData.set("ptMaterial1Name", "Pérola");
+    formData.set("ptMaterial1Category", "Orgânico");
+    formData.set("ptMaterial1Description", "Irregular.");
+    formData.set("ptMaterial1Properties", "Natural");
+    formData.set("ptMaterial2Name", "Carvalho");
+    formData.set("ptMaterial2Category", "Madeira");
+    formData.set("ptMaterial2Description", "Antigo.");
+    formData.set("ptMaterial2Properties", "Quente");
     formData.set("ptMaterialSectionNoteLabel", "Notas de materiais");
     formData.set("manifestoSectionAttribution", "The Synarava Manifesto");
     formData.set("finalCtaLabel", "Enter the shop");
@@ -103,10 +127,28 @@ describe("savePageAction", () => {
           editSectionEyebrow: "Shop the edit",
           editSectionTitle: "The Edit",
           editSectionBody: "Four pieces to begin.",
-          editSectionCtaLabel: "View piece",
+          editSectionViewAllLabel: "View all products",
           editProductIds: ["bird", "moon", "dog", "pearl"],
+          finalCtaProductIds: ["bird", "moon", "dog", "pearl"],
+          archiveCollectionIds: ["col-a", "col-b"],
           materialSectionTitle: "Lexicon",
           materialSectionNoteLabel: "Material notes",
+          materialLexicon: [
+            {
+              name: "Pearl",
+              category: "Organic",
+              description: "Irregular.",
+              properties: "Natural",
+              image: "/pearl.webp",
+            },
+            {
+              name: "Oak",
+              category: "Wood",
+              description: "Ancient.",
+              properties: "Warm",
+              image: "/oak.webp",
+            },
+          ],
           manifestoSectionAttribution: "The Synarava Manifesto",
           finalCtaLabel: "Enter the shop",
           finalCtaHref: "/shop",
@@ -115,7 +157,7 @@ describe("savePageAction", () => {
           translations: {
             pt: expect.objectContaining({
               editSectionTitle: "A Seleção",
-              editSectionCtaLabel: "Ver peça",
+              editSectionViewAllLabel: "Ver todos os produtos",
               materialSectionNoteLabel: "Notas de materiais",
             }),
           },
@@ -130,8 +172,45 @@ describe("savePageAction", () => {
         title: "Home",
         content: expect.objectContaining({
           editSectionTitle: "A Seleção",
-          editSectionCtaLabel: "Ver peça",
+          editSectionViewAllLabel: "Ver todos os produtos",
           materialSectionNoteLabel: "Notas de materiais",
+          materialLexicon: [
+            expect.objectContaining({ name: "Pérola", image: "/pearl.webp" }),
+            expect.objectContaining({ name: "Carvalho", image: "/oak.webp" }),
+          ],
+        }),
+      }),
+    }));
+  });
+
+  it("rejects an invalid Final CTA contact email when contact is enabled", async () => {
+    const formData = new FormData();
+    formData.set("slug", "home");
+    formData.set("title", "Home");
+    formData.set("workflowState", "PUBLISHED");
+    formData.set("finalContactEnabled", "1");
+    formData.set("finalContactLabel", "Write us");
+    formData.set("finalContactEmail", "not-an-email");
+
+    await expect(savePageAction(formData)).resolves.toMatchObject({
+      error: "Complete the Final CTA contact fields.",
+      fieldErrors: { finalContactEmail: "Enter a valid email address." },
+    });
+    expect(mocks.upsertPage).not.toHaveBeenCalled();
+  });
+
+  it("allows save when Final CTA contact is disabled even with a junk email value", async () => {
+    const formData = new FormData();
+    formData.set("slug", "home");
+    formData.set("title", "Home");
+    formData.set("workflowState", "PUBLISHED");
+    formData.set("finalContactEmail", "not-an-email");
+
+    await expect(savePageAction(formData)).resolves.toMatchObject({ success: "Page created." });
+    expect(mocks.upsertPage).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({
+        content: expect.objectContaining({
+          finalContactEnabled: false,
         }),
       }),
     }));

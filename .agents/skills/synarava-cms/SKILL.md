@@ -2,10 +2,10 @@
 name: synarava-cms
 description: >-
   synarava-cms — Synarava admin shared form library (AdminTextField,
-  AdminSelectField, AdminCheckboxField/Control, AdminLongTextField,
+  AdminSelectField, AdminHrefField/Control, AdminCheckboxField/Control, AdminLongTextField,
   AdminCollapsiblePanel, AdminPanel, AdminNavTree, AdminSectionTabs,
-  AdminEntityList, AdminIconButton, AdminSignalChip, AdminSortChips,
-  AdminStatusBadge, AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
+  AdminEntityList, AdminListWorkspace, AdminIconButton, AdminSignalChip, AdminSortChips,
+  AdminStatusBadge, AdminOrderedList, AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
   Use whenever editing admin UI, product/collection/page forms, CMS fields,
   validation chrome, labels, adornments, clearable inputs, shared/common
   controls, library migration, or anything under components/admin/.
@@ -39,7 +39,7 @@ When the user says **общий компонент**, **shared control**, or **l
 1. **Reuse synarava-cms.** New admin single-line text, select, or checkbox must come from `@/components/synarava-cms`. Raw `<input>` / `<select>` / `<textarea className="adm-field">` only for hidden mirrors, file inputs, or controls not yet in the library.
 2. **One stack.** Extend `AdminFieldShell` / existing pieces under `admin/shared`, re-export from `components/synarava-cms`. Do not create a parallel field system.
 3. **One chrome per control type.** No dual DOM/CSS paths that change the outer field look based on optional props.
-4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). Every unit **always** reserves a one-line error band so siblings never jump; long messages ellipsis + tooltip/`title`. No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot.
+4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). **Warnings** use the same band (`.adm-field-warning`, orange) via the `warning` prop — error wins if both are set. Every unit **always** reserves a one-line message band so siblings never jump; long messages ellipsis + tooltip/`title`. No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot.
 5. **Tall composites:** control inside the shell; extra panels (e.g. Shopify category attributes) **outside**.
 6. **Help** is an `i` tooltip beside the label (`AdminHelp` / `help` prop).
 7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
@@ -54,6 +54,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Unit / affix inside one border | `endAdornment` / `startAdornment` |
 | Clear (× on focus, non-empty) | `clearable` (+ `onClear` if controlled) |
 | Select | `AdminSelectField` / `AdminSelectControl` |
+| Storefront path combobox | `AdminHrefField` / `AdminHrefControl` |
 | Checkbox + optional follow-on | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
 | Long copy (preview + Edit modal) | `AdminLongTextField` |
@@ -62,13 +63,17 @@ When the user says **общий компонент**, **shared control**, or **l
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` |
 | Section tabs + cool content well | `AdminSectionTabs` |
 | Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
+| Sticky list chrome (title / filters / body) | `AdminListWorkspace` (`.Root` / `.Header` / `.Filters` / `.Body`) |
 | Icon action + tooltip | `AdminIconButton` |
 | Locale / problem / conflict glyph | `AdminSignalChip` |
 | Compact sort chips | `AdminSortChips` |
 | Status / workflow pill | `AdminStatusBadge` |
+| Ordered rows (up/down; DnD later) | `AdminOrderedList` |
 | Sticky band padding / vertical rhythm | `.adm-band` + `--adm-inset-x` (Tailwind `px-adm-inset`); `--sticky-radius` when first sticky under panel |
 | Custom labeled block | `AdminFieldShell` + control |
 | Home section on/off | Keep existing **switch** UI — not checkbox |
+
+Material lexicon rows: `AdminOrderedList` + nested `AdminCollapsiblePanel` (new rows `defaultOpen`, header shows index / name / category).
 
 ## Migration / “apply shared control” workflow
 

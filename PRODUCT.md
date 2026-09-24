@@ -16,11 +16,15 @@ Synarava is a couture jewelry storefront with a lightweight CMS. The admin exist
 
 ## Home Page CMS
 
-The Home editor controls the storefront as six explicit sections: Hero, Featured collections, The Edit product showcase, Material lexicon, Manifesto, and Final call to action. Every section has an independent visibility control. Hiding a section removes it from the storefront without deleting its saved content.
+The Home editor controls the storefront as six explicit sections: Hero, Featured collections, Product showcase, Material lexicon, Manifesto, and Final call to action. Every section has an independent visibility control. Hiding a section removes it from the storefront without deleting its saved content.
 
-Editors can maintain the localized English and Portuguese copy used by these sections, including labels, headings, body copy, calls to action, manifesto attribution, footer statement, and contact details. Collection- and navigation-driven imagery and cards continue to come from the corresponding catalog records.
+Editors can maintain the localized English and Portuguese copy used by these sections, including labels, headings, body copy, calls to action, manifesto attribution, Final CTA closing statement, and contact details. Empty optional fields fall back to the storefront defaults so an enabled section still renders. Collection- and navigation-driven imagery and cards continue to come from the corresponding catalog records.
 
-The Edit is a four-slot merchandising surface. Editors choose four distinct published Shopify-backed products in display order; the storefront resolves the saved local product references against the synchronized catalog and keeps product names, prices, links, and imagery sourced from that projection.
+The product showcase is a four-slot merchandising surface. Editors choose four distinct published Shopify-backed products in display order; the storefront resolves the saved local product references against the synchronized catalog and keeps product names, prices, links, and imagery sourced from that projection.
+
+The Final CTA collage is likewise a fixed four-slot surface. Editors choose four distinct published products whose images fill the cubist shards; empty slots fall back to Featured collections imagery. Closing statement is always available. Contact email is opt-in via “Include contact email”; when enabled, both the contact link label and the email address are required.
+
+The material lexicon is an ordered list of two or three specimens (minimum two for the scroll carousel). Editors add, remove, and reorder rows in place; each row collapses to a short header (number, name, category) and expands for full copy and image. Images are shared across locales.
 
 Visibility settings are shared across locales so the page structure stays consistent. Copy remains locale-specific. Existing page records preserve the established storefront by default: all original sections remain visible.
 

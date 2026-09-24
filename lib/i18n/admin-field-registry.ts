@@ -124,7 +124,7 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "editSectionEyebrow", label: "The Edit — eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "edit_eyebrow") },
     { key: "editSectionTitle", label: "The Edit — title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "edit_title") },
     { key: "editSectionBody", label: "The Edit — description", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("page_section_copy", "edit_body") },
-    { key: "editSectionCtaLabel", label: "The Edit — product CTA", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "edit_cta_label") },
+    { key: "editSectionViewAllLabel", label: "The Edit — view all label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "edit_view_all_label") },
     { key: "materialSectionEyebrow", label: "Material section — eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "material_eyebrow") },
     { key: "materialSectionTitle", label: "Material section — title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "material_title") },
     { key: "materialSectionNoteLabel", label: "Material section — note label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "material_note_label") },
@@ -149,6 +149,8 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "ctaHref", label: "CTA href", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "finalCtaHref", label: "Final CTA href", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "finalContactEmail", label: "Final contact email", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
+    { key: "finalContactEnabled", label: "Final contact email enabled", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
+    { key: "finalCtaProductIds", label: "Final CTA collage product ids", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "sectionEnabledFlags", label: "Section enabled/disabled flags", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
   ],
 };

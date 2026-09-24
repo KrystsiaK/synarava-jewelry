@@ -14,6 +14,7 @@ type SelectProps = Omit<ComponentProps<"select">, "className" | "children">;
 export type AdminSelectControlProps = SelectProps & {
   controlId?: string;
   error?: string;
+  warning?: string;
   /** Force error chrome without error copy (e.g. issue-linked fields). */
   invalid?: boolean;
   disabled?: boolean;
@@ -22,6 +23,7 @@ export type AdminSelectControlProps = SelectProps & {
   children: ReactNode;
   "aria-invalid"?: true | undefined;
   "aria-errormessage"?: string | undefined;
+  "aria-describedby"?: string | undefined;
 };
 
 /**
@@ -31,6 +33,7 @@ export type AdminSelectControlProps = SelectProps & {
 export function AdminSelectControl({
   controlId,
   error,
+  warning,
   invalid = false,
   disabled,
   selectClassName,
@@ -38,9 +41,11 @@ export function AdminSelectControl({
   children,
   "aria-invalid": ariaInvalid,
   "aria-errormessage": ariaErrorMessage,
+  "aria-describedby": ariaDescribedBy,
   ...selectProps
 }: AdminSelectControlProps) {
   const showError = Boolean(error) || invalid || ariaInvalid === true;
+  const showWarning = !showError && Boolean(warning);
 
   return (
     <div
@@ -48,7 +53,7 @@ export function AdminSelectControl({
       data-control="select"
       className={cn(
         "adm-field-group",
-        showError ? "adm-field-group--error" : null,
+        showError ? "adm-field-group--error" : showWarning ? "adm-field-group--warning" : null,
         groupClassName,
       )}
     >
@@ -58,6 +63,7 @@ export function AdminSelectControl({
         disabled={disabled}
         aria-invalid={showError ? true : undefined}
         aria-errormessage={showError ? ariaErrorMessage : undefined}
+        aria-describedby={ariaDescribedBy}
         className={cn("adm-field adm-field--in-group adm-field--select", selectClassName)}
       >
         {children}
@@ -73,6 +79,7 @@ export type AdminSelectFieldProps = SelectProps & {
   required?: boolean;
   error?: string;
   errorId?: string;
+  warning?: string;
   /** Force error chrome without error copy (e.g. issue-linked fields). */
   invalid?: boolean;
   className?: string;
@@ -93,6 +100,7 @@ export function AdminSelectField({
   required = false,
   error,
   errorId,
+  warning,
   invalid = false,
   disabled,
   className,
@@ -104,7 +112,7 @@ export function AdminSelectField({
   "aria-errormessage": ariaErrorMessage,
   ...selectProps
 }: AdminSelectFieldProps) {
-  const { controlId, messageId } = useAdminFieldIds(id, errorId);
+  const { controlId, messageId, warningId } = useAdminFieldIds(id, errorId);
 
   return (
     <AdminFieldShell
@@ -116,6 +124,8 @@ export function AdminSelectField({
       required={required}
       error={error}
       errorId={messageId}
+      warning={warning}
+      warningId={warningId}
       issue={issue}
       disabled={disabled}
       className={className}
@@ -125,12 +135,14 @@ export function AdminSelectField({
         {...selectProps}
         controlId={controlId}
         error={error}
+        warning={warning}
         invalid={invalid}
         disabled={disabled}
         required={required}
         selectClassName={selectClassName}
         aria-invalid={ariaInvalid === true ? true : undefined}
         aria-errormessage={ariaErrorMessage ?? messageId}
+        aria-describedby={!error && warning ? warningId : undefined}
       >
         {children}
       </AdminSelectControl>

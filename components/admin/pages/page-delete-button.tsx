@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
 import { deletePageAction } from "@/app/admin/actions/pages";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import { AdminIconButton } from "@/components/synarava-cms";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -39,7 +40,7 @@ export function PageDeleteButton({
       if (!result?.error) {
         setConfirmOpen(false);
         onDeleted?.();
-        router.refresh();
+        refreshPreservingScroll(router);
       }
     });
   }

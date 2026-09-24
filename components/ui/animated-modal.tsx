@@ -122,17 +122,17 @@ export function AnimatedModal({
       );
       if (focusable.length === 0) {
         event.preventDefault();
-        dialogRef.current?.focus();
+        dialogRef.current?.focus({ preventScroll: true });
         return;
       }
       const first = focusable[0];
       const last = focusable.at(-1);
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
-        last?.focus();
+        last?.focus({ preventScroll: true });
       } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault();
-        first.focus();
+        first.focus({ preventScroll: true });
       }
     }
 
@@ -142,14 +142,14 @@ export function AnimatedModal({
       const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
         'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
-      (firstFocusable ?? dialogRef.current)?.focus();
+      (firstFocusable ?? dialogRef.current)?.focus({ preventScroll: true });
     });
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.cancelAnimationFrame(focusFrame);
       activeModalIds.delete(modalId);
       releaseDocumentLocksIfIdle();
-      previousFocusRef.current?.focus();
+      previousFocusRef.current?.focus({ preventScroll: true });
     };
   }, [modalId, mounted]);
 

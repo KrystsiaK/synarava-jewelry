@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import {
   savePageAction,
@@ -9,15 +9,24 @@ import {
 } from "@/app/admin/actions/pages";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
+import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminHelp, AdminLongTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminHelp,
+  AdminHrefField,
+  AdminListWorkspace,
+  AdminLongTextField,
+  AdminSelectField,
+  AdminTextField,
+} from "@/components/synarava-cms";
+import { isValidOptionalEmail, OPTIONAL_EMAIL_ERROR } from "@/lib/admin/optional-email";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
-import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
+import { HomePageEditorSections, type HomeArchiveCollectionOption, type HomeEditProductOption, type HomePageEditorSectionsProps, type MaterialDraft } from "@/components/admin/pages/home-page-editor-sections";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
 import { PRIVACY_SECTIONS } from "@/lib/content/privacy-defaults";
@@ -25,16 +34,16 @@ import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
 import { SERVICE_SECTIONS, type ServicePageSlug } from "@/lib/content/service-page-defaults";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { DEFAULT_HOME_EDIT_PRODUCT_TITLES } from "@/lib/content/home-edit-section";
+import {
+  MAX_HOME_LEXICON_MATERIALS,
+  MIN_HOME_LEXICON_MATERIALS,
+} from "@/lib/content/home-lexicon-section";
+
+export type { HomeArchiveCollectionOption, HomeEditProductOption } from "@/components/admin/pages/home-page-editor-sections";
 
 const SERVICE_PAGE_SLUGS = Object.keys(SERVICE_SECTIONS) as ServicePageSlug[];
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
-
-export type HomeEditProductOption = {
-  id: string;
-  title: string;
-  slug: string;
-};
 
 // One physical field per concept (Title, Body, Edit title, ...),
 // not one copy per language: the field's *value* switches with the active
@@ -43,8 +52,6 @@ export type HomeEditProductOption = {
 // and to AdminLocaleTabs' locale list — it does not mean touching this JSX
 // again. See tasks/plan.md and the 2026-09-19 conversation that asked for
 // this instead of a duplicated-per-locale layout.
-type MaterialDraft = { name: string; category: string; description: string; properties: string };
-
 type PageLocaleDraft = {
   title: string;
   eyebrow: string;
@@ -58,11 +65,11 @@ type PageLocaleDraft = {
   editSectionEyebrow: string;
   editSectionTitle: string;
   editSectionBody: string;
-  editSectionCtaLabel: string;
+  editSectionViewAllLabel: string;
   materialSectionEyebrow: string;
   materialSectionTitle: string;
   materialSectionNoteLabel: string;
-  materials: [MaterialDraft, MaterialDraft, MaterialDraft];
+  materials: MaterialDraft[];
   manifestoSectionLabel: string;
   manifestoSectionAttribution: string;
   finalCtaLabel: string;
@@ -73,9 +80,46 @@ type PageLocaleDraft = {
   serviceSections: Record<string, { title: string; body: string }>;
 };
 
-const emptyMaterial = (): MaterialDraft => ({ name: "", category: "", description: "", properties: "" });
+let materialIdCounter = 0;
+function nextMaterialId() {
+  materialIdCounter += 1;
+  return `material-${materialIdCounter}`;
+}
 
-function draftFromCopy(copy: EditablePageCopy): PageLocaleDraft {
+function emptyMaterial(overrides?: Partial<MaterialDraft>): MaterialDraft {
+  return {
+    id: nextMaterialId(),
+    name: "",
+    category: "",
+    description: "",
+    properties: "",
+    image: "",
+    panelOpen: false,
+    ...overrides,
+  };
+}
+
+function materialsFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCopy): MaterialDraft[] {
+  const source = copy.materialLexicon ?? [];
+  const images = sharedImages?.materialLexicon ?? source;
+  const count = Math.min(
+    MAX_HOME_LEXICON_MATERIALS,
+    Math.max(MIN_HOME_LEXICON_MATERIALS, source.length, images.length),
+  );
+  return Array.from({ length: count }, (_, index) => {
+    const text = source[index];
+    const image = images[index]?.image ?? text?.image ?? "";
+    return emptyMaterial({
+      name: text?.name ?? "",
+      category: text?.category ?? "",
+      description: text?.description ?? "",
+      properties: text?.properties ?? "",
+      image: typeof image === "string" ? image : "",
+    });
+  });
+}
+
+function draftFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCopy): PageLocaleDraft {
   return {
     title: copy.title ?? "",
     eyebrow: copy.eyebrow ?? "",
@@ -89,16 +133,11 @@ function draftFromCopy(copy: EditablePageCopy): PageLocaleDraft {
     editSectionEyebrow: copy.editSectionEyebrow ?? "",
     editSectionTitle: copy.editSectionTitle ?? "",
     editSectionBody: copy.editSectionBody ?? "",
-    editSectionCtaLabel: copy.editSectionCtaLabel ?? "",
+    editSectionViewAllLabel: copy.editSectionViewAllLabel ?? "",
     materialSectionEyebrow: copy.materialSectionEyebrow ?? "",
     materialSectionTitle: copy.materialSectionTitle ?? "",
     materialSectionNoteLabel: copy.materialSectionNoteLabel ?? "",
-    materials: [0, 1, 2].map((index): MaterialDraft => {
-      const source = copy.materialLexicon?.[index];
-      return source
-        ? { name: source.name ?? "", category: source.category ?? "", description: source.description ?? "", properties: source.properties ?? "" }
-        : emptyMaterial();
-    }) as [MaterialDraft, MaterialDraft, MaterialDraft],
+    materials: materialsFromCopy(copy, sharedImages),
     manifestoSectionLabel: copy.manifestoSectionLabel ?? "",
     manifestoSectionAttribution: copy.manifestoSectionAttribution ?? "",
     finalCtaLabel: copy.finalCtaLabel ?? "",
@@ -142,7 +181,7 @@ function HiddenLocaleFields({
           field("editSectionEyebrow", draft.editSectionEyebrow),
           field("editSectionTitle", draft.editSectionTitle),
           field("editSectionBody", draft.editSectionBody),
-          field("editSectionCtaLabel", draft.editSectionCtaLabel),
+          field("editSectionViewAllLabel", draft.editSectionViewAllLabel),
           field("materialSectionEyebrow", draft.materialSectionEyebrow),
           field("materialSectionTitle", draft.materialSectionTitle),
           field("materialSectionNoteLabel", draft.materialSectionNoteLabel),
@@ -175,11 +214,13 @@ function HiddenLocaleFields({
 export function PageEditor({
   page,
   productOptions = [],
+  collectionOptions = [],
   onUpdated,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
 }: {
   page: SavedPagePayload;
   productOptions?: HomeEditProductOption[];
+  collectionOptions?: HomeArchiveCollectionOption[];
   onUpdated?: (page: SavedPagePayload) => void;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
@@ -188,6 +229,7 @@ export function PageEditor({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const validation = useAdminFormValidation<"finalContactEmail" | "finalContactLabel">({ formRef });
   const content = (page.content ?? {}) as EditablePageContent;
   function translationCopyFor(code: string): EditablePageCopy {
     const row = page.translations?.find((translation) => translation.locale === code);
@@ -222,10 +264,27 @@ export function PageEditor({
   const { pushToast } = useAdminToast();
   const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, tabs);
-  const [draftByLocale, setDraftByLocale] = useState<Record<string, PageLocaleDraft>>(() => ({
-    [SOURCE_LOCALE]: draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" }),
-    ...Object.fromEntries(translationLocales.map(({ code }) => [code, draftFromCopy(translationCopyFor(code))])),
-  }));
+  const [draftByLocale, setDraftByLocale] = useState<Record<string, PageLocaleDraft>>(() => {
+    const english = draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" });
+    return {
+      [SOURCE_LOCALE]: english,
+      ...Object.fromEntries(translationLocales.map(({ code }) => {
+        const draft = draftFromCopy(translationCopyFor(code), content);
+        draft.materials = english.materials.map((enMaterial, index) => {
+          const localized = draft.materials[index];
+          return emptyMaterial({
+            id: enMaterial.id,
+            image: enMaterial.image,
+            name: localized?.name ?? "",
+            category: localized?.category ?? "",
+            description: localized?.description ?? "",
+            properties: localized?.properties ?? "",
+          });
+        });
+        return [code, draft];
+      })),
+    };
+  });
   const [handleByLocale, setHandleByLocale] = useState<Record<string, string>>(() =>
     Object.fromEntries(translationLocales.map(({ code }) =>
       [code, page.translations?.find((translation) => translation.locale === code)?.localizedHandle ?? ""],
@@ -238,6 +297,33 @@ export function PageEditor({
     );
     return approvedDefaults.every(Boolean) ? approvedDefaults : ["", "", "", ""];
   });
+  const [finalCtaProductIds, setFinalCtaProductIds] = useState<string[]>(() =>
+    [...(content.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4),
+  );
+  const [contactEnabled, setContactEnabled] = useState(() => content.finalContactEnabled === true);
+  const [archiveCollectionIds, setArchiveCollectionIds] = useState<string[]>(() => {
+    const saved = content.archiveCollectionIds?.filter(Boolean) ?? [];
+    return saved.length > 0 ? saved : [""];
+  });
+
+  // After save + router.refresh, re-hydrate selection lists from the saved page.
+  // Depend on updatedAt only — not content identity — so typing/selecting is not wiped mid-edit.
+  useEffect(() => {
+    const nextContent = (page.content ?? {}) as EditablePageContent;
+    const savedCollections = nextContent.archiveCollectionIds?.filter(Boolean) ?? [];
+    setArchiveCollectionIds(savedCollections.length > 0 ? savedCollections : [""]);
+    setFinalCtaProductIds([...(nextContent.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4));
+    setContactEnabled(nextContent.finalContactEnabled === true);
+    if (nextContent.editProductIds?.length) {
+      setEditProductIds([...nextContent.editProductIds, "", "", "", ""].slice(0, 4));
+      return;
+    }
+    const approvedDefaults = DEFAULT_HOME_EDIT_PRODUCT_TITLES.map(
+      (title) => productOptions.find((product) => product.title === title)?.id ?? "",
+    );
+    setEditProductIds(approvedDefaults.every(Boolean) ? approvedDefaults : ["", "", "", ""]);
+  }, [page.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: hydrate on server save only
+
   const draft = draftByLocale[activeLocale];
   const isEn = activeLocale === SOURCE_LOCALE;
   const activeLabel = tabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
@@ -247,11 +333,84 @@ export function PageEditor({
   }
 
   function updateMaterial(index: number, key: keyof MaterialDraft, value: string) {
+    if (key === "id" || key === "panelOpen") return;
     setDraftByLocale((prev) => {
-      const materials = [...prev[activeLocale].materials] as [MaterialDraft, MaterialDraft, MaterialDraft];
-      materials[index] = { ...materials[index], [key]: value };
+      if (key === "image") {
+        return Object.fromEntries(
+          Object.entries(prev).map(([locale, draft]) => [
+            locale,
+            {
+              ...draft,
+              materials: draft.materials.map((material, slot) =>
+                slot === index ? { ...material, image: value } : material,
+              ),
+            },
+          ]),
+        );
+      }
+      const materials = prev[activeLocale].materials.map((material, slot) =>
+        slot === index ? { ...material, [key]: value } : material,
+      );
       return { ...prev, [activeLocale]: { ...prev[activeLocale], materials } };
     });
+  }
+
+  function setMaterialPanelOpen(index: number, open: boolean) {
+    setDraftByLocale((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([locale, draft]) => [
+          locale,
+          {
+            ...draft,
+            materials: draft.materials.map((material, slot) =>
+              slot === index ? { ...material, panelOpen: open } : material,
+            ),
+          },
+        ]),
+      ),
+    );
+  }
+
+  /** Structural add/remove/reorder — keeps every locale's slots aligned; images travel with the EN order. */
+  function setMaterials(next: MaterialDraft[]) {
+    setDraftByLocale((prev) => {
+      const englishNext = next.map((item) => {
+        const existing = prev[SOURCE_LOCALE]?.materials.find((material) => material.id === item.id);
+        return {
+          ...item,
+          image: item.image || existing?.image || "",
+          panelOpen: item.panelOpen ?? existing?.panelOpen ?? false,
+        };
+      });
+      return Object.fromEntries(
+        Object.entries(prev).map(([locale, draft]) => {
+          if (locale === SOURCE_LOCALE) {
+            return [locale, { ...draft, materials: englishNext }];
+          }
+          const byId = new Map(draft.materials.map((material) => [material.id, material]));
+          return [
+            locale,
+            {
+              ...draft,
+              materials: englishNext.map((enItem) => {
+                const existing = byId.get(enItem.id);
+                return existing
+                  ? { ...existing, image: enItem.image, panelOpen: enItem.panelOpen }
+                  : emptyMaterial({
+                      id: enItem.id,
+                      image: enItem.image,
+                      panelOpen: enItem.panelOpen,
+                    });
+              }),
+            },
+          ];
+        }),
+      );
+    });
+  }
+
+  function createMaterial(): MaterialDraft {
+    return emptyMaterial({ panelOpen: true });
   }
 
   function updateLegalSection(sectionId: string, key: "title" | "body", value: string) {
@@ -285,53 +444,130 @@ export function PageEditor({
       const result = await savePageAction(formData);
       setState(result);
       setConfirmOpen(false);
+      validation.showFieldErrors(result.fieldErrors ?? {});
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.page) onUpdated?.(result.page);
+      if (result.page) {
+        const saved = (result.page.content ?? {}) as EditablePageContent;
+        const savedCollections = saved.archiveCollectionIds?.filter(Boolean) ?? [];
+        setArchiveCollectionIds(savedCollections.length > 0 ? savedCollections : [""]);
+        if (saved.editProductIds?.length) {
+          setEditProductIds([...saved.editProductIds, "", "", "", ""].slice(0, 4));
+        }
+        setFinalCtaProductIds([...(saved.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4));
+        setContactEnabled(saved.finalContactEnabled === true);
+        onUpdated?.(result.page);
+      }
     });
   }
 
+  function requestSave() {
+    setState({});
+    if (!contactEnabled) {
+      validation.showFieldErrors({});
+      setConfirmOpen(true);
+      return;
+    }
+
+    const emailValue = String(
+      (formRef.current?.elements.namedItem("finalContactEmail") as HTMLInputElement | null)?.value ?? "",
+    ).trim();
+    const errors: Partial<Record<"finalContactEmail" | "finalContactLabel", string>> = {};
+    if (!draft.finalContactLabel.trim()) {
+      errors.finalContactLabel = "Enter a contact link label.";
+    }
+    if (!emailValue) {
+      errors.finalContactEmail = "Enter a contact email.";
+    } else if (!isValidOptionalEmail(emailValue)) {
+      errors.finalContactEmail = OPTIONAL_EMAIL_ERROR;
+    }
+    validation.showFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    setConfirmOpen(true);
+  }
+
   return (
-    <div data-component="PageEditor" className="adm-panel grid gap-5 p-5 md:p-6">
-      <form ref={formRef} action={formAction} className="grid gap-5">
-        <input type="hidden" name="slug" value={page.slug} />
-        <HiddenLocaleFields
-          draftByLocale={draftByLocale}
-          legalSectionIds={legalSections.map((section) => section.id)}
-          serviceSectionIds={serviceSections.map((section) => section.id)}
-        />
+    // Collapsed panels use visibility:hidden; native constraints cannot focus
+    // those fields (e.g. type=email). noValidate + useAdminFormValidation show
+    // field chrome instead of the browser's unfocusable-control error.
+    <form data-component="PageEditor" ref={formRef} action={formAction} noValidate>
+      <input type="hidden" name="pageId" value={page.id} />
+      <input type="hidden" name="slug" value={page.slug} />
+      <HiddenLocaleFields
+        draftByLocale={draftByLocale}
+        legalSectionIds={legalSections.map((section) => section.id)}
+        serviceSectionIds={serviceSections.map((section) => section.id)}
+      />
 
-        <div
-          className="flex flex-wrap items-start justify-between gap-4 pb-5"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
+      <AdminListWorkspace.Root>
+        <AdminListWorkspace.Header
+          tag="[ EDIT PAGE ]"
+          title={page.title}
+          meta={`/${page.slug}`}
+          actions={
+            <button
+              type="button"
+              className="adm-btn-primary"
+              disabled={isPending}
+              onClick={requestSave}
+            >
+              {isPending ? "Saving..." : "Save page"}
+            </button>
+          }
         >
-          <div>
-            <p className="adm-section-tag">[ EDIT PAGE ]</p>
-            <h2 className="adm-title-sm mt-2">{page.title}</h2>
-            <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
-              /{page.slug}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="adm-btn-primary"
-            disabled={isPending}
-            onClick={() => setConfirmOpen(true)}
-          >
-            {isPending ? "Saving..." : "Save page"}
-          </button>
-        </div>
+          <AdminLocaleTabs
+            embedded
+            active={activeLocale}
+            onSelect={selectLocale}
+            locales={tabs}
+          />
+        </AdminListWorkspace.Header>
 
-        <AdminLocaleTabs
-          active={activeLocale}
-          onSelect={selectLocale}
-          locales={tabs}
-        />
+        <AdminListWorkspace.Body className="grid gap-5">
         <AuthMessage error={state.error} />
 
-        {isHomePage ? <HomeSectionVisibilityEditor key={page.updatedAt.toISOString()} content={content} /> : null}
+        {isHomePage ? (
+          <>
+            <AdminLongTextField
+              label="Search summary"
+              help={<AdminHelp>Search-engine result description (meta description). Not shown in the hero.</AdminHelp>}
+              value={draft.excerpt}
+              onChange={(value) => updateField("excerpt", value)}
+              rows={3}
+            />
+            <HomePageEditorSections
+              key={page.updatedAt.toISOString()}
+              content={content}
+              draft={draft}
+              updateField={updateField as HomePageEditorSectionsProps["updateField"]}
+              updateMaterial={updateMaterial}
+              setMaterialPanelOpen={setMaterialPanelOpen}
+              setMaterials={setMaterials}
+              createMaterial={createMaterial}
+              editProductIds={editProductIds}
+              setEditProductIds={setEditProductIds}
+              finalCtaProductIds={finalCtaProductIds}
+              setFinalCtaProductIds={setFinalCtaProductIds}
+              productOptions={productOptions}
+              archiveCollectionIds={archiveCollectionIds}
+              setArchiveCollectionIds={setArchiveCollectionIds}
+              collectionOptions={collectionOptions}
+              contactEnabled={contactEnabled}
+              setContactEnabled={(next) => {
+                setContactEnabled(next);
+                validation.showFieldErrors({});
+              }}
+              contactLabelError={validation.fieldErrors.finalContactLabel}
+              contactLabelErrorId={validation.fieldErrorId("finalContactLabel")}
+              onContactLabelEdit={() => validation.clearFieldError("finalContactLabel")}
+              contactEmailError={validation.fieldErrors.finalContactEmail}
+              contactEmailErrorId={validation.fieldErrorId("finalContactEmail")}
+              contactEmailFieldProps={validation.fieldProps("finalContactEmail")}
+            />
+          </>
+        ) : null}
 
-        {!isEn && !isBuiltInPage(page.slug) ? (
+        {!isHomePage && !isEn && !isBuiltInPage(page.slug) ? (
           <AdminTextField
             label={`URL handle (${activeLabel}, optional)`}
             help={<AdminHelp label="URL handle guidance">Blank uses the English slug.</AdminHelp>}
@@ -352,9 +588,10 @@ export function PageEditor({
           ))}
         </div>
 
+        {!isHomePage ? (
         <div className="grid gap-4 md:grid-cols-2">
           <AdminTextField
-            label={isHomePage ? "Hero headline" : "Title"}
+            label="Title"
             help={
               titleIsMetaOnly ? (
                 <AdminHelp>Browser tab title and search-engine result title. Not shown on the page itself.</AdminHelp>
@@ -380,9 +617,11 @@ export function PageEditor({
             />
           </div>
         </div>
+        ) : null}
 
+        {!isHomePage ? (
         <AdminLongTextField
-          label={isHomePage ? "Search summary" : "Excerpt"}
+          label="Excerpt"
           help={
             hideDeadCopyFields ? (
               <AdminHelp>Search-engine result description (meta description). Not shown on the page itself.</AdminHelp>
@@ -392,7 +631,9 @@ export function PageEditor({
           onChange={(value) => updateField("excerpt", value)}
           rows={3}
         />
+        ) : null}
 
+        {!isHomePage ? (
         <div className="grid gap-2">
           <div className="flex items-center gap-2">
             <span className="adm-label">Hero image</span>
@@ -407,10 +648,12 @@ export function PageEditor({
             removeFieldName="removeHeroImage"
           />
         </div>
+        ) : null}
 
+        {!isHomePage ? (
         <div hidden={isCollectionsPage}>
           <AdminLongTextField
-            label={isHomePage ? "Hero description" : isAboutPage ? "About introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
+            label={isAboutPage ? "About introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
             help={
               isShopPage ? (
                 <AdminHelp>The paragraph under the hero heading on /shop.</AdminHelp>
@@ -423,6 +666,7 @@ export function PageEditor({
             rows={5}
           />
         </div>
+        ) : null}
 
         {isServicePage ? (
           <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="service-sections-heading">
@@ -454,7 +698,7 @@ export function PageEditor({
           </section>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2" hidden={hideShopCalloutFields}>
+        <div className="grid gap-4 md:grid-cols-2" hidden={hideShopCalloutFields || isHomePage}>
           <AdminTextField
             label={isShopPage ? "Primary button label" : "CTA label"}
             help={
@@ -466,11 +710,16 @@ export function PageEditor({
             onChange={(event) => updateField("ctaLabel", event.target.value)}
           />
           <div hidden={isShopPage}>
-            <AdminTextField
+            <AdminHrefField
               label="CTA href"
-              help={<AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>}
+              help={
+                <AdminHelp>
+                  Shared across languages. Search by name, or type /products/ or /collections/ to pick a specific item.
+                </AdminHelp>
+              }
               name="ctaHref"
               defaultValue={content.ctaHref ?? ""}
+              placeholder="/products/…"
             />
           </div>
         </div>
@@ -527,173 +776,21 @@ export function PageEditor({
           </section>
         ) : null}
 
-        {isHomePage ? (
-          <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="collection-sections-heading">
-            <div>
-              <h3 id="collection-sections-heading" className="adm-title-sm">Collection-led sections</h3>
-              <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                The archive background label reuses the first three published collections. Lexicon materials below are
-                edited directly here — leave a material blank to fall back to the first three collections instead.
-                Images are shared across languages.
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <AdminTextField
-                label="Archive background label"
-                value={draft.archiveSectionLabel}
-                onChange={(event) => updateField("archiveSectionLabel", event.target.value)}
-                placeholder="Recorded"
-              />
-              <AdminTextField
-                label="The Edit eyebrow"
-                value={draft.editSectionEyebrow}
-                onChange={(event) => updateField("editSectionEyebrow", event.target.value)}
-                placeholder="A few to start with"
-              />
-              <AdminTextField
-                label="The Edit title"
-                value={draft.editSectionTitle}
-                onChange={(event) => updateField("editSectionTitle", event.target.value)}
-                placeholder="The Edit"
-              />
-              <AdminTextField
-                label="The Edit product CTA"
-                value={draft.editSectionCtaLabel}
-                onChange={(event) => updateField("editSectionCtaLabel", event.target.value)}
-                placeholder="View piece"
-              />
-              <AdminLongTextField
-                className="md:col-span-2"
-                label="The Edit description"
-                value={draft.editSectionBody}
-                onChange={(value) => updateField("editSectionBody", value)}
-                rows={2}
-                placeholder="Four pieces, four sides of Synarava."
-              />
-              <fieldset className="grid gap-3 md:col-span-2">
-                <legend className="adm-label">The Edit products</legend>
-                <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                  Choose four different published products. Slot order matches the site from left to right.
-                </p>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {editProductIds.map((productId, index) => (
-                    <AdminSelectField
-                      key={index}
-                      label={`Product ${index + 1}`}
-                      name={`editProductId${index + 1}`}
-                      value={productId}
-                      onChange={(event) => setEditProductIds((current) => current.map((id, slot) => slot === index ? event.target.value : id))}
-                    >
-                      <option value="">Choose a product</option>
-                      {productOptions.map((product) => (
-                        <option
-                          key={product.id}
-                          value={product.id}
-                          disabled={product.id !== productId && editProductIds.includes(product.id)}
-                        >
-                          {product.title} · /{product.slug}
-                        </option>
-                      ))}
-                    </AdminSelectField>
-                  ))}
-                </div>
-              </fieldset>
-              <AdminTextField
-                label="Material eyebrow"
-                value={draft.materialSectionEyebrow}
-                onChange={(event) => updateField("materialSectionEyebrow", event.target.value)}
-                placeholder="Material glossary / scroll to turn"
-              />
-              <AdminTextField
-                label="Material section title"
-                value={draft.materialSectionTitle}
-                onChange={(event) => updateField("materialSectionTitle", event.target.value)}
-                placeholder="Lexicon"
-              />
-              <AdminTextField
-                label="Material note label"
-                value={draft.materialSectionNoteLabel}
-                onChange={(event) => updateField("materialSectionNoteLabel", event.target.value)}
-                placeholder="Material notes"
-              />
-            </div>
-
-            {draft.materials.map((material, index) => (
-              <div key={index} className="grid gap-4 border border-[var(--adm-border)] p-4">
-                <p className="adm-section-tag">LEXICON MATERIAL {index + 1}</p>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <AdminTextField
-                    label="Name"
-                    value={material.name}
-                    onChange={(event) => updateMaterial(index, "name", event.target.value)}
-                  />
-                  <AdminTextField
-                    label="Category"
-                    value={material.category}
-                    onChange={(event) => updateMaterial(index, "category", event.target.value)}
-                  />
-                </div>
-                <AdminLongTextField
-                  label="Description"
-                  value={material.description}
-                  onChange={(value) => updateMaterial(index, "description", value)}
-                  rows={3}
-                />
-                <AdminTextField
-                  label="Properties (comma-separated, up to 3)"
-                  value={material.properties}
-                  onChange={(event) => updateMaterial(index, "properties", event.target.value)}
-                  placeholder="Recycled, Hypoallergenic, Handmade"
-                />
-                <label className="grid gap-2">
-                  <span className="adm-label-row">
-                    <span className="adm-label">Image</span>
-                    <AdminHelp>Shared across languages.</AdminHelp>
-                  </span>
-                  <ImageFileField
-                    name={`material${index + 1}ImageFile`}
-                    currentImageUrl={content.materialLexicon?.[index]?.image}
-                    currentImageAlt={material.name || `Material ${index + 1}`}
-                    currentImageLabel="Current image"
-                    removeFieldName={`removeMaterial${index + 1}Image`}
-                  />
-                </label>
-              </div>
-            ))}
-          </section>
-        ) : null}
-
-        {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Manifesto</h3> : null}
+        {!isHomePage ? (
         <div hidden={hideDeadCopyFields}>
           <AdminLongTextField
-            label={isHomePage ? "Manifesto quote" : isAboutPage ? "Movement section headline" : "Quote"}
+            label={isAboutPage ? "Movement section headline" : "Quote"}
             value={draft.quote}
             onChange={(value) => updateField("quote", value)}
             rows={4}
           />
         </div>
-
-        {isHomePage ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <AdminTextField
-              label="Manifesto label"
-              value={draft.manifestoSectionLabel}
-              onChange={(event) => updateField("manifestoSectionLabel", event.target.value)}
-              placeholder="A principle to keep"
-            />
-            <AdminTextField
-              label="Manifesto attribution"
-              value={draft.manifestoSectionAttribution}
-              onChange={(event) => updateField("manifestoSectionAttribution", event.target.value)}
-              placeholder="The Synarava Manifesto // Vol 1."
-            />
-          </div>
         ) : null}
 
-        {isHomePage ? <h3 className="adm-title-sm border-t border-[var(--adm-border)] pt-5">Final call to action</h3> : null}
+        {!isHomePage ? (
         <div className="grid gap-4 md:grid-cols-2" hidden={hideShopCalloutFields}>
           <AdminTextField
-            label={isHomePage ? "Final CTA headline" : isAboutPage ? "Manifesto headline" : isShopPage ? "Collections callout heading" : "Secondary title"}
+            label={isAboutPage ? "Manifesto headline" : isShopPage ? "Collections callout heading" : "Secondary title"}
             help={
               isShopPage ? (
                 <AdminHelp>The heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp>
@@ -703,7 +800,7 @@ export function PageEditor({
             onChange={(event) => updateField("secondaryTitle", event.target.value)}
           />
           <AdminLongTextField
-            label={isHomePage ? "Final CTA introduction" : isAboutPage ? "Manifesto copy" : isShopPage ? "Secondary link label" : "Secondary body"}
+            label={isAboutPage ? "Manifesto copy" : isShopPage ? "Secondary link label" : "Secondary body"}
             help={
               isShopPage ? (
                 <AdminHelp>The small link under the button (e.g. “About Synarava”). Always links to /about.</AdminHelp>
@@ -714,45 +811,6 @@ export function PageEditor({
             rows={isShopPage ? 2 : 3}
           />
         </div>
-
-        {isHomePage ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <AdminTextField
-              label="Final CTA label"
-              value={draft.finalCtaLabel}
-              onChange={(event) => updateField("finalCtaLabel", event.target.value)}
-            />
-            <AdminTextField
-              label="Final CTA href"
-              help={<AdminHelp>Shared across languages.</AdminHelp>}
-              name="finalCtaHref"
-              defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""}
-            />
-            <AdminLongTextField
-              className="md:col-span-2"
-              label="Footer statement"
-              value={draft.finalFooterTitle}
-              onChange={(value) => updateField("finalFooterTitle", value)}
-              placeholder={"Objects shaped slowly,\nkept for a lifetime."}
-              rows={2}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <AdminTextField
-                label="Contact label"
-                value={draft.finalContactLabel}
-                onChange={(event) => updateField("finalContactLabel", event.target.value)}
-                placeholder="synarava.shop@gmail.com"
-              />
-              <AdminTextField
-                label="Contact email"
-                help={<AdminHelp>Shared across languages — an address, not translated copy.</AdminHelp>}
-                name="finalContactEmail"
-                type="email"
-                defaultValue={content.finalContactEmail ?? ""}
-                placeholder="synarava.shop@gmail.com"
-              />
-            </div>
-          </div>
         ) : null}
 
         <AdminSelectField
@@ -765,20 +823,18 @@ export function PageEditor({
           <option value="PUBLISHED">Published - visible</option>
         </AdminSelectField>
 
-        <div
-          className="flex justify-end pt-4"
-          style={{ borderTop: "1px solid var(--adm-border)" }}
-        >
+        <div className="flex justify-end pt-4" style={{ borderTop: "1px solid var(--adm-border)" }}>
           <button
             type="button"
             className="adm-btn-primary"
             disabled={isPending}
-            onClick={() => setConfirmOpen(true)}
+            onClick={requestSave}
           >
             {isPending ? "Saving..." : "Save page"}
           </button>
         </div>
-      </form>
+        </AdminListWorkspace.Body>
+      </AdminListWorkspace.Root>
 
       <AdminConfirmModal
         open={confirmOpen}
@@ -789,6 +845,6 @@ export function PageEditor({
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => formRef.current?.requestSubmit()}
       />
-    </div>
+    </form>
   );
 }

@@ -548,8 +548,22 @@
       "eyebrow": "A few to start with",
       "title": "The Edit",
       "body": "Four pieces, four sides of Synarava.",
-      "ctaLabel": "View piece",
       "viewAllLabel": "View all products"
+    },
+    "manifesto": {
+      "label": "A principle to keep",
+      "quoteBefore": "Adornment is not decoration.",
+      "quoteBridge": "It is",
+      "quoteEmphasis": "structural intent",
+      "quoteAfter": "applied to the human form.",
+      "attribution": "The Synarava Manifesto // Vol 1."
+    },
+    "finalCta": {
+      "body": "The final choice is instinctive.",
+      "title": "Choose the piece that remembers you.",
+      "ctaLabel": "Enter the collection",
+      "aboutLabel": "About us",
+      "footerTitle": "Objects shaped slowly,\nkept for a lifetime."
     }
   }
 }

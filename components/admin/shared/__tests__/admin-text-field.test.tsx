@@ -5,9 +5,11 @@ import { describe, expect, it } from "vitest";
 import { AdminHelp, AdminTextField, fieldClass } from "@/components/synarava-cms";
 
 describe("fieldClass", () => {
-  it("reuses adm-field / adm-field--error tokens", () => {
+  it("reuses adm-field / error / warning tokens", () => {
     expect(fieldClass()).toBe("adm-field");
     expect(fieldClass("Required")).toBe("adm-field adm-field--error");
+    expect(fieldClass(undefined, "Draft target")).toBe("adm-field adm-field--warning");
+    expect(fieldClass("Required", "Draft target")).toBe("adm-field adm-field--error");
   });
 });
 
@@ -95,5 +97,16 @@ describe("AdminTextField", () => {
     const error = screen.getByText(long);
     expect(error).toHaveAttribute("title", long);
     expect(error).toHaveClass("adm-field-error");
+  });
+
+  it("shows a soft warning in the same band as errors", () => {
+    const { container } = render(
+      <AdminTextField label="CTA href" name="ctaHref" warning="This link target is draft." defaultValue="/x" />,
+    );
+
+    expect(container.querySelector("[data-component='AdminFieldWarning']")).toHaveTextContent(
+      "This link target is draft.",
+    );
+    expect(container.querySelector("[data-slot='control-group']")).toHaveClass("adm-field-group--warning");
   });
 });

@@ -150,8 +150,10 @@ export type PageContent = {
   editSectionEyebrow?: string;
   editSectionTitle?: string;
   editSectionBody?: string;
-  editSectionCtaLabel?: string;
+  editSectionViewAllLabel?: string;
   editProductIds?: string[];
+  finalCtaProductIds?: string[];
+  archiveCollectionIds?: string[];
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   materialSectionNoteLabel?: string;
@@ -169,6 +171,7 @@ export type PageContent = {
   finalFooterTitle?: string;
   finalContactLabel?: string;
   finalContactEmail?: string;
+  finalContactEnabled?: boolean;
   legalIntro?: string;
   legalLastUpdated?: string;
   legalSections?: Record<string, { title?: string; body?: string }>;
@@ -181,9 +184,12 @@ export type PageContent = {
       | "archiveSectionEnabled"
       | "editSectionEnabled"
       | "editProductIds"
+      | "finalCtaProductIds"
+      | "archiveCollectionIds"
       | "materialSectionEnabled"
       | "manifestoSectionEnabled"
       | "finalCtaSectionEnabled"
+      | "finalContactEnabled"
     > & {
       title?: string;
       excerpt?: string;
@@ -517,6 +523,8 @@ export async function listCollections(locale: Locale = "en") {
   return collections.map((collection) => {
     const copy = resolveCollectionCopy(collection, locale);
     return {
+      id: collection.id,
+      createdAt: collection.createdAt,
       slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle),
       sourceSlug: collection.slug,
       name: copy.name,

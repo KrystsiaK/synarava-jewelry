@@ -6,6 +6,7 @@ import { CreateCollectionForm } from "@/components/admin/collections/collection-
 import { EditCollectionForm } from "@/components/admin/collections/collection-edit-form";
 import type { SavedCollectionPayload } from "@/app/admin/actions/collections";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 export function CollectionCreateRoute({ translationLocales }: { translationLocales: AdminTranslationLocale[] }) {
   const router = useRouter();
@@ -34,7 +35,7 @@ export function CollectionEditRoute({
     <EditCollectionForm
       collection={collection}
       translationLocales={translationLocales}
-      onUpdated={() => router.refresh()}
+      onUpdated={() => refreshPreservingScroll(router)}
       onDeleted={() => {
         router.push("/admin/collections");
         router.refresh();

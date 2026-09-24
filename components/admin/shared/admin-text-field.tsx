@@ -20,6 +20,8 @@ type InputProps = Omit<ComponentProps<"input">, "className" | "children">;
 export type AdminTextControlProps = InputProps & {
   controlId?: string;
   error?: string;
+  /** Soft orange chrome (ignored when error/invalid is set). */
+  warning?: string;
   /** Force error chrome without error copy (e.g. issue-linked fields). */
   invalid?: boolean;
   disabled?: boolean;
@@ -32,6 +34,7 @@ export type AdminTextControlProps = InputProps & {
   onClear?: () => void;
   "aria-invalid"?: true | undefined;
   "aria-errormessage"?: string | undefined;
+  "aria-describedby"?: string | undefined;
 };
 
 function readHasValue(value: InputProps["value"] | InputProps["defaultValue"]) {
@@ -46,6 +49,7 @@ function readHasValue(value: InputProps["value"] | InputProps["defaultValue"]) {
 export function AdminTextControl({
   controlId,
   error,
+  warning,
   invalid = false,
   disabled,
   inputClassName,
@@ -56,6 +60,7 @@ export function AdminTextControl({
   onClear,
   "aria-invalid": ariaInvalid,
   "aria-errormessage": ariaErrorMessage,
+  "aria-describedby": ariaDescribedBy,
   onInput,
   onChange,
   value,
@@ -70,6 +75,7 @@ export function AdminTextControl({
   // Controlled value: derive during render. Uncontrolled: track via input events.
   const hasValue = isControlled ? readHasValue(value) : uncontrolledHasValue;
   const showError = Boolean(error) || invalid || ariaInvalid === true;
+  const showWarning = !showError && Boolean(warning);
 
   function clearField() {
     const el = inputRef.current;
@@ -92,7 +98,7 @@ export function AdminTextControl({
       data-clearable={clearable ? "true" : "false"}
       className={cn(
         "adm-field-group",
-        showError ? "adm-field-group--error" : null,
+        showError ? "adm-field-group--error" : showWarning ? "adm-field-group--warning" : null,
         groupClassName,
       )}
     >
@@ -110,6 +116,7 @@ export function AdminTextControl({
         disabled={disabled}
         aria-invalid={showError ? true : undefined}
         aria-errormessage={showError ? ariaErrorMessage : undefined}
+        aria-describedby={ariaDescribedBy}
         onChange={(event) => {
           if (!isControlled) setUncontrolledHasValue(readHasValue(event.target.value));
           onChange?.(event);
@@ -151,6 +158,7 @@ export type AdminTextFieldProps = InputProps & {
   required?: boolean;
   error?: string;
   errorId?: string;
+  warning?: string;
   invalid?: boolean;
   className?: string;
   unitId?: string;
@@ -174,6 +182,7 @@ export function AdminTextField({
   required = false,
   error,
   errorId,
+  warning,
   invalid,
   disabled,
   className,
@@ -188,7 +197,7 @@ export function AdminTextField({
   "aria-errormessage": ariaErrorMessage,
   ...inputProps
 }: AdminTextFieldProps) {
-  const { controlId, messageId } = useAdminFieldIds(id, errorId);
+  const { controlId, messageId, warningId } = useAdminFieldIds(id, errorId);
 
   return (
     <AdminFieldShell
@@ -200,6 +209,8 @@ export function AdminTextField({
       required={required}
       error={error}
       errorId={messageId}
+      warning={warning}
+      warningId={warningId}
       issue={issue}
       disabled={disabled}
       className={className}
@@ -209,6 +220,7 @@ export function AdminTextField({
         {...inputProps}
         controlId={controlId}
         error={error}
+        warning={warning}
         invalid={invalid}
         disabled={disabled}
         inputClassName={inputClassName}
@@ -219,6 +231,7 @@ export function AdminTextField({
         required={required}
         aria-invalid={ariaInvalid === true ? true : undefined}
         aria-errormessage={ariaErrorMessage ?? messageId}
+        aria-describedby={!error && warning ? warningId : undefined}
       />
     </AdminFieldShell>
   );

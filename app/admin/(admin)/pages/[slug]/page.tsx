@@ -12,7 +12,7 @@ export default async function EditPagePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [{ pages, products }, syncDifferences, translationLocales] = await Promise.all([
+  const [{ pages, products, collections }, syncDifferences, translationLocales] = await Promise.all([
     getAdminCatalogData(),
     getLatestReconcileDifferences(),
     getAdminTranslationLocales(),
@@ -69,6 +69,9 @@ export default async function EditPagePage({
         productOptions={page.slug === "home" ? products
           .filter((product) => product.status === "ACTIVE" && product.visibility === "PUBLIC")
           .map((product) => ({ id: product.id, title: product.name, slug: product.slug })) : undefined}
+        collectionOptions={page.slug === "home" ? collections
+          .filter((collection) => collection.status === "ACTIVE" && collection.visibility === "PUBLIC")
+          .map((collection) => ({ id: collection.id, title: collection.name, slug: collection.slug })) : undefined}
         translationLocales={translationLocales}
       />
     </div>

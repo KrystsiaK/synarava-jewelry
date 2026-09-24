@@ -4,8 +4,9 @@
 где что находится, как создавать и публиковать контент, как работает
 синхронизация с Shopify и на что обращать внимание при повседневной работе.
 
-Актуализировано по состоянию на 2026-09-23: product workspace sticky chrome,
-locale-scoped conflict sync, whole-product Save, leave-guard.
+Актуализировано по состоянию на 2026-09-24: product workspace sticky chrome,
+locale-scoped conflict sync, whole-product Save, leave-guard, scroll preserve
+после Save (без прыжка вверх).
 
 ---
 
@@ -94,7 +95,10 @@ locale-scoped conflict sync, whole-product Save, leave-guard.
 
 ### 4.2. Создание / редактирование товара
 
-Редактор — **workspace** с разделением Save и Sync:
+Редактор — **workspace** с разделением Save и Sync. После Save позиция
+скролла в колонке контента не сбрасывается (остаётесь на той же секции).
+Переход на другую страницу (создание → редактор, удаление → список) —
+отдельный случай.
 
 1. **Уровень товара** (липкая шапка): конфликты по всему продукту, Check,
    Delete, **Save product** (всегда сохраняет весь товар локально).
@@ -130,7 +134,7 @@ legacy cover, пока не загружены изображения галер
 локальный редакторский слой, который Shopify-синхронизация не трогает.
 Поля форм собираются **только** через библиотеку **synarava-cms**
 (`@/components/synarava-cms`: `AdminTextField` / `AdminSelectField` /
-`AdminCheckboxField` / `AdminLongTextField` и shell). Контракт —
+`AdminHrefField` / `AdminCheckboxField` / `AdminLongTextField` и shell). Контракт —
 в [`synarava-cms.md`](./synarava-cms.md); агентам — skill `synarava-cms`.
 
 - Серия (`seriesLabel`), краткое и полное описание.
@@ -271,6 +275,23 @@ legacy cover, пока не загружены изображения галер
 - Для `home` и `about` подписи полей в форме адаптируются под их специфику
   (например «Hero headline» вместо «Title», «About introduction» вместо
   «Body» и т.д.), хотя структура данных общая.
+- Home разбит на секции витрины (`01 / Hero` … `06 / Final CTA`) в
+  `AdminCollapsiblePanel`. В **Featured collections** админ выбирает
+  коллекции через select, добавляет строки и меняет порядок стрелками
+  (`AdminOrderedList`); минимум одна строка; пустой выбор = новейшая
+  опубликованная коллекция на сайте. **Product showcase** — четыре
+  товара с тем же ordered-list UI и подписью ссылки «View all»
+  (локализовается вместе с остальным копирайтом секции).
+  **Manifesto** и **Final CTA** при пустых полях показывают дефолтный
+  копирайт витрины — включённый тумблер без текста больше не прячет секцию.
+  В **Final CTA** — ровно четыре слота Collage photos (товары → фото для
+  кубистского коллажа; пустые слоты = imagery из Featured collections).
+  Closing statement — нижняя фраза секции. Contact email включается
+  чекбоксом Include contact email (по умолчанию выкл.); при включении
+  обязательны Contact link label и Contact email.
+  **Material lexicon** — от 2 до 3 материалов в том же `AdminOrderedList`
+  (стрелки + Add); каждая строка — `AdminCollapsiblePanel` (новые открыты,
+  в шапке номер / имя / категория); изображения общие для языков.
 - У каждой страницы есть блок перевода на португальский (`PT`) — заголовок,
   эйбрау, экерпт, текст, CTA, цитата, вторичный блок. Это опциональный слой,
   отсутствие перевода не блокирует сохранение.

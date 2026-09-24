@@ -17,3 +17,8 @@ export function readLocaleField(formData: FormData, locale: string, key: string,
   const value = formData.get(adminLocaleFieldName(locale, key, sourceLocale));
   return typeof value === "string" ? value.trim() : "";
 }
+
+/** True when the locale-scoped field name is present in FormData (even if empty). */
+export function hasLocaleField(formData: FormData, locale: string, key: string, sourceLocale = "en"): boolean {
+  return formData.has(adminLocaleFieldName(locale, key, sourceLocale));
+}

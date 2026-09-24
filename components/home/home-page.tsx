@@ -23,7 +23,7 @@ import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
-import { buildFinalCtaImages } from "@/lib/content/home-media";
+import { resolveFinalCtaImages } from "@/lib/content/home-final-cta-section";
 import { resolveHomeEditProducts } from "@/lib/content/home-edit-section";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import {
@@ -52,8 +52,9 @@ type HomePageContent = HomeSectionVisibilityFields & HomeLexiconSectionFields & 
   editSectionEyebrow?: string;
   editSectionTitle?: string;
   editSectionBody?: string;
-  editSectionCtaLabel?: string;
+  editSectionViewAllLabel?: string;
   editProductIds?: string[];
+  finalCtaProductIds?: string[];
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   manifestoSectionLabel?: string;
@@ -63,6 +64,7 @@ type HomePageContent = HomeSectionVisibilityFields & HomeLexiconSectionFields & 
   finalFooterTitle?: string;
   finalContactLabel?: string;
   finalContactEmail?: string;
+  finalContactEnabled?: boolean;
 };
 
 export interface CollectionItem {
@@ -443,49 +445,179 @@ function HeroSection({
   );
 }
 
+const ARCHIVE_CLIP_PATHS = [
+  "polygon(15% 5%, 95% 0, 100% 90%, 0% 100%)",
+  "polygon(0 20%, 100% 0, 85% 100%, 5% 80%)",
+  "polygon(10% 0, 100% 10%, 90% 100%, 0% 90%)",
+] as const;
+
+function ArchiveRecord({
+  item,
+  index,
+  reduceMotion,
+}: {
+  item: CollectionItem;
+  index: number;
+  reduceMotion: boolean;
+}) {
+  const recordRef = useRef<HTMLDivElement>(null);
+  const progress = useElementScrollProgress(recordRef, "record-exit");
+  const dim = useTransform(progress, [0, 1], reduceMotion ? [0, 0] : [0, 0.58]);
+  const mirror = index % 2 === 1;
+  const clipPath = ARCHIVE_CLIP_PATHS[index % ARCHIVE_CLIP_PATHS.length]!;
+
+  const textCard = (
+    <motion.div
+      ref={recordRef}
+      initial={{ opacity: 0, y: 50, x: mirror ? 20 : -20 }}
+      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      viewport={{ once: true, margin: "-10%" }}
+      transition={{ duration: 0.85, ease }}
+      className={
+        mirror
+          ? "relative z-20 mt-6 w-full self-end overflow-hidden p-8 text-linen md:absolute md:right-10 md:top-[15%] md:mt-0 md:w-5/12 md:p-12"
+          : "relative z-20 w-full self-start overflow-hidden p-8 md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
+      }
+    >
+      <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
+      <div className="relative z-10 w-full h-full">
+        <div className="flex justify-between items-start mb-6">
+          {mirror ? (
+            <>
+              <span className="font-sans text-[9px] text-stone-beige/65 uppercase">
+                COORD:<br />53.90° N, 27.56° E
+              </span>
+              <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold text-right">{item.series}</span>
+            </>
+          ) : (
+            <>
+              <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">{item.series}</span>
+              <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
+                LOC:<br />53.90° N, 27.56° E
+              </span>
+            </>
+          )}
+        </div>
+        <h2
+          className={
+            mirror
+              ? "font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter text-right"
+              : "font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter"
+          }
+        >
+          {item.title}
+        </h2>
+        <p
+          className={
+            mirror
+              ? "font-sans text-[10px] text-stone-beige/70 leading-relaxed mb-8 text-justify uppercase font-bold"
+              : "font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold"
+          }
+        >
+          [COLLECTION NOTE]<br />
+          {item.description}
+        </p>
+        {mirror ? (
+          <table className="w-full font-sans text-[10px] text-left border-collapse font-bold">
+            <tbody>
+              <tr className="border-b border-linen/10">
+                <td className="py-2 text-couture-red w-1/3 font-bold">COLLECTION</td>
+                <td className="py-2 text-stone-beige uppercase">{item.series}</td>
+              </tr>
+              <tr className="border-b border-linen/10">
+                <td className="py-2 text-couture-red font-bold">EDITION</td>
+                <td className="py-2 text-stone-beige uppercase">{item.price}</td>
+              </tr>
+            </tbody>
+          </table>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
+            <div>
+              <span className="text-couture-red block mb-1 font-bold">COLLECTION</span>
+              {item.series}
+            </div>
+            <div>
+              <span className="text-couture-red block mb-1 font-bold">EDITION</span>
+              {item.price}
+            </div>
+          </div>
+        )}
+      </div>
+      <motion.div
+        className="pointer-events-none absolute inset-0 z-20 bg-black"
+        style={{ opacity: dim }}
+        aria-hidden="true"
+      />
+    </motion.div>
+  );
+
+  const imageCard = (
+    <motion.div
+      initial={{ opacity: 0, y: 80 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-10%" }}
+      transition={{ duration: 1.1, ease }}
+      className={
+        mirror
+          ? "w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10"
+          : "w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
+      }
+    >
+      <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
+        <ParallaxImage src={item.image} alt={item.title} clipPath={clipPath} />
+        <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
+          View collection
+          <ArrowRight className="size-3.5" aria-hidden="true" />
+        </span>
+      </div>
+    </motion.div>
+  );
+
+  return (
+    <div
+      className={
+        mirror
+          ? "relative w-full min-h-[90vh] flex flex-col justify-center items-start"
+          : index > 0
+            ? "relative w-full min-h-[90vh] flex flex-col justify-center items-end mt-12 md:mt-0"
+            : "relative w-full min-h-[90vh] flex flex-col justify-center items-end"
+      }
+    >
+      <Link href={item.href} aria-label={`View ${item.title} collection`} className="group contents">
+        {mirror ? (
+          <>
+            {imageCard}
+            {textCard}
+          </>
+        ) : (
+          <>
+            {textCard}
+            {imageCard}
+          </>
+        )}
+      </Link>
+    </div>
+  );
+}
+
 // 3. CINEMATIC SCROLL PATHWAY (Transparent background, Parallax images + individual loading scroll reveal)
 function ArchivePathway({ collections, sectionLabel }: { collections: CollectionItem[]; sectionLabel?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const firstRecordRef = useRef<HTMLDivElement>(null);
-  const secondRecordRef = useRef<HTMLDivElement>(null);
-  const thirdRecordRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
 
-  const firstRecordProgress = useElementScrollProgress(firstRecordRef, "record-exit");
-  const secondRecordProgress = useElementScrollProgress(secondRecordRef, "record-exit");
-  const thirdRecordProgress = useElementScrollProgress(thirdRecordRef, "record-exit");
+  const items = useMemo(() => collections.filter((item) => item.image), [collections]);
 
-  const firstRecordDim = useTransform(
-    firstRecordProgress,
-    [0, 1],
-    reduceMotion ? [0, 0] : [0, 0.58],
-  );
-  const secondRecordDim = useTransform(
-    secondRecordProgress,
-    [0, 1],
-    reduceMotion ? [0, 0] : [0, 0.58],
-  );
-  const thirdRecordDim = useTransform(
-    thirdRecordProgress,
-    [0, 1],
-    reduceMotion ? [0, 0] : [0, 0.58],
-  );
-
-  const items = useMemo(() => {
-    return collections.filter((item) => item.image).slice(0, 3);
-  }, [collections]);
-
-  if (items.length < 3) {
+  if (items.length === 0) {
     return null;
   }
 
   return (
-    <section data-component="ArchivePathway"
+    <section
+      data-component="ArchivePathway"
       ref={containerRef}
       className="relative z-20 -mt-[18svh] bg-transparent px-6 pb-24 pt-[calc(6rem+18svh)] text-linen md:px-[4vw]"
       id="archive-pathway"
     >
-      {/* Giant background text */}
       <div
         className="absolute -right-20 top-40 z-0 opacity-5 rotate-[270deg] clipped-text pointer-events-none select-none"
         aria-hidden="true"
@@ -494,227 +626,9 @@ function ArchivePathway({ collections, sectionLabel }: { collections: Collection
       </div>
 
       <div className="max-w-[90rem] mx-auto flex flex-col gap-32 md:gap-48 relative z-10">
-
-        {/* Item 001: Left text block overlapping Right image */}
-        <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-end">
-          <Link
-            href={items[0].href}
-            aria-label={`View ${items[0].title} collection`}
-            className="group contents"
-          >
-          {/* Overlapping Text Card with Scroll reveal (loading effect) */}
-          <motion.div
-            ref={firstRecordRef}
-            initial={{ opacity: 0, y: 50, x: -20 }}
-            whileInView={{ opacity: 1, y: 0, x: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 0.85, ease }}
-            className="relative z-20 w-full self-start overflow-hidden p-8 md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
-          >
-            <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
-
-            <div className="relative z-10 w-full h-full">
-              <div className="flex justify-between items-start mb-6">
-                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">{items[0].series}</span>
-                <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
-                  LOC:<br />53.90° N, 27.56° E
-                </span>
-              </div>
-              <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter">
-                {items[0].title}
-              </h2>
-              <p className="font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold">
-                [COLLECTION NOTE]<br />
-                {items[0].description}
-              </p>
-
-              {/* Technical Parameters Table */}
-              <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
-                <div>
-                  <span className="text-couture-red block mb-1 font-bold">COLLECTION</span>
-                  {items[0].series}
-                </div>
-                <div>
-                  <span className="text-couture-red block mb-1 font-bold">EDITION</span>
-                  {items[0].price}
-                </div>
-              </div>
-
-            </div>
-            <motion.div
-              className="pointer-events-none absolute inset-0 z-20 bg-black"
-              style={{ opacity: firstRecordDim }}
-              aria-hidden="true"
-            />
-          </motion.div>
-
-          {/* Right Image with Scroll Reveal + Parallax scroll */}
-          <motion.div
-            initial={{ opacity: 0, y: 80 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 1.1, ease }}
-            className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
-          >
-            <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
-              <ParallaxImage src={items[0].image} alt={items[0].title} clipPath="polygon(15% 5%, 95% 0, 100% 90%, 0% 100%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
-                View collection
-                <ArrowRight className="size-3.5" aria-hidden="true" />
-              </span>
-            </div>
-          </motion.div>
-          </Link>
-
-        </div>
-
-        {/* Item 002: Right text block overlapping Left image */}
-        <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-start">
-          <Link
-            href={items[1].href}
-            aria-label={`View ${items[1].title} collection`}
-            className="group contents"
-          >
-          {/* Left Image with Scroll Reveal + Parallax scroll */}
-          <motion.div
-            initial={{ opacity: 0, y: 80 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 1.1, ease }}
-            className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10"
-          >
-            <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
-              <ParallaxImage src={items[1].image} alt={items[1].title} clipPath="polygon(0 20%, 100% 0, 85% 100%, 5% 80%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
-                View collection
-                <ArrowRight className="size-3.5" aria-hidden="true" />
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Overlapping Text Card with Scroll reveal (loading effect) */}
-          <motion.div
-            ref={secondRecordRef}
-            initial={{ opacity: 0, y: 50, x: 20 }}
-            whileInView={{ opacity: 1, y: 0, x: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 0.85, ease }}
-            className="relative z-20 mt-6 w-full self-end overflow-hidden p-8 text-linen md:absolute md:right-10 md:top-[15%] md:mt-0 md:w-5/12 md:p-12"
-          >
-            <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
-
-            <div className="relative z-10 w-full h-full">
-              <div className="flex justify-between items-start mb-6">
-                <span className="font-sans text-[9px] text-stone-beige/65 uppercase">
-                  COORD:<br />53.90° N, 27.56° E
-                </span>
-                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold text-right">{items[1].series}</span>
-              </div>
-              <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter text-right">
-                {items[1].title}
-              </h2>
-              <p className="font-sans text-[10px] text-stone-beige/70 leading-relaxed mb-8 text-justify uppercase font-bold">
-                [COLLECTION NOTE]<br />
-                {items[1].description}
-              </p>
-
-              {/* Technical Parameters Table */}
-              <table className="w-full font-sans text-[10px] text-left border-collapse font-bold">
-                <tbody>
-                  <tr className="border-b border-linen/10">
-                    <td className="py-2 text-couture-red w-1/3 font-bold">COLLECTION</td>
-                    <td className="py-2 text-stone-beige uppercase">{items[1].series}</td>
-                  </tr>
-                  <tr className="border-b border-linen/10">
-                    <td className="py-2 text-couture-red font-bold">EDITION</td>
-                    <td className="py-2 text-stone-beige uppercase">{items[1].price}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <motion.div
-              className="pointer-events-none absolute inset-0 z-20 bg-black"
-              style={{ opacity: secondRecordDim }}
-              aria-hidden="true"
-            />
-          </motion.div>
-          </Link>
-
-        </div>
-
-        {/* Item 003: Left text block overlapping Right image */}
-        <div className="relative w-full min-h-[90vh] flex flex-col justify-center items-end mt-12 md:mt-0">
-          <Link
-            href={items[2].href}
-            aria-label={`View ${items[2].title} collection`}
-            className="group contents"
-          >
-          {/* Overlapping Text Card with Scroll reveal (loading effect) */}
-          <motion.div
-            ref={thirdRecordRef}
-            initial={{ opacity: 0, y: 50, x: -20 }}
-            whileInView={{ opacity: 1, y: 0, x: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 0.85, ease }}
-            className="relative z-20 w-full self-start overflow-hidden p-8 md:absolute md:left-10 md:top-[10%] md:w-5/12 md:p-12"
-          >
-            <div className="archive-record-surface absolute inset-0 z-0" aria-hidden="true" />
-
-            <div className="relative z-10 w-full h-full">
-              <div className="flex justify-between items-start mb-6">
-                <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">{items[2].series}</span>
-                <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
-                  LOC:<br />53.90° N, 27.56° E
-                </span>
-              </div>
-              <h2 className="font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter">
-                {items[2].title}
-              </h2>
-              <p className="font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold">
-                [COLLECTION NOTE]<br />
-                {items[2].description}
-              </p>
-
-              {/* Technical Parameters Table */}
-              <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
-                <div>
-                  <span className="text-couture-red block mb-1 font-bold">COLLECTION</span>
-                  {items[2].series}
-                </div>
-                <div>
-                  <span className="text-couture-red block mb-1 font-bold">EDITION</span>
-                  {items[2].price}
-                </div>
-              </div>
-
-            </div>
-            <motion.div
-              className="pointer-events-none absolute inset-0 z-20 bg-black"
-              style={{ opacity: thirdRecordDim }}
-              aria-hidden="true"
-            />
-          </motion.div>
-
-          {/* Right Image with Scroll Reveal + Parallax scroll */}
-          <motion.div
-            initial={{ opacity: 0, y: 80 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 1.1, ease }}
-            className="w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
-          >
-            <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
-              <ParallaxImage src={items[2].image} alt={items[2].title} clipPath="polygon(10% 0, 100% 10%, 90% 100%, 0% 90%)" />
-              <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
-                View collection
-                <ArrowRight className="size-3.5" aria-hidden="true" />
-              </span>
-            </div>
-          </motion.div>
-          </Link>
-
-        </div>
-
+        {items.map((item, index) => (
+          <ArchiveRecord key={`${item.href}-${index}`} item={item} index={index} reduceMotion={reduceMotion} />
+        ))}
       </div>
     </section>
   );
@@ -725,14 +639,14 @@ function EditShowcase({
   eyebrow,
   title,
   body,
-  ctaLabel,
+  viewAllLabel,
   selectedProductIds,
 }: {
   products: NonNullable<HomePageProps["products"]>;
   eyebrow?: string;
   title?: string;
   body?: string;
-  ctaLabel?: string;
+  viewAllLabel?: string;
   selectedProductIds?: string[];
 }) {
   const { locale, t } = useTranslations();
@@ -741,7 +655,7 @@ function EditShowcase({
     eyebrow: t("home.editShowcase.eyebrow"),
     title: t("home.editShowcase.title"),
     body: t("home.editShowcase.body"),
-    ctaLabel: t("home.editShowcase.ctaLabel"),
+    viewAllLabel: t("home.editShowcase.viewAllLabel"),
   };
 
   if (items.length === 0) {
@@ -774,13 +688,11 @@ function EditShowcase({
         <div className="edit-showcase-grid grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 md:gap-x-5 lg:gap-x-6">
           {items.map((product) => {
             const kind = [product.series, product.categoryName].filter(Boolean).join(" · ");
-            const productCta = ctaLabel || defaults.ctaLabel;
 
             return (
               <Link
                 key={product.slug}
                 href={localePath(locale, `/products/${product.slug}`)}
-                aria-label={`${productCta}: ${product.title}`}
                 className="edit-showcase-card group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
               >
                 <div className="edit-showcase-image relative aspect-[4/5] overflow-hidden bg-[#e3ddd5]">
@@ -803,7 +715,6 @@ function EditShowcase({
                     {product.price}
                   </span>
                 </div>
-                <span className="sr-only">{productCta}</span>
               </Link>
             );
           })}
@@ -814,7 +725,7 @@ function EditShowcase({
             href={localePath(locale, "/shop")}
             className="edit-showcase-all-link group inline-flex min-h-11 items-center gap-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#171513] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
           >
-            {t("home.editShowcase.viewAllLabel")}
+            {viewAllLabel || defaults.viewAllLabel}
             <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
           </Link>
         </div>
@@ -827,6 +738,7 @@ function MaterialPlate({
   material,
   noteLabel,
   index,
+  count,
   progress,
   reduceMotion,
   activeIndex,
@@ -834,28 +746,55 @@ function MaterialPlate({
   material: LexiconMaterial;
   noteLabel: string;
   index: number;
+  count: number;
   progress: MotionValue<number>;
   reduceMotion: boolean;
   activeIndex?: number;
 }) {
-  const ranges = [
-    [0, 0.24, 0.42],
-    [0.24, 0.42, 0.58, 0.76],
-    [0.58, 0.76, 1],
-  ];
-  const opacityValues = index === 0 ? [1, 1, 0] : index === 1 ? [0, 1, 1, 0] : [0, 1, 1];
-  const xValues = index === 0 ? ["0%", "0%", "-8%"] : index === 1 ? ["9%", "0%", "0%", "-8%"] : ["9%", "0%", "0%"];
-  const rotateValues = index === 0 ? [0, -0.5, -3.5] : index === 1 ? [3, 0.5, -0.5, -3.5] : [3, 0.5, 0];
-  const scaleValues = index === 0 ? [1, 1, 0.985] : index === 1 ? [0.985, 1, 1, 0.985] : [0.985, 1, 1];
-  const revealRanges = index === 0 ? [0, 1] : index === 1 ? [0, 0.24, 0.42, 1] : [0, 0.58, 0.76, 1];
   const revealed = "polygon(0% 0%, 100% 0%, 100% 100%, -8% 100%)";
   const concealed = "polygon(108% 0%, 108% 0%, 100% 100%, 100% 100%)";
-  const revealValues = index === 0 ? [revealed, revealed] : [concealed, concealed, revealed, revealed];
+  const isFirst = index === 0;
+  const isLast = index === count - 1;
+  const ranges = count <= 2
+    ? (isFirst ? [0, 0.42, 0.72] : [0.42, 0.72, 1])
+    : ([
+        [0, 0.24, 0.42],
+        [0.24, 0.42, 0.58, 0.76],
+        [0.58, 0.76, 1],
+      ][index] ?? [0, 1]);
+  const opacityValues = isFirst
+    ? [1, 1, 0]
+    : isLast
+      ? (count <= 2 ? [0, 1, 1] : [0, 1, 1])
+      : [0, 1, 1, 0];
+  const xValues = isFirst
+    ? ["0%", "0%", "-8%"]
+    : isLast
+      ? ["9%", "0%", "0%"]
+      : ["9%", "0%", "0%", "-8%"];
+  const rotateValues = isFirst
+    ? [0, -0.5, -3.5]
+    : isLast
+      ? [3, 0.5, 0]
+      : [3, 0.5, -0.5, -3.5];
+  const scaleValues = isFirst
+    ? [1, 1, 0.985]
+    : isLast
+      ? [0.985, 1, 1]
+      : [0.985, 1, 1, 0.985];
+  const revealRanges = isFirst
+    ? [0, 1]
+    : count <= 2
+      ? [0, 0.42, 0.72, 1]
+      : index === 1
+        ? [0, 0.24, 0.42, 1]
+        : [0, 0.58, 0.76, 1];
+  const revealValues = isFirst ? [revealed, revealed] : [concealed, concealed, revealed, revealed];
 
-  const opacity = useTransform(progress, ranges[index], reduceMotion ? opacityValues : opacityValues.map(() => 1));
-  const x = useTransform(progress, ranges[index], reduceMotion ? opacityValues.map(() => "0%") : xValues);
-  const rotate = useTransform(progress, ranges[index], reduceMotion ? opacityValues.map(() => 0) : rotateValues);
-  const scale = useTransform(progress, ranges[index], reduceMotion ? opacityValues.map(() => 1) : scaleValues);
+  const opacity = useTransform(progress, ranges, reduceMotion ? opacityValues : opacityValues.map(() => 1));
+  const x = useTransform(progress, ranges, reduceMotion ? opacityValues.map(() => "0%") : xValues);
+  const rotate = useTransform(progress, ranges, reduceMotion ? opacityValues.map(() => 0) : rotateValues);
+  const scale = useTransform(progress, ranges, reduceMotion ? opacityValues.map(() => 1) : scaleValues);
   const clipPath = useTransform(progress, revealRanges, reduceMotion ? revealValues.map(() => revealed) : revealValues);
   const imageX = useTransform(progress, [0, 1], reduceMotion ? ["0%", "0%"] : [`${index * -3 - 4}%`, `${index * 3 + 5}%`]);
   const usesDiscreteIOSSteps = activeIndex !== undefined;
@@ -962,6 +901,9 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
     () => rawMaterials.slice(0, 3).map((item, index) => ({ ...item, symbol: String(index + 1).padStart(2, "0") })),
     [rawMaterials],
   );
+  const materialCount = materials.length;
+  const sectionHeightClass = materialCount <= 2 ? "h-[230svh]" : "h-[330svh]";
+  const progressEndLabel = String(Math.max(materialCount, 1)).padStart(2, "0");
 
   useEffect(() => {
     if (!usesDiscreteIOSSteps) return;
@@ -1005,7 +947,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
   return (
     <section data-component="MaterialLab"
       ref={ref}
-      className="relative h-[330svh] bg-transparent text-linen"
+      className={`relative ${sectionHeightClass} bg-transparent text-linen`}
       aria-labelledby="lexicon-title"
     >
       {usesDiscreteIOSSteps ? (
@@ -1045,7 +987,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
               <div className="relative h-16 w-px bg-linen/15">
                 <motion.div style={{ scaleY: progressScale, transformOrigin: "top" }} className="absolute inset-0 bg-couture-red" />
               </div>
-              <span>03</span>
+              <span>{progressEndLabel}</span>
             </div>
           </header>
 
@@ -1056,6 +998,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
                 material={material}
                 noteLabel={resolveLexiconNoteLabel(noteLabel)}
                 index={index}
+                count={materialCount}
                 progress={progress}
                 reduceMotion={reduceMotion}
                 activeIndex={usesDiscreteIOSSteps ? activeIndex : undefined}
@@ -1078,9 +1021,10 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
 
 // 5. MANIFESTO QUOTE (Archival directive, grid lines overlay)
 function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?: string; attribution?: string }) {
-  if (!quote) {
-    return null;
-  }
+  const { t } = useTranslations();
+  const customQuote = quote?.trim();
+  const resolvedLabel = label?.trim() || t("home.manifesto.label");
+  const resolvedAttribution = attribution?.trim() || t("home.manifesto.attribution");
 
   return (
     <section data-component="ManifestoQuote" className="home-manifesto relative overflow-hidden bg-transparent px-5 py-24 text-linen md:flex md:min-h-screen md:items-center md:justify-center md:px-[4vw] md:py-32">
@@ -1098,19 +1042,32 @@ function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?:
       <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-start md:items-center">
         <div className="mb-8 flex items-center gap-3 font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-couture-red md:mb-12">
           <span className="h-px w-8 bg-couture-red" aria-hidden="true" />
-          06 / {label?.trim() || "A principle to keep"}
+          06 / {resolvedLabel}
         </div>
 
         <h2 className="relative max-w-5xl text-balance text-left font-serif text-[clamp(2.35rem,10.5vw,7rem)] font-light italic leading-[1.02] text-linen md:text-center">
           <span className="absolute -left-12 -top-16 hidden select-none font-serif text-[15vw] leading-none text-stone-beige opacity-10 md:block">&ldquo;</span>
-          {quote}
+          {customQuote ? (
+            <span className="whitespace-pre-line">{customQuote}</span>
+          ) : (
+            <>
+              {t("home.manifesto.quoteBefore")}
+              <br />
+              {t("home.manifesto.quoteBridge")}{" "}
+              <span className="font-bold uppercase tracking-tighter text-couture-red not-italic">
+                {t("home.manifesto.quoteEmphasis")}
+              </span>
+              <br />
+              {t("home.manifesto.quoteAfter")}
+            </>
+          )}
           <span className="absolute -bottom-24 -right-12 hidden select-none font-serif text-[15vw] leading-none text-stone-beige opacity-10 md:block">&rdquo;</span>
         </h2>
 
         <div className="mt-10 flex items-center gap-4 md:mt-14">
           <div className="h-px w-10 bg-couture-red md:w-12" />
           <span className="font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-linen md:text-[10px] md:tracking-[0.25em]">
-            {attribution?.trim() || "The Synarava Manifesto // Vol 1."}
+            {resolvedAttribution}
           </span>
           <div className="hidden h-px w-12 bg-couture-red md:block" />
         </div>
@@ -1119,29 +1076,38 @@ function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?:
   );
 }
 
-function FinalFooter({ title, contactLabel, contactEmail }: { title?: string; contactLabel?: string; contactEmail?: string }) {
-  const email = contactEmail?.trim() || "synarava.shop@gmail.com";
+function FinalFooter({ title, contactLabel, contactEmail, showContact }: { title?: string; contactLabel?: string; contactEmail?: string; showContact?: boolean }) {
+  const { t } = useTranslations();
+  const email = contactEmail?.trim() || "";
+  const showMailto = Boolean(showContact && email);
 
   return (
     <div data-component="FinalFooter" className="mt-auto flex flex-1 flex-col justify-end gap-6 border-t border-linen/15 pb-1 pt-8 sm:flex-row sm:items-end sm:justify-between md:pt-10">
       <p className="max-w-sm whitespace-pre-line font-serif text-2xl leading-tight text-linen md:text-3xl">
-        {title?.trim() || "Objects shaped slowly,\nkept for a lifetime."}
+        {title?.trim() || t("home.finalCta.footerTitle")}
       </p>
-      <a
-        href={`mailto:${email}`}
-        className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
-      >
-        {contactLabel?.trim() || email}
-      </a>
+      {showMailto ? (
+        <a
+          href={`mailto:${email}`}
+          className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+        >
+          {contactLabel?.trim() || email}
+        </a>
+      ) : null}
     </div>
   );
 }
 
-function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail }: { collections?: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string }) {
+function CompactFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail, showContact }: { images: Array<{ image: string }>; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string; showContact?: boolean }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.22 });
   const reduceMotion = useReducedMotion() ?? false;
-  const images = useMemo(() => buildFinalCtaImages(collections ?? []).slice(0, 2), [collections]);
+  const { t } = useTranslations();
+  const shards = images.slice(0, 2);
+  const resolvedTitle = title?.trim() || t("home.finalCta.title");
+  const resolvedBody = body?.trim() || t("home.finalCta.body");
+  const resolvedCtaLabel = ctaLabel?.trim() || t("home.finalCta.ctaLabel");
+  const resolvedCtaHref = ctaHref?.trim() || "/shop";
 
   return (
     <section data-component="CompactFinalCTA"
@@ -1169,21 +1135,21 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
               07 / Continue the story
             </p>
             <p className="font-serif text-base italic leading-7 text-stone-beige">
-              {body}
+              {resolvedBody}
             </p>
             <h2 className="mt-5 max-w-[10ch] text-balance font-serif text-[clamp(3rem,14vw,4.5rem)] font-bold leading-[0.88] tracking-[-0.04em] text-linen">
-              {title}
+              {resolvedTitle}
             </h2>
             <ArtifactLink
-              href={ctaHref!}
+              href={resolvedCtaHref}
               showArrow
               className="mt-8 gap-4 px-6 text-[0.66rem] tracking-[0.18em]"
             >
-              {ctaLabel}
+              {resolvedCtaLabel}
             </ArtifactLink>
           </div>
 
-          {images.length > 0 ? (
+          {shards.length > 0 ? (
             <div className="relative mb-14 h-[42svh] min-h-80 overflow-visible" aria-hidden="true">
               <motion.div
                 data-mobile-final-shard
@@ -1197,7 +1163,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
                 transition={{ duration: 0.78, ease: FINAL_SCENE_EASE }}
               >
                 <Image
-                  src={images[0].image}
+                  src={shards[0].image}
                   alt=""
                   fill
                   sizes="72vw"
@@ -1206,7 +1172,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
                 <div className="absolute inset-[6%] border border-linen/25 [clip-path:polygon(8%_0,100%_8%,89%_100%,0_82%)]" />
               </motion.div>
 
-              {images[1] ? (
+              {shards[1] ? (
                 <motion.div
                   data-mobile-final-shard
                   className="absolute bottom-[1%] right-[-12%] h-[66%] w-[60%] overflow-hidden bg-[#111] shadow-[0_28px_70px_rgba(0,0,0,0.5)] [clip-path:polygon(18%_8%,100%_0,91%_90%,0_100%)]"
@@ -1219,7 +1185,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
                   transition={{ duration: 0.82, delay: 0.06, ease: FINAL_SCENE_EASE }}
                 >
                   <Image
-                    src={images[1].image}
+                    src={shards[1].image}
                     alt=""
                     fill
                     sizes="62vw"
@@ -1246,7 +1212,7 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
             </div>
           ) : null}
 
-          <FinalFooter title={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
+          <FinalFooter title={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />
         </motion.div>
       </div>
     </section>
@@ -1254,14 +1220,17 @@ function CompactFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
 }
 
 // 7. FINAL CTA — cubist shop portal
-function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string }) {
-  const { locale } = useTranslations();
+function DesktopFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail, showContact }: { images: Array<{ image: string }>; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string; showContact?: boolean }) {
+  const { locale, t } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
-  const images = useMemo(() => buildFinalCtaImages(collections), [collections]);
   const scrollYProgress = useElementScrollProgress(ref, "sticky");
   const smoothProgress = useSpring(scrollYProgress, FINAL_SCENE_SPRING);
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
+  const resolvedTitle = title?.trim() || t("home.finalCta.title");
+  const resolvedBody = body?.trim() || t("home.finalCta.body");
+  const resolvedCtaLabel = ctaLabel?.trim() || t("home.finalCta.ctaLabel");
+  const resolvedCtaHref = ctaHref?.trim() || "/shop";
 
   const introY = useTransform(
     progress,
@@ -1329,7 +1298,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
   if (images.length !== 4) {
     return (
       <CompactFinalCTA
-        collections={collections}
+        images={images}
         title={title}
         body={body}
         ctaLabel={ctaLabel}
@@ -1337,6 +1306,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
         footerTitle={footerTitle}
         contactLabel={contactLabel}
         contactEmail={contactEmail}
+        showContact={showContact}
       />
     );
   }
@@ -1356,24 +1326,24 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
           style={{ y: introY, opacity: introOpacity }}
         >
           <p className="mb-6 max-w-sm font-serif text-lg italic text-stone-beige md:mb-8 md:text-xl">
-            {body}
+            {resolvedBody}
           </p>
           <h2 className="max-w-[10ch] text-balance font-serif text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-linen">
-            {title}
+            {resolvedTitle}
           </h2>
 
           <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
             <PrimaryCtaButton
-              href={ctaHref!}
+              href={resolvedCtaHref}
               className="min-h-16 gap-8 text-[0.7rem] tracking-[0.2em] hover:brightness-110 focus-visible:outline-linen [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
             >
-              {ctaLabel}
+              {resolvedCtaLabel}
             </PrimaryCtaButton>
             <Link
               href={localePath(locale, "/about")}
               className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
             >
-              About us
+              {t("home.finalCta.aboutLabel")}
               <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           </div>
@@ -1436,7 +1406,7 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
           className="absolute inset-0 z-[8] flex flex-col pr-10 pt-10 md:pr-12 md:pt-0"
           style={{ y: footerY, opacity: footerOpacity }}
         >
-          <FinalFooter title={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
+          <FinalFooter title={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />
         </motion.div>
 
         <div data-final-progress-rail className="absolute bottom-0 right-0 h-20 w-px bg-linen/15" aria-hidden="true">
@@ -1448,20 +1418,16 @@ function DesktopFinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTi
   );
 }
 
-function FinalCTA({ collections, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail }: { collections: CollectionItem[]; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string }) {
+function FinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail, showContact }: { images: Array<{ image: string }>; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string; showContact?: boolean }) {
   const isDesktop = useDesktopViewport();
   const scrollContext = useContext(HomeScrollContext);
   const isIOSWebKit = scrollContext?.isIOSWebKit ?? false;
 
-  if (!title || !body || !ctaLabel || !ctaHref) {
-    return null;
-  }
-
   return isDesktop && !isIOSWebKit
-    ? collections.length > 0
-      ? <DesktopFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
-      : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />
-    : <CompactFinalCTA collections={collections} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} />;
+    ? images.length === 4
+      ? <DesktopFinalCTA images={images} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />
+      : <CompactFinalCTA images={images} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />
+    : <CompactFinalCTA images={images} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />;
 }
 
 export function HomePage({ collections, products = [], heroVideoSrc, content }: HomePageProps) {
@@ -1474,6 +1440,10 @@ export function HomePage({ collections, products = [], heroVideoSrc, content }: 
       .filter((item) => item.image)
       .slice(0, 3)
       .map((item) => ({ name: item.title, category: item.series, description: item.description, image: item.image, properties: [] }));
+  const finalCtaImages = useMemo(
+    () => resolveFinalCtaImages(products, content?.finalCtaProductIds, collections),
+    [products, content?.finalCtaProductIds, collections],
+  );
 
   return (
     <HomeScrollProvider>
@@ -1503,13 +1473,13 @@ export function HomePage({ collections, products = [], heroVideoSrc, content }: 
         eyebrow={content?.editSectionEyebrow}
         title={content?.editSectionTitle}
         body={content?.editSectionBody}
-        ctaLabel={content?.editSectionCtaLabel}
+        viewAllLabel={content?.editSectionViewAllLabel}
         selectedProductIds={content?.editProductIds}
       /> : null}
       {visibility.material ? <MaterialLab materials={lexiconMaterials} eyebrow={content?.materialSectionEyebrow} title={content?.materialSectionTitle} noteLabel={content?.materialSectionNoteLabel} /> : null}
       {visibility.manifesto ? <ManifestoQuote quote={content?.quote} label={content?.manifestoSectionLabel} attribution={content?.manifestoSectionAttribution} /> : null}
       {visibility.finalCta ? <FinalCTA
-        collections={collections}
+        images={finalCtaImages}
         title={content?.secondaryTitle}
         body={content?.secondaryBody}
         ctaLabel={content?.finalCtaLabel || content?.ctaLabel}
@@ -1517,6 +1487,7 @@ export function HomePage({ collections, products = [], heroVideoSrc, content }: 
         footerTitle={content?.finalFooterTitle}
         contactLabel={content?.finalContactLabel}
         contactEmail={content?.finalContactEmail}
+        showContact={content?.finalContactEnabled === true}
       /> : null}
     </main>
     </HomeScrollProvider>

@@ -9,6 +9,7 @@ import {
   loadProductCatalogConflictAction,
   previewCatalogConflictResolutionAction,
 } from "@/app/admin/actions/sync";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { Tooltip } from "@/components/ui/tooltip";
 import { AdminCheckboxControl } from "@/components/synarava-cms";
@@ -581,7 +582,7 @@ export function CatalogConflictWorkspace({
         onSignalsChange({ ...signals, recentlyUpdatedProducts });
       }
       setSelections({});
-      router.refresh();
+      refreshPreservingScroll(router);
     });
   }
 

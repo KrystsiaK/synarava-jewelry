@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { SiteVideos } from "@/lib/site-videos";
+import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 const VIDEO_FIELDS: Array<{
   slot: keyof SiteVideos;
@@ -73,7 +74,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
 
       formRef.current?.reset();
       pushToast({ message: `${completed.count} video${completed.count === 1 ? "" : "s"} uploaded directly to Railway Bucket and published.`, tone: "success" });
-      router.refresh();
+      refreshPreservingScroll(router);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Video upload failed.";
       setState({ error: message });

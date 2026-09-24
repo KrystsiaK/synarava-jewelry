@@ -4,10 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   savePageAction: vi.fn(),
+  searchStorefrontHrefsAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/pages", () => ({
   savePageAction: mocks.savePageAction,
+}));
+
+vi.mock("@/app/admin/actions/storefront-href", () => ({
+  searchStorefrontHrefsAction: mocks.searchStorefrontHrefsAction,
 }));
 
 import { PageEditor } from "@/components/admin/pages/page-editor-form";
@@ -56,13 +61,14 @@ async function fillLongText(user: ReturnType<typeof userEvent.setup>, label: str
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.searchStorefrontHrefsAction.mockResolvedValue({ segments: [] });
   // The active-locale tab is remembered in sessionStorage per page slug, so
   // tests sharing a slug (e.g. "home") would otherwise leak their tab state.
   sessionStorage.clear();
 });
 
 describe("PageEditor", () => {
-  it("edits the four ordered product slots used by The Edit", async () => {
+  it("edits the four ordered product slots used by the product showcase", async () => {
     mocks.savePageAction.mockImplementation(async (formData: FormData) => {
       expect(formData.get("editProductId1")).toBe("bird");
       expect(formData.get("editProductId2")).toBe("moon");
@@ -100,6 +106,18 @@ describe("PageEditor", () => {
     expect(screen.getByRole("heading", { name: "Journal" })).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Journal");
     expect(longTextPreview("Body")).toHaveTextContent("Body copy.");
+  });
+
+  it("keeps Save page in the shared AdminListWorkspace sticky header", () => {
+    const { container } = render(<PageEditor page={makePage()} />);
+    const root = container.querySelector('[data-component="AdminListWorkspace"]');
+    const header = container.querySelector('[data-component="AdminPanel.Header"]');
+
+    expect(root).not.toBeNull();
+    expect(header).toHaveAttribute("data-sticky", "true");
+    expect(header).toHaveClass("adm-panel__header--ruled");
+    expect(header?.querySelector(".adm-btn-primary")).toHaveTextContent("Save page");
+    expect(header?.querySelector(".adm-locale-workspace-header--embedded")).not.toBeNull();
   });
 
   it("switches the same Title field's value with the locale tab, keeping shared CTA href untouched", async () => {
@@ -149,12 +167,12 @@ describe("PageEditor", () => {
       title: "Home",
       content: {
         editSectionTitle: "The Edit",
-        editSectionCtaLabel: "View piece",
+        editSectionViewAllLabel: "View all products",
         materialSectionNoteLabel: "Material notes",
         translations: {
           pt: {
             editSectionTitle: "A Seleção",
-            editSectionCtaLabel: "Ver peça",
+            editSectionViewAllLabel: "Ver todos os produtos",
             materialSectionNoteLabel: "Notas de materiais",
           },
         },
@@ -162,28 +180,44 @@ describe("PageEditor", () => {
     })} />);
 
     expect(screen.getByLabelText("Hero headline")).toBeInTheDocument();
-    expect(screen.getByLabelText("Search summary")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit Search summary" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /01 \/ Hero/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /02 \/ Featured collections/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /03 \/ Product showcase/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /04 \/ Material lexicon/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /05 \/ Manifesto/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /06 \/ Final call to action/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Collection-led sections" })).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Show hero" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show featured collections" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show material lexicon" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show manifesto" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Show final call to action" })).toBeChecked();
-    expect(screen.getByLabelText("Archive background label")).toBeInTheDocument();
-    expect(screen.getByLabelText("The Edit title")).toHaveValue("The Edit");
-    expect(screen.getByLabelText("The Edit product CTA")).toHaveValue("View piece");
-    expect(screen.getByLabelText("Material section title")).toBeInTheDocument();
-    expect(screen.getByLabelText("Material note label")).toHaveValue("Material notes");
-    expect(screen.getByLabelText("Manifesto attribution")).toBeInTheDocument();
-    expect(screen.getByLabelText("Final CTA label")).toBeInTheDocument();
-    expect(fieldByName(container, "finalContactEmail")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Archive background label" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Collection 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add collection" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Showcase title" })).toHaveValue("The Edit");
+    expect(screen.getByRole("textbox", { name: "View all label" })).toHaveValue("View all products");
+    expect(screen.getByRole("textbox", { name: "Material section title" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Material note label" })).toHaveValue("Material notes");
+    expect(screen.getByRole("button", { name: "Add material" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Material 01/i })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Manifesto attribution" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Final CTA label" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Closing statement" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Include contact email" })).not.toBeChecked();
+    expect(screen.queryByRole("textbox", { name: "Contact email" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Photo 1" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Photo 4" })).toBeInTheDocument();
+    expect(container.querySelector('[data-component="PageEditor"]')).toHaveAttribute("novalidate");
 
     // The Portuguese values exist too, just under the PT tab, not a second copy of every field.
     expect(hiddenFieldValue(container, "ptEditSectionTitle")).toBe("A Seleção");
     expect(hiddenFieldValue(container, "ptMaterialSectionNoteLabel")).toBe("Notas de materiais");
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    expect(screen.getByLabelText("The Edit title")).toHaveValue("A Seleção");
-    expect(screen.getByLabelText("The Edit product CTA")).toHaveValue("Ver peça");
-    expect(screen.getByLabelText("Material note label")).toHaveValue("Notas de materiais");
+    expect(screen.getByRole("textbox", { name: "Showcase title" })).toHaveValue("A Seleção");
+    expect(screen.getByRole("textbox", { name: "View all label" })).toHaveValue("Ver todos os produtos");
+    expect(screen.getByRole("textbox", { name: "Material note label" })).toHaveValue("Notas de materiais");
   });
 
   it("submits bilingual edit-section copy for the home page", async () => {
@@ -197,11 +231,20 @@ describe("PageEditor", () => {
     const user = userEvent.setup();
     render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
 
-    await user.type(screen.getByLabelText("The Edit title"), "The Edit");
-    await fillLongText(user, "The Edit description", "Four pieces to begin.");
+    await user.type(screen.getByRole("textbox", { name: "Showcase title" }), "The Edit");
+    await fillLongText(user, "Showcase description", "Four pieces to begin.");
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    await user.type(screen.getByLabelText("The Edit title"), "A Seleção");
-    await fillLongText(user, "The Edit description", "Quatro peças para começar.");
+    // Paste accented copy — user.type splits combining characters and truncates.
+    const ptTitle = screen.getByRole("textbox", { name: "Showcase title" });
+    await user.clear(ptTitle);
+    await user.click(ptTitle);
+    await user.paste("A Seleção");
+    await user.click(screen.getByRole("button", { name: "Edit Showcase description" }));
+    const editor = screen.getByRole("textbox", { name: "Showcase description" });
+    await user.clear(editor);
+    await user.click(editor);
+    await user.paste("Quatro peças para começar.");
+    await user.click(screen.getByRole("button", { name: "Apply changes" }));
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
     await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
 
@@ -222,11 +265,44 @@ describe("PageEditor", () => {
     render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
 
     await user.click(screen.getByRole("checkbox", { name: "Show material lexicon" }));
-    await user.click(screen.getByRole("checkbox", { name: "Show The Edit" }));
+    await user.click(screen.getByRole("checkbox", { name: "Show product showcase" }));
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
     await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
 
     expect(mocks.savePageAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks save when Final CTA contact is enabled without label and email", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
+
+    await user.click(screen.getByRole("checkbox", { name: "Include contact email" }));
+    await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
+
+    expect(await screen.findByText("Enter a contact link label.")).toBeInTheDocument();
+    expect(screen.getByText("Enter a contact email.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mocks.savePageAction).not.toHaveBeenCalled();
+  });
+
+  it("blocks save when Final CTA contact email is invalid", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    render(<PageEditor page={makePage({ slug: "home", title: "Home" })} />);
+
+    await user.click(screen.getByRole("checkbox", { name: "Include contact email" }));
+    await user.type(screen.getByRole("textbox", { name: /Contact link label/i }), "Write us");
+    const email = screen.getByRole("textbox", { name: /Contact email/i });
+    await user.clear(email);
+    await user.type(email, "not-an-email");
+    await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
+
+    expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mocks.savePageAction).not.toHaveBeenCalled();
   });
 
   it("saves through savePageAction on confirm", async () => {

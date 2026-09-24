@@ -4,6 +4,7 @@ import {
   listCollections,
   type PageContent,
 } from "@/lib/content/catalog";
+import { resolveHomeArchiveCollections } from "@/lib/content/home-archive-section";
 import { listShopListingProducts } from "@/lib/content/shop-listing";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -40,8 +41,8 @@ export default async function Page() {
     listShopListingProducts(locale),
   ]);
 
-  const collections = collectionData
-    .slice(0, 3)
+  const content: PageContent = page?.content ?? {};
+  const collections = resolveHomeArchiveCollections(collectionData, content.archiveCollectionIds)
     .map((c) => ({
       series: c.eyebrow,
       title: c.name,
@@ -50,8 +51,6 @@ export default async function Page() {
       image: c.heroImage,
       href: localePath(locale, `/collections/${c.slug}`),
     }));
-
-  const content: PageContent = page?.content ?? {};
 
   return (
     <HomePage

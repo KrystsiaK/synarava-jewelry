@@ -19,7 +19,7 @@ export type EditablePageCopy = {
   editSectionEyebrow?: string;
   editSectionTitle?: string;
   editSectionBody?: string;
-  editSectionCtaLabel?: string;
+  editSectionViewAllLabel?: string;
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   materialSectionNoteLabel?: string;
@@ -37,6 +37,7 @@ export type EditablePageCopy = {
   finalFooterTitle?: string;
   finalContactLabel?: string;
   finalContactEmail?: string;
+  finalContactEnabled?: boolean;
   legalIntro?: string;
   legalLastUpdated?: string;
   legalSections?: Record<string, { title?: string; body?: string }>;
@@ -46,6 +47,8 @@ export type EditablePageCopy = {
 export type EditablePageContent = EditablePageCopy & {
   heroImage?: string;
   editProductIds?: string[];
+  finalCtaProductIds?: string[];
+  archiveCollectionIds?: string[];
   heroSectionEnabled?: boolean;
   archiveSectionEnabled?: boolean;
   editSectionEnabled?: boolean;
