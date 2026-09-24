@@ -252,6 +252,7 @@ and SYNC-16 asserts that state is handled gracefully.
 | COL-10 | Filling one field autosaves a Draft collection | positive | P3 | **E2E** | `autosaveCollectionDraftAction`; same debounce caveat as PROD-C36. |
 | COL-11 | Collection code auto-generates from the name and is deterministic | positive | P2 | ✔ unit | `collection-helpers.test.ts`. |
 | COL-12 | *(retired)* Primary-nav storefront navigation | — | — | — | Removed with the department model (September 2026). |
+| COL-13 | Edit form shows Site state after identity fields; Delete help is delete-only | positive | P2 | **render** | `WorkflowStateField` at `#field-workflowState`; no orphan Publishing guidance near Delete. |
 
 ## 11. Pages (`e2e/admin-pages.spec.ts`)
 

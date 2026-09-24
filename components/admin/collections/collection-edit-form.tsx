@@ -229,12 +229,6 @@ export function EditCollectionForm({
             issues={visibleIssues}
           />
 
-          <div>
-            <AdminHelp label="Publishing guidance">
-              Draft collections stay private. Published collections become public on the collections index and their own detail page.
-            </AdminHelp>
-          </div>
-
           <div
             className="flex flex-wrap items-center justify-between gap-4 py-5"
             style={{
@@ -242,12 +236,15 @@ export function EditCollectionForm({
               borderBottom: "1px solid var(--adm-border)",
             }}
           >
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <DeleteCollectionForm
                 collectionId={collection.id}
                 collectionSlug={collection.slug}
                 onDeleted={onDeleted}
               />
+              <AdminHelp label="Delete guidance">
+                Delete permanently removes this collection record and its sections. It does not change Draft or Published site state — use Site state above for that. Products stay in the catalog but lose this collection assignment.
+              </AdminHelp>
             </div>
             <button
               type="button"

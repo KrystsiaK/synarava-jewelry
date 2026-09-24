@@ -60,7 +60,14 @@ export function WorkflowStateField({
   ];
 
   return (
-    <div data-component="WorkflowStateField" className="grid gap-2">
+    <div id="field-workflowState" data-component="WorkflowStateField" className="grid gap-2">
+      <p className="adm-label-row">
+        <span className="adm-section-tag">[ SITE STATE ]</span>
+        <AdminHelp label="Site state guidance">
+          Draft keeps this collection private (hidden from the collections index and its detail page).
+          Published makes it public there. This control lives with the collection fields — not next to Delete.
+        </AdminHelp>
+      </p>
       <FieldLabel required help="Draft collections stay private. Published collections appear on the collections index and their public detail page.">
         Site state
       </FieldLabel>
@@ -239,6 +246,17 @@ export function CollectionFields({
 
       </div>
 
+      <div
+        className="grid gap-4 pt-4"
+        style={{ borderTop: "1px solid var(--adm-border)" }}
+      >
+        <WorkflowStateField
+          value={draft.workflowState}
+          onChange={(value) => onChange("workflowState", value)}
+          error={fieldErrors?.workflowState}
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div
           id="field-heroImageUrl"
@@ -307,17 +325,6 @@ export function CollectionFields({
         rows={2}
         placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}
       />
-
-      <div
-        className="grid gap-4 pt-4"
-        style={{ borderTop: "1px solid var(--adm-border)" }}
-      >
-        <WorkflowStateField
-          value={draft.workflowState}
-          onChange={(value) => onChange("workflowState", value)}
-          error={fieldErrors?.workflowState}
-        />
-      </div>
 
       {/* Default symbolism — shared layout, value switches with the locale tab */}
       <div

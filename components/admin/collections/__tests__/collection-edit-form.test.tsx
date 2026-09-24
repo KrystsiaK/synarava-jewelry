@@ -89,6 +89,19 @@ describe("EditCollectionForm", () => {
     expect(longTextPreview("Collection summary")).toHaveTextContent("A summer story.");
   });
 
+  it("keeps Site state with the collection fields and Delete help next to Delete", () => {
+    render(<EditCollectionForm collection={makeCollection()} />);
+
+    const siteState = document.querySelector("[data-component='WorkflowStateField']");
+    expect(siteState).not.toBeNull();
+    expect(siteState).toHaveAttribute("id", "field-workflowState");
+    expect(screen.getByRole("button", { name: /Draft\. Hidden from the site/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Published\. Visible on collection listings/i })).toBeInTheDocument();
+
+    expect(screen.queryByRole("button", { name: /Publishing guidance/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Delete guidance/i })).toBeInTheDocument();
+  });
+
   it("surfaces open problems on the hero field and scrolls to the hash target", async () => {
     const scrollIntoView = vi.fn();
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
