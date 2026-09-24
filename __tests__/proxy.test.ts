@@ -60,13 +60,14 @@ describe("storefront Content Security Policy", () => {
     expect(imageDirective).toContain("https://www.googletagmanager.com");
   });
 
-  it("allows blob: media for admin local video previews", async () => {
-    const response = await proxy(new NextRequest("https://shop.synarava.test/admin/videos"));
+  it("allows blob: media for local video previews", async () => {
+    const response = await proxy(new NextRequest("https://shop.synarava.test/en/"));
     const csp = response.headers.get("Content-Security-Policy") ?? "";
     const mediaDirective = csp
       .split("; ")
       .find((directive) => directive.startsWith("media-src "));
 
+    expect(mediaDirective).toBeDefined();
     expect(mediaDirective).toContain("blob:");
     expect(mediaDirective).toContain("'self'");
   });
