@@ -120,11 +120,18 @@ export function resolveAdminNavItemSignal(
 }
 
 export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
-  return STOREFRONT_COPY_GROUPS.map((group) => ({
-    id: `settings-${group.id}`,
-    href: `/admin/settings#copy-${group.id}`,
-    label: group.title,
-  }));
+  return [
+    {
+      id: "settings-header-main",
+      href: "/admin/settings#copy-header-main",
+      label: "Header — main links",
+    },
+    ...STOREFRONT_COPY_GROUPS.map((group) => ({
+      id: `settings-${group.id}`,
+      href: `/admin/settings#copy-${group.id}`,
+      label: group.title,
+    })),
+  ];
 }
 
 export function buildPagesNavChildren(pages: AdminNavPageRef[]): AdminNavChildConfig[] {

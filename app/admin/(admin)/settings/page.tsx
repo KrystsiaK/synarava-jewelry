@@ -1,6 +1,8 @@
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import { flattenMessages } from "@/lib/i18n/utils";
+import { getFooterContactEmail } from "@/lib/content/footer-contact";
+import { getHeaderNav } from "@/lib/content/header-nav";
 import { getStorefrontCopy, type StorefrontCopy } from "@/lib/content/storefront-copy";
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
 import { STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy";
@@ -11,8 +13,10 @@ import type { AdminLocaleStatus } from "@/components/admin/shared/admin-locale-w
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 export default async function AdminSettingsPage() {
-  const [copy, binding, syncDifferences, registryLocales] = await Promise.all([
+  const [copy, headerNav, contactEmail, binding, syncDifferences, registryLocales] = await Promise.all([
     getStorefrontCopy(),
+    getHeaderNav(),
+    getFooterContactEmail(),
     db.shopifyTranslationBinding.findUnique({
       where: { resourceType_entityId: { resourceType: "METAOBJECT", entityId: STOREFRONT_COPY_KEY } },
       include: { syncEvents: { orderBy: { createdAt: "desc" }, take: 1 } },
@@ -45,11 +49,18 @@ export default async function AdminSettingsPage() {
         <p className="adm-section-tag mb-3">[ SYN-ADM // HEADER & FOOTER ]</p>
         <h1 className="adm-page-title">Header & Footer</h1>
         <p className="adm-page-subtitle">
-          Labels only — link destinations and layout stay fixed. Page copy (Shop, Care, FAQ, Shipping, Returns, Home, About) is edited under Pages.
+          Header main links (name + path) also drive the footer Navigation column. Contact email is shared. Other chrome labels fall back to shipped defaults when empty. Page copy is edited under Pages.
         </p>
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />
       </div>
-      <StorefrontCopyEditor copy={copy} defaults={defaults} locales={locales} ptStatus={ptStatus} />
+      <StorefrontCopyEditor
+        copy={copy}
+        defaults={defaults}
+        headerNav={headerNav}
+        contactEmail={contactEmail}
+        locales={locales}
+        ptStatus={ptStatus}
+      />
     </div>
   );
 }

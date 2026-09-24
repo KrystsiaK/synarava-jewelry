@@ -76,11 +76,11 @@ native resource a given page instance binds to).
 
 Derived programmatically from `STOREFRONT_COPY_KEYS`
 (`lib/content/storefront-copy-fields.ts`) so the two lists cannot drift.
-Every key, including `nav.*`, targets metaobject `storefront_copy.<key>` —
-an earlier draft of this registry pointed `nav.*` at a native Shopify `LINK`
-resource, but there is no such resource backing these labels (they're plain
-local strings, not Shopify menu items), so that was corrected once Task 16
-built the real metaobject adapter.
+Keys target metaobject `storefront_copy.<key>` — chrome and footer labels only.
+Header main links (ordered name + path) live in `SiteSetting` `header-nav-v1`
+and drive the footer Navigation column; contact email lives in
+`footer-contact-v1`. Neither is part of this registry (no Shopify `MENU`/`LINK`
+binding in this app).
 
 ## Taxonomy (merchant-owned labels only)
 

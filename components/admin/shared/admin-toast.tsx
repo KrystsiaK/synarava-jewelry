@@ -167,7 +167,7 @@ export function AdminToastProvider({ children }: { children: ReactNode }) {
   const stack = (
     <div
       data-admin-toast-root="true"
-      className="adm-toast-stack pointer-events-none fixed left-1/2 top-4 z-[600] grid w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 gap-2 md:top-6"
+      className="adm-toast-stack pointer-events-none fixed left-1/2 top-4 z-[var(--adm-z-toast,600)] grid w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 gap-2 md:top-6"
     >
       {toasts.map((toast) => (
         <AdminToastCard key={toast.id} toast={toast} onClose={removeToast} />

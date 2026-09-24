@@ -1,13 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { DEFAULT_HEADER_NAV_ITEMS } from "@/lib/content/header-nav-fields";
 import { SiteFooter } from "../site-footer";
+
+const defaultHeaderNav = { items: DEFAULT_HEADER_NAV_ITEMS, labels: {} };
+const defaultEmail = "synarava.shop@gmail.com";
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <ThemeProvider initialPreference="light">{children}</ThemeProvider>;
 }
 
-function renderFooter() {
-  return render(<SiteFooter />, { wrapper: Wrapper });
+function renderFooter(
+  props: { headerNav?: typeof defaultHeaderNav; contactEmail?: string } = {},
+) {
+  return render(
+    <SiteFooter
+      headerNav={props.headerNav ?? defaultHeaderNav}
+      contactEmail={props.contactEmail ?? defaultEmail}
+    />,
+    { wrapper: Wrapper },
+  );
 }
 
 describe("SiteFooter", () => {
@@ -26,9 +38,10 @@ describe("SiteFooter", () => {
     expect(screen.getByText("Service")).toBeInTheDocument();
   });
 
-  it("renders Shop link", () => {
+  it("renders Shop link from header nav (skips home)", () => {
     renderFooter();
     expect(screen.getByRole("link", { name: "Shop" })).toHaveAttribute("href", "/en/shop");
+    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
   });
 
   it("renders Collections link", () => {
@@ -38,16 +51,31 @@ describe("SiteFooter", () => {
     expect(links[0]).toHaveAttribute("href", "/en/collections");
   });
 
+  it("mirrors custom header nav labels and paths in the navigation column", () => {
+    renderFooter({
+      headerNav: {
+        items: [
+          { id: "home", href: "/" },
+          { id: "care", href: "/care" },
+          { id: "shop", href: "/shop" },
+        ],
+        labels: { en: { care: "Care desk" } },
+      },
+    });
+    expect(screen.getByRole("link", { name: "Care desk" })).toHaveAttribute("href", "/en/care");
+    expect(screen.getByRole("link", { name: "Shop" })).toHaveAttribute("href", "/en/shop");
+  });
+
   it("does not render a separate Manifesto navigation link", () => {
     renderFooter();
     expect(screen.queryByRole("link", { name: "Manifesto" })).not.toBeInTheDocument();
   });
 
-  it("renders contact email link", () => {
-    renderFooter();
-    expect(screen.getByRole("link", { name: "Contact: synarava.shop@gmail.com" })).toHaveAttribute(
+  it("renders contact email link from props", () => {
+    renderFooter({ contactEmail: "hello@synarava.com" });
+    expect(screen.getByRole("link", { name: "Contact: hello@synarava.com" })).toHaveAttribute(
       "href",
-      "mailto:synarava.shop@gmail.com",
+      "mailto:hello@synarava.com",
     );
   });
 

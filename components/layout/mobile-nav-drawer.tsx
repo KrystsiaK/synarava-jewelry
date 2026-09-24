@@ -50,7 +50,7 @@ export function MobileNavDrawer({
           <nav className="flex flex-col pt-3">
             {navItems.map((item) => (
               <Link
-                key={item.href}
+                key={`${item.href}:${item.label}`}
                 href={localePath(locale, item.href)}
                 onClick={onClose}
                 aria-current={isActive(item.match) ? "page" : undefined}
