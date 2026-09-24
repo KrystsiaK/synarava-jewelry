@@ -4,7 +4,8 @@ description: >-
   synarava-cms — Synarava admin shared form library (AdminTextField,
   AdminSelectField, AdminCheckboxField/Control, AdminLongTextField,
   AdminCollapsiblePanel, AdminPanel, AdminNavTree, AdminSectionTabs,
-  AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
+  AdminEntityList, AdminIconButton, AdminSignalChip, AdminSortChips,
+  AdminStatusBadge, AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
   Use whenever editing admin UI, product/collection/page forms, CMS fields,
   validation chrome, labels, adornments, clearable inputs, shared/common
   controls, library migration, or anything under components/admin/.
@@ -60,6 +61,11 @@ When the user says **общий компонент**, **shared control**, or **l
 | Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` |
 | Section tabs + cool content well | `AdminSectionTabs` |
+| Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
+| Icon action + tooltip | `AdminIconButton` |
+| Locale / problem / conflict glyph | `AdminSignalChip` |
+| Compact sort chips | `AdminSortChips` |
+| Status / workflow pill | `AdminStatusBadge` |
 | Sticky band padding / vertical rhythm | `.adm-band` + `--adm-inset-x` (Tailwind `px-adm-inset`); `--sticky-radius` when first sticky under panel |
 | Custom labeled block | `AdminFieldShell` + control |
 | Home section on/off | Keep existing **switch** UI — not checkbox |

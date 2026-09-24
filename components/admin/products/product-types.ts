@@ -1,7 +1,7 @@
 import type { SavedProductPayload } from "@/app/admin/actions/products";
 import type { SavedTagPayload } from "@/app/admin/actions/tags";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import type { AdminProductListPage } from "@/lib/admin/list-products-shared";
 
 export type CategoryOption = { slug: string; name: string };
 export type TagOption = SavedTagPayload;
@@ -15,11 +15,10 @@ export type CollectionOption = {
 export type ProductRecord = SavedProductPayload;
 
 export type ProductCmsProps = {
-  initialProducts: ProductRecord[];
+  initialPage: AdminProductListPage;
   categories: CategoryOption[];
   tags: TagOption[];
   collections: CollectionOption[];
-  issues?: AdminIssueSummary[];
   initialConflictSignals: CatalogConflictSignals;
 };
 
@@ -80,6 +79,6 @@ export type ProductLocaleDraft = {
 };
 
 export type ProductRowAction = {
-  product: ProductRecord;
+  product: { id: string; name: string; slug: string };
   action: "publish" | "draft" | "archive" | "delete";
 };

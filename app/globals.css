@@ -1587,6 +1587,11 @@ body.admin-mode .artifact-footer {
   /* Cool slate — section tabs / open-tab well (harmonizes with warm gold) */
   --adm-cool: #7a92a3;
   --adm-cool-soft: rgba(122, 146, 163, 0.14);
+  /* Locale / progress signals — never reuse danger red for “not done yet” */
+  --adm-teal: #6fa89a;
+  --adm-teal-soft: rgba(111, 168, 154, 0.14);
+  --adm-violet: #9a87b8;
+  --adm-violet-soft: rgba(154, 135, 184, 0.14);
   --adm-tab-well: color-mix(in srgb, #1a2228 72%, var(--adm-panel));
   --adm-tab-idle: var(--adm-panel);
   --adm-tab-idle-hover: color-mix(in srgb, var(--adm-cool) 10%, var(--adm-panel));
@@ -1650,6 +1655,10 @@ html[data-theme="light"] .admin-modal-root {
   --adm-danger-soft: rgba(157, 56, 54, 0.09);
   --adm-cool: #5d7385;
   --adm-cool-soft: rgba(93, 115, 133, 0.12);
+  --adm-teal: #3f7a6c;
+  --adm-teal-soft: rgba(63, 122, 108, 0.12);
+  --adm-violet: #6b5a8a;
+  --adm-violet-soft: rgba(107, 90, 138, 0.11);
   --adm-tab-well: #e6eef3;
   --adm-tab-idle: #ffffff;
   --adm-tab-idle-hover: #f1f5f8;
@@ -2998,6 +3007,25 @@ select.adm-field option {
   cursor: not-allowed;
 }
 
+/* Compact square control for entity-list actions — beats adm-btn padding/min-height. */
+.adm-btn-primary.adm-icon-btn,
+.adm-btn-ghost.adm-icon-btn,
+.adm-btn-danger.adm-icon-btn,
+.adm-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  gap: 0;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .adm-btn-danger {
   display: inline-flex;
   align-items: center;
@@ -3197,6 +3225,61 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   }
 }
 
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  white-space: nowrap;
+  border: 1px solid var(--adm-border);
+}
+
+.adm-badge--draft {
+  color: var(--adm-subtle);
+  border-color: color-mix(in srgb, var(--adm-subtle) 34%, var(--adm-border));
+}
+
+.adm-badge--published {
+  color: var(--adm-success);
+  border-color: color-mix(in srgb, var(--adm-success) 36%, var(--adm-border));
+}
+
+.adm-badge--archived {
+  color: var(--adm-cool);
+  border-color: color-mix(in srgb, var(--adm-cool) 38%, var(--adm-border));
+  background: var(--adm-cool-soft);
+}
+
+.adm-badge--unlisted {
+  color: var(--adm-violet);
+  border-color: color-mix(in srgb, var(--adm-violet) 40%, var(--adm-border));
+  background: var(--adm-violet-soft);
+}
+
+.adm-badge--pending {
+  color: var(--adm-accent);
+  border-color: color-mix(in srgb, var(--adm-accent) 40%, var(--adm-border));
+  background: var(--adm-accent-soft);
+}
+
+.adm-badge--conflict {
+  color: var(--adm-conflict);
+  border-color: color-mix(in srgb, var(--adm-conflict) 42%, var(--adm-border));
+  background: var(--adm-conflict-soft);
+}
+
+.adm-badge--error {
+  color: var(--adm-danger);
+  border-color: color-mix(in srgb, var(--adm-danger) 40%, var(--adm-border));
+  background: var(--adm-danger-soft);
+}
+
+/* Legacy class aliases — prefer AdminStatusBadge / .adm-badge--* */
 .adm-badge-draft {
   display: inline-flex;
   align-items: center;
@@ -3206,7 +3289,7 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--adm-subtle);
-  border: 1px solid rgba(139, 129, 117, 0.34);
+  border: 1px solid color-mix(in srgb, var(--adm-subtle) 34%, var(--adm-border));
   border-radius: 999px;
   padding: 0.28rem 0.6rem;
   white-space: nowrap;
@@ -3221,7 +3304,7 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--adm-success);
-  border: 1px solid rgba(184, 201, 138, 0.36);
+  border: 1px solid color-mix(in srgb, var(--adm-success) 36%, var(--adm-border));
   border-radius: 999px;
   padding: 0.28rem 0.6rem;
   white-space: nowrap;
@@ -3236,7 +3319,7 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--adm-danger);
-  border: 1px solid rgba(185, 74, 72, 0.4);
+  border: 1px solid color-mix(in srgb, var(--adm-danger) 40%, var(--adm-border));
   background: var(--adm-danger-soft);
   border-radius: 999px;
   padding: 0.28rem 0.6rem;

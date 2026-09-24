@@ -1,13 +1,26 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Archive,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  FilePenLine,
+  GripVertical,
+  Info,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 
 import {
   deleteProductAction,
   updateProductStatusAction,
   type ProductActionState,
+  type SavedProductPayload,
 } from "@/app/admin/actions/products";
 import { reorderCollectionProductAction } from "@/app/admin/actions/catalog-order";
 import {
@@ -15,53 +28,111 @@ import {
   rebindShopifyStoreAction,
 } from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import { AdminSelectField, AdminTextField } from "@/components/synarava-cms";
-import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
+import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { CatalogConflictRowBadges, CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
+import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
 import { CatalogConflictWorkspace } from "@/components/admin/products/catalog-conflict-workspace";
-import { productLocaleReadiness } from "@/lib/products/localization";
+import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
 import {
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  GripVertical,
-} from "lucide-react";
-import { moveCollectionItem, syncedOrderPosition } from "@/lib/catalog/collection-order";
+  AdminEntityList,
+  AdminIconButton,
+  AdminSelectField,
+  AdminSortChips,
+  AdminStatusBadge,
+  AdminTextField,
+} from "@/components/synarava-cms";
 import {
   centsToPrice,
-  PRODUCT_SORT_OPTIONS,
   productActionCopy,
-  productStatusLabel,
-  normalizeProducts,
-  sortProducts,
-  type ProductSortKey,
 } from "@/components/admin/products/product-helpers";
 import type {
   ProductCmsProps,
-  ProductRecord,
   ProductRowAction,
 } from "@/components/admin/products/product-types";
+import {
+  ADMIN_PRODUCT_SORT_OPTIONS,
+  listItemStatusLabel,
+  type AdminProductListItem,
+  type AdminProductListPage,
+  type AdminProductSortKey,
+} from "@/lib/admin/list-products-shared";
+import { moveCollectionItem, syncedOrderPosition } from "@/lib/catalog/collection-order";
+
+function patchListItem(item: AdminProductListItem, saved: SavedProductPayload): AdminProductListItem {
+  return {
+    ...item,
+    name: saved.name,
+    slug: saved.slug,
+    sku: saved.sku,
+    status: saved.status,
+    visibility: saved.visibility,
+    priceCents: saved.variants[0]?.priceCents ?? saved.priceCents,
+    shopifyCategoryId: saved.shopifyCategoryId,
+    shopifyCategoryName: saved.shopifyCategoryName,
+    shopifyProductId: saved.shopifyProductId,
+    publishedAt: saved.publishedAt ? new Date(saved.publishedAt).toISOString() : null,
+    updatedAt: new Date(saved.updatedAt).toISOString(),
+    collections: saved.collections.map((membership) => {
+      const previous = item.collections.find((entry) => entry.collection.id === membership.collection.id);
+      return {
+        sortOrder: membership.sortOrder,
+        collection: {
+          id: membership.collection.id,
+          shopifyCollectionId: previous?.collection.shopifyCollectionId ?? null,
+        },
+      };
+    }),
+  };
+}
+
+async function fetchProductPage(params: {
+  q: string;
+  status: string;
+  category: string;
+  collection: string;
+  sort: AdminProductSortKey;
+  cursor?: string | null;
+}): Promise<AdminProductListPage> {
+  const search = new URLSearchParams();
+  if (params.q.trim()) search.set("q", params.q.trim());
+  if (params.status !== "ALL") search.set("status", params.status);
+  if (params.category !== "ALL") search.set("category", params.category);
+  if (params.collection !== "ALL") search.set("collection", params.collection);
+  search.set("sort", params.sort);
+  if (params.cursor) search.set("cursor", params.cursor);
+
+  const response = await fetch(`/admin/api/products?${search.toString()}`, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error("Could not load products.");
+  return response.json() as Promise<AdminProductListPage>;
+}
 
 export function ProductsCms({
-  initialProducts,
+  initialPage,
   categories,
   tags,
   collections,
-  issues = [],
   initialConflictSignals,
 }: ProductCmsProps) {
-  const [products, setProducts] = useState<ProductRecord[]>(() =>
-    normalizeProducts(initialProducts),
-  );
+  const [products, setProducts] = useState<AdminProductListItem[]>(initialPage.nodes);
+  const [hasNextPage, setHasNextPage] = useState(initialPage.hasNextPage);
+  const [endCursor, setEndCursor] = useState<string | null>(initialPage.endCursor);
+  const [totalCount, setTotalCount] = useState(initialPage.totalCount);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [collectionFilter, setCollectionFilter] = useState("ALL");
-  const [sortBy, setSortBy] = useState<ProductSortKey>("published");
+  const [sortBy, setSortBy] = useState<AdminProductSortKey>("published");
+
   const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
-  const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
+  const [editingProduct, setEditingProduct] = useState<AdminProductListItem | null>(null);
   const [rowActionState, setRowActionState] = useState<ProductActionState>({});
   const [shopifyStoreMismatch, setShopifyStoreMismatch] = useState<{
     boundShopDomain: string;
@@ -85,6 +156,8 @@ export function ProductsCms({
   const { pushToast } = useAdminToast();
   const router = useRouter();
   const closeConflictList = useCallback(() => setConflictListOpen(false), []);
+  const requestIdRef = useRef(0);
+  const skipFilterFetchRef = useRef(true);
 
   function setConflictSignals(value: typeof initialConflictSignals) {
     setConflictSignalsOverride({ base: initialConflictSignals, value });
@@ -94,6 +167,69 @@ export function ProductsCms({
     setFocusedConflictProductId(productId);
     setConflictListOpen(true);
   }
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 280);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    if (skipFilterFetchRef.current) {
+      skipFilterFetchRef.current = false;
+      return;
+    }
+    const requestId = ++requestIdRef.current;
+    setListError(null);
+    void fetchProductPage({
+      q: debouncedQuery,
+      status: statusFilter,
+      category: categoryFilter,
+      collection: collectionFilter,
+      sort: sortBy,
+    })
+      .then((page) => {
+        if (requestIdRef.current !== requestId) return;
+        setProducts(page.nodes);
+        setHasNextPage(page.hasNextPage);
+        setEndCursor(page.endCursor);
+        setTotalCount(page.totalCount);
+      })
+      .catch(() => {
+        if (requestIdRef.current !== requestId) return;
+        setListError("Could not refresh the product list.");
+      });
+  }, [debouncedQuery, statusFilter, categoryFilter, collectionFilter, sortBy]);
+
+  const loadMore = useCallback(() => {
+    if (!hasNextPage || loadingMore || !endCursor) return;
+    setLoadingMore(true);
+    const requestId = ++requestIdRef.current;
+    void fetchProductPage({
+      q: debouncedQuery,
+      status: statusFilter,
+      category: categoryFilter,
+      collection: collectionFilter,
+      sort: sortBy,
+      cursor: endCursor,
+    })
+      .then((page) => {
+        if (requestIdRef.current !== requestId) return;
+        setProducts((current) => {
+          const seen = new Set(current.map((item) => item.id));
+          return [...current, ...page.nodes.filter((item) => !seen.has(item.id))];
+        });
+        setHasNextPage(page.hasNextPage);
+        setEndCursor(page.endCursor);
+        setTotalCount(page.totalCount);
+      })
+      .catch(() => {
+        if (requestIdRef.current !== requestId) return;
+        setListError("Could not load more products.");
+      })
+      .finally(() => {
+        if (requestIdRef.current === requestId) setLoadingMore(false);
+      });
+  }, [hasNextPage, loadingMore, endCursor, debouncedQuery, statusFilter, categoryFilter, collectionFilter, sortBy]);
 
   function handleConflictCheck() {
     startConflictCheckTransition(async () => {
@@ -112,14 +248,8 @@ export function ProductsCms({
     });
   }
 
-  function handleUpdated(product: ProductRecord) {
-    setProducts((current) =>
-      normalizeProducts(current.map((item) => (item.id === product.id ? product : item))),
-    );
-  }
-
   function applyCollectionOrder(
-    current: ProductRecord[],
+    current: AdminProductListItem[],
     collectionId: string,
     orderedProductIds: string[],
   ) {
@@ -138,10 +268,6 @@ export function ProductsCms({
     });
   }
 
-  function handleDeleted(productId: string) {
-    setProducts((current) => current.filter((item) => item.id !== productId));
-  }
-
   function runRowAction() {
     if (!rowAction) return;
 
@@ -156,7 +282,8 @@ export function ProductsCms({
         if (result.error) pushToast({ message: result.error, tone: "error" });
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.deletedProductId) {
-          handleDeleted(result.deletedProductId);
+          setProducts((current) => current.filter((item) => item.id !== result.deletedProductId));
+          setTotalCount((count) => Math.max(0, count - 1));
         }
       } else {
         formData.set("action", rowAction.action);
@@ -166,7 +293,9 @@ export function ProductsCms({
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.warning) pushToast({ message: result.warning, tone: "info" });
         if (result.product) {
-          handleUpdated(result.product);
+          setProducts((current) =>
+            current.map((item) => (item.id === result.product!.id ? patchListItem(item, result.product!) : item)),
+          );
         }
       }
 
@@ -189,41 +318,28 @@ export function ProductsCms({
   }
 
   const modalCopy = rowAction ? productActionCopy(rowAction) : null;
-  const normalizedQuery = query.trim().toLowerCase();
   const selectedCollection = collections.find((collection) => collection.id === collectionFilter);
   const priorityMode = Boolean(selectedCollection) && sortBy === "collection-priority";
-  const hasNarrowingFilters = Boolean(normalizedQuery) || statusFilter !== "ALL" || categoryFilter !== "ALL";
+  const hasNarrowingFilters = Boolean(debouncedQuery.trim()) || statusFilter !== "ALL" || categoryFilter !== "ALL";
   const canReorder = priorityMode && !hasNarrowingFilters && Boolean(selectedCollection?.shopifyCollectionId);
+  // Actions: 4×2rem icons + 3×0.25rem gaps ≈ 8.75rem — keep nowrap (see AdminIconButton).
   const desktopTableGridClass = selectedCollection
-    ? "xl:grid-cols-[9rem_minmax(14rem,1.5fr)_7rem_7rem_9rem_minmax(18rem,1fr)]"
-    : "xl:grid-cols-[minmax(14rem,1.5fr)_7rem_7rem_9rem_minmax(18rem,1fr)]";
-  const filteredProducts = products.filter((product) => {
-    const status = productStatusLabel(product);
-    const matchesQuery =
-      !normalizedQuery ||
-      [product.name, product.slug, product.sku, product.seriesLabel ?? ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery);
-    const matchesStatus = statusFilter === "ALL" || status === statusFilter;
-    const matchesCategory =
-      categoryFilter === "ALL" || product.shopifyCategoryId === categoryFilter;
-    const matchesCollection =
-      collectionFilter === "ALL" ||
-      product.collections.some((item) => item.collection.id === collectionFilter);
+    ? "xl:grid-cols-[5.5rem_minmax(12rem,1.6fr)_5.5rem_5rem_minmax(7rem,0.9fr)_9rem]"
+    : "xl:grid-cols-[minmax(12rem,1.6fr)_5.5rem_5rem_minmax(7rem,0.9fr)_9rem]";
 
-    return matchesQuery && matchesStatus && matchesCategory && matchesCollection;
-  });
-  const sortedProducts = sortProducts(filteredProducts, sortBy, selectedCollection?.id);
+  const sortOptions = ADMIN_PRODUCT_SORT_OPTIONS.map((option) => ({
+    ...option,
+    hidden: option.value === "collection-priority" && !selectedCollection,
+  }));
 
   function moveProduct(productId: string, newPosition: number) {
     if (!canReorder || !selectedCollection || isOrderPending) return;
-    const currentOrder = sortedProducts.map((product) => product.id);
+    const currentOrder = products.map((product) => product.id);
     const nextOrder = moveCollectionItem(currentOrder, productId, newPosition);
     if (nextOrder.every((id, index) => id === currentOrder[index])) return;
 
     const shopifySyncedIds = new Set(
-      sortedProducts.filter((product) => product.shopifyProductId).map((product) => product.id),
+      products.filter((product) => product.shopifyProductId).map((product) => product.id),
     );
     const shopifyPosition = syncedOrderPosition(nextOrder, shopifySyncedIds, productId);
 
@@ -269,7 +385,7 @@ export function ProductsCms({
             <p className="adm-section-tag">[ CURRENT CATALOG ]</p>
             <h2 className="adm-title-sm mt-2">Products list</h2>
             <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
-              {categories.length} categories · {tags.length} tags · {collections.length} collections
+              {products.length} of {totalCount} · {categories.length} categories · {tags.length} tags · {collections.length} collections
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -291,7 +407,7 @@ export function ProductsCms({
         </div>
 
         <div
-          className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_9rem_10rem_10rem_11rem]"
+          className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1.2fr)_8rem_9rem_9rem]"
           style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <AdminTextField
@@ -299,6 +415,7 @@ export function ProductsCms({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Name, slug, SKU"
+            clearable
           />
           <AdminSelectField
             label="Status"
@@ -339,20 +456,17 @@ export function ProductsCms({
               </option>
             ))}
           </AdminSelectField>
-          <AdminSelectField
-            label="Sort by"
-            value={sortBy}
-            onChange={(event) => setSortBy(event.target.value as ProductSortKey)}
-          >
-            {PRODUCT_SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </AdminSelectField>
         </div>
 
-        <AuthMessage error={rowActionState.error} />
+        <div className="py-3" style={{ borderBottom: "1px solid var(--adm-border)" }}>
+          <AdminSortChips
+            value={sortBy}
+            options={sortOptions}
+            onChange={setSortBy}
+          />
+        </div>
+
+        <AuthMessage error={rowActionState.error ?? listError ?? undefined} />
 
         {selectedCollection ? (
           <div
@@ -367,7 +481,7 @@ export function ProductsCms({
               {!selectedCollection.shopifyCollectionId
                 ? "Sync this collection with Shopify to arrange products."
                 : !priorityMode
-                  ? "Choose Collection priority under Sort by to arrange products."
+                  ? "Choose Priority under Sort to arrange products."
                   : hasNarrowingFilters
                     ? "Clear search, status, and category filters before arranging the full collection."
                     : isOrderPending
@@ -377,210 +491,172 @@ export function ProductsCms({
           </div>
         ) : null}
 
-        <div className="mt-4 min-w-0 overflow-hidden">
-          <div className="grid min-w-0 gap-2">
-            <div
-              className={`hidden gap-3 px-3 pb-1 xl:grid ${desktopTableGridClass}`}
-              style={{ color: "var(--adm-subtle)" }}
-            >
-              {selectedCollection ? <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Priority</span> : null}
-              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Product</span>
-              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Status</span>
-              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Price</span>
-              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Category</span>
-              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-right">Actions</span>
-            </div>
+        <AdminEntityList.Root>
+          <AdminEntityList.Header
+            gridClassName={desktopTableGridClass}
+            leading={selectedCollection ? <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em]">Order</span> : null}
+            columns={[
+              { key: "product", label: "Product" },
+              { key: "status", label: "Status" },
+              { key: "price", label: "Price" },
+              { key: "category", label: "Category" },
+              { key: "actions", label: "Actions", align: "end" },
+            ]}
+          />
 
-            {sortedProducts.length > 0 ? (
-              sortedProducts.map((product) => {
-                const status = productStatusLabel(product);
-                const productIssues = issues.filter(
-                  (issue) => issue.entityType === "PRODUCT" && issue.entityId === product.id,
-                );
-                const enReadiness = productLocaleReadiness(product, "en");
-                const ptReadiness = productLocaleReadiness(product, "pt");
-                const ptTranslation = product.translations.find((translation) => translation.locale === "pt");
+          {products.length > 0 ? (
+            products.map((product) => {
+              const status = listItemStatusLabel(product);
+              const conflict = conflictSignals.products[product.id];
 
-                return (
-                  <div
-                    key={product.id}
-                    className={`grid min-w-0 gap-3 p-3 transition-colors xl:items-center ${desktopTableGridClass} ${
-                      draggedProductId && draggedProductId !== product.id ? "outline outline-1 outline-transparent hover:outline-[var(--adm-accent)]" : ""
-                    }`}
-                    style={{
-                      border: "1px solid var(--adm-border)",
-                    }}
-                    onDragOver={(event) => {
-                      if (canReorder) event.preventDefault();
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      const sourceId = event.dataTransfer.getData("text/plain") || draggedProductId;
-                      setDraggedProductId(null);
-                      if (!sourceId || sourceId === product.id) return;
-                      moveProduct(sourceId, sortedProducts.findIndex((item) => item.id === product.id));
-                    }}
-                  >
-                    {selectedCollection ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          className="adm-btn-ghost grid size-11 cursor-grab place-items-center p-0 active:cursor-grabbing"
-                          draggable={canReorder && Boolean(product.shopifyProductId)}
-                          disabled={!canReorder || !product.shopifyProductId || isOrderPending}
-                          aria-label={`Drag ${product.name} to change its priority`}
-                          title={product.shopifyProductId ? "Drag to change priority" : "Sync product with Shopify first"}
-                          onDragStart={(event) => {
-                            setDraggedProductId(product.id);
-                            event.dataTransfer.effectAllowed = "move";
-                            event.dataTransfer.setData("text/plain", product.id);
-                          }}
-                          onDragEnd={() => setDraggedProductId(null)}
-                        >
-                          <GripVertical className="size-4" aria-hidden="true" />
-                        </button>
-                        <div className="flex gap-0.5">
-                          <button
-                            type="button"
-                            className="adm-btn-ghost grid size-11 place-items-center p-0"
-                            disabled={!canReorder || !product.shopifyProductId || isOrderPending || sortedProducts[0]?.id === product.id}
-                            aria-label={`Move ${product.name} up`}
-                            onClick={() => moveProduct(product.id, sortedProducts.findIndex((item) => item.id === product.id) - 1)}
-                          >
-                            <ChevronUp className="size-3.5" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            className="adm-btn-ghost grid size-11 place-items-center p-0"
-                            disabled={!canReorder || !product.shopifyProductId || isOrderPending || sortedProducts.at(-1)?.id === product.id}
-                            aria-label={`Move ${product.name} down`}
-                            onClick={() => moveProduct(product.id, sortedProducts.findIndex((item) => item.id === product.id) + 1)}
-                          >
-                            <ChevronDown className="size-3.5" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+              return (
+                <AdminEntityList.Row
+                  key={product.id}
+                  gridClassName={desktopTableGridClass}
+                  className={draggedProductId && draggedProductId !== product.id ? "outline outline-1 outline-transparent hover:outline-[var(--adm-accent)]" : undefined}
+                  onDragOver={(event) => {
+                    if (canReorder) event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const sourceId = event.dataTransfer.getData("text/plain") || draggedProductId;
+                    setDraggedProductId(null);
+                    if (!sourceId || sourceId === product.id) return;
+                    moveProduct(sourceId, products.findIndex((item) => item.id === product.id));
+                  }}
+                >
+                  {selectedCollection ? (
+                    <div className="flex items-center gap-0.5">
+                      <AdminIconButton
+                        label={`Drag ${product.name} to change its priority`}
+                        tooltip={product.shopifyProductId ? "Drag to change priority" : "Sync product with Shopify first"}
+                        draggable={canReorder && Boolean(product.shopifyProductId)}
+                        disabled={!canReorder || !product.shopifyProductId || isOrderPending}
+                        className="cursor-grab active:cursor-grabbing"
+                        onDragStart={(event) => {
+                          setDraggedProductId(product.id);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("text/plain", product.id);
+                        }}
+                        onDragEnd={() => setDraggedProductId(null)}
+                      >
+                        <GripVertical className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
+                      <AdminIconButton
+                        label={`Move ${product.name} up`}
+                        disabled={!canReorder || !product.shopifyProductId || isOrderPending || products[0]?.id === product.id}
+                        onClick={() => moveProduct(product.id, products.findIndex((item) => item.id === product.id) - 1)}
+                      >
+                        <ChevronUp className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
+                      <AdminIconButton
+                        label={`Move ${product.name} down`}
+                        disabled={!canReorder || !product.shopifyProductId || isOrderPending || products.at(-1)?.id === product.id}
+                        onClick={() => moveProduct(product.id, products.findIndex((item) => item.id === product.id) + 1)}
+                      >
+                        <ChevronDown className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
+                    </div>
+                  ) : null}
+
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <p className="truncate text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
                         {product.name}
                       </p>
-                      <p className="mt-0.5 break-words text-xs" style={{ color: "var(--adm-muted)" }}>
-                        /{product.slug}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className={enReadiness.complete && enReadiness.reviewed ? "adm-badge-published" : "adm-badge-draft"}>
-                          EN {enReadiness.percent}%
-                        </span>
-                        <span className={ptReadiness.complete && ptReadiness.reviewed ? "adm-badge-published" : "adm-badge-draft"}>
-                          PT {ptReadiness.percent}%
-                        </span>
-                        {ptTranslation ? (
-                          <span className={ptTranslation.syncStatus === "SYNCED" ? "adm-badge-published" : "adm-badge-draft"}>
-                            PT {ptTranslation.syncStatus.replace("NOT_APPLICABLE", "LOCAL")}
-                          </span>
-                        ) : null}
-                      </div>
-                      {conflictSignals.products[product.id] ? (
-                        <CatalogConflictRowBadges
-                          productName={product.name}
-                          signal={conflictSignals.products[product.id]}
-                          onShow={() => showConflicts(product.id)}
-                        />
-                      ) : null}
                       {conflictSignals.recentlyUpdatedProducts[product.id] ? (
-                        <Link
-                          href={`/admin/products/${product.id}`}
-                          className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--adm-warning)] px-2 py-1 text-[0.68rem] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-warning)]"
-                          title="Shopify values were applied after your last visit. Open the editor to review them."
+                        <AdminIconButton
+                          label="Updated from Shopify — open editor to review"
+                          tone="warning"
+                          onClick={() => router.push(`/admin/products/${product.id}`)}
                         >
-                          <Eye className="size-3.5" aria-hidden="true" />Updated from Shopify · review
-                        </Link>
-                      ) : null}
-                      <AdminRecordDates record={product} />
-                      <p className="mt-1 text-xs" style={{ color: "var(--adm-subtle)" }}>
-                        {product.publishedAt
-                          ? `Published ${new Date(product.publishedAt).toLocaleDateString("en-IE", { dateStyle: "medium" })}`
-                          : "Not published yet"}
-                      </p>
-                      {productIssues.length > 0 ? (
-                        <Link
-                          href={productIssues[0]?.targetHref ?? `/admin/products/${product.id}`}
-                          className="mt-2 inline-flex items-center text-[0.62rem] font-bold uppercase tracking-[0.08em]"
-                          style={{ color: "var(--adm-danger)" }}
-                        >
-                          {productIssues.length} problem{productIssues.length === 1 ? "" : "s"}
-                        </Link>
+                          <Eye className="size-3.5" aria-hidden="true" />
+                        </AdminIconButton>
                       ) : null}
                     </div>
-                    <span data-role="workflow-status" className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
-                      {status}
-                    </span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
-                      {centsToPrice(product.variants[0]?.priceCents ?? product.priceCents)} EUR
-                    </span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--adm-muted)" }}>
-                      {product.shopifyCategoryName ?? "No category"}
-                    </span>
-                    <div className="flex min-w-0 flex-wrap justify-start gap-2 xl:justify-end">
-                      <button
-                        type="button"
-                        className="adm-btn-primary py-1 px-2 text-[0.58rem]"
-                        onClick={() => setEditingProduct(product)}
-                      >
-                        Details
-                      </button>
-                      {status === "PUBLISHED" ? (
-                        <button
-                          type="button"
-                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                          onClick={() => setRowAction({ product, action: "draft" })}
-                        >
-                          Draft
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                          onClick={() => setRowAction({ product, action: "publish" })}
-                          disabled={status === "ARCHIVED"}
-                        >
-                          Publish
-                        </button>
-                      )}
-                      {status === "ARCHIVED" ? (
-                        <button
-                          type="button"
-                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                          onClick={() => setRowAction({ product, action: "draft" })}
-                        >
-                          Restore
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                          onClick={() => setRowAction({ product, action: "archive" })}
-                        >
-                          Archive
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="adm-btn-danger py-1 px-2 text-[0.58rem]"
-                        onClick={() => setRowAction({ product, action: "delete" })}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    <ProductListMetaLine product={product} />
+                    <ProductListSignals
+                      product={product}
+                      conflict={conflict}
+                      onShowConflicts={() => showConflicts(product.id)}
+                    />
                   </div>
-                );
-              })
-            ) : (
-              <p className="adm-copy py-6">No products match the current filters.</p>
-            )}
-          </div>
-        </div>
+
+                  <AdminStatusBadge status={status} />
+                  <span className="text-xs font-semibold tabular-nums" style={{ color: "var(--adm-muted)" }}>
+                    {centsToPrice(product.priceCents)} EUR
+                  </span>
+                  <span className="truncate text-xs font-semibold" style={{ color: "var(--adm-muted)" }} title={product.shopifyCategoryName ?? "No category"}>
+                    {product.shopifyCategoryName ?? "No category"}
+                  </span>
+
+                  <div className="flex shrink-0 flex-nowrap items-center justify-start gap-1 xl:justify-end">
+                    <AdminIconButton
+                      label="Details"
+                      tooltip="Record details and version history"
+                      tone="primary"
+                      onClick={() => setEditingProduct(product)}
+                    >
+                      <Info className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
+                    {status === "PUBLISHED" ? (
+                      <AdminIconButton
+                        label="Draft"
+                        tooltip="Move to draft — hide from the public storefront"
+                        onClick={() => setRowAction({ product, action: "draft" })}
+                      >
+                        <FilePenLine className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
+                    ) : (
+                      <AdminIconButton
+                        label="Publish"
+                        tooltip="Publish to the public storefront"
+                        onClick={() => setRowAction({ product, action: "publish" })}
+                        disabled={status === "ARCHIVED"}
+                      >
+                        <Upload className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
+                    )}
+                    {status === "ARCHIVED" ? (
+                      <AdminIconButton
+                        label="Restore"
+                        tooltip="Restore from archive to draft"
+                        onClick={() => setRowAction({ product, action: "draft" })}
+                      >
+                        <RotateCcw className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
+                    ) : (
+                      <AdminIconButton
+                        label="Archive"
+                        tooltip="Archive — hide from the site but keep the record"
+                        onClick={() => setRowAction({ product, action: "archive" })}
+                      >
+                        <Archive className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
+                    )}
+                    <AdminIconButton
+                      label="Delete"
+                      tooltip="Permanently delete this product"
+                      tone="danger"
+                      onClick={() => setRowAction({ product, action: "delete" })}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
+                  </div>
+                </AdminEntityList.Row>
+              );
+            })
+          ) : (
+            <AdminEntityList.Empty>No products match the current filters.</AdminEntityList.Empty>
+          )}
+
+          <AdminEntityList.LoadMore
+            hasMore={hasNextPage}
+            loading={loadingMore}
+            onLoadMore={loadMore}
+            label={loadingMore ? "Loading more…" : "Scroll for more"}
+          />
+        </AdminEntityList.Root>
       </div>
 
       {modalCopy ? (

@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 
 import { deletePageAction } from "@/app/admin/actions/pages";
+import { AdminIconButton } from "@/components/synarava-cms";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
@@ -12,10 +14,13 @@ export function PageDeleteButton({
   slug,
   title,
   onDeleted,
+  compact = false,
 }: {
   slug: string;
   title: string;
   onDeleted?: () => void;
+  /** Icon + tooltip for entity list rows. */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState<{ error?: string; success?: string }>({});
@@ -41,17 +46,31 @@ export function PageDeleteButton({
 
   return (
     <>
-      <div className="flex flex-col items-end gap-2">
-        <button
-          type="button"
+      {compact ? (
+        <AdminIconButton
+          label="Delete page"
+          tooltip="Permanently delete this page"
+          tone="danger"
           onClick={() => setConfirmOpen(true)}
           disabled={isPending}
-          className="adm-btn-danger"
         >
-          {isPending ? "Deleting..." : "Delete page"}
-        </button>
-        <AuthMessage error={state.error} />
-      </div>
+          <Trash2 className="size-3.5" aria-hidden="true" />
+        </AdminIconButton>
+      ) : (
+        <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={isPending}
+            className="adm-btn-danger"
+          >
+            {isPending ? "Deleting..." : "Delete page"}
+          </button>
+          <AuthMessage error={state.error} />
+        </div>
+      )}
+
+      {compact && state.error ? <AuthMessage error={state.error} /> : null}
 
       <AdminConfirmModal
         open={confirmOpen}

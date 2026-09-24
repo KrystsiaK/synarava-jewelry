@@ -29,6 +29,11 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminPanel` | Rounded shell (`Root` / `Header` / `Body`); sticky header lifts by −radius |
 | `AdminNavTree` / `buildAdminNavItems` | Config-driven admin sidebar tree (expand, show-more, router sync) |
 | `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones) |
+| `AdminEntityList` | Dense list shell (header / row / infinite-scroll load more) |
+| `AdminIconButton` | Square icon action + tooltip (`adm-icon-btn`, fixed 2rem, no wrap) |
+| `AdminSignalChip` | Locale / problem / conflict glyph + tooltip (`empty`/`partial`/`progress`/`ok`; `danger` only for real errors) |
+| `AdminSortChips` | Compact sort chip bar |
+| `AdminStatusBadge` | Workflow / sync status pill (`published`/`draft`/`archived`/`unlisted`/…; `error` only for real faults) |
 | `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
 | `fieldClass` / `useAdminFieldIds` | Shared helpers |
 
@@ -204,6 +209,51 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
 
 Tokens: `--adm-cool`, `--adm-cool-soft`, `--adm-tab-well`, `--adm-conflict-soft`.  
 Product editor uses this via `ProductEditorTabs`. Story: `synarava-cms/AdminSectionTabs`.
+
+### Entity list (tables)
+
+Shared dense list primitives for products / pages / collections:
+
+```tsx
+import {
+  AdminEntityList,
+  AdminIconButton,
+  AdminSignalChip,
+  AdminSortChips,
+} from "@/components/synarava-cms";
+
+<AdminSortChips value={sort} options={options} onChange={setSort} />
+<AdminEntityList.Root>
+  <AdminEntityList.Header columns={…} gridClassName="xl:grid-cols-[…]" />
+  <AdminEntityList.Row gridClassName="…">…</AdminEntityList.Row>
+  <AdminEntityList.LoadMore hasMore={…} onLoadMore={…} />
+</AdminEntityList.Root>
+```
+
+| Export | Role |
+|--------|------|
+| `AdminIconButton` | Square icon action + tooltip + `aria-label` (optional badge) |
+| `AdminSignalChip` | Locale / problem / conflict glyph with explanatory tooltip |
+| `AdminSortChips` | Compact single-select sort bar (Problems / Conflicts first) |
+| `AdminEntityList` | Header + dense rows + infinite-scroll sentinel |
+
+Products list loads via `listAdminProductsPage` + `GET /admin/api/products` (cursor, filters, sort including problems/conflicts). Do not load the full catalog into the client for browsing.
+
+Filter bars stay composed from `AdminTextField` / `AdminSelectField` — no separate filter library control for now.
+
+### Status badge
+
+```tsx
+import { AdminStatusBadge } from "@/components/synarava-cms";
+
+<AdminStatusBadge status="PUBLISHED" />
+<AdminStatusBadge status="ARCHIVED" />
+<AdminStatusBadge tone="pending">SHOPIFY: PENDING</AdminStatusBadge>
+```
+
+- One pill chrome (`.adm-badge` + `.adm-badge--*`).
+- `status` maps workflow labels; `tone` for sync / custom copy.
+- `error` only for real faults (failed sync, open problems) — never for “not filled yet”.
 
 ### Long text
 

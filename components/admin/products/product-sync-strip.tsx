@@ -4,6 +4,7 @@ import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, HardDriveUpload, Refre
 
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { Tooltip } from "@/components/ui/tooltip";
+import { AdminStatusBadge } from "@/components/synarava-cms";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import { centsToPrice } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
@@ -147,7 +148,9 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onCheck,
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-semibold">{stateLabel}</p>
-              <span className={healthy ? "adm-badge-published" : "adm-badge-draft"}>{stateLabel}</span>
+              <AdminStatusBadge tone={healthy ? "published" : failed ? "error" : "pending"}>
+                {stateLabel}
+              </AdminStatusBadge>
             </div>
             <p className="mt-1 max-w-3xl text-xs text-[var(--adm-subtle)]">
               {product.syncError ?? stateDescription}

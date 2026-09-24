@@ -2,6 +2,16 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import {
+  Archive,
+  ChevronDown,
+  ChevronUp,
+  FilePenLine,
+  Info,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 
 import {
   deleteCollectionAction,
@@ -10,9 +20,8 @@ import {
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
+import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
   collectionActionCopy,
@@ -20,8 +29,15 @@ import {
   normalizeCollections,
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionRowAction } from "@/components/admin/collections/collection-types";
+import {
+  AdminEntityList,
+  AdminHelp,
+  AdminIconButton,
+  AdminStatusBadge,
+} from "@/components/synarava-cms";
 
 const initialState: CollectionActionState = {};
+const COLLECTION_GRID = "xl:grid-cols-[minmax(0,1.6fr)_5.5rem_5rem_9rem]";
 
 export function CollectionsCms({ collections }: { collections: AdminCollection[] }) {
   const [items, setItems] = useState(() => normalizeCollections(collections));
@@ -80,9 +96,10 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
       const formData = new FormData();
       formData.set("collectionId", collection.id);
       formData.set("direction", direction);
-
       const result = await moveCollectionOrderAction(initialState, formData);
       setRowState(result);
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.collections) {
         setItems(normalizeCollections(result.collections));
       }
@@ -90,132 +107,131 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
   }
 
   return (
-    <div data-component="CollectionsCms" className="space-y-8">
+    <div data-component="CollectionsCms" className="grid gap-6">
       <section className="adm-panel p-5">
         <div
-          className="flex flex-col gap-3 pb-4 mb-1 md:flex-row md:items-end md:justify-between"
+          className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between"
           style={{ borderBottom: "1px solid var(--adm-border)" }}
         >
           <div>
             <p className="adm-section-tag">[ CURRENT COLLECTIONS ]</p>
             <h2 className="adm-title-sm mt-2">Collections table</h2>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link href="/admin/collections/new" className="adm-btn-primary">
               New collection
             </Link>
             <AdminHelp label="Collection editing guidance" align="end">
-              New collection opens the create route. Details opens the collection edit route. Draft, Publish, and Archive change site visibility. Delete removes the record.
+              New collection opens the create route. Details opens record history. Draft, Publish, and Archive change site visibility. Delete removes the record.
             </AdminHelp>
           </div>
         </div>
         <AuthMessage error={rowState.error} />
 
-        <div className="mt-5 grid gap-2">
+        <AdminEntityList.Root>
+          <AdminEntityList.Header
+            gridClassName={COLLECTION_GRID}
+            columns={[
+              { key: "collection", label: "Collection" },
+              { key: "status", label: "Status" },
+              { key: "order", label: "Order" },
+              { key: "actions", label: "Actions", align: "end" },
+            ]}
+          />
           {items.length > 0 ? (
             items.map((collection, index) => {
               const status = collectionStatusLabel(collection);
 
               return (
-                <div
-                  key={collection.id}
-                  className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_auto_auto_minmax(19rem,auto)] xl:items-center"
-                  style={{
-                    border: "1px solid var(--adm-border)",
-                  }}
-                >
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+                <AdminEntityList.Row key={collection.id} gridClassName={COLLECTION_GRID}>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
                       {collection.name}
                     </p>
-                    <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
+                    <p className="mt-0.5 truncate text-xs" style={{ color: "var(--adm-muted)" }}>
                       /{collection.slug}
                     </p>
                     <AdminRecordDates record={collection} />
                   </div>
-                  <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
-                    {status}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="adm-btn-ghost py-1 px-2 text-[0.7rem]"
-                      aria-label={`Move ${collection.name} up`}
+                  <AdminStatusBadge status={status} />
+                  <div className="flex shrink-0 flex-nowrap items-center gap-1">
+                    <AdminIconButton
+                      label={`Move ${collection.name} up`}
                       disabled={isPending || index === 0}
                       onClick={() => moveCollection(collection, "up")}
                     >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="adm-btn-ghost py-1 px-2 text-[0.7rem]"
-                      aria-label={`Move ${collection.name} down`}
+                      <ChevronUp className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
+                    <AdminIconButton
+                      label={`Move ${collection.name} down`}
                       disabled={isPending || index === items.length - 1}
                       onClick={() => moveCollection(collection, "down")}
                     >
-                      ↓
-                    </button>
+                      <ChevronDown className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
                   </div>
-                  <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
-                    <button
-                      type="button"
-                      className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                  <div className="flex shrink-0 flex-nowrap items-center justify-start gap-1 xl:justify-end">
+                    <AdminIconButton
+                      label="Details"
+                      tooltip="Record details and version history"
+                      tone="primary"
                       onClick={() => setEditingCollection(collection)}
                     >
-                      Details
-                    </button>
+                      <Info className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
                     {status === "PUBLISHED" ? (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                      <AdminIconButton
+                        label="Draft"
+                        tooltip="Move to draft — hide from the public site"
                         onClick={() => setRowAction({ collection, action: "draft" })}
                       >
-                        Draft
-                      </button>
+                        <FilePenLine className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
                     ) : (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                      <AdminIconButton
+                        label="Publish"
+                        tooltip="Publish to the public site"
                         onClick={() => setRowAction({ collection, action: "publish" })}
                         disabled={status === "ARCHIVED"}
                       >
-                        Publish
-                      </button>
+                        <Upload className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
                     )}
                     {status === "ARCHIVED" ? (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                      <AdminIconButton
+                        label="Restore"
+                        tooltip="Restore from archive to draft"
                         onClick={() => setRowAction({ collection, action: "draft" })}
                       >
-                        Restore
-                      </button>
+                        <RotateCcw className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
                     ) : (
-                      <button
-                        type="button"
-                        className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                      <AdminIconButton
+                        label="Archive"
+                        tooltip="Archive — hide from the site but keep the record"
                         onClick={() => setRowAction({ collection, action: "archive" })}
                       >
-                        Archive
-                      </button>
+                        <Archive className="size-3.5" aria-hidden="true" />
+                      </AdminIconButton>
                     )}
-                    <button
-                      type="button"
-                      className="adm-btn-danger py-1 px-2 text-[0.58rem]"
+                    <AdminIconButton
+                      label="Delete"
+                      tooltip="Permanently delete this collection"
+                      tone="danger"
                       onClick={() => setRowAction({ collection, action: "delete" })}
                     >
-                      Delete
-                    </button>
+                      <Trash2 className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
                   </div>
-                </div>
+                </AdminEntityList.Row>
               );
             })
           ) : (
-            <p className="text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
+            <AdminEntityList.Empty>
               No collections yet. Create your first collection using New collection.
-            </p>
+            </AdminEntityList.Empty>
           )}
-        </div>
+        </AdminEntityList.Root>
       </section>
 
       {modalCopy ? (

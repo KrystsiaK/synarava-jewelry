@@ -2,6 +2,13 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import {
+  Archive,
+  FilePenLine,
+  Info,
+  RotateCcw,
+  Upload,
+} from "lucide-react";
 
 import {
   updatePageStatusAction,
@@ -9,13 +16,20 @@ import {
   type SavedPagePayload,
 } from "@/app/admin/actions/pages";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { PageDeleteButton } from "@/components/admin/pages/page-delete-button";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { isProtectedPage, pageActionCopy, pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import type { PageRowAction } from "@/components/admin/pages/page-types";
+import {
+  AdminEntityList,
+  AdminHelp,
+  AdminIconButton,
+  AdminStatusBadge,
+} from "@/components/synarava-cms";
+
+const PAGE_GRID = "xl:grid-cols-[minmax(0,1.6fr)_5.5rem_9rem]";
 
 export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] }) {
   const [pages, setPages] = useState(initialPages);
@@ -63,7 +77,7 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
             <div className="adm-label-row mt-2">
               <h2 className="adm-title-sm">Pages table</h2>
               <AdminHelp label="Page actions" align="end">
-                New page opens the create route. Details opens the page edit route. Publish, Draft, and Archive change public visibility after confirmation.
+                New page opens the create route. Details opens record history. Publish, Draft, and Archive change public visibility after confirmation.
               </AdminHelp>
             </div>
           </div>
@@ -74,85 +88,87 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
           </div>
         </div>
         <AuthMessage error={rowState.error} />
-        <div className="mt-4 grid gap-2">
+        <AdminEntityList.Root>
+          <AdminEntityList.Header
+            gridClassName={PAGE_GRID}
+            columns={[
+              { key: "page", label: "Page" },
+              { key: "status", label: "Status" },
+              { key: "actions", label: "Actions", align: "end" },
+            ]}
+          />
           {pages.map((page) => {
             const status = pageStatusLabel(page);
 
             return (
-              <div
-                key={page.id}
-                className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_7rem_minmax(16rem,auto)] lg:items-center"
-                style={{
-                  border: "1px solid var(--adm-border)",
-                }}
-              >
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
+              <AdminEntityList.Row key={page.id} gridClassName={PAGE_GRID}>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
                     {page.title}
                   </p>
-                  <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
+                  <p className="mt-0.5 truncate text-xs" style={{ color: "var(--adm-muted)" }}>
                     /{page.slug}
                   </p>
                   <AdminRecordDates record={page} />
                 </div>
-                <span className={status === "PUBLISHED" ? "adm-badge-published" : "adm-badge-draft"}>
-                  {status}
-                </span>
-                <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-                  <button
-                    type="button"
-                    className="adm-btn-primary py-1 px-2 text-[0.58rem]"
+                <AdminStatusBadge status={status} />
+                <div className="flex shrink-0 flex-nowrap items-center justify-start gap-1 xl:justify-end">
+                  <AdminIconButton
+                    label="Details"
+                    tooltip="Record details and version history"
+                    tone="primary"
                     onClick={() => setEditingPage(page)}
                   >
-                    Details
-                  </button>
+                    <Info className="size-3.5" aria-hidden="true" />
+                  </AdminIconButton>
                   {status === "PUBLISHED" ? (
-                    <button
-                      type="button"
-                      className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                    <AdminIconButton
+                      label="Draft"
+                      tooltip="Move to draft — hide from the public site"
                       onClick={() => setRowAction({ page, action: "draft" })}
                     >
-                      Draft
-                    </button>
+                      <FilePenLine className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
                   ) : (
-                    <button
-                      type="button"
-                      className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                    <AdminIconButton
+                      label="Publish"
+                      tooltip="Publish to the public site"
                       onClick={() => setRowAction({ page, action: "publish" })}
                       disabled={status === "ARCHIVED"}
                     >
-                      Publish
-                    </button>
+                      <Upload className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
                   )}
                   {status === "ARCHIVED" ? (
-                    <button
-                      type="button"
-                      className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
+                    <AdminIconButton
+                      label="Restore"
+                      tooltip="Restore from archive to draft"
                       onClick={() => setRowAction({ page, action: "draft" })}
                     >
-                      Restore
-                    </button>
+                      <RotateCcw className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
                   ) : (
-                    <button
-                      type="button"
-                      className="adm-btn-danger py-1 px-2 text-[0.58rem]"
+                    <AdminIconButton
+                      label="Archive"
+                      tooltip="Archive — hide from the site but keep the record"
                       onClick={() => setRowAction({ page, action: "archive" })}
                     >
-                      Archive
-                    </button>
+                      <Archive className="size-3.5" aria-hidden="true" />
+                    </AdminIconButton>
                   )}
                   {!isProtectedPage(page.slug) ? (
                     <PageDeleteButton
                       slug={page.slug}
                       title={page.title}
+                      compact
                       onDeleted={() => handleDeleted(page.slug)}
                     />
                   ) : null}
                 </div>
-              </div>
+              </AdminEntityList.Row>
             );
           })}
-        </div>
+        </AdminEntityList.Root>
       </section>
 
       {modalCopy ? (

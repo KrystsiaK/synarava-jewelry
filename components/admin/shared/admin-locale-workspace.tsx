@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
+import { AdminStatusBadge, type AdminStatusBadgeTone } from "@/components/synarava-cms";
+
 /**
  * A locale code as it appears in the admin — still whatever a caller passes
  * via `locales` (today, always the two below; no editor has real fields
@@ -24,10 +26,12 @@ function statusLabel(status: AdminLocaleStatus) {
   return status === "NOT_APPLICABLE" ? "LOCAL ONLY" : status;
 }
 
-function statusBadgeClass(status: AdminLocaleStatus) {
-  if (status === "SYNCED") return "adm-badge-published";
-  if (status === "CONFLICT" || status === "FAILED") return "adm-badge-error";
-  return "adm-badge-draft";
+function localeSyncTone(status: AdminLocaleStatus): AdminStatusBadgeTone {
+  if (status === "SYNCED") return "published";
+  if (status === "FAILED") return "error";
+  if (status === "CONFLICT") return "conflict";
+  if (status === "PENDING") return "pending";
+  return "draft";
 }
 
 /**
@@ -224,9 +228,14 @@ export function AdminLocaleTabs({
           </button>
         ))}
         {ptStatus ? (
-          <span className={`${statusBadgeClass(ptStatus)} ${trailing ? "" : "ml-auto"}`} role="status" aria-live="polite">
+          <AdminStatusBadge
+            tone={localeSyncTone(ptStatus)}
+            className={trailing ? undefined : "ml-auto"}
+            role="status"
+            aria-live="polite"
+          >
             SHOPIFY: {statusLabel(ptStatus)}
-          </span>
+          </AdminStatusBadge>
         ) : null}
         {trailing ? <div className="ml-auto flex items-center gap-2">{trailing}</div> : null}
       </div>
