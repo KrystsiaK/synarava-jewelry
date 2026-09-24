@@ -56,7 +56,8 @@ locale-scoped conflict sync, whole-product Save, leave-guard, scroll preserve
   индикатор открытых проблем (issues) со ссылкой, индикатор «Live CMS».
   Topbar зафиксирован сверху при прокрутке.
 - **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Header & Footer`,
-  `Meta`, `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`, `Account`) и
+  `Meta`, `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`,
+  `Infrastructure`, `Account`) и
   счётчик открытых проблем рядом с соответствующим пунктом.
   Home и About редактируются внутри `Pages` (`/admin/pages/home`,
   `/admin/pages/about`).
@@ -384,6 +385,19 @@ legacy cover, пока не загружены изображения галер
 - Форма смены пароля в UI отсутствует; если её вызвать напрямую через экшен —
   вернётся заглушка-ошибка «Admin credentials are managed through environment
   variables.», данные не меняются.
+
+## 9a. Infrastructure (`/admin/infrastructure`)
+
+- Read-only статус Railway Postgres и S3-бакета (без аудита мёртвых файлов и
+  без ротации кредов).
+- Postgres: `SELECT 1` latency, версия, размер БД, топ таблиц, соединения
+  (active/idle/max). Недоступные представления (`pg_stat_*`) показываются явно,
+  страница не падает целиком.
+- S3: `HeadBucket` ok/fail + latency, bucket/region/endpoint host/`forcePathStyle`.
+  Размер и число объектов — только через Railway GraphQL `bucketInstanceDetails`,
+  если заданы `RAILWAY_TOKEN` + project/environment/bucket id; иначе пометка, что
+  размер недоступен без token. Полный `ListObjectsV2` не выполняется.
+- Снимок кэшируется на ~45 с. Ошибки БД и бакета независимы.
 
 ## 10. Журнал аудита
 
