@@ -326,15 +326,19 @@ legacy cover, пока не загружены изображения галер
   Add/remove/reorder like other CMS lists. Path is shared across locales; name is
   per locale. Empty name falls back to the shipped default for Home / Shop /
   Collections / About, or to the path for custom rows. Stored in `SiteSetting`
-  `header-nav-v1`.
-- **Chrome & footer labels:** cart/account and footer copy (EN and other registered
-  locales). Footer URLs, columns, and contact email stay fixed in storefront code.
-  Пустое поле = дефолт из `messages/*.json`. Stored in `storefront-copy-v1`.
+  `header-nav-v1`. The footer **Navigation** column reuses this same menu
+  (home `/` is omitted in the footer).
+- **Contact email:** shared across languages; shown as the mailto link in the
+  footer service column. Stored in `SiteSetting` `footer-contact-v1`.
+- **Chrome & footer labels:** cart/account, brand, navigation column heading,
+  service/legal copy (EN and other registered locales). Service/legal URLs stay
+  fixed in storefront code. Пустое поле = дефолт из `messages/*.json`.
+  Stored in `storefront-copy-v1`.
 - Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
   **Pages**, не здесь.
 - Chrome/footer translations sync to Shopify metaobject `$app:storefront_copy`;
-  header main-link labels are local (no Shopify `MENU`/`LINK` binding yet).
-  Conflicts for synced fields show under **Localization**.
+  header main-link labels and contact email are local (no Shopify `MENU`/`LINK`
+  binding yet). Conflicts for synced fields show under **Localization**.
 
 ## 7b. Meta (`/admin/meta`)
 

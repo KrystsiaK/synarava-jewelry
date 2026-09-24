@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { PrivacySettingsButton } from "@/components/privacy/privacy-settings-button";
+import {
+  DEFAULT_HEADER_NAV_LABEL_KEYS,
+  type HeaderNavData,
+} from "@/lib/content/header-nav-fields";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 
@@ -16,8 +20,30 @@ function FooterOrnamentDivider() {
   );
 }
 
-export function SiteFooter() {
+type SiteFooterProps = {
+  /** Same menu as the site header — names + paths. */
+  headerNav: HeaderNavData;
+  /** Shared mailto address for the service column. */
+  contactEmail: string;
+};
+
+export function SiteFooter({ headerNav, contactEmail }: SiteFooterProps) {
   const { t, locale } = useTranslations();
+  const localeLabels = headerNav.labels[locale];
+
+  // Mirror header main links; skip bare home so the column stays secondary-nav style.
+  const navItems = headerNav.items
+    .filter((item) => item.href !== "/")
+    .map((item) => {
+      const override = localeLabels?.[item.id]?.trim();
+      const messageKey = DEFAULT_HEADER_NAV_LABEL_KEYS[item.id];
+      const label =
+        override ||
+        (messageKey ? t(messageKey) : "") ||
+        item.href.replace(/^\//, "") ||
+        item.href;
+      return { href: item.href, label };
+    });
 
   return (
     <footer data-component="SiteFooter" className="artifact-footer">
@@ -45,15 +71,17 @@ export function SiteFooter() {
       <div className="flex flex-col gap-4 text-center md:text-left">
         <p className="label-caps mb-3 text-[0.72rem] text-foreground md:mb-4 md:text-inherit">{t("footer.navigationHeading")}</p>
         <nav className="flex flex-col gap-3 items-center md:items-start md:gap-4">
-          <Link href={localePath(locale, "/shop")} className="label-mono text-[0.9rem] font-bold text-accent md:text-inherit">
-            {t("footer.shop")}
-          </Link>
-          <Link href={localePath(locale, "/collections")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
-            {t("footer.collections")}
-          </Link>
-          <Link href={localePath(locale, "/about")} className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit">
-            {t("footer.about")}
-          </Link>
+          {navItems.map((item, index) => (
+            <Link
+              key={`${item.href}:${item.label}`}
+              href={localePath(locale, item.href)}
+              className={`label-mono text-[0.9rem] transition-colors hover:text-foreground md:text-inherit ${
+                index === 0 ? "font-bold text-accent" : "text-muted"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
       </div>
 
@@ -75,11 +103,11 @@ export function SiteFooter() {
             {t("footer.faq")}
           </Link>
           <Link
-            href="mailto:synarava.shop@gmail.com"
-            aria-label={`${t("footer.contact")}: synarava.shop@gmail.com`}
+            href={`mailto:${contactEmail}`}
+            aria-label={`${t("footer.contact")}: ${contactEmail}`}
             className="label-mono text-[0.9rem] text-muted transition-colors hover:text-foreground md:text-inherit"
           >
-            synarava.shop@gmail.com
+            {contactEmail}
           </Link>
         </nav>
       </div>

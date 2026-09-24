@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
+import { setFooterContactEmail } from "@/lib/content/footer-contact";
 import { setHeaderNav } from "@/lib/content/header-nav";
 import {
+  LEGACY_FOOTER_NAV_COPY_KEYS,
   LEGACY_HEADER_NAV_COPY_KEYS,
   MAX_HEADER_NAV_ITEMS,
   MIN_HEADER_NAV_ITEMS,
@@ -65,8 +67,11 @@ export async function saveStorefrontCopyAction(formData: FormData): Promise<Stor
     for (const key of STOREFRONT_COPY_KEYS) {
       fields[key] = String(formData.get(`${locale.code}:${key}`) ?? "");
     }
-    // Clear legacy main-link label keys so header-nav-v1 is the only source.
+    // Clear legacy keys so header-nav-v1 is the only source for those labels.
     for (const key of LEGACY_HEADER_NAV_COPY_KEYS) {
+      fields[key] = "";
+    }
+    for (const key of LEGACY_FOOTER_NAV_COPY_KEYS) {
       fields[key] = "";
     }
     updates[locale.code] = fields;
@@ -76,6 +81,12 @@ export async function saveStorefrontCopyAction(formData: FormData): Promise<Stor
     await setHeaderNav(headerNav);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not save header navigation." };
+  }
+
+  try {
+    await setFooterContactEmail(String(formData.get("footerContactEmail") ?? ""));
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not save footer contact email." };
   }
 
   await setStorefrontCopy(updates);

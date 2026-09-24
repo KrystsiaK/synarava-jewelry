@@ -10,7 +10,8 @@ import { HeaderNavEditor } from "@/components/admin/settings/header-nav-editor";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
+import { AdminHelp, AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
+import { DEFAULT_FOOTER_CONTACT_EMAIL } from "@/lib/content/footer-contact-fields";
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 import type { HeaderNavData } from "@/lib/content/header-nav-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
@@ -24,12 +25,14 @@ export function StorefrontCopyEditor({
   copy,
   defaults,
   headerNav,
+  contactEmail,
   locales,
   ptStatus,
 }: {
   copy: StorefrontCopy;
   defaults: StorefrontCopy;
   headerNav: HeaderNavData;
+  contactEmail: string;
   locales: AdminLocaleTab[];
   ptStatus?: AdminLocaleStatus;
 }) {
@@ -63,8 +66,8 @@ export function StorefrontCopyEditor({
       <AuthMessage error={state.error} />
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-          Header main links: name + path (add/remove). Other fields: leave empty to fall back to the shipped
-          default (shown as placeholder). Footer destinations stay fixed.
+          Header main links: name + path (add/remove). Footer navigation links mirror that menu.
+          Contact email is shared across languages. Other labels: empty falls back to the shipped default.
         </p>
         <nav className="flex gap-2 text-xs" aria-label="Jump to section">
           {SECTION_JUMPS.map((jump) => (
@@ -134,6 +137,21 @@ export function StorefrontCopyEditor({
                 })}
               </div>
             ))}
+
+            {group.id === "footer-service" ? (
+              <AdminTextField
+                label="Contact email"
+                name="footerContactEmail"
+                defaultValue={contactEmail}
+                placeholder={DEFAULT_FOOTER_CONTACT_EMAIL}
+                help={
+                  <AdminHelp>
+                    Shared across languages. Shown as the mailto link in the footer service column.
+                  </AdminHelp>
+                }
+                clearable
+              />
+            ) : null}
           </div>
         </section>
       ))}

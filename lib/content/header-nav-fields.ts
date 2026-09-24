@@ -48,6 +48,13 @@ export const LEGACY_HEADER_NAV_COPY_KEYS = [
   "nav.about",
 ] as const;
 
+/** Former footer nav label keys — cleared; footer nav now mirrors header-nav. */
+export const LEGACY_FOOTER_NAV_COPY_KEYS = [
+  "footer.shop",
+  "footer.collections",
+  "footer.about",
+] as const;
+
 export type ResolvedHeaderNavItem = {
   id: string;
   href: string;

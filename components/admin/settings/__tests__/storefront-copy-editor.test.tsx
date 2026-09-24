@@ -13,6 +13,7 @@ vi.mock("@/app/admin/actions/storefront-href", () => ({
 }));
 
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
+import { DEFAULT_FOOTER_CONTACT_EMAIL } from "@/lib/content/footer-contact-fields";
 import { DEFAULT_HEADER_NAV_ITEMS } from "@/lib/content/header-nav-fields";
 
 const EN_PT_LOCALES = [
@@ -32,6 +33,7 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: { "nav.cart": "Cart" }, pt: { "nav.cart": "Carrinho" } }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
+        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
         locales={EN_PT_LOCALES}
       />,
     );
@@ -54,6 +56,7 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: {}, pt: {} }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
+        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
         locales={EN_PT_LOCALES}
       />,
     );
@@ -67,6 +70,7 @@ describe("StorefrontCopyEditor", () => {
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
     expect(formData.get("en:nav.cart")).toBe("Bag");
     expect(formData.get("pt:nav.cart")).toBe("Saco");
+    expect(formData.get("footerContactEmail")).toBe(DEFAULT_FOOTER_CONTACT_EMAIL);
     const headerNav = JSON.parse(String(formData.get("headerNav")));
     expect(headerNav.items).toEqual(DEFAULT_HEADER_NAV_ITEMS);
   });
@@ -78,6 +82,7 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: {}, pt: {}, ru: { "nav.cart": "Корзина" } }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
+        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
         locales={[...EN_PT_LOCALES, { code: "ru", label: "Русский" }]}
       />,
     );
@@ -98,6 +103,7 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: {}, pt: {} }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
+        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
         locales={EN_PT_LOCALES}
       />,
     );
@@ -107,5 +113,23 @@ describe("StorefrontCopyEditor", () => {
     await user.click(screen.getByRole("button", { name: "Add link" }));
     expect(screen.getAllByLabelText(/Name \(EN\)/)).toHaveLength(5);
     expect(screen.getByRole("list", { name: "Main links" }).querySelectorAll("[data-component='AdminHrefField']")).toHaveLength(5);
+  });
+
+  it("exposes a shared contact email field and omits duplicate footer nav Shop/Collections/About labels", () => {
+    render(
+      <StorefrontCopyEditor
+        copy={{ en: {}, pt: {} }}
+        defaults={{ en: {}, pt: {} }}
+        headerNav={defaultHeaderNav}
+        contactEmail="ops@synarava.com"
+        locales={EN_PT_LOCALES}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Contact email" })).toHaveValue("ops@synarava.com");
+    expect(screen.queryByLabelText("Shop (EN)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Collections (EN)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("About (EN)")).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);
   });
 });

@@ -51,8 +51,9 @@ its models were removed once Shopify covered the same ground.
   - structured CMS blocks for collection detail pages
 - `SiteSetting`
   - singleton-like global content: Header main links (`header-nav-v1`: ordered
-    label + path), Header & Footer chrome label overrides (`storefront-copy-v1`),
-    and site-wide SEO defaults (`site-seo-v1`)
+    label + path), footer contact email (`footer-contact-v1`), Header & Footer
+    chrome label overrides (`storefront-copy-v1`), and site-wide SEO defaults
+    (`site-seo-v1`)
 - `MediaAsset`
   - S3-backed asset registry shared by products, collections, pages, and users
 

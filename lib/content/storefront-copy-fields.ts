@@ -54,19 +54,18 @@ const FOOTER_BRAND_GROUP: StorefrontCopyGroup = {
 const FOOTER_NAV_GROUP: StorefrontCopyGroup = {
   id: "footer-nav",
   title: "Footer — navigation column",
-  description: "Column heading and link labels. URLs stay fixed.",
+  description:
+    "Column heading only. Link names and paths come from Header — main links (same menu).",
   fields: [
     { key: "footer.navigationHeading", label: "Column heading" },
-    { key: "footer.shop", label: "Shop" },
-    { key: "footer.collections", label: "Collections" },
-    { key: "footer.about", label: "About" },
   ],
 };
 
 const FOOTER_SERVICE_GROUP: StorefrontCopyGroup = {
   id: "footer-service",
   title: "Footer — service column",
-  description: "Service links and contact label. Email address stays fixed.",
+  description:
+    "Service link labels and contact aria label. Contact email is shared across languages (field below).",
   fields: [
     { key: "footer.serviceHeading", label: "Column heading" },
     { key: "footer.careGuide", label: "Care Guide" },

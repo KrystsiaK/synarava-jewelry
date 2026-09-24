@@ -78,7 +78,9 @@ Derived programmatically from `STOREFRONT_COPY_KEYS`
 (`lib/content/storefront-copy-fields.ts`) so the two lists cannot drift.
 Keys target metaobject `storefront_copy.<key>` — chrome and footer labels only.
 Header main links (ordered name + path) live in `SiteSetting` `header-nav-v1`
-and are not part of this registry (no Shopify `MENU`/`LINK` binding in this app).
+and drive the footer Navigation column; contact email lives in
+`footer-contact-v1`. Neither is part of this registry (no Shopify `MENU`/`LINK`
+binding in this app).
 
 ## Taxonomy (merchant-owned labels only)
 
