@@ -117,7 +117,11 @@ describe("EditCollectionForm", () => {
     expect(document.getElementById("field-heroImageUrl")).not.toBeNull();
     expect(screen.getByRole("alert")).toHaveTextContent("Collection hero image is broken");
     await waitFor(() => {
-      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
     });
   });
 

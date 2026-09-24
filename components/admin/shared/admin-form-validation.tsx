@@ -11,6 +11,7 @@ import {
 
 import { cn } from "@/lib/ui";
 import { Tooltip } from "@/components/ui/tooltip";
+import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 
 export type AdminFieldErrors<FieldName extends string = string> = Partial<Record<FieldName, string>>;
 
@@ -59,8 +60,7 @@ export function focusFirstInvalidField(form: HTMLFormElement, fieldErrors: Admin
   );
   if (!field) return;
 
-  field.scrollIntoView({ behavior: "smooth", block: "center" });
-  field.focus({ preventScroll: true });
+  scrollAdminFieldIntoView(field);
 }
 
 export function useAdminFormValidation<FieldName extends string>({
