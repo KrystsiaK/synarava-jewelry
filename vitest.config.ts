@@ -8,6 +8,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     globals: true,
+    // GHA runners under load exceed the 5s default on heavy admin form suites.
+    testTimeout: 15_000,
     exclude: ["**/node_modules/**", "**/e2e/**", "**/.next/**"],
     coverage: {
       provider: "v8",
