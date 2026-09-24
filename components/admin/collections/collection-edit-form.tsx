@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 
 import {
@@ -8,7 +8,9 @@ import {
   saveCollectionAction,
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
+import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -22,6 +24,20 @@ import type { AdminCollection, CollectionDraft, CollectionLocaleDraft } from "@/
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
 const initialState: CollectionActionState = {};
+
+function openIssues(issues: AdminIssueSummary[]) {
+  return issues.filter((issue) => issue.status === "OPEN");
+}
+
+function focusIssueField(fieldPath: string) {
+  const target = document.getElementById(fieldPath);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  const focusable = target.matches("input, select, textarea, button, [tabindex]")
+    ? target
+    : target.querySelector<HTMLElement>("input, select, textarea, button, [tabindex]");
+  focusable?.focus({ preventScroll: true });
+}
 
 function DeleteCollectionForm({
   collectionId,
@@ -85,11 +101,13 @@ function DeleteCollectionForm({
 export function EditCollectionForm({
   collection,
   translationLocales = [{ code: "pt", label: "Português" }],
+  issues = [],
   onUpdated,
   onDeleted,
 }: {
   collection: AdminCollection;
   translationLocales?: AdminTranslationLocale[];
+  issues?: AdminIssueSummary[];
   onUpdated?: (collection: AdminCollection) => void;
   onDeleted?: (collectionId: string) => void;
 }) {
@@ -101,6 +119,27 @@ export function EditCollectionForm({
   const fileInputKey = collection.heroImageUrl ?? collection.id;
   const { pushToast } = useAdminToast();
   const [codeLocked, setCodeLocked] = useState(Boolean(collection.code?.trim()));
+  const visibleIssues = openIssues(issues);
+
+  useEffect(() => {
+    function openFieldForHash() {
+      const fieldId = window.location.hash.slice(1);
+      if (!fieldId) return;
+      window.requestAnimationFrame(() => focusIssueField(fieldId));
+    }
+
+    openFieldForHash();
+    window.addEventListener("hashchange", openFieldForHash);
+    return () => window.removeEventListener("hashchange", openFieldForHash);
+  }, []);
+
+  function activateIssue(issue: AdminIssueSummary) {
+    const nextHash = `#${issue.fieldPath}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, "", nextHash);
+    }
+    window.requestAnimationFrame(() => focusIssueField(issue.fieldPath));
+  }
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
@@ -157,6 +196,9 @@ export function EditCollectionForm({
           </Link>
         </div>
         <AuthMessage error={state.error} />
+        {visibleIssues.length > 0 ? (
+          <AdminIssueInlineWarning issues={visibleIssues} onIssueActivate={activateIssue} />
+        ) : null}
         <div>
           <AdminHelp label="Save guidance">
             Fields marked with * are required. Drafts stay in the form until a save succeeds.
@@ -184,6 +226,7 @@ export function EditCollectionForm({
             fileInputKey={fileInputKey}
             entityId={collection.id}
             translationLocales={translationLocales}
+            issues={visibleIssues}
           />
 
           <div>

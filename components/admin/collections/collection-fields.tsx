@@ -1,7 +1,9 @@
 "use client";
 
 import type { CollectionFieldName } from "@/app/admin/actions/collections";
+import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import { AdminFieldError } from "@/components/admin/shared/admin-form-validation";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
@@ -150,6 +152,7 @@ export function CollectionFields({
   fileInputKey,
   entityId,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
+  issues = [],
 }: {
   draft: CollectionDraft;
   onChange: <K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) => void;
@@ -162,12 +165,17 @@ export function CollectionFields({
   entityId?: string;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
+  issues?: AdminIssueSummary[];
 }) {
   const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
   const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, tabs);
   const isEn = locale === SOURCE_LOCALE;
   const active = isEn ? null : draft.translations[locale] ?? EMPTY_TRANSLATION;
   const activeLabel = tabs.find((tab) => tab.code === locale)?.label ?? locale;
+  const heroIssues = issues.filter(
+    (issue) => issue.fieldPath === "field-heroImageUrl" && issue.status === "OPEN",
+  );
+  const hasHeroIssues = heroIssues.length > 0;
 
   function updateActiveTranslation<K extends keyof CollectionLocaleDraft>(key: K, value: CollectionLocaleDraft[K]) {
     onChangeTranslation(locale, key, value);
@@ -232,7 +240,20 @@ export function CollectionFields({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2">
+        <div
+          id="field-heroImageUrl"
+          className="adm-field-unit grid gap-2"
+          style={
+            hasHeroIssues
+              ? {
+                  border: "1px solid rgba(255, 93, 93, 0.38)",
+                  background: "rgba(255, 93, 93, 0.06)",
+                  borderRadius: "8px",
+                  padding: "0.75rem",
+                }
+              : undefined
+          }
+        >
           <FieldLabel
             required
             help="Upload a hero image for new collections. When editing, leave the field empty to keep the current media."
@@ -244,7 +265,7 @@ export function CollectionFields({
             name="heroImageFile"
             required={!currentHeroImageUrl}
             className={fieldClass(fieldErrors?.heroImageFile)}
-            aria-invalid={Boolean(fieldErrors?.heroImageFile)}
+            aria-invalid={Boolean(fieldErrors?.heroImageFile) || hasHeroIssues}
             currentImageUrl={currentHeroImageUrl}
             currentImageAlt={currentHeroImageLabel ?? "Collection hero image"}
             currentImageLabel="Current hero image"
@@ -252,8 +273,9 @@ export function CollectionFields({
             removeFieldName="removeHeroImage"
             removeLabel="Remove"
           />
+          <AdminFieldIssue issues={heroIssues} />
           <FieldError message={fieldErrors?.heroImageFile} />
-        </label>
+        </div>
       </div>
 
       <AdminLongTextField

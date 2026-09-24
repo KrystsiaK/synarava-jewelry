@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreateCollectionForm } from "@/components/admin/collections/collection-create-form";
 import { EditCollectionForm } from "@/components/admin/collections/collection-edit-form";
 import type { SavedCollectionPayload } from "@/app/admin/actions/collections";
+import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
@@ -25,9 +26,11 @@ export function CollectionCreateRoute({ translationLocales }: { translationLocal
 export function CollectionEditRoute({
   collection,
   translationLocales,
+  issues = [],
 }: {
   collection: SavedCollectionPayload;
   translationLocales: AdminTranslationLocale[];
+  issues?: AdminIssueSummary[];
 }) {
   const router = useRouter();
 
@@ -35,6 +38,7 @@ export function CollectionEditRoute({
     <EditCollectionForm
       collection={collection}
       translationLocales={translationLocales}
+      issues={issues}
       onUpdated={() => refreshPreservingScroll(router)}
       onDeleted={() => {
         router.push("/admin/collections");

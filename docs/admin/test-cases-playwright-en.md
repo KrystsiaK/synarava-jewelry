@@ -295,7 +295,7 @@ bucket `PUT` rather than moving real megabytes.
 | ISS-03 | Non-archived product missing Shopify category / tags / marketing collection gets a WARNING for each | positive | P1 | **E2E** | Category = empty `shopifyCategoryId`. Collection ignores Featured-only membership. |
 | ISS-04 | Archived product is exempt from taxonomy checks but not from media checks | edge | P2 | **E2E** | `lib/admin/issues.ts:190` — `if (product.status !== "ARCHIVED")` gates taxonomy only. |
 | ISS-05 | Re-scanning after a fix marks the issue `RESOLVED` and drops the open count | positive | P1 | **E2E** | |
-| ISS-06 | "Open problem" navigates to the entity with the field anchored | positive | P2 | **E2E** | Assert the `#field-...` hash and that the element scrolled into view. |
+| ISS-06 | "Open problem" navigates to the entity with the field anchored | positive | P2 | **E2E** | Assert the `#field-...` hash and that the element scrolled into view. Collection `BROKEN_MEDIA` must show the hero field warning on `/admin/collections/:id`. |
 | ISS-07 | ~~Chain from category deletion~~ → replaced: unassigning the last collection surfaces "Missing collection" | positive | P2 | **E2E** | **Rewritten.** The original chained to CAT-07, but the Categories section no longer exists. Re-anchored to collection deletion (COL-07). |
 | ISS-08 | New issue triggers an email when Resend env is configured | positive | P3 | — | Needs an email double; integration/manual only. |
 | ISS-09 | Scan completes with no email attempt when email env is absent | positive | P3 | **action** | Default CI state. |

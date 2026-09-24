@@ -12,12 +12,15 @@ export default async function EditCollectionPage({
   params: Promise<{ collectionId: string }>;
 }) {
   const { collectionId } = await params;
-  const [{ collections }, syncDifferences, translationLocales] = await Promise.all([
+  const [{ collections, issues }, syncDifferences, translationLocales] = await Promise.all([
     getAdminCatalogData(),
     getLatestReconcileDifferences(),
     getAdminTranslationLocales(),
   ]);
   const collection = collections.find((item) => item.id === collectionId);
+  const collectionIssues = issues.filter(
+    (issue) => issue.entityType === "COLLECTION" && issue.entityId === collectionId,
+  );
 
   if (!collection) {
     return (
@@ -59,7 +62,11 @@ export default async function EditCollectionPage({
         />
       </div>
 
-      <CollectionEditRoute collection={collection} translationLocales={translationLocales} />
+      <CollectionEditRoute
+        collection={collection}
+        translationLocales={translationLocales}
+        issues={collectionIssues}
+      />
     </div>
   );
 }
