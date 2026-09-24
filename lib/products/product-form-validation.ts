@@ -3,13 +3,19 @@ export const PRODUCT_FIELD_MESSAGES = {
   slug: "Enter a URL slug.",
   sku: "Enter an SKU.",
   price: "Enter a price greater than 0.",
+  collectionSlug: "Publish the collection before making this product live, or keep the product in Draft.",
 } as const;
 
 export type ProductFieldName = keyof typeof PRODUCT_FIELD_MESSAGES;
 
 export type ProductFieldErrors = Partial<Record<ProductFieldName, string>>;
 
-export function validateProductInput(input: Record<ProductFieldName, string>): ProductFieldErrors {
+export function validateProductInput(input: {
+  name: string;
+  slug: string;
+  sku: string;
+  price: string;
+}): ProductFieldErrors {
   const fieldErrors: ProductFieldErrors = {};
 
   if (!input.name.trim()) fieldErrors.name = PRODUCT_FIELD_MESSAGES.name;

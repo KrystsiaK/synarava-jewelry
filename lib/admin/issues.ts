@@ -4,6 +4,7 @@ import path from "node:path";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 
+import { productLiveInUnpublishedCollection } from "@/lib/admin/collection-select-options";
 import { parseProductDetails } from "@/lib/content/product-details";
 import { db } from "@/lib/db";
 import { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
@@ -248,7 +249,13 @@ export async function scanAdminIssues() {
         tags: { select: { id: true } },
         collections: {
           select: {
-            collection: { select: { isStorefrontDefault: true } },
+            collection: {
+              select: {
+                isStorefrontDefault: true,
+                status: true,
+                visibility: true,
+              },
+            },
           },
         },
       },
@@ -303,6 +310,21 @@ export async function scanAdminIssues() {
               "This product is not assigned to any marketing collection, so it can disappear from collection-led site paths.",
           }),
         );
+      }
+
+      if (productLiveInUnpublishedCollection(product)) {
+        issues.push({
+          entityType: "PRODUCT",
+          entityId: product.id,
+          entityLabel: product.name,
+          fieldPath: "field-taxonomy-collection",
+          issueType: "LIVE_IN_UNPUBLISHED_COLLECTION",
+          severity: "WARNING",
+          title: `Live product in draft collection: ${product.name}`,
+          description:
+            "This product is Published or Unlisted, but its marketing collection is still Draft (or archived). Common after a Shopify pull restores product status while the local collection stays draft. Publish the collection, move the product to a live collection, or draft the product again.",
+          targetHref: `/admin/products/${product.id}#field-taxonomy-collection`,
+        });
       }
     }
 

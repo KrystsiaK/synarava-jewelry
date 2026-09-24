@@ -358,6 +358,8 @@ export async function getAdminCatalogListMeta() {
         name: true,
         isStorefrontDefault: true,
         shopifyCollectionId: true,
+        status: true,
+        visibility: true,
       },
       orderBy: { name: "asc" },
     }),

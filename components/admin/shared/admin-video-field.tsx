@@ -12,7 +12,7 @@ import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label"
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/ui";
 
-const DEFAULT_ACCEPT = "video/mp4,video/webm";
+const DEFAULT_ACCEPT = "video/mp4,video/webm,application/mp4,.mp4,.webm,.m4v";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -22,7 +22,9 @@ function formatFileSize(bytes: number) {
 }
 
 function isVideoFile(file: File) {
-  return file.type.startsWith("video/") || /\.(?:mp4|webm)$/i.test(file.name);
+  return file.type.startsWith("video/")
+    || file.type === "application/mp4"
+    || /\.(?:mp4|m4v|webm)$/i.test(file.name);
 }
 
 export type AdminVideoControlProps = {
@@ -104,10 +106,10 @@ export function AdminVideoControl({
   }
 
   const currentBroken = Boolean(currentVideoUrl && brokenCurrentUrl === currentVideoUrl);
-  const previewClass = "aspect-video max-h-52 w-full object-cover md:max-w-md";
+  const previewClass = "aspect-video w-full max-h-56 object-cover";
 
   return (
-    <div data-component="AdminVideoControl" className="grid gap-3">
+    <div data-component="AdminVideoControl" className="grid max-w-xl gap-4">
       <input
         ref={inputRef}
         id={controlId}
@@ -127,7 +129,7 @@ export function AdminVideoControl({
 
       {selectedFile && previewUrl ? (
         <div
-          className="grid gap-3 p-3"
+          className="grid gap-3 p-4"
           style={{ border: "1px solid var(--adm-border)", borderRadius: "8px" }}
         >
           <div className="flex items-center justify-between gap-3">
@@ -167,7 +169,7 @@ export function AdminVideoControl({
       {/* Hide Current while a replacement is selected — after save, Selected clears and Current shows the new URL. */}
       {currentVideoUrl && !selectedFile ? (
         <div
-          className="grid gap-3 p-3"
+          className="grid gap-3 p-4"
           style={{
             border: currentBroken
               ? "1px solid rgba(255, 93, 93, 0.42)"
@@ -222,7 +224,7 @@ export function AdminVideoControl({
 
       {!currentVideoUrl && !selectedFile ? (
         <div
-          className="grid aspect-video max-h-52 w-full place-items-center rounded border text-xs uppercase tracking-[0.12em] md:max-w-md"
+          className="grid aspect-video max-h-56 w-full place-items-center rounded border text-xs uppercase tracking-[0.12em]"
           style={{ borderColor: "var(--adm-border)", color: "var(--adm-muted)" }}
         >
           {emptyLabel}
@@ -276,7 +278,7 @@ export function AdminVideoField({
       warningId={warningId}
       issue={issue}
       disabled={disabled}
-      className={className}
+      className={cn("adm-video-field", className)}
       controlId={controlId}
     >
       <AdminVideoControl

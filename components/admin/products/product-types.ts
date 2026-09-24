@@ -11,6 +11,8 @@ export type CollectionOption = {
   name: string;
   isStorefrontDefault: boolean;
   shopifyCollectionId: string | null;
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
 };
 export type ProductRecord = SavedProductPayload;
 

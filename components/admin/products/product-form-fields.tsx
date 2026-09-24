@@ -36,6 +36,10 @@ import {
 import { getProductEditorDetails, issuesForField, taxonomySatisfactionFromDraft } from "@/components/admin/products/product-helpers";
 import type { TaxonomySatisfaction } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
+import {
+  collectionSelectOptionLabel,
+  filterCollectionsForProductSelect,
+} from "@/lib/admin/collection-select-options";
 
 export { OwnershipLabel } from "@/components/synarava-cms";
 
@@ -955,16 +959,24 @@ export function ProductFormFields({
             owner="Synarava"
             name="collectionSlug"
             defaultValue={draft.collectionSlug}
-            invalid={collectionIssues.length > 0}
+            invalid={collectionIssues.length > 0 || Boolean(fieldErrors.collectionSlug)}
+            error={fieldErrors.collectionSlug}
             issue={<AdminFieldIssue issues={collectionIssues} />}
+            help={(
+              <AdminHelp label="Collection guidance">
+                Draft collections stay in this list (marked Draft) so you can prep membership
+                before the collection goes live. A product cannot be Published or Unlisted while
+                its marketing collection is still Draft — publish the collection first. Shopify
+                pull never fails on a draft collection; Problems flags a live product stuck on an
+                unpublished collection.
+              </AdminHelp>
+            )}
             onChange={(event) => updateTaxonomySatisfaction({ hasCollection: Boolean(event.target.value.trim()) })}
           >
             <option value="">No collection</option>
-            {collections
-              .filter((collection) => !collection.isStorefrontDefault)
-              .map((collection) => (
+            {filterCollectionsForProductSelect(collections, draft.collectionSlug).map((collection) => (
               <option key={collection.id} value={collection.slug}>
-                {collection.name}
+                {collectionSelectOptionLabel(collection)}
               </option>
             ))}
           </AdminSelectField>

@@ -4353,6 +4353,12 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   padding-bottom: 1.35rem;
 }
 
+/* Tall media upload — more air between label, file input, and preview. */
+.adm-field-unit.adm-video-field,
+.adm-field-unit[data-component="AdminVideoField"] {
+  gap: 0.85rem;
+}
+
 .adm-field-error {
   font-family: var(--font-sans), sans-serif;
   font-size: 0.78rem;
