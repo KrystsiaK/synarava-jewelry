@@ -1,14 +1,25 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { FileText, Images, PackageSearch, Shapes } from "lucide-react";
+import { FileText, Gem, Images, PackageSearch, Shapes, Store } from "lucide-react";
 import { useState } from "react";
 
-import { AdminSectionTabs, type AdminSectionTabItem } from "@/components/synarava-cms";
+import {
+  AdminSectionTabs,
+  type AdminSectionTabGroup,
+  type AdminSectionTabItem,
+} from "@/components/synarava-cms";
+
+const GROUPS: AdminSectionTabGroup[] = [
+  { id: "shopify", label: "Shopify" },
+  { id: "synarava", label: "Synarava" },
+];
 
 const ALL_ITEMS: AdminSectionTabItem[] = [
-  { id: "essentials", label: "Essentials", detail: "Sellable product", icon: PackageSearch },
-  { id: "catalog", label: "Catalog", detail: "Placement & filters", icon: Shapes, tone: "issue", dirty: true },
-  { id: "content", label: "Content", detail: "Copy & search", icon: FileText },
-  { id: "media", label: "Media", detail: "Gallery & cover", icon: Images, tone: "conflict" },
+  { id: "essentials", label: "Essentials", detail: "Sellable product", icon: PackageSearch, group: "shopify" },
+  { id: "catalog", label: "Catalog", detail: "Placement & filters", icon: Shapes, tone: "issue", dirty: true, group: "shopify" },
+  { id: "content", label: "Content", detail: "Copy & search", icon: FileText, group: "shopify" },
+  { id: "media", label: "Media", detail: "Gallery & cover", icon: Images, tone: "conflict", group: "shopify" },
+  { id: "shopify", label: "Sync", detail: "Push, pull & snapshot", icon: Store, group: "shopify" },
+  { id: "details", label: "Product page", detail: "Materials & craft", icon: Gem, group: "synarava" },
 ];
 
 const meta = {
@@ -28,15 +39,28 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function TabsPlayground({ items }: { items: AdminSectionTabItem[] }) {
+function TabsPlayground({
+  items,
+  groups,
+}: {
+  items: AdminSectionTabItem[];
+  groups?: AdminSectionTabGroup[];
+}) {
   const [active, setActive] = useState(items[0]?.id ?? "essentials");
   return (
-    <AdminSectionTabs items={items} active={active} onChange={setActive} columns={items.length}>
+    <AdminSectionTabs
+      items={items}
+      groups={groups}
+      active={active}
+      onChange={setActive}
+      columns={groups ? undefined : items.length}
+    >
       <div className="adm-inset-x space-y-3 py-5">
         <h2 className="text-xl font-semibold">Open section: {active}</h2>
         <p className="max-w-[60ch] text-sm text-[var(--adm-muted)]">
           Cool well background marks that you are inside this tab. Idle tabs stay warm/white; selected
           tabs share the well color. Catalog shows issue tone; Media shows conflict tone.
+          Product editor splits the strip into Shopify vs Synarava groups.
         </p>
       </div>
     </AdminSectionTabs>
@@ -49,5 +73,14 @@ export const StateMatrix: Story = {
     active: "content",
     onChange: () => {},
   },
-  render: () => <TabsPlayground items={ALL_ITEMS} />,
+  render: () => <TabsPlayground items={ALL_ITEMS} groups={GROUPS} />,
+};
+
+export const FlatUngrouped: Story = {
+  args: {
+    items: ALL_ITEMS.slice(0, 4),
+    active: "content",
+    onChange: () => {},
+  },
+  render: () => <TabsPlayground items={ALL_ITEMS.slice(0, 4)} />,
 };

@@ -5,6 +5,8 @@
 
 Контракт [разрешения конфликтов каталога](./catalog-conflict-resolution-ux.md) описывает уже подключённый flow на `/admin/products`. Live Shopify round trip и оставшиеся unsupported commerce-поля отмечены в [плане задачи](../../tasks/catalog-conflict-resolution-plan.md).
 
+**Модель редактора товара:** остов Shopify (все поддерживаемые commerce-поля + проверка sync поле за полем) + секции Synarava (CMS-only). Табы секций визуально в двух группах — Shopify и Synarava. Ownership: [`../product-data-ownership.md`](../product-data-ownership.md).
+
 | Документ | Кому | Зачем |
 |---|---|---|
 | [`admin-guide-ru.md`](./admin-guide-ru.md) | всем | Как устроена и как ведёт себя админка. Справочник поведения: разделы, поля, правила публикации, синхронизация с Shopify. Источник истины для ожидаемых результатов в тест-кейсах. |

@@ -80,6 +80,7 @@ export {
 
 export {
   AdminSectionTabs,
+  type AdminSectionTabGroup,
   type AdminSectionTabItem,
   type AdminSectionTabsProps,
   type AdminSectionTabTone,

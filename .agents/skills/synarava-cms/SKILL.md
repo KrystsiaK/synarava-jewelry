@@ -46,6 +46,15 @@ When the user says **общий компонент**, **shared control**, or **l
 7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
 8. After contract changes, update `docs/admin/synarava-cms.md` and this skill (keep `.agents` + `.claude` copies in sync); run `graphify update .`.
 
+## Product admin model
+
+When editing `/admin/products/[id]`:
+
+- **Shopify skeleton first** — every supported Shopify product/variant field must be editable/visible and verified field by field (pull/push parity with Shopify Admin).
+- **Synarava sections second** — CMS-only settings (materials, craft, lookbook, …) live in a separate tab cluster.
+- Section tabs use `AdminSectionTabs` with `groups`: `{ id: "shopify", label: "Shopify" }` and `{ id: "synarava", label: "Synarava" }`. Do not flatten them into one unlabeled strip.
+- Ownership detail: [`docs/product-data-ownership.md`](../../../docs/product-data-ownership.md).
+
 ## Component map
 
 | Need | Use |
@@ -64,7 +73,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Collapsible section (chevron) | `AdminCollapsiblePanel` |
 | Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` (+ `syncCounts` for amber conflict badges per section) |
-| Section tabs + cool content well | `AdminSectionTabs` |
+| Section tabs + cool content well | `AdminSectionTabs` (`groups` for Shopify vs Synarava clusters) |
 | Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
 | Sticky list chrome (title / filters / body) | `AdminListWorkspace` (`.Root` / `.Header` / `.Filters` / `.Body`) |
 | Icon action + tooltip | `AdminIconButton` |

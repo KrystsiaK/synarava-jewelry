@@ -31,7 +31,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminCollapsiblePanel` | Titled collapsible panel (chevron; header/body divider) |
 | `AdminPanel` | Rounded shell (`Root` / `Header` / `Body`); sticky header lifts by −radius |
 | `AdminNavTree` / `buildAdminNavItems` | Config-driven admin sidebar tree (expand, show-more, router sync) |
-| `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones) |
+| `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones; optional Shopify/Synarava groups) |
 | `AdminEntityList` | Dense list shell (header / row / infinite-scroll load more) |
 | `AdminListWorkspace` | Sticky list chrome (`Root` / `Header` / `Filters` / `Body`) over `AdminPanel` |
 | `AdminIconButton` | Square icon action + tooltip (`adm-icon-btn`, fixed 2rem, no wrap) |
@@ -268,14 +268,24 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 
 Reusable card-strip tabs with a cool content well (`AdminSectionTabs`).
 
+Optional **`groups`** split the strip into labeled clusters (product editor:
+Shopify commerce skeleton vs Synarava-only sections). Each item may set
+`group` to a group id. Keyboard arrows still move across the whole tablist.
+
 ```tsx
 import { AdminSectionTabs } from "@/components/synarava-cms";
 
 <AdminSectionTabs
+  groups={[
+    { id: "shopify", label: "Shopify" },
+    { id: "synarava", label: "Synarava" },
+  ]}
   items={[
-    { id: "content", label: "Content", detail: "Copy & search", icon: FileText },
-    { id: "catalog", label: "Catalog", tone: "issue" },
-    { id: "shopify", label: "Shopify", tone: "conflict", dirty: true },
+    { id: "essentials", label: "Essentials", detail: "Sellable", group: "shopify" },
+    { id: "content", label: "Content", detail: "Copy & search", icon: FileText, group: "shopify" },
+    { id: "catalog", label: "Catalog", tone: "issue", group: "shopify" },
+    { id: "sync", label: "Sync", tone: "conflict", dirty: true, group: "shopify" },
+    { id: "details", label: "Product page", group: "synarava" },
   ]}
   active={active}
   onChange={setActive}
@@ -292,9 +302,10 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
 | Issue (+ hover / selected) | Danger tint; issue wins over conflict |
 | Conflict (+ hover / selected) | Amber conflict tint |
 | Dirty | Amber dot only (does not replace tone) |
+| Grouped strip | Uppercase cluster labels + seam between Shopify / Synarava |
 
 Tokens: `--adm-cool`, `--adm-cool-soft`, `--adm-tab-well`, `--adm-conflict-soft`.  
-Product editor uses this via `ProductEditorTabs`. Story: `synarava-cms/AdminSectionTabs`.
+Product editor uses this via `ProductEditorTabs` (always grouped). Story: `synarava-cms/AdminSectionTabs`.
 
 ### Entity list (tables)
 

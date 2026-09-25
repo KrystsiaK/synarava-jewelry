@@ -73,7 +73,7 @@ test.describe("Admin products CRUD", () => {
     await page.getByRole("tab", { name: /Product page/i }).click();
     await expect(page.getByText("Materials", { exact: true })).toBeVisible();
 
-    await page.getByRole("tab", { name: /Shopify/i }).click();
+    await page.getByRole("tab", { name: /Sync/i }).click();
     await expect(page.getByRole("region", { name: "Commerce synchronization" })).toBeVisible();
 
     await page.goto(`/admin/products/${product.id}#field-taxonomy-category`);

@@ -103,6 +103,11 @@ SHOPIFY_WEBHOOK_SECRET=...
 
 ### Product synchronization
 
+The admin product editor is **Shopify skeleton + Synarava sections**: every
+supported Shopify commerce field should appear in admin and be verified field by
+field (pull/push), while Synarava-only CMS settings sit in a separate tab group.
+See [`docs/product-data-ownership.md`](docs/product-data-ownership.md).
+
 The local catalog is the storefront read model. Saving a product in
 the admin stores the draft locally; **Push to Shopify** sends title, handle, description, vendor,
 product type, status, price, SKU, primary image, inventory, tags, and

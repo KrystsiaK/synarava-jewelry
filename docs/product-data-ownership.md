@@ -4,6 +4,15 @@
 
 Shopify is the system of record for every customer-facing commerce field that Shopify can represent. Synarava must pull and preserve those fields before adding its own data. Synarava is an enrichment layer, not a competing catalog.
 
+### Admin product editor (working model)
+
+The product admin is built as **Shopify skeleton + Synarava sections**:
+
+1. **Shopify skeleton** — every standard Shopify product/variant field we support must appear in admin, sync correctly (pull/push), and match Shopify Admin. We verify this field by field.
+2. **Synarava sections** — settings and editorial modules that exist only in Synarava (materials story, process, lookbook, and future CMS-only controls).
+
+The section tab strip is visually split into two clusters: **Shopify** (commerce skeleton + Sync) and **Synarava** (CMS-only). Tab count and Shopify-side layout will grow to mirror Shopify’s product admin more closely; Synarava tabs stay a separate group.
+
 The synchronization boundary has three explicit layers:
 
 1. **Shopify standard fields** — Shopify owns identity, sellability, pricing, inventory, variants, options, primary and gallery media, taxonomy, SEO, publication state, shipping measurements, and other supported product/variant fields.

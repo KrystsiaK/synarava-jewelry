@@ -18,7 +18,10 @@ commerce console.
 The catalog ownership and synchronization contract is defined in
 [`product-data-ownership.md`](./product-data-ownership.md). Shopify owns the
 commerce projection; Synarava adds mirrored metafields and a protected
-editorial layer.
+editorial layer. The admin product editor follows **Shopify skeleton +
+Synarava sections**: surface and sync every supported Shopify field first
+(verified field by field), then add Synarava-only CMS settings in a separate
+tab group.
 
 - `Product`
   - canonical sellable artifact
