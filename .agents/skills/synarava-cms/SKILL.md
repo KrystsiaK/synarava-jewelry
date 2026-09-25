@@ -3,7 +3,7 @@ name: synarava-cms
 description: >-
   synarava-cms — Synarava admin shared form library (AdminTextField,
   AdminSelectField, AdminHrefField/Control, AdminVideoField/Control,
-  AdminCheckboxField/Control, AdminLongTextField,
+  AdminCheckboxField/Control, AdminLongTextField, AdminRichTextField,
   AdminCollapsiblePanel, AdminPanel, AdminNavTree, AdminSectionTabs,
   AdminEntityList, AdminListWorkspace, AdminIconButton, AdminSignalChip, AdminSortChips,
   AdminStatusBadge, AdminOrderedList, AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
@@ -60,6 +60,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Checkbox + optional follow-on | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
 | Long copy (preview + Edit modal) | `AdminLongTextField` |
+| Rich text with links (preview + TipTap modal) | `AdminRichTextField` |
 | Collapsible section (chevron) | `AdminCollapsiblePanel` |
 | Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` (+ `syncCounts` for amber conflict badges per section) |

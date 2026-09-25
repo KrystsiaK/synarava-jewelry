@@ -1,5 +1,6 @@
 "use client";
 
+import { RichText } from "@/components/content/rich-text";
 import { ContactCta } from "@/components/shared/contact-cta";
 import { PageHeroImage } from "@/components/ui";
 import { DEFAULT_FOOTER_CONTACT_EMAIL } from "@/lib/content/footer-contact-fields";
@@ -58,9 +59,10 @@ export function ServicePage({
             <section key={index} className="min-h-64 bg-background px-0 py-10 md:p-10">
               <p className="label-caps text-accent">{String(index + 1).padStart(2, "0")}</p>
               <h2 className="mt-4 font-serif text-3xl leading-tight">{section.title}</h2>
-              <p className="mt-5 max-w-[58ch] whitespace-pre-line text-sm leading-7 text-muted">
-                {section.body}
-              </p>
+              <RichText
+                content={section.body}
+                className="mt-5 max-w-[58ch] text-sm leading-7 text-muted"
+              />
             </section>
           ))}
         </div>

@@ -27,6 +27,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminVideoField` / `AdminVideoControl` | Site video (MP4/WebM) upload + current/selected preview |
 | `AdminCheckboxField` / `AdminCheckboxControl` | Checkbox row (+ optional follow-on) / inline row |
 | `AdminLongTextField` | Full-width text preview + Edit modal (+ error chrome) |
+| `AdminRichTextField` | Link-capable rich text (same preview chrome; TipTap modal) |
 | `AdminCollapsiblePanel` | Titled collapsible panel (chevron; header/body divider) |
 | `AdminPanel` | Rounded shell (`Root` / `Header` / `Body`); sticky header lifts by −radius |
 | `AdminNavTree` / `buildAdminNavItems` | Config-driven admin sidebar tree (expand, show-more, router sync) |
@@ -406,8 +407,8 @@ import { AdminOrderedList, AdminSelectField } from "@/components/synarava-cms";
 ### Long text
 
 `AdminLongTextField` — full-width **text** preview + Edit opens a modal
-(not a raw `textarea.adm-field` on the form). Modal editor is plain textarea for
-now; WYSIWYG can replace it later without changing the preview contract.
+(not a raw `textarea.adm-field` on the form). Modal editor is a plain textarea.
+For clickable links, use `AdminRichTextField` instead.
 
 ```tsx
 import { AdminLongTextField } from "@/components/synarava-cms";
@@ -421,6 +422,26 @@ import { AdminLongTextField } from "@/components/synarava-cms";
 - Applied across product, collections, pages, storefront copy, and site SEO
   (no raw `textarea.adm-field` for long copy in admin forms).
 - Story: `synarava-cms/AdminLongTextField`.
+
+### Rich text (links)
+
+`AdminRichTextField` — same preview + Edit chrome as long text, with a minimal
+TipTap modal (Link / Unlink). Stored value is sanitized HTML (`p`, `br`,
+`strong`/`em`, `a[href]`). Plain text still loads (converted for the editor)
+and remains valid until the operator saves rich markup.
+
+```tsx
+import { AdminRichTextField } from "@/components/synarava-cms";
+
+<AdminRichTextField label="Body" value={…} onChange={…} />
+```
+
+- Preview reuses `.adm-long-text-preview` so the outer chrome matches long text.
+- Links are clickable in the preview and on the storefront (`RichText` in
+  `components/content/rich-text.tsx` + `lib/content/rich-text.ts` sanitizer).
+- First apply: service page section **Body** fields (care / faq / shipping /
+  returns / dispute-resolution). Extend to other long-copy fields later.
+- Story: `synarava-cms/AdminRichTextField`.
 
 ### Tall / composite fields
 

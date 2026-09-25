@@ -2954,6 +2954,108 @@ select.adm-field option {
   min-height: clamp(14rem, 42dvh, 28rem);
 }
 
+.adm-rich-text-preview__copy {
+  /* Same clamp band as plain long-text; allow in-preview links. */
+  pointer-events: auto;
+}
+
+.adm-rich-text-preview__copy a,
+.rich-text a {
+  color: var(--adm-accent, var(--color-accent, #7b5b1c));
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.adm-rich-text-preview__copy .rich-text,
+.adm-rich-text-preview__copy p {
+  display: inline;
+  margin: 0;
+}
+
+.adm-rich-text-preview__copy .rich-text p + p::before {
+  content: " ";
+}
+
+.adm-rich-text-editor {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.adm-rich-text-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.adm-rich-text-editor__tool {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  color: var(--adm-ink);
+  background: transparent;
+  border: 1px solid var(--adm-border);
+  border-radius: 6px;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.adm-rich-text-editor__tool:hover:not(:disabled) {
+  background: var(--adm-accent-soft);
+  border-color: var(--adm-border-strong);
+}
+
+.adm-rich-text-editor__tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.adm-rich-text-editor__surface {
+  min-height: clamp(14rem, 42dvh, 28rem);
+  padding: 0.85rem 0.9rem;
+  color: var(--adm-ink);
+  background: var(--adm-field, transparent);
+  border: 1px solid var(--adm-border);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.55;
+  outline: none;
+}
+
+.adm-rich-text-editor__surface:focus,
+.adm-rich-text-editor__surface:focus-visible {
+  border-color: var(--adm-accent);
+  box-shadow: 0 0 0 3px rgba(216, 182, 106, 0.14);
+}
+
+.adm-rich-text-editor__surface p {
+  margin: 0 0 0.65em;
+}
+
+.adm-rich-text-editor__surface p:last-child {
+  margin-bottom: 0;
+}
+
+.adm-rich-text-editor__surface a {
+  color: var(--adm-accent);
+  text-decoration: underline;
+}
+
+.rich-text p {
+  margin: 0;
+}
+
+.rich-text p + p {
+  margin-top: 0.75em;
+}
+
 @media (pointer: coarse) {
   .adm-long-text-preview__action {
     min-height: 2.75rem;

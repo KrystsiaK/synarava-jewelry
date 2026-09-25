@@ -179,11 +179,11 @@ const serviceSectionDefaultsEn: Record<ServicePageSlug, Record<string, LegalSect
   "dispute-resolution": {
     ral: {
       title: "Alternative dispute resolution (RAL)",
-      body: "If a consumer dispute cannot be resolved directly with us, you may contact the Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), an authorised consumer dispute resolution entity.\nRua dos Douradores, 116, 2.º\n1100-207 Lisboa, Portugal\nTel: +351 218 807 030\nEmail: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
+      body: "<p>If a consumer dispute cannot be resolved directly with us, you may contact the Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), an authorised consumer dispute resolution entity.</p><p>Rua dos Douradores, 116, 2.º<br>1100-207 Lisboa, Portugal<br>Tel: +351 218 807 030<br>Email: <a href=\"mailto:juridico@centroarbitragemlisboa.pt\">juridico@centroarbitragemlisboa.pt</a><br><a href=\"https://www.centroarbitragemlisboa.pt\">www.centroarbitragemlisboa.pt</a></p>",
     },
     livro: {
       title: "Livro de Reclamações",
-      body: "You can also submit a complaint through the official Portuguese electronic complaints book, Livro de Reclamações Eletrónico.\nwww.livroreclamacoes.pt",
+      body: "<p>You can also submit a complaint through the official Portuguese electronic complaints book, Livro de Reclamações Eletrónico.</p><p><a href=\"https://www.livroreclamacoes.pt\">www.livroreclamacoes.pt</a></p>",
     },
   },
 };
@@ -264,11 +264,11 @@ const serviceSectionDefaultsPt: Record<ServicePageSlug, Record<string, LegalSect
   "dispute-resolution": {
     ral: {
       title: "Resolução alternativa de litígios (RAL)",
-      body: "Se um litígio de consumo não puder ser resolvido diretamente connosco, pode contactar o Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), uma entidade de resolução alternativa de litígios de consumo autorizada.\nRua dos Douradores, 116, 2.º\n1100-207 Lisboa, Portugal\nTel: +351 218 807 030\nEmail: juridico@centroarbitragemlisboa.pt\nwww.centroarbitragemlisboa.pt",
+      body: "<p>Se um litígio de consumo não puder ser resolvido diretamente connosco, pode contactar o Centro de Arbitragem de Conflitos de Consumo de Lisboa (CACCL), uma entidade de resolução alternativa de litígios de consumo autorizada.</p><p>Rua dos Douradores, 116, 2.º<br>1100-207 Lisboa, Portugal<br>Tel: +351 218 807 030<br>Email: <a href=\"mailto:juridico@centroarbitragemlisboa.pt\">juridico@centroarbitragemlisboa.pt</a><br><a href=\"https://www.centroarbitragemlisboa.pt\">www.centroarbitragemlisboa.pt</a></p>",
     },
     livro: {
       title: "Livro de Reclamações",
-      body: "Também pode apresentar uma reclamação através do Livro de Reclamações Eletrónico oficial português.\nwww.livroreclamacoes.pt",
+      body: "<p>Também pode apresentar uma reclamação através do Livro de Reclamações Eletrónico oficial português.</p><p><a href=\"https://www.livroreclamacoes.pt\">www.livroreclamacoes.pt</a></p>",
     },
   },
 };

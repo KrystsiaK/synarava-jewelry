@@ -20,6 +20,7 @@ import {
   AdminHrefField,
   AdminListWorkspace,
   AdminLongTextField,
+  AdminRichTextField,
   AdminSelectField,
   AdminTextField,
 } from "@/components/synarava-cms";
@@ -817,11 +818,10 @@ export function PageEditor({
                     value={value?.title ?? ""}
                     onChange={(event) => updateServiceSection(section.id, "title", event.target.value)}
                   />
-                  <AdminLongTextField
+                  <AdminRichTextField
                     label="Body"
                     value={value?.body ?? ""}
                     onChange={(value) => updateServiceSection(section.id, "body", value)}
-                    rows={3}
                   />
                 </div>
               );

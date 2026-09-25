@@ -33,4 +33,21 @@ describe("ServicePage", () => {
       "mailto:hello@synarava.com",
     );
   });
+
+  it("renders safe links inside section bodies", () => {
+    render(
+      <ServicePage
+        {...props}
+        sections={[
+          {
+            title: "RAL",
+            body: '<p>Contact <a href="https://www.centroarbitragemlisboa.pt">CACCL</a>.</p>',
+          },
+        ]}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "CACCL" });
+    expect(link).toHaveAttribute("href", "https://www.centroarbitragemlisboa.pt");
+  });
 });

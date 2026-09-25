@@ -1,18 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { PencilLine } from "lucide-react";
+import { Link2, PencilLine, Unlink } from "lucide-react";
+import StarterKit from "@tiptap/starter-kit";
+import { EditorContent, useEditor } from "@tiptap/react";
 
 import {
   AdminFieldShell,
   useAdminFieldIds,
 } from "@/components/admin/shared/admin-field-shell";
 import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label";
+import { RichText } from "@/components/content/rich-text";
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import {
+  isRichTextEmpty,
+  normalizeRichTextForEditor,
+  normalizeRichTextForStorage,
+  richTextPlainLength,
+  sanitizeHref,
+} from "@/lib/content/rich-text";
 import { cn } from "@/lib/ui";
 
-export type AdminLongTextFieldProps = {
-  // Omit `name` when the caller submits via hidden mirrors and drives `value`/`onChange`.
+export type AdminRichTextFieldProps = {
   name?: string;
   label?: ReactNode;
   owner?: AdminFieldOwner;
@@ -23,7 +32,6 @@ export type AdminLongTextFieldProps = {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
-  rows?: number;
   error?: string;
   errorId?: string;
   warning?: string;
@@ -33,16 +41,101 @@ export type AdminLongTextFieldProps = {
   className?: string;
   unitId?: string;
   id?: string;
-  /** Extra classes for the modal editor (e.g. font-mono for Markdown). */
-  editorClassName?: string;
 };
 
+function RichTextModalEditor({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  label: string;
+}) {
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        heading: false,
+        bulletList: false,
+        orderedList: false,
+        blockquote: false,
+        codeBlock: false,
+        code: false,
+        horizontalRule: false,
+        listItem: false,
+        link: {
+          openOnClick: false,
+          autolink: true,
+          defaultProtocol: "https",
+          HTMLAttributes: {
+            rel: "noopener noreferrer",
+            target: "_blank",
+          },
+        },
+      }),
+    ],
+    content: normalizeRichTextForEditor(value),
+    onUpdate: ({ editor: current }) => {
+      onChange(current.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: "adm-rich-text-editor__surface",
+        "aria-label": label,
+      },
+    },
+  });
+
+  function applyLink() {
+    if (!editor) return;
+    const previous = (editor.getAttributes("link").href as string | undefined) ?? "https://";
+    const next = window.prompt("Link URL", previous);
+    if (next === null) return;
+    if (!next.trim()) {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    const href = sanitizeHref(next) ?? next.trim();
+    editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+  }
+
+  function removeLink() {
+    editor?.chain().focus().extendMarkRange("link").unsetLink().run();
+  }
+
+  return (
+    <div className="adm-rich-text-editor">
+      <div className="adm-rich-text-editor__toolbar" role="toolbar" aria-label="Formatting">
+        <button
+          type="button"
+          className="adm-rich-text-editor__tool"
+          onClick={applyLink}
+          disabled={!editor}
+        >
+          <Link2 aria-hidden="true" className="size-3.5" />
+          Link
+        </button>
+        <button
+          type="button"
+          className="adm-rich-text-editor__tool"
+          onClick={removeLink}
+          disabled={!editor}
+        >
+          <Unlink aria-hidden="true" className="size-3.5" />
+          Unlink
+        </button>
+      </div>
+      <EditorContent editor={editor} />
+    </div>
+  );
+}
+
 /**
- * Long copy: full-width text preview + Edit opens a modal.
- * Preview is plain text (not an input). For clickable links use AdminRichTextField.
- * Shares AdminFieldShell error/owner/help chrome with text/select.
+ * Link-capable rich text: same preview + Edit modal chrome as AdminLongTextField.
+ * Value is sanitized HTML (paragraphs + links). Plain text still loads and saves.
  */
-export function AdminLongTextField({
+export function AdminRichTextField({
   name,
   label,
   owner,
@@ -53,7 +146,6 @@ export function AdminLongTextField({
   value: controlledValue,
   onChange,
   placeholder = "No content yet.",
-  rows = 12,
   error,
   errorId,
   warning,
@@ -63,8 +155,7 @@ export function AdminLongTextField({
   className,
   unitId,
   id,
-  editorClassName,
-}: AdminLongTextFieldProps) {
+}: AdminRichTextFieldProps) {
   const isControlled = controlledValue !== undefined;
   const titleId = useId();
   const { controlId, messageId, warningId } = useAdminFieldIds(id, errorId);
@@ -77,6 +168,7 @@ export function AdminLongTextField({
   const plainLabel = dialogLabel ?? (typeof label === "string" ? label : name ?? "field");
   const showError = Boolean(error) || invalid;
   const showWarning = !showError && Boolean(warning);
+  const empty = isRichTextEmpty(value);
 
   useEffect(() => {
     if (isControlled) return;
@@ -105,12 +197,13 @@ export function AdminLongTextField({
   }, [value]);
 
   function applyChanges() {
+    const next = normalizeRichTextForStorage(draftValue);
     if (isControlled) {
-      onChange?.(draftValue);
+      onChange?.(next);
     } else {
-      setInternalValue(draftValue);
+      setInternalValue(next);
       if (hiddenFieldRef.current) {
-        hiddenFieldRef.current.value = draftValue;
+        hiddenFieldRef.current.value = next;
         hiddenFieldRef.current.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }
@@ -120,7 +213,7 @@ export function AdminLongTextField({
   return (
     <AdminFieldShell
       id={unitId}
-      component="AdminLongTextField"
+      component="AdminRichTextField"
       label={label}
       owner={owner}
       help={help}
@@ -147,7 +240,7 @@ export function AdminLongTextField({
       ) : null}
 
       <div
-        data-slot="long-text-preview"
+        data-slot="rich-text-preview"
         className={cn(
           "adm-long-text-preview",
           showError ? "adm-long-text-preview--error" : showWarning ? "adm-long-text-preview--warning" : null,
@@ -156,9 +249,12 @@ export function AdminLongTextField({
         aria-errormessage={showError ? messageId : undefined}
         aria-describedby={!showError && warning ? warningId : undefined}
       >
-        <p className="adm-long-text-preview__copy" data-empty={value ? undefined : "true"}>
-          {value || placeholder}
-        </p>
+        <div
+          className={cn("adm-long-text-preview__copy", "adm-rich-text-preview__copy")}
+          data-empty={empty ? "true" : undefined}
+        >
+          <RichText content={value} emptyFallback={placeholder} />
+        </div>
         <button
           type="button"
           id={controlId}
@@ -185,26 +281,28 @@ export function AdminLongTextField({
         <div>
           <h3 id={titleId} className="adm-title-sm">{plainLabel}</h3>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
-            Edit the complete text here. The form keeps a compact preview.
+            Add links so URLs are clickable. The form keeps a compact preview.
           </p>
         </div>
-        <textarea
-          aria-label={plainLabel}
-          value={draftValue}
-          onChange={(event) => {
-            event.stopPropagation();
-            setDraftValue(event.target.value);
-          }}
-          rows={rows}
-          className={cn("adm-field adm-long-text-editor", editorClassName)}
-        />
+        {open ? (
+          <RichTextModalEditor
+            key={plainLabel}
+            value={value}
+            onChange={setDraftValue}
+            label={plainLabel}
+          />
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] pt-4">
           <span className="text-xs tabular-nums text-[var(--adm-subtle)]">
-            {draftValue.length.toLocaleString()} characters
+            {richTextPlainLength(draftValue).toLocaleString()} characters
           </span>
           <div className="flex flex-wrap justify-end gap-2">
-            <button type="button" className="adm-btn-ghost" onClick={closeEditor}>Cancel</button>
-            <button type="button" className="adm-btn-primary" onClick={applyChanges}>Apply changes</button>
+            <button type="button" className="adm-btn-ghost" onClick={closeEditor}>
+              Cancel
+            </button>
+            <button type="button" className="adm-btn-primary" onClick={applyChanges}>
+              Apply changes
+            </button>
           </div>
         </div>
       </AnimatedModal>

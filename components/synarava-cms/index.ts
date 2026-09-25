@@ -49,6 +49,7 @@ export {
   type AdminCheckboxFieldProps,
 } from "@/components/admin/shared/admin-checkbox-field";
 export { AdminLongTextField, type AdminLongTextFieldProps } from "@/components/admin/shared/admin-long-text-field";
+export { AdminRichTextField, type AdminRichTextFieldProps } from "@/components/admin/shared/admin-rich-text-field";
 
 export {
   AdminCollapsiblePanel,
