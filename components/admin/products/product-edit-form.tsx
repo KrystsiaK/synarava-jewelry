@@ -655,6 +655,12 @@ export function EditProductForm({
                         translationLocales={translationLocales}
                         activeSection={activeSection}
                         activeLocale={activeLocale}
+                        shopifyLinked={Boolean(currentProduct.shopifyProductId)}
+                        shopifySnapshot={currentProduct.shopifySnapshot}
+                        shopifyCategoryName={currentProduct.shopifyCategoryName ?? draft.shopifyCategoryName}
+                        vendor={currentProduct.vendor ?? draft.vendor}
+                        productType={currentProduct.productType ?? draft.productType}
+                        characteristicValues={currentProduct.characteristics}
                       />
                     </div>
 

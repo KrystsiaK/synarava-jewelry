@@ -49,10 +49,10 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   {
     id: "catalog",
     label: "Catalog",
-    shortLabel: "Placement & filters",
+    shortLabel: "Placement & Shopify facts",
     title: "Place it in the catalog",
     description:
-      "Choose the Shopify category, Synarava collection, tags, and product characteristics. These settings power filters and product discovery.",
+      "Choose the Shopify category, Synarava collection, and tags. Product facts (materials, color, weight, origin) come from Shopify after Pull — not a separate Synarava checklist.",
     icon: Shapes,
   },
   {
@@ -79,7 +79,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Materials & craft",
     title: "Explain what makes it special",
     description:
-      "Add dimensions, materials, process, and lookbook content. These details enrich the Synarava product page without replacing Shopify commerce data.",
+      "Synarava-only editorial sections: materials story, process, and lookbook. These enrich the product page without replacing Shopify commerce data.",
     icon: Gem,
   },
   {

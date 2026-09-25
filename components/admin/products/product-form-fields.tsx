@@ -11,8 +11,6 @@ import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-ty
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import {
   AdminCheckboxControl,
-  AdminCheckboxField,
-  AdminCollapsiblePanel,
   AdminFieldShell,
   AdminHelp,
   AdminLongTextField,
@@ -27,8 +25,12 @@ import {
   ShopifyCategoryControl,
   ShopifyCategoryField,
 } from "@/components/admin/products/shopify-category-field";
+import {
+  HiddenCharacteristicPersistFields,
+  ShopifyProductFactsPanel,
+} from "@/components/admin/products/shopify-product-facts";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
-import { PRODUCT_CHARACTERISTICS, PRODUCT_CHARACTERISTIC_GROUPS } from "@/lib/products/characteristics";
+import type { ProductCharacteristicValue } from "@/lib/products/characteristics";
 import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
@@ -41,6 +43,7 @@ import {
   filterCollectionsForProductSelect,
 } from "@/lib/admin/collection-select-options";
 import type { ShopifyCategoryAttributeSelection } from "@/lib/shopify/category-attribute-values";
+import { extractShopifyProductFacts } from "@/lib/shopify/product-facts";
 
 export { OwnershipLabel } from "@/components/synarava-cms";
 
@@ -132,6 +135,12 @@ export function ProductDetailFields({
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   activeSection = "details",
   activeLocale,
+  shopifyLinked = false,
+  shopifySnapshot = null,
+  shopifyCategoryName = "",
+  vendor = "",
+  productType = "",
+  characteristicValues = [],
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   /** Every translation locale's details, keyed by locale code. */
@@ -145,6 +154,12 @@ export function ProductDetailFields({
   activeSection?: ProductEditorSection;
   /** Shared workspace locale from the product form shell. */
   activeLocale: string;
+  shopifyLinked?: boolean;
+  shopifySnapshot?: unknown;
+  shopifyCategoryName?: string;
+  vendor?: string;
+  productType?: string;
+  characteristicValues?: ProductCharacteristicValue[];
 }) {
   const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductDetailsLocaleDraft>>(() => ({
     [SOURCE_LOCALE]: detailsDraftFrom(details),
@@ -152,6 +167,13 @@ export function ProductDetailFields({
   }));
   const draft = draftByLocale[activeLocale] ?? draftByLocale[SOURCE_LOCALE];
   const isEn = activeLocale === SOURCE_LOCALE;
+  const shopifyFacts = extractShopifyProductFacts({
+    snapshot: shopifySnapshot,
+    shopifyCategoryName,
+    vendor,
+    productType,
+    characteristics: characteristicValues,
+  });
 
   function updateField<K extends keyof ProductDetailsLocaleDraft>(key: K, value: ProductDetailsLocaleDraft[K]) {
     setDraftByLocale((prev) => ({ ...prev, [activeLocale]: { ...prev[activeLocale], [key]: value } }));
@@ -191,10 +213,12 @@ export function ProductDetailFields({
         <p className="adm-label-row">
           <span className="adm-section-tag">[ SYNARAVA CMS LAYER ]</span>
           <AdminHelp>
-            Extended content enriches the site without being erased by Shopify catalog pulls.
+            Editorial product-page sections enrich the site. Shopify catalog facts stay under Catalog and are refreshed by Pull.
           </AdminHelp>
         </p>
-        <p className="mt-2 text-xs text-[var(--adm-muted)]">Characteristics are mirrored to Shopify metafields. Editorial photography, materials, process, and lookbook remain managed by Synarava.</p>
+        <p className="mt-2 text-xs text-[var(--adm-muted)]">
+          Materials story, process, and lookbook are Synarava-only. Commerce fields and category attributes come from Shopify.
+        </p>
       </div>
 
       <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
@@ -206,94 +230,10 @@ export function ProductDetailFields({
         </p>
       ) : null}
 
-      <section
-        className="grid gap-4 p-4"
-        style={{ border: "1px solid var(--adm-border)" }}
-        hidden={activeSection !== "catalog"}
-      >
-        <div>
-          <p className="adm-label-row">
-            <span className="adm-label">Characteristics</span>
-            <AdminHelp>
-              Open the groups that apply to this product. Characteristics adapt the product
-              passport and are mirrored to Shopify metafields when supported. Empty fields may
-              also be seeded from Shopify category attributes (Color, Material, Size, …) on Pull.
-            </AdminHelp>
-          </p>
-        </div>
-
-        <p className="text-xs leading-5 text-[var(--adm-muted)]">
-          Open only the characteristic groups that apply to this product. Closed groups stay saved and are still included when you save.
-        </p>
-
-        {PRODUCT_CHARACTERISTIC_GROUPS.map((group) => (
-          <AdminCollapsiblePanel key={group} title={group}>
-            <fieldset className="min-w-0">
-              <legend className="sr-only">{group}</legend>
-              <div className="grid gap-3 md:grid-cols-2">
-                {PRODUCT_CHARACTERISTICS.filter((item) => item.group === group).map((definition) => {
-                  const current = details.characteristics[definition.key] ?? { value: definition.type === "BOOLEAN" ? false : "", certificateUrl: "" };
-                  const name = `characteristic_${definition.key}`;
-                  if (definition.type === "BOOLEAN") {
-                    return (
-                      <AdminCheckboxField
-                        key={definition.key}
-                        name={name}
-                        label={definition.label}
-                        defaultChecked={Boolean(current.value)}
-                      >
-                        {"certificate" in definition ? (
-                          <AdminTextField
-                            name={`${name}_certificate`}
-                            defaultValue={current.certificateUrl}
-                            placeholder="Certificate URL"
-                            type="url"
-                          />
-                        ) : null}
-                      </AdminCheckboxField>
-                    );
-                  }
-                  if ("multiline" in definition && definition.multiline) {
-                    return (
-                      <AdminLongTextField
-                        key={definition.key}
-                        name={name}
-                        label={definition.label}
-                        defaultValue={String(current.value)}
-                        rows={3}
-                        className="col-span-full"
-                      />
-                    );
-                  }
-                  if ("unit" in definition) {
-                    return (
-                      <AdminTextField
-                        key={definition.key}
-                        label={definition.label}
-                        name={name}
-                        defaultValue={String(current.value)}
-                        type={definition.type === "NUMBER" ? "number" : "text"}
-                        step={definition.type === "NUMBER" ? "0.01" : undefined}
-                        endAdornment={definition.unit}
-                      />
-                    );
-                  }
-                  // Remaining defs are TEXT-only (NUMBER always has `unit`, handled above).
-                  return (
-                    <AdminTextField
-                      key={definition.key}
-                      label={definition.label}
-                      name={name}
-                      defaultValue={String(current.value)}
-                      type="text"
-                    />
-                  );
-                })}
-              </div>
-            </fieldset>
-          </AdminCollapsiblePanel>
-        ))}
-      </section>
+      <div hidden={activeSection !== "catalog"} className="grid gap-4">
+        <ShopifyProductFactsPanel facts={shopifyFacts} linked={shopifyLinked} />
+        <HiddenCharacteristicPersistFields characteristics={details.characteristics} />
+      </div>
 
       {/* Materials */}
       <section

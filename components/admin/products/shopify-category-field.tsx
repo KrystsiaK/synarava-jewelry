@@ -309,8 +309,8 @@ export function ShopifyCategoryAttributes() {
       ) : null}
 
       <p className="text-xs text-[var(--adm-muted)]">
-        Matching attributes (Color, Material, Size, …) seed empty Synarava characteristics on Pull.
-        Push still uses Synarava passport metafields — it does not write Shopify taxonomy GIDs.
+        Values filled in Shopify under category attributes appear here after Pull. Synarava product-page
+        sections stay under Product page — they are not a second catalog checklist.
       </p>
     </div>
   );

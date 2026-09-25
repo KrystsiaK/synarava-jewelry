@@ -126,8 +126,8 @@ describe("EditProductForm", () => {
 
     expect(screen.getByLabelText(/Vendor \/ brand/)).toHaveValue("Synarava");
     expect(screen.getByLabelText(/Product type/)).toHaveValue("Necklace");
-    expect(screen.getByText("custom.pearl_grade")).toBeInTheDocument();
-    expect(screen.getByText("AAA")).toBeInTheDocument();
+    expect(screen.getAllByText("custom.pearl_grade").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("AAA").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Inventory by location")).toBeInTheDocument();
     expect(screen.getByText("Location 1")).toBeInTheDocument();
     await act(async () => {});
