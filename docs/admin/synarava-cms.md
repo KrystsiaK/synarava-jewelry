@@ -143,10 +143,12 @@ import { AdminHelp, AdminVideoField } from "@/components/synarava-cms";
   name="homeBeads"
   help={<AdminHelp>First video in the home-page hero rotation.</AdminHelp>}
   currentVideoUrl={videos.homeBeads || null}
+  removeFieldName="remove_homeBeads"
 />
 ```
 
 - Labeled MP4 / WebM picker with **Selected** + **Current** preview panels (and an empty placeholder).
+- Optional `removeFieldName` mirrors image fields: toggle **Remove current video** → hidden `remove_*` = `1` on save.
 - Same shell contract as other fields (`AdminFieldShell` + absolute error/warning band).
 - Embed without the shell: `AdminVideoControl`.
 - Upload MIME is normalized: empty browser `File.type` falls back to `.mp4` / `.webm` extension (`lib/media/video-mime.ts`).

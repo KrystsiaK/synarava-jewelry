@@ -56,4 +56,29 @@ describe("AdminVideoField", () => {
     expect(screen.queryByText("Selected video")).not.toBeInTheDocument();
     expect(screen.getByText("No video uploaded")).toBeInTheDocument();
   });
+
+  it("marks the current video for removal via a hidden flag", async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminVideoField
+        id="home-beads-remove"
+        name="homeBeads"
+        label="Home — beads"
+        currentVideoUrl="/media/uploads/videos/homeBeads/demo.mp4"
+        removeFieldName="remove_homeBeads"
+      />,
+    );
+
+    const removeFlag = document.querySelector('input[name="remove_homeBeads"]') as HTMLInputElement;
+    expect(removeFlag).toHaveAttribute("value", "0");
+
+    await user.click(screen.getByRole("button", { name: "Remove current video" }));
+    expect(removeFlag).toHaveAttribute("value", "1");
+    expect(screen.getByText("Current video will be removed after save")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Undo remove" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Undo remove" }));
+    expect(removeFlag).toHaveAttribute("value", "0");
+    expect(screen.queryByText("Current video will be removed after save")).not.toBeInTheDocument();
+  });
 });

@@ -56,7 +56,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Clear (× on focus, non-empty) | `clearable` (+ `onClear` if controlled) |
 | Select | `AdminSelectField` / `AdminSelectControl` |
 | Storefront path combobox | `AdminHrefField` / `AdminHrefControl` |
-| Site video (MP4/WebM) upload + preview | `AdminVideoField` / `AdminVideoControl` |
+| Site video (MP4/WebM) upload / preview / remove | `AdminVideoField` / `AdminVideoControl` (`removeFieldName`) |
 | Checkbox + optional follow-on | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
 | Long copy (preview + Edit modal) | `AdminLongTextField` |

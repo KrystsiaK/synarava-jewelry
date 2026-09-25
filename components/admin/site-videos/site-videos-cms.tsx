@@ -42,6 +42,10 @@ const VIDEO_FIELDS: Array<{
   },
 ];
 
+function removeFieldName(slot: keyof SiteVideos) {
+  return `remove_${slot}`;
+}
+
 export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -55,28 +59,42 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
 
     try {
       const body = new FormData();
-      let selected = 0;
+      let uploads = 0;
+      let removals = 0;
+
       for (const { slot } of VIDEO_FIELDS) {
         const file = formData.get(slot);
         if (file instanceof File && file.size > 0) {
           body.append(slot, file, file.name);
-          selected += 1;
+          uploads += 1;
+          continue;
+        }
+        if (formData.get(removeFieldName(slot)) === "1" && videos[slot]) {
+          body.append(removeFieldName(slot), "1");
+          removals += 1;
         }
       }
-      if (selected === 0) throw new Error("Choose at least one MP4 or WebM video to upload.");
+
+      if (uploads === 0 && removals === 0) {
+        throw new Error("Choose a video to upload, or mark a current video for removal.");
+      }
 
       const response = await fetch("/admin/api/videos", { method: "POST", body });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || "Video upload failed.");
+      if (!response.ok) throw new Error(result.error || "Video update failed.");
 
       formRef.current?.reset();
+      const parts = [
+        result.uploaded ? `${result.uploaded} uploaded` : null,
+        result.removed ? `${result.removed} removed` : null,
+      ].filter(Boolean);
       pushToast({
-        message: `${result.count} video${result.count === 1 ? "" : "s"} uploaded and published.`,
+        message: parts.length > 0 ? `Videos updated (${parts.join(", ")}).` : "Videos updated.",
         tone: "success",
       });
       refreshPreservingScroll(router);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Video upload failed.";
+      const message = error instanceof Error ? error.message : "Video update failed.";
       setState({ error: message });
       pushToast({ message, tone: "error" });
     } finally {
@@ -91,7 +109,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
           <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
           <h2 className="adm-title-sm">Site video</h2>
           <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-            Upload MP4 or WebM (up to 100 MB each). Files go through the app into Railway Bucket — no bucket CORS setup. When a slot is set, it replaces the matching static hero image on the storefront after cache revalidation.
+            Upload or remove MP4 / WebM (up to 100 MB each). Files go through the app into Railway Bucket. When a slot is set, it replaces the matching static hero image on the storefront after cache revalidation.
           </p>
         </div>
       </AdminPanelHeader>
@@ -112,6 +130,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
                 label={label}
                 help={<AdminHelp>{description}</AdminHelp>}
                 currentVideoUrl={videos[slot] || null}
+                removeFieldName={removeFieldName(slot)}
                 disabled={isPending}
               />
             </div>
@@ -119,7 +138,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
 
           <div className="flex justify-end border-t pt-5" style={{ borderColor: "var(--adm-border)" }}>
             <button type="submit" className="adm-btn-primary" disabled={isPending}>
-              {isPending ? "Uploading…" : "Upload selected videos"}
+              {isPending ? "Saving…" : "Save video changes"}
             </button>
           </div>
         </form>

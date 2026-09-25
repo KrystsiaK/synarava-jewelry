@@ -284,11 +284,12 @@ mock `/admin/api/videos` rather than moving real megabytes.
 |----|----------|------|------|-------|-------|
 | VID-01 | Valid MP4 <100 MB uploads through the app | positive | P1 | **E2E** | |
 | VID-02 | Valid WebM uploads | positive | P2 | **E2E** | |
-| VID-03 | Multiple slots in one submit report "N videos uploaded" | positive | P2 | **E2E** | |
-| VID-04 | No file selected → "Choose at least one MP4 or WebM video to upload." | negative | P2 | **render** | Pure client check before any network call. |
+| VID-03 | Multiple slots in one submit report uploaded count | positive | P2 | **E2E** | |
+| VID-04 | No file and no remove → removal/upload prompt | negative | P2 | **render** | Pure client check before any network call. |
 | VID-05 | Unsupported format (`.mov`) rejected **server-side** | negative | P2 | **action** | Test MIME/extension resolution, not the picker's `accept` attribute. |
 | VID-06 | File >100 MB rejected | negative | P2 | **action** | Fabricate `size` on a File; don't generate 100 MB. |
 | VID-07 | Replacing a slot updates preview and stored URL | positive | P2 | **E2E** | |
+| VID-08 | Remove current video clears slot and restores hero image | positive | P1 | **E2E** | Toggle remove → Save; assert empty slot + storefront image. |
 
 ## 13. Issues / QA scan (`e2e/admin-issues.spec.ts`)
 

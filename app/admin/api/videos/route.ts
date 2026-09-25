@@ -30,6 +30,10 @@ function sanitizeBaseName(filename: string) {
     .slice(0, 48) || "site-video";
 }
 
+function removeFlagName(slot: SiteVideoSlot) {
+  return `remove_${slot}`;
+}
+
 function revalidateStorefront() {
   for (const route of ["/", "/shop", "/collections", "/about"]) {
     revalidateStorefrontPath(route);
@@ -39,21 +43,30 @@ function revalidateStorefront() {
   revalidateStorefrontTemplate("/products/[slug]");
 }
 
-/** Multipart upload through the app → S3 (no browser→bucket CORS). */
+/** Multipart upload / clear through the app → site-videos setting (+ S3 for new files). */
 export async function POST(request: Request) {
   const session = await getCurrentAdminSession();
   if (!session) return Response.json({ error: "Admin session expired." }, { status: 401 });
 
   try {
     const formData = await request.formData();
-    const selected = Object.keys(siteVideoSlots).flatMap((slot) => {
-      if (!isVideoSlot(slot)) return [];
-      const file = formData.get(slot);
-      return file instanceof File && file.size > 0 ? [{ slot, file }] : [];
-    });
+    const uploads: Array<{ slot: SiteVideoSlot; file: File }> = [];
+    const removals: SiteVideoSlot[] = [];
 
-    if (selected.length === 0) {
-      throw new Error("Choose at least one MP4 or WebM video to upload.");
+    for (const slot of Object.keys(siteVideoSlots)) {
+      if (!isVideoSlot(slot)) continue;
+      const file = formData.get(slot);
+      if (file instanceof File && file.size > 0) {
+        uploads.push({ slot, file });
+        continue;
+      }
+      if (formData.get(removeFlagName(slot)) === "1") {
+        removals.push(slot);
+      }
+    }
+
+    if (uploads.length === 0 && removals.length === 0) {
+      throw new Error("Choose a video to upload, or mark a current video for removal.");
     }
 
     const prepared: Array<{
@@ -63,7 +76,8 @@ export async function POST(request: Request) {
       mimeType: string;
       sizeBytes: number;
     }> = [];
-    for (const { slot, file } of selected) {
+
+    for (const { slot, file } of uploads) {
       if (file.size > MAX_VIDEO_BYTES) {
         throw new Error(`“${file.name}” must be 100 MB or smaller.`);
       }
@@ -99,6 +113,10 @@ export async function POST(request: Request) {
       : {};
 
     await db.$transaction(async (tx) => {
+      for (const slot of removals) {
+        current[slot] = "";
+      }
+
       for (const upload of prepared) {
         current[upload.slot] = getS3PublicUrl(upload.key);
         await tx.mediaAsset.upsert({
@@ -126,10 +144,10 @@ export async function POST(request: Request) {
     });
 
     revalidateStorefront();
-    return Response.json({ count: prepared.length });
+    return Response.json({ uploaded: prepared.length, removed: removals.length });
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "Video upload failed." },
+      { error: error instanceof Error ? error.message : "Video update failed." },
       { status: 400 },
     );
   }

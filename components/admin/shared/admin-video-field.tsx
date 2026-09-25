@@ -36,6 +36,8 @@ export type AdminVideoControlProps = {
   currentVideoUrl?: string | null;
   currentVideoLabel?: string;
   emptyLabel?: string;
+  removeFieldName?: string;
+  removeLabel?: string;
   error?: string;
   warning?: string;
   invalid?: boolean;
@@ -59,6 +61,8 @@ export function AdminVideoControl({
   currentVideoUrl,
   currentVideoLabel = "Current video",
   emptyLabel = "No video uploaded",
+  removeFieldName,
+  removeLabel = "Remove current video",
   error,
   warning,
   invalid = false,
@@ -71,6 +75,7 @@ export function AdminVideoControl({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [brokenCurrentUrl, setBrokenCurrentUrl] = useState("");
+  const [removeCurrentVideo, setRemoveCurrentVideo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef("");
   const showError = Boolean(error) || invalid || ariaInvalid === true;
@@ -88,6 +93,7 @@ export function AdminVideoControl({
     }
 
     setSelectedFile(file);
+    if (file) setRemoveCurrentVideo(false);
     onFileChange?.(file);
 
     if (!file || !isVideoFile(file)) {
@@ -103,6 +109,11 @@ export function AdminVideoControl({
   function clearSelectedFile() {
     updateSelectedFile(null);
     if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function toggleRemoveCurrentVideo() {
+    setRemoveCurrentVideo((current) => !current);
+    clearSelectedFile();
   }
 
   const currentBroken = Boolean(currentVideoUrl && brokenCurrentUrl === currentVideoUrl);
@@ -166,29 +177,65 @@ export function AdminVideoControl({
         </div>
       ) : null}
 
+      {removeFieldName ? (
+        <input
+          type="hidden"
+          name={removeFieldName}
+          value={removeCurrentVideo ? "1" : "0"}
+        />
+      ) : null}
+
       {/* Hide Current while a replacement is selected — after save, Selected clears and Current shows the new URL. */}
       {currentVideoUrl && !selectedFile ? (
         <div
           className="grid gap-3 p-4"
           style={{
-            border: currentBroken
-              ? "1px solid rgba(255, 93, 93, 0.42)"
-              : "1px solid var(--adm-border)",
+            border: removeCurrentVideo
+              ? "1px solid rgba(216, 182, 106, 0.34)"
+              : currentBroken
+                ? "1px solid rgba(255, 93, 93, 0.42)"
+                : "1px solid var(--adm-border)",
             borderRadius: "8px",
+            opacity: removeCurrentVideo ? 0.72 : 1,
           }}
         >
           <div className="flex items-center justify-between gap-3">
             <p className="adm-label">{currentVideoLabel}</p>
-            {currentBroken ? (
-              <span
-                className="text-[0.62rem] font-bold uppercase tracking-[0.08em]"
-                style={{ color: "var(--adm-danger)" }}
-              >
-                Broken
-              </span>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {currentBroken ? (
+                <span
+                  className="text-[0.62rem] font-bold uppercase tracking-[0.08em]"
+                  style={{ color: "var(--adm-danger)" }}
+                >
+                  Broken
+                </span>
+              ) : null}
+              {removeFieldName ? (
+                <button
+                  type="button"
+                  className={removeCurrentVideo ? "adm-btn-primary h-8 min-h-8 px-3" : "adm-btn-ghost h-8 min-h-8 px-3"}
+                  disabled={disabled}
+                  onClick={toggleRemoveCurrentVideo}
+                >
+                  {removeCurrentVideo ? "Undo remove" : removeLabel}
+                </button>
+              ) : null}
+            </div>
           </div>
-          {currentBroken ? (
+          {removeCurrentVideo ? (
+            <div
+              className={[
+                previewClass,
+                "grid place-items-center p-4 text-center text-xs font-bold uppercase tracking-[0.08em]",
+              ].join(" ")}
+              style={{
+                background: "rgba(216, 182, 106, 0.08)",
+                color: "var(--adm-accent)",
+              }}
+            >
+              Current video will be removed after save
+            </div>
+          ) : currentBroken ? (
             <div
               className={[
                 previewClass,
