@@ -63,7 +63,9 @@ describe("CreateProductForm", () => {
     expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     expect(screen.getByRole("spinbutton", { name: /Price/ })).toBeInTheDocument();
-    expect(screen.getByRole("spinbutton", { name: /Compare-at price/ })).toBeInTheDocument();
+    expect(screen.getByText("Compare-at price")).toBeInTheDocument();
+    expect(screen.getByText("Not set")).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: /Compare-at price/ })).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: /Charge tax on this product/ })).toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: /^Cost/ })).toBeInTheDocument();
     expect(screen.getByText("Product gallery")).toBeInTheDocument();

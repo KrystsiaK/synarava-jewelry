@@ -121,8 +121,9 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
 3. **Уровень секции**: табы визуально разделены на две группы —
    **Shopify** (Essentials, Price, Catalog, Content, Media, Sync) и **Synarava**
    (Product page и будущие CMS-only секции). Вкладка **Price** зеркалит карточку
-   Price в Shopify Admin: цена, compare-at, налог (`taxable`), cost; Profit/Margin
-   считаются локально. Unit price (г/кг) — следующий шаг. В блоке описания секции
+   Price в Shopify Admin: цена, налог (`taxable`), cost; **compare-at** пока
+   только чтение (правка в Shopify Admin — см. [tech debt TD-01](./tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path));
+   Profit/Margin считаются локально. Unit price (г/кг) — следующий шаг. В блоке описания секции
    (вместо декоративной картинки) — sync control, scoped на
    текущую секцию × язык (shared-секции → EN/shared). Check → список
    конфликтов → Apply по полям. Gallery (Media) и Push/Pull на вкладке

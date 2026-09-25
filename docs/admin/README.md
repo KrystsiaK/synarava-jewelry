@@ -10,7 +10,8 @@
 | Документ | Кому | Зачем |
 |---|---|---|
 | [`admin-guide-ru.md`](./admin-guide-ru.md) | всем | Как устроена и как ведёт себя админка. Справочник поведения: разделы, поля, правила публикации, синхронизация с Shopify. Источник истины для ожидаемых результатов в тест-кейсах. |
-| [`synarava-cms.md`](./synarava-cms.md) | разработчик / агент | Контракт библиотеки **synarava-cms** (`@/components/synarava-cms`: Text / Select / Checkbox / shell). Обязателен при любой правке UI форм в `components/admin/`. |
+| [`synarava-cms.md`](./synarava-cms.md) | разработчик / агент | Контракт библиотеки **synarava-cms** (`@/components/synarava-cms`: Text / Readonly / Select / Checkbox / shell). Обязателен при любой правке UI форм в `components/admin/`. |
+| [`tech-debt.md`](./tech-debt.md) | разработчик / продукт | Открытый техдолг админки (например compare-at legal / edit path). |
 | [`infrastructure-audit.md`](./infrastructure-audit.md) | разработчик / ops | Read-only аудит Postgres + Railway Bucket (медиа, целостность, размеры таблиц). Очистка — только после явного подтверждения. |
 | [`test-plan-ru.md`](./test-plan-ru.md) | тимлид, тестировщик | План автоматизации: что уже есть, чего не хватает, фазы работ, решения по инфраструктуре и рискам. |
 | [`test-cases-manual-ru.md`](./test-cases-manual-ru.md) | ручной тестировщик | Все кейсы с шагами и ожидаемым результатом. Помечено, что уже закрыто автотестами (можно пропустить) и что добавлено в последней ревизии. |

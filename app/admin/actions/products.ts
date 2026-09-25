@@ -571,10 +571,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const existingImageUrl = removeImage ? "" : parsed.data.existingImageUrl;
   const price = Number(parsed.data.price || "0");
   const stockOnHand = Math.max(0, Math.trunc(Number(parsed.data.stockOnHand || "0")));
-  const compareAtRaw = Number(parsed.data.compareAt || "0");
-  const compareAtCents = parsed.data.compareAt.trim() === "" || !Number.isFinite(compareAtRaw) || compareAtRaw <= 0
-    ? null
-    : Math.round(compareAtRaw * 100);
   const costRaw = Number(parsed.data.cost || "0");
   const costCents = parsed.data.cost.trim() === "" || !Number.isFinite(costRaw) || costRaw < 0
     ? null
@@ -621,6 +617,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
 
   const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
+  // Compare-at is Synarava read-only (edit in Shopify). Preserve last pull; ignore FormData.
+  const compareAtCents = before?.variants[0]?.compareAtCents ?? null;
   const translationFields = translationLocales.map(({ code, label }) => ({
     code, label, fields: readProductTranslationFields(formData, code),
   }));

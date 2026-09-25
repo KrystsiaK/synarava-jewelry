@@ -4,9 +4,10 @@ description: >-
   synarava-cms — Synarava admin shared form library (AdminTextField,
   AdminSelectField, AdminHrefField/Control, AdminVideoField/Control,
   AdminCheckboxField/Control, AdminLongTextField, AdminRichTextField,
-  AdminCollapsiblePanel, AdminPanel, AdminNavTree, AdminSectionTabs,
-  AdminEntityList, AdminListWorkspace, AdminIconButton, AdminSignalChip, AdminSortChips,
-  AdminStatusBadge, AdminOrderedList, AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
+  AdminReadonlyField, AdminCollapsiblePanel, AdminPanel, AdminNavTree,
+  AdminSectionTabs, AdminEntityList, AdminListWorkspace, AdminIconButton,
+  AdminSignalChip, AdminSortChips, AdminStatusBadge, AdminOrderedList,
+  AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
   Use whenever editing admin UI, product/collection/page forms, CMS fields,
   validation chrome, labels, adornments, clearable inputs, shared/common
   controls, library migration, or anything under components/admin/.
@@ -37,7 +38,7 @@ When the user says **общий компонент**, **shared control**, or **l
 
 ## Hard rules
 
-1. **Reuse synarava-cms.** New admin single-line text, select, checkbox, or site-video upload must come from `@/components/synarava-cms`. Raw `<input>` / `<select>` / `<textarea className="adm-field">` only for hidden mirrors, still-image file inputs (`ImageFileField`), or controls not yet in the library.
+1. **Reuse synarava-cms.** New admin single-line text, select, checkbox, site-video upload, or read-only label+value display must come from `@/components/synarava-cms`. Raw `<input>` / `<select>` / `<textarea className="adm-field">` only for hidden mirrors, still-image file inputs (`ImageFileField`), or controls not yet in the library.
 2. **One stack.** Extend `AdminFieldShell` / existing pieces under `admin/shared`, re-export from `components/synarava-cms`. Do not create a parallel field system.
 3. **One chrome per control type.** No dual DOM/CSS paths that change the outer field look based on optional props.
 4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). **Warnings** use the same band (`.adm-field-warning`, orange) via the `warning` prop — error wins if both are set. Every unit **always** reserves a one-line message band so siblings never jump; long messages ellipsis + tooltip/`title`. No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot. **Tall media** (`ImageFileField`): keep `AdminFieldIssue` in normal flow (not a direct unit child) so it does not paint over the preview path. **Scroll to field:** `scrollAdminFieldIntoView` (`block: "start"` + scroll-margin) — never `block: "center"` under sticky chrome.
@@ -53,7 +54,7 @@ When editing `/admin/products/[id]`:
 - **Shopify skeleton first** — every supported Shopify product/variant field must be editable/visible and verified field by field (pull/push parity with Shopify Admin).
 - **Synarava sections second** — CMS-only settings (materials, craft, lookbook, …) live in a separate tab cluster.
 - Section tabs use `AdminSectionTabs` with `groups`: `{ id: "shopify", label: "Shopify" }` and `{ id: "synarava", label: "Synarava" }`. Do not flatten them into one unlabeled strip.
-- **Price tab** (Shopify group): `price`, `compareAt`, `taxable`, `cost` (`InventoryItem.unitCost`). Profit/margin are UI-only. Unit price measurement is deferred.
+- **Price tab** (Shopify group): editable `price`, `taxable`, `cost` (`InventoryItem.unitCost`). **Compare-at** is read-only (`AdminReadonlyField`) — edit in Shopify until [TD-01](../../../docs/admin/tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path). Profit/margin are UI-only. Unit price measurement is deferred.
 - Ownership detail: [`docs/product-data-ownership.md`](../../../docs/product-data-ownership.md).
 
 ## Component map
@@ -61,6 +62,7 @@ When editing `/admin/products/[id]`:
 | Need | Use |
 |------|-----|
 | Labeled text input | `AdminTextField` |
+| Label + value only (no input) | `AdminReadonlyField` |
 | Input without shell (combobox, embed) | `AdminTextControl` |
 | Unit / affix inside one border | `endAdornment` / `startAdornment` |
 | Clear (× on focus, non-empty) | `clearable` (+ `onClear` if controlled) |

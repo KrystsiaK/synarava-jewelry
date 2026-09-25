@@ -22,6 +22,7 @@ two visual variants remain. Agent skill encodes this contract.
 |--------|------|
 | `AdminFieldShell` | Label + owner + help + absolute error/`issue` (`.adm-field-unit`) |
 | `AdminTextField` / `AdminTextControl` | Labeled text / embeddable control |
+| `AdminReadonlyField` | Label + value only (no input); synced or derived facts |
 | `AdminSelectField` / `AdminSelectControl` | Select / embeddable select |
 | `AdminHrefField` / `AdminHrefControl` | Segmented storefront path combobox (routes / pages / collections / products) |
 | `AdminVideoField` / `AdminVideoControl` | Site video (MP4/WebM) upload + current/selected preview |
@@ -96,6 +97,25 @@ import { AdminTextField } from "@/components/synarava-cms";
 - Embed / combobox: `AdminTextControl` (same group chrome; optional `clearable`).
 - Product single-line fields consume `AdminTextField` / `AdminTextControl` via
   `@/components/synarava-cms`. Story: `synarava-cms/AdminTextField`.
+
+### Readonly (label + value)
+
+```tsx
+import { AdminHelp, AdminReadonlyField } from "@/components/synarava-cms";
+
+<AdminReadonlyField
+  label="Compare-at price"
+  owner="Shopify"
+  value="€148.00"
+  emptyLabel="Not set"
+  help={<AdminHelp>Edit in Shopify Admin.</AdminHelp>}
+/>
+```
+
+- **No input chrome** — label row (owner / help) + typographic value only.
+- Empty / null / `""` → `emptyLabel` (default `—`) with muted empty styling.
+- Use for Shopify-synced facts edited elsewhere, or derived UI-only metrics
+  (Profit / Margin). Story: `synarava-cms/AdminReadonlyField`.
 
 ### Select
 

@@ -62,7 +62,8 @@ test.describe("Admin products CRUD", () => {
 
     await page.getByRole("tab", { name: /Price Sell/i }).click();
     await expect(page.getByRole("spinbutton", { name: /Price/ })).toBeVisible();
-    await expect(page.getByRole("spinbutton", { name: /Compare-at price/ })).toBeVisible();
+    await expect(page.getByText("Compare-at price")).toBeVisible();
+    await expect(page.getByRole("spinbutton", { name: /Compare-at price/ })).toHaveCount(0);
     await expect(page.getByRole("checkbox", { name: /Charge tax on this product/ })).toBeVisible();
     await expect(page.getByRole("spinbutton", { name: /^Cost/ })).toBeVisible();
 

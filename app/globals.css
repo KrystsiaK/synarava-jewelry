@@ -4779,6 +4779,34 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   border-left-color: var(--adm-border);
 }
 
+/* Read-only fact: label + value, no input chrome (synced or derived values). */
+.adm-readonly__label {
+  min-width: 0;
+}
+
+.adm-readonly__value {
+  margin: 0.4rem 0 0;
+  padding: 0.15rem 0 0.2rem;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--adm-cool) 22%, var(--adm-border));
+  background: transparent;
+  color: var(--adm-ink);
+  font-family: var(--font-sans), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.adm-readonly__value[data-empty="true"] {
+  border-bottom-color: color-mix(in srgb, var(--adm-cool) 12%, var(--adm-border));
+  color: var(--adm-subtle);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
 /* Checkbox — square + label only. No outer field/card chrome. */
 .adm-check {
   display: inline-flex;

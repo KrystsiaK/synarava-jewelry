@@ -6,6 +6,7 @@ import {
   AdminCheckboxControl,
   AdminCollapsiblePanel,
   AdminHelp,
+  AdminReadonlyField,
   AdminTextField,
   type AdminFormValidation,
 } from "@/components/synarava-cms";
@@ -39,9 +40,16 @@ function formatMargin(price: number | null, cost: number | null): string {
   return `${margin.toFixed(1)}%`;
 }
 
+function formatCompareAtDisplay(raw: string): string | null {
+  const amount = parseMoneyInput(raw);
+  if (amount == null || amount <= 0) return null;
+  return formatMoney(amount);
+}
+
 /**
- * Shopify Price card projection: price, compare-at, taxable, cost.
+ * Shopify Price card projection: price, compare-at (read-only), taxable, cost.
  * Profit / margin are local calculations (not Shopify fields).
+ * Compare-at is edited only in Shopify Admin until legal display rules are settled.
  */
 export function ProductPriceFields({
   draft,
@@ -63,6 +71,8 @@ export function ProductPriceFields({
   const priceAmount = parseMoneyInput(price);
   const costAmount = parseMoneyInput(cost);
   const profit = priceAmount != null && costAmount != null ? priceAmount - costAmount : null;
+  const marginLabel = formatMargin(priceAmount, costAmount);
+  const marginDisplay = marginLabel === "—" ? null : marginLabel;
 
   return (
     <div className="grid gap-5" data-component="ProductPriceFields">
@@ -89,19 +99,16 @@ export function ProductPriceFields({
 
       <AdminCollapsiblePanel title="Additional display prices" defaultOpen>
         <div className="grid gap-4">
-          <AdminTextField
+          <AdminReadonlyField
             label="Compare-at price"
             owner="Shopify"
-            name="compareAt"
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            startAdornment="€"
-            defaultValue={draft.compareAt}
+            value={formatCompareAtDisplay(draft.compareAt)}
+            emptyLabel="Not set"
             help={(
               <AdminHelp label="Compare-at guidance">
-                Shown as the struck-through original price when higher than Price. Leave empty or 0 to clear in Shopify.
+                Struck-through original price when higher than Price. Synarava shows
+                the Shopify value only — edit compare-at in Shopify Admin. Rules for
+                lawful discount/reference pricing are still being confirmed.
               </AdminHelp>
             )}
           />
@@ -136,14 +143,24 @@ export function ProductPriceFields({
             </AdminHelp>
           )}
         />
-        <div className="adm-field-unit">
-          <p className="adm-label">Profit</p>
-          <p className="mt-2 text-sm tabular-nums text-[var(--adm-ink)]">{formatMoney(profit)}</p>
-        </div>
-        <div className="adm-field-unit">
-          <p className="adm-label">Margin</p>
-          <p className="mt-2 text-sm tabular-nums text-[var(--adm-ink)]">{formatMargin(priceAmount, costAmount)}</p>
-        </div>
+        <AdminReadonlyField
+          label="Profit"
+          value={profit == null ? null : formatMoney(profit)}
+          help={(
+            <AdminHelp label="Profit guidance">
+              Price minus Cost. Local calculation only — not stored in Shopify or Synarava.
+            </AdminHelp>
+          )}
+        />
+        <AdminReadonlyField
+          label="Margin"
+          value={marginDisplay}
+          help={(
+            <AdminHelp label="Margin guidance">
+              Profit as a percent of Price. Local calculation only — not stored.
+            </AdminHelp>
+          )}
+        />
       </div>
     </div>
   );

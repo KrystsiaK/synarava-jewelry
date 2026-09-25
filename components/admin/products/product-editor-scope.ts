@@ -79,7 +79,8 @@ const ESSENTIALS_SHARED = [
   "name", "slug", "sku", "stockOnHand", "vendor", "productType", "seriesLabel",
 ];
 const ESSENTIALS_LOCALE = ["title", "localizedHandle"];
-const PRICE_SHARED = ["price", "compareAt", "taxable", "cost"];
+/** compareAt is Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
+const PRICE_SHARED = ["price", "taxable", "cost"];
 const CONTENT_LOCALE = [
   "shortDescription", "description", "seoTitle", "seoDescription",
   "materialLine", "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2", "reviewed",

@@ -26,7 +26,7 @@ describe("product-editor-scope", () => {
     expect(fieldBelongsToBranch("ptTitle", "essentials", "en")).toBe(false);
     expect(fieldBelongsToBranch("sku", "essentials", "pt")).toBe(true);
     expect(fieldBelongsToBranch("price", "price", "en")).toBe(true);
-    expect(fieldBelongsToBranch("compareAt", "price", "en")).toBe(true);
+    expect(fieldBelongsToBranch("compareAt", "price", "en")).toBe(false);
     expect(fieldBelongsToBranch("taxable", "price", "en")).toBe(true);
     expect(fieldBelongsToBranch("cost", "price", "en")).toBe(true);
     expect(fieldBelongsToBranch("price", "essentials", "en")).toBe(false);
@@ -114,7 +114,6 @@ describe("product-editor-scope", () => {
     baseline.set("slug", "saved-name");
     baseline.set("sku", "SKU-1");
     baseline.set("price", "10");
-    baseline.set("compareAt", "");
     baseline.set("cost", "");
     baseline.set("taxable", "1");
     baseline.set("stockOnHand", "1");
@@ -126,7 +125,6 @@ describe("product-editor-scope", () => {
     current.set("slug", "saved-name");
     current.set("sku", "SKU-1");
     current.set("price", "25.50");
-    current.set("compareAt", "30");
     current.set("cost", "8");
     current.set("stockOnHand", "1");
     current.set("workflowState", "DRAFT");
@@ -140,7 +138,6 @@ describe("product-editor-scope", () => {
     });
 
     expect(scoped.get("price")).toBe("25.50");
-    expect(scoped.get("compareAt")).toBe("30");
     expect(scoped.get("cost")).toBe("8");
     expect(scoped.get("taxable")).toBe("0");
     expect(scoped.get("name")).toBe("Saved Name");
