@@ -21,20 +21,25 @@ async function resolveShopifyLocale(registryCode: string): Promise<string | null
   return locales.find((locale) => !locale.isDefault && locale.code === registryCode)?.shopifyLocale ?? null;
 }
 
+async function lastSuccessfulFullCheckAt(): Promise<string | null> {
+  const rows = await db.$queryRaw<Array<{ completedAt: Date }>>(Prisma.sql`
+    SELECT "completedAt"
+    FROM "ShopifyReconcileRun"
+    WHERE "status" = 'SUCCEEDED' AND "scope" IS NULL AND "trigger" IN ('AUTO', 'MANUAL')
+    ORDER BY "completedAt" DESC
+    LIMIT 1
+  `);
+  return rows[0]?.completedAt.toISOString() ?? null;
+}
+
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
-  const [commerceProducts, differences, presenceDifferences, locales, run, lastSuccessfulRuns, recentlyUpdatedProducts] = await Promise.all([
+  const [commerceProducts, differences, presenceDifferences, locales, run, checkedAt, recentlyUpdatedProducts] = await Promise.all([
     db.product.findMany({ where: { syncStatus: "CONFLICT" }, select: { id: true } }),
     getLatestReconcileDifferences(),
     getLatestCatalogPresenceDifferences(),
     getStorefrontLocales(),
     getLatestReconcileRun(),
-    db.$queryRaw<Array<{ completedAt: Date }>>(Prisma.sql`
-      SELECT "completedAt"
-      FROM "ShopifyReconcileRun"
-      WHERE "status" = 'SUCCEEDED' AND "scope" IS NULL AND "trigger" IN ('AUTO', 'MANUAL')
-      ORDER BY "completedAt" DESC
-      LIMIT 1
-    `),
+    lastSuccessfulFullCheckAt(),
     adminUsername ? listUnseenIncomingProductUpdates(adminUsername) : Promise.resolve([]),
   ]);
 
@@ -44,10 +49,34 @@ export async function getCatalogConflictSignals(adminUsername?: string): Promise
     presenceDifferences,
     locales,
     run,
-    lastSuccessfulFullCheckAt: lastSuccessfulRuns[0]?.completedAt.toISOString() ?? null,
+    lastSuccessfulFullCheckAt: checkedAt,
     connected: hasShopifyAdminConfig(),
     recentlyUpdatedProducts,
     now: new Date(),
+    rootEntityType: "PRODUCT",
+  });
+}
+
+/** Same signal shape as products; `products` map holds collection IDs (translation conflicts only). */
+export async function getCollectionConflictSignals(): Promise<CatalogConflictSignals> {
+  const [differences, locales, run, checkedAt] = await Promise.all([
+    getLatestReconcileDifferences(),
+    getStorefrontLocales(),
+    getLatestReconcileRun(),
+    lastSuccessfulFullCheckAt(),
+  ]);
+
+  return buildCatalogConflictSignals({
+    commerceProductIds: [],
+    differences,
+    presenceDifferences: [],
+    locales,
+    run,
+    lastSuccessfulFullCheckAt: checkedAt,
+    connected: hasShopifyAdminConfig(),
+    recentlyUpdatedProducts: [],
+    now: new Date(),
+    rootEntityType: "COLLECTION",
   });
 }
 
@@ -202,5 +231,98 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
   return {
     signals,
     warning: warnings.length > 0 ? warnings.join(" ") : undefined,
+  };
+}
+
+/**
+ * Scoped conflict check for one collection (optional locale). Does not sweep
+ * products or other entity types — translation reconcile only.
+ */
+export async function runCollectionConflictCheck({
+  collectionId,
+  locale,
+  requestedBy,
+}: {
+  collectionId: string;
+  locale?: string;
+  requestedBy: string;
+}): Promise<{
+  signals: CatalogConflictSignals;
+  warning?: string;
+}> {
+  const shopifyLocale = locale ? await resolveShopifyLocale(locale) : null;
+  if (locale && !shopifyLocale) {
+    return {
+      signals: await getCollectionConflictSignals(),
+      warning: `Locale ${locale} is not published in Shopify Markets.`,
+    };
+  }
+
+  const translationRun = await runTranslationReconciliation({
+    trigger: "LOCALE",
+    requestedBy,
+    scope: {
+      entityType: "COLLECTION",
+      entityId: collectionId,
+      ...(shopifyLocale ? { locale: shopifyLocale } : {}),
+    },
+  });
+
+  const [differences, locales] = await Promise.all([
+    getLatestReconcileDifferences(),
+    getStorefrontLocales(),
+  ]);
+
+  const signals = buildCatalogConflictSignals({
+    commerceProductIds: [],
+    differences,
+    presenceDifferences: [],
+    locales,
+    run: translationRun.run,
+    lastSuccessfulFullCheckAt: translationRun.run?.status === "SUCCEEDED" ? translationRun.run.completedAt : null,
+    connected: hasShopifyAdminConfig(),
+    recentlyUpdatedProducts: [],
+    now: new Date(),
+    rootEntityType: "COLLECTION",
+  });
+
+  return {
+    signals,
+    warning: translationRun.run?.error ?? undefined,
+  };
+}
+
+/** Full collection translation conflict sweep (no product commerce inspection). */
+export async function runCollectionsConflictCheck(requestedBy: string): Promise<{
+  signals: CatalogConflictSignals;
+  warning?: string;
+}> {
+  const translationRun = await runTranslationReconciliation({
+    trigger: "MANUAL",
+    requestedBy,
+    scope: { entityType: "COLLECTION" },
+  });
+
+  const [differences, locales] = await Promise.all([
+    getLatestReconcileDifferences(),
+    getStorefrontLocales(),
+  ]);
+  const completedAt = translationRun.run?.status === "SUCCEEDED" ? translationRun.run.completedAt : null;
+  const signals = buildCatalogConflictSignals({
+    commerceProductIds: [],
+    differences,
+    presenceDifferences: [],
+    locales,
+    run: translationRun.run,
+    lastSuccessfulFullCheckAt: completedAt,
+    connected: hasShopifyAdminConfig(),
+    recentlyUpdatedProducts: [],
+    now: new Date(),
+    rootEntityType: "COLLECTION",
+  });
+
+  return {
+    signals,
+    warning: translationRun.run?.error ?? undefined,
   };
 }

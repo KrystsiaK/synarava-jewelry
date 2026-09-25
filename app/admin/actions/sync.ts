@@ -31,8 +31,15 @@ import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-r
 import { env } from "@/lib/env";
 import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
-import { runCatalogConflictCheck, runProductConflictCheck, getCatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals-server";
+import { runCatalogConflictCheck, runProductConflictCheck, getCatalogConflictSignals, getCollectionConflictSignals, runCollectionConflictCheck, runCollectionsConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import { getProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
+import { getCollectionCatalogConflict } from "@/lib/shopify/collection-conflict";
+import {
+  applyCollectionConflictResolution,
+  previewCollectionConflictResolution,
+  type CollectionConflictApplyEntryInput,
+  type CollectionConflictApplyScope,
+} from "@/lib/shopify/collection-conflict-apply";
 import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
 
 /** One sentence naming every registered translation locale Shopify hasn't enabled/published yet, or "" if none. */
@@ -168,6 +175,123 @@ export async function loadProductCatalogConflictAction(productId: string) {
     return { conflict: await getProductCatalogConflict(productId) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not load this product's conflict details." };
+  }
+}
+
+export async function checkCollectionConflictsAction() {
+  const session = await requireAdminSession("/admin/collections");
+  if (!hasShopifyAdminConfig()) {
+    return { error: "Shopify Admin API is not configured." };
+  }
+  try {
+    const connection = await testShopifyAdminConnection();
+    if (connection.missingScopes.length > 0) {
+      return { error: `Connected to ${connection.shopName}, but required scopes are missing: ${connection.missingScopes.join(", ")}.` };
+    }
+    const binding = await ensureShopifyStoreBinding(connection.shopDomain);
+    if (binding.status === "MISMATCH") {
+      return {
+        error: `This catalog is linked to ${binding.boundShopDomain}, while the current credentials point to ${binding.currentShopDomain}. Rebind from Products before checking collection conflicts.`,
+        storeMismatch: {
+          boundShopDomain: binding.boundShopDomain,
+          currentShopDomain: binding.currentShopDomain,
+        },
+      };
+    }
+    const notices: string[] = [];
+    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales).trim();
+    if (translationNotice) notices.push(translationNotice);
+
+    const result = await runCollectionsConflictCheck(session.username);
+    revalidatePath("/admin/collections");
+    return {
+      ...result,
+      warning: [result.warning, ...notices].filter(Boolean).join(" ") || undefined,
+      success: result.signals.totalCount === 0
+        ? "Conflict check complete. No collection conflicts found."
+        : `Conflict check complete. Review ${result.signals.totalCount} collection${result.signals.totalCount === 1 ? "" : "s"} in the conflict list.`,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
+  }
+}
+
+export async function checkOneCollectionConflictsAction(input: { collectionId: string; locale?: string }) {
+  const session = await requireAdminSession("/admin/collections");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  if (!input.collectionId.trim()) return { error: "Collection id is required." };
+  try {
+    const result = await runCollectionConflictCheck({
+      collectionId: input.collectionId,
+      locale: input.locale,
+      requestedBy: session.username,
+    });
+    revalidatePath("/admin/collections");
+    revalidatePath(`/admin/collections/${input.collectionId}`);
+    return {
+      ...result,
+      success: result.signals.totalCount === 0
+        ? "Conflict check complete. No conflicts found."
+        : `Conflict check complete. ${result.signals.totalCount} collection${result.signals.totalCount === 1 ? "" : "s"} need a decision.`,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
+  }
+}
+
+export async function loadCollectionConflictSignalsAction() {
+  await requireAdminSession("/admin/collections");
+  try {
+    return { signals: await getCollectionConflictSignals() };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not load conflict status." };
+  }
+}
+
+export async function loadCollectionCatalogConflictAction(collectionId: string) {
+  await requireAdminSession("/admin/collections");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    return { conflict: await getCollectionCatalogConflict(collectionId) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not load this collection's conflict details." };
+  }
+}
+
+export async function previewCollectionConflictResolutionAction(scope: CollectionConflictApplyScope) {
+  await requireAdminSession("/admin/collections");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    return { preview: await previewCollectionConflictResolution(scope) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not preview the conflict resolution." };
+  }
+}
+
+export async function applyCollectionConflictResolutionAction(input: {
+  entries: CollectionConflictApplyEntryInput[];
+  acknowledgeClears: boolean;
+}) {
+  const session = await requireAdminSession("/admin/collections");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    const outcome = await applyCollectionConflictResolution({ ...input, actorUsername: session.username });
+    revalidateStorefront();
+    revalidatePath("/admin/collections");
+    for (const collectionId of new Set(input.entries.map((entry) => entry.collectionId))) {
+      revalidatePath(`/admin/collections/${collectionId}`);
+    }
+    return {
+      outcome,
+      success: outcome.appliedCount > 0
+        ? `${outcome.appliedCount} change${outcome.appliedCount === 1 ? "" : "s"} applied${outcome.failedCount > 0 ? `; ${outcome.failedCount} could not be applied` : ""}.`
+        : undefined,
+      error: outcome.appliedCount === 0
+        ? "None of the selected changes could be applied. Review the results below."
+        : undefined,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not apply the conflict resolution." };
   }
 }
 

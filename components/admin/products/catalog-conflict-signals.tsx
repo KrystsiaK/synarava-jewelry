@@ -7,13 +7,13 @@ function plural(count: number, singular: string, pluralWord: string) {
   return `${count} ${count === 1 ? singular : pluralWord}`;
 }
 
-function statusText(signals: CatalogConflictSignals) {
+function statusText(signals: CatalogConflictSignals, entityNoun: { singular: string; plural: string }) {
   const count = signals.totalCount;
   const saved = count === null
     ? "Conflict status unavailable"
     : count === 0
       ? "No saved conflicts"
-      : `${plural(count, "product", "products")} with conflicts`;
+      : `${plural(count, entityNoun.singular, entityNoun.plural)} with conflicts`;
   if (signals.state === "disconnected") return `Shopify disconnected · ${saved.toLowerCase()} may be outdated`;
   if (signals.state === "failed") return `${saved} · conflict status unavailable (last check failed)`;
   if (signals.state === "checking") return `${saved} · checking Shopify now`;
@@ -35,12 +35,14 @@ export function CatalogConflictStatus({
   onCheck,
   checking = false,
   compact = false,
+  entityNoun = { singular: "product", plural: "products" },
 }: {
   signals: CatalogConflictSignals;
   onShow: () => void;
   onCheck: () => void;
   checking?: boolean;
   compact?: boolean;
+  entityNoun?: { singular: string; plural: string };
 }) {
   const hasConflicts = signals.totalCount !== null && signals.totalCount > 0;
   if (compact) {
@@ -52,7 +54,7 @@ export function CatalogConflictStatus({
         className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-conflict)]"
         style={{ borderColor: conflictTone.border, background: conflictTone.fill }}
         aria-label="Show conflicts"
-        title={statusText(signals)}
+        title={statusText(signals, entityNoun)}
       >
         <GitCompareArrows className="size-4" style={{ color: conflictTone.ink }} aria-hidden="true" />
         {plural(signals.totalCount!, "conflict", "conflicts")}
@@ -70,7 +72,7 @@ export function CatalogConflictStatus({
       role="status"
     >
       <GitCompareArrows className="size-4 shrink-0" style={{ color: conflictTone.ink }} aria-hidden="true" />
-      <span className="font-semibold">{statusText(signals)}</span>
+      <span className="font-semibold">{statusText(signals, entityNoun)}</span>
       {signals.totalCount !== null && signals.state !== "ready" && hasConflicts ? (
         <span className="text-[var(--adm-muted)]">{plural(signals.totalCount, "saved conflict", "saved conflicts")}</span>
       ) : null}

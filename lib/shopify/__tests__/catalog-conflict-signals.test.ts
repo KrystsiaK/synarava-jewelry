@@ -106,6 +106,49 @@ describe("buildCatalogConflictSignals", () => {
     expect(result.state).toBe("ready");
   });
 
+  it("can build collection-scoped signals without commerce or product presence", () => {
+    const result = buildCatalogConflictSignals({
+      commerceProductIds: ["ignored-product"],
+      differences: [
+        { ...difference("col-1", "pt-PT", "title"), rootEntityType: "COLLECTION" },
+        { ...difference("col-1", "ru", "description"), rootEntityType: "COLLECTION" },
+        difference("product-1", "en", "title"),
+      ],
+      presenceDifferences: [{
+        id: "shopify:42",
+        kind: "SHOPIFY_ONLY",
+        localProductId: null,
+        shopifyProductId: "gid://shopify/Product/42",
+        name: "ignored",
+        handle: "ignored",
+        sku: "",
+        localFingerprint: "missing",
+        shopifyFingerprint: "remote",
+        remoteMissing: false,
+        matchReason: null,
+        localIdentity: null,
+        shopifyIdentity: { name: "ignored", handle: "ignored", sku: "" },
+      }],
+      locales,
+      run: { trigger: "MANUAL", status: "SUCCEEDED", completedAt: "2026-09-23T10:00:00.000Z" },
+      connected: true,
+      now: new Date("2026-09-23T10:01:00.000Z"),
+      rootEntityType: "COLLECTION",
+    });
+
+    expect(result.totalCount).toBe(1);
+    expect(result.products["col-1"]).toMatchObject({
+      shared: false,
+      locales: [
+        { code: "pt", count: 1 },
+        { code: "ru", count: 1 },
+      ],
+    });
+    expect(result.products["ignored-product"]).toBeUndefined();
+    expect(result.products["shopify:42"]).toBeUndefined();
+    expect(result.products["product-1"]).toBeUndefined();
+  });
+
   it.each([
     [false, "SUCCEEDED", "disconnected"],
     [true, "RUNNING", "checking"],

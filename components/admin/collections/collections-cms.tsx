@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -19,10 +19,15 @@ import {
   updateCollectionStatusAction,
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
+import {
+  checkCollectionConflictsAction,
+} from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { CatalogConflictStatus, CatalogConflictRowBadges } from "@/components/admin/products/catalog-conflict-signals";
+import { CollectionConflictWorkspace } from "@/components/admin/collections/collection-conflict-workspace";
 import {
   collectionActionCopy,
   collectionStatusLabel,
@@ -36,18 +41,60 @@ import {
   AdminListWorkspace,
   AdminStatusBadge,
 } from "@/components/synarava-cms";
+import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 const initialState: CollectionActionState = {};
 const COLLECTION_GRID = "xl:grid-cols-[minmax(0,1.6fr)_5.5rem_5rem_9rem]";
+const ENTITY_NOUN = { singular: "collection", plural: "collections" } as const;
 
-export function CollectionsCms({ collections }: { collections: AdminCollection[] }) {
+export function CollectionsCms({
+  collections,
+  initialConflictSignals,
+}: {
+  collections: AdminCollection[];
+  initialConflictSignals: CatalogConflictSignals;
+}) {
   const [items, setItems] = useState(() => normalizeCollections(collections));
   const [rowAction, setRowAction] = useState<CollectionRowAction | null>(null);
   const [editingCollection, setEditingCollection] = useState<AdminCollection | null>(null);
   const [rowState, setRowState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
+  const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
+  const [conflictListOpen, setConflictListOpen] = useState(false);
+  const [focusedConflictCollectionId, setFocusedConflictCollectionId] = useState<string | null>(null);
+  const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
+    base: initialConflictSignals,
+    value: initialConflictSignals,
+  });
+  const conflictSignals = conflictSignalsOverride.base === initialConflictSignals
+    ? conflictSignalsOverride.value
+    : initialConflictSignals;
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
   const { pushToast } = useAdminToast();
+  const closeConflictList = useCallback(() => setConflictListOpen(false), []);
+
+  function setConflictSignals(value: CatalogConflictSignals) {
+    setConflictSignalsOverride({ base: initialConflictSignals, value });
+  }
+
+  function showConflicts(collectionId: string | null = null) {
+    setFocusedConflictCollectionId(collectionId);
+    setConflictListOpen(true);
+  }
+
+  function handleConflictCheck() {
+    startConflictCheckTransition(async () => {
+      const result = await checkCollectionConflictsAction();
+      if (!("signals" in result)) {
+        pushToast({ message: result.error, tone: "error" });
+        return;
+      }
+      setConflictSignals(result.signals);
+      if (result.warning) pushToast({ message: result.warning, tone: "info" });
+      if (result.success) pushToast({ message: result.success, tone: "success" });
+      if ((result.signals.totalCount ?? 0) > 0) showConflicts();
+    });
+  }
 
   function handleUpdated(collection: AdminCollection) {
     setItems((current) =>
@@ -109,17 +156,33 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
 
   return (
     <div data-component="CollectionsCms" className="grid gap-6">
+      <CatalogConflictStatus
+        signals={conflictSignals}
+        onShow={() => showConflicts()}
+        onCheck={handleConflictCheck}
+        checking={isConflictCheckPending}
+        entityNoun={ENTITY_NOUN}
+      />
+
       <AdminListWorkspace.Root>
         <AdminListWorkspace.Header
           tag="[ CURRENT COLLECTIONS ]"
           title="Collections table"
           actions={
             <>
+              <CatalogConflictStatus
+                signals={conflictSignals}
+                onShow={() => showConflicts()}
+                onCheck={handleConflictCheck}
+                checking={isConflictCheckPending}
+                compact
+                entityNoun={ENTITY_NOUN}
+              />
               <Link href="/admin/collections/new" className="adm-btn-primary">
                 New collection
               </Link>
               <AdminHelp label="Collection editing guidance" align="end">
-                New collection opens the create route. Details opens record history. Draft, Publish, and Archive change site visibility. Delete removes the record.
+                New collection opens the create route. Details opens record history. Draft, Publish, and Archive change site visibility. Delete removes the record. Show conflicts resolves Shopify editorial copy the same way as Products.
               </AdminHelp>
             </>
           }
@@ -140,6 +203,7 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
           {items.length > 0 ? (
             items.map((collection, index) => {
               const status = collectionStatusLabel(collection);
+              const conflict = conflictSignals.products[collection.id];
 
               return (
                 <AdminEntityList.Row key={collection.id} gridClassName={COLLECTION_GRID}>
@@ -151,6 +215,13 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
                       /{collection.slug}
                     </p>
                     <AdminRecordDates record={collection} />
+                    {conflict ? (
+                      <CatalogConflictRowBadges
+                        productName={collection.name}
+                        signal={conflict}
+                        onShow={() => showConflicts(collection.id)}
+                      />
+                    ) : null}
                   </div>
                   <AdminStatusBadge status={status} />
                   <div className="flex shrink-0 flex-nowrap items-center gap-1">
@@ -260,6 +331,16 @@ export function CollectionsCms({ collections }: { collections: AdminCollection[]
         entityId={editingCollection?.id ?? ""}
         record={editingCollection}
         onClose={() => setEditingCollection(null)}
+      />
+
+      <CollectionConflictWorkspace
+        open={conflictListOpen}
+        onClose={closeConflictList}
+        signals={conflictSignals}
+        onSignalsChange={setConflictSignals}
+        collections={items.map((collection) => ({ id: collection.id, name: collection.name, slug: collection.slug }))}
+        focusedCollectionId={focusedConflictCollectionId}
+        onToast={(message, tone) => pushToast({ message, tone })}
       />
     </div>
   );

@@ -5,11 +5,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   saveCollectionAction: vi.fn(),
   deleteCollectionAction: vi.fn(),
+  checkOneCollectionConflictsAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/collections", () => ({
   saveCollectionAction: mocks.saveCollectionAction,
   deleteCollectionAction: mocks.deleteCollectionAction,
+}));
+
+vi.mock("@/app/admin/actions/sync", () => ({
+  checkOneCollectionConflictsAction: mocks.checkOneCollectionConflictsAction,
+  loadCollectionCatalogConflictAction: vi.fn(),
+  previewCollectionConflictResolutionAction: vi.fn(),
+  applyCollectionConflictResolutionAction: vi.fn(),
 }));
 
 import { EditCollectionForm } from "@/components/admin/collections/collection-edit-form";
@@ -36,6 +44,7 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     sortOrder: 0,
     status: "DRAFT",
     visibility: "PRIVATE",
+    shopifyCollectionId: null,
     translations: [],
     ...overrides,
   };

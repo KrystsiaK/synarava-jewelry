@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 import { CollectionEditRoute } from "@/components/admin/collections/collection-route-editor";
-import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
-import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
+import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import { getCollectionConflictSignals } from "@/lib/shopify/catalog-conflict-signals-server";
 
 export default async function EditCollectionPage({
   params,
@@ -12,9 +12,18 @@ export default async function EditCollectionPage({
   params: Promise<{ collectionId: string }>;
 }) {
   const { collectionId } = await params;
-  const [{ collections, issues }, syncDifferences, translationLocales] = await Promise.all([
+  const [{ collections, issues }, conflictSignals, translationLocales] = await Promise.all([
     getAdminCatalogData(),
-    getLatestReconcileDifferences(),
+    getCollectionConflictSignals().catch((error): CatalogConflictSignals => {
+      console.error("[admin/collections/edit] conflict signals failed", error);
+      return {
+        state: "failed",
+        totalCount: null,
+        checkedAt: null,
+        products: {},
+        recentlyUpdatedProducts: {},
+      };
+    }),
     getAdminTranslationLocales(),
   ]);
   const collection = collections.find((item) => item.id === collectionId);
@@ -54,18 +63,13 @@ export default async function EditCollectionPage({
             Back to collections
           </Link>
         </div>
-        <AdminSyncInlineWarning
-          className="mt-4"
-          differences={syncDifferences.filter(
-            (difference) => difference.rootEntityType === "COLLECTION" && difference.rootEntityId === collectionId,
-          )}
-        />
       </div>
 
       <CollectionEditRoute
         collection={collection}
         translationLocales={translationLocales}
         issues={collectionIssues}
+        initialConflictSignals={conflictSignals}
       />
     </div>
   );

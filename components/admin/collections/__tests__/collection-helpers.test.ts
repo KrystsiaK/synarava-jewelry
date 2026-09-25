@@ -33,6 +33,7 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     sortOrder: 0,
     status: "DRAFT",
     visibility: "PRIVATE",
+    shopifyCollectionId: null,
     translations: [],
     ...overrides,
   };

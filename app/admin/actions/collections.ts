@@ -2,6 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -17,6 +18,8 @@ import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
+import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
+import { runCollectionConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import {
   createDraftToken,
   hasMeaningfulDraftInput,
@@ -82,6 +85,7 @@ export type SavedCollectionPayload = {
   sortOrder: number;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
+  shopifyCollectionId: string | null;
   translations: SavedCollectionTranslationPayload[];
 };
 
@@ -104,6 +108,7 @@ const savedCollectionSelect = {
   sortOrder: true,
   status: true,
   visibility: true,
+  shopifyCollectionId: true,
   translations: {
     select: {
       id: true, locale: true, name: true, localizedHandle: true, subtitle: true, description: true, manifesto: true,
@@ -452,6 +457,18 @@ export async function saveCollectionAction(
 
   revalidateStorefront();
   const finalCollection = await getSavedCollectionPayload(savedCollection.id);
+
+  if (finalCollection.shopifyCollectionId && hasShopifyAdminConfig()) {
+    after(() => {
+      void runCollectionConflictCheck({
+        collectionId: finalCollection.id,
+        requestedBy: currentUser.username,
+      }).catch((error) => {
+        console.error("[saveCollection] scoped conflict check failed", error);
+      });
+    });
+  }
+
   return {
     success: `${collectionId ? "Collection updated." : "Collection created."}${cascadeNotice}`,
     resetKey: collectionId ? undefined : Date.now(),
