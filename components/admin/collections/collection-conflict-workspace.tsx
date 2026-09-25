@@ -584,7 +584,15 @@ export function CollectionConflictWorkspace({
                   className="max-w-xl text-xs"
                   checked={acknowledgeClears}
                   onChange={(event) => setAcknowledgeClears(event.target.checked)}
-                  label="I understand that the selected source contains empty values and the destination values shown above will be cleared."
+                  label={
+                    preview.entries.some((entry) =>
+                      entry.field.origin === "PRESENCE"
+                      && entry.field.presenceDifference?.kind === "SYNARAVA_ONLY"
+                      && entry.direction === "SHOPIFY_TO_SYNARAVA",
+                    )
+                      ? "I understand that choosing Shopify deletes these collections from Synarava (products are kept)."
+                      : "I understand that the selected source contains empty values and the destination values shown above will be cleared."
+                  }
                   labelClassName="text-xs leading-5"
                 />
               ) : null}
