@@ -39,27 +39,7 @@ Translation rollout and recovery are documented in `docs/translation-operations.
 | `S3_ENDPOINT` | Опционально — для совместимых хранилищ (Minio, R2, etc.) |
 | `S3_PUBLIC_URL` | Публичный origin бакета или CDN для `next/image` (`https://cdn.example.com` или публичный S3 endpoint) |
 
-Видео storefront загружаются только через `/admin/videos` и требуют S3. Для Railway Bucket добавьте references на `REGION`, `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `ENDPOINT`, а также `S3_FORCE_PATH_STYLE=false` и `S3_USE_PROXY=true`. Не задавайте `S3_PUBLIC_URL`: нативные Railway Buckets приватные, поэтому приложение отдаёт медиа по `/media/uploads/*` через защищённый server-side proxy.
-
-**CORS для прямой загрузки из браузера** (иначе `/admin/videos` покажет `Failed to fetch` на PUT). Railway не даёт UI для CORS — один раз через AWS CLI с credentials бакета ([docs](https://docs.railway.com/storage-buckets/uploading-serving)):
-
-```bash
-AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… \
-  aws s3api put-bucket-cors \
-  --bucket YOUR_BUCKET \
-  --endpoint-url YOUR_ENDPOINT \
-  --cors-configuration '{
-    "CORSRules": [{
-      "AllowedHeaders": ["*"],
-      "AllowedMethods": ["GET", "PUT", "HEAD"],
-      "AllowedOrigins": ["https://shop.synarava.com"],
-      "ExposeHeaders": ["ETag", "Content-Length", "Content-Type"],
-      "MaxAgeSeconds": 3000
-    }]
-  }'
-```
-
-`AllowedOrigins` — точный origin админки (как в адресной строке). Для локальной разработки добавьте `http://localhost:3000`.
+Видео storefront загружаются только через `/admin/videos` и требуют S3. Файлы идут **через приложение** (`POST /admin/api/videos` → PutObject), без browser→bucket CORS. Для Railway Bucket добавьте references на `REGION`, `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `ENDPOINT`, а также `S3_FORCE_PATH_STYLE=false` и `S3_USE_PROXY=true`. Не задавайте `S3_PUBLIC_URL`: нативные Railway Buckets приватные, поэтому приложение отдаёт медиа по `/media/uploads/*` через защищённый server-side proxy. Лимит файла — 100 МБ.
 
 ### Опциональные
 

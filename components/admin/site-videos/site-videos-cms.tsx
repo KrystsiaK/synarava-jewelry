@@ -13,7 +13,6 @@ import {
   AdminVideoField,
 } from "@/components/synarava-cms";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
-import { resolveSiteVideoMimeType } from "@/lib/media/video-mime";
 import type { SiteVideos } from "@/lib/site-videos";
 
 const VIDEO_FIELDS: Array<{
@@ -55,64 +54,29 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
     setState({});
 
     try {
-      const files = VIDEO_FIELDS.flatMap(({ slot }) => {
+      const body = new FormData();
+      let selected = 0;
+      for (const { slot } of VIDEO_FIELDS) {
         const file = formData.get(slot);
-        return file instanceof File && file.size > 0 ? [{ slot, file }] : [];
-      });
-      if (files.length === 0) throw new Error("Choose at least one MP4 or WebM video to upload.");
-
-      const uploads = await Promise.all(files.map(async ({ slot, file }) => {
-        const mimeType = resolveSiteVideoMimeType({ mimeType: file.type, filename: file.name });
-        if (!mimeType) {
-          throw new Error(`“${file.name}” is not a supported MP4 or WebM video.`);
+        if (file instanceof File && file.size > 0) {
+          body.append(slot, file, file.name);
+          selected += 1;
         }
+      }
+      if (selected === 0) throw new Error("Choose at least one MP4 or WebM video to upload.");
 
-        const preparedResponse = await fetch("/admin/api/videos", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "prepare",
-            slot,
-            filename: file.name,
-            mimeType,
-            sizeBytes: file.size,
-          }),
-        });
-        const prepared = await preparedResponse.json();
-        if (!preparedResponse.ok) throw new Error(prepared.error || "Could not prepare the bucket upload.");
-
-        const uploadResponse = await fetch(prepared.uploadUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": mimeType,
-            "Cache-Control": "public, max-age=31536000, immutable",
-          },
-          body: file,
-        }).catch(() => {
-          throw new Error(
-            "Could not reach the media bucket (Failed to fetch). Configure Railway Bucket CORS to allow PUT from this admin origin — see DEPLOY.md.",
-          );
-        });
-        if (!uploadResponse.ok) throw new Error(`Bucket upload failed for ${file.name}.`);
-        return prepared.upload;
-      }));
-
-      const completedResponse = await fetch("/admin/api/videos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "complete", uploads }),
-      });
-      const completed = await completedResponse.json();
-      if (!completedResponse.ok) throw new Error(completed.error || "Could not publish uploaded videos.");
+      const response = await fetch("/admin/api/videos", { method: "POST", body });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Video upload failed.");
 
       formRef.current?.reset();
-      pushToast({ message: `${completed.count} video${completed.count === 1 ? "" : "s"} uploaded directly to Railway Bucket and published.`, tone: "success" });
+      pushToast({
+        message: `${result.count} video${result.count === 1 ? "" : "s"} uploaded and published.`,
+        tone: "success",
+      });
       refreshPreservingScroll(router);
     } catch (error) {
-      const raw = error instanceof Error ? error.message : "Video upload failed.";
-      const message = raw === "Failed to fetch"
-        ? "Could not reach the media bucket (Failed to fetch). Configure Railway Bucket CORS to allow PUT from this admin origin — see DEPLOY.md."
-        : raw;
+      const message = error instanceof Error ? error.message : "Video upload failed.";
       setState({ error: message });
       pushToast({ message, tone: "error" });
     } finally {
@@ -127,7 +91,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
           <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
           <h2 className="adm-title-sm">Site video</h2>
           <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-            Upload MP4 or WebM files directly from this browser to Railway Bucket. When a slot is set, it replaces the matching static hero image on the storefront. Replacing a video updates every placement listed under each field after cache revalidation. The bucket must allow PUT requests from this admin origin in its CORS policy.
+            Upload MP4 or WebM (up to 100 MB each). Files go through the app into Railway Bucket — no bucket CORS setup. When a slot is set, it replaces the matching static hero image on the storefront after cache revalidation.
           </p>
         </div>
       </AdminPanelHeader>

@@ -76,7 +76,7 @@ bucket on port `59000` (console: `59001`). When no `S3_*` variables are set in a
 non-production process, the app uses that bucket automatically and serves images
 through `/media/*`. Production never falls back to these local development values.
 
-Storefront video is managed at `/admin/videos` (`AdminVideoField` in synarava-cms): upload MP4 or WebM files there after S3 is configured. Uploaded films replace static hero images on Home/About when set (the page hero image remains a fallback / poster). The same assets feed product fit-film sections. Railway Bucket users should set `S3_USE_PROXY=true`, so private objects are served from `/media/uploads/*`.
+Storefront video is managed at `/admin/videos` (`AdminVideoField` in synarava-cms): upload MP4 or WebM (≤100 MB) there after S3 is configured. Files go through `POST /admin/api/videos` into the bucket — no browser CORS setup. Uploaded films replace static hero images on Home/About when set (the page hero image remains a fallback / poster). The same assets feed product fit-film sections. Railway Bucket users should set `S3_USE_PROXY=true`, so private objects are served from `/media/uploads/*`.
 
 ## Shopify commerce backend
 

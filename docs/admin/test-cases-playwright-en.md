@@ -277,19 +277,18 @@ and SYNC-16 asserts that state is handled gracefully.
 
 ## 12. Videos (`e2e/admin-videos.spec.ts`)
 
-Direct-to-bucket presigned uploads. For CI, mock `/admin/api/videos` and the
-bucket `PUT` rather than moving real megabytes.
+Server-mediated multipart uploads (`POST /admin/api/videos` → S3). For CI,
+mock `/admin/api/videos` rather than moving real megabytes.
 
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
-| VID-01 | Valid MP4 <500 MB uploads through the presigned flow | positive | P1 | **E2E** | |
+| VID-01 | Valid MP4 <100 MB uploads through the app | positive | P1 | **E2E** | |
 | VID-02 | Valid WebM uploads | positive | P2 | **E2E** | |
 | VID-03 | Multiple slots in one submit report "N videos uploaded" | positive | P2 | **E2E** | |
 | VID-04 | No file selected → "Choose at least one MP4 or WebM video to upload." | negative | P2 | **render** | Pure client check before any network call. |
-| VID-05 | Unsupported format (`.mov`) rejected **server-side** | negative | P2 | **action** | Test the `VIDEO_TYPES` check, not the picker's `accept` attribute. |
-| VID-06 | File >500 MB rejected | negative | P2 | **action** | Call `prepare` with a fabricated `sizeBytes`; don't generate 500 MB. |
-| VID-07 | Object size/type mismatch at `complete` caught by `HeadObjectCommand` | security | P3 | — | Integration-only; needs a controllable bucket double. Document, don't automate yet. |
-| VID-08 | Replacing a slot updates preview and stored URL | positive | P2 | **E2E** | |
+| VID-05 | Unsupported format (`.mov`) rejected **server-side** | negative | P2 | **action** | Test MIME/extension resolution, not the picker's `accept` attribute. |
+| VID-06 | File >100 MB rejected | negative | P2 | **action** | Fabricate `size` on a File; don't generate 100 MB. |
+| VID-07 | Replacing a slot updates preview and stored URL | positive | P2 | **E2E** | |
 
 ## 13. Issues / QA scan (`e2e/admin-issues.spec.ts`)
 

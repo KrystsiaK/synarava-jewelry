@@ -1,6 +1,4 @@
 /** Canonical storefront video MIME types. */
-export const SITE_VIDEO_MIME_TYPES = new Set(["video/mp4", "video/webm"]);
-
 export type SiteVideoMimeType = "video/mp4" | "video/webm";
 
 const MIME_ALIASES: Record<string, SiteVideoMimeType> = {
@@ -36,17 +34,4 @@ export function resolveSiteVideoMimeType(input: {
   if (extension && EXTENSION_MIME[extension]) return EXTENSION_MIME[extension];
 
   return null;
-}
-
-export function siteVideoContentTypesMatch(
-  stored: string | undefined | null,
-  expected: string,
-): boolean {
-  const a = stripMimeParams(stored ?? "");
-  const b = stripMimeParams(expected);
-  if (!b) return false;
-  if (a === b) return true;
-  const resolvedA = MIME_ALIASES[a] ?? (SITE_VIDEO_MIME_TYPES.has(a) ? a as SiteVideoMimeType : null);
-  const resolvedB = MIME_ALIASES[b] ?? (SITE_VIDEO_MIME_TYPES.has(b) ? b as SiteVideoMimeType : null);
-  return Boolean(resolvedA && resolvedB && resolvedA === resolvedB);
 }

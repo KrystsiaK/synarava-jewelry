@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  resolveSiteVideoMimeType,
-  siteVideoContentTypesMatch,
-} from "@/lib/media/video-mime";
+import { resolveSiteVideoMimeType } from "@/lib/media/video-mime";
 
 describe("resolveSiteVideoMimeType", () => {
   it("keeps a normal video/mp4 type", () => {
@@ -24,15 +21,5 @@ describe("resolveSiteVideoMimeType", () => {
 
   it("rejects unsupported types without a known extension", () => {
     expect(resolveSiteVideoMimeType({ mimeType: "video/quicktime", filename: "clip.mov" })).toBeNull();
-  });
-});
-
-describe("siteVideoContentTypesMatch", () => {
-  it("ignores charset parameters from the bucket HEAD response", () => {
-    expect(siteVideoContentTypesMatch("video/mp4; charset=binary", "video/mp4")).toBe(true);
-  });
-
-  it("treats application/mp4 and video/mp4 as the same asset type", () => {
-    expect(siteVideoContentTypesMatch("application/mp4", "video/mp4")).toBe(true);
   });
 });

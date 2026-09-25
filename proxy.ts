@@ -182,7 +182,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [{ source: "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)", missing: [
+  // Skip proxy body cloning for admin API uploads (videos can exceed the 10 MB
+  // proxyClientMaxBodySize default). Auth still runs inside each route handler.
+  matcher: [{ source: "/((?!api|admin/api|_next/static|_next/image|favicon.ico|.*\\..*).*)", missing: [
     { type: "header", key: "next-router-prefetch" },
     { type: "header", key: "purpose", value: "prefetch" },
   ] }],

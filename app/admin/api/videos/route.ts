@@ -1,33 +1,21 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { getCurrentAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
-import {
-  resolveSiteVideoMimeType,
-  siteVideoContentTypesMatch,
-  type SiteVideoMimeType,
-} from "@/lib/media/video-mime";
+import { resolveSiteVideoMimeType } from "@/lib/media/video-mime";
 import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { SITE_VIDEO_SETTING_KEY, siteVideoSlots, type SiteVideoSlot } from "@/lib/site-videos";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
-const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
-
-type PreparedUpload = {
-  slot: SiteVideoSlot;
-  key: string;
-  filename: string;
-  mimeType: SiteVideoMimeType;
-  sizeBytes: number;
-};
 
 function isVideoSlot(value: unknown): value is SiteVideoSlot {
   return typeof value === "string" && value in siteVideoSlots;
@@ -42,36 +30,6 @@ function sanitizeBaseName(filename: string) {
     .slice(0, 48) || "site-video";
 }
 
-function validateVideo(input: Record<string, unknown>) {
-  if (!isVideoSlot(input.slot)) throw new Error("Unknown video placement.");
-  if (typeof input.filename !== "string" || !input.filename) throw new Error("Video filename is missing.");
-  const mimeType = resolveSiteVideoMimeType({
-    mimeType: typeof input.mimeType === "string" ? input.mimeType : "",
-    filename: input.filename,
-  });
-  if (!mimeType) {
-    throw new Error("Only MP4 and WebM video uploads are supported.");
-  }
-  if (typeof input.sizeBytes !== "number" || input.sizeBytes <= 0 || input.sizeBytes > MAX_VIDEO_BYTES) {
-    throw new Error("Video must be 500 MB or smaller.");
-  }
-  return mimeType;
-}
-
-function isPreparedUpload(value: unknown): value is PreparedUpload {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Record<string, unknown>;
-  const mimeType = resolveSiteVideoMimeType({
-    mimeType: typeof item.mimeType === "string" ? item.mimeType : "",
-    filename: typeof item.filename === "string" ? item.filename : "",
-  });
-  return isVideoSlot(item.slot) &&
-    typeof item.key === "string" && item.key.startsWith(`uploads/videos/${item.slot}/`) &&
-    typeof item.filename === "string" &&
-    Boolean(mimeType) &&
-    typeof item.sizeBytes === "number" && item.sizeBytes > 0 && item.sizeBytes <= MAX_VIDEO_BYTES;
-}
-
 function revalidateStorefront() {
   for (const route of ["/", "/shop", "/collections", "/about"]) {
     revalidateStorefrontPath(route);
@@ -81,88 +39,94 @@ function revalidateStorefront() {
   revalidateStorefrontTemplate("/products/[slug]");
 }
 
+/** Multipart upload through the app → S3 (no browser→bucket CORS). */
 export async function POST(request: Request) {
   const session = await getCurrentAdminSession();
   if (!session) return Response.json({ error: "Admin session expired." }, { status: 401 });
 
   try {
-    const body = await request.json() as Record<string, unknown>;
+    const formData = await request.formData();
+    const selected = Object.keys(siteVideoSlots).flatMap((slot) => {
+      if (!isVideoSlot(slot)) return [];
+      const file = formData.get(slot);
+      return file instanceof File && file.size > 0 ? [{ slot, file }] : [];
+    });
 
-    if (body.action === "prepare") {
-      const mimeType = validateVideo(body);
-      const slot = body.slot as SiteVideoSlot;
-      const sizeBytes = body.sizeBytes as number;
-      const originalFilename = body.filename as string;
+    if (selected.length === 0) {
+      throw new Error("Choose at least one MP4 or WebM video to upload.");
+    }
+
+    const prepared: Array<{
+      slot: SiteVideoSlot;
+      key: string;
+      filename: string;
+      mimeType: string;
+      sizeBytes: number;
+    }> = [];
+    for (const { slot, file } of selected) {
+      if (file.size > MAX_VIDEO_BYTES) {
+        throw new Error(`“${file.name}” must be 100 MB or smaller.`);
+      }
+
+      const mimeType = resolveSiteVideoMimeType({ mimeType: file.type, filename: file.name });
+      if (!mimeType) {
+        throw new Error(`“${file.name}” is not a supported MP4 or WebM video.`);
+      }
+
       const extension = mimeType === "video/webm" ? ".webm" : ".mp4";
-      const filename = `${sanitizeBaseName(originalFilename)}-${randomUUID()}${extension}`;
+      const filename = `${sanitizeBaseName(file.name)}-${randomUUID()}${extension}`;
       const key = `uploads/videos/${slot}/${filename}`;
-      const uploadUrl = await getSignedUrl(
-        getS3(),
+
+      await getS3().send(
         new PutObjectCommand({
           Bucket: getS3Bucket(),
           Key: key,
+          Body: Buffer.from(await file.arrayBuffer()),
           ContentType: mimeType,
           CacheControl: IMMUTABLE_CACHE_CONTROL,
         }),
-        { expiresIn: 15 * 60 },
       );
 
-      return Response.json({ uploadUrl, upload: { slot, key, filename, mimeType, sizeBytes } });
+      prepared.push({ slot, key, filename, mimeType, sizeBytes: file.size });
     }
 
-    if (body.action === "complete") {
-      const uploads = Array.isArray(body.uploads) ? body.uploads.filter(isPreparedUpload) : [];
-      if (uploads.length === 0) throw new Error("No completed video uploads were provided.");
+    const existing = await db.siteSetting.findUnique({
+      where: { key: SITE_VIDEO_SETTING_KEY },
+      select: { value: true },
+    });
+    const current = existing?.value && typeof existing.value === "object"
+      ? { ...(existing.value as Prisma.InputJsonObject) }
+      : {};
 
-      for (const upload of uploads) {
-        const object = await getS3().send(new HeadObjectCommand({ Bucket: getS3Bucket(), Key: upload.key }));
-        const sizeMatches = Number(object.ContentLength) === upload.sizeBytes;
-        const typeMatches = siteVideoContentTypesMatch(object.ContentType, upload.mimeType);
-        if (!sizeMatches || !typeMatches) {
-          throw new Error(`Uploaded file verification failed for ${upload.filename}.`);
-        }
+    await db.$transaction(async (tx) => {
+      for (const upload of prepared) {
+        current[upload.slot] = getS3PublicUrl(upload.key);
+        await tx.mediaAsset.upsert({
+          where: { key: upload.key },
+          update: { status: "READY" },
+          create: {
+            key: upload.key,
+            filename: upload.filename,
+            mimeType: upload.mimeType,
+            extension: path.extname(upload.filename).replace(/^\./, ""),
+            sizeBytes: upload.sizeBytes,
+            bucket: process.env.S3_BUCKET ?? null,
+            source: "UPLOAD",
+            status: "READY",
+            uploadedByUsername: session.username,
+          },
+        });
       }
 
-      const existing = await db.siteSetting.findUnique({
+      await tx.siteSetting.upsert({
         where: { key: SITE_VIDEO_SETTING_KEY },
-        select: { value: true },
+        update: { value: current },
+        create: { key: SITE_VIDEO_SETTING_KEY, value: current },
       });
-      const current = existing?.value && typeof existing.value === "object"
-        ? { ...(existing.value as Prisma.InputJsonObject) }
-        : {};
+    });
 
-      await db.$transaction(async (tx) => {
-        for (const upload of uploads) {
-          current[upload.slot] = getS3PublicUrl(upload.key);
-          await tx.mediaAsset.upsert({
-            where: { key: upload.key },
-            update: { status: "READY" },
-            create: {
-              key: upload.key,
-              filename: upload.filename,
-              mimeType: upload.mimeType,
-              extension: path.extname(upload.filename).replace(/^\./, ""),
-              sizeBytes: upload.sizeBytes,
-              bucket: process.env.S3_BUCKET ?? null,
-              source: "UPLOAD",
-              status: "READY",
-              uploadedByUsername: session.username,
-            },
-          });
-        }
-
-        await tx.siteSetting.upsert({
-          where: { key: SITE_VIDEO_SETTING_KEY },
-          update: { value: current },
-          create: { key: SITE_VIDEO_SETTING_KEY, value: current },
-        });
-      });
-
-      revalidateStorefront();
-      return Response.json({ count: uploads.length });
-    }
-
-    return Response.json({ error: "Unknown upload action." }, { status: 400 });
+    revalidateStorefront();
+    return Response.json({ count: prepared.length });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "Video upload failed." },
