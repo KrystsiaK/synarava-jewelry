@@ -237,23 +237,18 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
-    // Presence: re-scan before apply is required (fresh membership). Fingerprints
-    // are membership identity only (GID / local link+SKU/handle) — not title or
-    // updatedAt — so a live re-scan of an unchanged Shopify-only product stays
-    // applicable. Field conflicts still use full value fingerprints below.
-    if (field.origin !== "PRESENCE") {
-      if (field.localFingerprint !== entry.expectedLocalFingerprint || field.shopifyFingerprint !== entry.expectedShopifyFingerprint) {
-        results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
-        continue;
-      }
-    } else if (
-      field.localFingerprint !== entry.expectedLocalFingerprint
-      || field.shopifyFingerprint !== entry.expectedShopifyFingerprint
+    // Presence freshness is the re-scan above: if the membership row is still
+    // present with an allowed direction, apply the *current* difference.
+    // Comparing preview fingerprints to post-scan hashes is wrong here —
+    // preview reads a saved snapshot, apply re-scans live; title/updatedAt
+    // schema churn or SKU rematch change hashes without invalidating Pull.
+    // Field conflicts (commerce/translation) still require fingerprint match.
+    if (
+      field.origin !== "PRESENCE"
+      && (field.localFingerprint !== entry.expectedLocalFingerprint
+        || field.shopifyFingerprint !== entry.expectedShopifyFingerprint)
     ) {
-      results.push(staleResult(
-        entry,
-        "Catalog membership changed since this was reviewed (link target or product set). Run conflict check and pull again.",
-      ));
+      results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
     if (field.origin === "COMMERCE" && !isScopedCommerceField(field)) {
