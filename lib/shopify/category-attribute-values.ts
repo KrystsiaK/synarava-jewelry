@@ -89,6 +89,9 @@ const LABEL_TO_CHARACTERISTIC: Record<string, ProductCharacteristicKey> = {
  * the attribute is a known passport fact. Unmapped attributes stay snapshot-
  * only (shown in admin mirror / Additional details) and are not forced into
  * the passport schema.
+ *
+ * Also used for simple public text metafields merchants fill in Shopify
+ * (e.g. `custom.material` → material) when the key or definition name matches.
  */
 export function characteristicKeyForShopifyCategoryMetafield(
   key: string,
@@ -98,6 +101,44 @@ export function characteristicKeyForShopifyCategoryMetafield(
   if (fromKey) return fromKey;
   const normalizedLabel = label?.trim().toLowerCase() ?? "";
   return LABEL_TO_CHARACTERISTIC[normalizedLabel] ?? null;
+}
+
+const SIMPLE_TEXT_METAFIELD_TYPES = new Set([
+  "single_line_text_field",
+  "multi_line_text_field",
+  "string",
+]);
+
+/** Namespaces that must not seed passport fields (SEO tags, Synarava-managed). */
+const NON_SEED_TEXT_NAMESPACES = new Set(["synarava", "global"]);
+
+/**
+ * Plain-text Shopify metafields that map onto empty passport characteristics.
+ * Example: `custom.material` = "100% cotton" → material.
+ * Skips `synarava.*` (applied separately) and `global.*` SEO tags.
+ */
+export function extractSimpleTextCharacteristicSeeds(
+  metafields: unknown,
+): Array<{ characteristicKey: ProductCharacteristicKey; textValue: string }> {
+  if (!Array.isArray(metafields)) return [];
+  const seen = new Set<ProductCharacteristicKey>();
+  return metafields.flatMap((item) => {
+    const field = item as SnapshotMetafield;
+    if (typeof field.namespace !== "string" || NON_SEED_TEXT_NAMESPACES.has(field.namespace)) return [];
+    if (typeof field.key !== "string" || typeof field.type !== "string" || typeof field.value !== "string") return [];
+    if (!SIMPLE_TEXT_METAFIELD_TYPES.has(field.type)) return [];
+    // Category reference metafields are handled via resolvedValues, not raw GIDs.
+    if (isShopifyCategoryMetafieldType(field.type)) return [];
+    const textValue = field.value.trim();
+    if (!textValue) return [];
+    const characteristicKey = characteristicKeyForShopifyCategoryMetafield(
+      field.key,
+      definitionName(field.definition),
+    );
+    if (!characteristicKey || seen.has(characteristicKey)) return [];
+    seen.add(characteristicKey);
+    return [{ characteristicKey, textValue }];
+  });
 }
 
 /** Human-readable names from a TaxonomyValue or category Metaobject node. */

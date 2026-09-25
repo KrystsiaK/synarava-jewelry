@@ -39,6 +39,7 @@ import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
   characteristicKeyForShopifyCategoryMetafield,
   displayNamesFromCategoryReference,
+  extractSimpleTextCharacteristicSeeds,
   isShopifyCategoryMetafieldType,
 } from "@/lib/shopify/category-attribute-values";
 import {
@@ -977,8 +978,9 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
     });
   }
   // Seed empty Synarava passport fields from Shopify category attribute
-  // selections (shopify.* taxonomy / metaobject refs). synarava.* metafields
-  // below still win when present. Never erase a locally curated value.
+  // selections (shopify.* taxonomy / metaobject refs) and plain merchant
+  // text metafields (e.g. custom.material). synarava.* metafields below still
+  // win when present. Never erase a locally curated value.
   const synaravaKeys = new Set(
     remote.metafields.nodes
       .filter((item) => item.namespace === "synarava")
@@ -989,25 +991,18 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
     select: { key: true, textValue: true, numberValue: true, booleanValue: true },
   });
   const existingByKey = new Map(existingCharacteristics.map((item) => [item.key, item]));
-  for (const metafield of remote.metafields.nodes) {
-    if (metafield.namespace !== "shopify" || !isShopifyCategoryMetafieldType(metafield.type)) continue;
-    const values = metafield.resolvedValues?.filter((entry) => entry.trim()) ?? [];
-    if (!values.length) continue;
-    const characteristicKey = characteristicKeyForShopifyCategoryMetafield(
-      metafield.key,
-      metafield.definition?.name,
-    );
-    if (!characteristicKey || synaravaKeys.has(characteristicKey)) continue;
+
+  async function seedEmptyTextCharacteristic(characteristicKey: string, textValue: string) {
+    if (synaravaKeys.has(characteristicKey)) return;
     const definition = definitions.get(characteristicKey);
-    if (!definition || definition.type !== "TEXT") continue;
+    if (!definition || definition.type !== "TEXT") return;
     const existing = existingByKey.get(characteristicKey);
     const hasLocalValue = Boolean(
       existing?.textValue?.trim()
       || existing?.numberValue != null
       || existing?.booleanValue != null,
     );
-    if (hasLocalValue) continue;
-    const textValue = values.join(", ");
+    if (hasLocalValue) return;
     await db.productCharacteristic.upsert({
       where: { productId_key: { productId: product.id, key: definition.key } },
       update: {
@@ -1031,6 +1026,27 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       },
     });
     existingByKey.set(characteristicKey, { key: characteristicKey, textValue, numberValue: null, booleanValue: null });
+  }
+
+  for (const metafield of remote.metafields.nodes) {
+    if (metafield.namespace !== "shopify" || !isShopifyCategoryMetafieldType(metafield.type)) continue;
+    const values = metafield.resolvedValues?.filter((entry) => entry.trim()) ?? [];
+    if (!values.length) continue;
+    const characteristicKey = characteristicKeyForShopifyCategoryMetafield(
+      metafield.key,
+      metafield.definition?.name,
+    );
+    if (!characteristicKey) continue;
+    await seedEmptyTextCharacteristic(characteristicKey, values.join(", "));
+  }
+
+  for (const seed of extractSimpleTextCharacteristicSeeds(remote.metafields.nodes)) {
+    await seedEmptyTextCharacteristic(seed.characteristicKey, seed.textValue);
+  }
+
+  const originCode = firstVariant?.inventoryItem?.countryCodeOfOrigin?.trim();
+  if (originCode) {
+    await seedEmptyTextCharacteristic("origin", originCode);
   }
 
   for (const metafield of remote.metafields.nodes) {

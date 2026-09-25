@@ -4,6 +4,7 @@ import {
   characteristicKeyForShopifyCategoryMetafield,
   displayNamesFromCategoryReference,
   extractSelectedShopifyCategoryAttributes,
+  extractSimpleTextCharacteristicSeeds,
   isShopifyCategoryMetafieldType,
 } from "@/lib/shopify/category-attribute-values";
 
@@ -64,7 +65,45 @@ describe("characteristicKeyForShopifyCategoryMetafield", () => {
   it("maps known Shopify category keys and labels onto passport fields", () => {
     expect(characteristicKeyForShopifyCategoryMetafield("color-pattern", "Color")).toBe("color");
     expect(characteristicKeyForShopifyCategoryMetafield("fabric", "Fabric")).toBe("material");
+    expect(characteristicKeyForShopifyCategoryMetafield("material", "Material")).toBe("material");
     expect(characteristicKeyForShopifyCategoryMetafield("unknown-attr", "Dye technique")).toBeNull();
+  });
+});
+
+describe("extractSimpleTextCharacteristicSeeds", () => {
+  it("seeds custom text metafields that map onto passport keys", () => {
+    expect(extractSimpleTextCharacteristicSeeds([
+      {
+        namespace: "custom",
+        key: "material",
+        type: "single_line_text_field",
+        value: "100% cotton",
+        definition: { name: "Material" },
+      },
+      {
+        namespace: "global",
+        key: "title_tag",
+        type: "string",
+        value: "SEO title",
+        definition: null,
+      },
+      {
+        namespace: "synarava",
+        key: "color",
+        type: "single_line_text_field",
+        value: "ignored — applied separately",
+        definition: { name: "Color" },
+      },
+      {
+        namespace: "shopify",
+        key: "color-pattern",
+        type: "list.metaobject_reference",
+        value: "[\"gid://shopify/Metaobject/1\"]",
+        definition: { name: "Color" },
+      },
+    ])).toEqual([
+      { characteristicKey: "material", textValue: "100% cotton" },
+    ]);
   });
 });
 
