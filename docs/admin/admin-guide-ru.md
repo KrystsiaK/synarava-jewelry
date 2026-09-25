@@ -4,9 +4,9 @@
 где что находится, как создавать и публиковать контент, как работает
 синхронизация с Shopify и на что обращать внимание при повседневной работе.
 
-Актуализировано по состоянию на 2026-09-24: product workspace sticky chrome,
-locale-scoped conflict sync, whole-product Save, leave-guard, scroll preserve
-после Save (без прыжка вверх).
+Актуализировано по состоянию на 2026-09-25: Pages draft restore after
+deployment skew reload; product workspace sticky chrome, locale-scoped
+conflict sync, whole-product Save, leave-guard, scroll preserve after Save.
 
 ---
 
@@ -47,6 +47,10 @@ locale-scoped conflict sync, whole-product Save, leave-guard, scroll preserve
 - Вкладка, оставленная открытой во время production deployment, распознаёт
   смену версии по Railway commit/deployment ID. Если устаревший Server Action
   всё же вызван, экран восстановления предлагает загрузить актуальную версию.
+  В редакторе **Pages** (в том числе FAQ / Care / Shipping / Returns) несохранённые
+  поля локали перед reload сохраняются в sessionStorage этой вкладки и
+  восстанавливаются после загрузки актуальной версии — после reload нужно снова
+  нажать Save.
 
 ## 2. Общая структура интерфейса
 

@@ -1,11 +1,7 @@
 "use client";
 
 import { AdminErrorState } from "@/components/admin/shared/admin-error-state";
-
-function isStaleDeploymentError(error: Error) {
-  return error.name === "UnrecognizedActionError" ||
-    /server action.+not found|failed to find server action/i.test(error.message);
-}
+import { isStaleDeploymentError } from "@/lib/admin/stale-deployment";
 
 export default function AdminError({
   error,

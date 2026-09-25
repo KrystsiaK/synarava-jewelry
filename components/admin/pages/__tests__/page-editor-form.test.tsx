@@ -462,4 +462,47 @@ describe("PageEditor", () => {
     });
     expect(hiddenFieldValue(container, "material2Image")).toBe("/oak.webp");
   });
+
+  it("keeps FAQ edits and offers reload when save hits a stale deployment", async () => {
+    const user = userEvent.setup();
+    const reload = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...window.location, reload },
+    });
+
+    const stale = new Error('Server Action "x" was not found on the server.');
+    stale.name = "UnrecognizedActionError";
+    mocks.savePageAction.mockRejectedValue(stale);
+
+    const { container } = render(
+      <PageEditor
+        page={makePage({
+          slug: "faq",
+          title: "Before you choose",
+          content: { eyebrow: "Service / FAQ", body: "Short answers." },
+        })}
+      />,
+    );
+
+    const pageTitle = screen.getAllByRole("textbox", { name: "Title" })[0]!;
+    await user.clear(pageTitle);
+    await user.type(pageTitle, "FAQ filled");
+    await fillLongText(user, "Intro", "Complete intro for one language.");
+
+    await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
+    await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
+
+    expect(await screen.findByRole("heading", { name: "Admin was updated" })).toBeInTheDocument();
+    expect(screen.getByText(/unsaved page edits were kept/i)).toBeInTheDocument();
+    expect(hiddenFieldValue(container, "title")).toBe("FAQ filled");
+    expect(hiddenFieldValue(container, "body")).toBe("Complete intro for one language.");
+
+    const stored = sessionStorage.getItem("adm-page-draft:page-1");
+    expect(stored).toContain("FAQ filled");
+    expect(stored).toContain("Complete intro for one language.");
+
+    await user.click(screen.getByRole("button", { name: "Reload latest version" }));
+    expect(reload).toHaveBeenCalledOnce();
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import {
   savePageAction,
@@ -8,6 +8,7 @@ import {
   type SavedPagePayload,
 } from "@/app/admin/actions/pages";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import { AdminErrorState } from "@/components/admin/shared/admin-error-state";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -23,6 +24,11 @@ import {
   AdminTextField,
 } from "@/components/synarava-cms";
 import { isValidOptionalEmail, OPTIONAL_EMAIL_ERROR } from "@/lib/admin/optional-email";
+import {
+  takePageEditorDraftSnapshot,
+  writePageEditorDraftSnapshot,
+} from "@/lib/admin/page-editor-draft-snapshot";
+import { isStaleDeploymentError } from "@/lib/admin/stale-deployment";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
@@ -243,6 +249,8 @@ export function PageEditor({
 }) {
   const [state, setState] = useState<PageActionState>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [staleDeployment, setStaleDeployment] = useState(false);
+  const [draftPreserved, setDraftPreserved] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useAdminFormValidation<"finalContactEmail" | "finalContactLabel">({ formRef });
@@ -322,6 +330,39 @@ export function PageEditor({
     const saved = content.archiveCollectionIds?.filter(Boolean) ?? [];
     return saved.length > 0 ? saved : [""];
   });
+
+  // After "Admin was updated" → reload, restore the locale draft that save
+  // snapshotted so a full FAQ/legal fill is not lost to version skew.
+  useEffect(() => {
+    const snapshot = takePageEditorDraftSnapshot(page.id);
+    if (!snapshot) return;
+    const locales = [SOURCE_LOCALE, ...translationLocales.map(({ code }) => code)];
+    const nextDrafts = Object.fromEntries(
+      locales.flatMap((locale) => {
+        const draft = snapshot.draftByLocale[locale];
+        return draft && typeof draft === "object" ? [[locale, draft as PageLocaleDraft]] : [];
+      }),
+    );
+    if (Object.keys(nextDrafts).length === 0) return;
+    setDraftByLocale((prev) => ({ ...prev, ...nextDrafts }));
+    if (snapshot.handleByLocale) setHandleByLocale(snapshot.handleByLocale);
+    if (Array.isArray(snapshot.editProductIds)) {
+      setEditProductIds([...snapshot.editProductIds, "", "", "", ""].slice(0, 4));
+    }
+    if (Array.isArray(snapshot.finalCtaProductIds)) {
+      setFinalCtaProductIds([...snapshot.finalCtaProductIds, "", "", "", ""].slice(0, 4));
+    }
+    if (Array.isArray(snapshot.archiveCollectionIds) && snapshot.archiveCollectionIds.length > 0) {
+      setArchiveCollectionIds(snapshot.archiveCollectionIds);
+    }
+    setContactEnabled(snapshot.contactEnabled === true);
+    pushToast({
+      message: "Restored unsaved edits from before the reload. Review and save again.",
+      tone: "success",
+    });
+    // Intentionally once per page id mount — snapshot is consumed on take.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- restore only on mount / page id change
+  }, [page.id]);
 
   /** Shared image URLs live in EN content; keep draft slots in sync after save remounts. */
   function syncMaterialImagesFromContent(nextContent: EditablePageContent) {
@@ -489,25 +530,47 @@ export function PageEditor({
 
   function formAction(formData: FormData) {
     startTransition(async () => {
-      const result = await savePageAction(formData);
-      setState(result);
-      setConfirmOpen(false);
-      validation.showFieldErrors(result.fieldErrors ?? {});
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.page) {
-        const saved = (result.page.content ?? {}) as EditablePageContent;
-        const savedCollections = saved.archiveCollectionIds?.filter(Boolean) ?? [];
-        setArchiveCollectionIds(savedCollections.length > 0 ? savedCollections : [""]);
-        // Always mirror saved slots (including explicit empty) so soft refresh
-        // cannot leave stale empty Product showcase rows after a first fill.
-        setEditProductIds([...(saved.editProductIds ?? []), "", "", "", ""].slice(0, 4));
-        setFinalCtaProductIds([...(saved.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4));
-        setContactEnabled(saved.finalContactEnabled === true);
-        // Must run before remount (`key={page.updatedAt}`) clears the file input —
-        // otherwise Current keeps the pre-upload URL and the next save can write it back.
-        syncMaterialImagesFromContent(saved);
-        onUpdated?.(result.page);
+      try {
+        const result = await savePageAction(formData);
+        setState(result);
+        setConfirmOpen(false);
+        validation.showFieldErrors(result.fieldErrors ?? {});
+        if (result.error) pushToast({ message: result.error, tone: "error" });
+        if (result.success) pushToast({ message: result.success, tone: "success" });
+        if (result.page) {
+          const saved = (result.page.content ?? {}) as EditablePageContent;
+          const savedCollections = saved.archiveCollectionIds?.filter(Boolean) ?? [];
+          setArchiveCollectionIds(savedCollections.length > 0 ? savedCollections : [""]);
+          // Always mirror saved slots (including explicit empty) so soft refresh
+          // cannot leave stale empty Product showcase rows after a first fill.
+          setEditProductIds([...(saved.editProductIds ?? []), "", "", "", ""].slice(0, 4));
+          setFinalCtaProductIds([...(saved.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4));
+          setContactEnabled(saved.finalContactEnabled === true);
+          // Must run before remount (`key={page.updatedAt}`) clears the file input —
+          // otherwise Current keeps the pre-upload URL and the next save can write it back.
+          syncMaterialImagesFromContent(saved);
+          onUpdated?.(result.page);
+        }
+      } catch (error) {
+        setConfirmOpen(false);
+        if (isStaleDeploymentError(error)) {
+          // Catch here so the route error boundary does not unmount the form
+          // before we can snapshot the draft for post-reload restore.
+          const preserved = writePageEditorDraftSnapshot(page.id, {
+            draftByLocale,
+            handleByLocale,
+            editProductIds,
+            finalCtaProductIds,
+            archiveCollectionIds,
+            contactEnabled,
+          });
+          setDraftPreserved(preserved);
+          setStaleDeployment(true);
+          return;
+        }
+        const message = error instanceof Error ? error.message : "Page could not be saved.";
+        setState({ error: message });
+        pushToast({ message, tone: "error" });
       }
     });
   }
@@ -910,6 +973,20 @@ export function PageEditor({
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => formRef.current?.requestSubmit()}
       />
+
+      {staleDeployment ? (
+        <div
+          className="fixed inset-0 z-[210] overflow-y-auto bg-[color-mix(in_srgb,var(--adm-bg)_92%,transparent)]"
+          role="presentation"
+        >
+          <AdminErrorState
+            staleDeployment
+            draftPreserved={draftPreserved}
+            onRetry={() => setStaleDeployment(false)}
+            onReload={() => window.location.reload()}
+          />
+        </div>
+      ) : null}
     </form>
   );
 }

@@ -50,8 +50,15 @@ const nextConfig: NextConfig = {
     process.env.RAILWAY_DEPLOYMENT_ID ||
     undefined,
   experimental: {
+    // Proxy clones POST bodies for /admin/* (Server Actions). Keep this at or
+    // above serverActions.bodySizeLimit — a lower proxy cap silently truncates
+    // multipart payloads and Next reports UnrecognizedActionError ("Admin was
+    // updated") even though the tab and deploy match.
+    // https://nextjs.org/docs/app/api-reference/config/next-config-js/proxyClientMaxBodySize
+    proxyClientMaxBodySize: "12mb",
     serverActions: {
       // Admin image uploads are capped at 10 MB; leave only multipart overhead.
+      // https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions#bodysizelimit
       bodySizeLimit: "12mb",
     },
   },

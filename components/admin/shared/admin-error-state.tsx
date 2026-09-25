@@ -4,10 +4,13 @@ import { AlertTriangle } from "lucide-react";
 
 export function AdminErrorState({
   staleDeployment,
+  draftPreserved = false,
   onRetry,
   onReload,
 }: {
   staleDeployment: boolean;
+  /** Page editor already wrote a session snapshot that reload will restore. */
+  draftPreserved?: boolean;
   onRetry: () => void;
   onReload: () => void;
 }) {
@@ -35,7 +38,9 @@ export function AdminErrorState({
           </button>
         </div>
         <p className="mt-4 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-          Unsaved fields in this tab may need to be entered again after reloading.
+          {draftPreserved
+            ? "Your unsaved page edits were kept for this tab and will be restored after reload. Save again once the latest version loads."
+            : "Unsaved fields in this tab may need to be entered again after reloading."}
         </p>
       </section>
     </div>

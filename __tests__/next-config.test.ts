@@ -21,4 +21,11 @@ describe("Next.js deployment identity", () => {
 
     expect(config.deploymentId).toBe("deployment-456");
   });
+
+  it("keeps proxy body buffering aligned with Server Action uploads", async () => {
+    const { default: config } = await import("@/next.config");
+
+    expect(config.experimental?.proxyClientMaxBodySize).toBe("12mb");
+    expect(config.experimental?.serverActions?.bodySizeLimit).toBe("12mb");
+  });
 });

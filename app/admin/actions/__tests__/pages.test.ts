@@ -234,4 +234,103 @@ describe("savePageAction", () => {
       }),
     }));
   });
+
+  it("persists a full FAQ locale including every service section", async () => {
+    mocks.upsertPage.mockResolvedValue({
+      id: "faq-page",
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-02"),
+      slug: "faq",
+      title: "Before you choose",
+      excerpt: null,
+      content: {},
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      shopifyPageId: null,
+      shopifyHandle: null,
+      translations: [],
+    });
+
+    const formData = new FormData();
+    formData.set("slug", "faq");
+    formData.set("title", "Before you choose");
+    formData.set("workflowState", "PUBLISHED");
+    formData.set("eyebrow", "Service / FAQ");
+    formData.set("body", "Short answers before and after an order.");
+    formData.set("service:maker:title", "Is everything made by Synarava?");
+    formData.set("service:maker:body", "Yes — each piece is finished in the studio.");
+    formData.set("service:availability:title", "How do I know an option is available?");
+    formData.set("service:availability:body", "Availability is shown on the product page.");
+    formData.set("service:payment:title", "Where do I pay?");
+    formData.set("service:payment:body", "Checkout is handled securely through Shopify.");
+    formData.set("service:question:title", "Can I ask about a product first?");
+    formData.set("service:question:body", "Write to us before ordering if you need advice.");
+    formData.set("ptTitle", "Antes de escolher");
+    formData.set("ptEyebrow", "Serviço / FAQ");
+    formData.set("ptBody", "Respostas breves antes e depois de uma encomenda.");
+    formData.set("ptService:maker:title", "Tudo é feito pela Synarava?");
+    formData.set("ptService:maker:body", "Sim — cada peça é acabada no estúdio.");
+    formData.set("ptService:availability:title", "Como sei se uma opção está disponível?");
+    formData.set("ptService:availability:body", "A disponibilidade aparece na página do produto.");
+    formData.set("ptService:payment:title", "Onde pago?");
+    formData.set("ptService:payment:body", "O checkout é tratado com segurança pela Shopify.");
+    formData.set("ptService:question:title", "Posso perguntar sobre um produto primeiro?");
+    formData.set("ptService:question:body", "Escreva-nos antes de encomendar se precisar de conselho.");
+
+    await expect(savePageAction(formData)).resolves.toMatchObject({
+      success: "Page created.",
+      page: {
+        content: expect.objectContaining({
+          serviceSections: {
+            maker: {
+              title: "Is everything made by Synarava?",
+              body: "Yes — each piece is finished in the studio.",
+            },
+            availability: {
+              title: "How do I know an option is available?",
+              body: "Availability is shown on the product page.",
+            },
+            payment: {
+              title: "Where do I pay?",
+              body: "Checkout is handled securely through Shopify.",
+            },
+            question: {
+              title: "Can I ask about a product first?",
+              body: "Write to us before ordering if you need advice.",
+            },
+          },
+        }),
+      },
+    });
+
+    expect(mocks.upsertPageTranslation).toHaveBeenCalledWith(expect.objectContaining({
+      where: { pageId_locale: { pageId: "faq-page", locale: "pt" } },
+      create: expect.objectContaining({
+        locale: "pt",
+        title: "Antes de escolher",
+        content: expect.objectContaining({
+          eyebrow: "Serviço / FAQ",
+          body: "Respostas breves antes e depois de uma encomenda.",
+          serviceSections: {
+            maker: {
+              title: "Tudo é feito pela Synarava?",
+              body: "Sim — cada peça é acabada no estúdio.",
+            },
+            availability: {
+              title: "Como sei se uma opção está disponível?",
+              body: "A disponibilidade aparece na página do produto.",
+            },
+            payment: {
+              title: "Onde pago?",
+              body: "O checkout é tratado com segurança pela Shopify.",
+            },
+            question: {
+              title: "Posso perguntar sobre um produto primeiro?",
+              body: "Escreva-nos antes de encomendar se precisar de conselho.",
+            },
+          },
+        }),
+      }),
+    }));
+  });
 });
