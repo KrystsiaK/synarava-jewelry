@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Link2, PencilLine, Unlink } from "lucide-react";
+import { Bold, Italic, Link2, List, ListOrdered, PencilLine, Unlink } from "lucide-react";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 
@@ -153,13 +153,11 @@ function RichTextModalEditor({
     extensions: [
       StarterKit.configure({
         heading: false,
-        bulletList: false,
-        orderedList: false,
         blockquote: false,
         codeBlock: false,
         code: false,
         horizontalRule: false,
-        listItem: false,
+        // Lists stay on — legal bodies need bullets/numbers.
         link: {
           openOnClick: false,
           autolink: true,
@@ -197,6 +195,46 @@ function RichTextModalEditor({
   return (
     <div className="adm-rich-text-editor">
       <div className="adm-rich-text-editor__toolbar" role="toolbar" aria-label="Formatting">
+        <button
+          type="button"
+          className="adm-rich-text-editor__tool"
+          onClick={() => editor?.chain().focus().toggleBold().run()}
+          disabled={!editor}
+          aria-pressed={editor?.isActive("bold") ?? false}
+        >
+          <Bold aria-hidden="true" className="size-3.5" />
+          Bold
+        </button>
+        <button
+          type="button"
+          className="adm-rich-text-editor__tool"
+          onClick={() => editor?.chain().focus().toggleItalic().run()}
+          disabled={!editor}
+          aria-pressed={editor?.isActive("italic") ?? false}
+        >
+          <Italic aria-hidden="true" className="size-3.5" />
+          Italic
+        </button>
+        <button
+          type="button"
+          className="adm-rich-text-editor__tool"
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          disabled={!editor}
+          aria-pressed={editor?.isActive("bulletList") ?? false}
+        >
+          <List aria-hidden="true" className="size-3.5" />
+          List
+        </button>
+        <button
+          type="button"
+          className="adm-rich-text-editor__tool"
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          disabled={!editor}
+          aria-pressed={editor?.isActive("orderedList") ?? false}
+        >
+          <ListOrdered aria-hidden="true" className="size-3.5" />
+          Numbered
+        </button>
         <button
           type="button"
           className="adm-rich-text-editor__tool"
@@ -376,7 +414,7 @@ export function AdminRichTextField({
         <div>
           <h3 id={titleId} className="adm-title-sm">{plainLabel}</h3>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
-            Add links to storefront paths or remote URLs. The form keeps a compact preview.
+            Format copy and add links to storefront paths or remote URLs. The form keeps a compact preview.
           </p>
         </div>
         {open ? (

@@ -6,6 +6,8 @@ import {
   isInternalHref,
   isRichTextEmpty,
   looksLikeHtml,
+  looksLikeMarkdown,
+  markdownToRichHtml,
   normalizeRichTextForEditor,
   normalizeRichTextForStorage,
   plainTextFromRichText,
@@ -26,12 +28,23 @@ describe("rich-text helpers", () => {
     );
   });
 
+  it("converts markdown lists and links for the editor", () => {
+    expect(looksLikeMarkdown("- **Account data** — Name")).toBe(true);
+    const html = markdownToRichHtml(
+      "Intro paragraph.\n\n- **Account data** — Name\n- Order data\n\nEmail: [hi@x.test](mailto:hi@x.test)",
+    );
+    expect(html).toContain("<ul>");
+    expect(html).toContain("<strong>Account data</strong>");
+    expect(html).toContain('href="mailto:hi@x.test"');
+    expect(normalizeRichTextForEditor("- item one\n- item two")).toContain("<ul>");
+  });
+
   it("keeps only safe tags and href schemes", () => {
     const dirty =
       '<p>Hi <a href="javascript:alert(1)">bad</a> <a href="https://ok.example">ok</a><script>x</script></p>';
     const clean = sanitizeRichTextHtml(dirty);
     expect(clean).toContain('href="https://ok.example"');
-    expect(clean).toContain("target=\"_blank\"");
+    expect(clean).toContain('target="_blank"');
     expect(clean).not.toContain("javascript:");
     expect(clean).not.toContain("<script");
     expect(clean).toContain("bad");
@@ -39,12 +52,16 @@ describe("rich-text helpers", () => {
   });
 
   it("keeps internal paths same-tab and accepts them for TipTap", () => {
-    const clean = sanitizeRichTextHtml('<p><a href="/shipping">Shipping</a> <a href="#returns">Returns</a></p>');
+    const clean = sanitizeRichTextHtml(
+      '<p><a href="/shipping">Shipping</a> <a href="#returns">Returns</a></p>',
+    );
     expect(clean).toContain('href="/shipping"');
     expect(clean).toContain('href="#returns"');
     expect(clean).not.toContain("target=");
     expect(sanitizeHref("/shop")).toBe("/shop");
     expect(sanitizeHref("#section")).toBe("#section");
+    expect(sanitizeHref("action:cookie-settings")).toBe("action:cookie-settings");
+    expect(sanitizeHref("action:evil")).toBeNull();
     expect(isInternalHref("/care")).toBe(true);
     expect(isExternalHttpHref("https://example.com")).toBe(true);
     expect(isAllowedRichTextHref("/products/ring", () => false)).toBe(true);
@@ -67,6 +84,7 @@ describe("rich-text helpers", () => {
     );
     expect(
       normalizeRichTextForStorage('<p>See <a href="/shop">the shop</a>.</p>'),
-    ).toContain("<a href=\"/shop\"");
+    ).toContain('<a href="/shop"');
+    expect(normalizeRichTextForStorage("<ul><li><p>One</p></li></ul>")).toContain("<ul>");
   });
 });

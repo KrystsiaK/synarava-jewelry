@@ -447,10 +447,11 @@ import { AdminRichTextField } from "@/components/synarava-cms";
 - Links are clickable in the preview and on the storefront (`RichText` in
   `components/content/rich-text.tsx` + `lib/content/rich-text.ts` sanitizer).
 - Applied on **Pages** long-copy Edit fields (home, collections, about, shop,
-  service intro + section bodies, legal intro, create-page body/quote/secondary).
+  service intro + section bodies, legal intro + section bodies, create-page
+  body/quote/secondary). Toolbar: Bold / Italic / List / Numbered / Link.
   **Not** product fields (Shopify-owned). **Not** SEO excerpts / Search summary
-  (plain `AdminLongTextField`). Legal document **section bodies** stay Markdown
-  (lists, tables, `action:` links) via `AdminLongTextField`.
+  (plain `AdminLongTextField`). Legacy legal Markdown still renders on the
+  storefront until a section is re-saved as rich HTML.
 - Story: `synarava-cms/AdminRichTextField`.
 
 ### Tall / composite fields

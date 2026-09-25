@@ -1029,8 +1029,8 @@ export function PageEditor({
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
                 Add, remove, and reorder sections. Edit the section name (table of contents), title, and body
                 for each language. Section order is shared across languages. Saved content is managed exclusively from
-                Admin — empty fields remain empty on the site. Legal section bodies stay Markdown (lists, tables,
-                action: links); use Link in other page fields for storefront paths and remote URLs.
+                Admin — empty fields remain empty on the site. Body fields use the rich-text editor (bold, lists,
+                internal and remote links). Existing Markdown still renders on the storefront until re-saved.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -1081,12 +1081,10 @@ export function PageEditor({
                       value={section.title}
                       onChange={(event) => updateDocumentSection("legal", section.id, "title", event.target.value)}
                     />
-                    <AdminLongTextField
-                      label="Body (Markdown)"
+                    <AdminRichTextField
+                      label="Body"
                       value={section.body}
                       onChange={(value) => updateDocumentSection("legal", section.id, "body", value)}
-                      rows={6}
-                      editorClassName="font-mono text-xs"
                     />
                   </div>
                 </AdminCollapsiblePanel>

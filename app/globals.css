@@ -3082,12 +3082,52 @@ select.adm-field option {
   text-decoration: underline;
 }
 
+.adm-rich-text-editor__surface ul,
+.adm-rich-text-editor__surface ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.35rem;
+}
+
+.adm-rich-text-editor__surface li {
+  margin: 0.2em 0;
+}
+
+.adm-rich-text-editor__surface ul {
+  list-style: disc;
+}
+
+.adm-rich-text-editor__surface ol {
+  list-style: decimal;
+}
+
 .rich-text p {
   margin: 0;
 }
 
 .rich-text p + p {
   margin-top: 0.75em;
+}
+
+.rich-text ul,
+.rich-text ol {
+  margin: 0.75em 0;
+  padding-left: 1.35rem;
+}
+
+.rich-text ul {
+  list-style: disc;
+}
+
+.rich-text ol {
+  list-style: decimal;
+}
+
+.rich-text li {
+  margin: 0.25em 0;
+}
+
+.rich-text li p {
+  margin: 0;
 }
 
 @media (pointer: coarse) {

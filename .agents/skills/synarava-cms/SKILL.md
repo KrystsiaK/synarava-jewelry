@@ -60,7 +60,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Checkbox + optional follow-on | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
 | Long copy (preview + Edit modal) | `AdminLongTextField` |
-| Rich text with links (preview + TipTap modal; internal `/path` + remote `https://`) | `AdminRichTextField` |
+| Rich text with links + lists (preview + TipTap modal; internal `/path` + remote `https://`) | `AdminRichTextField` |
 | Collapsible section (chevron) | `AdminCollapsiblePanel` |
 | Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` (+ `syncCounts` for amber conflict badges per section) |

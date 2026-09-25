@@ -1,56 +1,16 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 import { RichText } from "@/components/content/rich-text";
 import { PageHeroImage } from "@/components/ui";
 import { LegalSectionScroll } from "@/components/legal/legal-section-scroll";
-import { LegalActionLink } from "@/components/legal/legal-action-link";
-import { isLegalActionHref, parseLegalActionHref } from "@/lib/content/legal-actions";
+import { LegalSectionBody } from "@/components/legal/legal-section-body";
 import { cn } from "@/lib/ui";
 import type { ResolvedLegalSection } from "@/lib/content/legal-sections";
 
-const markdownComponents = {
-  table: ({ children }: { children?: React.ReactNode }) => (
-    <div className="overflow-x-auto border border-stroke">
-      <table>{children}</table>
-    </div>
-  ),
-  // Anchor (#id), mailto:, relative in-app links (/shipping), and
-  // action:<id> links (a fixed allowlist of website actions, e.g. opening
-  // the Cookie Preferences modal — see lib/content/legal-actions.ts) stay
-  // same-tab, no navigation. An action: href with an unrecognized id fails
-  // safely to plain text rather than rendering a dead or arbitrary link.
-  // Only genuine absolute http(s) links to another site open in a new tab,
-  // with rel="noopener noreferrer" so the opened page can't reach back into
-  // window.opener.
-  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
-    if (href && isLegalActionHref(href)) {
-      const actionId = parseLegalActionHref(href);
-      return actionId ? <LegalActionLink actionId={actionId}>{children}</LegalActionLink> : <>{children}</>;
-    }
-    const isExternal = href ? /^https?:\/\//.test(href) : false;
-    return (
-      <a href={href} {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : null)}>
-        {children}
-      </a>
-    );
-  },
-};
-
-// react-markdown's default URL sanitizer only allows the http(s)/irc(s)/
-// mailto/xmpp schemes and silently empties anything else — including our
-// action: scheme — as an XSS guard. Explicitly allow action: through here;
-// markdownComponents.a still validates the id against the fixed allowlist
-// before treating it as anything but plain text.
-function legalUrlTransform(url: string): string {
-  return isLegalActionHref(url) ? url : defaultUrlTransform(url);
-}
-
 // Shared chrome for legal documents: hero, sticky table of contents, and a
-// list of markdown-rendered sections. Section order, names, titles, and bodies
-// are admin-editable (Admin → Pages); see lib/content/legal-sections.ts.
+// list of section bodies (Markdown legacy or WYSIWYG HTML). Section order,
+// names, titles, and bodies are admin-editable (Admin → Pages).
 export function LegalDocumentPage({
   heroImage,
   eyebrowLabel,
@@ -118,9 +78,7 @@ export function LegalDocumentPage({
               <section id={s.id} className="scroll-mt-28">
                 <p className="label-caps mb-3 text-accent">{s.label}</p>
                 <h2 className="mb-5 font-serif text-[1.8rem] leading-tight md:text-[2.2rem]">{s.title}</h2>
-                <div className="legal-markdown">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents} urlTransform={legalUrlTransform}>{s.body}</ReactMarkdown>
-                </div>
+                <LegalSectionBody content={s.body} />
               </section>
               {index < sections.length - 1 ? <div className="embroidery-separator" /> : null}
             </Fragment>

@@ -45,6 +45,8 @@ describe("AdminRichTextField", () => {
 
     await user.click(screen.getByRole("button", { name: "Edit Body" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "List" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Link" }));
     expect(screen.getByRole("dialog", { name: "Insert link" })).toBeInTheDocument();
     expect(screen.getByLabelText("Link target")).toBeInTheDocument();
