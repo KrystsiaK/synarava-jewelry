@@ -6,9 +6,10 @@ const mocks = vi.hoisted(() => ({
   upsertPage: vi.fn(),
   upsertPageTranslation: vi.fn(),
   createAuditLog: vi.fn(),
+  revalidatePath: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/auth/admin-session", () => ({
   requireAdminSession: mocks.requireAdminSession,
   getCurrentAdminSession: mocks.getCurrentAdminSession,
@@ -114,6 +115,7 @@ describe("savePageAction", () => {
     formData.set("finalContactEmail", "studio@example.com");
 
     await expect(savePageAction(formData)).resolves.toMatchObject({ success: "Page created." });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin/pages/home");
     expect(mocks.upsertPage).toHaveBeenCalledWith(expect.objectContaining({
       update: expect.objectContaining({
         content: expect.objectContaining({

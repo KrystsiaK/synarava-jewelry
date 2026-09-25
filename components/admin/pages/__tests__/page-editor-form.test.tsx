@@ -305,6 +305,63 @@ describe("PageEditor", () => {
     expect(mocks.savePageAction).not.toHaveBeenCalled();
   });
 
+  it("keeps product showcase selections after the first save from empty slots", async () => {
+    const productOptions = [
+      { id: "tortoise", title: "Tortoise Leaf & Sun Bag Charm", slug: "tortoise-leaf-sun-bag-charm" },
+      { id: "half-moon", title: "Hammered Half-Moon Necklace", slug: "hammered-half-moon-necklace" },
+      { id: "bird-alt", title: "Golden Bird Brooch Alt", slug: "golden-bird-brooch-alt" },
+      { id: "oak-ring", title: "Oak Ring", slug: "oak-ring" },
+    ];
+    const initial = makePage({
+      slug: "home",
+      title: "Home",
+      content: {},
+    });
+    const saved = makePage({
+      ...initial,
+      updatedAt: new Date("2026-01-03"),
+      content: { editProductIds: ["tortoise", "half-moon", "bird-alt", "oak-ring"] },
+    });
+    mocks.savePageAction.mockImplementation(async (formData: FormData) => {
+      expect(formData.get("editProductId1")).toBe("tortoise");
+      expect(formData.get("editProductId2")).toBe("half-moon");
+      expect(formData.get("editProductId3")).toBe("bird-alt");
+      expect(formData.get("editProductId4")).toBe("oak-ring");
+      return { success: "Page updated.", page: saved };
+    });
+
+    const user = userEvent.setup();
+    let currentPage = initial;
+    const onUpdated = vi.fn((page: SavedPagePayload) => {
+      currentPage = page;
+    });
+    const view = render(
+      <PageEditor page={currentPage} productOptions={productOptions} onUpdated={onUpdated} />,
+    );
+
+    expect(screen.getByLabelText("Product 1")).toHaveValue("");
+
+    await user.selectOptions(screen.getByLabelText("Product 1"), "tortoise");
+    await user.selectOptions(screen.getByLabelText("Product 2"), "half-moon");
+    await user.selectOptions(screen.getByLabelText("Product 3"), "bird-alt");
+    await user.selectOptions(screen.getByLabelText("Product 4"), "oak-ring");
+
+    await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
+    await user.click((await screen.findAllByRole("button", { name: "Save page" })).at(-1)!);
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(saved));
+
+    // Parent route applies the save payload (and soft refresh may follow).
+    view.rerender(
+      <PageEditor page={currentPage} productOptions={productOptions} onUpdated={onUpdated} />,
+    );
+
+    expect(screen.getByLabelText("Product 1")).toHaveValue("tortoise");
+    expect(screen.getByLabelText("Product 2")).toHaveValue("half-moon");
+    expect(screen.getByLabelText("Product 3")).toHaveValue("bird-alt");
+    expect(screen.getByLabelText("Product 4")).toHaveValue("oak-ring");
+  });
+
   it("saves through savePageAction on confirm", async () => {
     const updatedPage = makePage({ title: "Journal Updated" });
     mocks.savePageAction.mockResolvedValue({ success: "Page saved.", page: updatedPage });

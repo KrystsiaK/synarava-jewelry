@@ -559,6 +559,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   revalidateStorefront();
   revalidateStorefrontPath(`/${slug}`);
   revalidatePath("/admin/pages");
+  revalidatePath(`/admin/pages/${slug}`);
   revalidatePath(`/admin/pages?updated=${slug}`);
   return { success: before ? "Page updated." : "Page created.", page };
 }
@@ -824,6 +825,7 @@ export async function deletePageAction(formData: FormData): Promise<PageActionSt
   revalidateStorefrontPath(`/${slug}`);
   revalidatePath("/admin");
   revalidatePath("/admin/pages");
+  revalidatePath(`/admin/pages/${slug}`);
 
   return { success: "Page deleted.", deletedSlug: slug };
 }

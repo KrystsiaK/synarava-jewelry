@@ -328,10 +328,11 @@ export function PageEditor({
     );
   }
 
-  // After save + router.refresh, re-hydrate selection lists from the saved page.
-  // Adjust during render on updatedAt only — not content identity — so typing
-  // is not wiped mid-edit (React “adjusting state when a prop changes”).
-  const savedUpdatedAt = page.updatedAt.getTime();
+  // After save + router.refresh (or local page from onUpdated), re-hydrate
+  // selection lists from the saved page. Adjust during render on updatedAt
+  // only — not content identity — so typing is not wiped mid-edit
+  // (React “adjusting state when a prop changes”).
+  const savedUpdatedAt = new Date(page.updatedAt).getTime();
   const [hydratedUpdatedAt, setHydratedUpdatedAt] = useState(savedUpdatedAt);
   if (savedUpdatedAt !== hydratedUpdatedAt) {
     setHydratedUpdatedAt(savedUpdatedAt);
@@ -343,6 +344,9 @@ export function PageEditor({
     syncMaterialImagesFromContent(nextContent);
     if (nextContent.editProductIds?.length) {
       setEditProductIds([...nextContent.editProductIds, "", "", "", ""].slice(0, 4));
+    } else if (Array.isArray(nextContent.editProductIds)) {
+      // Explicit empty save — clear slots (do not revive title-matched defaults).
+      setEditProductIds(["", "", "", ""]);
     } else {
       const approvedDefaults = DEFAULT_HOME_EDIT_PRODUCT_TITLES.map(
         (title) => productOptions.find((product) => product.title === title)?.id ?? "",
@@ -478,9 +482,9 @@ export function PageEditor({
         const saved = (result.page.content ?? {}) as EditablePageContent;
         const savedCollections = saved.archiveCollectionIds?.filter(Boolean) ?? [];
         setArchiveCollectionIds(savedCollections.length > 0 ? savedCollections : [""]);
-        if (saved.editProductIds?.length) {
-          setEditProductIds([...saved.editProductIds, "", "", "", ""].slice(0, 4));
-        }
+        // Always mirror saved slots (including explicit empty) so soft refresh
+        // cannot leave stale empty Product showcase rows after a first fill.
+        setEditProductIds([...(saved.editProductIds ?? []), "", "", "", ""].slice(0, 4));
         setFinalCtaProductIds([...(saved.finalCtaProductIds ?? []), "", "", "", ""].slice(0, 4));
         setContactEnabled(saved.finalContactEnabled === true);
         // Must run before remount (`key={page.updatedAt}`) clears the file input —
@@ -566,7 +570,7 @@ export function PageEditor({
               rows={3}
             />
             <HomePageEditorSections
-              key={page.updatedAt.toISOString()}
+              key={new Date(page.updatedAt).toISOString()}
               content={content}
               draft={draft}
               updateField={updateField as HomePageEditorSectionsProps["updateField"]}
