@@ -27,6 +27,7 @@ import {
   pullShopifyProduct,
   pushProductToShopify,
 } from "@/lib/shopify/product-sync";
+import { pullCatalogFromShopify } from "@/lib/shopify/catalog-pull";
 import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-reviews";
 import { env } from "@/lib/env";
 import { revalidateStorefront } from "./shared";
@@ -415,6 +416,74 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Shopify pull failed." };
+  }
+}
+
+/**
+ * Shopify Products page: import Shopify-only products and refresh every linked
+ * local projection from Shopify (force pull).
+ */
+export async function updateShopifyProductsAction() {
+  await requireAdminSession("/admin/shopify-products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    const connection = await testShopifyAdminConnection();
+    if (connection.missingScopes.length > 0) {
+      return {
+        error: `Connected to ${connection.shopName}, but required scopes are missing: ${connection.missingScopes.join(", ")}.`,
+      };
+    }
+    const binding = await ensureShopifyStoreBinding(connection.shopDomain);
+    if (binding.status === "MISMATCH") {
+      return {
+        error: `This catalog is linked to ${binding.boundShopDomain}, while the current credentials point to ${binding.currentShopDomain}. Rebind the store from Catalog before updating.`,
+        storeMismatch: {
+          boundShopDomain: binding.boundShopDomain,
+          currentShopDomain: binding.currentShopDomain,
+        },
+      };
+    }
+
+    if (env.APP_URL && env.SHOPIFY_WEBHOOK_SECRET) {
+      try {
+        await ensureProductWebhookSubscriptions(env.APP_URL);
+      } catch {
+        // Webhook setup is best-effort; update still proceeds.
+      }
+    }
+
+    const summary = await pullCatalogFromShopify();
+    revalidateStorefront();
+    revalidatePath("/admin/shopify-products");
+    revalidatePath("/admin/products");
+
+    if (summary.failed > 0 && summary.imported === 0 && summary.refreshed === 0) {
+      return {
+        error: summary.errors[0] ?? "Could not update products from Shopify.",
+        summary,
+      };
+    }
+
+    const parts = [
+      summary.imported > 0
+        ? `imported ${summary.imported} new product${summary.imported === 1 ? "" : "s"}`
+        : null,
+      summary.refreshed > 0
+        ? `refreshed ${summary.refreshed} linked product${summary.refreshed === 1 ? "" : "s"}`
+        : null,
+    ].filter(Boolean);
+
+    return {
+      success: parts.length > 0
+        ? `Update from Shopify complete: ${parts.join(", ")}.`
+        : "Update from Shopify complete. Local catalog already matched Shopify.",
+      warning: summary.failed > 0
+        ? `${summary.failed} product${summary.failed === 1 ? "" : "s"} could not be updated.`
+        : undefined,
+      summary,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not update products from Shopify." };
   }
 }
 

@@ -55,6 +55,7 @@ describe("admin-nav-config", () => {
     const pages = items.find((item) => item.id === "pages");
     const settings = items.find((item) => item.id === "settings");
     const catalog = items.find((item) => item.id === "products");
+    const shopifyProducts = items.find((item) => item.id === "shopify-products");
     const collections = items.find((item) => item.id === "collections");
     const problems = items.find((item) => item.id === "issues");
     const localization = items.find((item) => item.id === "translations");
@@ -69,6 +70,11 @@ describe("admin-nav-config", () => {
     expect(settings?.badge).toEqual({ kind: "sync", count: 1 });
     expect(catalog?.children).toBeUndefined();
     expect(catalog?.badge).toEqual({ kind: "sync", count: 5 });
+    expect(shopifyProducts).toMatchObject({
+      href: "/admin/shopify-products",
+      label: "Shopify Products",
+      code: "SHP",
+    });
     expect(collections?.badge).toEqual({ kind: "sync", count: 1 });
     expect(problems?.badge).toEqual({ kind: "issues", count: 3 });
     expect(localization?.badge).toEqual({ kind: "sync", count: 9 });

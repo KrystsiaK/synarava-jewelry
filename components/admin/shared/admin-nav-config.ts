@@ -257,6 +257,12 @@ export function buildAdminNavItems({
       badge: syncBadge(sync.products),
     },
     {
+      id: "shopify-products",
+      href: "/admin/shopify-products",
+      label: "Shopify Products",
+      code: "SHP",
+    },
+    {
       id: "issues",
       href: "/admin/issues",
       label: "Problems",

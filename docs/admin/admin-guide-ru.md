@@ -61,7 +61,7 @@ legal/service page sections are add/remove/reorder with editable names.
   индикатор открытых проблем (issues) со ссылкой, индикатор «Live CMS».
   Topbar зафиксирован сверху при прокрутке.
 - **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Shared`,
-  `Meta`, `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`,
+  `Meta`, `Videos`, `Catalog`, `Shopify Products`, `Problems`, `Collections`, `Localization`,
   `Infrastructure`, `Account`) и
   счётчик открытых проблем рядом с соответствующим пунктом.
   Home и About редактируются внутри `Pages` (`/admin/pages/home`,
@@ -86,6 +86,12 @@ legal/service page sections are add/remove/reorder with editable names.
 Самый сложный раздел админки: карточка товара одновременно хранит данные,
 которыми управляет Shopify («коммерческое ядро»), и редакторский контент,
 который принадлежит только Synarava CMS и переживает любую синхронизацию.
+
+### 4.0. Shopify Products (`/admin/shopify-products`)
+
+Отдельный пункт меню рядом с Catalog. Только таблица локальной проекции
+товаров Shopify и одна кнопка **Update from Shopify** (импорт новых +
+обновление связанных). Catalog authoring не меняется.
 
 ### 4.1. Список товаров
 
