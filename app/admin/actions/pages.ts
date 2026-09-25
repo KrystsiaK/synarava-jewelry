@@ -561,7 +561,12 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages/${slug}`);
   revalidatePath(`/admin/pages?updated=${slug}`);
-  return { success: before ? "Page updated." : "Page created.", page };
+  // Return the content we wrote — do not rely on the Prisma round-trip alone for
+  // client rehydration of Product showcase / Final CTA slots after soft refresh.
+  return {
+    success: before ? "Page updated." : "Page created.",
+    page: { ...page, content: pageData.content },
+  };
 }
 
 export async function autosavePageDraftAction(formData: FormData): Promise<DraftAutosaveResult> {

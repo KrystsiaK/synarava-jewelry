@@ -14,6 +14,27 @@ function pageUpdatedAtMs(page: Pick<SavedPagePayload, "updatedAt">) {
   return new Date(page.updatedAt).getTime();
 }
 
+/**
+ * Survives `router.refresh()` remounts. Soft refresh can remount this client
+ * route with a stale RSC `page` (empty product slots) even though the save
+ * already wrote products — a plain useState reset would wipe the UI until a
+ * hard reload. Keep the newest save payload at module scope for this page id.
+ */
+const savedPageById = new Map<string, SavedPagePayload>();
+
+/** Test-only: drop cached save payloads between cases. */
+export function clearAdminPageSaveCache() {
+  savedPageById.clear();
+}
+
+function resolveInitialPage(serverPage: SavedPagePayload): SavedPagePayload {
+  const cached = savedPageById.get(serverPage.id);
+  if (cached && pageUpdatedAtMs(cached) >= pageUpdatedAtMs(serverPage)) {
+    return cached;
+  }
+  return serverPage;
+}
+
 export function PageCreateRoute({ translationLocales }: { translationLocales: AdminTranslationLocale[] }) {
   const router = useRouter();
 
@@ -40,17 +61,12 @@ export function PageEditRoute({
   translationLocales: AdminTranslationLocale[];
 }) {
   const router = useRouter();
-  // Apply the save payload immediately so Product showcase / Final CTA slots
-  // rehydrate before (or without) a fresh RSC round-trip. Soft refresh alone
-  // can briefly keep the pre-save page, which wiped selections until a hard reload.
-  const [page, setPage] = useState(serverPage);
+  const [page, setPage] = useState(() => resolveInitialPage(serverPage));
   const serverUpdatedAt = pageUpdatedAtMs(serverPage);
   const [seenServerUpdatedAt, setSeenServerUpdatedAt] = useState(serverUpdatedAt);
   if (serverUpdatedAt !== seenServerUpdatedAt) {
     setSeenServerUpdatedAt(serverUpdatedAt);
-    if (serverUpdatedAt >= pageUpdatedAtMs(page)) {
-      setPage(serverPage);
-    }
+    setPage(resolveInitialPage(serverPage));
   }
 
   return (
@@ -60,6 +76,7 @@ export function PageEditRoute({
       collectionOptions={collectionOptions}
       translationLocales={translationLocales}
       onUpdated={(saved) => {
+        savedPageById.set(saved.id, saved);
         setPage(saved);
         refreshPreservingScroll(router);
       }}

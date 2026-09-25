@@ -114,7 +114,14 @@ describe("savePageAction", () => {
     formData.set("finalFooterTitle", "Objects kept for a lifetime.");
     formData.set("finalContactEmail", "studio@example.com");
 
-    await expect(savePageAction(formData)).resolves.toMatchObject({ success: "Page created." });
+    await expect(savePageAction(formData)).resolves.toMatchObject({
+      success: "Page created.",
+      page: {
+        content: expect.objectContaining({
+          editProductIds: ["bird", "moon", "dog", "pearl"],
+        }),
+      },
+    });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin/pages/home");
     expect(mocks.upsertPage).toHaveBeenCalledWith(expect.objectContaining({
       update: expect.objectContaining({
