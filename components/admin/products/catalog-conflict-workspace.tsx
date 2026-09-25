@@ -553,8 +553,18 @@ export function CatalogConflictWorkspace({
         onToast(result.error ?? "Could not apply the conflict resolution.", "error");
         return;
       }
-      if (result.error) onToast(result.error, result.outcome.appliedCount > 0 ? "info" : "error");
-      else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
+      const failureDetail = result.outcome.results
+        .filter((item) => !item.ok)
+        .map((item) => item.message)
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" · ");
+      if (result.error) {
+        onToast(
+          failureDetail ? `${result.error} ${failureDetail}` : result.error,
+          result.outcome.appliedCount > 0 ? "info" : "error",
+        );
+      } else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
       if (result.warning) onToast(result.warning, "info");
       const successfulProducts = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.productId));
       const incomingProducts = new Set(

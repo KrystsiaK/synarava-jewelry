@@ -39,19 +39,25 @@ function fingerprint(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
+/**
+ * Presence conflicts are about catalog membership (create/link/push), not field
+ * copy. Fingerprints must stay stable across title/`updatedAt` churn from a
+ * live re-scan before apply — otherwise every Pull of an unchanged Shopify-only
+ * product goes STALE. Include only identity that changes the apply target:
+ * local row id, link state, and SKU/handle used for unique match.
+ */
 export function localCatalogFingerprint(product: LocalCatalogIdentity): string {
   return fingerprint({
     id: product.id,
-    name: product.name,
-    slug: product.slug,
     sku: product.sku,
+    slug: product.slug,
     shopifyProductId: product.shopifyProductId,
-    updatedAt: product.updatedAt,
   });
 }
 
+/** Remote membership identity is the Shopify product GID alone. */
 export function remoteCatalogFingerprint(product: RemoteCatalogIdentity): string {
-  return fingerprint(product);
+  return fingerprint({ id: product.id });
 }
 
 function uniqueMap<T>(items: T[], keyFor: (item: T) => string): Map<string, T> {

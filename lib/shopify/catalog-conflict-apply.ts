@@ -237,8 +237,23 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
-    if (field.localFingerprint !== entry.expectedLocalFingerprint || field.shopifyFingerprint !== entry.expectedShopifyFingerprint) {
-      results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
+    // Presence: re-scan before apply is required (fresh membership). Fingerprints
+    // are membership identity only (GID / local link+SKU/handle) — not title or
+    // updatedAt — so a live re-scan of an unchanged Shopify-only product stays
+    // applicable. Field conflicts still use full value fingerprints below.
+    if (field.origin !== "PRESENCE") {
+      if (field.localFingerprint !== entry.expectedLocalFingerprint || field.shopifyFingerprint !== entry.expectedShopifyFingerprint) {
+        results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
+        continue;
+      }
+    } else if (
+      field.localFingerprint !== entry.expectedLocalFingerprint
+      || field.shopifyFingerprint !== entry.expectedShopifyFingerprint
+    ) {
+      results.push(staleResult(
+        entry,
+        "Catalog membership changed since this was reviewed (link target or product set). Run conflict check and pull again.",
+      ));
       continue;
     }
     if (field.origin === "COMMERCE" && !isScopedCommerceField(field)) {
