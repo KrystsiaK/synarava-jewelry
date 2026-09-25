@@ -77,20 +77,28 @@ describe("ShopifyCategoryField", () => {
     expect(container.querySelector<HTMLInputElement>('input[name="shopifyCategoryName"]')).toHaveValue("");
   });
 
-  it("shows Shopify's discovered category attributes for an existing selection", async () => {
+  it("shows selected Shopify category attribute values, not the vocabulary dump", async () => {
     mocks.attributes.mockResolvedValue({
-      attributes: [{ id: "gid://shopify/TaxonomyAttribute/1", name: "Material", values: ["Gold", "Silver"] }],
+      attributes: [
+        { id: "gid://shopify/TaxonomyAttribute/1", name: "Material" },
+        { id: "gid://shopify/TaxonomyAttribute/2", name: "Pattern" },
+      ],
     });
 
     render(
       <ShopifyCategoryField
         initialId="gid://shopify/TaxonomyCategory/aa-1-9"
         initialName="Rings"
+        selectedAttributeValues={[
+          { key: "material", label: "Material", values: ["Gold"] },
+        ]}
       />,
     );
 
     await waitFor(() => expect(mocks.attributes).toHaveBeenCalledWith("gid://shopify/TaxonomyCategory/aa-1-9"));
     expect(await screen.findByText("Material")).toBeInTheDocument();
-    expect(screen.getByText(": Gold, Silver")).toBeInTheDocument();
+    expect(screen.getByText("Gold")).toBeInTheDocument();
+    expect(screen.getByText(/Expected by this category but not set on the product: Pattern/)).toBeInTheDocument();
+    expect(screen.queryByText(/Gold, Silver/)).not.toBeInTheDocument();
   });
 });

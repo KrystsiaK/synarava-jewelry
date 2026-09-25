@@ -26,7 +26,7 @@ Shopify already owns.
 | Tags | Shopify product tags, edited on the product. The standalone local Tag CRUD surface was removed. Local `Tag`/`ProductTag` rows remain the synchronized read projection. |
 | Department | No separate entity or JSON field. The legacy `department` URL/filter vocabulary is backed by collections marked `isPrimaryNav`. |
 | Product type | Shopify free-form product type, stored losslessly as nullable text. |
-| Category attributes | Shopify taxonomy attributes are displayed as reference. Mapping free text to Shopify controlled taxonomy values remains deferred until it can be verified against a live sandbox. |
+| Category attributes | Shopify category attribute *selections* are resolved on pull (`shopify.*` taxonomy-value or metaobject references → display names), shown in Catalog/Shopify admin, and seed empty Synarava passport fields for known keys (Color, Material/Fabric, Size, Metal, …). Pushing free text back as TaxonomyValue GIDs remains deferred. |
 | SKU, price, compare-at price | The primary `ProductVariant` is authoritative after it exists; product-level columns remain compatibility/identity fallbacks. |
 | Publication | A public Synarava product must be active and published to Shopify's Online Store channel. Shopify `UNLISTED` is preserved. |
 
@@ -171,9 +171,9 @@ future changes:
 
 1. remove `ProductCategory`, `Product.categoryId`, and unused CATEGORY/TAG
    history/routing branches in a dedicated destructive migration;
-2. validate Shopify standard taxonomy metafield/metaobject definitions in a
-   live sandbox before mapping Synarava free-text characteristics to controlled
-   taxonomy values;
+2. push Synarava free-text passport values back as Shopify TaxonomyValue /
+   category metaobject references (pull already resolves selections and seeds
+   empty passport fields for known keys);
 3. design a multi-collection product editor if administrators need to manage
    more than one membership locally;
 4. add translations for newly created primary-navigation collections when a

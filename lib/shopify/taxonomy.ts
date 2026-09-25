@@ -51,19 +51,11 @@ export async function searchShopifyTaxonomyCategories(
 export type ShopifyTaxonomyCategoryAttribute = {
   id: string;
   name: string;
-  values: string[];
 };
 
-const taxonomyAttributeValueSchema = z.object({ id: z.string(), name: z.string() });
-
-// The bare `TaxonomyAttribute` variant (attributes with neither a choice
-// list nor a measurement unit) only exposes `id` in Shopify's schema — no
-// `name`. Those carry nothing worth showing here, so `name` stays optional
-// and such nodes are filtered out below instead of failing validation.
 const taxonomyAttributeNodeSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
-  values: z.object({ nodes: z.array(taxonomyAttributeValueSchema) }).optional(),
 });
 
 const taxonomyAttributesResponseSchema = z.object({
@@ -73,15 +65,15 @@ const taxonomyAttributesResponseSchema = z.object({
 });
 
 /**
- * Discovers the attributes Shopify's Standard Product Taxonomy defines for
- * a category (e.g. a "Jewelry > Necklaces" category might define "Material"
- * and "Color" with a controlled list of values each). Read-only reference
- * data: this does not map or write any local characteristic to it. Writing
- * a value against one of these attributes requires setting a `shopify`
- * namespace metafield whose value is a reference to one of the specific
- * `TaxonomyValue` ids below — not a plain string — and that mapping (fuzzy
- * matching free text to a controlled vocabulary, or a dedicated picker per
- * attribute) is deliberately not implemented here.
+ * Discovers the attribute *names* Shopify's Standard Product Taxonomy defines
+ * for a category (e.g. Jewelry > Necklaces may define Material and Color).
+ *
+ * This is a checklist of expected fields — not the product's selected values
+ * and not the full controlled vocabulary. Selected values live on the product
+ * as `shopify.*` metafields and are resolved during pull
+ * (`lib/shopify/category-attribute-values.ts`). Writing a value still requires
+ * a TaxonomyValue / category metaobject reference, not free text.
+ * https://shopify.dev/docs/api/admin-graphql/latest/objects/TaxonomyChoiceListAttribute
  */
 export async function getShopifyCategoryAttributes(categoryId: string): Promise<ShopifyTaxonomyCategoryAttribute[]> {
   const trimmedId = categoryId.trim();
@@ -94,11 +86,7 @@ export async function getShopifyCategoryAttributes(categoryId: string): Promise<
           attributes(first: 100) {
             nodes {
               ... on TaxonomyAttribute { id }
-              ... on TaxonomyChoiceListAttribute {
-                id
-                name
-                values(first: 100) { nodes { id name } }
-              }
+              ... on TaxonomyChoiceListAttribute { id name }
               ... on TaxonomyMeasurementAttribute { id name }
             }
           }
@@ -117,10 +105,9 @@ export async function getShopifyCategoryAttributes(categoryId: string): Promise<
   if (!category) return [];
 
   return category.attributes.nodes
-    .filter((attribute) => Boolean(attribute.name))
+    .filter((attribute): attribute is { id: string; name: string } => Boolean(attribute.name))
     .map((attribute) => ({
       id: attribute.id,
-      name: attribute.name as string,
-      values: attribute.values?.nodes.map((value) => value.name) ?? [],
+      name: attribute.name,
     }));
 }

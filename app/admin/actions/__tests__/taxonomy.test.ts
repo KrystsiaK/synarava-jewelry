@@ -58,11 +58,11 @@ describe("searchShopifyTaxonomyCategoriesAction", () => {
 describe("getShopifyCategoryAttributesAction", () => {
   it("authenticates every request and returns the discovered attributes", async () => {
     mocks.getShopifyCategoryAttributes.mockResolvedValue([
-      { id: "gid://shopify/TaxonomyAttribute/1", name: "Material", values: ["Gold", "Silver"] },
+      { id: "gid://shopify/TaxonomyAttribute/1", name: "Material" },
     ]);
 
     await expect(getShopifyCategoryAttributesAction("gid://shopify/TaxonomyCategory/aa-1")).resolves.toEqual({
-      attributes: [{ id: "gid://shopify/TaxonomyAttribute/1", name: "Material", values: ["Gold", "Silver"] }],
+      attributes: [{ id: "gid://shopify/TaxonomyAttribute/1", name: "Material" }],
     });
 
     expect(mocks.requireAdminSession).toHaveBeenCalledWith("/admin/products");

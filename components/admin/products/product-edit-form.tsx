@@ -26,6 +26,7 @@ import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
+import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
@@ -642,6 +643,7 @@ export function EditProductForm({
                         activeLocale={activeLocale}
                         onLocaleChange={selectLocale}
                         onTaxonomySatisfactionChange={setTaxonomySatisfaction}
+                        selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
                       />
                       <ProductDetailFields
                         key={`details-${currentProduct.id}-${fieldsRevision}`}

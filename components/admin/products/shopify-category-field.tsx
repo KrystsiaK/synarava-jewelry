@@ -16,6 +16,7 @@ import {
   searchShopifyTaxonomyCategoriesAction,
 } from "@/app/admin/actions/taxonomy";
 import { AdminTextControl } from "@/components/synarava-cms";
+import type { ShopifyCategoryAttributeSelection } from "@/lib/shopify/category-attribute-values";
 import type { ShopifyTaxonomyCategory } from "@/lib/shopify/taxonomy-selection";
 import type { ShopifyTaxonomyCategoryAttribute } from "@/lib/shopify/taxonomy";
 
@@ -32,6 +33,7 @@ type ShopifyCategoryContextValue = {
   attributes: ShopifyTaxonomyCategoryAttribute[];
   attributesError: string;
   attributesPending: boolean;
+  selectedAttributeValues: ShopifyCategoryAttributeSelection[];
   resultListId: string;
   searchErrorId: string;
   hiddenInputRef: React.RefObject<HTMLInputElement | null>;
@@ -55,12 +57,14 @@ function useShopifyCategoryState({
   initialName,
   invalid = false,
   controlId,
+  selectedAttributeValues = [],
   onSelectedIdChange,
 }: {
   initialId: string;
   initialName: string;
   invalid?: boolean;
   controlId?: string;
+  selectedAttributeValues?: ShopifyCategoryAttributeSelection[];
   onSelectedIdChange?: (id: string) => void;
 }): ShopifyCategoryContextValue {
   const [query, setQuery] = useState(initialName);
@@ -167,6 +171,7 @@ function useShopifyCategoryState({
     attributes,
     attributesError,
     attributesPending,
+    selectedAttributeValues,
     resultListId,
     searchErrorId,
     hiddenInputRef,
@@ -249,43 +254,64 @@ export function ShopifyCategoryControl() {
   );
 }
 
-/** Reference attributes — render as a sibling below the field shell, never inside it. */
+/** Product's selected category values + expected-attribute checklist (no vocabulary dump). */
 export function ShopifyCategoryAttributes() {
   const {
     selectedId,
     attributes,
     attributesError,
     attributesPending,
+    selectedAttributeValues,
   } = useShopifyCategoryContext();
 
   if (!selectedId) return null;
 
+  const selectedLabels = new Set(
+    selectedAttributeValues.map((item) => item.label.trim().toLowerCase()),
+  );
+  const unsetAttributes = attributes.filter(
+    (attribute) => !selectedLabels.has(attribute.name.trim().toLowerCase()),
+  );
+
   return (
-    <div data-slot="category-attributes" className="grid gap-1.5 border-t border-[var(--adm-border)] pt-2">
+    <div data-slot="category-attributes" className="grid gap-2 border-t border-[var(--adm-border)] pt-2">
       <p className="text-xs font-semibold uppercase tracking-[0.06em] text-[var(--adm-subtle)]">
         Shopify category attributes
       </p>
+
+      {selectedAttributeValues.length > 0 ? (
+        <dl className="grid gap-1.5 text-sm">
+          {selectedAttributeValues.map((item) => (
+            <div key={item.key} className="grid gap-0.5 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:gap-3">
+              <dt className="font-medium text-[var(--adm-ink)]">{item.label}</dt>
+              <dd className="text-[var(--adm-muted)]">{item.values.join(", ")}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="text-xs text-[var(--adm-muted)]">
+          No category attribute values on the last Shopify pull. Fill Color, Material, Fabric, and
+          similar fields in Shopify Admin, then Pull from Shopify.
+        </p>
+      )}
+
       {attributesPending ? (
-        <p className="text-xs text-[var(--adm-muted)]" aria-live="polite">Looking up Shopify&rsquo;s attributes…</p>
+        <p className="text-xs text-[var(--adm-muted)]" aria-live="polite">Looking up Shopify&rsquo;s expected attributes…</p>
       ) : attributesError ? (
         <p className="text-xs text-[var(--adm-danger)]" role="alert">{attributesError}</p>
-      ) : attributes.length ? (
-        <>
-          <ul className="grid gap-1 text-xs text-[var(--adm-muted)]">
-            {attributes.map((attribute) => (
-              <li key={attribute.id}>
-                <span className="font-medium text-[var(--adm-ink)]">{attribute.name}</span>
-                {attribute.values.length ? `: ${attribute.values.join(", ")}` : ""}
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-[var(--adm-muted)]">
-            Reference only — characteristics below are not pushed against these attributes.
-          </p>
-        </>
-      ) : (
+      ) : unsetAttributes.length > 0 ? (
+        <p className="text-xs text-[var(--adm-muted)]">
+          Expected by this category but not set on the product:{" "}
+          {unsetAttributes.map((attribute) => attribute.name).join(", ")}.
+        </p>
+      ) : attributes.length === 0 ? (
         <p className="text-xs text-[var(--adm-muted)]">Shopify defines no attributes for this category.</p>
-      )}
+      ) : null}
+
+      <p className="text-xs text-[var(--adm-muted)]">
+        Matching attributes (Color, Material, Size, …) seed empty Synarava characteristics on Pull.
+        Push still uses Synarava passport metafields — it does not write Shopify taxonomy GIDs.
+      </p>
     </div>
   );
 }
@@ -299,6 +325,7 @@ export function ShopifyCategoryField({
   initialName,
   invalid = false,
   controlId,
+  selectedAttributeValues,
   onSelectedIdChange,
   children,
 }: {
@@ -306,6 +333,7 @@ export function ShopifyCategoryField({
   initialName: string;
   invalid?: boolean;
   controlId?: string;
+  selectedAttributeValues?: ShopifyCategoryAttributeSelection[];
   onSelectedIdChange?: (id: string) => void;
   children?: ReactNode;
 }) {
@@ -314,6 +342,7 @@ export function ShopifyCategoryField({
     initialName,
     invalid,
     controlId,
+    selectedAttributeValues,
     onSelectedIdChange,
   });
 

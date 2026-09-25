@@ -1,4 +1,5 @@
 import { PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
+import { isShopifyCategoryMetafieldType } from "@/lib/shopify/category-attribute-values";
 
 const SUPPORTED_TYPES = new Set([
   "single_line_text_field", "multi_line_text_field", "number_integer",
@@ -21,7 +22,11 @@ export function projectPublicProductMetafields(value: unknown): Array<{ label: s
     const label = typeof definition.name === "string" && definition.name.trim()
       ? definition.name.trim()
       : typeof field.key === "string" ? field.key.replace(/_/g, " ") : "";
-    if (field.namespace === "shopify" && typeof field.type === "string" && field.type.includes("product_taxonomy_value_reference")) {
+    if (
+      field.namespace === "shopify"
+      && typeof field.type === "string"
+      && isShopifyCategoryMetafieldType(field.type)
+    ) {
       const resolvedValues = Array.isArray(field.resolvedValues)
         ? field.resolvedValues.filter((entry): entry is string => typeof entry === "string" && Boolean(entry.trim()))
         : [];

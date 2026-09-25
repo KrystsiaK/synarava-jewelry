@@ -37,6 +37,11 @@ import {
 } from "@/lib/shopify/staged-product-media";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
+  characteristicKeyForShopifyCategoryMetafield,
+  displayNamesFromCategoryReference,
+  isShopifyCategoryMetafieldType,
+} from "@/lib/shopify/category-attribute-values";
+import {
   decideProductTranslationPull,
   fetchProductTranslation,
   registerProductTranslation,
@@ -376,28 +381,52 @@ async function fetchRemainingProductConnection<T>(
   return nodes;
 }
 
-async function fetchTaxonomyMetafieldValues(productId: string, key: string): Promise<string[]> {
+type CategoryMetafieldReference = {
+  name?: string | null;
+  displayName?: string | null;
+  fields?: Array<{ key?: string | null; value?: string | null }> | null;
+};
+
+/**
+ * Resolves Shopify category metafield selections to display names.
+ * Category attributes may be `product_taxonomy_value_reference` *or*
+ * `metaobject_reference` (Admin Color/Fabric pickers write metaobjects).
+ * https://shopify.dev/docs/apps/build/metafields/list-of-data-types
+ */
+async function fetchCategoryMetafieldDisplayValues(productId: string, key: string): Promise<string[]> {
   const names: string[] = [];
   let after: string | null = null;
   do {
     const data: {
       product: {
         metafield: {
-          reference: { name?: string } | null;
+          reference: CategoryMetafieldReference | null;
           references: {
-            nodes: Array<{ name?: string }>;
+            nodes: CategoryMetafieldReference[];
             pageInfo: ShopifyPageInfo;
           } | null;
         } | null;
       } | null;
     } = await shopifyAdminRequest(
-      `query SynaravaTaxonomyMetafield($id: ID!, $key: String!, $after: String) {
+      `query SynaravaCategoryMetafield($id: ID!, $key: String!, $after: String) {
         product(id: $id) {
           metafield(namespace: "shopify", key: $key) {
-            reference { ... on TaxonomyValue { name } }
+            reference {
+              ... on TaxonomyValue { name }
+              ... on Metaobject {
+                displayName
+                fields { key value }
+              }
+            }
             references(first: 100, after: $after) {
               pageInfo { hasNextPage endCursor }
-              nodes { ... on TaxonomyValue { name } }
+              nodes {
+                ... on TaxonomyValue { name }
+                ... on Metaobject {
+                  displayName
+                  fields { key value }
+                }
+              }
             }
           }
         }
@@ -406,11 +435,13 @@ async function fetchTaxonomyMetafieldValues(productId: string, key: string): Pro
     );
     const metafield = data.product?.metafield;
     if (!metafield) break;
-    if (metafield.reference?.name) names.push(metafield.reference.name);
-    names.push(...(metafield.references?.nodes.flatMap((node) => node.name ? [node.name] : []) ?? []));
+    if (metafield.reference) names.push(...displayNamesFromCategoryReference(metafield.reference));
+    for (const node of metafield.references?.nodes ?? []) {
+      names.push(...displayNamesFromCategoryReference(node));
+    }
     const pageInfo = metafield.references?.pageInfo;
     if (pageInfo?.hasNextPage && !pageInfo.endCursor) {
-      throw new ShopifyAdminError(`Shopify omitted the taxonomy values cursor for ${key}.`);
+      throw new ShopifyAdminError(`Shopify omitted the category values cursor for ${key}.`);
     }
     after = pageInfo?.hasNextPage ? pageInfo.endCursor : null;
   } while (after);
@@ -436,8 +467,8 @@ export async function fetchShopifyProduct(id: string) {
   product.collections.nodes = collections;
   product.resourcePublicationsV2.nodes = publications;
   for (const metafield of product.metafields.nodes) {
-    if (metafield.namespace !== "shopify" || !metafield.type.includes("product_taxonomy_value_reference")) continue;
-    metafield.resolvedValues = await fetchTaxonomyMetafieldValues(shopifyId, metafield.key);
+    if (metafield.namespace !== "shopify" || !isShopifyCategoryMetafieldType(metafield.type)) continue;
+    metafield.resolvedValues = await fetchCategoryMetafieldDisplayValues(shopifyId, metafield.key);
   }
   for (const variant of product.variants.nodes) {
     if (!variant.inventoryItem?.tracked) continue;
@@ -945,6 +976,63 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       },
     });
   }
+  // Seed empty Synarava passport fields from Shopify category attribute
+  // selections (shopify.* taxonomy / metaobject refs). synarava.* metafields
+  // below still win when present. Never erase a locally curated value.
+  const synaravaKeys = new Set(
+    remote.metafields.nodes
+      .filter((item) => item.namespace === "synarava")
+      .map((item) => item.key),
+  );
+  const existingCharacteristics = await db.productCharacteristic.findMany({
+    where: { productId: product.id },
+    select: { key: true, textValue: true, numberValue: true, booleanValue: true },
+  });
+  const existingByKey = new Map(existingCharacteristics.map((item) => [item.key, item]));
+  for (const metafield of remote.metafields.nodes) {
+    if (metafield.namespace !== "shopify" || !isShopifyCategoryMetafieldType(metafield.type)) continue;
+    const values = metafield.resolvedValues?.filter((entry) => entry.trim()) ?? [];
+    if (!values.length) continue;
+    const characteristicKey = characteristicKeyForShopifyCategoryMetafield(
+      metafield.key,
+      metafield.definition?.name,
+    );
+    if (!characteristicKey || synaravaKeys.has(characteristicKey)) continue;
+    const definition = definitions.get(characteristicKey);
+    if (!definition || definition.type !== "TEXT") continue;
+    const existing = existingByKey.get(characteristicKey);
+    const hasLocalValue = Boolean(
+      existing?.textValue?.trim()
+      || existing?.numberValue != null
+      || existing?.booleanValue != null,
+    );
+    if (hasLocalValue) continue;
+    const textValue = values.join(", ");
+    await db.productCharacteristic.upsert({
+      where: { productId_key: { productId: product.id, key: definition.key } },
+      update: {
+        label: definition.label,
+        group: definition.group,
+        valueType: "TEXT",
+        textValue,
+        numberValue: null,
+        booleanValue: null,
+        unit: null,
+        sortOrder: definition.sortOrder,
+      },
+      create: {
+        productId: product.id,
+        key: definition.key,
+        label: definition.label,
+        group: definition.group,
+        valueType: "TEXT",
+        textValue,
+        sortOrder: definition.sortOrder,
+      },
+    });
+    existingByKey.set(characteristicKey, { key: characteristicKey, textValue, numberValue: null, booleanValue: null });
+  }
+
   for (const metafield of remote.metafields.nodes) {
     if (metafield.namespace !== "synarava") continue;
     const definition = definitions.get(metafield.key);

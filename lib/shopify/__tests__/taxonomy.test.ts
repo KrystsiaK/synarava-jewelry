@@ -62,7 +62,7 @@ describe("searchShopifyTaxonomyCategories", () => {
 });
 
 describe("getShopifyCategoryAttributes", () => {
-  it("flattens choice-list attribute values to plain names", async () => {
+  it("returns attribute names without dumping controlled vocabularies", async () => {
     mocks.shopifyAdminRequest.mockResolvedValue({
       node: {
         attributes: {
@@ -70,7 +70,6 @@ describe("getShopifyCategoryAttributes", () => {
             {
               id: "gid://shopify/TaxonomyAttribute/1",
               name: "Material",
-              values: { nodes: [{ id: "gid://shopify/TaxonomyValue/1", name: "Gold" }, { id: "gid://shopify/TaxonomyValue/2", name: "Silver" }] },
             },
             { id: "gid://shopify/TaxonomyAttribute/2", name: "Weight" },
             { id: "gid://shopify/TaxonomyAttribute/3" },
@@ -80,14 +79,15 @@ describe("getShopifyCategoryAttributes", () => {
     });
 
     await expect(getShopifyCategoryAttributes("gid://shopify/TaxonomyCategory/aa-1")).resolves.toEqual([
-      { id: "gid://shopify/TaxonomyAttribute/1", name: "Material", values: ["Gold", "Silver"] },
-      { id: "gid://shopify/TaxonomyAttribute/2", name: "Weight", values: [] },
+      { id: "gid://shopify/TaxonomyAttribute/1", name: "Material" },
+      { id: "gid://shopify/TaxonomyAttribute/2", name: "Weight" },
     ]);
 
     expect(mocks.shopifyAdminRequest).toHaveBeenCalledWith(
       expect.stringContaining("node(id: $id)"),
       { id: "gid://shopify/TaxonomyCategory/aa-1" },
     );
+    expect(mocks.shopifyAdminRequest.mock.calls[0][0]).not.toContain("values(first:");
   });
 
   it("returns an empty list when Shopify has no category for the id", async () => {

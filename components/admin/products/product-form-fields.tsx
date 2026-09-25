@@ -40,6 +40,7 @@ import {
   collectionSelectOptionLabel,
   filterCollectionsForProductSelect,
 } from "@/lib/admin/collection-select-options";
+import type { ShopifyCategoryAttributeSelection } from "@/lib/shopify/category-attribute-values";
 
 export { OwnershipLabel } from "@/components/synarava-cms";
 
@@ -215,7 +216,8 @@ export function ProductDetailFields({
             <span className="adm-label">Characteristics</span>
             <AdminHelp>
               Open the groups that apply to this product. Characteristics adapt the product
-              passport and are mirrored to Shopify metafields when supported.
+              passport and are mirrored to Shopify metafields when supported. Empty fields may
+              also be seeded from Shopify category attributes (Color, Material, Size, …) on Pull.
             </AdminHelp>
           </p>
         </div>
@@ -587,6 +589,7 @@ export function ProductFormFields({
   activeLocale,
   onLocaleChange,
   onTaxonomySatisfactionChange,
+  selectedShopifyCategoryAttributes = [],
 }: {
   draft: ProductDraft;
   collections: CollectionOption[];
@@ -603,6 +606,8 @@ export function ProductFormFields({
   onLocaleChange: (locale: string) => void;
   /** Keeps the section issue strip in sync when taxonomy fields are filled before Save. */
   onTaxonomySatisfactionChange?: (satisfaction: TaxonomySatisfaction) => void;
+  /** Resolved Shopify category attribute values from the last pull snapshot. */
+  selectedShopifyCategoryAttributes?: ShopifyCategoryAttributeSelection[];
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -930,6 +935,7 @@ export function ProductFormFields({
             initialId={draft.shopifyCategoryId}
             initialName={draft.shopifyCategoryName}
             invalid={categoryIssues.length > 0}
+            selectedAttributeValues={selectedShopifyCategoryAttributes}
             onSelectedIdChange={(id) => updateTaxonomySatisfaction({ hasCategory: Boolean(id.trim()) })}
           >
             <AdminFieldShell

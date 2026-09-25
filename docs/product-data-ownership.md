@@ -31,6 +31,7 @@ Synarava-only localized fields and other locales are not cleared by that decisio
 ## Catalog concepts
 
 - **Product category** means a Shopify Standard Product Taxonomy category. Synarava stores its GID and full name; there is no editable local category lifecycle.
+- **Category attributes** are Shopify-owned. Pull resolves selected `shopify.*` category metafields (taxonomy-value or metaobject references) to display names, surfaces them in the admin Catalog and Shopify mirror, and may seed empty Synarava passport characteristics for known mappings (Color → `color`, Fabric/Material → `material`, Size → `size`, and similar). Unmapped attributes stay in the snapshot / Additional details. Push does not write TaxonomyValue GIDs; passport fields still round-trip as `synarava.*` metafields.
 - **Collection** is the only product-grouping model. The local record projects Shopify identity and membership while retaining Synarava-owned editorial presentation.
 - **Tags** are Shopify product tags edited on the product. Local tag rows are a synchronized read projection, not standalone admin-managed records.
 - Tags power search and filters; they are not printed as a keyword list in the product purchase area.

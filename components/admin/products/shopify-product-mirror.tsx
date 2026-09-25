@@ -1,5 +1,6 @@
 import { AdminCollapsiblePanel } from "@/components/synarava-cms";
 import type { ProductRecord } from "@/components/admin/products/product-types";
+import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 
 type Metafield = { namespace: string; key: string; type: string; value: string; resolvedValues?: string[] };
 
@@ -31,6 +32,7 @@ function metafieldsFromSnapshot(value: unknown): Metafield[] {
 export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
   if (!product.shopifyProductId) return null;
   const metafields = metafieldsFromSnapshot(product.shopifySnapshot);
+  const categoryAttributes = extractSelectedShopifyCategoryAttributes(product.shopifySnapshot);
   const snapshot = record(product.shopifySnapshot);
   const seo = record(snapshot.seo);
   const options = rows(snapshot.options);
@@ -38,6 +40,10 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
   const publications = rows(snapshot.publications);
   const media = rows(snapshot.media);
   const remoteVariants = rows(snapshot.variants);
+  const categoryKeys = new Set(categoryAttributes.map((item) => item.key));
+  const otherMetafields = metafields.filter((field) =>
+    !(field.namespace === "shopify" && categoryKeys.has(field.key)),
+  );
 
   return (
     <section aria-labelledby={`shopify-mirror-${product.id}`} className="grid gap-5 border border-[var(--adm-border)] p-4">
@@ -60,6 +66,24 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
         <div><dt className="adm-label">SEO title</dt><dd>{string(seo.title) || "—"}</dd></div>
         <div><dt className="adm-label">SEO description</dt><dd>{string(seo.description) || "—"}</dd></div>
       </dl>
+
+      <div className="grid gap-2">
+        <h4 className="adm-label">Category attribute values</h4>
+        {categoryAttributes.length > 0 ? (
+          <dl className="grid gap-2 text-sm sm:grid-cols-2">
+            {categoryAttributes.map((item) => (
+              <div key={item.key}>
+                <dt className="font-medium">{item.label}</dt>
+                <dd className="text-[var(--adm-muted)]">{item.values.join(", ")}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-sm text-[var(--adm-muted)]">
+            None resolved on the last pull. Set category attributes in Shopify Admin, then Pull.
+          </p>
+        )}
+      </div>
 
       {options.length > 0 && (
         <div className="grid gap-2">
@@ -135,11 +159,11 @@ export function ShopifyProductMirror({ product }: { product: ProductRecord }) {
         </div>
       )}
 
-      {metafields.length > 0 && (
+      {otherMetafields.length > 0 && (
         <div className="grid gap-2">
-          <h4 className="adm-label">Shopify metafields ({metafields.length})</h4>
+          <h4 className="adm-label">Other Shopify metafields ({otherMetafields.length})</h4>
           <dl className="grid max-h-80 overflow-y-auto border-t border-[var(--adm-border)]">
-            {metafields.map((field) => (
+            {otherMetafields.map((field) => (
               <div key={`${field.namespace}.${field.key}`} className="grid gap-1 border-b border-[var(--adm-border)] py-2 text-sm sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:gap-4">
                 <dt className="break-all font-medium">{field.namespace}.{field.key} <span className="font-normal text-[var(--adm-muted)]">({field.type})</span></dt>
                 <dd className="break-words whitespace-pre-wrap">{field.resolvedValues?.length ? field.resolvedValues.join(", ") : field.value}</dd>
