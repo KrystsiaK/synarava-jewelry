@@ -27,6 +27,7 @@ import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
 import { HomePageEditorSections, type HomeArchiveCollectionOption, type HomeEditProductOption, type HomePageEditorSectionsProps, type MaterialDraft } from "@/components/admin/pages/home-page-editor-sections";
+import { CollectionsPageEditorSections } from "@/components/admin/pages/collections-page-editor-sections";
 import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
 import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
 import { PRIVACY_SECTIONS } from "@/lib/content/privacy-defaults";
@@ -58,6 +59,9 @@ type PageLocaleDraft = {
   excerpt: string;
   body: string;
   ctaLabel: string;
+  calloutEyebrow: string;
+  calloutHeading: string;
+  calloutCtaHref: string;
   quote: string;
   secondaryTitle: string;
   secondaryBody: string;
@@ -128,6 +132,9 @@ function draftFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCopy):
     excerpt: copy.excerpt ?? "",
     body: copy.body ?? "",
     ctaLabel: copy.ctaLabel ?? "",
+    calloutEyebrow: copy.calloutEyebrow ?? "",
+    calloutHeading: copy.calloutHeading ?? "",
+    calloutCtaHref: copy.calloutCtaHref ?? "",
     quote: copy.quote ?? "",
     secondaryTitle: copy.secondaryTitle ?? "",
     secondaryBody: copy.secondaryBody ?? "",
@@ -178,6 +185,9 @@ function HiddenLocaleFields({
           field("excerpt", draft.excerpt),
           field("body", draft.body),
           field("ctaLabel", draft.ctaLabel),
+          field("calloutEyebrow", draft.calloutEyebrow),
+          field("calloutHeading", draft.calloutHeading),
+          field("calloutCtaHref", draft.calloutCtaHref),
           field("quote", draft.quote),
           field("secondaryTitle", draft.secondaryTitle),
           field("secondaryBody", draft.secondaryBody),
@@ -256,14 +266,15 @@ export function PageEditor({
   const isCollectionsPage = page.slug === "collections";
   const isServicePage = SERVICE_PAGE_SLUGS.includes(page.slug as ServicePageSlug);
   // Shop and the 4 service pages render Title as their on-page H1 too (like home/about
-  // already do) — only Collections has literally no on-page CMS text to fall back on.
+  // already do). Collections keeps Title as SEO/meta only — on-page heading is secondaryTitle.
   const titleIsMetaOnly = isCollectionsPage;
   // Quote never renders on any of these three page kinds; CTA href likewise
   // (Shop's CTA always points to /collections — only its label is editable).
+  // Collections uses dedicated editor sections instead of these generic fields.
   const hideDeadCopyFields = isShopPage || isServicePage || isCollectionsPage;
   // Eyebrow/CTA label/Secondary title & body power Shop's "Browse the
-  // Collections" callout at the bottom of /shop — dead only for Service and
-  // Collections pages.
+  // Collections" callout at the bottom of /shop — dead for Service pages;
+  // Collections maps those concepts in CollectionsPageEditorSections.
   const hideShopCalloutFields = isServicePage || isCollectionsPage;
   const legalSections = isOfferPage ? OFFER_SECTIONS : isTermsPage ? TERMS_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS.en : isLegalNoticePage ? LEGAL_NOTICE_SECTIONS : [];
   const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
@@ -692,6 +703,16 @@ export function PageEditor({
             removeFieldName="removeHeroImage"
           />
         </div>
+        ) : null}
+
+        {isCollectionsPage ? (
+          <CollectionsPageEditorSections
+            draft={draft}
+            updateField={updateField}
+            archiveCollectionIds={archiveCollectionIds}
+            setArchiveCollectionIds={setArchiveCollectionIds}
+            collectionOptions={collectionOptions}
+          />
         ) : null}
 
         {!isHomePage ? (

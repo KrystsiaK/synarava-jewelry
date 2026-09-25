@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getPageBySlug, listCollections } from "@/lib/content/catalog";
+import { resolveCollectionsIndexCollections } from "@/lib/content/collections-index-section";
 import { CollectionsPage } from "@/components/collections/collections-page";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -29,9 +30,29 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   const { locale } = await getServerTranslations();
-  const [collections, page] = await Promise.all([
+  const [collectionData, page] = await Promise.all([
     listCollections(locale),
     getPageBySlug("collections", locale),
   ]);
-  return <CollectionsPage collections={collections} heroImage={page?.content.heroImage} />;
+  const content = page?.content;
+  const collections = resolveCollectionsIndexCollections(
+    collectionData,
+    content?.archiveCollectionIds,
+  );
+  return (
+    <CollectionsPage
+      collections={collections}
+      heroImage={content?.heroImage}
+      content={{
+        eyebrow: content?.eyebrow,
+        heading: content?.secondaryTitle,
+        introduction: content?.body,
+        calloutEyebrow: content?.calloutEyebrow,
+        calloutHeading: content?.calloutHeading,
+        calloutCtaLabel: content?.ctaLabel,
+        calloutCtaHref: content?.calloutCtaHref,
+        cardCtaLabel: content?.secondaryBody,
+      }}
+    />
+  );
 }

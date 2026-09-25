@@ -297,6 +297,14 @@ legacy cover, пока не загружены изображения галер
 - Для `home` и `about` подписи полей в форме адаптируются под их специфику
   (например «Hero headline» вместо «Title», «About introduction» вместо
   «Body» и т.д.), хотя структура данных общая.
+- Страница `collections` сохраняет Title / Excerpt / Hero image (SEO и
+  медиа). Ниже — секции **Page header** (eyebrow, main heading, introduction),
+  **Collections on this page** (`AdminOrderedList` + select, как Featured
+  collections на Home: любое число, порядок стрелками; пустой выбор = все
+  опубликованные в порядке каталога; снятие строки только убирает карточку
+  со страницы), и **Bottom callout** (eyebrow, heading, button label/href,
+  подпись ссылки на карточке). Копирайт локализуется по EN / PT / RU;
+  список коллекций общий для языков.
 - Home разбит на секции витрины (`01 / Hero` … `06 / Final CTA`) в
   `AdminCollapsiblePanel`. В **Featured collections** админ выбирает
   коллекции через select, добавляет строки и меняет порядок стрелками

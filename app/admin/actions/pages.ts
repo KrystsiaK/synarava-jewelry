@@ -126,7 +126,8 @@ function readSectionFields(formData: FormData, locale: string, kind: "legal" | "
 }
 
 const TRANSLATABLE_PAGE_FIELDS = [
-  "eyebrow", "body", "ctaLabel", "quote", "secondaryTitle", "secondaryBody",
+  "eyebrow", "body", "ctaLabel", "calloutEyebrow", "calloutHeading", "calloutCtaHref",
+  "quote", "secondaryTitle", "secondaryBody",
   "archiveSectionLabel", "editSectionEyebrow", "editSectionTitle", "editSectionBody", "editSectionViewAllLabel",
   "materialSectionEyebrow", "materialSectionTitle", "materialSectionNoteLabel",
   "manifestoSectionLabel", "manifestoSectionAttribution",
@@ -254,6 +255,9 @@ const pageContentFieldsSchema = z.object({
   body: z.string().trim().default(""),
   ctaLabel: z.string().trim().default(""),
   ctaHref: z.string().trim().default(""),
+  calloutEyebrow: z.string().trim().default(""),
+  calloutHeading: z.string().trim().default(""),
+  calloutCtaHref: z.string().trim().default(""),
   quote: z.string().trim().default(""),
   secondaryTitle: z.string().trim().default(""),
   secondaryBody: z.string().trim().default(""),
@@ -317,6 +321,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
     legalIntro, legalLastUpdated,
+    calloutEyebrow, calloutHeading, calloutCtaHref,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
   const translationLocales = await getAdminTranslationLocales();
@@ -377,7 +382,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   });
   const materialLexicon = buildMaterialLexiconEntries(materialEntries, materialImages);
   const englishTranslationContent = {
-    eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
+    eyebrow, body, ctaLabel, calloutEyebrow, calloutHeading, calloutCtaHref,
+    quote, secondaryTitle, secondaryBody,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle,
     editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon,
@@ -393,6 +399,9 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       eyebrow: fields.eyebrow,
       body: fields.body,
       ctaLabel: fields.ctaLabel,
+      calloutEyebrow: fields.calloutEyebrow,
+      calloutHeading: fields.calloutHeading,
+      calloutCtaHref: fields.calloutCtaHref,
       quote: fields.quote,
       secondaryTitle: fields.secondaryTitle,
       secondaryBody: fields.secondaryBody,
@@ -430,6 +439,9 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       body,
       ctaLabel,
       ctaHref,
+      calloutEyebrow,
+      calloutHeading,
+      calloutCtaHref,
       quote,
       secondaryTitle,
       secondaryBody,
@@ -601,6 +613,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
     legalIntro, legalLastUpdated,
+    calloutEyebrow, calloutHeading, calloutCtaHref,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
   const translationLocales = await getAdminTranslationLocales();
@@ -619,6 +632,9 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       eyebrow: fields.eyebrow,
       body: fields.body,
       ctaLabel: fields.ctaLabel,
+      calloutEyebrow: fields.calloutEyebrow,
+      calloutHeading: fields.calloutHeading,
+      calloutCtaHref: fields.calloutCtaHref,
       quote: fields.quote,
       secondaryTitle: fields.secondaryTitle,
       secondaryBody: fields.secondaryBody,
@@ -658,6 +674,9 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       body,
       ctaLabel,
       ctaHref,
+      calloutEyebrow,
+      calloutHeading,
+      calloutCtaHref,
       quote,
       secondaryTitle,
       secondaryBody,
@@ -727,7 +746,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       });
 
   const englishTranslationContent = {
-    eyebrow, body, ctaLabel, quote, secondaryTitle, secondaryBody,
+    eyebrow, body, ctaLabel, calloutEyebrow, calloutHeading, calloutCtaHref,
+    quote, secondaryTitle, secondaryBody,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle,
     editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,

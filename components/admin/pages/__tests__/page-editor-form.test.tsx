@@ -222,6 +222,54 @@ describe("PageEditor", () => {
     expect(screen.getByRole("textbox", { name: "Material note label" })).toHaveValue("Notas de materiais");
   });
 
+  it("exposes Collections page header, ordered collections, and callout fields", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <PageEditor
+        page={makePage({
+          slug: "collections",
+          title: "Collections",
+          content: {
+            eyebrow: "Synarava collections",
+            secondaryTitle: "Browse by collection",
+            body: "Explore Synarava.",
+            calloutEyebrow: "Not sure where to start?",
+            calloutHeading: "Browse everything in the shop",
+            ctaLabel: "Shop all products",
+            calloutCtaHref: "/shop",
+            archiveCollectionIds: ["col-a"],
+          },
+        })}
+        collectionOptions={[
+          { id: "col-a", title: "Axis", slug: "axis" },
+          { id: "col-b", title: "Pearl", slug: "pearl" },
+        ]}
+        translationLocales={[
+          { code: "pt", label: "Português" },
+          { code: "ru", label: "Русский" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("Collections");
+    expect(screen.getByRole("button", { name: "Edit Excerpt" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /01 \/ Page header/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /02 \/ Collections on this page/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /03 \/ Bottom callout/i })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Eyebrow" })).toHaveValue("Synarava collections");
+    expect(screen.getByRole("textbox", { name: "Main heading" })).toHaveValue("Browse by collection");
+    expect(longTextPreview("Introduction")).toHaveTextContent("Explore Synarava.");
+    expect(screen.getByRole("combobox", { name: "Collection 1" })).toHaveValue("col-a");
+    expect(screen.getByRole("button", { name: "Add collection" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Button label" })).toHaveValue("Shop all products");
+    expect(screen.getByRole("combobox", { name: "Button href" })).toBeInTheDocument();
+    expect(hiddenFieldValue(container, "calloutCtaHref")).toBe("/shop");
+    expect(screen.getByRole("tab", { name: "Русский" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(screen.getByRole("textbox", { name: "Main heading" })).toBeInTheDocument();
+  });
+
   it("submits bilingual edit-section copy for the home page", async () => {
     mocks.savePageAction.mockImplementation(async (formData: FormData) => {
       expect(formData.get("editSectionTitle")).toBe("The Edit");

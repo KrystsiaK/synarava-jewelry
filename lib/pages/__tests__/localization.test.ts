@@ -9,6 +9,45 @@ import {
 import { resolveLexiconMaterials } from "@/lib/content/home-lexicon-section";
 
 describe("page localization", () => {
+  it("overlays locale-specific Collections callout fields", () => {
+    expect(resolvePageLocalizedCopy({
+      locale: "pt",
+      source: {
+        title: "Collections",
+        excerpt: "",
+        content: {
+          eyebrow: "Synarava collections",
+          secondaryTitle: "Browse by collection",
+          body: "Explore.",
+          calloutEyebrow: "Not sure where to start?",
+          calloutHeading: "Browse everything in the shop",
+          calloutCtaHref: "/shop",
+          ctaLabel: "Shop all products",
+        },
+      },
+      translation: {
+        title: "Coleções",
+        content: {
+          eyebrow: "Coleções Synarava",
+          secondaryTitle: "Navegar por coleção",
+          body: "Explorar.",
+          calloutEyebrow: "Não sabe por onde começar?",
+          calloutHeading: "Ver tudo na loja",
+          calloutCtaHref: "/shop",
+          ctaLabel: "Ver todos os produtos",
+        },
+      },
+    }).content).toMatchObject({
+      eyebrow: "Coleções Synarava",
+      secondaryTitle: "Navegar por coleção",
+      body: "Explorar.",
+      calloutEyebrow: "Não sabe por onde começar?",
+      calloutHeading: "Ver tudo na loja",
+      calloutCtaHref: "/shop",
+      ctaLabel: "Ver todos os produtos",
+    });
+  });
+
   it("validates and removes shared fields from normalized translation content", () => {
     expect(normalizePageTranslationContent({
       eyebrow: "Arquivo",

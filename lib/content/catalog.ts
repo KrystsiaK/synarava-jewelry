@@ -41,6 +41,8 @@ function categoryLeafLabel(fullName: string | null | undefined) {
 }
 
 export type CollectionSummary = {
+  id: string;
+  createdAt?: Date;
   slug: string;
   sourceSlug: string;
   name: string;
@@ -136,6 +138,9 @@ export type PageContent = {
   body?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  calloutEyebrow?: string;
+  calloutHeading?: string;
+  calloutCtaHref?: string;
   quote?: string;
   secondaryTitle?: string;
   secondaryBody?: string;
@@ -558,6 +563,8 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
   const copy = resolveCollectionCopy(collection, locale);
   const activeSlug = resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle);
   return {
+    id: collection.id,
+    createdAt: collection.createdAt,
     slug: activeSlug,
     sourceSlug: collection.slug,
     name: copy.name,

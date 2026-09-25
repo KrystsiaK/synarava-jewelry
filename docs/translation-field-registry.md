@@ -63,7 +63,7 @@ page only uses the subset of keys its template renders (keys mirror
 | title | localized | always | native `PAGE.title` |
 | localizedHandle | localized | optional | native `PAGE.handle` (Task 23) |
 | body | localized | when-published | native `PAGE.body_html` |
-| excerpt, eyebrow, ctaLabel, quote, secondaryTitle/Body, archive/The Edit/material/manifesto/final-cta section copy (incl. secondary CTA label/href), materialLexicon, legalIntro, legalLastUpdated, legalSections | localized | optional (see code for exceptions) | metaobject `page_section_copy.*` |
+| excerpt, eyebrow, ctaLabel, calloutEyebrow/Heading/CtaHref, quote, secondaryTitle/Body, archive/The Edit/material/manifesto/final-cta section copy (incl. secondary CTA label/href), materialLexicon, legalIntro, legalLastUpdated, legalSections | localized | optional (see code for exceptions) | metaobject `page_section_copy.*` |
 | seoTitle/seoDescription | localized | when-published | native `PAGE.meta_title`/`meta_description` |
 | slug, template, status, visibility, heroImage, ctaHref, finalCtaHref, finalContactEmail, editProductIds, finalCtaProductIds, section enabled flags | shared | — | — |
 

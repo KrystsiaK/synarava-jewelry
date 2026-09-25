@@ -14,7 +14,7 @@ import {
 import { ease } from "@/lib/animation";
 import { EditorialSplitFeature, PrimaryCtaButton } from "@/components/ui";
 import { useTranslations } from "@/lib/i18n/context";
-import { localePath } from "@/lib/i18n/routing";
+import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import type { CollectionSummary } from "@/lib/content/catalog";
 
 const HERO_SCROLL_SPRING = {
@@ -23,12 +23,66 @@ const HERO_SCROLL_SPRING = {
   mass: 0.85,
 } as const;
 
+export const COLLECTIONS_PAGE_DEFAULTS = {
+  eyebrow: "Synarava collections",
+  heading: "Browse by collection",
+  introduction:
+    "Explore Synarava through collections shaped by material, form and character. Find the pieces that feel most like yours.",
+  calloutEyebrow: "Not sure where to start?",
+  calloutHeading: "Browse everything in the shop",
+  calloutCtaLabel: "Shop all products",
+  calloutCtaHref: "/shop",
+  cardCtaLabel: "Explore collection",
+} as const;
+
+export type CollectionsPageCopy = {
+  eyebrow?: string;
+  heading?: string;
+  introduction?: string;
+  calloutEyebrow?: string;
+  calloutHeading?: string;
+  calloutCtaLabel?: string;
+  calloutCtaHref?: string;
+  cardCtaLabel?: string;
+};
+
+function resolveCopy(content?: CollectionsPageCopy) {
+  return {
+    eyebrow: content?.eyebrow?.trim() || COLLECTIONS_PAGE_DEFAULTS.eyebrow,
+    heading: content?.heading?.trim() || COLLECTIONS_PAGE_DEFAULTS.heading,
+    introduction: content?.introduction?.trim() || COLLECTIONS_PAGE_DEFAULTS.introduction,
+    calloutEyebrow: content?.calloutEyebrow?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutEyebrow,
+    calloutHeading: content?.calloutHeading?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutHeading,
+    calloutCtaLabel: content?.calloutCtaLabel?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutCtaLabel,
+    calloutCtaHref: content?.calloutCtaHref?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutCtaHref,
+    cardCtaLabel: content?.cardCtaLabel?.trim() || COLLECTIONS_PAGE_DEFAULTS.cardCtaLabel,
+  };
+}
+
+function HeadingWithAccent({ text }: { text: string }) {
+  const parts = text.trim().split(/\s+/);
+  if (parts.length < 2) return <>{text}</>;
+  const last = parts.pop()!;
+  return (
+    <>
+      {parts.join(" ")}{" "}
+      <em className="font-normal text-couture-red">{last}</em>
+    </>
+  );
+}
+
 export function CollectionsHero({
   collections,
   heroImage,
+  eyebrow,
+  heading,
+  introduction,
 }: {
   collections: CollectionSummary[];
   heroImage?: string;
+  eyebrow: string;
+  heading: string;
+  introduction: string;
 }) {
   const heroRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
@@ -102,17 +156,16 @@ export function CollectionsHero({
           <div className="mb-6 flex items-center gap-5">
             <span className="h-px w-14 bg-couture-red" />
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-muted-ink">
-              Synarava collections
+              {eyebrow}
             </p>
           </div>
 
-          <h1 className="max-w-[9ch] font-serif text-[clamp(3.65rem,8vw,8rem)] leading-[0.82] tracking-[-0.045em]">
-            Browse by <em className="font-normal text-couture-red">collection</em>
+          <h1 className="max-w-[12ch] font-serif text-[clamp(3.65rem,8vw,8rem)] leading-[0.82] tracking-[-0.045em]">
+            <HeadingWithAccent text={heading} />
           </h1>
 
           <p className="mt-7 max-w-xl text-base leading-7 text-muted-ink md:text-lg">
-            Explore Synarava through collections shaped by material, form and
-            character. Find the pieces that feel most like yours.
+            {introduction}
           </p>
 
           <div className="mt-9 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/15 pt-5 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted-ink">
@@ -129,9 +182,11 @@ export function CollectionsHero({
 function CollectionRow({
   collection,
   index,
+  cardCtaLabel,
 }: {
   collection: CollectionSummary;
   index: number;
+  cardCtaLabel: string;
 }) {
   const { locale } = useTranslations();
   const isReversed = index % 2 === 1;
@@ -172,7 +227,7 @@ function CollectionRow({
       action={(
         <div className="flex items-center gap-4">
           <span className="label-caps border-b border-foreground/20 pb-1.5 transition-colors duration-300 group-hover:border-couture-red group-hover:text-couture-red">
-            Explore collection
+            {cardCtaLabel}
           </span>
           <svg
             className="h-4 w-4 text-couture-red transition-transform duration-300 group-hover:translate-x-2"
@@ -224,7 +279,17 @@ function CollectionRow({
 }
 
 /* ─── Footer Strip ───────────────────────────────────────────────── */
-function CollectionsFooter() {
+function CollectionsFooter({
+  eyebrow,
+  heading,
+  ctaLabel,
+  ctaHref,
+}: {
+  eyebrow: string;
+  heading: string;
+  ctaLabel: string;
+  ctaHref: string;
+}) {
   const { locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
@@ -251,7 +316,7 @@ function CollectionsFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, ease }}
         >
-          Not sure where to start?
+          {eyebrow}
         </motion.p>
         <motion.h2
           className="max-w-2xl font-serif leading-[1.05]"
@@ -260,14 +325,14 @@ function CollectionsFooter() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.9, ease, delay: 0.1 }}
         >
-          Browse everything in the shop
+          {heading}
         </motion.h2>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease, delay: 0.22 }}
         >
-          <PrimaryCtaButton href={localePath(locale, "/shop")}>Shop all products</PrimaryCtaButton>
+          <PrimaryCtaButton href={storefrontHref(locale, ctaHref)}>{ctaLabel}</PrimaryCtaButton>
         </motion.div>
       </div>
     </div>
@@ -278,15 +343,25 @@ function CollectionsFooter() {
 export function CollectionsPage({
   collections,
   heroImage,
+  content,
 }: {
   collections: CollectionSummary[];
   heroImage?: string;
+  content?: CollectionsPageCopy;
 }) {
+  const copy = resolveCopy(content);
+
   return (
     <main data-component="CollectionsPage"
       className="collections-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
     >
-      <CollectionsHero collections={collections} heroImage={heroImage} />
+      <CollectionsHero
+        collections={collections}
+        heroImage={heroImage}
+        eyebrow={copy.eyebrow}
+        heading={copy.heading}
+        introduction={copy.introduction}
+      />
       <div className="relative bg-background py-4 md:py-12">
         <div
           aria-hidden="true"
@@ -294,12 +369,22 @@ export function CollectionsPage({
         />
         <div className="relative z-10">
           {collections.map((col, i) => (
-            <CollectionRow key={col.slug} collection={col} index={i} />
+            <CollectionRow
+              key={col.slug}
+              collection={col}
+              index={i}
+              cardCtaLabel={copy.cardCtaLabel}
+            />
           ))}
           <div className="h-px bg-foreground/[0.06]" />
         </div>
       </div>
-      <CollectionsFooter />
+      <CollectionsFooter
+        eyebrow={copy.calloutEyebrow}
+        heading={copy.calloutHeading}
+        ctaLabel={copy.calloutCtaLabel}
+        ctaHref={copy.calloutCtaHref}
+      />
     </main>
   );
 }

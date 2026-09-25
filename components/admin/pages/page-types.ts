@@ -12,6 +12,9 @@ export type EditablePageCopy = {
   body?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  calloutEyebrow?: string;
+  calloutHeading?: string;
+  calloutCtaHref?: string;
   quote?: string;
   secondaryTitle?: string;
   secondaryBody?: string;
