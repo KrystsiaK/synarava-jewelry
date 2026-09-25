@@ -37,6 +37,12 @@ import {
 } from "@/lib/shopify/staged-product-media";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
+  findOnlineStorePublication,
+  isPublishedToOnlineStore,
+  publishedPublicationNames,
+  type ShopifyResourcePublication,
+} from "@/lib/shopify/product-publications";
+import {
   characteristicKeyForShopifyCategoryMetafield,
   displayNamesFromCategoryReference,
   extractSimpleTextCharacteristicSeeds,
@@ -89,11 +95,7 @@ type ShopifyProduct = {
     title: string;
     sources: ShopifyCollectionSource[];
   }> };
-  resourcePublicationsV2: { pageInfo: ShopifyPageInfo; nodes: Array<{
-    isPublished: boolean;
-    publishDate: string | null;
-    publication: { id: string; name: string };
-  }> };
+  resourcePublicationsV2: { pageInfo: ShopifyPageInfo; nodes: ShopifyResourcePublication[] };
   featuredMedia?: { id: string; preview?: { image?: { url: string } | null } | null } | null;
   variants: { pageInfo: ShopifyPageInfo; nodes: Array<{
     id: string;
@@ -661,7 +663,8 @@ async function releaseReadyLocalProductMedia(productId: string, remote: ShopifyP
  */
 async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force = false) {
   const firstVariant = remote.variants.nodes[0];
-  const onlineStorePublication = remote.resourcePublicationsV2.nodes.find((item) => /online store/i.test(item.publication.name));
+  // Shopify can return resourcePublicationsV2 nodes with publication: null.
+  const onlineStorePublication = findOnlineStorePublication(remote.resourcePublicationsV2.nodes);
   const remoteSku = firstVariant?.sku?.trim() || `SHOPIFY-${remote.id.split("/").pop()}`;
   const imageUrl = pickShopifyProductImageUrl({
     featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
@@ -670,7 +673,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       imageUrl: item.preview?.image?.url,
     })),
   });
-  const isPublishedOnline = Boolean(onlineStorePublication?.isPublished);
+  const isPublishedOnline = isPublishedToOnlineStore(remote.resourcePublicationsV2.nodes);
   const visibility = synaravaVisibilityForShopifyProduct(remote.status, isPublishedOnline);
   const existingById = await db.product.findUnique({ where: { shopifyProductId: remote.id } });
   const existingBySku = existingById ? null : await db.product.findUnique({ where: { sku: remoteSku } });
@@ -1157,10 +1160,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   compare("SEO title", local.seoTitle ?? "", remote.seo.title ?? "");
   compare("SEO description", local.seoDescription ?? "", remote.seo.description ?? "");
   compare("Status", local.status, remote.status);
-  const publishedPublications = remote.resourcePublicationsV2.nodes
-    .filter((item) => item.isPublished)
-    .map((item) => item.publication.name)
-    .sort();
+  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
   const remoteImageUrl = pickShopifyProductImageUrl({
     featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
     media: remote.media.nodes.map((item) => ({
@@ -1168,7 +1168,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
       imageUrl: item.preview?.image?.url,
     })),
   });
-  const isPublishedOnline = publishedPublications.some((name) => /online store/i.test(name));
+  const isPublishedOnline = isPublishedToOnlineStore(remote.resourcePublicationsV2.nodes);
   compare("Synarava storefront visibility", local.visibility, synaravaVisibilityForShopifyProduct(remote.status, isPublishedOnline));
   compare("Primary image", local.imageUrl ?? "", remoteImageUrl ?? "");
   for (const difference of compareVariantCommerce(local.variants, remote.variants.nodes)) {
