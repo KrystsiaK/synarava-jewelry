@@ -166,6 +166,32 @@ function presenceField(difference: CatalogPresenceDifference): CatalogConflictFi
 }
 
 /**
+ * Presence conflict ids are either a local Product id or a virtual
+ * `shopify:<numeric>` key (see remoteConflictId). After a re-scan the id may
+ * remapped (SKU/handle match → local id) while the Shopify GID stays the same —
+ * still resolve that row so apply does not fall through to a local Product lookup.
+ */
+export function findCatalogPresenceDifference(
+  differences: CatalogPresenceDifference[],
+  productId: string,
+): CatalogPresenceDifference | undefined {
+  const exact = differences.find((difference) => difference.id === productId);
+  if (exact) return exact;
+  if (!productId.startsWith("shopify:")) return undefined;
+  const numericId = productId.slice("shopify:".length);
+  if (!numericId) return undefined;
+  return differences.find((difference) => {
+    if (difference.kind !== "SHOPIFY_ONLY" || !difference.shopifyProductId) return false;
+    const remoteNumeric = difference.shopifyProductId.split("/").pop() ?? difference.shopifyProductId;
+    return remoteNumeric === numericId;
+  });
+}
+
+function isVirtualPresenceProductId(productId: string): boolean {
+  return productId.startsWith("shopify:");
+}
+
+/**
  * Unified per-product conflict read model: links commerce inspection
  * (live Shopify fetch) with the latest translation-reconcile state by
  * product ID, so a single card can show every conflicting field/locale
@@ -183,8 +209,20 @@ function presenceField(difference: CatalogPresenceDifference): CatalogConflictFi
  */
 export async function getProductCatalogConflict(productId: string): Promise<ProductCatalogConflict> {
   const presenceDifferences = await getLatestCatalogPresenceDifferences();
-  const presence = presenceDifferences.find((difference) => difference.id === productId);
+  const presence = findCatalogPresenceDifference(presenceDifferences, productId);
   if (presence) return { productId, fields: [presenceField(presence)] };
+
+  // Virtual Shopify-only ids are not Product rows. After re-scan the presence
+  // row may have disappeared (already linked) — return empty fields (STALE on
+  // apply) instead of calling inspectProductSyncState → findUniqueOrThrow.
+  if (isVirtualPresenceProductId(productId)) {
+    return { productId, fields: [] };
+  }
+
+  const local = await db.product.findUnique({ where: { id: productId }, select: { id: true } });
+  if (!local) {
+    return { productId, fields: [] };
+  }
 
   const [inspection, differences, locales] = await Promise.all([
     inspectProductSyncState(productId),

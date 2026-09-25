@@ -564,7 +564,8 @@ export function CatalogConflictWorkspace({
             && entry.field.fieldKey === item.fieldKey
             && entry.direction === "SHOPIFY_TO_SYNARAVA",
           ))
-          .map((item) => item.localProductId ?? item.productId),
+          .map((item) => item.localProductId ?? item.productId)
+          .filter((productId) => Boolean(productId) && !productId.startsWith("shopify:")),
       );
       const fullyResolved = [...successfulProducts].filter((productId) =>
         !result.outcome!.results.some((item) => item.productId === productId && !item.ok)
