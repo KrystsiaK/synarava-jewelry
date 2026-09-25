@@ -353,7 +353,10 @@ export function PageEditor({
   const legalShippedByLocale = Object.fromEntries(
     [SOURCE_LOCALE, ...translationLocales.map(({ code }) => code)].map((code) => [
       code,
-      isLegalDocumentPage ? shippedLegalEntries(page.slug, code === "pt" ? "pt" : "en") : [],
+      // Inline type guard so `page.slug` narrows to LegalDocumentSlug.
+      isLegalDocumentSlug(page.slug)
+        ? shippedLegalEntries(page.slug, code === "pt" ? "pt" : "en")
+        : [],
     ]),
   ) as Record<string, LegalSectionEntry[]>;
   const serviceShippedByLocale = Object.fromEntries(
