@@ -74,6 +74,8 @@ type HomeLocaleDraft = {
   manifestoSectionLabel: string;
   manifestoSectionAttribution: string;
   finalCtaLabel: string;
+  finalSecondaryCtaLabel: string;
+  finalSecondaryCtaHref: string;
   finalFooterTitle: string;
   finalContactLabel: string;
 };
@@ -564,6 +566,25 @@ export function HomePageEditorSections({
               name="finalCtaHref"
               defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""}
               placeholder="/shop"
+            />
+            <AdminTextField
+              label="Secondary CTA label"
+              help={<AdminHelp>Leave blank for the storefront default (“About us” / localized equivalent).</AdminHelp>}
+              value={draft.finalSecondaryCtaLabel}
+              onChange={(event) => updateField("finalSecondaryCtaLabel", event.target.value)}
+              placeholder="About us"
+            />
+            <AdminHrefField
+              label="Secondary CTA href"
+              help={
+                <AdminHelp>
+                  Locale-specific path without the language prefix (for example /about). Empty falls back to /about. Search by name, or type /products/ or /collections/ to drill in.
+                </AdminHelp>
+              }
+              name="_uiFinalSecondaryCtaHref"
+              value={draft.finalSecondaryCtaHref}
+              onValueChange={(href) => updateField("finalSecondaryCtaHref", href)}
+              placeholder="/about"
             />
           </div>
           <AdminOrderedList

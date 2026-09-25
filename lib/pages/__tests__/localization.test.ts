@@ -15,11 +15,39 @@ describe("page localization", () => {
       body: "Corpo",
       heroImage: "/shared.webp",
       ctaHref: "/shop",
+      finalSecondaryCtaLabel: "Sobre nós",
+      finalSecondaryCtaHref: "/about",
       materialLexicon: [{ name: "Pérolas", image: "/shared-pearl.webp" }],
     })).toEqual({
       eyebrow: "Arquivo",
       body: "Corpo",
+      finalSecondaryCtaLabel: "Sobre nós",
+      finalSecondaryCtaHref: "/about",
       materialLexicon: [{ name: "Pérolas" }],
+    });
+  });
+
+  it("overlays locale-specific Final secondary CTA fields", () => {
+    expect(resolvePageLocalizedCopy({
+      locale: "pt",
+      source: {
+        title: "Home",
+        excerpt: "",
+        content: {
+          finalSecondaryCtaLabel: "About us",
+          finalSecondaryCtaHref: "/about",
+        },
+      },
+      translation: {
+        title: "Início",
+        content: {
+          finalSecondaryCtaLabel: "Sobre nós",
+          finalSecondaryCtaHref: "/collections",
+        },
+      },
+    }).content).toMatchObject({
+      finalSecondaryCtaLabel: "Sobre nós",
+      finalSecondaryCtaHref: "/collections",
     });
   });
 

@@ -111,6 +111,10 @@ describe("savePageAction", () => {
     formData.set("manifestoSectionAttribution", "The Synarava Manifesto");
     formData.set("finalCtaLabel", "Enter the shop");
     formData.set("finalCtaHref", "/shop");
+    formData.set("finalSecondaryCtaLabel", "About us");
+    formData.set("finalSecondaryCtaHref", "/about");
+    formData.set("ptFinalSecondaryCtaLabel", "Sobre nós");
+    formData.set("ptFinalSecondaryCtaHref", "/about");
     formData.set("finalFooterTitle", "Objects kept for a lifetime.");
     formData.set("finalContactEmail", "studio@example.com");
 
@@ -161,6 +165,8 @@ describe("savePageAction", () => {
           manifestoSectionAttribution: "The Synarava Manifesto",
           finalCtaLabel: "Enter the shop",
           finalCtaHref: "/shop",
+          finalSecondaryCtaLabel: "About us",
+          finalSecondaryCtaHref: "/about",
           finalFooterTitle: "Objects kept for a lifetime.",
           finalContactEmail: "studio@example.com",
           translations: {
@@ -168,6 +174,8 @@ describe("savePageAction", () => {
               editSectionTitle: "A Seleção",
               editSectionViewAllLabel: "Ver todos os produtos",
               materialSectionNoteLabel: "Notas de materiais",
+              finalSecondaryCtaLabel: "Sobre nós",
+              finalSecondaryCtaHref: "/about",
             }),
           },
         }),
@@ -183,6 +191,8 @@ describe("savePageAction", () => {
           editSectionTitle: "A Seleção",
           editSectionViewAllLabel: "Ver todos os produtos",
           materialSectionNoteLabel: "Notas de materiais",
+          finalSecondaryCtaLabel: "Sobre nós",
+          finalSecondaryCtaHref: "/about",
           materialLexicon: [
             expect.objectContaining({ name: "Pérola", image: "/pearl.webp" }),
             expect.objectContaining({ name: "Carvalho", image: "/oak.webp" }),

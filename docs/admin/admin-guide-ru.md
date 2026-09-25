@@ -308,7 +308,9 @@ legacy cover, пока не загружены изображения галер
   копирайт витрины — включённый тумблер без текста больше не прячет секцию.
   В **Final CTA** — ровно четыре слота Collage photos (товары → фото для
   кубистского коллажа; пустые слоты = imagery из Featured collections).
-  Closing statement — нижняя фраза секции. Contact email включается
+  Primary CTA label/href и Secondary CTA label/href редактируются по
+  локали (secondary по умолчанию — «About us» / локальный эквивалент и
+  `/about`). Closing statement — нижняя фраза секции. Contact email включается
   чекбоксом Include contact email (по умолчанию выкл.); при включении
   обязательны Contact link label и Contact email.
   **Material lexicon** — от 2 до 3 материалов в том же `AdminOrderedList`

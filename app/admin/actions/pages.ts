@@ -130,7 +130,8 @@ const TRANSLATABLE_PAGE_FIELDS = [
   "archiveSectionLabel", "editSectionEyebrow", "editSectionTitle", "editSectionBody", "editSectionViewAllLabel",
   "materialSectionEyebrow", "materialSectionTitle", "materialSectionNoteLabel",
   "manifestoSectionLabel", "manifestoSectionAttribution",
-  "finalCtaLabel", "finalFooterTitle", "finalContactLabel", "legalIntro",
+  "finalCtaLabel", "finalSecondaryCtaLabel", "finalSecondaryCtaHref",
+  "finalFooterTitle", "finalContactLabel", "legalIntro",
 ] as const;
 
 type MaterialTextEntry = {
@@ -282,6 +283,8 @@ const pageContentFieldsSchema = z.object({
   manifestoSectionAttribution: z.string().trim().default(""),
   finalCtaLabel: z.string().trim().default(""),
   finalCtaHref: z.string().trim().default(""),
+  finalSecondaryCtaLabel: z.string().trim().default(""),
+  finalSecondaryCtaHref: z.string().trim().default(""),
   finalFooterTitle: z.string().trim().default(""),
   finalContactLabel: z.string().trim().default(""),
   finalContactEmail: z.string().trim().default(""),
@@ -311,6 +314,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4,
     materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
+    finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
     legalIntro, legalLastUpdated,
   } = parsed.data;
@@ -378,6 +382,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
+    finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
   };
   // Images/src stay shared with English (see materialImages above) and are
@@ -403,6 +408,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       manifestoSectionLabel: fields.manifestoSectionLabel,
       manifestoSectionAttribution: fields.manifestoSectionAttribution,
       finalCtaLabel: fields.finalCtaLabel,
+      finalSecondaryCtaLabel: fields.finalSecondaryCtaLabel,
+      finalSecondaryCtaHref: fields.finalSecondaryCtaHref,
       finalFooterTitle: fields.finalFooterTitle,
       finalContactLabel: fields.finalContactLabel,
       legalIntro: fields.legalIntro,
@@ -448,6 +455,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       manifestoSectionAttribution,
       finalCtaLabel,
       finalCtaHref,
+      finalSecondaryCtaLabel,
+      finalSecondaryCtaHref,
       finalFooterTitle,
       finalContactLabel,
       finalContactEmail,
@@ -589,6 +598,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4,
     materialSectionEyebrow, materialSectionTitle, materialSectionNoteLabel,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
+    finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
     legalIntro, legalLastUpdated,
   } = parsed.data;
@@ -624,6 +634,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       manifestoSectionLabel: fields.manifestoSectionLabel,
       manifestoSectionAttribution: fields.manifestoSectionAttribution,
       finalCtaLabel: fields.finalCtaLabel,
+      finalSecondaryCtaLabel: fields.finalSecondaryCtaLabel,
+      finalSecondaryCtaHref: fields.finalSecondaryCtaHref,
       finalFooterTitle: fields.finalFooterTitle,
       finalContactLabel: fields.finalContactLabel,
       legalIntro: fields.legalIntro,
@@ -671,6 +683,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       manifestoSectionAttribution,
       finalCtaLabel,
       finalCtaHref,
+      finalSecondaryCtaLabel,
+      finalSecondaryCtaHref,
       finalFooterTitle,
       finalContactLabel,
       finalContactEmail,
@@ -718,6 +732,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
     materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
+    finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
   };
   await Promise.all([

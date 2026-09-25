@@ -132,6 +132,8 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "manifestoSectionLabel", label: "Manifesto label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "manifesto_label") },
     { key: "manifestoSectionAttribution", label: "Manifesto attribution", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "manifesto_attribution") },
     { key: "finalCtaLabel", label: "Final CTA label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "final_cta_label") },
+    { key: "finalSecondaryCtaLabel", label: "Final secondary CTA label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "final_secondary_cta_label") },
+    { key: "finalSecondaryCtaHref", label: "Final secondary CTA href", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "finalFooterTitle", label: "Final footer title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "final_footer_title") },
     { key: "finalContactLabel", label: "Final contact label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "final_contact_label") },
     { key: "legalIntro", label: "Legal intro", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("page_section_copy", "legal_intro") },

@@ -204,6 +204,8 @@ describe("PageEditor", () => {
     expect(screen.getByRole("button", { name: /Material 01/i })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Manifesto attribution" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Final CTA label" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Secondary CTA label" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Secondary CTA href" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Closing statement" })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Include contact email" })).not.toBeChecked();
     expect(screen.queryByRole("textbox", { name: "Contact email" })).not.toBeInTheDocument();

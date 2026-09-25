@@ -34,6 +34,8 @@ export const pageTranslationContentSchema = z.object({
   manifestoSectionLabel: z.string().optional(),
   manifestoSectionAttribution: z.string().optional(),
   finalCtaLabel: z.string().optional(),
+  finalSecondaryCtaLabel: z.string().optional(),
+  finalSecondaryCtaHref: z.string().optional(),
   finalFooterTitle: z.string().optional(),
   finalContactLabel: z.string().optional(),
   legalIntro: z.string().optional(),

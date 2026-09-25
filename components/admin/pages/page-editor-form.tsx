@@ -73,6 +73,8 @@ type PageLocaleDraft = {
   manifestoSectionLabel: string;
   manifestoSectionAttribution: string;
   finalCtaLabel: string;
+  finalSecondaryCtaLabel: string;
+  finalSecondaryCtaHref: string;
   finalFooterTitle: string;
   finalContactLabel: string;
   legalIntro: string;
@@ -141,6 +143,8 @@ function draftFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCopy):
     manifestoSectionLabel: copy.manifestoSectionLabel ?? "",
     manifestoSectionAttribution: copy.manifestoSectionAttribution ?? "",
     finalCtaLabel: copy.finalCtaLabel ?? "",
+    finalSecondaryCtaLabel: copy.finalSecondaryCtaLabel ?? "",
+    finalSecondaryCtaHref: copy.finalSecondaryCtaHref ?? "",
     finalFooterTitle: copy.finalFooterTitle ?? "",
     finalContactLabel: copy.finalContactLabel ?? "",
     legalIntro: copy.legalIntro ?? "",
@@ -188,6 +192,8 @@ function HiddenLocaleFields({
           field("manifestoSectionLabel", draft.manifestoSectionLabel),
           field("manifestoSectionAttribution", draft.manifestoSectionAttribution),
           field("finalCtaLabel", draft.finalCtaLabel),
+          field("finalSecondaryCtaLabel", draft.finalSecondaryCtaLabel),
+          field("finalSecondaryCtaHref", draft.finalSecondaryCtaHref),
           field("finalFooterTitle", draft.finalFooterTitle),
           field("finalContactLabel", draft.finalContactLabel),
           field("legalIntro", draft.legalIntro),

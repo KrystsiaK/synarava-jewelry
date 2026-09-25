@@ -18,7 +18,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyn
 
 import { ease } from "@/lib/animation";
 import { useTranslations } from "@/lib/i18n/context";
-import { localePath } from "@/lib/i18n/routing";
+import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
@@ -62,6 +62,8 @@ type HomePageContent = HomeSectionVisibilityFields & HomeLexiconSectionFields & 
   manifestoSectionAttribution?: string;
   finalCtaLabel?: string;
   finalCtaHref?: string;
+  finalSecondaryCtaLabel?: string;
+  finalSecondaryCtaHref?: string;
   finalFooterTitle?: string;
   finalContactLabel?: string;
   finalContactEmail?: string;
@@ -1097,16 +1099,42 @@ function FinalFooter({ title, contactLabel, contactEmail, showContact }: { title
   );
 }
 
-function CompactFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail, showContact }: { images: Array<{ image: string }>; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string; showContact?: boolean }) {
+function CompactFinalCTA({
+  images,
+  title,
+  body,
+  ctaLabel,
+  ctaHref,
+  secondaryCtaLabel,
+  secondaryCtaHref,
+  footerTitle,
+  contactLabel,
+  contactEmail,
+  showContact,
+}: {
+  images: Array<{ image: string }>;
+  title?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  footerTitle?: string;
+  contactLabel?: string;
+  contactEmail?: string;
+  showContact?: boolean;
+}) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.22 });
   const reduceMotion = useReducedMotion() ?? false;
-  const { t } = useTranslations();
+  const { locale, t } = useTranslations();
   const shards = images.slice(0, 2);
   const resolvedTitle = title?.trim() || t("home.finalCta.title");
   const resolvedBody = body?.trim() || t("home.finalCta.body");
   const resolvedCtaLabel = ctaLabel?.trim() || t("home.finalCta.ctaLabel");
   const resolvedCtaHref = ctaHref?.trim() || "/shop";
+  const resolvedSecondaryCtaLabel = secondaryCtaLabel?.trim() || t("home.finalCta.aboutLabel");
+  const resolvedSecondaryCtaHref = storefrontHref(locale, secondaryCtaHref?.trim() || "/about");
 
   return (
     <section data-component="CompactFinalCTA"
@@ -1139,13 +1167,22 @@ function CompactFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, 
             <h2 className="mt-5 max-w-[10ch] text-balance font-serif text-[clamp(3rem,14vw,4.5rem)] font-bold leading-[0.88] tracking-[-0.04em] text-linen">
               {resolvedTitle}
             </h2>
-            <ArtifactLink
-              href={resolvedCtaHref}
-              showArrow
-              className="mt-8 gap-4 px-6 text-[0.66rem] tracking-[0.18em]"
-            >
-              {resolvedCtaLabel}
-            </ArtifactLink>
+            <div className="mt-8 flex flex-wrap items-center gap-6">
+              <ArtifactLink
+                href={resolvedCtaHref}
+                showArrow
+                className="gap-4 px-6 text-[0.66rem] tracking-[0.18em]"
+              >
+                {resolvedCtaLabel}
+              </ArtifactLink>
+              <Link
+                href={resolvedSecondaryCtaHref}
+                className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
+              >
+                {resolvedSecondaryCtaLabel}
+                <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
+            </div>
           </div>
 
           {shards.length > 0 ? (
@@ -1219,7 +1256,31 @@ function CompactFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, 
 }
 
 // 7. FINAL CTA — cubist shop portal
-function DesktopFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail, showContact }: { images: Array<{ image: string }>; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string; showContact?: boolean }) {
+function DesktopFinalCTA({
+  images,
+  title,
+  body,
+  ctaLabel,
+  ctaHref,
+  secondaryCtaLabel,
+  secondaryCtaHref,
+  footerTitle,
+  contactLabel,
+  contactEmail,
+  showContact,
+}: {
+  images: Array<{ image: string }>;
+  title?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  footerTitle?: string;
+  contactLabel?: string;
+  contactEmail?: string;
+  showContact?: boolean;
+}) {
   const { locale, t } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
@@ -1230,6 +1291,8 @@ function DesktopFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, 
   const resolvedBody = body?.trim() || t("home.finalCta.body");
   const resolvedCtaLabel = ctaLabel?.trim() || t("home.finalCta.ctaLabel");
   const resolvedCtaHref = ctaHref?.trim() || "/shop";
+  const resolvedSecondaryCtaLabel = secondaryCtaLabel?.trim() || t("home.finalCta.aboutLabel");
+  const resolvedSecondaryCtaHref = storefrontHref(locale, secondaryCtaHref?.trim() || "/about");
 
   const introY = useTransform(
     progress,
@@ -1302,6 +1365,8 @@ function DesktopFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, 
         body={body}
         ctaLabel={ctaLabel}
         ctaHref={ctaHref}
+        secondaryCtaLabel={secondaryCtaLabel}
+        secondaryCtaHref={secondaryCtaHref}
         footerTitle={footerTitle}
         contactLabel={contactLabel}
         contactEmail={contactEmail}
@@ -1339,10 +1404,10 @@ function DesktopFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, 
               {resolvedCtaLabel}
             </PrimaryCtaButton>
             <Link
-              href={localePath(locale, "/about")}
+              href={resolvedSecondaryCtaHref}
               className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
             >
-              {t("home.finalCta.aboutLabel")}
+              {resolvedSecondaryCtaLabel}
               <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           </div>
@@ -1417,16 +1482,53 @@ function DesktopFinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, 
   );
 }
 
-function FinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, contactLabel, contactEmail, showContact }: { images: Array<{ image: string }>; title?: string; body?: string; ctaLabel?: string; ctaHref?: string; footerTitle?: string; contactLabel?: string; contactEmail?: string; showContact?: boolean }) {
+function FinalCTA({
+  images,
+  title,
+  body,
+  ctaLabel,
+  ctaHref,
+  secondaryCtaLabel,
+  secondaryCtaHref,
+  footerTitle,
+  contactLabel,
+  contactEmail,
+  showContact,
+}: {
+  images: Array<{ image: string }>;
+  title?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  footerTitle?: string;
+  contactLabel?: string;
+  contactEmail?: string;
+  showContact?: boolean;
+}) {
   const isDesktop = useDesktopViewport();
   const scrollContext = useContext(HomeScrollContext);
   const isIOSWebKit = scrollContext?.isIOSWebKit ?? false;
+  const shared = {
+    images,
+    title,
+    body,
+    ctaLabel,
+    ctaHref,
+    secondaryCtaLabel,
+    secondaryCtaHref,
+    footerTitle,
+    contactLabel,
+    contactEmail,
+    showContact,
+  };
 
   return isDesktop && !isIOSWebKit
     ? images.length === 4
-      ? <DesktopFinalCTA images={images} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />
-      : <CompactFinalCTA images={images} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />
-    : <CompactFinalCTA images={images} title={title} body={body} ctaLabel={ctaLabel} ctaHref={ctaHref} footerTitle={footerTitle} contactLabel={contactLabel} contactEmail={contactEmail} showContact={showContact} />;
+      ? <DesktopFinalCTA {...shared} />
+      : <CompactFinalCTA {...shared} />
+    : <CompactFinalCTA {...shared} />;
 }
 
 export function HomePage({ collections, products = [], heroVideoSrc, content }: HomePageProps) {
@@ -1478,6 +1580,8 @@ export function HomePage({ collections, products = [], heroVideoSrc, content }: 
         body={content?.secondaryBody}
         ctaLabel={content?.finalCtaLabel || content?.ctaLabel}
         ctaHref={content?.finalCtaHref || content?.ctaHref}
+        secondaryCtaLabel={content?.finalSecondaryCtaLabel}
+        secondaryCtaHref={content?.finalSecondaryCtaHref}
         footerTitle={content?.finalFooterTitle}
         contactLabel={content?.finalContactLabel}
         contactEmail={content?.finalContactEmail}

@@ -34,6 +34,8 @@ export type EditablePageCopy = {
   manifestoSectionAttribution?: string;
   finalCtaLabel?: string;
   finalCtaHref?: string;
+  finalSecondaryCtaLabel?: string;
+  finalSecondaryCtaHref?: string;
   finalFooterTitle?: string;
   finalContactLabel?: string;
   finalContactEmail?: string;
