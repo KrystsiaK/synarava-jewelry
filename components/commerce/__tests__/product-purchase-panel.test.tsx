@@ -157,40 +157,18 @@ describe("ProductPurchasePanel", () => {
     );
   });
 
-  it("keeps service links beside the purchase action without invented care copy", () => {
+  it("keeps purchase actions free of service links and care copy", () => {
     render(<ProductPurchasePanel product={product} />);
 
     expect(screen.queryByText("Choose the right fit")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Delivery/ })).toHaveAttribute("href", "/en/shipping");
-    expect(screen.getByRole("link", { name: /Returns/ })).toHaveAttribute("href", "/en/returns");
-    expect(screen.getByRole("link", { name: /Care & safety/ })).toHaveAttribute("href", "/en/care");
+    expect(screen.queryByRole("link", { name: /Delivery/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Returns/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Care & safety/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Purchase information" })).not.toBeInTheDocument();
   });
 
   it("keeps the repeated compact purchase action free of duplicate service navigation", () => {
     render(<ProductPurchasePanel product={product} compact />);
     expect(screen.queryByRole("navigation", { name: "Purchase information" })).not.toBeInTheDocument();
-  });
-
-  it("shows the product's own care instructions instead of the generic blurb when set", () => {
-    const withCare = {
-      ...product,
-      characteristics: [{
-        key: "care_instructions",
-        label: "Care instructions",
-        group: "Care & fulfilment",
-        valueType: "TEXT" as const,
-        textValue: "Wipe with a soft cloth. Avoid water.",
-        numberValue: null,
-        booleanValue: null,
-        unit: null,
-        certificateUrl: null,
-        sortOrder: 0,
-      }],
-    } as ProductSummary;
-
-    render(<ProductPurchasePanel product={withCare} />);
-
-    expect(screen.getByText("Wipe with a soft cloth. Avoid water.")).toBeInTheDocument();
-    expect(screen.queryByText(/Care guidance is included with every piece/)).not.toBeInTheDocument();
   });
 });

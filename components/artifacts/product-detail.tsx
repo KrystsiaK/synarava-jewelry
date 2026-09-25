@@ -82,19 +82,6 @@ function ProductHero({
   const { t, locale, plural } = useTranslations();
   const words = product.title.split(" ");
   const heroDescription = product.shortDescription.trim() || truncateText(product.description.trim(), 220);
-  const availability = product.stockOnHand > 0
-    ? plural("product.stock", product.stockOnHand)
-    : t("product.currentlyUnavailable");
-  const quickFacts = [
-    ...(product.categoryName ? [{ label: t("product.hero.category"), value: product.categoryName }] : []),
-    { label: t("product.hero.availability"), value: availability },
-    ...(product.variantCount > 1
-      ? [{ label: t("product.hero.variants"), value: String(product.variantCount) }]
-      : []),
-    ...(product.materialLine
-      ? [{ label: t("product.hero.composition"), value: product.materialLine }]
-      : []),
-  ];
   const breadcrumbs = getProductBreadcrumbs(product, t);
 
   return (
@@ -207,33 +194,27 @@ function ProductHero({
             <ProductPurchasePanel product={product} />
           </motion.div>
 
-          <motion.dl
-            className="mt-8 grid grid-cols-2 border-y border-foreground/18"
+          <motion.div
+            className="mt-8"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease, delay: 0.55 }}
           >
-            {quickFacts.map((fact) => (
-              <div
-                key={fact.label}
-                className="min-w-0 border-b border-foreground/12 py-3 pr-4 odd:border-r odd:pl-0 even:pl-4 last:border-b-0 [&:nth-last-child(2):nth-child(odd)]:border-b-0"
-              >
-                <dt className="font-sans text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-foreground/48">
-                  {fact.label}
-                </dt>
-                <dd className="mt-1 break-words text-sm leading-5 text-foreground/82">
-                  {fact.value}
-                </dd>
-              </div>
-            ))}
-          </motion.dl>
+            <ProductSpecifications product={product} compact />
+          </motion.div>
         </motion.div>
       </div>
     </header>
   );
 }
 
-function ProductSpecifications({ product }: { product: ProductSummary }) {
+function ProductSpecifications({
+  product,
+  compact = false,
+}: {
+  product: ProductSummary;
+  compact?: boolean;
+}) {
   const { t, locale } = useTranslations();
   const presentation = getProductPresentation(t);
   type SpecificationRow = {
@@ -278,50 +259,61 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     );
     return rank(rowsA) - rank(rowsB);
   });
-  if (specificationGroups.length === 0) return null;
+  if (specificationGroups.length === 0 && !product.categoryName) return null;
 
   return (
-    <section data-component="ProductSpecifications" className="border-y border-foreground/10 bg-surface py-16 md:py-20">
-      <div className="site-shell grid gap-10 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <div>
-          <p className="label-mono text-couture-red">{t("product.specifications.eyebrow")}</p>
-          <h2 className="mt-4 max-w-sm font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none">
-            {t("product.specifications.title")}
-          </h2>
-          {product.categoryName ? (
-            <p className="mt-5 text-sm uppercase tracking-[0.16em] text-foreground/50">
-              {product.categoryName}
-            </p>
-          ) : null}
-        </div>
+    <section data-component="ProductSpecifications" className="border-t border-foreground/14 pt-6">
+      <p className="label-mono text-couture-red">{t("product.specifications.eyebrow")}</p>
+      <h2 className="mt-3 font-serif text-[clamp(1.6rem,3vw,2.25rem)] leading-none text-foreground">
+        {t("product.specifications.title")}
+      </h2>
+      {product.categoryName ? (
+        <p className="mt-3 text-sm text-foreground/70">{product.categoryName}</p>
+      ) : null}
 
-        {specificationGroups.length > 0 ? (
-          <div className="grid content-start gap-10">
-            {specificationGroups.map(([group, rows]) => (
-              <section key={group} aria-labelledby={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
-                <h3 id={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`} className="mb-3 font-serif text-xl text-foreground/88">
-                  {group}
-                </h3>
-                <dl className="grid border-t border-foreground/12">
-                  {rows.map((row) => (
-                    <div key={`${row.label}-${row.value}`} className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6 border-b border-foreground/12 py-4">
-                      <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/45">{row.label}</dt>
-                      <dd className="flex items-start justify-between gap-4 text-sm leading-6 text-foreground/82">
-                        <span>{row.characteristic?.valueType === "BOOLEAN" && row.characteristic.booleanValue ? t("product.specifications.yes") : row.value}</span>
-                        {row.characteristic?.certificateUrl ? (
-                          <a href={row.characteristic.certificateUrl} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-couture-red underline-offset-4 hover:underline">
-                            {t("product.specifications.certificate")}
-                          </a>
-                        ) : null}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      {specificationGroups.length > 0 ? (
+        <div className="mt-6 grid content-start gap-7">
+          {specificationGroups.map(([group, rows]) => (
+            <section key={group} aria-labelledby={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+              <h3
+                id={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+                className="mb-2 font-serif text-lg text-foreground/88"
+              >
+                {group}
+              </h3>
+              <dl className="grid border-t border-foreground/12">
+                {rows.map((row) => (
+                  <div
+                    key={`${row.label}-${row.value}`}
+                    className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4 border-b border-foreground/12 py-3"
+                  >
+                    <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/45">
+                      {row.label}
+                    </dt>
+                    <dd className="flex items-start justify-between gap-3 text-sm leading-5 text-foreground/82">
+                      <span>
+                        {row.characteristic?.valueType === "BOOLEAN" && row.characteristic.booleanValue
+                          ? t("product.specifications.yes")
+                          : row.value}
+                      </span>
+                      {row.characteristic?.certificateUrl ? (
+                        <a
+                          href={row.characteristic.certificateUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-couture-red underline-offset-4 hover:underline"
+                        >
+                          {t("product.specifications.certificate")}
+                        </a>
+                      ) : null}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -984,7 +976,6 @@ export function ProductDetail({
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
       <ProductHero product={product} reviews={reviews ?? null} isSignedIn={isSignedIn} />
-      <ProductSpecifications product={product} />
       <MaterialsSection product={product} />
       <SymbolismSection product={product} />
       <CraftSection product={product} fitVideoSrc={fitVideoSrc} />

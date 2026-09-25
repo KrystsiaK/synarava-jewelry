@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Product detail", () => {
-  test("keeps product context and service guidance beside the purchase action", async ({ page }) => {
+  test("keeps product context and product information beside the purchase action", async ({ page }) => {
     await page.goto("/shop");
 
     const productLink = page.locator('a[href^="/products/"]').first();
@@ -13,10 +13,11 @@ test.describe("Product detail", () => {
     await expect(breadcrumb.getByRole("link", { name: "Shop" })).toHaveAttribute("href", "/shop");
     await expect(breadcrumb.locator('[aria-current="page"]')).toBeVisible();
 
-    const purchaseInformation = page.getByRole("navigation", { name: "Purchase information" });
-    await expect(purchaseInformation.getByRole("link", { name: /Delivery/ })).toHaveAttribute("href", "/shipping");
-    await expect(purchaseInformation.getByRole("link", { name: /Returns/ })).toHaveAttribute("href", "/returns");
-    await expect(purchaseInformation.getByRole("link", { name: /Care & safety/ })).toHaveAttribute("href", "/care");
+    await expect(page.getByRole("navigation", { name: "Purchase information" })).toHaveCount(0);
+    const productInformation = page.locator('[data-component="ProductSpecifications"]');
+    await expect(productInformation).toBeVisible();
+    await expect(productInformation.getByText("Product information")).toBeVisible();
+    await expect(productInformation.getByRole("heading", { name: "Details that matter" })).toBeVisible();
   });
 
   test("keeps the purchase header within a narrow mobile viewport", async ({ page }) => {
