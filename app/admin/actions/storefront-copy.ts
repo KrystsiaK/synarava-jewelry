@@ -94,5 +94,5 @@ export async function saveStorefrontCopyAction(formData: FormData): Promise<Stor
   // Footer and the main menu render in the root layout on every route.
   revalidatePath("/", "layout");
 
-  return { success: "Header & Footer saved." };
+  return { success: "Shared saved." };
 }

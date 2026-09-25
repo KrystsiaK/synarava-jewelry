@@ -16,7 +16,7 @@ export type AdminNavBadgeConfig = {
 
 /**
  * Declarative admin sidebar item.
- * Set `children` only for sections that expand in-place (Pages, Header & Footer).
+ * Set `children` only for sections that expand in-place (Pages, Shared).
  * Catalog and other list CRUDs stay flat — do not pass product/collection children.
  */
 export type AdminNavItemConfig = {
@@ -207,10 +207,10 @@ export function buildPagesNavChildren(pages: AdminNavPageRef[]): AdminNavChildCo
 
 /**
  * Canonical admin sidebar configuration.
- * Catalog stays a leaf; Pages + Header & Footer expand inline.
+ * Catalog stays a leaf; Pages + Shared expand inline.
  *
  * Conflict (sync) badges sit on the section that owns the divergence —
- * Catalog / Collections / Pages / Header & Footer — plus Localization as the
+ * Catalog / Collections / Pages / Shared — plus Localization as the
  * review hub (total). Left markers still carry issue / sync / both.
  */
 export function buildAdminNavItems({
@@ -241,8 +241,8 @@ export function buildAdminNavItems({
     {
       id: "settings",
       href: "/admin/settings",
-      label: "Header & Footer",
-      code: "HF",
+      label: "Shared",
+      code: "SHR",
       children: buildStorefrontCopyNavChildren(),
       childPreviewLimit: 12,
       badge: syncBadge(sync.settings),

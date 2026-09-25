@@ -19,6 +19,7 @@ import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 const SECTION_JUMPS = [
   { href: "#copy-header-main", label: "Header" },
   { href: "#copy-footer-brand", label: "Footer" },
+  { href: "#copy-service-contact", label: "Contact CTA" },
 ] as const;
 
 export function StorefrontCopyEditor({
@@ -67,7 +68,7 @@ export function StorefrontCopyEditor({
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
           Header main links: name + path (add/remove). Footer navigation links mirror that menu.
-          Contact email is shared across languages. Other labels: empty falls back to the shipped default.
+          Contact email is shared across languages (footer + contact CTA). Other labels: empty falls back to the shipped default.
         </p>
         <nav className="flex gap-2 text-xs" aria-label="Jump to section">
           {SECTION_JUMPS.map((jump) => (
@@ -146,7 +147,7 @@ export function StorefrontCopyEditor({
                 placeholder={DEFAULT_FOOTER_CONTACT_EMAIL}
                 help={
                   <AdminHelp>
-                    Shared across languages. Shown as the mailto link in the footer service column.
+                    Shared across languages. Mailto in the footer service column and on the shared contact CTA banner.
                   </AdminHelp>
                 }
                 clearable
@@ -158,7 +159,7 @@ export function StorefrontCopyEditor({
 
       <div className="flex justify-end" style={{ borderTop: "1px solid var(--adm-border)", paddingTop: "1rem" }}>
         <button type="submit" className="adm-btn-primary" disabled={isPending}>
-          {isPending ? "Saving..." : "Save Header & Footer"}
+          {isPending ? "Saving..." : "Save Shared"}
         </button>
       </div>
     </form>

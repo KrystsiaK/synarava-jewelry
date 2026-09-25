@@ -49,7 +49,7 @@ describe("StorefrontCopyEditor", () => {
   });
 
   it("submits header nav JSON plus en: and pt: chrome keys in one save", async () => {
-    mocks.saveStorefrontCopyAction.mockResolvedValue({ success: "Header & Footer saved." });
+    mocks.saveStorefrontCopyAction.mockResolvedValue({ success: "Shared saved." });
     const user = userEvent.setup();
     render(
       <StorefrontCopyEditor
@@ -64,7 +64,7 @@ describe("StorefrontCopyEditor", () => {
     await user.type(screen.getByLabelText("Cart (EN)"), "Bag");
     await user.click(screen.getByRole("tab", { name: "Português" }));
     await user.type(screen.getByLabelText("Cart (PT)"), "Saco");
-    await user.click(screen.getByRole("button", { name: "Save Header & Footer" }));
+    await user.click(screen.getByRole("button", { name: "Save Shared" }));
 
     expect(mocks.saveStorefrontCopyAction).toHaveBeenCalledTimes(1);
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
@@ -91,7 +91,7 @@ describe("StorefrontCopyEditor", () => {
     expect(screen.getByLabelText("Cart (RU)")).toBeVisible();
     expect(screen.getByLabelText("Cart (RU)")).toHaveValue("Корзина");
 
-    await user.click(screen.getByRole("button", { name: "Save Header & Footer" }));
+    await user.click(screen.getByRole("button", { name: "Save Shared" }));
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
     expect(formData.get("ru:nav.cart")).toBe("Корзина");
   });
@@ -127,6 +127,10 @@ describe("StorefrontCopyEditor", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Contact email" })).toHaveValue("ops@synarava.com");
+    expect(screen.getByText("Shared — contact CTA")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Title (EN)").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("Body (EN)").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("Button label (EN)").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Shop (EN)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Collections (EN)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("About (EN)")).not.toBeInTheDocument();

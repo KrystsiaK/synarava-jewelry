@@ -48,7 +48,7 @@ describe("AdminNavTree", () => {
       screen.getByRole("link", { name: "Page 2" }).querySelector("[data-attention='true']"),
     ).not.toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Expand Header & Footer" }));
+    await user.click(screen.getByRole("button", { name: "Expand Shared" }));
     expect(screen.getByRole("link", { name: /Header — main links/ })).toBeInTheDocument();
   });
 
@@ -64,13 +64,13 @@ describe("AdminNavTree", () => {
     expect(screen.queryByRole("button", { name: /Show \d+ more/ })).not.toBeInTheDocument();
   });
 
-  it("opens Header & Footer section from hash deep links", async () => {
+  it("opens Shared section from hash deep links", async () => {
     pathnameState.value = "/admin/settings";
     window.history.replaceState(null, "", "/admin/settings#copy-footer-brand");
 
     render(<AdminNavTree items={buildAdminNavItems({ pages: [] })} />);
 
-    expect(screen.getByRole("button", { name: "Collapse Header & Footer" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Collapse Shared" })).toHaveAttribute(
       "aria-expanded",
       "true",
     );

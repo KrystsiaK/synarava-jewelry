@@ -36,7 +36,7 @@ describe("admin-nav-config", () => {
     expect(pageSlugFromAdminHref("/en/home")).toBe("home");
   });
 
-  it("builds Pages + Header & Footer trees and leaves Catalog flat", () => {
+  it("builds Pages + Shared trees and leaves Catalog flat", () => {
     const items = buildAdminNavItems({
       pages: [
         { slug: "home", title: "Home" },

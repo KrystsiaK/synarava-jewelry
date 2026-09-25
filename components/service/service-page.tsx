@@ -1,6 +1,8 @@
 "use client";
 
-import { ArtifactLink, PageHeroImage } from "@/components/ui";
+import { ContactCta } from "@/components/shared/contact-cta";
+import { PageHeroImage } from "@/components/ui";
+import { DEFAULT_FOOTER_CONTACT_EMAIL } from "@/lib/content/footer-contact-fields";
 import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/ui";
 
@@ -9,15 +11,24 @@ type ServiceSection = {
   body: string;
 };
 
-type ServicePageProps = {
+export type ServicePageProps = {
   eyebrow: string;
   title: string;
   intro: string;
   sections: ServiceSection[];
   heroImage?: string;
+  /** Shared site contact email (footer-contact-v1). */
+  contactEmail?: string;
 };
 
-export function ServicePage({ eyebrow, title, intro, sections, heroImage }: ServicePageProps) {
+export function ServicePage({
+  eyebrow,
+  title,
+  intro,
+  sections,
+  heroImage,
+  contactEmail = DEFAULT_FOOTER_CONTACT_EMAIL,
+}: ServicePageProps) {
   const { t } = useTranslations();
   return (
     <main data-component="ServicePage" className="artifact-shell min-h-screen bg-background pb-24 text-foreground">
@@ -54,15 +65,13 @@ export function ServicePage({ eyebrow, title, intro, sections, heroImage }: Serv
           ))}
         </div>
 
-        <aside className="mt-12 flex flex-col gap-5 border border-stroke bg-panel p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
-          <div>
-            <p className="label-caps text-accent">{t("service.contactTitle")}</p>
-            <p className="mt-2 text-sm text-muted">{t("service.contactBody")}</p>
-          </div>
-          <ArtifactLink href="mailto:synarava.shop@gmail.com" variant="inverse" size="md">
-            {t("service.contactCta")}
-          </ArtifactLink>
-        </aside>
+        <ContactCta
+          className="mt-12"
+          title={t("service.contactTitle")}
+          body={t("service.contactBody")}
+          ctaLabel={t("service.contactCta")}
+          href={`mailto:${contactEmail}`}
+        />
       </div>
     </main>
   );

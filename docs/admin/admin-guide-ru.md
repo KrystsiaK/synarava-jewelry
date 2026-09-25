@@ -55,7 +55,7 @@ locale-scoped conflict sync, whole-product Save, leave-guard, scroll preserve
 - **Верхней панелью (topbar)**: логотип, переключатель темы (светлая/тёмная),
   индикатор открытых проблем (issues) со ссылкой, индикатор «Live CMS».
   Topbar зафиксирован сверху при прокрутке.
-- **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Header & Footer`,
+- **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Shared`,
   `Meta`, `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`,
   `Infrastructure`, `Account`) и
   счётчик открытых проблем рядом с соответствующим пунктом.
@@ -347,7 +347,7 @@ legacy cover, пока не загружены изображения галер
 - После сохранения слот обновляется на витрине (см. описание под каждым
   полем); пустой слот снова показывает статичный hero-image.
 
-## 7a. Header & Footer (`/admin/settings`)
+## 7a. Shared (`/admin/settings`)
 
 - **Header — main links:** ordered list of name + path (storefront path autocomplete).
   Add/remove/reorder like other CMS lists. Path is shared across locales; name is
@@ -355,15 +355,18 @@ legacy cover, пока не загружены изображения галер
   Collections / About, or to the path for custom rows. Stored in `SiteSetting`
   `header-nav-v1`. The footer **Navigation** column reuses this same menu
   (home `/` is omitted in the footer).
-- **Contact email:** shared across languages; shown as the mailto link in the
-  footer service column. Stored in `SiteSetting` `footer-contact-v1`.
+- **Contact email:** shared across languages; mailto in the footer service column
+  and on the shared contact CTA banner. Stored in `SiteSetting` `footer-contact-v1`.
 - **Chrome & footer labels:** cart/account, brand, navigation column heading,
   service/legal copy (EN and other registered locales). Service/legal URLs stay
   fixed in storefront code. Пустое поле = дефолт из `messages/*.json`.
   Stored in `storefront-copy-v1`.
+- **Shared — contact CTA:** title, body, and button label for the banner on Care,
+  FAQ, Shipping, Returns, and Dispute Resolution (`service.contactTitle` /
+  `contactBody` / `contactCta`). One banner for all those pages — not per-slug.
 - Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
-  **Pages**, не здесь.
-- Chrome/footer translations sync to Shopify metaobject `$app:storefront_copy`;
+  **Pages**, не здесь (кроме общего contact CTA выше).
+- Chrome/footer/contact-CTA translations sync to Shopify metaobject `$app:storefront_copy`;
   header main-link labels and contact email are local (no Shopify `MENU`/`LINK`
   binding yet). Conflicts for synced fields show under **Localization**.
 

@@ -24,4 +24,13 @@ describe("ServicePage", () => {
     render(<ServicePage {...props} />);
     expect(screen.queryByTestId("page-hero-image")).not.toBeInTheDocument();
   });
+
+  it("renders the shared contact CTA with the given mailto", () => {
+    render(<ServicePage {...props} contactEmail="hello@synarava.com" />);
+    expect(screen.getByTestId("contact-cta")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /contact/i })).toHaveAttribute(
+      "href",
+      "mailto:hello@synarava.com",
+    );
+  });
 });

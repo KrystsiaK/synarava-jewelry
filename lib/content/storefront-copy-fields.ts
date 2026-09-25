@@ -1,10 +1,11 @@
-// Curated list of translation keys the admin "Header & Footer" screen can
-// override. Kept separate from the generic i18n key space on purpose: only
-// keys listed here are editable, everything else in messages/*.json still
-// requires a code change. Extend this list (not the form) to expose more.
+// Curated list of translation keys the admin "Shared" screen can override.
+// Kept separate from the generic i18n key space on purpose: only keys listed
+// here are editable; everything else in messages/*.json still requires a code
+// change. Extend this list (not the form) to expose more.
 //
 // Header main links (label + path, add/remove) live in header-nav-v1 — not here.
 // Remaining groups are labels only; footer destinations stay fixed in code.
+// Shared contact CTA copy lives here; contact email is footer-contact-v1.
 
 // Lives here (not storefront-copy.ts) because that module is `server-only`
 // (it touches the database) — this constant is also needed by client
@@ -92,8 +93,34 @@ const FOOTER_LEGAL_GROUP: StorefrontCopyGroup = {
   ],
 };
 
-// Shop hero copy and service pages (care/faq/returns/shipping) live on the
-// Page record (Pages → that slug), not here.
+const SERVICE_CONTACT_GROUP: StorefrontCopyGroup = {
+  id: "service-contact",
+  title: "Shared — contact CTA",
+  description:
+    "Banner on Care, FAQ, Shipping, Returns, and Dispute Resolution. The button mailto uses the shared Contact email under Footer — service column.",
+  fields: [
+    {
+      key: "service.contactTitle",
+      label: "Title",
+      hint: "All-caps headline above the contact CTA body.",
+    },
+    {
+      key: "service.contactBody",
+      label: "Body",
+      area: true,
+      hint: "Supporting sentence under the title.",
+    },
+    {
+      key: "service.contactCta",
+      label: "Button label",
+      hint: "Label on the outlined contact button.",
+    },
+  ],
+};
+
+// Shop hero copy and per-page service intro/sections (care/faq/returns/shipping)
+// live on the Page record (Pages → that slug). The shared contact CTA above is
+// the exception — one banner for all service pages.
 
 export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   HEADER_CHROME_GROUP,
@@ -101,6 +128,7 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   FOOTER_NAV_GROUP,
   FOOTER_SERVICE_GROUP,
   FOOTER_LEGAL_GROUP,
+  SERVICE_CONTACT_GROUP,
 ];
 
 export const STOREFRONT_COPY_KEYS: string[] = STOREFRONT_COPY_GROUPS.flatMap(

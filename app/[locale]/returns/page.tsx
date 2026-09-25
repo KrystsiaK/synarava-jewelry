@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ServicePage } from "@/components/service/service-page";
+import { ServicePageView } from "@/components/service/service-page-view";
 import { getPageBySlug } from "@/lib/content/catalog";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -42,7 +42,7 @@ export default async function ReturnsPage() {
   const introDefaults = (SERVICE_PAGE_INTRO_DEFAULTS[locale] ?? SERVICE_PAGE_INTRO_DEFAULTS.en).returns;
 
   return (
-    <ServicePage
+    <ServicePageView
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
       title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).returns}
       intro={resolveLegalText(content?.body, introDefaults.intro)}

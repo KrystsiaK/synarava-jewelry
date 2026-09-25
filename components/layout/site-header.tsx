@@ -24,7 +24,7 @@ type SiteHeaderProps = {
   // treated as "unknown", never rendered as an empty cart.
   initialCartCount: number | null;
   isLoggedIn?: boolean;
-  /** Main links from header-nav-v1 (admin Header & Footer). */
+  /** Main links from header-nav-v1 (admin Shared). */
   headerNav: HeaderNavData;
 };
 

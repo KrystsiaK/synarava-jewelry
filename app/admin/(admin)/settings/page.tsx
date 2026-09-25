@@ -46,10 +46,10 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="adm-section-tag mb-3">[ SYN-ADM // HEADER & FOOTER ]</p>
-        <h1 className="adm-page-title">Header & Footer</h1>
+        <p className="adm-section-tag mb-3">[ SYN-ADM // SHARED ]</p>
+        <h1 className="adm-page-title">Shared</h1>
         <p className="adm-page-subtitle">
-          Header main links (name + path) also drive the footer Navigation column. Contact email is shared. Other chrome labels fall back to shipped defaults when empty. Page copy is edited under Pages.
+          Site-wide pieces reused across pages: header main links (also the footer Navigation column), chrome/footer labels, shared contact email, and the service-page contact CTA. Empty labels fall back to shipped defaults. Per-page copy is edited under Pages.
         </p>
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />
       </div>
