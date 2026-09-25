@@ -25,10 +25,8 @@ import {
   ShopifyCategoryControl,
   ShopifyCategoryField,
 } from "@/components/admin/products/shopify-category-field";
-import {
-  HiddenCharacteristicPersistFields,
-  ShopifyProductFactsPanel,
-} from "@/components/admin/products/shopify-product-facts";
+import { ShopifyProductFactsPanel } from "@/components/admin/products/shopify-product-facts";
+import { ProductPassportFields } from "@/components/admin/products/product-passport-fields";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductCharacteristicValue } from "@/lib/products/characteristics";
 import {
@@ -232,7 +230,7 @@ export function ProductDetailFields({
 
       <div hidden={activeSection !== "catalog"} className="grid gap-4">
         <ShopifyProductFactsPanel facts={shopifyFacts} linked={shopifyLinked} />
-        <HiddenCharacteristicPersistFields characteristics={details.characteristics} />
+        <ProductPassportFields characteristics={details.characteristics} />
       </div>
 
       {/* Materials */}

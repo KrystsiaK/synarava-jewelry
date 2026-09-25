@@ -49,10 +49,10 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   {
     id: "catalog",
     label: "Catalog",
-    shortLabel: "Placement & Shopify facts",
+    shortLabel: "Placement & parameters",
     title: "Place it in the catalog",
     description:
-      "Choose the Shopify category, Synarava collection, and tags. Product facts (materials, color, weight, origin) come from Shopify after Pull — not a separate Synarava checklist.",
+      "Choose Shopify category, collection, and tags. Edit product parameters here (Save + Push to Shopify). Last Pull shows what Shopify currently has.",
     icon: Shapes,
   },
   {

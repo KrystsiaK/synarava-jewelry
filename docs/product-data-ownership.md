@@ -57,18 +57,16 @@ Shopify contains additional operational and analytical API fields. “All Shopif
 
 ## Synarava product passport
 
-Structured facts that customers see on the product should come from Shopify
-whenever Shopify can represent them: standard fields, category attributes, and
-customer-facing metafields. Pull resolves and projects those values into the
-admin Catalog and the storefront.
+Structured product parameters (material, color, size, care, …) are editable in
+the Synarava Catalog under **Product parameters**. Save stores them locally;
+Push mirrors them to Shopify as `synarava.*` metafields. Pull seeds empty
+fields from Shopify category attributes and merchant metafields.
 
-A fixed Synarava characteristic checklist is **not** a parallel catalog. Empty
-jewelry / pet / maker passport groups must not be presented as if they were
-Shopify fields. Local `ProductCharacteristic` rows may still hold values seeded
-from Shopify (Color, Material, weight, origin, …) for search, filters, and the
-storefront passport — they are a projection, not a competing schema.
+A fixed characteristic checklist is the admin editing UI for those mirrored
+facts — not a competing catalog. Empty groups stay collapsed so unused pet /
+maker / jewelry fields do not dominate the screen.
 
-### Historical passport vocabulary (projection only)
+### Historical passport vocabulary (projection + edit UI)
 
 When seeded from Shopify, searchable/filterable rows may use keys such as:
 
