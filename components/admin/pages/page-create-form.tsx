@@ -11,7 +11,7 @@ import {
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminHrefField, AdminListWorkspace, AdminLongTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import { AdminHrefField, AdminListWorkspace, AdminLongTextField, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
@@ -124,12 +124,12 @@ export function CreatePageForm({
               <AdminTextField label={`Eyebrow (${code.toUpperCase()})`} name={fieldName("eyebrow")} />
             </div>
             <AdminLongTextField label={`Excerpt (${code.toUpperCase()})`} name={fieldName("excerpt")} rows={3} />
-            <AdminLongTextField label={`Body (${code.toUpperCase()})`} name={fieldName("body")} rows={5} />
+            <AdminRichTextField label={`Body (${code.toUpperCase()})`} name={fieldName("body")} />
             <div className="grid gap-4">
               <AdminTextField label={`CTA label (${code.toUpperCase()})`} name={fieldName("ctaLabel")} />
-              <AdminLongTextField label={`Quote (${code.toUpperCase()})`} name={fieldName("quote")} rows={3} />
+              <AdminRichTextField label={`Quote (${code.toUpperCase()})`} name={fieldName("quote")} />
               <AdminTextField label={`Secondary title (${code.toUpperCase()})`} name={fieldName("secondaryTitle")} />
-              <AdminLongTextField label={`Secondary body (${code.toUpperCase()})`} name={fieldName("secondaryBody")} rows={3} />
+              <AdminRichTextField label={`Secondary body (${code.toUpperCase()})`} name={fieldName("secondaryBody")} />
             </div>
           </section>
         );
@@ -145,10 +145,9 @@ export function CreatePageForm({
       </div>
 
       <div hidden={activeLocale !== SOURCE_LOCALE}>
-        <AdminLongTextField
+        <AdminRichTextField
           label="Body"
           name="body"
-          rows={5}
           placeholder="Main editorial body copy."
         />
       </div>
@@ -161,20 +160,18 @@ export function CreatePageForm({
       </div>
 
       <div hidden={activeLocale !== SOURCE_LOCALE}>
-        <AdminLongTextField
+        <AdminRichTextField
           label="Quote"
           name="quote"
-          rows={4}
           placeholder="Optional quote or highlighted statement."
         />
       </div>
 
       <div className="grid gap-4" hidden={activeLocale !== SOURCE_LOCALE}>
         <AdminTextField label="Secondary title" name="secondaryTitle" placeholder="Further reading" />
-        <AdminLongTextField
+        <AdminRichTextField
           label="Secondary body"
           name="secondaryBody"
-          rows={3}
           placeholder="Optional follow-up copy block."
         />
       </div>

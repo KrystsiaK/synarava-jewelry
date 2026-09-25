@@ -3,6 +3,7 @@ import Link from "next/link";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { RichText } from "@/components/content/rich-text";
 import { PageHeroImage } from "@/components/ui";
 import { LegalSectionScroll } from "@/components/legal/legal-section-scroll";
 import { LegalActionLink } from "@/components/legal/legal-action-link";
@@ -88,9 +89,10 @@ export function LegalDocumentPage({
             {title}
           </h1>
           {intro ? (
-            <p className={cn("mt-4 max-w-2xl text-base leading-7 md:mt-5 md:text-lg md:leading-8", heroImage ? "text-white/75" : "text-foreground/60")}>
-              {intro}
-            </p>
+            <RichText
+              content={intro}
+              className={cn("mt-4 max-w-2xl text-base leading-7 md:mt-5 md:text-lg md:leading-8", heroImage ? "text-white/75" : "text-foreground/60")}
+            />
           ) : null}
           <p className={cn("mt-3 label-mono", heroImage ? "text-white/60" : "text-muted")}>{lastUpdatedLabel}: {lastUpdated}</p>
         </div>

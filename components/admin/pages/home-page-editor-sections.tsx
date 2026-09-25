@@ -10,8 +10,8 @@ import {
   AdminFieldShell,
   AdminHelp,
   AdminHrefField,
-  AdminLongTextField,
   AdminOrderedList,
+  AdminRichTextField,
   AdminOrderedListItemActions,
   AdminSelectField,
   AdminTextField,
@@ -156,11 +156,10 @@ function HomeLexiconMaterialFields({
           onChange={(event) => updateMaterial(index, "category", event.target.value)}
         />
       </div>
-      <AdminLongTextField
+      <AdminRichTextField
         label="Description"
         value={material.description}
         onChange={(value) => updateMaterial(index, "description", value)}
-        rows={3}
         warning={warnings.description}
       />
       <AdminTextField
@@ -255,11 +254,10 @@ export function HomePageEditorSections({
               onChange={(event) => updateField("eyebrow", event.target.value)}
             />
           </div>
-          <AdminLongTextField
+          <AdminRichTextField
             label="Hero description"
             value={draft.body}
             onChange={(value) => updateField("body", value)}
-            rows={5}
           />
           <div className="grid gap-4 md:grid-cols-2">
             <AdminTextField
@@ -381,11 +379,10 @@ export function HomePageEditorSections({
               placeholder="View all products"
             />
           </div>
-          <AdminLongTextField
+          <AdminRichTextField
             label="Showcase description"
             value={draft.editSectionBody}
             onChange={(value) => updateField("editSectionBody", value)}
-            rows={2}
             placeholder="Four pieces, four sides of Synarava."
           />
           <AdminOrderedList
@@ -498,12 +495,11 @@ export function HomePageEditorSections({
             checked={visibility.manifesto}
             onChange={(enabled) => setSection("manifesto", enabled)}
           />
-          <AdminLongTextField
+          <AdminRichTextField
             label="Manifesto quote"
             help={<AdminHelp>Leave blank to use the site default quote.</AdminHelp>}
             value={draft.quote}
             onChange={(value) => updateField("quote", value)}
-            rows={4}
           />
           <div className="grid gap-4 md:grid-cols-2">
             <AdminTextField
@@ -541,12 +537,11 @@ export function HomePageEditorSections({
               onChange={(event) => updateField("secondaryTitle", event.target.value)}
               placeholder="Choose the piece that remembers you."
             />
-            <AdminLongTextField
+            <AdminRichTextField
               label="Final CTA introduction"
               help={<AdminHelp>Leave blank for the site default introduction.</AdminHelp>}
               value={draft.secondaryBody}
               onChange={(value) => updateField("secondaryBody", value)}
-              rows={3}
               placeholder="The final choice is instinctive."
             />
             <AdminTextField

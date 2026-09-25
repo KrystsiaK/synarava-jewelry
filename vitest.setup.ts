@@ -41,6 +41,34 @@ if (!window.HTMLElement.prototype.scrollIntoView) {
 }
 window.scrollTo = vi.fn() as typeof window.scrollTo;
 
+// ── ProseMirror / TipTap in jsdom ────────────────────────────────────────────
+// Layout APIs TipTap needs when focusing or pasting into the editor surface.
+document.elementFromPoint = document.elementFromPoint ?? (() => null);
+if (!Range.prototype.getBoundingClientRect) {
+  Range.prototype.getBoundingClientRect = () =>
+    ({
+      bottom: 0,
+      height: 0,
+      left: 0,
+      right: 0,
+      top: 0,
+      width: 0,
+      x: 0,
+      y: 0,
+      toJSON() {
+        return {};
+      },
+    }) as DOMRect;
+}
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = () =>
+    ({
+      item: () => null,
+      length: 0,
+      *[Symbol.iterator]() {},
+    }) as unknown as DOMRectList;
+}
+
 // ── matchMedia ───────────────────────────────────────────────────────────────
 Object.defineProperty(window, "matchMedia", {
   writable: true,

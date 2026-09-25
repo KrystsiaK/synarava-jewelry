@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 
+import { RichText } from "@/components/content/rich-text";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { PrimaryCtaButton } from "@/components/ui";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { resolveHeroBackdrop } from "@/lib/media/hero-media";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -105,7 +107,7 @@ function AboutHero({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.18, ease }}
         >
-          {excerpt ? <p className="text-base leading-8 text-foreground/70">{excerpt}</p> : null}
+          {excerpt ? <RichText content={excerpt} className="text-base leading-8 text-foreground/70" /> : null}
         </motion.div>
       </div>
     </header>
@@ -134,9 +136,10 @@ function AboutCopy({
           </h2>
         ) : null}
         {body ? (
-          <p className="max-w-xl text-pretty text-base leading-8 text-foreground/68 md:col-span-5 md:pt-4 md:text-lg">
-            {body}
-          </p>
+          <RichText
+            content={body}
+            className="max-w-xl text-pretty text-base leading-8 text-foreground/68 md:col-span-5 md:pt-4 md:text-lg"
+          />
         ) : null}
         {ctaHref && ctaLabel ? (
           <div className="md:col-span-12">
@@ -178,7 +181,7 @@ function MovementStory({
       <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-4 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
       <div className="site-shell relative z-10 flex min-h-[100svh] items-end py-28 md:py-36">
         <h2 className="max-w-4xl font-serif text-[clamp(3rem,7vw,7rem)] leading-[0.88] tracking-[-0.04em]">
-          {title}
+          {plainTextFromRichText(title)}
         </h2>
       </div>
     </section>

@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 
 import { PrimaryCtaButton } from "@/components/ui";
+import { RichText } from "@/components/content/rich-text";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type ShopFilters } from "./types";
 import { ShopDiscovery, type ShopProductTypeTile } from "./shop-discovery";
@@ -14,6 +15,7 @@ import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { splitHeroTitleAccent } from "@/lib/content/service-page-defaults";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -59,9 +61,10 @@ export function ShopHero({
           {lead ? `${lead} ` : null}<span className="font-light italic text-couture-red">{accent}</span>
         </h1>
 
-        <p className="mt-6 max-w-[36rem] text-pretty font-sans text-sm font-medium leading-relaxed text-foreground/72 md:mt-7 md:text-base">
-          {description}
-        </p>
+        <RichText
+          content={description}
+          className="mt-6 max-w-[36rem] text-pretty font-sans text-sm font-medium leading-relaxed text-foreground/72 md:mt-7 md:text-base"
+        />
 
         <div className="mt-7 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/20 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/65 md:mt-9">
           <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong>{plural("shop.availableCount", archiveCount)}</span>
@@ -168,7 +171,7 @@ function ShopFooter({
             href={localePath(locale, "/about")}
             className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
           >
-            {secondaryLabel || t("shop.footerCta.story")}
+            {plainTextFromRichText(secondaryLabel) || t("shop.footerCta.story")}
           </Link>
         </motion.div>
       </div>

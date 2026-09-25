@@ -6,8 +6,8 @@ import {
   AdminCollapsiblePanel,
   AdminHelp,
   AdminHrefField,
-  AdminLongTextField,
   AdminOrderedList,
+  AdminRichTextField,
   AdminSelectField,
   AdminTextField,
 } from "@/components/synarava-cms";
@@ -60,12 +60,11 @@ export function CollectionsPageEditorSections({
             onChange={(event) => updateField("secondaryTitle", event.target.value)}
             placeholder="Browse by collection"
           />
-          <AdminLongTextField
+          <AdminRichTextField
             label="Introduction"
             help={<AdminHelp>Supporting paragraph under the heading.</AdminHelp>}
             value={draft.body}
             onChange={(value) => updateField("body", value)}
-            rows={3}
             placeholder="Explore Synarava through collections shaped by material, form and character."
           />
         </div>

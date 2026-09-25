@@ -13,7 +13,8 @@ type RichTextProps = {
 
 /**
  * Renders plain text (whitespace preserved) or sanitized link-capable HTML.
- * Safe for service-page bodies and admin rich-text previews.
+ * Safe for page bodies and admin rich-text previews.
+ * Plain text stays a single paragraph; HTML uses a div so nested `<p>` tags are valid.
  */
 export function RichText({ content, className, emptyFallback }: RichTextProps) {
   if (!content.trim()) {

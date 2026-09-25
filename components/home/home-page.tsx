@@ -17,6 +17,8 @@ import type { ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ease } from "@/lib/animation";
+import { RichText } from "@/components/content/rich-text";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
@@ -429,9 +431,10 @@ function HeroSection({
         ) : null}
 
         {excerpt ? (
-          <p className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige md:mt-8 md:text-base">
-            {excerpt}
-          </p>
+          <RichText
+            content={excerpt}
+            className="mt-6 max-w-[31rem] text-pretty font-sans text-sm font-medium leading-relaxed text-stone-beige md:mt-8 md:text-base"
+          />
         ) : null}
 
         {ctaHref && ctaLabel ? (
@@ -681,7 +684,7 @@ function EditShowcase({
           </div>
           <div className="flex items-end justify-between gap-6 md:col-span-4 md:pb-1">
             <p className="max-w-[24ch] text-balance font-sans text-[0.68rem] font-semibold uppercase leading-[1.65] tracking-[0.12em] text-[#615a52] md:ml-auto md:text-right">
-              {body || defaults.body}
+              {plainTextFromRichText(body || defaults.body)}
             </p>
           </div>
         </header>
@@ -865,9 +868,10 @@ function MaterialPlate({
             <h3 className="max-w-[9ch] text-balance font-serif text-[clamp(2.8rem,6vw,5.8rem)] font-bold uppercase leading-[0.84] tracking-[-0.035em] text-linen">
               {material.name}
             </h3>
-            <p className="mt-5 max-w-[64ch] text-pretty font-sans text-sm font-semibold leading-relaxed text-stone-beige/85 md:mt-7 md:text-base">
-              {material.description}
-            </p>
+            <RichText
+              content={material.description}
+              className="mt-5 max-w-[64ch] text-pretty font-sans text-sm font-semibold leading-relaxed text-stone-beige/85 md:mt-7 md:text-base"
+            />
           </div>
 
           <div className="grid grid-cols-3 border-t border-linen/15 pt-4">
@@ -1049,7 +1053,7 @@ function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?:
         <h2 className="relative max-w-5xl text-balance text-left font-serif text-[clamp(2.35rem,10.5vw,7rem)] font-light italic leading-[1.02] text-linen md:text-center">
           <span className="absolute -left-12 -top-16 hidden select-none font-serif text-[15vw] leading-none text-stone-beige opacity-10 md:block">&ldquo;</span>
           {customQuote ? (
-            <span className="whitespace-pre-line">{customQuote}</span>
+            <RichText content={customQuote} className="whitespace-pre-line" />
           ) : (
             <>
               {t("home.manifesto.quoteBefore")}
@@ -1161,9 +1165,10 @@ function CompactFinalCTA({
               <span className="h-px w-8 bg-couture-red" aria-hidden="true" />
               07 / Continue the story
             </p>
-            <p className="font-serif text-base italic leading-7 text-stone-beige">
-              {resolvedBody}
-            </p>
+            <RichText
+              content={resolvedBody}
+              className="font-serif text-base italic leading-7 text-stone-beige"
+            />
             <h2 className="mt-5 max-w-[10ch] text-balance font-serif text-[clamp(3rem,14vw,4.5rem)] font-bold leading-[0.88] tracking-[-0.04em] text-linen">
               {resolvedTitle}
             </h2>

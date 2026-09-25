@@ -46,9 +46,10 @@ export function ServicePage({
             <h1 className={cn("mt-5 text-balance font-serif text-[clamp(3.2rem,8vw,7rem)] leading-[0.9] tracking-[-0.04em]", heroImage && "text-white")}>
               {title}
             </h1>
-            <p className={cn("mt-7 max-w-2xl text-pretty text-base leading-8 md:text-lg", heroImage ? "text-white/75" : "text-muted")}>
-              {intro}
-            </p>
+            <RichText
+              content={intro}
+              className={cn("mt-7 max-w-2xl text-pretty text-base leading-8 md:text-lg", heroImage ? "text-white/75" : "text-muted")}
+            />
           </div>
         </div>
       </header>

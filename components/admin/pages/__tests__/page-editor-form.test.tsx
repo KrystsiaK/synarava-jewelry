@@ -48,14 +48,30 @@ function longTextPreview(label: string | RegExp) {
   const button = screen.getByRole("button", {
     name: typeof label === "string" ? `Edit ${label}` : new RegExp(`Edit ${label.source}`, label.flags),
   });
-  return button.closest("[data-component='AdminLongTextField']")?.querySelector(".adm-long-text-preview__copy");
+  return button
+    .closest("[data-component='AdminLongTextField'], [data-component='AdminRichTextField']")
+    ?.querySelector(".adm-long-text-preview__copy");
 }
 
 async function fillLongText(user: ReturnType<typeof userEvent.setup>, label: string, text: string) {
   await user.click(screen.getByRole("button", { name: `Edit ${label}` }));
-  const editor = screen.getByRole("textbox", { name: label });
-  await user.clear(editor);
-  await user.type(editor, text);
+  const dialog = await screen.findByRole("dialog");
+  const editor = await waitFor(() => {
+    const rich = dialog.querySelector<HTMLElement>(".adm-rich-text-editor__surface");
+    if (rich) return rich;
+    const area = dialog.querySelector<HTMLTextAreaElement>("textarea");
+    if (area) return area;
+    throw new Error(`Editor for ${label} not ready`);
+  });
+  editor.focus();
+  if (editor instanceof HTMLTextAreaElement) {
+    await user.clear(editor);
+    await user.type(editor, text);
+  } else {
+    // TipTap in jsdom: paste into the focused surface (works reliably on an
+    // empty doc; prefer empty initial values in tests that call this helper).
+    await user.paste(text);
+  }
   await user.click(screen.getByRole("button", { name: "Apply changes" }));
 }
 
@@ -290,9 +306,14 @@ describe("PageEditor", () => {
     await user.click(ptTitle);
     await user.paste("A Seleção");
     await user.click(screen.getByRole("button", { name: "Edit Showcase description" }));
-    const editor = screen.getByRole("textbox", { name: "Showcase description" });
-    await user.clear(editor);
-    await user.click(editor);
+    const dialog = await screen.findByRole("dialog");
+    const editor = await waitFor(() => {
+      const rich = dialog.querySelector<HTMLElement>(".adm-rich-text-editor__surface");
+      if (!rich) throw new Error("TipTap surface not ready");
+      return rich;
+    });
+    editor.focus();
+    await user.keyboard("{Control>}a{/Control}");
     await user.paste("Quatro peças para começar.");
     await user.click(screen.getByRole("button", { name: "Apply changes" }));
     await user.click(screen.getAllByRole("button", { name: "Save page" })[0]);
@@ -480,7 +501,7 @@ describe("PageEditor", () => {
         page={makePage({
           slug: "faq",
           title: "Before you choose",
-          content: { eyebrow: "Service / FAQ", body: "Short answers." },
+          content: { eyebrow: "Service / FAQ", body: "" },
         })}
       />,
     );

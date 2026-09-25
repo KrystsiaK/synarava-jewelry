@@ -13,6 +13,8 @@ import {
 
 import { ease } from "@/lib/animation";
 import { EditorialSplitFeature, PrimaryCtaButton } from "@/components/ui";
+import { RichText } from "@/components/content/rich-text";
+import { isRichTextEmpty } from "@/lib/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import type { CollectionSummary } from "@/lib/content/catalog";
@@ -50,7 +52,9 @@ function resolveCopy(content?: CollectionsPageCopy) {
   return {
     eyebrow: content?.eyebrow?.trim() || COLLECTIONS_PAGE_DEFAULTS.eyebrow,
     heading: content?.heading?.trim() || COLLECTIONS_PAGE_DEFAULTS.heading,
-    introduction: content?.introduction?.trim() || COLLECTIONS_PAGE_DEFAULTS.introduction,
+    introduction: !isRichTextEmpty(content?.introduction ?? "")
+      ? content!.introduction!.trim()
+      : COLLECTIONS_PAGE_DEFAULTS.introduction,
     calloutEyebrow: content?.calloutEyebrow?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutEyebrow,
     calloutHeading: content?.calloutHeading?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutHeading,
     calloutCtaLabel: content?.calloutCtaLabel?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutCtaLabel,
@@ -164,9 +168,10 @@ export function CollectionsHero({
             <HeadingWithAccent text={heading} />
           </h1>
 
-          <p className="mt-7 max-w-xl text-base leading-7 text-muted-ink md:text-lg">
-            {introduction}
-          </p>
+          <RichText
+            content={introduction}
+            className="mt-7 max-w-xl text-base leading-7 text-muted-ink md:text-lg"
+          />
 
           <div className="mt-9 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/15 pt-5 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted-ink">
             <span>{String(collections.length).padStart(2, "0")} collections</span>

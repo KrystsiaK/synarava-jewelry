@@ -22,16 +22,45 @@ function escapeAttr(text: string): string {
   return escapeHtml(text).replaceAll("'", "&#39;");
 }
 
-/** Accept http(s), mailto, in-app paths, and hash anchors. Bare www. → https. */
+/** Same-tab storefront/hash targets (no `target="_blank"`). */
+export function isInternalHref(href: string): boolean {
+  const trimmed = href.trim();
+  return trimmed.startsWith("/") || trimmed.startsWith("#");
+}
+
+/** Absolute http(s) — open in a new tab with noopener. */
+export function isExternalHttpHref(href: string): boolean {
+  return /^https?:\/\//i.test(href.trim());
+}
+
+/**
+ * Accept http(s), mailto, in-app paths (`/shop`), and hash anchors (`#section`).
+ * Bare `www.` → `https://`. Rejects javascript/data/vbscript.
+ * @see https://tiptap.dev/docs/editor/extensions/marks/link#isalloweduri
+ */
 export function sanitizeHref(href: string): string | null {
   const trimmed = href.trim();
   if (!trimmed) return null;
   if (/^(javascript|data|vbscript):/i.test(trimmed)) return null;
-  if (/^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed) || trimmed.startsWith("/") || trimmed.startsWith("#")) {
+  if (
+    isExternalHttpHref(trimmed) ||
+    /^mailto:/i.test(trimmed) ||
+    isInternalHref(trimmed)
+  ) {
     return trimmed;
   }
   if (/^www\./i.test(trimmed)) return `https://${trimmed}`;
   return null;
+}
+
+/** TipTap `isAllowedUri` — allow our internal paths while keeping default protocol checks. */
+export function isAllowedRichTextHref(
+  url: string,
+  defaultValidate: (url: string) => boolean,
+): boolean {
+  if (!url) return false;
+  if (sanitizeHref(url)) return true;
+  return defaultValidate(url);
 }
 
 export function plainTextToRichHtml(value: string): string {
@@ -61,6 +90,12 @@ export function stripRichTextTags(value: string): string {
     .trim();
 }
 
+/** Plain string for meta descriptions / search summaries (never HTML). */
+export function plainTextFromRichText(value: string | null | undefined): string {
+  if (!value) return "";
+  return stripRichTextTags(value).replace(/\s+/g, " ").trim();
+}
+
 export function richTextPlainLength(value: string): number {
   return stripRichTextTags(value).replace(/\s+/g, " ").trim().length;
 }
@@ -72,7 +107,15 @@ export function isRichTextEmpty(html: string): boolean {
 /** Strip TipTap empty shells and disallow unsafe tags/attrs. */
 export function normalizeRichTextForStorage(html: string): string {
   if (!html || isRichTextEmpty(html)) return "";
-  return sanitizeRichTextHtml(html);
+  const sanitized = sanitizeRichTextHtml(html);
+  // Single plain paragraph (no links / breaks) → store as plain text so
+  // existing storefront copy and meta fields stay compatible until an
+  // operator actually inserts a link or multiple paragraphs.
+  const paragraphCount = (sanitized.match(/<p\b/gi) || []).length;
+  if (!/<a\b/i.test(sanitized) && paragraphCount <= 1 && !/<br\b/i.test(sanitized)) {
+    return stripRichTextTags(sanitized);
+  }
+  return sanitized;
 }
 
 export function sanitizeRichTextHtml(input: string): string {
@@ -90,7 +133,7 @@ export function sanitizeRichTextHtml(input: string): string {
       const rawHref = hrefMatch?.[1] ?? hrefMatch?.[2] ?? hrefMatch?.[3] ?? "";
       const href = sanitizeHref(rawHref);
       if (!href) return "";
-      const external = /^https?:\/\//i.test(href);
+      const external = isExternalHttpHref(href);
       const target = external ? ' target="_blank"' : "";
       const rel = external ? ' rel="noopener noreferrer"' : "";
       return `<a href="${escapeAttr(href)}"${target}${rel}>`;

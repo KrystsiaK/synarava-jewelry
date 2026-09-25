@@ -430,6 +430,13 @@ TipTap modal (Link / Unlink). Stored value is sanitized HTML (`p`, `br`,
 `strong`/`em`, `a[href]`). Plain text still loads (converted for the editor)
 and remains valid until the operator saves rich markup.
 
+**Links (internal + remote):** the Link tool opens a panel that reuses
+`AdminHrefControl` — search/pick storefront paths (`/shop`, `/products/…`) or
+paste a remote `https://…` / `mailto:` / `#anchor`. Sanitizer rules:
+
+- Internal (`/…`, `#…`) → same tab
+- External `http(s)` → `target="_blank"` + `rel="noopener noreferrer"`
+
 ```tsx
 import { AdminRichTextField } from "@/components/synarava-cms";
 
@@ -439,8 +446,11 @@ import { AdminRichTextField } from "@/components/synarava-cms";
 - Preview reuses `.adm-long-text-preview` so the outer chrome matches long text.
 - Links are clickable in the preview and on the storefront (`RichText` in
   `components/content/rich-text.tsx` + `lib/content/rich-text.ts` sanitizer).
-- First apply: service page section **Body** fields (care / faq / shipping /
-  returns / dispute-resolution). Extend to other long-copy fields later.
+- Applied on **Pages** long-copy Edit fields (home, collections, about, shop,
+  service intro + section bodies, legal intro, create-page body/quote/secondary).
+  **Not** product fields (Shopify-owned). **Not** SEO excerpts / Search summary
+  (plain `AdminLongTextField`). Legal document **section bodies** stay Markdown
+  (lists, tables, `action:` links) via `AdminLongTextField`.
 - Story: `synarava-cms/AdminRichTextField`.
 
 ### Tall / composite fields

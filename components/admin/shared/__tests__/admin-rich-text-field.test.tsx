@@ -1,8 +1,20 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  searchStorefrontHrefsAction: vi.fn(),
+}));
+
+vi.mock("@/app/admin/actions/storefront-href", () => ({
+  searchStorefrontHrefsAction: mocks.searchStorefrontHrefsAction,
+}));
 
 import { AdminRichTextField } from "@/components/synarava-cms";
+
+beforeEach(() => {
+  mocks.searchStorefrontHrefsAction.mockResolvedValue({ segments: [] });
+});
 
 describe("AdminRichTextField", () => {
   it("shows a clickable link in the preview chrome", () => {
@@ -21,7 +33,7 @@ describe("AdminRichTextField", () => {
     expect(container.querySelector("[data-component='AdminRichTextField']")).toHaveClass("w-full");
   });
 
-  it("opens the modal editor with link tools", async () => {
+  it("opens the modal editor with a path/URL link panel", async () => {
     const user = userEvent.setup();
     render(
       <AdminRichTextField
@@ -33,8 +45,11 @@ describe("AdminRichTextField", () => {
 
     await user.click(screen.getByRole("button", { name: "Edit Body" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Unlink" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Link" }));
+    expect(screen.getByRole("dialog", { name: "Insert link" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Link target")).toBeInTheDocument();
+    expect(screen.getByText("Pick a storefront path or paste an https:// URL.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Apply link" })).toBeInTheDocument();
   });
 
   it("shows error chrome on the full-width preview", () => {

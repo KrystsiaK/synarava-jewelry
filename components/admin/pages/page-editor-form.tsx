@@ -793,13 +793,13 @@ export function PageEditor({
 
         {isHomePage ? (
           <>
-            <AdminLongTextField
-              label="Search summary"
-              help={<AdminHelp>Search-engine result description (meta description). Not shown in the hero.</AdminHelp>}
-              value={draft.excerpt}
-              onChange={(value) => updateField("excerpt", value)}
-              rows={3}
-            />
+          <AdminLongTextField
+            label="Search summary"
+            help={<AdminHelp>Search-engine result description (meta description). Not shown in the hero.</AdminHelp>}
+            value={draft.excerpt}
+            onChange={(value) => updateField("excerpt", value)}
+            rows={3}
+          />
             <HomePageEditorSections
               key={new Date(page.updatedAt).toISOString()}
               content={content}
@@ -931,7 +931,7 @@ export function PageEditor({
 
         {!isHomePage ? (
         <div hidden={isCollectionsPage}>
-          <AdminLongTextField
+          <AdminRichTextField
             label={isAboutPage ? "About introduction" : isShopPage ? "Hero description" : isServicePage ? "Intro" : "Body"}
             help={
               isShopPage ? (
@@ -942,7 +942,6 @@ export function PageEditor({
             }
             value={draft.body}
             onChange={(value) => updateField("body", value)}
-            rows={5}
           />
         </div>
         ) : null}
@@ -1028,19 +1027,19 @@ export function PageEditor({
             <div>
               <h3 id="legal-copy-heading" className="adm-title-sm">Legal document</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                Add, remove, and reorder sections. Edit the section name (table of contents), title, and Markdown body
+                Add, remove, and reorder sections. Edit the section name (table of contents), title, and body
                 for each language. Section order is shared across languages. Saved content is managed exclusively from
-                Admin — empty fields remain empty on the site.
+                Admin — empty fields remain empty on the site. Legal section bodies stay Markdown (lists, tables,
+                action: links); use Link in other page fields for storefront paths and remote URLs.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {isOfferPage || isTermsPage || isLegalNoticePage ? (
-                <AdminLongTextField
+                <AdminRichTextField
                   className="md:col-span-2"
                   label="Intro paragraph"
                   value={draft.legalIntro}
                   onChange={(value) => updateField("legalIntro", value)}
-                  rows={2}
                 />
               ) : null}
               <AdminTextField
@@ -1098,11 +1097,10 @@ export function PageEditor({
 
         {!isHomePage ? (
         <div hidden={hideDeadCopyFields}>
-          <AdminLongTextField
+          <AdminRichTextField
             label={isAboutPage ? "Movement section headline" : "Quote"}
             value={draft.quote}
             onChange={(value) => updateField("quote", value)}
-            rows={4}
           />
         </div>
         ) : null}
@@ -1119,7 +1117,7 @@ export function PageEditor({
             value={draft.secondaryTitle}
             onChange={(event) => updateField("secondaryTitle", event.target.value)}
           />
-          <AdminLongTextField
+          <AdminRichTextField
             label={isAboutPage ? "Manifesto copy" : isShopPage ? "Secondary link label" : "Secondary body"}
             help={
               isShopPage ? (
@@ -1128,7 +1126,6 @@ export function PageEditor({
             }
             value={draft.secondaryBody}
             onChange={(value) => updateField("secondaryBody", value)}
-            rows={isShopPage ? 2 : 3}
           />
         </div>
         ) : null}

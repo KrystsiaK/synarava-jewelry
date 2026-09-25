@@ -3016,6 +3016,40 @@ select.adm-field option {
   cursor: not-allowed;
 }
 
+.adm-rich-text-editor__tool[aria-pressed="true"] {
+  background: var(--adm-accent-soft);
+  border-color: var(--adm-border-strong);
+}
+
+.adm-rich-text-link-panel {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem 0.9rem;
+  background: var(--adm-bg-soft);
+  border: 1px solid var(--adm-border);
+  border-radius: 8px;
+}
+
+.adm-rich-text-link-panel__hint {
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.adm-rich-text-link-panel__error {
+  margin: 0;
+  color: var(--adm-danger);
+  font-size: 0.75rem;
+}
+
+.adm-rich-text-link-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .adm-rich-text-editor__surface {
   min-height: clamp(14rem, 42dvh, 28rem);
   padding: 0.85rem 0.9rem;

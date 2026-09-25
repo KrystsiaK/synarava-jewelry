@@ -3,16 +3,20 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link2, PencilLine, Unlink } from "lucide-react";
 import StarterKit from "@tiptap/starter-kit";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 
 import {
   AdminFieldShell,
   useAdminFieldIds,
 } from "@/components/admin/shared/admin-field-shell";
 import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label";
+import { AdminHrefControl } from "@/components/admin/shared/admin-href-field";
 import { RichText } from "@/components/content/rich-text";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import {
+  isAllowedRichTextHref,
+  isExternalHttpHref,
+  isInternalHref,
   isRichTextEmpty,
   normalizeRichTextForEditor,
   normalizeRichTextForStorage,
@@ -43,6 +47,97 @@ export type AdminRichTextFieldProps = {
   id?: string;
 };
 
+function linkKindHint(href: string): string {
+  const trimmed = href.trim();
+  if (!trimmed) {
+    return "Pick a storefront path or paste an https:// URL.";
+  }
+  if (isInternalHref(trimmed)) {
+    return "Internal link — opens in the same tab.";
+  }
+  if (isExternalHttpHref(trimmed) || /^www\./i.test(trimmed)) {
+    return "External link — opens in a new tab.";
+  }
+  if (/^mailto:/i.test(trimmed)) {
+    return "Email link (mailto).";
+  }
+  return "Use /path for pages or https:// for remote sites.";
+}
+
+function RichTextLinkPanel({
+  editor,
+  onClose,
+}: {
+  editor: Editor;
+  onClose: () => void;
+}) {
+  const previous = (editor.getAttributes("link").href as string | undefined) ?? "";
+  const [href, setHref] = useState(previous);
+  const [error, setError] = useState("");
+  const inputId = useId();
+
+  function apply() {
+    const next = href.trim();
+    if (!next) {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      onClose();
+      return;
+    }
+    const sanitized = sanitizeHref(next);
+    if (!sanitized) {
+      setError("Use an in-app path (/shop), https:// URL, mailto:, or #anchor.");
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: sanitized }).run();
+    onClose();
+  }
+
+  function remove() {
+    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+    onClose();
+  }
+
+  return (
+    <div className="adm-rich-text-link-panel" role="dialog" aria-label="Insert link">
+      <p className="adm-rich-text-link-panel__hint">{linkKindHint(href)}</p>
+      <label className="adm-label" htmlFor={inputId}>
+        Link target
+      </label>
+      <AdminHrefControl
+        name="__rich_text_link_href"
+        controlId={inputId}
+        value={href}
+        onValueChange={(next) => {
+          setHref(next);
+          setError("");
+        }}
+        placeholder="/shop or https://…"
+        aria-label="Link target"
+        invalid={Boolean(error)}
+        aria-invalid={error ? true : undefined}
+      />
+      {error ? (
+        <p className="adm-rich-text-link-panel__error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="adm-rich-text-link-panel__actions">
+        <button type="button" className="adm-btn-ghost" onClick={onClose}>
+          Cancel
+        </button>
+        {previous ? (
+          <button type="button" className="adm-btn-ghost" onClick={remove}>
+            Remove link
+          </button>
+        ) : null}
+        <button type="button" className="adm-btn-primary" onClick={apply}>
+          Apply link
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RichTextModalEditor({
   value,
   onChange,
@@ -52,6 +147,7 @@ function RichTextModalEditor({
   onChange: (html: string) => void;
   label: string;
 }) {
+  const [linkOpen, setLinkOpen] = useState(false);
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -68,10 +164,11 @@ function RichTextModalEditor({
           openOnClick: false,
           autolink: true,
           defaultProtocol: "https",
-          HTMLAttributes: {
-            rel: "noopener noreferrer",
-            target: "_blank",
-          },
+          // Do not force target=_blank here — sanitizer decides per href
+          // (internal same-tab, external new-tab). See sanitizeRichTextHtml.
+          // @see https://tiptap.dev/docs/editor/extensions/marks/link
+          HTMLAttributes: {},
+          isAllowedUri: (url, ctx) => isAllowedRichTextHref(url, ctx.defaultValidate),
         },
       }),
     ],
@@ -87,21 +184,14 @@ function RichTextModalEditor({
     },
   });
 
-  function applyLink() {
+  function openLinkPanel() {
     if (!editor) return;
-    const previous = (editor.getAttributes("link").href as string | undefined) ?? "https://";
-    const next = window.prompt("Link URL", previous);
-    if (next === null) return;
-    if (!next.trim()) {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    const href = sanitizeHref(next) ?? next.trim();
-    editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+    setLinkOpen(true);
   }
 
   function removeLink() {
     editor?.chain().focus().extendMarkRange("link").unsetLink().run();
+    setLinkOpen(false);
   }
 
   return (
@@ -110,8 +200,9 @@ function RichTextModalEditor({
         <button
           type="button"
           className="adm-rich-text-editor__tool"
-          onClick={applyLink}
+          onClick={openLinkPanel}
           disabled={!editor}
+          aria-pressed={linkOpen}
         >
           <Link2 aria-hidden="true" className="size-3.5" />
           Link
@@ -126,6 +217,9 @@ function RichTextModalEditor({
           Unlink
         </button>
       </div>
+      {linkOpen && editor ? (
+        <RichTextLinkPanel editor={editor} onClose={() => setLinkOpen(false)} />
+      ) : null}
       <EditorContent editor={editor} />
     </div>
   );
@@ -134,6 +228,7 @@ function RichTextModalEditor({
 /**
  * Link-capable rich text: same preview + Edit modal chrome as AdminLongTextField.
  * Value is sanitized HTML (paragraphs + links). Plain text still loads and saves.
+ * Links: in-app paths and hash anchors stay same-tab; http(s) open in a new tab.
  */
 export function AdminRichTextField({
   name,
@@ -281,7 +376,7 @@ export function AdminRichTextField({
         <div>
           <h3 id={titleId} className="adm-title-sm">{plainLabel}</h3>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
-            Add links so URLs are clickable. The form keeps a compact preview.
+            Add links to storefront paths or remote URLs. The form keeps a compact preview.
           </p>
         </div>
         {open ? (
