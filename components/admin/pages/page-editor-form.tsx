@@ -344,6 +344,9 @@ export function PageEditor({
       }),
     );
     if (Object.keys(nextDrafts).length === 0) return;
+    // One-time post-mount sync from sessionStorage (SSR cannot see it) — same
+    // documented exception as useAdminActiveLocale.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraftByLocale((prev) => ({ ...prev, ...nextDrafts }));
     if (snapshot.handleByLocale) setHandleByLocale(snapshot.handleByLocale);
     if (Array.isArray(snapshot.editProductIds)) {
