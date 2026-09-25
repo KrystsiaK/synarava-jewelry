@@ -397,7 +397,8 @@ import { AdminOrderedList, AdminSelectField } from "@/components/synarava-cms";
   control strip for drag-and-drop later without changing callers.
 - Optional repeated hidden inputs via `name` + `getValue` (`FormData.getAll`).
 - Home Featured collections is the first consumer; Collections index (`collections`
-  page) reuses the same ordered-select pattern for `/collections`; Material lexicon uses the
+  page) reuses the same ordered-select pattern for `/collections` display order
+  (all published collections still render); Material lexicon uses the
   same list with collapsible rows (`AdminCollapsiblePanel` inside
   `renderItem`, min 2 / max 3, `showItemControls={false}` + `trailing` actions).
   Incomplete specimens use `tone="warning"` + caption (“won't appear on the site”).
