@@ -23,19 +23,25 @@ type Props = {
 const accountSections = ["overview", "wishlist", "orders", "addresses", "security"] as const;
 
 export default async function ProfilePage({ searchParams }: Props) {
-  const [locale, session] = await Promise.all([
+  const [locale, session, params] = await Promise.all([
     getRequestLocale(),
     getShopifyCustomerSession(),
+    searchParams,
   ]);
+  const requestedSection = params?.section;
+  const activeSection = accountSections.find((section) => section === requestedSection) ?? "overview";
+  const profileReturnTo = localePath(
+    locale,
+    activeSection === "overview" ? "/profile" : `/profile?section=${activeSection}`,
+  );
+
   if (!session) {
-    redirect(`/api/auth/shopify?returnTo=${encodeURIComponent(localePath(locale, "/profile"))}`);
+    redirect(`/api/auth/shopify?returnTo=${encodeURIComponent(profileReturnTo)}`);
   }
   const customer = await getShopifyCustomerProfile(session);
   if (!customer) {
-    redirect(`/api/auth/shopify?returnTo=${encodeURIComponent(localePath(locale, "/profile"))}`);
+    redirect(`/api/auth/shopify?returnTo=${encodeURIComponent(profileReturnTo)}`);
   }
-  const requestedSection = (await searchParams)?.section;
-  const activeSection = accountSections.find((section) => section === requestedSection) ?? "overview";
 
   const wishlistIds = await getShopifyCustomerWishlistIds(customer.id).catch((error): string[] => {
     console.error(

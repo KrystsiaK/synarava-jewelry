@@ -22,7 +22,7 @@
 | ID | Название | Предусловия | Шаги | Ожидаемый результат | Приоритет |
 |----|----------|-------------|------|----------------------|-----------|
 | AUTH-01 🤖 | Гость редиректится на логин | Нет активной сессии | Открыть `/admin` | Редирект на `/admin/login?redirectTo=%2Fadmin`, форма «Admin credentials» | P1 |
-| AUTH-02 | Заход на любую вложенную страницу без сессии | Нет сессии | Открыть напрямую `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/issues`, `/admin/account` | Каждый URL редиректит на логин со своим `redirectTo`; proxy выполняет быстрый guard, layout повторно валидирует сессию по базе | P1 |
+| AUTH-02 | Заход на любую вложенную страницу без сессии | Нет сессии | Открыть напрямую `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/issues`, `/admin/account` | Каждый URL редиректит на логин со своим `redirectTo` и cookie `synarava-admin-return-to`; proxy выполняет быстрый guard, layout повторно валидирует сессию по базе и восстанавливает путь из `x-pathname` | P1 |
 | AUTH-03 🤖 | Успешный вход | Известны корректные креды | Заполнить логин/пароль, «Enter admin» | Редирект на `/admin`, виден «Admin console» | P1 |
 | AUTH-04 🤖 | Неверный пароль | — | Правильный логин, неверный пароль | «Incorrect admin credentials.», сессия не создаётся | P1 |
 | AUTH-05 🤖 | Неверный логин | — | Неверный логин, любой пароль | Тот же самый текст ошибки — по нему нельзя понять, что именно неверно | P2 |
@@ -30,7 +30,8 @@
 | AUTH-07 🤖 | Пароль с хвостовым пробелом | Известен корректный пароль | Ввести пароль с пробелом в конце | Вход отклонён — пароль намеренно не обрезается | P3 |
 | AUTH-08 🤖 | Rate limit после серии неудач | — | 10 неверных попыток за 15 минут с одного IP | На 11-й — «Too many attempts. Try again in N s.», кнопка блокируется с обратным отсчётом | P1 |
 | AUTH-09 | Сброс rate limit после успешного входа | Лимит не исчерпан | Одна неверная попытка, затем верная | Вход проходит, счётчик неудач сброшен | P3 |
-| AUTH-10 | `redirectTo` на разрешённый путь | — | Открыть `/admin/login?redirectTo=%2Fadmin%2Fproducts`, войти | После входа — `/admin/products` | P2 |
+| AUTH-10 | `redirectTo` на разрешённый путь | — | Открыть `/admin/login?redirectTo=%2Fadmin%2Fproducts`, войти **или** открыть `/admin/products` без сессии и войти с логина | После входа — `/admin/products` (не стартовая `/admin`) | P2 |
+| AUTH-10b 🆕 | Истёкшая cookie + deep link | Cookie сессии ещё в браузере, но строка в БД удалена/истекла | Открыть `/admin/collections/new` | Логин получает `redirectTo` (или return-to cookie) на `/admin/collections/new`; после входа — именно эта страница | P1 |
 | AUTH-11 🤖 | Защита от open redirect — внешний домен | — | `/admin/login?redirectTo=https%3A%2F%2Fexample.com`, войти | Остаёмся в `/admin`, на внешний домен не уходим | P1 (security) |
 | AUTH-12 🤖 | Защита от open redirect — `//example.com` | — | То же с protocol-relative URL | Остаёмся в `/admin` | P1 (security) |
 | AUTH-13 🤖 | `redirectTo` не зацикливает на логин | — | `/admin/login?redirectTo=%2Fadmin%2Flogin`, войти | После входа — `/admin` | P3 |

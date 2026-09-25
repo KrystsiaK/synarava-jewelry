@@ -95,6 +95,18 @@ describe("admin session proxy", () => {
     expect(response.headers.get("location")).toBe(
       "https://synarava.test/admin/login?redirectTo=%2Fadmin%2Fproducts",
     );
+    expect(response.cookies.get("synarava-admin-return-to")?.value).toBe("/admin/products");
+  });
+
+  it("remembers the intended admin path on an expired-action bounce", async () => {
+    const response = await proxy(new NextRequest("https://synarava.test/admin/products/product-1", {
+      method: "POST",
+      headers: { "next-action": "stale-action-id" },
+    }));
+
+    expect(response.cookies.get("synarava-admin-return-to")?.value).toBe(
+      "/admin/products/product-1",
+    );
   });
 });
 

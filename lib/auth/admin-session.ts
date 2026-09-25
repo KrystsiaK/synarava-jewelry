@@ -1,11 +1,23 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import {
+  ADMIN_RETURN_TO_COOKIE,
+  ADMIN_RETURN_TO_MAX_AGE_SECONDS,
+  REQUEST_PATHNAME_HEADER,
+  REQUEST_SEARCH_HEADER,
+  adminReturnCookieOptions,
+  getSafeAdminRedirect,
+} from "@/lib/auth/admin-return-path";
 import { verifyPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { safeRedirectPath } from "@/lib/security/safe-redirect";
+
+export {
+  ADMIN_RETURN_TO_COOKIE,
+  getSafeAdminRedirect,
+} from "@/lib/auth/admin-return-path";
 
 export const ADMIN_SESSION_COOKIE = "synarava-admin-session";
 const ADMIN_SESSION_MAX_AGE = 60 * 60 * 8;
@@ -173,21 +185,47 @@ export async function getCurrentAdminSession(): Promise<AdminSession | null> {
   return { username: session.username, id: null, sessionId: session.id };
 }
 
-export async function requireAdminSession(redirectTo = "/admin") {
-  const session = await getCurrentAdminSession();
-  if (!session) redirect(`/admin/login?redirectTo=${encodeURIComponent(redirectTo)}`);
-  return session;
+/**
+ * Resolves the page the user was trying to open. Prefer an explicit argument
+ * (Server Actions pass a section root); otherwise use the path injected by
+ * `proxy.ts`. Falls back to `/admin` when neither is available.
+ */
+async function resolveAdminLoginRedirect(redirectTo?: string) {
+  if (redirectTo) return getSafeAdminRedirect(redirectTo);
+
+  const h = await headers();
+  const pathname = h.get(REQUEST_PATHNAME_HEADER) ?? "";
+  const search = h.get(REQUEST_SEARCH_HEADER) ?? "";
+  return getSafeAdminRedirect(pathname ? `${pathname}${search}` : undefined);
 }
 
-/**
- * Validates a client-supplied `redirectTo` for the admin login flow: must be
- * a same-origin path under `/admin`, and never back to the login page itself
- * (which would otherwise loop after a successful login).
- */
-export function getSafeAdminRedirect(value: string | null | undefined) {
-  const safe = safeRedirectPath(value, "/admin");
-  const pathname = safe.split(/[?#]/, 1)[0];
-  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
-  const isLoginPath = pathname === "/admin/login" || pathname.startsWith("/admin/login/");
-  return isAdminPath && !isLoginPath ? safe : "/admin";
+async function rememberAdminReturnPath(target: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(
+    ADMIN_RETURN_TO_COOKIE,
+    target,
+    adminReturnCookieOptions(ADMIN_RETURN_TO_MAX_AGE_SECONDS),
+  );
+}
+
+export async function clearAdminReturnPath() {
+  const cookieStore = await cookies();
+  cookieStore.set(ADMIN_RETURN_TO_COOKIE, "", adminReturnCookieOptions(0));
+}
+
+export async function readAdminReturnPath(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(ADMIN_RETURN_TO_COOKIE)?.value;
+  if (!raw) return null;
+  return getSafeAdminRedirect(raw);
+}
+
+export async function requireAdminSession(redirectTo?: string) {
+  const session = await getCurrentAdminSession();
+  if (!session) {
+    const target = await resolveAdminLoginRedirect(redirectTo);
+    await rememberAdminReturnPath(target);
+    redirect(`/admin/login?redirectTo=${encodeURIComponent(target)}`);
+  }
+  return session;
 }

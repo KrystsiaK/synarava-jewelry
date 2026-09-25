@@ -6,10 +6,12 @@ import { z } from "zod";
 
 import { checkRateLimit, clearRateLimit } from "@/lib/auth/rate-limit";
 import {
+  clearAdminReturnPath,
   clearAdminSession,
   createAdminSession,
   getSafeAdminRedirect,
   isAdminAuthConfigured,
+  readAdminReturnPath,
   verifyAdminCredentials,
 } from "@/lib/auth/admin-session";
 import { parseFormData } from "@/lib/forms/parse-form-data";
@@ -43,7 +45,8 @@ export async function adminLoginAction(
     return { error: "Enter both an admin username and password." };
   }
   const { username, password } = parsed.data;
-  const redirectTo = getSafeAdminRedirect(parsed.data.redirectTo);
+  const remembered = await readAdminReturnPath();
+  const redirectTo = getSafeAdminRedirect(parsed.data.redirectTo || remembered || undefined);
 
   if (!isAdminAuthConfigured()) {
     return {
@@ -68,6 +71,7 @@ export async function adminLoginAction(
   await clearRateLimit("admin-login-ip", ip);
   const h = await headers();
   await createAdminSession({ ipAddress: ip, userAgent: h.get("user-agent") ?? undefined });
+  await clearAdminReturnPath();
   redirect(redirectTo);
 }
 

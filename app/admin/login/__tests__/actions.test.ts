@@ -14,6 +14,10 @@ vi.mock("next/headers", () => ({
   headers: vi.fn(async () => ({
     get: vi.fn(() => "127.0.0.1"),
   })),
+  cookies: vi.fn(async () => ({
+    get: vi.fn(),
+    set: vi.fn(),
+  })),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -35,6 +39,8 @@ vi.mock("@/lib/auth/admin-session", async (importOriginal) => {
     verifyAdminCredentials: verifyAdminCredentialsMock,
   };
 });
+
+import { cookies } from "next/headers";
 
 import { adminLoginAction, adminLogoutAction } from "@/app/admin/login/actions";
 
@@ -67,6 +73,10 @@ describe("admin login actions", () => {
     checkRateLimitMock.mockReturnValue({ ok: true });
     isAdminAuthConfiguredMock.mockReturnValue(true);
     verifyAdminCredentialsMock.mockReturnValue(true);
+    vi.mocked(cookies).mockResolvedValue({
+      get: vi.fn(),
+      set: vi.fn(),
+    } as never);
   });
 
   afterEach(() => {
@@ -121,6 +131,25 @@ describe("admin login actions", () => {
     expect(clearRateLimitMock).toHaveBeenCalledWith("admin-login-ip", "127.0.0.1");
     expect(redirectMock).toHaveBeenCalledWith("/admin/products");
     expect(error.url).toBe("/admin/products");
+  });
+
+  it("falls back to the remembered return-to cookie when form redirectTo is empty", async () => {
+    const { cookies } = await import("next/headers");
+    vi.mocked(cookies).mockResolvedValue({
+      get: vi.fn((name: string) =>
+        name === "synarava-admin-return-to"
+          ? { name, value: "/admin/collections/new" }
+          : undefined,
+      ),
+      set: vi.fn(),
+    } as never);
+
+    const error = await captureRedirect(
+      adminLoginAction({}, makeFormData({ redirectTo: "" })),
+    );
+
+    expect(redirectMock).toHaveBeenCalledWith("/admin/collections/new");
+    expect(error.url).toBe("/admin/collections/new");
   });
 
   it("sanitizes external redirect targets", async () => {

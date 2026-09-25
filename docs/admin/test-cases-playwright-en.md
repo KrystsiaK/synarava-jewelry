@@ -50,7 +50,7 @@ cases that need a real browser remain as e2e work.
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
 | AUTH-01 | Guest visiting `/admin` redirects to `/admin/login?redirectTo=%2Fadmin` | positive | P1 | ✔ E2E | `admin-auth.spec.ts`. |
-| AUTH-02 | Guest visiting **any** nested admin route redirects with the right `redirectTo` | positive | P1 | **E2E** | Loop a route table: `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/issues`, `/admin/account`. `proxy.ts` performs the fast cookie guard and the layout validates the database-backed session. |
+| AUTH-02 | Guest visiting **any** nested admin route redirects with the right `redirectTo` | positive | P1 | **E2E** | Loop a route table: `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/issues`, `/admin/account`. `proxy.ts` sets `redirectTo` + `synarava-admin-return-to`; layout recovers the path from `x-pathname` when a signed-but-expired session cookie slips past the edge guard. |
 | AUTH-03 | Valid credentials land on `/admin` | positive | P1 | ✔ E2E | `admin-auth.spec.ts`. |
 | AUTH-04 | Wrong password shows "Incorrect admin credentials.", no session | negative | P1 | ✔ action | `login/__tests__/actions.test.ts` + `admin-session.test.ts`. |
 | AUTH-05 | Wrong username gives the *same* generic error (no enumeration) | negative | P2 | ✔ action | Same files; assertion is that both paths return one message. |
@@ -58,7 +58,7 @@ cases that need a real browser remain as e2e work.
 | AUTH-07 | Trailing-space password is a different (wrong) password | edge | P3 | ✔ unit | Password is deliberately not trimmed — `lib/auth/admin-session.ts`. |
 | AUTH-08 | 11th failed attempt in 15 min is rate-limited | negative | P1 | ✔ action | `actions.test.ts` "returns retry metadata when rate limited". Do **not** drive this through the UI 10 times. |
 | AUTH-09 | Successful login clears the IP's rate-limit bucket | edge | P3 | **action** | Not yet covered. Cheaper at action layer than in a browser. |
-| AUTH-10 | `redirectTo` to an allowed admin path is honored after login | positive | P2 | **E2E** | Sanitization is unit-covered; e2e proves the browser actually lands there. |
+| AUTH-10 | `redirectTo` to an allowed admin path is honored after login | positive | P2 | ✔ E2E | `admin-auth.spec.ts` "returns to the intended nested page after login". |
 | AUTH-11 | `redirectTo` to an external absolute URL is ignored | security | P1 | ✔ unit | `safe-redirect.test.ts` + `actions.test.ts` "sanitizes external redirect targets". |
 | AUTH-12 | `redirectTo` as protocol-relative `//example.com` is ignored | security | P1 | ✔ unit | `safe-redirect.test.ts`. |
 | AUTH-13 | `redirectTo` back to `/admin/login` falls back to `/admin` | edge | P3 | ✔ unit | `admin-session.test.ts` route-boundary test. |

@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AdminLoginForm } from "@/components/auth/admin-login-form";
-import { getCurrentAdminSession, getSafeAdminRedirect } from "@/lib/auth/admin-session";
+import {
+  getCurrentAdminSession,
+  getSafeAdminRedirect,
+  readAdminReturnPath,
+} from "@/lib/auth/admin-session";
 
 export const metadata: Metadata = {
   title: "Admin Login | Synarava",
@@ -19,7 +23,11 @@ type Props = {
 
 export default async function AdminLoginPage({ searchParams }: Props) {
   const params = (await searchParams) ?? {};
-  const redirectTo = getSafeAdminRedirect(params.redirectTo);
+  // Query wins when present; the short-lived return-to cookie covers the case
+  // where a layout/auth bounce wiped or never set `redirectTo` in the URL.
+  const fromQuery = params.redirectTo ? getSafeAdminRedirect(params.redirectTo) : null;
+  const fromCookie = await readAdminReturnPath();
+  const redirectTo = fromQuery ?? fromCookie ?? "/admin";
   const session = await getCurrentAdminSession();
 
   if (session) {
@@ -38,4 +46,3 @@ export default async function AdminLoginPage({ searchParams }: Props) {
     </AuthShell>
   );
 }
-

@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  ADMIN_RETURN_TO_COOKIE,
+  ADMIN_RETURN_TO_MAX_AGE_SECONDS,
+  REQUEST_PATHNAME_HEADER,
+  REQUEST_SEARCH_HEADER,
+  adminReturnCookieOptions,
+  getSafeAdminRedirect,
+} from "@/lib/auth/admin-return-path";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 const ADMIN_COOKIE = "synarava-admin-session";
@@ -107,6 +115,14 @@ async function validAdminCookie(value: string | undefined) {
   );
 }
 
+function rememberAdminReturnPath(response: NextResponse, returnPath: string) {
+  response.cookies.set(
+    ADMIN_RETURN_TO_COOKIE,
+    getSafeAdminRedirect(returnPath),
+    adminReturnCookieOptions(ADMIN_RETURN_TO_MAX_AGE_SECONDS),
+  );
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAdminPage = pathname.startsWith("/admin");
@@ -117,15 +133,16 @@ export async function proxy(request: NextRequest) {
   if (isAdminPage) {
     const isLogin = pathname === "/admin/login";
     if (!isLogin && !(await validAdminCookie(request.cookies.get(ADMIN_COOKIE)?.value))) {
+      const returnPath = `${pathname}${request.nextUrl.search}`;
       const login = new URL("/admin/login", request.url);
-      login.searchParams.set("redirectTo", `${pathname}${request.nextUrl.search}`);
+      login.searchParams.set("redirectTo", returnPath);
       if (request.method === "POST" && request.headers.has("next-action")) {
         // A normal 307 preserves the Server Action POST and sends it to the
         // login page. The action client then receives HTML/404 instead of an
         // RSC redirect, which crashes long-lived admin tabs when their session
         // expires. Speak the Server Action redirect protocol directly so the
         // router performs a fresh navigation to login.
-        return new NextResponse(null, {
+        const actionRedirect = new NextResponse(null, {
           status: 200,
           headers: {
             "cache-control": "no-store",
@@ -133,9 +150,13 @@ export async function proxy(request: NextRequest) {
             "x-action-redirect": `${login.pathname}${login.search};replace`,
           },
         });
+        rememberAdminReturnPath(actionRedirect, returnPath);
+        return actionRedirect;
       }
       const navigationStatus = request.method === "GET" || request.method === "HEAD" ? 307 : 303;
-      return NextResponse.redirect(login, navigationStatus);
+      const response = NextResponse.redirect(login, navigationStatus);
+      rememberAdminReturnPath(response, returnPath);
+      return response;
     }
   }
 
@@ -173,6 +194,8 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
+  requestHeaders.set(REQUEST_PATHNAME_HEADER, pathname);
+  requestHeaders.set(REQUEST_SEARCH_HEADER, request.nextUrl.search);
   if (localeSegment) {
     requestHeaders.set("x-locale", localeSegment);
   }

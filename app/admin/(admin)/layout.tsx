@@ -24,7 +24,10 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await requireAdminSession("/admin");
+  // Path comes from proxy-injected `x-pathname` / return-to cookie — never
+  // hardcode `/admin` or a deep link is lost when a signed-but-expired session
+  // cookie slips past the edge guard and this layout re-checks the DB.
+  await requireAdminSession();
   const [openIssues, latestReconcileRun, syncDifferences, syncPages] = await Promise.all([
     db.adminIssue.findMany({
       where: { status: "OPEN" },

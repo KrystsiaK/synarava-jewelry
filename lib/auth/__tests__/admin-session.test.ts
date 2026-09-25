@@ -19,14 +19,18 @@ async function loadAdminSession(
   env: AdminEnv,
   nodeEnv = "test",
   cookieStore = createCookieStoreMock(),
+  headerStore: { get: (name: string) => string | null } = { get: () => null },
 ) {
   vi.resetModules();
   vi.stubEnv("NODE_ENV", nodeEnv);
   vi.doMock("next/headers", () => ({
     cookies: vi.fn(async () => cookieStore),
+    headers: vi.fn(async () => headerStore),
   }));
   vi.doMock("next/navigation", () => ({
-    redirect: vi.fn(),
+    redirect: vi.fn((url: string) => {
+      throw Object.assign(new Error("NEXT_REDIRECT"), { digest: `NEXT_REDIRECT;${url}`, url });
+    }),
   }));
   vi.doMock("@/lib/env", () => ({
     env,
@@ -116,6 +120,36 @@ describe("admin session credentials", () => {
     expect(adminSession.getSafeAdminRedirect("/admin-login")).toBe("/admin");
     expect(adminSession.getSafeAdminRedirect("/admin/login?redirectTo=/admin/products")).toBe(
       "/admin",
+    );
+  });
+
+  it("requireAdminSession remembers the request path from proxy headers", async () => {
+    const cookieStore = createCookieStoreMock();
+    cookieStore.get.mockReturnValue(undefined);
+    const { adminSession } = await loadAdminSession(
+      {
+        ADMIN_USERNAME: "studio",
+        ADMIN_PASSWORD_HASH: hashPassword("correct-password"),
+        ADMIN_SESSION_SECRET: "test-admin-secret",
+      },
+      "test",
+      cookieStore,
+      {
+        get: (name: string) => {
+          if (name === "x-pathname") return "/admin/collections/new";
+          if (name === "x-search") return "?focus=title";
+          return null;
+        },
+      },
+    );
+
+    await expect(adminSession.requireAdminSession()).rejects.toMatchObject({
+      url: "/admin/login?redirectTo=%2Fadmin%2Fcollections%2Fnew%3Ffocus%3Dtitle",
+    });
+    expect(cookieStore.set).toHaveBeenCalledWith(
+      "synarava-admin-return-to",
+      "/admin/collections/new?focus=title",
+      expect.objectContaining({ path: "/admin", httpOnly: true }),
     );
   });
 
