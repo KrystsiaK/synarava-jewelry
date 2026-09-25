@@ -114,6 +114,25 @@ describe("getCollectionCatalogConflict", () => {
     ]);
     expect(mocks.getLatestReconcileDifferences).not.toHaveBeenCalled();
   });
+
+  it("allows both push and delete for a Synarava-only presence field", async () => {
+    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([
+      presenceDiff({
+        id: "collection-1",
+        kind: "SYNARAVA_ONLY",
+        localProductId: "collection-1",
+        shopifyProductId: null,
+        localIdentity: { name: "Jewelry Making", handle: "jewelry-making", sku: "" },
+        shopifyIdentity: null,
+      }),
+    ]);
+
+    const result = await getCollectionCatalogConflict("collection-1");
+    expect(result.fields[0]).toMatchObject({
+      fieldKey: "presence:collection",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    });
+  });
 });
 
 describe("listConflictedCollectionIds", () => {

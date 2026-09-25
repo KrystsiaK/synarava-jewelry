@@ -82,9 +82,15 @@ function unsupportedDirectionReason(field: CatalogConflictField): string {
   if (field.origin === "PRESENCE") {
     return field.presenceDifference?.kind === "SHOPIFY_ONLY"
       ? "This collection only exists in Shopify. Pull it first, or run the Shopify → Synarava bulk action."
-      : "This collection only exists in Synarava. Push it first, or run the Synarava → Shopify bulk action.";
+      : "This collection only exists in Synarava. Push it to Shopify, or choose Shopify to remove it from Synarava.";
   }
   return field.blockedReason ?? "This direction isn't supported for this field.";
+}
+
+function isPresenceDiscard(field: CatalogConflictField, direction: CatalogConflictDirection): boolean {
+  return field.origin === "PRESENCE"
+    && field.presenceDifference?.kind === "SYNARAVA_ONLY"
+    && direction === "SHOPIFY_TO_SYNARAVA";
 }
 
 /**
@@ -113,7 +119,13 @@ export async function previewCollectionConflictResolution(scope: CollectionConfl
         });
         continue;
       }
-      entries.push({ collectionId, direction, field, willClearNonEmptyValue: willClear(field, direction) });
+      entries.push({
+        collectionId,
+        direction,
+        field,
+        // Choosing Shopify for a Synarava-only collection deletes the local row.
+        willClearNonEmptyValue: isPresenceDiscard(field, direction) || willClear(field, direction),
+      });
     }
   }
 

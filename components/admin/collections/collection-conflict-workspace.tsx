@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDownToLine, ArrowUpFromLine, Columns2, Languages, LoaderCircle, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Columns2, Languages, LoaderCircle, Trash2, X } from "lucide-react";
 
 import {
   applyCollectionConflictResolutionAction,
@@ -33,9 +33,22 @@ export type CollectionConflictViewScope =
   | { kind: "collectionLocale"; collectionId: string; locale: string };
 
 const directionCopy: Record<CatalogConflictDirection, { short: string; full: string }> = {
-  SHOPIFY_TO_SYNARAVA: { short: "Use Shopify", full: "Apply Shopify values to Synarava" },
-  SYNARAVA_TO_SHOPIFY: { short: "Use Synarava", full: "Apply Synarava values to Shopify" },
+  SHOPIFY_TO_SYNARAVA: { short: "Use Shopify", full: "Apply Shopify to Synarava" },
+  SYNARAVA_TO_SHOPIFY: { short: "Use Synarava", full: "Apply Synarava to Shopify" },
 };
+
+function presenceDirectionLabel(direction: CatalogConflictDirection, presence: "SHOPIFY_ONLY" | "SYNARAVA_ONLY" | "BOTH" | undefined) {
+  if (presence === "SHOPIFY_ONLY" && direction === "SHOPIFY_TO_SYNARAVA") {
+    return { short: "Pull from Shopify", full: "Create this collection in Synarava from Shopify" };
+  }
+  if (presence === "SYNARAVA_ONLY" && direction === "SYNARAVA_TO_SHOPIFY") {
+    return { short: "Push to Shopify", full: "Create this collection in Shopify from Synarava" };
+  }
+  if (presence === "SYNARAVA_ONLY" && direction === "SHOPIFY_TO_SYNARAVA") {
+    return { short: "Remove from Synarava", full: "Delete this collection from Synarava (Shopify does not have it)" };
+  }
+  return directionCopy[direction];
+}
 
 function plural(count: number, singular: string, pluralWord: string) {
   return `${count} ${count === 1 ? singular : pluralWord}`;
@@ -93,12 +106,13 @@ function LocaleMark({ field }: { field: CatalogConflictField }) {
   );
 }
 
-function ValueCell({ label, value, selected, disabled, onSelect }: {
+function ValueCell({ label, value, selected, disabled, onSelect, chooseLabel }: {
   label: string;
   value: string;
   selected?: boolean;
   disabled?: boolean;
   onSelect?: () => void;
+  chooseLabel?: string;
 }) {
   const content = (
     <>
@@ -117,7 +131,7 @@ function ValueCell({ label, value, selected, disabled, onSelect }: {
       style={{ borderColor: selected ? "var(--adm-warning)" : "var(--adm-border)", background: selected ? "color-mix(in srgb, var(--adm-warning) 10%, var(--adm-panel))" : "var(--adm-bg)" }}
     >
       {content}
-      <span className="mt-3 block text-xs font-semibold">{selected ? "Selected" : "Choose this value"}</span>
+      <span className="mt-3 block text-xs font-semibold">{selected ? "Selected" : (chooseLabel ?? "Choose this value")}</span>
     </button>
   );
 }
@@ -394,13 +408,31 @@ export function CollectionConflictWorkspace({
                 </div>
                 <div className="flex shrink-0 gap-2" aria-label={`Actions for ${name}`}>
                   {allowedDirections.includes("SHOPIFY_TO_SYNARAVA") ? (
-                    <Tooltip content={signal?.presence ? "Create or link this collection in Synarava from Shopify" : "Use Shopify for every supported conflicting field in this collection"}>
-                      <button type="button" disabled={busy} onClick={() => openCollectionDirection(collectionId, "SHOPIFY_TO_SYNARAVA")} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal?.presence ? "Pull collection from Shopify" : "Apply Shopify values"}><ArrowDownToLine className="size-4" /></button>
+                    <Tooltip content={presenceDirectionLabel("SHOPIFY_TO_SYNARAVA", signal?.presence).full}>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => openCollectionDirection(collectionId, "SHOPIFY_TO_SYNARAVA")}
+                        className="adm-btn-secondary grid size-11 place-items-center p-0"
+                        aria-label={presenceDirectionLabel("SHOPIFY_TO_SYNARAVA", signal?.presence).short}
+                      >
+                        {signal?.presence === "SYNARAVA_ONLY"
+                          ? <Trash2 className="size-4" />
+                          : <ArrowDownToLine className="size-4" />}
+                      </button>
                     </Tooltip>
                   ) : null}
                   {allowedDirections.includes("SYNARAVA_TO_SHOPIFY") ? (
-                    <Tooltip content={signal?.presence ? "Create this collection in Shopify from Synarava" : "Use Synarava for every supported conflicting field in this collection"}>
-                      <button type="button" disabled={busy} onClick={() => openCollectionDirection(collectionId, "SYNARAVA_TO_SHOPIFY")} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal?.presence ? "Push collection to Shopify" : "Apply Synarava values"}><ArrowUpFromLine className="size-4" /></button>
+                    <Tooltip content={presenceDirectionLabel("SYNARAVA_TO_SHOPIFY", signal?.presence).full}>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => openCollectionDirection(collectionId, "SYNARAVA_TO_SHOPIFY")}
+                        className="adm-btn-secondary grid size-11 place-items-center p-0"
+                        aria-label={presenceDirectionLabel("SYNARAVA_TO_SHOPIFY", signal?.presence).short}
+                      >
+                        <ArrowUpFromLine className="size-4" />
+                      </button>
                     </Tooltip>
                   ) : null}
                   {!signal?.presence ? (
@@ -417,8 +449,8 @@ export function CollectionConflictWorkspace({
           <button type="button" onClick={closeAll} disabled={busy} className="adm-btn-ghost">Close</button>
           {hideBulk ? null : (
             <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={busy || collectionIds.length === 0} onClick={() => openPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2"><ArrowDownToLine className="size-4" />Use Shopify for all</button>
-              <button type="button" disabled={busy || collectionIds.length === 0} onClick={() => openPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2"><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
+              <button type="button" disabled={busy || collectionIds.length === 0} onClick={() => openPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2" title="Take Shopify for every conflicted field. Synarava-only collections will be deleted."><ArrowDownToLine className="size-4" />Use Shopify for all</button>
+              <button type="button" disabled={busy || collectionIds.length === 0} onClick={() => openPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2" title="Take Synarava for every conflicted field. Synarava-only collections will be created in Shopify."><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
             </div>
           )}
         </footer>
@@ -440,15 +472,41 @@ export function CollectionConflictWorkspace({
                 <LoaderCircle className="size-4 animate-spin" />Loading field comparison…
               </p>
             ) : null}
-            {detailFields.map((field) => (
+            {detailFields.map((field) => {
+              const isPresence = field.origin === "PRESENCE";
+              const presenceKind = field.presenceDifference?.kind;
+              return (
               <section key={field.fieldKey} className="rounded-xl border border-[var(--adm-border)] p-4">
-                <div className="mb-3 flex flex-wrap items-center gap-2"><LocaleMark field={field} /><h3 className="text-sm font-semibold">{field.label}</h3><span className="text-xs text-[var(--adm-muted)]">Only this language value is affected</span></div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <LocaleMark field={field} />
+                  <h3 className="text-sm font-semibold">{field.label}</h3>
+                  <span className="text-xs text-[var(--adm-muted)]">
+                    {isPresence
+                      ? "Choose Shopify to remove it here, or Synarava to create it in Shopify."
+                      : "Only this language value is affected"}
+                  </span>
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <ValueCell label="Synarava" value={field.synaravaValue} disabled={!field.allowedDirections.includes("SYNARAVA_TO_SHOPIFY")} selected={selections[field.fieldKey] === "SYNARAVA_TO_SHOPIFY"} onSelect={() => setSelections((current) => ({ ...current, [field.fieldKey]: "SYNARAVA_TO_SHOPIFY" }))} />
-                  <ValueCell label="Shopify" value={field.shopifyValue} disabled={!field.allowedDirections.includes("SHOPIFY_TO_SYNARAVA")} selected={selections[field.fieldKey] === "SHOPIFY_TO_SYNARAVA"} onSelect={() => setSelections((current) => ({ ...current, [field.fieldKey]: "SHOPIFY_TO_SYNARAVA" }))} />
+                  <ValueCell
+                    label="Synarava"
+                    value={field.synaravaValue}
+                    disabled={!field.allowedDirections.includes("SYNARAVA_TO_SHOPIFY")}
+                    selected={selections[field.fieldKey] === "SYNARAVA_TO_SHOPIFY"}
+                    onSelect={() => setSelections((current) => ({ ...current, [field.fieldKey]: "SYNARAVA_TO_SHOPIFY" }))}
+                    chooseLabel={presenceKind === "SYNARAVA_ONLY" ? "Keep & push to Shopify" : undefined}
+                  />
+                  <ValueCell
+                    label="Shopify"
+                    value={field.shopifyValue}
+                    disabled={!field.allowedDirections.includes("SHOPIFY_TO_SYNARAVA")}
+                    selected={selections[field.fieldKey] === "SHOPIFY_TO_SYNARAVA"}
+                    onSelect={() => setSelections((current) => ({ ...current, [field.fieldKey]: "SHOPIFY_TO_SYNARAVA" }))}
+                    chooseLabel={presenceKind === "SYNARAVA_ONLY" ? "Remove from Synarava" : undefined}
+                  />
                 </div>
               </section>
-            ))}
+              );
+            })}
           </div>
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
             <button type="button" onClick={() => { if (!applying) { setDetails(null); setDetailsLoading(false); setSelections({}); } }} disabled={applying} className="adm-btn-secondary">Cancel</button>
@@ -487,20 +545,30 @@ export function CollectionConflictWorkspace({
             <button type="button" onClick={() => { if (!applying) setPreview(null); }} disabled={applying} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close preview"><X className="size-4" /></button>
           </header>
           <div className="min-h-0 space-y-3 overflow-y-auto p-5">
-            {preview.entries.map((entry) => (
+            {preview.entries.map((entry) => {
+              const presenceKind = entry.field.presenceDifference?.kind;
+              const actionLabel = presenceKind
+                ? presenceDirectionLabel(entry.direction, presenceKind).full
+                : directionCopy[entry.direction].full;
+              return (
               <article key={`${entry.collectionId}:${entry.field.fieldKey}:${entry.direction}`} className="rounded-xl border border-[var(--adm-border)] p-4">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <LocaleMark field={entry.field} />
                   <h3 className="text-sm font-semibold">{collectionsById.get(entry.collectionId)?.name ?? entry.collectionId} · {entry.field.label}</h3>
-                  <span className="text-xs text-[var(--adm-muted)]">{directionCopy[entry.direction].full}</span>
+                  <span className="text-xs text-[var(--adm-muted)]">{actionLabel}</span>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <ValueCell label="Synarava now" value={entry.field.synaravaValue} />
                   <ValueCell label="Shopify now" value={entry.field.shopifyValue} />
                 </div>
-                {entry.willClearNonEmptyValue ? <p className="mt-3 text-xs text-[var(--adm-danger)]">This clears a non-empty value on the destination side.</p> : null}
+                {entry.field.origin === "PRESENCE" && entry.direction === "SHOPIFY_TO_SYNARAVA" && presenceKind === "SYNARAVA_ONLY" ? (
+                  <p className="mt-3 text-xs text-[var(--adm-danger)]">This deletes the collection from Synarava. Products stay; only the collection record is removed.</p>
+                ) : entry.willClearNonEmptyValue ? (
+                  <p className="mt-3 text-xs text-[var(--adm-danger)]">This clears a non-empty value on the destination side.</p>
+                ) : null}
               </article>
-            ))}
+              );
+            })}
             {preview.excluded.map((entry) => (
               <p key={`${entry.collectionId}:${entry.fieldKey}:excluded`} className="rounded-lg border border-[var(--adm-border)] p-3 text-xs text-[var(--adm-muted)]">
                 Not included · {collectionsById.get(entry.collectionId)?.name ?? entry.collectionId} · {entry.label}: {entry.reason}

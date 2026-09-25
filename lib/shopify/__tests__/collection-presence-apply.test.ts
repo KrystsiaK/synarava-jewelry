@@ -4,8 +4,12 @@ const mocks = vi.hoisted(() => ({
   findSnapshot: vi.fn(),
   updateSnapshot: vi.fn(),
   findUniqueCollection: vi.fn(),
+  findManyCollections: vi.fn(),
   updateCollection: vi.fn(),
   createCollection: vi.fn(),
+  deleteCollection: vi.fn(),
+  deleteBindings: vi.fn(),
+  transaction: vi.fn(),
   shopifyAdminRequest: vi.fn(),
   ensureTranslationBinding: vi.fn(),
 }));
@@ -13,11 +17,15 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({
   db: {
     shopifyCatalogPresenceSnapshot: { findUnique: mocks.findSnapshot, update: mocks.updateSnapshot },
+    shopifyTranslationBinding: { deleteMany: mocks.deleteBindings },
     collection: {
       findUnique: mocks.findUniqueCollection,
+      findMany: mocks.findManyCollections,
       update: mocks.updateCollection,
       create: mocks.createCollection,
+      delete: mocks.deleteCollection,
     },
+    $transaction: mocks.transaction,
   },
 }));
 vi.mock("@/lib/shopify/admin", () => ({
@@ -71,6 +79,20 @@ describe("applyCollectionPresenceDifference", () => {
     mocks.findSnapshot.mockResolvedValue({ differences: [shopifyOnly, synaravaOnly] });
     mocks.updateSnapshot.mockResolvedValue({});
     mocks.ensureTranslationBinding.mockResolvedValue({});
+    mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        shopifyTranslationBinding: { deleteMany: mocks.deleteBindings },
+        collection: {
+          delete: mocks.deleteCollection,
+          findMany: mocks.findManyCollections,
+          update: mocks.updateCollection,
+        },
+      };
+      return callback(tx);
+    });
+    mocks.deleteBindings.mockResolvedValue({ count: 0 });
+    mocks.deleteCollection.mockResolvedValue({ id: "local-7" });
+    mocks.findManyCollections.mockResolvedValue([]);
   });
 
   it("pulls a Shopify-only collection and removes the saved difference", async () => {
@@ -142,6 +164,24 @@ describe("applyCollectionPresenceDifference", () => {
       entityId: "local-7",
       shopifyResourceId: "gid://shopify/Collection/70",
     });
+  });
+
+  it("deletes a Synarava-only collection when Shopify side is chosen", async () => {
+    const result = await applyCollectionPresenceDifference({
+      difference: synaravaOnly,
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      localCollectionId: "local-7",
+      message: expect.stringMatching(/removed from Synarava/i),
+    });
+    expect(mocks.deleteCollection).toHaveBeenCalledWith({ where: { id: "local-7" } });
+    expect(mocks.deleteBindings).toHaveBeenCalledWith({
+      where: { resourceType: "COLLECTION", entityId: "local-7" },
+    });
+    expect(mocks.shopifyAdminRequest).not.toHaveBeenCalled();
   });
 
   it("refuses the impossible direction without writing", async () => {

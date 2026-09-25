@@ -153,6 +153,38 @@ describe("buildCatalogConflictSignals", () => {
     expect(result.products["product-1"]).toBeUndefined();
   });
 
+  it("allows deleting Synarava-only collections by choosing the Shopify side", () => {
+    const result = buildCatalogConflictSignals({
+      commerceProductIds: [],
+      differences: [],
+      presenceDifferences: [{
+        id: "local-7",
+        kind: "SYNARAVA_ONLY",
+        localProductId: "local-7",
+        shopifyProductId: null,
+        name: "Jewelry Making",
+        handle: "jewelry-making",
+        sku: "",
+        localFingerprint: "local",
+        shopifyFingerprint: "missing",
+        remoteMissing: false,
+        matchReason: null,
+        localIdentity: { name: "Jewelry Making", handle: "jewelry-making", sku: "" },
+        shopifyIdentity: null,
+      }],
+      locales,
+      run: { trigger: "MANUAL", status: "SUCCEEDED", completedAt: "2026-09-23T10:00:00.000Z" },
+      connected: true,
+      now: new Date("2026-09-23T10:01:00.000Z"),
+      rootEntityType: "COLLECTION",
+    });
+
+    expect(result.products["local-7"]).toMatchObject({
+      presence: "SYNARAVA_ONLY",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    });
+  });
+
   it.each([
     [false, "SUCCEEDED", "disconnected"],
     [true, "RUNNING", "checking"],

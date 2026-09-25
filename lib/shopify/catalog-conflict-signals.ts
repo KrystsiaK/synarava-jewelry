@@ -81,9 +81,13 @@ export function buildCatalogConflictSignals({
       sku: difference.sku,
       remoteMissing: difference.remoteMissing,
       matchReason: difference.matchReason,
+      // Collections: Synarava-only can Push or take Shopify (delete local).
+      // Products stay push-only for Synarava-only until product discard ships.
       allowedDirections: difference.kind === "SHOPIFY_ONLY"
         ? ["SHOPIFY_TO_SYNARAVA"]
-        : ["SYNARAVA_TO_SHOPIFY"],
+        : rootEntityType === "COLLECTION"
+          ? ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"]
+          : ["SYNARAVA_TO_SHOPIFY"],
     };
   }
   if (rootEntityType === "PRODUCT") {

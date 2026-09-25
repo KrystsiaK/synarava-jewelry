@@ -257,7 +257,9 @@ legacy cover, пока не загружены изображения галер
   и каталог товаров: **Run conflict check**, **Show conflicts**, список → поля →
   preview → Confirm. Surface — translation reconcile (`COLLECTION`) плюс
   presence-снимок (`ShopifyCatalogPresenceSnapshot` id `collections`): коллекции
-  только в Shopify / только в Synarava появляются в том же списке с Pull/Push.
+  только в Shopify / только в Synarava появляются в том же списке.
+  Для «только в Synarava» можно **Push to Shopify** или выбрать сторону Shopify
+  (**Remove from Synarava** — удаление локальной записи, как take theirs в git).
   После успешного сохранения связанной коллекции запускается scoped check.
 - Обязательные поля при сохранении (каждое поле подсвечивается своей
   ошибкой, а не общей): название, слаг, код коллекции, краткое описание

@@ -74,7 +74,10 @@ function presenceField(difference: CollectionPresenceDifference): CatalogConflic
     baseValue: null,
     localFingerprint: difference.localFingerprint,
     shopifyFingerprint: difference.shopifyFingerprint,
-    allowedDirections: shopifyOnly ? ["SHOPIFY_TO_SYNARAVA"] : ["SYNARAVA_TO_SHOPIFY"],
+    // Synarava-only: Push OR take Shopify ("missing") = delete locally.
+    allowedDirections: shopifyOnly
+      ? ["SHOPIFY_TO_SYNARAVA"]
+      : ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     blockedReason: null,
     sourceId: null,
     presenceDifference: asCatalogPresence(difference),

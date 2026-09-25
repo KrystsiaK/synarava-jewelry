@@ -115,7 +115,7 @@ describe("previewCollectionConflictResolution", () => {
     expect(mocks.getCollectionCatalogConflict).toHaveBeenCalledTimes(2);
   });
 
-  it("excludes the impossible presence direction", async () => {
+  it("excludes the impossible presence direction for Shopify-only collections", async () => {
     mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([presenceField()], "shopify-collection:42"));
     const preview = await previewCollectionConflictResolution({
       kind: "COLLECTION",
@@ -124,6 +124,42 @@ describe("previewCollectionConflictResolution", () => {
     });
     expect(preview.entries).toHaveLength(0);
     expect(preview.excluded[0]?.reason).toMatch(/only exists in Shopify/i);
+  });
+
+  it("includes Shopify direction for Synarava-only as a delete that needs confirmation", async () => {
+    const presence = presenceField({
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+      presenceDifference: {
+        id: "local-7",
+        kind: "SYNARAVA_ONLY",
+        localProductId: "local-7",
+        shopifyProductId: null,
+        name: "Local kits",
+        handle: "local-kits",
+        sku: "",
+        localFingerprint: "local",
+        shopifyFingerprint: "missing",
+        remoteMissing: false,
+        matchReason: null,
+        localIdentity: { name: "Local kits", handle: "local-kits", sku: "" },
+        shopifyIdentity: null,
+      },
+      synaravaValue: "Local kits · /local-kits",
+      shopifyValue: "— Collection is missing —",
+      localFingerprint: "local",
+      shopifyFingerprint: "missing",
+    });
+    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([presence], "local-7"));
+    const preview = await previewCollectionConflictResolution({
+      kind: "COLLECTION",
+      collectionId: "local-7",
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+    expect(preview.entries).toHaveLength(1);
+    expect(preview.entries[0]).toMatchObject({
+      direction: "SHOPIFY_TO_SYNARAVA",
+      willClearNonEmptyValue: true,
+    });
   });
 });
 

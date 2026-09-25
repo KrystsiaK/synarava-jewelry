@@ -340,6 +340,33 @@ export type CollectionPresenceApplyResult =
   | { ok: true; localCollectionId: string; message: string }
   | { ok: false; reason: "STALE" | "UNSUPPORTED" | "WRITE_FAILED"; message: string };
 
+async function deleteLocalCollection(collectionId: string) {
+  await db.$transaction(async (tx) => {
+    await tx.shopifyTranslationBinding.deleteMany({
+      where: { resourceType: "COLLECTION", entityId: collectionId },
+    });
+    await tx.collection.delete({ where: { id: collectionId } });
+    const remaining = await tx.collection.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { name: "asc" }],
+      select: { id: true },
+    });
+    await Promise.all(
+      remaining.map((collection, index) =>
+        tx.collection.update({
+          where: { id: collection.id },
+          data: { sortOrder: index + 1 },
+        }),
+      ),
+    );
+  });
+}
+
+/**
+ * Presence apply:
+ * - Shopify-only → Pull into Synarava (SHOPIFY_TO_SYNARAVA only)
+ * - Synarava-only → Push to Shopify, or choose Shopify ("missing") to delete locally
+ *   (git-style: take the Shopify side of the conflict)
+ */
 export async function applyCollectionPresenceDifference({
   difference,
   direction,
@@ -347,14 +374,11 @@ export async function applyCollectionPresenceDifference({
   difference: CollectionPresenceDifference;
   direction: "SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY";
 }): Promise<CollectionPresenceApplyResult> {
-  const expectedDirection = difference.kind === "SHOPIFY_ONLY" ? "SHOPIFY_TO_SYNARAVA" : "SYNARAVA_TO_SHOPIFY";
-  if (direction !== expectedDirection) {
+  if (difference.kind === "SHOPIFY_ONLY" && direction !== "SHOPIFY_TO_SYNARAVA") {
     return {
       ok: false,
       reason: "UNSUPPORTED",
-      message: difference.kind === "SHOPIFY_ONLY"
-        ? "This collection only exists in Shopify, so it must be pulled first."
-        : "This collection only exists in Synarava, so it must be pushed first.",
+      message: "This collection only exists in Shopify, so it must be pulled first.",
     };
   }
 
@@ -370,6 +394,17 @@ export async function applyCollectionPresenceDifference({
 
     if (!difference.localProductId) {
       return { ok: false, reason: "STALE", message: "The Synarava collection is no longer available." };
+    }
+
+    // Choose Shopify ("collection missing") → delete local, same idea as taking theirs in git.
+    if (direction === "SHOPIFY_TO_SYNARAVA") {
+      await deleteLocalCollection(difference.localProductId);
+      await removeCollectionPresenceDifference(difference.id);
+      return {
+        ok: true,
+        localCollectionId: difference.localProductId,
+        message: "Collection removed from Synarava to match Shopify.",
+      };
     }
 
     const pushed = await pushCollectionToShopify(difference.localProductId);
