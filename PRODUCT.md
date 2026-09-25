@@ -24,7 +24,7 @@ The product showcase is a four-slot merchandising surface. Editors choose four d
 
 The Final CTA collage is likewise a fixed four-slot surface. Editors choose four distinct published products whose images fill the cubist shards; empty slots fall back to Featured collections imagery. Closing statement is always available. Contact email is opt-in via “Include contact email”; when enabled, both the contact link label and the email address are required.
 
-The material lexicon is an ordered list of two or three specimens (minimum two for the scroll carousel). Editors add, remove, and reorder rows in place; each row collapses to a short header (number, name, category) and expands for full copy and image. Images are shared across locales.
+The material lexicon is an ordered list of two or three specimens (minimum two for the scroll carousel). Editors add, remove, and reorder rows in place; each row collapses to a short header (number, name, category) and expands for full copy and image. Images and row structure are shared across locales; EN/PT/RU only swap localized text for the same specimens. Featured collections never feed this section.
 
 Visibility settings are shared across locales so the page structure stays consistent. Copy remains locale-specific. Existing page records preserve the established storefront by default: all original sections remain visible.
 

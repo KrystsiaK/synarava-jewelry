@@ -35,8 +35,11 @@ export function resolveLexiconNoteLabel(value: string | undefined) {
 
 /**
  * Admin-entered Lexicon materials, in order. An entry missing its name,
- * description, or image is dropped rather than shown half-empty — the
- * caller falls back to collection-derived materials when this is empty.
+ * description, or image is dropped rather than shown half-empty.
+ *
+ * Storefront must never substitute Featured Collections (or any other
+ * catalog surface) for missing specimens — empty means hide the incomplete
+ * row / section, not invent a different content type.
  */
 export function resolveLexiconMaterials(
   content: HomeLexiconSectionFields | undefined,

@@ -24,6 +24,12 @@ Storefront publication depends on Shopify and the locale registry:
 
 Buyer-facing UI text uses a bundled dictionary when one exists, with English fallback for missing keys. Russian has a partial bundled dictionary. New languages require a registry row and need their own dictionary to translate interface text; content fields are managed separately in the admin editors.
 
+**Why Russian can appear in admin but not on the live site:** admin editors list every *registered* locale so you can prepare copy early. The public language switcher lists only *Shopify-published* locales. Until Markets publishes Russian and **Check Shopify** flips the registry row to Published, `/ru` stays a storefront 404 even though the RU tab works in admin.
+
+## Shared structure vs localized text
+
+Page fields like Material lexicon keep shared structure (specimen count, order, images) on the English source record. Locale rows overlay text only. Resolving PT or RU must never change Home composition (for example by substituting Featured collections for missing lexicon images). Field-level English fallback applies to blank translated strings; whole-array replacement of structured content is forbidden.
+
 ## Failure recovery
 
 1. Do not delete saved content in any locale. Shopify write failures leave the local translation intact and record a failed audit event.

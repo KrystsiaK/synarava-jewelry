@@ -59,6 +59,12 @@ describe("resolveLexiconMaterials", () => {
       materialLexicon: [material, material, material, material],
     })).toHaveLength(3);
   });
+
+  it("never invents specimens from non-lexicon data — empty stays empty", () => {
+    // Architectural invariant: callers must not fall back to collections.
+    expect(resolveLexiconMaterials({ materialLexicon: [] })).toEqual([]);
+    expect(resolveLexiconMaterials(undefined)).toEqual([]);
+  });
 });
 
 describe("lexiconMaterialStorefrontWarnings", () => {

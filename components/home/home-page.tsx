@@ -1432,13 +1432,8 @@ function FinalCTA({ images, title, body, ctaLabel, ctaHref, footerTitle, contact
 export function HomePage({ collections, products = [], heroVideoSrc, content }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
   const visibility = resolveHomeSectionVisibility(content);
-  const configuredLexiconMaterials = resolveLexiconMaterials(content);
-  const lexiconMaterials = configuredLexiconMaterials.length > 0
-    ? configuredLexiconMaterials
-    : collections
-      .filter((item) => item.image)
-      .slice(0, 3)
-      .map((item) => ({ name: item.title, category: item.series, description: item.description, image: item.image, properties: [] }));
+  // Material lexicon is its own admin list — never derive cards from Featured collections.
+  const lexiconMaterials = resolveLexiconMaterials(content);
   const finalCtaImages = useMemo(
     () => resolveFinalCtaImages(products, content?.finalCtaProductIds, collections),
     [products, content?.finalCtaProductIds, collections],

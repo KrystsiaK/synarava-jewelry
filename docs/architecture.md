@@ -45,6 +45,11 @@ its models were removed once Shopify covered the same ground.
   - `content: Json` keeps the first CMS light while still supporting rich composition
   - the Home page uses explicit fields for Hero, Department pathway, Featured collections,
     Material lexicon, Manifesto, and Final CTA; visibility is shared across locales while copy is localized
+  - Material lexicon structure (specimen count, order, images) is shared; locale rows only
+    overlay text fields. Resolving a locale must never replace lexicon cards with Featured
+    collections or otherwise change Home section composition by language
+  - Storefront language switcher exposes Shopify-published registry locales only; admin may
+    edit unpublished locales (e.g. Russian) without making them public
   - legacy Home records are resolved with compatibility defaults so adding visibility controls does not
     unexpectedly hide established sections; Department pathway remains opt-in
 - `CollectionSection`

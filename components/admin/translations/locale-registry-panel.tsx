@@ -35,7 +35,10 @@ export function LocaleRegistryPanel({
         <div>
           <h2 className="text-lg font-semibold">Storefront locales</h2>
           <p className="text-sm text-[var(--adm-muted)]">
-            Publication state comes from Shopify Markets. Route segments are set here and never overwritten by a check.
+            Admin can edit copy for every registered locale. The public language switcher
+            only lists locales Shopify Markets has published — unpublished rows stay in
+            the admin and return 404 on the storefront until you publish them in Shopify
+            and run Check Shopify.
           </p>
         </div>
         <button type="button" className="adm-btn-ghost" onClick={checkNow} disabled={pending}>

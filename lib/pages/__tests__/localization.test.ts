@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  mergeLocalizedSectionRecord,
+  mergeMaterialLexicon,
   normalizePageTranslationContent,
   resolvePageLocalizedCopy,
 } from "@/lib/pages/localization";
+import { resolveLexiconMaterials } from "@/lib/content/home-lexicon-section";
 
 describe("page localization", () => {
   it("validates and removes shared fields from normalized translation content", () => {
@@ -40,5 +43,136 @@ describe("page localization", () => {
       translation: null,
       legacyTranslation: { title: "Sobre", excerpt: "Português", body: "Corpo" },
     })).toMatchObject({ title: "Sobre", excerpt: "Português", content: { body: "Corpo" } });
+  });
+
+  it("keeps material lexicon structure and images from EN while overlaying localized text", () => {
+    const resolved = resolvePageLocalizedCopy({
+      locale: "pt",
+      source: {
+        title: "Home",
+        excerpt: "",
+        content: {
+          materialLexicon: [
+            {
+              name: "Freshwater pearl",
+              category: "Organic",
+              description: "Natural, irregular.",
+              image: "/pearl.webp",
+              properties: "Natural, Soft",
+            },
+            {
+              name: "Sterling silver",
+              category: "Metal",
+              description: "Bright alloy.",
+              image: "/silver.webp",
+              properties: "Bright",
+            },
+            {
+              name: "Silk thread",
+              category: "Fiber",
+              description: "Hand-knotted.",
+              image: "/silk.webp",
+              properties: "Soft",
+            },
+          ],
+        },
+      },
+      translation: {
+        title: "Início",
+        excerpt: "",
+        content: {
+          // Translation rows intentionally omit images (shared). A naive
+          // whole-array replace would drop images and collapse the lexicon.
+          materialLexicon: [
+            { name: "Pérola de água doce", description: "Natural e irregular." },
+            { name: "Prata de lei", category: "Metal", description: "" },
+          ],
+        },
+      },
+    });
+
+    expect(resolved.content.materialLexicon).toEqual([
+      {
+        name: "Pérola de água doce",
+        category: "Organic",
+        description: "Natural e irregular.",
+        image: "/pearl.webp",
+        properties: "Natural, Soft",
+      },
+      {
+        name: "Prata de lei",
+        category: "Metal",
+        description: "Bright alloy.",
+        image: "/silver.webp",
+        properties: "Bright",
+      },
+      {
+        name: "Silk thread",
+        category: "Fiber",
+        description: "Hand-knotted.",
+        image: "/silk.webp",
+        properties: "Soft",
+      },
+    ]);
+
+    // Storefront gate must still see three specimens after locale resolve.
+    expect(resolveLexiconMaterials({
+      materialLexicon: resolved.content.materialLexicon as Array<{
+        name?: string;
+        category?: string;
+        description?: string;
+        image?: string;
+        properties?: string;
+      }>,
+    })).toHaveLength(3);
+  });
+
+  it("does not let a partial PT legalSections map delete EN section keys", () => {
+    const resolved = resolvePageLocalizedCopy({
+      locale: "pt",
+      source: {
+        title: "Privacy",
+        excerpt: "",
+        content: {
+          legalSections: {
+            intro: { title: "Intro", body: "English intro" },
+            cookies: { title: "Cookies", body: "English cookies" },
+          },
+        },
+      },
+      translation: {
+        title: "Privacidade",
+        excerpt: "",
+        content: {
+          legalSections: {
+            intro: { title: "Introdução", body: "Introdução PT" },
+          },
+        },
+      },
+    });
+
+    expect(resolved.content.legalSections).toEqual({
+      intro: { title: "Introdução", body: "Introdução PT" },
+      cookies: { title: "Cookies", body: "English cookies" },
+    });
+  });
+});
+
+describe("mergeMaterialLexicon", () => {
+  it("ignores translation-only extra rows (structure is source-owned)", () => {
+    expect(mergeMaterialLexicon(
+      [{ name: "One", image: "/1.webp", description: "A" }],
+      [
+        { name: "Uma", description: "A PT" },
+        { name: "Extra should not appear", description: "X" },
+      ],
+    )).toEqual([{ name: "Uma", image: "/1.webp", description: "A PT", category: undefined, properties: undefined }]);
+  });
+});
+
+describe("mergeLocalizedSectionRecord", () => {
+  it("returns undefined when source is not a record", () => {
+    expect(mergeLocalizedSectionRecord(undefined, { a: { title: "X" } })).toBeUndefined();
+    expect(mergeLocalizedSectionRecord([], { a: { title: "X" } })).toBeUndefined();
   });
 });

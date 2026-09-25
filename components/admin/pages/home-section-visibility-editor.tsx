@@ -34,7 +34,7 @@ export const HOME_SECTION_CONTROLS = [
     name: "materialSectionEnabled",
     label: "Material lexicon",
     ariaLabel: "Show material lexicon",
-    description: "A scroll-led material view generated from featured collections.",
+    description: "Ordered material specimens from Material lexicon → Materials (not Featured collections).",
   },
   {
     key: "manifesto" as const,
