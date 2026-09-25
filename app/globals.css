@@ -4242,6 +4242,17 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   color: var(--adm-ink);
 }
 
+.adm-nav-item--disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.adm-nav-item--disabled:hover {
+  background: transparent;
+  color: var(--adm-muted);
+}
+
 .adm-nav-item:focus-visible {
   background: var(--adm-accent-soft);
   color: var(--adm-ink);

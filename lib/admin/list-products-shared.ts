@@ -92,6 +92,9 @@ export type AdminProductListItem = {
   shopifyCategoryId: string | null;
   shopifyCategoryName: string | null;
   shopifyProductId: string | null;
+  syncStatus: "UNLINKED" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+  lastSyncedAt: string | null;
+  shopifyUpdatedAt: string | null;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;

@@ -281,6 +281,23 @@ export function AdminNavTree({
           return (
             <li key={item.id} className="adm-nav-tree__item" data-open={open ? "true" : undefined}>
               <div className="adm-nav-tree__row">
+                {item.disabled ? (
+                  <span
+                    className="adm-nav-item adm-nav-item--parent adm-nav-item--disabled"
+                    aria-disabled="true"
+                    title={item.disabledReason ?? `${item.label} is temporarily unavailable`}
+                  >
+                    <AdminNavMarker active={false} signal={undefined} />
+                    <AdminNavLabel label={item.label} className="opacity-50" />
+                    <span className="adm-nav-item__end">
+                      {item.code ? (
+                        <span className="adm-nav-code opacity-50" aria-hidden="true">
+                          {item.code}
+                        </span>
+                      ) : null}
+                    </span>
+                  </span>
+                ) : (
                 <Link
                   href={item.href}
                   data-active={active ? "true" : undefined}
@@ -315,8 +332,9 @@ export function AdminNavTree({
                     ) : null}
                   </span>
                 </Link>
+                )}
 
-                {hasChildren ? (
+                {hasChildren && !item.disabled ? (
                   <button
                     type="button"
                     className="adm-nav-tree__toggle"
