@@ -150,4 +150,34 @@ describe("AdminHrefField", () => {
     });
     expect(container.querySelector("[data-slot='control-group']")).toHaveClass("adm-field-group--warning");
   });
+
+  it("marks a path with no matching target as an error (deleted destination)", async () => {
+    mocks.search.mockResolvedValue({
+      segments: [
+        {
+          id: "custom",
+          label: "Use custom path",
+          hits: [
+            {
+              id: "custom:/gone",
+              segment: "custom",
+              label: "Use custom path",
+              href: "/gone",
+              detail: "/gone",
+            },
+          ],
+        },
+      ],
+    });
+
+    const { container } = render(
+      <AdminHrefField label="CTA href" name="ctaHref" defaultValue="/gone" />,
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector("[data-component='AdminFieldError']")).toHaveTextContent(
+        /nowhere|deleted/i,
+      );
+    });
+  });
 });

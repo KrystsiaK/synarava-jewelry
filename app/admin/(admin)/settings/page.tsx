@@ -1,7 +1,8 @@
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import { flattenMessages } from "@/lib/i18n/utils";
-import { getFooterContactEmail } from "@/lib/content/footer-contact";
+import { getFooterContactEmails } from "@/lib/content/footer-contact";
+import { getFooterLinks } from "@/lib/content/footer-links";
 import { getHeaderNav } from "@/lib/content/header-nav";
 import { getStorefrontCopy, type StorefrontCopy } from "@/lib/content/storefront-copy";
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
@@ -13,17 +14,19 @@ import type { AdminLocaleStatus } from "@/components/admin/shared/admin-locale-w
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 export default async function AdminSettingsPage() {
-  const [copy, headerNav, contactEmail, binding, syncDifferences, registryLocales] = await Promise.all([
-    getStorefrontCopy(),
-    getHeaderNav(),
-    getFooterContactEmail(),
-    db.shopifyTranslationBinding.findUnique({
-      where: { resourceType_entityId: { resourceType: "METAOBJECT", entityId: STOREFRONT_COPY_KEY } },
-      include: { syncEvents: { orderBy: { createdAt: "desc" }, take: 1 } },
-    }),
-    getLatestReconcileDifferences(),
-    getStorefrontLocales(),
-  ]);
+  const [copy, headerNav, footerLinks, contactEmails, binding, syncDifferences, registryLocales] =
+    await Promise.all([
+      getStorefrontCopy(),
+      getHeaderNav(),
+      getFooterLinks(),
+      getFooterContactEmails(),
+      db.shopifyTranslationBinding.findUnique({
+        where: { resourceType_entityId: { resourceType: "METAOBJECT", entityId: STOREFRONT_COPY_KEY } },
+        include: { syncEvents: { orderBy: { createdAt: "desc" }, take: 1 } },
+      }),
+      getLatestReconcileDifferences(),
+      getStorefrontLocales(),
+    ]);
   const storefrontSyncDifferences = syncDifferences.filter(
     (difference) => difference.rootEntityType === "STOREFRONT_COPY" && difference.rootEntityId === STOREFRONT_COPY_KEY,
   );
@@ -49,7 +52,10 @@ export default async function AdminSettingsPage() {
         <p className="adm-section-tag mb-3">[ SYN-ADM // SHARED ]</p>
         <h1 className="adm-page-title">Shared</h1>
         <p className="adm-page-subtitle">
-          Site-wide pieces reused across pages: header main links (also the footer Navigation column), chrome/footer labels, shared contact email, and the service-page contact CTA. Empty labels fall back to shipped defaults. Per-page copy is edited under Pages.
+          Site-wide pieces: header and footer links (name + path, add/remove/reorder), contact emails,
+          chrome labels, and the service-page contact CTA. Links to deleted pages stay in admin with an
+          error and are hidden on the storefront. Empty labels fall back to shipped defaults. Per-page
+          copy is edited under Pages.
         </p>
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />
       </div>
@@ -57,7 +63,8 @@ export default async function AdminSettingsPage() {
         copy={copy}
         defaults={defaults}
         headerNav={headerNav}
-        contactEmail={contactEmail}
+        footerLinks={footerLinks}
+        contactEmails={contactEmails}
         locales={locales}
         ptStatus={ptStatus}
       />

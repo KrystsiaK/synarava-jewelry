@@ -1,22 +1,29 @@
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { DEFAULT_HEADER_NAV_ITEMS } from "@/lib/content/header-nav-fields";
+import { defaultFooterLinks } from "@/lib/content/footer-links-fields";
 import { SiteFooter } from "../site-footer";
 
 const defaultHeaderNav = { items: DEFAULT_HEADER_NAV_ITEMS, labels: {} };
-const defaultEmail = "synarava.shop@gmail.com";
+const defaultFooter = defaultFooterLinks();
+const defaultEmails = ["synarava.shop@gmail.com"];
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <ThemeProvider initialPreference="light">{children}</ThemeProvider>;
 }
 
 function renderFooter(
-  props: { headerNav?: typeof defaultHeaderNav; contactEmail?: string } = {},
+  props: {
+    headerNav?: typeof defaultHeaderNav;
+    footerLinks?: typeof defaultFooter;
+    contactEmails?: string[];
+  } = {},
 ) {
   return render(
     <SiteFooter
       headerNav={props.headerNav ?? defaultHeaderNav}
-      contactEmail={props.contactEmail ?? defaultEmail}
+      footerLinks={props.footerLinks ?? defaultFooter}
+      contactEmails={props.contactEmails ?? defaultEmails}
     />,
     { wrapper: Wrapper },
   );
@@ -66,21 +73,63 @@ describe("SiteFooter", () => {
     expect(screen.getByRole("link", { name: "Shop" })).toHaveAttribute("href", "/en/shop");
   });
 
+  it("renders editable service and legal links from footerLinks", () => {
+    renderFooter({
+      footerLinks: {
+        service: {
+          items: [{ id: "care", href: "/care" }],
+          labels: { en: { care: "Care desk" } },
+        },
+        legal: {
+          items: [{ id: "privacy", href: "/privacy" }],
+          labels: { en: { privacy: "Privacy" } },
+        },
+        socials: { items: [], labels: {} },
+      },
+    });
+    expect(screen.getByRole("link", { name: "Care desk" })).toHaveAttribute("href", "/en/care");
+    expect(screen.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/en/privacy");
+  });
+
+  it("renders social column when social links exist", () => {
+    renderFooter({
+      footerLinks: {
+        ...defaultFooter,
+        socials: {
+          items: [{ id: "ig", href: "https://instagram.com/synarava" }],
+          labels: { en: { ig: "Instagram" } },
+        },
+      },
+    });
+    expect(screen.getByText("Social")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
+      "href",
+      "https://instagram.com/synarava",
+    );
+  });
+
   it("does not render a separate Manifesto navigation link", () => {
     renderFooter();
     expect(screen.queryByRole("link", { name: "Manifesto" })).not.toBeInTheDocument();
   });
 
-  it("renders contact email link from props", () => {
-    renderFooter({ contactEmail: "hello@synarava.com" });
+  it("renders contact email links from props", () => {
+    renderFooter({ contactEmails: ["hello@synarava.com", "ops@synarava.com"] });
     expect(screen.getByRole("link", { name: "Contact: hello@synarava.com" })).toHaveAttribute(
       "href",
       "mailto:hello@synarava.com",
     );
+    expect(screen.getByRole("link", { name: "Contact: ops@synarava.com" })).toHaveAttribute(
+      "href",
+      "mailto:ops@synarava.com",
+    );
   });
 
-  it("always exposes cookie settings", () => {
+  it("always exposes cookie settings from legal defaults", () => {
     renderFooter();
-    expect(screen.getByRole("button", { name: "Cookie settings" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cookie settings" })).toHaveAttribute(
+      "href",
+      "/en/cookie-settings",
+    );
   });
 });

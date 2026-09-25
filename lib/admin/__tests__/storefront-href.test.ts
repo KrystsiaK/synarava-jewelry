@@ -13,6 +13,7 @@ import {
   listStaticRouteHits,
   looksLikePath,
   parseHrefSearchQuery,
+  hrefTargetIssueFromSearch,
   hrefTargetWarning,
   statusLabelForCollection,
   statusLabelForProduct,
@@ -116,5 +117,21 @@ describe("storefront-href helpers", () => {
     expect(hrefTargetWarning("UNLISTED")).toMatch(/unlisted/i);
     expect(hrefTargetWarning("PUBLISHED")).toBeUndefined();
     expect(hrefTargetWarning(undefined)).toBeUndefined();
+  });
+
+  it("marks unknown internal paths as errors and leaves external URLs alone", () => {
+    expect(
+      hrefTargetIssueFromSearch({ href: "/deleted-page", hasExactHit: false }),
+    ).toMatchObject({ tone: "error", message: expect.stringMatching(/nowhere|deleted/i) });
+    expect(
+      hrefTargetIssueFromSearch({ href: "https://example.com", hasExactHit: false }),
+    ).toBeUndefined();
+    expect(
+      hrefTargetIssueFromSearch({ href: "/shop", hasExactHit: true, exactHitStatus: "DRAFT" }),
+    ).toMatchObject({ tone: "warning" });
+  });
+
+  it("includes cookie-settings in static routes", () => {
+    expect(listStaticRouteHits().some((hit) => hit.href === "/cookie-settings")).toBe(true);
   });
 });

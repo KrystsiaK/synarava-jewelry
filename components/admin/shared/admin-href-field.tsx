@@ -21,7 +21,7 @@ import { AdminTextControl } from "@/components/admin/shared/admin-text-field";
 import {
   findExactHrefHit,
   flattenHrefHits,
-  hrefTargetWarning,
+  hrefTargetIssueFromSearch,
   looksLikePath,
   normalizeHrefQuery,
   type StorefrontHrefHit,
@@ -31,6 +31,11 @@ import { cn } from "@/lib/ui";
 
 const EMPTY_RESULT: StorefrontHrefSearchResult = { segments: [] };
 
+export type DetectedHrefIssue = {
+  tone: "warning" | "error";
+  message: string;
+};
+
 export type AdminHrefControlProps = {
   name: string;
   defaultValue?: string;
@@ -39,8 +44,10 @@ export type AdminHrefControlProps = {
   /** Soft orange chrome (draft targets, etc.). */
   warning?: string;
   warningId?: string;
-  /** Notifies parent when a draft/unlisted target is detected from search. */
+  /** Notifies parent when a draft/unlisted/missing target is detected from search. */
   onDetectedWarningChange?: (message: string | undefined) => void;
+  /** Richer callback: warning vs error (missing destination). */
+  onDetectedIssueChange?: (issue: DetectedHrefIssue | undefined) => void;
   controlId?: string;
   invalid?: boolean;
   disabled?: boolean;
@@ -58,6 +65,7 @@ export function AdminHrefControl({
   warning,
   warningId,
   onDetectedWarningChange,
+  onDetectedIssueChange,
   controlId,
   invalid = false,
   disabled,
@@ -98,16 +106,32 @@ export function AdminHrefControl({
     ];
   }, []);
 
-  const publishDetectedWarning = (status?: string) => {
-    onDetectedWarningChange?.(hrefTargetWarning(status));
+  const publishDetectedIssue = (options: {
+    href: string;
+    hasExactHit: boolean;
+    exactHitStatus?: string;
+  }) => {
+    const issue = hrefTargetIssueFromSearch(options);
+    onDetectedIssueChange?.(issue);
+    // Legacy warning-only callback: only soft warnings, not hard missing errors.
+    onDetectedWarningChange?.(issue?.tone === "warning" ? issue.message : undefined);
   };
 
-  function commitHref(next: string, status?: string) {
+  function commitHref(next: string, options?: { knownHit?: boolean; status?: string }) {
     const normalized = normalizeHrefQuery(next);
     if (!isControlled) setUncontrolledHref(normalized);
     onValueChange?.(normalized);
     setQuery(normalized);
-    publishDetectedWarning(status);
+    if (options?.knownHit) {
+      publishDetectedIssue({
+        href: normalized,
+        hasExactHit: true,
+        exactHitStatus: options.status,
+      });
+    } else if (!normalized) {
+      publishDetectedIssue({ href: "", hasExactHit: false });
+    }
+    // Unknown typed paths are classified by inspectHref after commit.
     setOpen(false);
     setResult(EMPTY_RESULT);
     setActiveIndex(-1);
@@ -129,13 +153,17 @@ export function AdminHrefControl({
 
   const inspectHref = useEffectEvent((target: string) => {
     if (!target) {
-      publishDetectedWarning(undefined);
+      publishDetectedIssue({ href: "", hasExactHit: false });
       return;
     }
     startTransition(async () => {
       const next = await searchStorefrontHrefsAction(target);
       const hit = findExactHrefHit(next, target);
-      publishDetectedWarning(hit?.status);
+      publishDetectedIssue({
+        href: target,
+        hasExactHit: Boolean(hit),
+        exactHitStatus: hit?.status,
+      });
     });
   });
 
@@ -183,7 +211,9 @@ export function AdminHrefControl({
   }, [open]);
 
   function choose(hit: StorefrontHrefHit) {
-    commitHref(hit.href, hit.status);
+    const known = hit.segment !== "custom";
+    commitHref(hit.href, { knownHit: known, status: hit.status });
+    if (!known) inspectHref(hit.href);
   }
 
   function clear() {
@@ -358,8 +388,11 @@ export function AdminHrefField({
   ...controlProps
 }: AdminHrefFieldProps) {
   const { controlId, messageId, warningId } = useAdminFieldIds(id, errorId);
-  const [detectedWarning, setDetectedWarning] = useState<string | undefined>();
-  const shellWarning = error ? undefined : (warning ?? detectedWarning);
+  const [detectedIssue, setDetectedIssue] = useState<DetectedHrefIssue | undefined>();
+  const detectedError = detectedIssue?.tone === "error" ? detectedIssue.message : undefined;
+  const detectedWarning = detectedIssue?.tone === "warning" ? detectedIssue.message : undefined;
+  const shellError = error ?? detectedError;
+  const shellWarning = shellError ? undefined : (warning ?? detectedWarning);
 
   return (
     <AdminFieldShell
@@ -369,7 +402,7 @@ export function AdminHrefField({
       owner={owner}
       help={help}
       required={required}
-      error={error}
+      error={shellError}
       errorId={messageId}
       warning={shellWarning}
       warningId={warningId}
@@ -381,13 +414,13 @@ export function AdminHrefField({
       <AdminHrefControl
         {...controlProps}
         controlId={controlId}
-        invalid={invalid}
+        invalid={invalid || Boolean(shellError)}
         disabled={disabled}
         warning={shellWarning}
         warningId={warningId}
-        onDetectedWarningChange={setDetectedWarning}
-        aria-invalid={error || invalid ? true : undefined}
-        aria-errormessage={error || invalid ? messageId : undefined}
+        onDetectedIssueChange={setDetectedIssue}
+        aria-invalid={shellError || invalid ? true : undefined}
+        aria-errormessage={shellError || invalid ? messageId : undefined}
       />
     </AdminFieldShell>
   );

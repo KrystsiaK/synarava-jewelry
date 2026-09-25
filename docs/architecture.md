@@ -63,10 +63,12 @@ its models were removed once Shopify covered the same ground.
   - structured CMS blocks for collection detail pages
 - `SiteSetting`
   - singleton-like global content: Header main links (`header-nav-v1`: ordered
-    label + path), footer contact email (`footer-contact-v1`), Shared screen
+    label + path), footer link columns (`footer-links-v1`: service / legal /
+    socials), footer contact emails (`footer-contact-v1`), Shared screen
     chrome/footer/contact-CTA label overrides (`storefront-copy-v1`), and site-wide SEO defaults
     (`site-seo-v1`)
-- `MediaAsset`
+  - storefront rendering filters header/footer paths that no longer resolve
+    (deleted page/product/collection); admin keeps the row and surfaces an error- `MediaAsset`
   - S3-backed asset registry shared by products, collections, pages, and users
 
 ### Auth
@@ -97,7 +99,8 @@ The implemented admin is intentionally small and task-focused:
 
 - `Overview` — content/catalog summary and QA entry point;
 - `Pages` — editorial CMS for all pages including Home and About;
-- `Shared` — site-wide pieces: header main links (name + path, add/remove), chrome/footer labels, shared contact email, and the service-page contact CTA;
+- `Shared` — site-wide pieces: header and footer links (name + path, add/remove),
+  contact emails, chrome/footer labels, and the service-page contact CTA;
 - `Meta` — site-wide SEO defaults and links to page/product SEO editors;
 - `Videos` — shared S3-backed storefront video assets;
 - `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;

@@ -15,8 +15,13 @@ import { PrivacyConsentManager } from "@/components/privacy/privacy-consent-mana
 import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
-import { getFooterContactEmail } from "@/lib/content/footer-contact";
+import { getFooterContactEmails } from "@/lib/content/footer-contact";
+import { getFooterLinks } from "@/lib/content/footer-links";
 import { getHeaderNav } from "@/lib/content/header-nav";
+import {
+  filterLiveFooterLinks,
+  filterLiveHeaderNav,
+} from "@/lib/content/storefront-link-health";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { getSiteSeo } from "@/lib/content/site-seo";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
@@ -138,14 +143,20 @@ export default async function RootLayout({
     storefrontRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ROOT_DOMAIN,
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
-  const [cartCount, isLoggedIn, storefrontCopy, headerNav, contactEmail] = await Promise.all([
+  const [cartCount, isLoggedIn, storefrontCopy, headerNavRaw, footerLinksRaw, contactEmails] =
+    await Promise.all([
     // An unreachable/slow Shopify Storefront API must not block rendering of the
     // whole app (admin included) for a header badge that isn't essential to any page.
     getStorefrontCartCount().catch(() => null),
     hasShopifyCustomerSession(),
     getStorefrontCopy(),
     getHeaderNav(),
-    getFooterContactEmail(),
+    getFooterLinks(),
+    getFooterContactEmails(),
+  ]);
+  const [headerNav, footerLinks] = await Promise.all([
+    filterLiveHeaderNav(headerNavRaw),
+    filterLiveFooterLinks(footerLinksRaw),
   ]);
 
   return (
@@ -211,7 +222,11 @@ export default async function RootLayout({
             <MotionConfig reducedMotion="user">
               <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} headerNav={headerNav} />
               <div id="main-content" tabIndex={-1}>{children}</div>
-              <SiteFooter headerNav={headerNav} contactEmail={contactEmail} />
+              <SiteFooter
+                headerNav={headerNav}
+                footerLinks={footerLinks}
+                contactEmails={contactEmails}
+              />
             </MotionConfig>
           </ThemeProvider>
         </TranslationProvider>

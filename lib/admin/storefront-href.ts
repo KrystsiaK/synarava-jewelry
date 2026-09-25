@@ -106,9 +106,20 @@ export function parseHrefSearchQuery(query: string): ParsedHrefSearchQuery {
   };
 }
 
+/** Extra app routes that are not CMS Page rows but remain valid storefront paths. */
+const EXTRA_STATIC_ROUTE_HITS: StorefrontHrefHit[] = [
+  {
+    id: "route:cookie-settings",
+    segment: "routes",
+    label: "Cookie settings",
+    href: "/cookie-settings",
+    detail: "/cookie-settings",
+  },
+];
+
 /** Built-in storefront routes shown in the Routes segment. */
 export function listStaticRouteHits(): StorefrontHrefHit[] {
-  return BUILT_IN_PAGE_DEFINITIONS.map((page) => {
+  const builtIn = BUILT_IN_PAGE_DEFINITIONS.map((page) => {
     const href = hrefForPage(page.slug);
     return {
       id: `route:${page.slug}`,
@@ -118,6 +129,7 @@ export function listStaticRouteHits(): StorefrontHrefHit[] {
       detail: href,
     };
   });
+  return [...builtIn, ...EXTRA_STATIC_ROUTE_HITS];
 }
 
 export function filterHitsByQuery(hits: StorefrontHrefHit[], query: string): StorefrontHrefHit[] {
@@ -212,6 +224,35 @@ export function hrefTargetWarning(status?: string): string | undefined {
   if (status === "UNLISTED") {
     return "This link target is unlisted — only reachable by direct link.";
   }
+  return undefined;
+}
+
+/**
+ * Warning or error when an admin href has no live target.
+ * Missing internal paths surface as errors (page may have been deleted).
+ */
+export function hrefTargetIssueFromSearch(options: {
+  href: string;
+  hasExactHit: boolean;
+  exactHitStatus?: string;
+}): { tone: "warning" | "error"; message: string } | undefined {
+  const href = normalizeHrefQuery(options.href);
+  if (!href) return undefined;
+  if (/^https?:\/\//i.test(href) || /^mailto:/i.test(href)) return undefined;
+
+  if (options.hasExactHit) {
+    const warning = hrefTargetWarning(options.exactHitStatus);
+    return warning ? { tone: "warning", message: warning } : undefined;
+  }
+
+  if (looksLikePath(href) && href.startsWith("/")) {
+    return {
+      tone: "error",
+      message:
+        "This path leads nowhere — the page, product, or collection may have been deleted.",
+    };
+  }
+
   return undefined;
 }
 

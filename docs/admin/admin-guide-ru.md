@@ -399,20 +399,25 @@ legacy cover, пока не загружены изображения галер
   per locale. Empty name falls back to the shipped default for Home / Shop /
   Collections / About, or to the path for custom rows. Stored in `SiteSetting`
   `header-nav-v1`. The footer **Navigation** column reuses this same menu
-  (home `/` is omitted in the footer).
-- **Contact email:** shared across languages; mailto in the footer service column
-  and on the shared contact CTA banner. Stored in `SiteSetting` `footer-contact-v1`.
-- **Chrome & footer labels:** cart/account, brand, navigation column heading,
-  service/legal copy (EN and other registered locales). Service/legal URLs stay
-  fixed in storefront code. Пустое поле = дефолт из `messages/*.json`.
-  Stored in `storefront-copy-v1`.
+  (home `/` is omitted in the footer). Links to deleted pages stay visible in
+  admin with an error (“leads nowhere”) and are **hidden on the storefront**.
+- **Footer — service / legal / social links:** same model as header main links
+  (`footer-links-v1`). Service and legal ship with the historical defaults;
+  socials start empty. External `https://` URLs are allowed (e.g. Livro de
+  Reclamações, Instagram).
+- **Footer — contact emails:** ordered list of mailto addresses
+  (`footer-contact-v1`). The first email is the primary shared contact CTA
+  target. Shared across languages.
+- **Chrome & footer labels:** cart/account, brand, column headings, contact aria
+  label, and contact-CTA copy (EN and other registered locales). Empty field =
+  default from `messages/*.json`. Stored in `storefront-copy-v1`.
 - **Shared — contact CTA:** title, body, and button label for the banner on Care,
   FAQ, Shipping, Returns, and Dispute Resolution (`service.contactTitle` /
   `contactBody` / `contactCta`). One banner for all those pages — not per-slug.
 - Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
   **Pages**, не здесь (кроме общего contact CTA выше).
 - Chrome/footer/contact-CTA translations sync to Shopify metaobject `$app:storefront_copy`;
-  header main-link labels and contact email are local (no Shopify `MENU`/`LINK`
+  header/footer link labels and contact emails are local (no Shopify `MENU`/`LINK`
   binding yet). Conflicts for synced fields show under **Localization**.
 
 ## 7b. Meta (`/admin/meta`)

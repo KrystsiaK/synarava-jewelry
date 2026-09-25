@@ -189,6 +189,26 @@ export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
       href: "/admin/settings#copy-header-main",
       label: "Header — main links",
     },
+    {
+      id: "settings-footer-service",
+      href: "/admin/settings#copy-footer-service",
+      label: "Footer — service links",
+    },
+    {
+      id: "settings-footer-emails",
+      href: "/admin/settings#copy-footer-emails",
+      label: "Footer — contact emails",
+    },
+    {
+      id: "settings-footer-legal",
+      href: "/admin/settings#copy-footer-legal",
+      label: "Footer — legal links",
+    },
+    {
+      id: "settings-footer-socials",
+      href: "/admin/settings#copy-footer-socials",
+      label: "Footer — social links",
+    },
     ...STOREFRONT_COPY_GROUPS.map((group) => ({
       id: `settings-${group.id}`,
       href: `/admin/settings#copy-${group.id}`,

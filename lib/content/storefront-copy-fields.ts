@@ -3,9 +3,10 @@
 // here are editable; everything else in messages/*.json still requires a code
 // change. Extend this list (not the form) to expose more.
 //
-// Header main links (label + path, add/remove) live in header-nav-v1 — not here.
-// Remaining groups are labels only; footer destinations stay fixed in code.
-// Shared contact CTA copy lives here; contact email is footer-contact-v1.
+// Header main links → header-nav-v1.
+// Footer service / legal / socials links → footer-links-v1.
+// Contact emails → footer-contact-v1.
+// Remaining groups are labels only (headings, chrome, CTA copy).
 
 // Lives here (not storefront-copy.ts) because that module is `server-only`
 // (it touches the database) — this constant is also needed by client
@@ -62,34 +63,23 @@ const FOOTER_NAV_GROUP: StorefrontCopyGroup = {
   ],
 };
 
-const FOOTER_SERVICE_GROUP: StorefrontCopyGroup = {
-  id: "footer-service",
-  title: "Footer — service column",
+const FOOTER_SERVICE_HEADING_GROUP: StorefrontCopyGroup = {
+  id: "footer-service-heading",
+  title: "Footer — service heading",
   description:
-    "Service link labels and contact aria label. Contact email is shared across languages (field below).",
+    "Column heading and contact aria label. Service links and emails are edited in the sections above.",
   fields: [
     { key: "footer.serviceHeading", label: "Column heading" },
-    { key: "footer.careGuide", label: "Care Guide" },
-    { key: "footer.shipping", label: "Shipping" },
-    { key: "footer.returns", label: "Returns" },
-    { key: "footer.faq", label: "FAQ" },
     { key: "footer.contact", label: "Contact label (aria)" },
   ],
 };
 
-const FOOTER_LEGAL_GROUP: StorefrontCopyGroup = {
-  id: "footer-legal",
-  title: "Footer — legal row",
-  description: "Legal and policy link labels at the bottom of the footer.",
+const FOOTER_SOCIAL_HEADING_GROUP: StorefrontCopyGroup = {
+  id: "footer-social-heading",
+  title: "Footer — social heading",
+  description: "Optional heading shown when at least one social link is configured.",
   fields: [
-    { key: "footer.termsConditions", label: "Terms & Conditions" },
-    { key: "footer.privacyPolicy", label: "Privacy Policy" },
-    { key: "footer.cookieSettings", label: "Cookie settings" },
-    { key: "footer.shippingPolicy", label: "Shipping Policy" },
-    { key: "footer.returnPolicy", label: "Return & Refund Policy" },
-    { key: "footer.legalNotice", label: "Legal Notice" },
-    { key: "footer.livroReclamacoes", label: "Livro de Reclamações" },
-    { key: "footer.disputeResolution", label: "Consumer Dispute Resolution" },
+    { key: "footer.socialHeading", label: "Column heading" },
   ],
 };
 
@@ -97,7 +87,7 @@ const SERVICE_CONTACT_GROUP: StorefrontCopyGroup = {
   id: "service-contact",
   title: "Shared — contact CTA",
   description:
-    "Banner on Care, FAQ, Shipping, Returns, and Dispute Resolution. The button mailto uses the shared Contact email under Footer — service column.",
+    "Banner on Care, FAQ, Shipping, Returns, and Dispute Resolution. The button mailto uses the primary Contact email.",
   fields: [
     {
       key: "service.contactTitle",
@@ -126,8 +116,8 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   HEADER_CHROME_GROUP,
   FOOTER_BRAND_GROUP,
   FOOTER_NAV_GROUP,
-  FOOTER_SERVICE_GROUP,
-  FOOTER_LEGAL_GROUP,
+  FOOTER_SERVICE_HEADING_GROUP,
+  FOOTER_SOCIAL_HEADING_GROUP,
   SERVICE_CONTACT_GROUP,
 ];
 

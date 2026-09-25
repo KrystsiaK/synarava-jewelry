@@ -6,19 +6,28 @@ import {
   saveStorefrontCopyAction,
   type StorefrontCopyActionState,
 } from "@/app/admin/actions/storefront-copy";
+import { FooterEmailsEditor } from "@/components/admin/settings/footer-emails-editor";
+import { FooterLinkColumnEditor } from "@/components/admin/settings/footer-link-column-editor";
 import { HeaderNavEditor } from "@/components/admin/settings/header-nav-editor";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminHelp, AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
-import { DEFAULT_FOOTER_CONTACT_EMAIL } from "@/lib/content/footer-contact-fields";
-import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
+import { AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
+import {
+  DEFAULT_FOOTER_LEGAL_LABEL_KEYS,
+  DEFAULT_FOOTER_SERVICE_LABEL_KEYS,
+  type FooterLinksData,
+} from "@/lib/content/footer-links-fields";
 import type { HeaderNavData } from "@/lib/content/header-nav-fields";
+import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 
 const SECTION_JUMPS = [
   { href: "#copy-header-main", label: "Header" },
-  { href: "#copy-footer-brand", label: "Footer" },
+  { href: "#copy-footer-service", label: "Service" },
+  { href: "#copy-footer-legal", label: "Legal" },
+  { href: "#copy-footer-socials", label: "Social" },
+  { href: "#copy-footer-emails", label: "Emails" },
   { href: "#copy-service-contact", label: "Contact CTA" },
 ] as const;
 
@@ -26,14 +35,16 @@ export function StorefrontCopyEditor({
   copy,
   defaults,
   headerNav,
-  contactEmail,
+  footerLinks,
+  contactEmails,
   locales,
   ptStatus,
 }: {
   copy: StorefrontCopy;
   defaults: StorefrontCopy;
   headerNav: HeaderNavData;
-  contactEmail: string;
+  footerLinks: FooterLinksData;
+  contactEmails: string[];
   locales: AdminLocaleTab[];
   ptStatus?: AdminLocaleStatus;
 }) {
@@ -67,10 +78,10 @@ export function StorefrontCopyEditor({
       <AuthMessage error={state.error} />
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-          Header main links: name + path (add/remove). Footer navigation links mirror that menu.
-          Contact email is shared across languages (footer + contact CTA). Other labels: empty falls back to the shipped default.
+          Header and footer links: name + path (add/remove/reorder). Missing destinations show as errors
+          in admin and are hidden on the storefront. Contact emails are shared across languages.
         </p>
-        <nav className="flex gap-2 text-xs" aria-label="Jump to section">
+        <nav className="flex flex-wrap gap-2 text-xs" aria-label="Jump to section">
           {SECTION_JUMPS.map((jump) => (
             <a
               key={jump.href}
@@ -89,6 +100,52 @@ export function StorefrontCopyEditor({
         activeLocale={activeLocale}
         labelPlaceholders={activePlaceholders}
         locales={locales}
+      />
+
+      <FooterLinkColumnEditor
+        columnId="service"
+        title="Footer — service links"
+        description="Service column links. Name is per locale; path is shared. Contact emails are edited below."
+        listLabel="Service links"
+        initial={footerLinks.service}
+        activeLocale={activeLocale}
+        labelPlaceholders={activePlaceholders}
+        defaultLabelKeys={DEFAULT_FOOTER_SERVICE_LABEL_KEYS}
+        locales={locales}
+        fieldName="footerServiceLinks"
+        hrefPlaceholder="/care"
+      />
+
+      <FooterEmailsEditor initialEmails={contactEmails} />
+
+      <FooterLinkColumnEditor
+        columnId="legal"
+        title="Footer — legal links"
+        description="Bottom legal row. Supports storefront paths and external https:// URLs (e.g. Livro de Reclamações)."
+        listLabel="Legal links"
+        initial={footerLinks.legal}
+        activeLocale={activeLocale}
+        labelPlaceholders={activePlaceholders}
+        defaultLabelKeys={DEFAULT_FOOTER_LEGAL_LABEL_KEYS}
+        locales={locales}
+        fieldName="footerLegalLinks"
+        hrefPlaceholder="/privacy"
+        allowExternalHint
+      />
+
+      <FooterLinkColumnEditor
+        columnId="socials"
+        title="Footer — social links"
+        description="Optional social column. Add Instagram, Pinterest, etc. with a label and URL. Hidden on the storefront when empty."
+        listLabel="Social links"
+        initial={footerLinks.socials}
+        activeLocale={activeLocale}
+        labelPlaceholders={activePlaceholders}
+        defaultLabelKeys={{}}
+        locales={locales}
+        fieldName="footerSocialLinks"
+        hrefPlaceholder="https://"
+        allowExternalHint
       />
 
       {STOREFRONT_COPY_GROUPS.map((group) => (
@@ -138,21 +195,6 @@ export function StorefrontCopyEditor({
                 })}
               </div>
             ))}
-
-            {group.id === "footer-service" ? (
-              <AdminTextField
-                label="Contact email"
-                name="footerContactEmail"
-                defaultValue={contactEmail}
-                placeholder={DEFAULT_FOOTER_CONTACT_EMAIL}
-                help={
-                  <AdminHelp>
-                    Shared across languages. Mailto in the footer service column and on the shared contact CTA banner.
-                  </AdminHelp>
-                }
-                clearable
-              />
-            ) : null}
           </div>
         </section>
       ))}

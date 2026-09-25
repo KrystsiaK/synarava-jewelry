@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +14,7 @@ vi.mock("@/app/admin/actions/storefront-href", () => ({
 
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
 import { DEFAULT_FOOTER_CONTACT_EMAIL } from "@/lib/content/footer-contact-fields";
+import { defaultFooterLinks } from "@/lib/content/footer-links-fields";
 import { DEFAULT_HEADER_NAV_ITEMS } from "@/lib/content/header-nav-fields";
 
 const EN_PT_LOCALES = [
@@ -22,6 +23,7 @@ const EN_PT_LOCALES = [
 ];
 
 const defaultHeaderNav = { items: DEFAULT_HEADER_NAV_ITEMS, labels: {} };
+const defaultFooter = defaultFooterLinks();
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -33,7 +35,8 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: { "nav.cart": "Cart" }, pt: { "nav.cart": "Carrinho" } }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
-        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
+        footerLinks={defaultFooter}
+        contactEmails={[DEFAULT_FOOTER_CONTACT_EMAIL]}
         locales={EN_PT_LOCALES}
       />,
     );
@@ -48,7 +51,7 @@ describe("StorefrontCopyEditor", () => {
     expect(screen.getByLabelText("Cart (PT)")).toHaveValue("Carrinho");
   });
 
-  it("submits header nav JSON plus en: and pt: chrome keys in one save", async () => {
+  it("submits header nav, footer links, and emails in one save", async () => {
     mocks.saveStorefrontCopyAction.mockResolvedValue({ success: "Shared saved." });
     const user = userEvent.setup();
     render(
@@ -56,7 +59,8 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: {}, pt: {} }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
-        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
+        footerLinks={defaultFooter}
+        contactEmails={[DEFAULT_FOOTER_CONTACT_EMAIL]}
         locales={EN_PT_LOCALES}
       />,
     );
@@ -70,9 +74,15 @@ describe("StorefrontCopyEditor", () => {
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
     expect(formData.get("en:nav.cart")).toBe("Bag");
     expect(formData.get("pt:nav.cart")).toBe("Saco");
-    expect(formData.get("footerContactEmail")).toBe(DEFAULT_FOOTER_CONTACT_EMAIL);
+    expect(JSON.parse(String(formData.get("footerContactEmails")))).toEqual([
+      DEFAULT_FOOTER_CONTACT_EMAIL,
+    ]);
     const headerNav = JSON.parse(String(formData.get("headerNav")));
     expect(headerNav.items).toEqual(DEFAULT_HEADER_NAV_ITEMS);
+    const service = JSON.parse(String(formData.get("footerServiceLinks")));
+    expect(service.items.length).toBeGreaterThan(0);
+    expect(JSON.parse(String(formData.get("footerLegalLinks"))).items.length).toBeGreaterThan(0);
+    expect(JSON.parse(String(formData.get("footerSocialLinks"))).items).toEqual([]);
   });
 
   it("renders and submits a third registered locale (Russian) the same way as EN/PT", async () => {
@@ -82,7 +92,8 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: {}, pt: {}, ru: { "nav.cart": "Корзина" } }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
-        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
+        footerLinks={defaultFooter}
+        contactEmails={[DEFAULT_FOOTER_CONTACT_EMAIL]}
         locales={[...EN_PT_LOCALES, { code: "ru", label: "Русский" }]}
       />,
     );
@@ -103,37 +114,39 @@ describe("StorefrontCopyEditor", () => {
         copy={{ en: {}, pt: {} }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
-        contactEmail={DEFAULT_FOOTER_CONTACT_EMAIL}
+        footerLinks={defaultFooter}
+        contactEmails={[DEFAULT_FOOTER_CONTACT_EMAIL]}
         locales={EN_PT_LOCALES}
       />,
     );
 
     expect(screen.getByText("Header — main links")).toBeInTheDocument();
-    expect(screen.getAllByLabelText(/Name \(EN\)/)).toHaveLength(4);
-    await user.click(screen.getByRole("button", { name: "Add link" }));
-    expect(screen.getAllByLabelText(/Name \(EN\)/)).toHaveLength(5);
-    expect(screen.getByRole("list", { name: "Main links" }).querySelectorAll("[data-component='AdminHrefField']")).toHaveLength(5);
+    const headerSection = document.getElementById("copy-header-main")!;
+    expect(within(headerSection).getByRole("list", { name: "Main links" }).querySelectorAll("[data-component='AdminHrefField']")).toHaveLength(4);
+    await user.click(within(headerSection).getByRole("button", { name: "Add link" }));
+    expect(within(headerSection).getByRole("list", { name: "Main links" }).querySelectorAll("[data-component='AdminHrefField']")).toHaveLength(5);
   });
 
-  it("exposes a shared contact email field and omits duplicate footer nav Shop/Collections/About labels", () => {
+  it("exposes footer link editors and contact emails instead of label-only service/legal rows", () => {
     render(
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {} }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
-        contactEmail="ops@synarava.com"
+        footerLinks={defaultFooter}
+        contactEmails={["ops@synarava.com"]}
         locales={EN_PT_LOCALES}
       />,
     );
 
-    expect(screen.getByRole("textbox", { name: "Contact email" })).toHaveValue("ops@synarava.com");
+    expect(screen.getByText("Footer — service links")).toBeInTheDocument();
+    expect(screen.getByText("Footer — legal links")).toBeInTheDocument();
+    expect(screen.getByText("Footer — social links")).toBeInTheDocument();
+    expect(screen.getByText("Footer — contact emails")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Email (primary)" })).toHaveValue("ops@synarava.com");
     expect(screen.getByText("Shared — contact CTA")).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Title (EN)").length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText("Body (EN)").length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText("Button label (EN)").length).toBeGreaterThan(0);
-    expect(screen.queryByLabelText("Shop (EN)")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Collections (EN)")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("About (EN)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Care Guide (EN)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Privacy Policy (EN)")).not.toBeInTheDocument();
     expect(screen.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);
   });
 });
