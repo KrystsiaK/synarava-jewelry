@@ -200,7 +200,7 @@ function ProductHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease, delay: 0.55 }}
           >
-            <ProductSpecifications product={product} compact />
+            <ProductSpecifications product={product} />
           </motion.div>
         </motion.div>
       </div>
@@ -208,13 +208,7 @@ function ProductHero({
   );
 }
 
-function ProductSpecifications({
-  product,
-  compact = false,
-}: {
-  product: ProductSummary;
-  compact?: boolean;
-}) {
+function ProductSpecifications({ product }: { product: ProductSummary }) {
   const { t, locale } = useTranslations();
   const presentation = getProductPresentation(t);
   type SpecificationRow = {
