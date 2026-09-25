@@ -69,8 +69,6 @@ describe("admin-nav-config", () => {
     expect(settings?.badge).toEqual({ kind: "sync", count: 1 });
     expect(catalog?.children).toBeUndefined();
     expect(catalog?.badge).toEqual({ kind: "sync", count: 5 });
-    // Authoring paused → sync-only Catalog (code SYNC until authoring returns).
-    expect(catalog?.code).toBe("SYNC");
     expect(collections?.badge).toEqual({ kind: "sync", count: 1 });
     expect(problems?.badge).toEqual({ kind: "issues", count: 3 });
     expect(localization?.badge).toEqual({ kind: "sync", count: 9 });

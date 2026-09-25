@@ -1,16 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { isAdminProductAuthoringEnabled } from "@/lib/admin/catalog-authoring";
 import { ProductCreateRoute } from "@/components/admin/products/product-route-editor";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 
 export default async function NewProductPage() {
-  if (!isAdminProductAuthoringEnabled()) {
-    redirect("/admin/products");
-  }
-
   const [{ collections }, translationLocales] = await Promise.all([
     getAdminCatalogData(),
     getAdminTranslationLocales(),

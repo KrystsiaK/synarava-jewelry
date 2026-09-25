@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { ProductEditRoute } from "@/components/admin/products/product-route-editor";
 import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
-import { isAdminProductAuthoringEnabled } from "@/lib/admin/catalog-authoring";
 import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
@@ -17,10 +15,6 @@ export default async function EditProductPage({
 }: {
   params: Promise<{ productId: string }>;
 }) {
-  if (!isAdminProductAuthoringEnabled()) {
-    redirect("/admin/products");
-  }
-
   const { productId } = await params;
   const session = await requireAdminSession("/admin/products");
   const [{ products, collections, issues }, syncDifferences, translationLocales, conflictSignals] = await Promise.all([

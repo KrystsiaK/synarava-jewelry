@@ -7,7 +7,6 @@ import { z } from "zod";
 import { createHash } from "node:crypto";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
-import { isAdminProductAuthoringEnabled } from "@/lib/admin/catalog-authoring";
 import { productCommerceSignature } from "@/lib/admin/product-commerce-signature";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
@@ -45,14 +44,6 @@ import {
   writeAuditLog,
   type DraftAutosaveResult,
 } from "./shared";
-
-const PRODUCT_AUTHORING_PAUSED =
-  "Product editing is temporarily paused. Pull catalog updates from Shopify on the Catalog page.";
-
-function rejectIfProductAuthoringPaused(): ProductActionState | null {
-  if (isAdminProductAuthoringEnabled()) return null;
-  return { error: PRODUCT_AUTHORING_PAUSED };
-}
 
 export type ProductActionState = {
   error?: string;
@@ -306,7 +297,6 @@ async function finishProductMediaMutation(productId: string, success: string): P
 
 export async function uploadProductMediaAction(formData: FormData): Promise<ProductMediaActionState> {
   const currentUser = await requireAdminSession("/admin/products");
-  if (!isAdminProductAuthoringEnabled()) return { error: PRODUCT_AUTHORING_PAUSED };
   const productId = formValue(formData, "productId");
   const alt = formValue(formData, "alt");
   const file = formData.get("file");
@@ -345,7 +335,6 @@ export async function uploadProductMediaAction(formData: FormData): Promise<Prod
 
 export async function setPrimaryProductMediaAction(mediaId: string): Promise<ProductMediaActionState> {
   await requireAdminSession("/admin/products");
-  if (!isAdminProductAuthoringEnabled()) return { error: PRODUCT_AUTHORING_PAUSED };
   const media = await db.productMedia.findUnique({ where: { id: mediaId }, include: { asset: true } });
   if (!media) return { error: "Gallery image not found." };
   await db.$transaction([
@@ -359,7 +348,6 @@ export async function setPrimaryProductMediaAction(mediaId: string): Promise<Pro
 
 export async function moveProductMediaAction(mediaId: string, direction: -1 | 1): Promise<ProductMediaActionState> {
   await requireAdminSession("/admin/products");
-  if (!isAdminProductAuthoringEnabled()) return { error: PRODUCT_AUTHORING_PAUSED };
   const media = await db.productMedia.findUnique({ where: { id: mediaId } });
   if (!media) return { error: "Gallery image not found." };
   const neighbor = await db.productMedia.findFirst({
@@ -386,7 +374,6 @@ export async function moveProductMediaAction(mediaId: string, direction: -1 | 1)
 
 export async function removeProductMediaAction(mediaId: string): Promise<ProductMediaActionState> {
   await requireAdminSession("/admin/products");
-  if (!isAdminProductAuthoringEnabled()) return { error: PRODUCT_AUTHORING_PAUSED };
   const media = await db.productMedia.findUnique({ where: { id: mediaId }, include: { product: { select: { primaryAssetId: true } } } });
   if (!media) return { error: "Gallery image not found." };
   await db.productMedia.delete({ where: { id: media.id } });
@@ -564,8 +551,6 @@ function productConflictState(field: "slug" | "sku"): ProductActionState {
 
 export async function saveProductAction(formData: FormData): Promise<ProductActionState> {
   const currentUser = await requireAdminSession("/admin/products");
-  const paused = rejectIfProductAuthoringPaused();
-  if (paused) return paused;
 
   const parsed = parseFormData(formData, saveProductFieldsSchema);
   if (!parsed.success) {
@@ -1062,9 +1047,6 @@ const autosaveProductFieldsSchema = z.object({
 
 export async function autosaveProductDraftAction(formData: FormData): Promise<DraftAutosaveResult & { product?: SavedProductPayload }> {
   await requireAdminSession("/admin/products");
-  if (!isAdminProductAuthoringEnabled()) {
-    return { error: PRODUCT_AUTHORING_PAUSED };
-  }
 
   if (formValue(formData, "forceDraft") !== "1" && !hasMeaningfulDraftInput(formData, ["productId", "workflowState", "existingImageUrl"])) {
     return {};
@@ -1227,8 +1209,6 @@ const deleteProductSchema = z.object({
 
 export async function deleteProductAction(formData: FormData): Promise<ProductActionState> {
   await requireAdminSession("/admin/products");
-  const paused = rejectIfProductAuthoringPaused();
-  if (paused) return paused;
 
   const parsed = parseFormData(formData, deleteProductSchema);
   if (!parsed.success) {
@@ -1271,8 +1251,6 @@ const updateProductStatusSchema = z.object({
 
 export async function updateProductStatusAction(formData: FormData): Promise<ProductActionState> {
   await requireAdminSession("/admin/products");
-  const paused = rejectIfProductAuthoringPaused();
-  if (paused) return paused;
 
   const parsed = parseFormData(formData, updateProductStatusSchema);
   if (!parsed.success) {

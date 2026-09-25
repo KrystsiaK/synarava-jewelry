@@ -4,12 +4,6 @@
 
 Shopify is the system of record for every customer-facing commerce field that Shopify can represent. Synarava must pull and preserve those fields before adding its own data. Synarava is an enrichment layer, not a competing catalog.
 
-**Temporary admin mode:** product create/edit in Synarava Catalog is paused
-(`ADMIN_PRODUCT_AUTHORING_ENABLED` in `lib/admin/catalog-authoring.ts`).
-`/admin/products` is a Shopify sync table (pull imports + refresh). Storefront
-listing, filters, collections, and admin product pickers continue to use the
-local Prisma projection; keep webhooks and pull paths alive.
-
 The synchronization boundary has three explicit layers:
 
 1. **Shopify standard fields** — Shopify owns identity, sellability, pricing, inventory, variants, options, primary and gallery media, taxonomy, SEO, publication state, shipping measurements, and other supported product/variant fields.

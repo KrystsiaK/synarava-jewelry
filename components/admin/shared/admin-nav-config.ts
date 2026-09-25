@@ -1,5 +1,4 @@
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
-import { isAdminProductAuthoringEnabled } from "@/lib/admin/catalog-authoring";
 
 /** Attention signal for a nav node (open problems and/or Shopify sync conflicts). */
 export type AdminNavSignal = "issue" | "sync" | "both";
@@ -19,10 +18,6 @@ export type AdminNavBadgeConfig = {
  * Declarative admin sidebar item.
  * Set `children` only for sections that expand in-place (Pages, Shared).
  * Catalog and other list CRUDs stay flat — do not pass product/collection children.
- *
- * When `disabled` is true, the item renders as a non-navigable control
- * (temporary pause of a section). Prefer a replacement page over a disabled
- * dead-end when the section still needs an active workflow.
  */
 export type AdminNavItemConfig = {
   id: string;
@@ -36,10 +31,6 @@ export type AdminNavItemConfig = {
   badge?: AdminNavBadgeConfig;
   /** When true and collapsed with children, show muted child count. */
   showChildCount?: boolean;
-  /** Non-navigable muted item (temporary section pause). */
-  disabled?: boolean;
-  /** Tooltip / title when disabled. */
-  disabledReason?: string;
 };
 
 export type AdminNavPageRef = {
@@ -258,22 +249,13 @@ export function buildAdminNavItems({
     },
     { id: "meta", href: "/admin/meta", label: "Meta", code: "META" },
     { id: "videos", href: "/admin/videos", label: "Videos", code: "VID" },
-    isAdminProductAuthoringEnabled()
-      ? {
-          id: "products",
-          href: "/admin/products",
-          label: "Catalog",
-          code: "CAT",
-          badge: syncBadge(sync.products),
-        }
-      : {
-          // Authoring paused: Catalog is the Shopify sync table (not create/edit).
-          id: "products",
-          href: "/admin/products",
-          label: "Catalog",
-          code: "SYNC",
-          badge: syncBadge(sync.products),
-        },
+    {
+      id: "products",
+      href: "/admin/products",
+      label: "Catalog",
+      code: "CAT",
+      badge: syncBadge(sync.products),
+    },
     {
       id: "issues",
       href: "/admin/issues",

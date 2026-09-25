@@ -83,28 +83,11 @@ legal/service page sections are add/remove/reorder with editable names.
 
 ## 4. Каталог → Товары (`/admin/products`)
 
-> **Временно (sync-only):** создание и редактирование товаров в админке
-> отключены (`ADMIN_PRODUCT_AUTHORING_ENABLED = false`). Catalog показывает
-> таблицу локальной проекции Shopify и кнопку **Pull from Shopify**
-> (импорт новых + обновление связанных). Витрина, фильтры, коллекции и
-> product autocomplete / showcase slots **не ломаются** — они читают
-> Prisma `Product`, а не редактор. Редакторский слой Synarava (символизм и
-> т.п.) заморожен до возврата authoring. Вернуть полный Catalog: флаг
-> `true` в `lib/admin/catalog-authoring.ts`.
-
 Самый сложный раздел админки: карточка товара одновременно хранит данные,
 которыми управляет Shopify («коммерческое ядро»), и редакторский контент,
 который принадлежит только Synarava CMS и переживает любую синхронизацию.
 
-### 4.0. Sync-only режим (текущий)
-
-- Список: имя, SKU, статус, цена, sync status, Shopify ID, last synced.
-- **Pull from Shopify** — импорт `SHOPIFY_ONLY` + force-pull всех linked.
-- Per-row pull для одного товара.
-- Нет New / Edit / Publish / Archive / Delete / conflict workspace.
-- Webhooks продуктов по-прежнему обновляют проекцию в фоне.
-
-### 4.1. Список товаров (полный authoring)
+### 4.1. Список товаров
 
 - Поиск по названию, слагу, SKU.
 - Фильтры: статус (`Published` / `Draft` / `Archived`), категория Shopify,
@@ -117,9 +100,6 @@ legal/service page sections are add/remove/reorder with editable names.
 - Сигналы отражают сохранённые расхождения, а не гарантированное состояние Shopify прямо сейчас. `Checking`, `stale`, `failed` и `disconnected` отмечаются отдельно; при ошибке чтения данных ноль конфликтов не показывается.
 
 ### 4.2. Создание / редактирование товара
-
-> Доступно только при `ADMIN_PRODUCT_AUTHORING_ENABLED = true`. Иначе
-> `/admin/products/new` и `/admin/products/[id]` редиректят на список.
 
 Редактор — **workspace** с разделением Save и Sync. После Save позиция
 скролла в колонке контента не сбрасывается (остаётесь на той же секции).
