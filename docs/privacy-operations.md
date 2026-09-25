@@ -3,7 +3,9 @@
 The storefront owns the consent UI and stores a versioned decision in
 `synarava-consent` for 180 days. Optional destinations are disabled by default.
 Visitors can reject all optional purposes from the first layer, choose purposes
-individually, and reopen the settings from every page footer.
+individually in the first-visit modal, and reopen the same controls anytime at
+`/cookie-settings` (footer “Cookie settings”, Privacy Policy links, or any
+WYSIWYG `/cookie-settings` href).
 
 ## Production configuration
 
@@ -40,12 +42,14 @@ It reports only missing variable names and configuration status, never values.
 3. Reject optional cookies, reload, and confirm the banner stays dismissed and no
    optional destination is contacted.
 4. Enable analytics alone and confirm GTM loads while Meta does not.
-5. Enable marketing, then withdraw it from the footer and confirm optional cookies
-   are removed and the page reloads without Meta.
+5. Enable marketing, then withdraw it from `/cookie-settings` (footer link) and
+   confirm optional cookies are removed and the page reloads without Meta.
 6. Repeat the flow in English and Portuguese and on mobile keyboard/screen-reader paths.
-7. Record the deployed policy version, vendor contracts, retention settings, and
+7. Confirm a Privacy Policy or WYSIWYG link with href `/cookie-settings` opens the
+   settings page (not a second modal).
+8. Record the deployed policy version, vendor contracts, retention settings, and
    international-transfer safeguards in the internal processing register.
-8. Complete a Shopify test order with analytics accepted, confirm exactly one
+9. Complete a Shopify test order with analytics accepted, confirm exactly one
    `purchase` in GA4 DebugView, then repeat with analytics rejected and confirm
    that no Google pixel runs in Shopify checkout.
 

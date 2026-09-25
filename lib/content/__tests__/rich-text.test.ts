@@ -60,7 +60,7 @@ describe("rich-text helpers", () => {
     expect(clean).not.toContain("target=");
     expect(sanitizeHref("/shop")).toBe("/shop");
     expect(sanitizeHref("#section")).toBe("#section");
-    expect(sanitizeHref("action:cookie-settings")).toBe("action:cookie-settings");
+    expect(sanitizeHref("action:cookie-settings")).toBe("/cookie-settings");
     expect(sanitizeHref("action:evil")).toBeNull();
     expect(isInternalHref("/care")).toBe(true);
     expect(isExternalHttpHref("https://example.com")).toBe(true);

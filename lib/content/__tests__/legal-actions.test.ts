@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { isLegalActionHref, parseLegalActionHref } from "@/lib/content/legal-actions";
+import {
+  isLegalActionHref,
+  parseLegalActionHref,
+  resolveLegalActionPath,
+} from "@/lib/content/legal-actions";
 
 describe("isLegalActionHref", () => {
   it("recognizes the action: scheme regardless of the identifier", () => {
@@ -28,5 +32,16 @@ describe("parseLegalActionHref", () => {
 
   it("returns null for a non-action href", () => {
     expect(parseLegalActionHref("https://example.com")).toBeNull();
+  });
+});
+
+describe("resolveLegalActionPath", () => {
+  it("maps allowlisted actions to storefront paths", () => {
+    expect(resolveLegalActionPath("action:cookie-settings")).toBe("/cookie-settings");
+  });
+
+  it("returns null for unknown or non-action hrefs", () => {
+    expect(resolveLegalActionPath("action:evil")).toBeNull();
+    expect(resolveLegalActionPath("/cookie-settings")).toBeNull();
   });
 });

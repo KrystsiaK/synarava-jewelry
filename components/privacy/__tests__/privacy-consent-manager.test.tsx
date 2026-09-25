@@ -1,14 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PrivacyConsentManager } from "../privacy-consent-manager";
-import {
-  createPrivacyConsent,
-  OPEN_PRIVACY_PREFERENCES_EVENT,
-  PRIVACY_CONSENT_COOKIE,
-  serializePrivacyConsent,
-} from "@/lib/privacy/consent";
+import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 
 vi.mock("next/script", () => ({ default: () => null }));
 
@@ -31,15 +26,11 @@ describe("PrivacyConsentManager", () => {
     expect(screen.queryByRole("button", { name: "Accept all" })).not.toBeInTheDocument();
   });
 
-  it("reopens granular settings after an earlier decision", async () => {
-    const initialConsent = serializePrivacyConsent(createPrivacyConsent({
-      preferences: false,
-      analytics: false,
-      marketing: false,
-    }));
-    render(<PrivacyConsentManager initialConsent={initialConsent} />);
+  it("opens the shared preferences form from Customize on first visit", async () => {
+    const user = userEvent.setup();
+    render(<PrivacyConsentManager />);
 
-    fireEvent(window, new Event(OPEN_PRIVACY_PREFERENCES_EVENT));
+    await user.click(screen.getByRole("button", { name: "Customize" }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog", { name: "Cookie preferences" })).toBeInTheDocument();

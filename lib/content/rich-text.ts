@@ -3,7 +3,7 @@
  * Allowed markup: paragraphs, lists, line breaks, emphasis, and safe links.
  */
 
-import { parseLegalActionHref } from "@/lib/content/legal-actions";
+import { resolveLegalActionPath } from "@/lib/content/legal-actions";
 
 const TAG_RE = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
 const HREF_RE = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
@@ -50,15 +50,17 @@ export function isExternalHttpHref(href: string): boolean {
 }
 
 /**
- * Accept http(s), mailto, in-app paths (`/shop`), hash anchors, and allowlisted
- * `action:` legal handlers. Bare `www.` → `https://`.
+ * Accept http(s), mailto, in-app paths (`/shop`), hash anchors.
+ * Legacy allowlisted `action:` hrefs normalize to their storefront path
+ * (e.g. `action:cookie-settings` → `/cookie-settings`). Bare `www.` → `https://`.
  * @see https://tiptap.dev/docs/editor/extensions/marks/link#isalloweduri
  */
 export function sanitizeHref(href: string): string | null {
   const trimmed = href.trim();
   if (!trimmed) return null;
   if (/^(javascript|data|vbscript):/i.test(trimmed)) return null;
-  if (parseLegalActionHref(trimmed)) return trimmed;
+  const actionPath = resolveLegalActionPath(trimmed);
+  if (actionPath) return actionPath;
   if (
     isExternalHttpHref(trimmed) ||
     /^mailto:/i.test(trimmed) ||

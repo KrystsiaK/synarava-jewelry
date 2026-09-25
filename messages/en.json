@@ -38,6 +38,12 @@
     "disputeResolution": "Consumer Dispute Resolution",
     "copyright": "© 2026 Synarava."
   },
+  "cookieSettings": {
+    "metaTitle": "Cookie settings | Synarava",
+    "metaDescription": "Review and change optional cookie and tracking preferences for the Synarava storefront.",
+    "saved": "Your choices were saved.",
+    "backToPrivacy": "Back to Privacy Policy"
+  },
   "privacyConsent": {
     "eyebrow": "Privacy choices",
     "title": "Your privacy, your choice",
@@ -47,7 +53,7 @@
     "rejectAll": "Reject optional",
     "customize": "Customize",
     "preferencesTitle": "Cookie preferences",
-    "preferencesDescription": "Choose each optional purpose separately. You can return here from the footer and change your choice at any time.",
+    "preferencesDescription": "Choose each optional purpose separately. You can return anytime from Cookie settings in the footer.",
     "necessaryTitle": "Strictly necessary",
     "necessaryDescription": "Required for security, checkout, account sessions, consent records, and core site operation. These cannot be switched off here.",
     "preferenceTitle": "Preferences",

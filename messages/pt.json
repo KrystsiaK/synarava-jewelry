@@ -38,6 +38,12 @@
     "disputeResolution": "Resolução de litígios de consumo",
     "copyright": "© 2026 Synarava."
   },
+  "cookieSettings": {
+    "metaTitle": "Definições de cookies | Synarava",
+    "metaDescription": "Reveja e altere as preferências opcionais de cookies e rastreamento da loja Synarava.",
+    "saved": "As suas escolhas foram guardadas.",
+    "backToPrivacy": "Voltar à Política de Privacidade"
+  },
   "privacyConsent": {
     "eyebrow": "Opções de privacidade",
     "title": "A sua privacidade, a sua escolha",
@@ -47,7 +53,7 @@
     "rejectAll": "Recusar opcionais",
     "customize": "Personalizar",
     "preferencesTitle": "Preferências de cookies",
-    "preferencesDescription": "Escolha cada finalidade opcional separadamente. Pode voltar aqui através do rodapé e alterar a sua escolha a qualquer momento.",
+    "preferencesDescription": "Escolha cada finalidade opcional separadamente. Pode voltar a qualquer momento através de Definições de cookies no rodapé.",
     "necessaryTitle": "Estritamente necessários",
     "necessaryDescription": "Necessários para segurança, checkout, sessões de conta, registo do consentimento e funcionamento essencial. Não podem ser desativados aqui.",
     "preferenceTitle": "Preferências",

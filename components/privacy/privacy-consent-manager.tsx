@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { CookiePreferencesForm } from "@/components/privacy/cookie-preferences-form";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { ArtifactButton } from "@/components/ui/artifact-button";
 import { useTranslations } from "@/lib/i18n/context";
@@ -11,15 +12,16 @@ import { localePath } from "@/lib/i18n/routing";
 import { initializeClientTelemetry, publishClientTelemetry } from "@/lib/telemetry/client";
 import {
   createPrivacyConsent,
-  OPEN_PRIVACY_PREFERENCES_EVENT,
   parsePrivacyConsent,
   PRIVACY_CONSENT_CHANGED_EVENT,
-  PRIVACY_CONSENT_COOKIE,
-  PRIVACY_CONSENT_MAX_AGE,
-  serializePrivacyConsent,
   type PrivacyConsent,
   type PrivacyConsentChoices,
 } from "@/lib/privacy/consent";
+import {
+  DEFAULT_PRIVACY_CHOICES,
+  persistPrivacyConsent,
+  writeConsentCookie,
+} from "@/lib/privacy/consent-persistence";
 
 type ShopifyPrivacyConfig = {
   storefrontAccessToken: string;
@@ -56,27 +58,6 @@ declare global {
   }
 }
 
-const DEFAULT_CHOICES: PrivacyConsentChoices = {
-  preferences: false,
-  analytics: false,
-  marketing: false,
-};
-
-const OPTIONAL_COOKIE_PREFIXES = ["_ga", "_gid", "_gat", "_fbp", "_fbc"];
-
-function writeConsentCookie(consent: PrivacyConsent) {
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${PRIVACY_CONSENT_COOKIE}=${serializePrivacyConsent(consent)}; Path=/; Max-Age=${PRIVACY_CONSENT_MAX_AGE}; SameSite=Lax${secure}`;
-}
-
-function clearKnownOptionalCookies() {
-  for (const cookie of document.cookie.split(";")) {
-    const name = cookie.split("=")[0]?.trim();
-    if (!name || !OPTIONAL_COOKIE_PREFIXES.some((prefix) => name.startsWith(prefix))) continue;
-    document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
-  }
-}
-
 function consentFromShopify(value: ShopifyConsent): PrivacyConsent | null {
   const hasDecision = [value.analytics, value.marketing, value.preferences]
     .some((choice) => choice === "yes" || choice === "no");
@@ -86,36 +67,6 @@ function consentFromShopify(value: ShopifyConsent): PrivacyConsent | null {
     marketing: value.marketing === "yes",
     preferences: value.preferences === "yes",
   });
-}
-
-function ConsentToggle({
-  checked,
-  disabled,
-  label,
-  description,
-  onChange,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  label: string;
-  description: string;
-  onChange?: (checked: boolean) => void;
-}) {
-  return (
-    <label data-component="ConsentToggle" className="flex cursor-pointer items-start justify-between gap-5 border-b border-stroke py-5 last:border-0">
-      <span>
-        <span className="label-caps block text-foreground">{label}</span>
-        <span className="mt-1.5 block text-sm leading-6 text-foreground/65">{description}</span>
-      </span>
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange?.(event.target.checked)}
-        className="mt-1 size-5 shrink-0 accent-[var(--color-accent)]"
-      />
-    </label>
-  );
 }
 
 function ConsentDestinations({
@@ -174,7 +125,7 @@ export function PrivacyConsentManager({
 }) {
   const { t, locale } = useTranslations();
   const [consent, setConsent] = useState<PrivacyConsent | null>(() => parsePrivacyConsent(initialConsent));
-  const [draft, setDraft] = useState<PrivacyConsentChoices>(() => consent ?? DEFAULT_CHOICES);
+  const [draft, setDraft] = useState<PrivacyConsentChoices>(() => consent ?? DEFAULT_PRIVACY_CHOICES);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const previousConsent = useRef(consent);
 
@@ -198,32 +149,26 @@ export function PrivacyConsentManager({
   }, [shopifyConfig]);
 
   const save = useCallback((choices: PrivacyConsentChoices) => {
-    const next = createPrivacyConsent(choices);
-    const isWithdrawal = Boolean(
-      previousConsent.current
-      && ((previousConsent.current.analytics && !next.analytics)
-        || (previousConsent.current.marketing && !next.marketing)),
-    );
-    writeConsentCookie(next);
-    if (isWithdrawal) clearKnownOptionalCookies();
-    previousConsent.current = next;
-    setConsent(next);
-    setDraft(next);
+    persistPrivacyConsent(choices, previousConsent.current);
     setPreferencesOpen(false);
-    window.dispatchEvent(new CustomEvent(PRIVACY_CONSENT_CHANGED_EVENT, { detail: next }));
-    syncShopify(next);
-    if (isWithdrawal) window.location.reload();
-  }, [syncShopify]);
+  }, []);
 
   useEffect(() => {
     initializeClientTelemetry();
-    const openPreferences = () => {
-      setDraft(consent ?? DEFAULT_CHOICES);
-      setPreferencesOpen(true);
+    // Page (`/cookie-settings`) and other surfaces persist via the shared
+    // helper and dispatch this event so destinations / draft stay in sync
+    // without a full reload (withdrawal still reloads itself).
+    const onConsentChanged = (event: Event) => {
+      const next = (event as CustomEvent<PrivacyConsent>).detail;
+      if (!next) return;
+      previousConsent.current = next;
+      setConsent(next);
+      setDraft(next);
+      syncShopify(next);
     };
-    window.addEventListener(OPEN_PRIVACY_PREFERENCES_EVENT, openPreferences);
-    return () => window.removeEventListener(OPEN_PRIVACY_PREFERENCES_EVENT, openPreferences);
-  }, [consent]);
+    window.addEventListener(PRIVACY_CONSENT_CHANGED_EVENT, onConsentChanged);
+    return () => window.removeEventListener(PRIVACY_CONSENT_CHANGED_EVENT, onConsentChanged);
+  }, [syncShopify]);
 
   function initializeShopifyPrivacy() {
     if (!window.Shopify?.loadFeatures) return;
@@ -284,10 +229,17 @@ export function PrivacyConsentManager({
             <ArtifactButton size="sm" variant="secondary" onClick={() => save({ preferences: true, analytics: true, marketing: true })}>
               {t("privacyConsent.acceptAll")}
             </ArtifactButton>
-            <ArtifactButton size="sm" variant="secondary" onClick={() => save(DEFAULT_CHOICES)}>
+            <ArtifactButton size="sm" variant="secondary" onClick={() => save(DEFAULT_PRIVACY_CHOICES)}>
               {t("privacyConsent.rejectAll")}
             </ArtifactButton>
-            <ArtifactButton size="sm" variant="secondary" onClick={() => setPreferencesOpen(true)}>
+            <ArtifactButton
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setDraft(consent ?? DEFAULT_PRIVACY_CHOICES);
+                setPreferencesOpen(true);
+              }}
+            >
               {t("privacyConsent.customize")}
             </ArtifactButton>
           </div>
@@ -302,21 +254,14 @@ export function PrivacyConsentManager({
         backdropZIndexClassName="z-[75]"
         className="pointer-events-auto max-h-[min(46rem,calc(100vh-3rem))] w-full max-w-2xl overflow-y-auto border border-foreground/20 bg-background p-6 shadow-2xl sm:p-8"
       >
-        <p className="label-mono text-accent">{t("privacyConsent.eyebrow")}</p>
-        <h2 id="privacy-preferences-title" className="mt-3 font-serif text-3xl leading-tight">
-          {t("privacyConsent.preferencesTitle")}
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-foreground/70">{t("privacyConsent.preferencesDescription")}</p>
-        <div className="mt-6 border-y border-stroke">
-          <ConsentToggle checked disabled label={t("privacyConsent.necessaryTitle")} description={t("privacyConsent.necessaryDescription")} />
-          <ConsentToggle checked={draft.preferences} onChange={(preferences) => setDraft((value) => ({ ...value, preferences }))} label={t("privacyConsent.preferenceTitle")} description={t("privacyConsent.preferenceDescription")} />
-          <ConsentToggle checked={draft.analytics} onChange={(analytics) => setDraft((value) => ({ ...value, analytics }))} label={t("privacyConsent.analyticsTitle")} description={t("privacyConsent.analyticsDescription")} />
-          <ConsentToggle checked={draft.marketing} onChange={(marketing) => setDraft((value) => ({ ...value, marketing }))} label={t("privacyConsent.marketingTitle")} description={t("privacyConsent.marketingDescription")} />
-        </div>
-        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <ArtifactButton size="sm" variant="secondary" onClick={() => save(DEFAULT_CHOICES)}>{t("privacyConsent.rejectAll")}</ArtifactButton>
-          <ArtifactButton size="sm" variant="primary" onClick={() => save(draft)}>{t("privacyConsent.save")}</ArtifactButton>
-        </div>
+        <CookiePreferencesForm
+          variant="modal"
+          titleId="privacy-preferences-title"
+          value={draft}
+          onChange={setDraft}
+          onSave={save}
+          onRejectAll={() => save(DEFAULT_PRIVACY_CHOICES)}
+        />
       </AnimatedModal>
     </>
   );

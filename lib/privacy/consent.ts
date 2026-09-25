@@ -2,7 +2,6 @@ export const PRIVACY_CONSENT_COOKIE = "synarava-consent";
 export const PRIVACY_CONSENT_VERSION = 1;
 export const PRIVACY_CONSENT_MAX_AGE = 60 * 60 * 24 * 180;
 export const PRIVACY_CONSENT_CHANGED_EVENT = "synarava:consent-changed";
-export const OPEN_PRIVACY_PREFERENCES_EVENT = "synarava:open-privacy-preferences";
 
 export type PrivacyConsent = {
   version: typeof PRIVACY_CONSENT_VERSION;

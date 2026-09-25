@@ -451,7 +451,9 @@ import { AdminRichTextField } from "@/components/synarava-cms";
   body/quote/secondary). Toolbar: Bold / Italic / List / Numbered / Link.
   **Not** product fields (Shopify-owned). **Not** SEO excerpts / Search summary
   (plain `AdminLongTextField`). Legacy legal Markdown still renders on the
-  storefront until a section is re-saved as rich HTML.
+  storefront until a section is re-saved as rich HTML. For cookie preferences
+  in WYSIWYG, link to `/cookie-settings` (ordinary in-app path) — do not invent
+  hash or `action:` schemes for new copy.
 - Story: `synarava-cms/AdminRichTextField`.
 
 ### Tall / composite fields
