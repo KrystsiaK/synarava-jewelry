@@ -8,6 +8,11 @@ import type {
   CatalogConflictDirection,
   CatalogConflictField,
 } from "./catalog-conflict";
+import {
+  applyCollectionPresenceDifference,
+  scanAndSaveCollectionPresence,
+} from "./collection-presence-server";
+import type { CollectionPresenceDifference } from "./collection-presence";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
 const MAX_BULK_COLLECTIONS = 50;
@@ -52,6 +57,7 @@ export type CollectionConflictApplyEntryResult = {
   ok: boolean;
   reason?: "STALE" | "NEEDS_CLEAR_CONFIRMATION" | "WRITE_FAILED" | "UNSUPPORTED";
   message: string;
+  localCollectionId?: string;
 };
 
 export type CollectionConflictApplyOutcome = {
@@ -72,10 +78,18 @@ function willClear(field: CatalogConflictField, direction: CatalogConflictDirect
   return isEmptyValue(source) && !isEmptyValue(destination);
 }
 
+function unsupportedDirectionReason(field: CatalogConflictField): string {
+  if (field.origin === "PRESENCE") {
+    return field.presenceDifference?.kind === "SHOPIFY_ONLY"
+      ? "This collection only exists in Shopify. Pull it first, or run the Shopify → Synarava bulk action."
+      : "This collection only exists in Synarava. Push it first, or run the Synarava → Shopify bulk action.";
+  }
+  return field.blockedReason ?? "This direction isn't supported for this field.";
+}
+
 /**
  * Same preview contract as catalog products, scoped to collections:
- * only TRANSLATION-origin fields from the collection conflict read model.
- * @see https://shopify.dev/docs/api/admin-graphql/latest/mutations/translationsRegister
+ * TRANSLATION + PRESENCE fields from the collection conflict read model.
  */
 export async function previewCollectionConflictResolution(scope: CollectionConflictApplyScope): Promise<CollectionConflictPreview> {
   const entries: ResolvedCollectionConflictEntry[] = [];
@@ -95,7 +109,7 @@ export async function previewCollectionConflictResolution(scope: CollectionConfl
           collectionId,
           fieldKey: field.fieldKey,
           label: field.label,
-          reason: field.blockedReason ?? "This direction isn't supported for this field.",
+          reason: unsupportedDirectionReason(field),
         });
         continue;
       }
@@ -154,7 +168,7 @@ function staleResult(entry: CollectionConflictApplyEntryInput, message: string):
   return { collectionId: entry.collectionId, fieldKey: entry.fieldKey, ok: false, reason: "STALE", message };
 }
 
-/** Re-validates fingerprints then applies TRANSLATION fields via applyReconcileChoice. */
+/** Re-validates fingerprints then applies TRANSLATION / PRESENCE fields. */
 export async function applyCollectionConflictResolution({
   entries,
   acknowledgeClears,
@@ -169,7 +183,12 @@ export async function applyCollectionConflictResolution({
   }
 
   const results: CollectionConflictApplyEntryResult[] = [];
-  const ready: Array<{ input: CollectionConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyTranslation: Array<{ input: CollectionConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyPresence: Array<{ input: CollectionConflictApplyEntryInput; field: CatalogConflictField }> = [];
+
+  if (entries.some((entry) => entry.fieldKey === "presence:collection")) {
+    await scanAndSaveCollectionPresence(null);
+  }
 
   const collectionIds = [...new Set(entries.map((entry) => entry.collectionId))];
   const conflictsByCollection = new Map(
@@ -195,7 +214,7 @@ export async function applyCollectionConflictResolution({
         fieldKey: entry.fieldKey,
         ok: false,
         reason: "UNSUPPORTED",
-        message: field.blockedReason ?? "This direction isn't supported for this field.",
+        message: unsupportedDirectionReason(field),
       });
       continue;
     }
@@ -209,20 +228,62 @@ export async function applyCollectionConflictResolution({
       });
       continue;
     }
-    if (field.origin !== "TRANSLATION" || !field.sourceId) {
+    if (field.origin === "PRESENCE") readyPresence.push({ input: entry, field });
+    else if (field.origin === "TRANSLATION" && field.sourceId) readyTranslation.push({ input: entry, field });
+    else {
       results.push({
         collectionId: entry.collectionId,
         fieldKey: entry.fieldKey,
         ok: false,
         reason: "UNSUPPORTED",
-        message: "Only translated collection fields can be resolved here.",
+        message: "Only translated or presence collection fields can be resolved here.",
+      });
+    }
+  }
+
+  for (const { input, field } of readyPresence) {
+    if (!field.presenceDifference) {
+      results.push({
+        collectionId: input.collectionId,
+        fieldKey: input.fieldKey,
+        ok: false,
+        reason: "WRITE_FAILED",
+        message: "This collection-presence conflict is missing its source record.",
       });
       continue;
     }
-    ready.push({ input: entry, field });
+    try {
+      const outcome = await applyCollectionPresenceDifference({
+        difference: field.presenceDifference as CollectionPresenceDifference,
+        direction: input.direction,
+      });
+      results.push(outcome.ok
+        ? {
+            collectionId: input.collectionId,
+            localCollectionId: outcome.localCollectionId,
+            fieldKey: input.fieldKey,
+            ok: true,
+            message: outcome.message,
+          }
+        : {
+            collectionId: input.collectionId,
+            fieldKey: input.fieldKey,
+            ok: false,
+            reason: outcome.reason,
+            message: outcome.message,
+          });
+    } catch (error) {
+      results.push({
+        collectionId: input.collectionId,
+        fieldKey: input.fieldKey,
+        ok: false,
+        reason: "WRITE_FAILED",
+        message: error instanceof Error ? error.message : "This collection could not be synchronized.",
+      });
+    }
   }
 
-  for (const { input, field } of ready) {
+  for (const { input, field } of readyTranslation) {
     try {
       const outcome = await applyReconcileChoice({
         divergenceId: field.sourceId!,

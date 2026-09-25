@@ -106,7 +106,7 @@ describe("buildCatalogConflictSignals", () => {
     expect(result.state).toBe("ready");
   });
 
-  it("can build collection-scoped signals without commerce or product presence", () => {
+  it("includes collection presence differences when rootEntityType is COLLECTION", () => {
     const result = buildCatalogConflictSignals({
       commerceProductIds: ["ignored-product"],
       differences: [
@@ -115,19 +115,19 @@ describe("buildCatalogConflictSignals", () => {
         difference("product-1", "en", "title"),
       ],
       presenceDifferences: [{
-        id: "shopify:42",
+        id: "shopify-collection:99",
         kind: "SHOPIFY_ONLY",
         localProductId: null,
-        shopifyProductId: "gid://shopify/Product/42",
-        name: "ignored",
-        handle: "ignored",
+        shopifyProductId: "gid://shopify/Collection/99",
+        name: "Shopify kits",
+        handle: "shopify-kits",
         sku: "",
         localFingerprint: "missing",
         shopifyFingerprint: "remote",
         remoteMissing: false,
-        matchReason: null,
+        matchReason: "HANDLE",
         localIdentity: null,
-        shopifyIdentity: { name: "ignored", handle: "ignored", sku: "" },
+        shopifyIdentity: { name: "Shopify kits", handle: "shopify-kits", sku: "" },
       }],
       locales,
       run: { trigger: "MANUAL", status: "SUCCEEDED", completedAt: "2026-09-23T10:00:00.000Z" },
@@ -136,7 +136,7 @@ describe("buildCatalogConflictSignals", () => {
       rootEntityType: "COLLECTION",
     });
 
-    expect(result.totalCount).toBe(1);
+    expect(result.totalCount).toBe(2);
     expect(result.products["col-1"]).toMatchObject({
       shared: false,
       locales: [
@@ -144,8 +144,12 @@ describe("buildCatalogConflictSignals", () => {
         { code: "ru", count: 1 },
       ],
     });
+    expect(result.products["shopify-collection:99"]).toMatchObject({
+      presence: "SHOPIFY_ONLY",
+      name: "Shopify kits",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    });
     expect(result.products["ignored-product"]).toBeUndefined();
-    expect(result.products["shopify:42"]).toBeUndefined();
     expect(result.products["product-1"]).toBeUndefined();
   });
 

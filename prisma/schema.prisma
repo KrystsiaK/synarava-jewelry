@@ -730,8 +730,9 @@ model ShopifyReconcileRun {
 }
 
 // Latest catalog-level identity comparison. Field divergences belong to
-// ShopifyReconcileRun; products present on only one side need their own
-// persisted snapshot because a Shopify-only product has no local Product row.
+// ShopifyReconcileRun; entities present on only one side need their own
+// persisted snapshot because a Shopify-only product/collection has no local row.
+// Snapshot ids: "catalog" (products), "collections" (collections).
 model ShopifyCatalogPresenceSnapshot {
   id          String   @id @default("catalog")
   runId       String?

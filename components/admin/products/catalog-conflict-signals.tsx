@@ -110,8 +110,14 @@ export function CatalogConflictRowBadges({
 }) {
   const visible = signal.locales.slice(0, 2);
   const remaining = signal.locales.length - visible.length;
+  const presenceLabel = signal.presence === "SHOPIFY_ONLY"
+    ? signal.localProductId ? "Not linked" : "Only in Shopify"
+    : signal.presence === "SYNARAVA_ONLY"
+      ? signal.remoteMissing ? "Missing in Shopify" : "Only in Synarava"
+      : null;
   const fullDescription = [
-    signal.shared ? "Shared commerce conflict" : null,
+    presenceLabel,
+    !presenceLabel && signal.shared ? "Shared commerce conflict" : null,
     ...signal.locales.map((locale) => `${locale.name} (${locale.code.toUpperCase()}): ${plural(locale.count, "field", "fields")}`),
   ].filter(Boolean).join("; ");
   return (
@@ -122,7 +128,8 @@ export function CatalogConflictRowBadges({
       title={fullDescription}
       className="mt-2 flex min-h-11 max-w-full flex-wrap items-center gap-1.5 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-conflict)]"
     >
-      {signal.shared ? <span className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: conflictTone.border, color: "var(--adm-ink)" }}><GitCompareArrows className="mr-1 inline size-3" style={{ color: conflictTone.ink }} aria-hidden="true" />Shared · conflict</span> : null}
+      {presenceLabel ? <span className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: conflictTone.border, color: "var(--adm-ink)" }}><GitCompareArrows className="mr-1 inline size-3" style={{ color: conflictTone.ink }} aria-hidden="true" />{presenceLabel}</span> : null}
+      {!presenceLabel && signal.shared ? <span className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: conflictTone.border, color: "var(--adm-ink)" }}><GitCompareArrows className="mr-1 inline size-3" style={{ color: conflictTone.ink }} aria-hidden="true" />Shared · conflict</span> : null}
       {visible.map((locale) => (
         <span key={locale.code} className="rounded-md border px-2 py-1 text-[0.68rem] font-semibold" style={{ borderColor: conflictTone.border, color: "var(--adm-ink)" }} title={locale.nativeName}>
           <Languages className="mr-1 inline size-3" style={{ color: conflictTone.ink }} aria-hidden="true" />{locale.code.toUpperCase()} · {plural(locale.count, "field", "fields")}

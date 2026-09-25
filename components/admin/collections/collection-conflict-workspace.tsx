@@ -72,7 +72,7 @@ function filterSignalsForView(signals: CatalogConflictSignals, viewScope: Collec
   return {
     ...signals,
     products: { [collectionId]: { ...signal, shared: false, locales } },
-    totalCount: locales.length > 0 || signal.shared ? 1 : 0,
+    totalCount: locales.length > 0 || signal.shared || signal.presence ? 1 : 0,
   };
 }
 
@@ -132,7 +132,7 @@ function orderedConflictFields(fields: CatalogConflictField[]) {
   });
 }
 
-/** Same dialog stack as product catalog conflicts, scoped to collections (translation fields). */
+/** Same dialog stack as product catalog conflicts, scoped to collections (translation + presence). */
 export function CollectionConflictWorkspace({
   open,
   onClose,
@@ -372,12 +372,19 @@ export function CollectionConflictWorkspace({
             const signal = scopedSignals.products[collectionId];
             const name = collection?.name ?? signal?.name ?? `Collection ${collectionId}`;
             const slug = collection?.slug ?? signal?.handle;
+            const allowedDirections = signal?.allowedDirections ?? ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"];
+            const presenceLabel = signal?.presence === "SHOPIFY_ONLY"
+              ? signal.localProductId ? "Not linked to Shopify" : "Only in Shopify"
+              : signal?.presence === "SYNARAVA_ONLY"
+                ? signal.remoteMissing ? "Missing in Shopify" : "Only in Synarava"
+                : null;
             return (
               <article key={collectionId} ref={collectionId === scopedFocusId ? focusedRef : undefined} tabIndex={collectionId === scopedFocusId ? -1 : undefined} className="flex flex-col gap-4 rounded-xl border border-[var(--adm-border)] p-4 focus-visible:outline-2 focus-visible:outline-[var(--adm-warning)] sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-semibold">{name}</h3>
                   {slug ? <p className="mt-1 text-xs text-[var(--adm-muted)]">/{slug}</p> : null}
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {presenceLabel ? <span className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs">{presenceLabel}</span> : null}
                     {(signal?.locales ?? []).map((locale) => (
                       <span key={locale.code} className="rounded-md border border-[var(--adm-warning)] px-2 py-1 text-xs">
                         <Languages className="mr-1 inline size-3" />{locale.code.toUpperCase()} · {locale.nativeName} · {plural(locale.count, "field", "fields")}
@@ -386,15 +393,21 @@ export function CollectionConflictWorkspace({
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2" aria-label={`Actions for ${name}`}>
-                  <Tooltip content="Use Shopify for every supported conflicting field in this collection">
-                    <button type="button" disabled={busy} onClick={() => openCollectionDirection(collectionId, "SHOPIFY_TO_SYNARAVA")} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Shopify values"><ArrowDownToLine className="size-4" /></button>
-                  </Tooltip>
-                  <Tooltip content="Use Synarava for every supported conflicting field in this collection">
-                    <button type="button" disabled={busy} onClick={() => openCollectionDirection(collectionId, "SYNARAVA_TO_SHOPIFY")} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Apply Synarava values"><ArrowUpFromLine className="size-4" /></button>
-                  </Tooltip>
-                  <Tooltip content="Compare fields and choose Shopify or Synarava separately">
-                    <button type="button" disabled={busy} onClick={() => openDetails(collectionId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Compare fields side by side"><Columns2 className="size-4" /></button>
-                  </Tooltip>
+                  {allowedDirections.includes("SHOPIFY_TO_SYNARAVA") ? (
+                    <Tooltip content={signal?.presence ? "Create or link this collection in Synarava from Shopify" : "Use Shopify for every supported conflicting field in this collection"}>
+                      <button type="button" disabled={busy} onClick={() => openCollectionDirection(collectionId, "SHOPIFY_TO_SYNARAVA")} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal?.presence ? "Pull collection from Shopify" : "Apply Shopify values"}><ArrowDownToLine className="size-4" /></button>
+                    </Tooltip>
+                  ) : null}
+                  {allowedDirections.includes("SYNARAVA_TO_SHOPIFY") ? (
+                    <Tooltip content={signal?.presence ? "Create this collection in Shopify from Synarava" : "Use Synarava for every supported conflicting field in this collection"}>
+                      <button type="button" disabled={busy} onClick={() => openCollectionDirection(collectionId, "SYNARAVA_TO_SHOPIFY")} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal?.presence ? "Push collection to Shopify" : "Apply Synarava values"}><ArrowUpFromLine className="size-4" /></button>
+                    </Tooltip>
+                  ) : null}
+                  {!signal?.presence ? (
+                    <Tooltip content="Compare fields and choose Shopify or Synarava separately">
+                      <button type="button" disabled={busy} onClick={() => openDetails(collectionId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Compare fields side by side"><Columns2 className="size-4" /></button>
+                    </Tooltip>
+                  ) : null}
                 </div>
               </article>
             );

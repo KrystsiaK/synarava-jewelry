@@ -50,7 +50,7 @@ export function buildCatalogConflictSignals({
   connected,
   recentlyUpdatedProducts = [],
   now,
-  /** Products keep commerce + presence; collections are translation-only. Default PRODUCT. */
+  /** Products include commerce conflicts; both PRODUCT and COLLECTION include presence. Default PRODUCT. */
   rootEntityType = "PRODUCT",
 }: {
   commerceProductIds: string[];
@@ -69,24 +69,24 @@ export function buildCatalogConflictSignals({
   const products: Record<string, CatalogConflictProductSignal> = {};
   const seenFields = new Set<string>();
 
+  for (const difference of presenceDifferences) {
+    products[difference.id] = {
+      shared: true,
+      locales: [],
+      presence: difference.kind,
+      localProductId: difference.localProductId,
+      shopifyProductId: difference.shopifyProductId,
+      name: difference.name,
+      handle: difference.handle,
+      sku: difference.sku,
+      remoteMissing: difference.remoteMissing,
+      matchReason: difference.matchReason,
+      allowedDirections: difference.kind === "SHOPIFY_ONLY"
+        ? ["SHOPIFY_TO_SYNARAVA"]
+        : ["SYNARAVA_TO_SHOPIFY"],
+    };
+  }
   if (rootEntityType === "PRODUCT") {
-    for (const difference of presenceDifferences) {
-      products[difference.id] = {
-        shared: true,
-        locales: [],
-        presence: difference.kind,
-        localProductId: difference.localProductId,
-        shopifyProductId: difference.shopifyProductId,
-        name: difference.name,
-        handle: difference.handle,
-        sku: difference.sku,
-        remoteMissing: difference.remoteMissing,
-        matchReason: difference.matchReason,
-        allowedDirections: difference.kind === "SHOPIFY_ONLY"
-          ? ["SHOPIFY_TO_SYNARAVA"]
-          : ["SYNARAVA_TO_SHOPIFY"],
-      };
-    }
     for (const productId of commerceProductIds) {
       products[productId] = products[productId] ?? { shared: true, locales: [] };
       products[productId].shared = true;

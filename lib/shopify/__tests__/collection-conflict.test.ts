@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getLatestReconcileDifferences: vi.fn(),
   getPublishedStorefrontLocales: vi.fn(),
+  getLatestCollectionPresenceDifferences: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/reconciliation-run", () => ({
@@ -11,6 +12,10 @@ vi.mock("@/lib/shopify/reconciliation-run", () => ({
 
 vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getPublishedStorefrontLocales: mocks.getPublishedStorefrontLocales,
+}));
+
+vi.mock("@/lib/shopify/collection-presence-server", () => ({
+  getLatestCollectionPresenceDifferences: mocks.getLatestCollectionPresenceDifferences,
 }));
 
 import {
@@ -42,10 +47,30 @@ function difference(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function presenceDiff(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "shopify-collection:42",
+    kind: "SHOPIFY_ONLY",
+    localProductId: null,
+    shopifyProductId: "gid://shopify/Collection/42",
+    name: "Remote kits",
+    handle: "remote-kits",
+    sku: "",
+    localFingerprint: "missing",
+    shopifyFingerprint: "remote",
+    remoteMissing: false,
+    matchReason: null,
+    localIdentity: null,
+    shopifyIdentity: { name: "Remote kits", handle: "remote-kits", sku: "" },
+    ...overrides,
+  };
+}
+
 describe("getCollectionCatalogConflict", () => {
   beforeEach(() => {
     mocks.getPublishedStorefrontLocales.mockResolvedValue(locales);
     mocks.getLatestReconcileDifferences.mockResolvedValue([]);
+    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
   });
 
   it("returns only COLLECTION CONFLICT translation fields for the collection", async () => {
@@ -72,16 +97,46 @@ describe("getCollectionCatalogConflict", () => {
       scope: { kind: "LOCALE", code: "en" },
     });
   });
+
+  it("returns a one-direction presence field without inspecting translation diffs", async () => {
+    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([
+      presenceDiff({ id: "collection-1" }),
+    ]);
+    mocks.getLatestReconcileDifferences.mockResolvedValue([difference()]);
+
+    const result = await getCollectionCatalogConflict("collection-1");
+    expect(result.fields).toEqual([
+      expect.objectContaining({
+        fieldKey: "presence:collection",
+        origin: "PRESENCE",
+        allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      }),
+    ]);
+    expect(mocks.getLatestReconcileDifferences).not.toHaveBeenCalled();
+  });
 });
 
 describe("listConflictedCollectionIds", () => {
-  it("deduplicates collection ids with CONFLICT differences", async () => {
+  beforeEach(() => {
+    mocks.getLatestReconcileDifferences.mockResolvedValue([]);
+    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
+  });
+
+  it("deduplicates collection ids with CONFLICT differences and presence", async () => {
     mocks.getLatestReconcileDifferences.mockResolvedValue([
       difference(),
       difference({ id: "diff-2", fieldKey: "description" }),
       difference({ id: "diff-3", rootEntityId: "collection-2" }),
       difference({ id: "diff-4", rootEntityType: "PRODUCT", rootEntityId: "product-1" }),
     ]);
-    await expect(listConflictedCollectionIds()).resolves.toEqual(["collection-1", "collection-2"]);
+    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([
+      presenceDiff(),
+      presenceDiff({ id: "collection-1", kind: "SYNARAVA_ONLY" }),
+    ]);
+    await expect(listConflictedCollectionIds()).resolves.toEqual([
+      "collection-1",
+      "collection-2",
+      "shopify-collection:42",
+    ]);
   });
 });

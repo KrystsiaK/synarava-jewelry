@@ -253,11 +253,12 @@ legacy cover, пока не загружены изображения галер
 - Список с ручной сортировкой (кнопки «вверх/вниз» переставляют
   `sortOrder`; при создании новая коллекция всегда встаёт в начало списка, а
   остальные сдвигаются).
-- Конфликты с Shopify по editorial/translation полям используют тот же UX, что
+- Конфликты с Shopify по editorial/translation полям и presence используют тот же UX, что
   и каталог товаров: **Run conflict check**, **Show conflicts**, список → поля →
-  preview → Confirm. Surface — translation reconcile (`COLLECTION`); commerce
-  presence (товар только в Shopify/Synarava) для коллекций пока не входит в этот
-  flow. После успешного сохранения связанной коллекции запускается scoped check.
+  preview → Confirm. Surface — translation reconcile (`COLLECTION`) плюс
+  presence-снимок (`ShopifyCatalogPresenceSnapshot` id `collections`): коллекции
+  только в Shopify / только в Synarava появляются в том же списке с Pull/Push.
+  После успешного сохранения связанной коллекции запускается scoped check.
 - Обязательные поля при сохранении (каждое поле подсвечивается своей
   ошибкой, а не общей): название, слаг, код коллекции, краткое описание
   («Collection summary»), манифест, поисковое summary, **hero-изображение**

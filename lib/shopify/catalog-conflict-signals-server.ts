@@ -14,6 +14,11 @@ import {
   getLatestCatalogPresenceDifferences,
   scanAndSaveCatalogPresence,
 } from "@/lib/shopify/catalog-presence-server";
+import {
+  getLatestCollectionPresenceCheckedAt,
+  getLatestCollectionPresenceDifferences,
+  scanAndSaveCollectionPresence,
+} from "@/lib/shopify/collection-presence-server";
 
 async function resolveShopifyLocale(registryCode: string): Promise<string | null> {
   if (registryCode === "en") return "en";
@@ -30,6 +35,31 @@ async function lastSuccessfulFullCheckAt(): Promise<string | null> {
     LIMIT 1
   `);
   return rows[0]?.completedAt.toISOString() ?? null;
+}
+
+/** Latest collection-wide check: presence snapshot and/or COLLECTION-scoped full reconcile. */
+async function lastSuccessfulCollectionCheckAt(): Promise<string | null> {
+  const [presenceCheckedAt, rows] = await Promise.all([
+    getLatestCollectionPresenceCheckedAt(),
+    db.$queryRaw<Array<{ completedAt: Date }>>(Prisma.sql`
+      SELECT "completedAt"
+      FROM "ShopifyReconcileRun"
+      WHERE "status" = 'SUCCEEDED'
+        AND "trigger" IN ('AUTO', 'MANUAL')
+        AND "scope" IS NOT NULL
+        AND ("scope"::jsonb->>'entityType') = 'COLLECTION'
+        AND (("scope"::jsonb->>'entityId') IS NULL)
+      ORDER BY "completedAt" DESC
+      LIMIT 1
+    `),
+  ]);
+  const reconcileAt = rows[0]?.completedAt.toISOString() ?? null;
+  if (presenceCheckedAt && reconcileAt) {
+    return new Date(presenceCheckedAt).getTime() >= new Date(reconcileAt).getTime()
+      ? presenceCheckedAt
+      : reconcileAt;
+  }
+  return presenceCheckedAt ?? reconcileAt;
 }
 
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
@@ -57,19 +87,20 @@ export async function getCatalogConflictSignals(adminUsername?: string): Promise
   });
 }
 
-/** Same signal shape as products; `products` map holds collection IDs (translation conflicts only). */
+/** Same signal shape as products; `products` map holds collection IDs (translation + presence). */
 export async function getCollectionConflictSignals(): Promise<CatalogConflictSignals> {
-  const [differences, locales, run, checkedAt] = await Promise.all([
+  const [differences, presenceDifferences, locales, run, checkedAt] = await Promise.all([
     getLatestReconcileDifferences(),
+    getLatestCollectionPresenceDifferences(),
     getStorefrontLocales(),
     getLatestReconcileRun(),
-    lastSuccessfulFullCheckAt(),
+    lastSuccessfulCollectionCheckAt(),
   ]);
 
   return buildCatalogConflictSignals({
     commerceProductIds: [],
     differences,
-    presenceDifferences: [],
+    presenceDifferences,
     locales,
     run,
     lastSuccessfulFullCheckAt: checkedAt,
@@ -236,7 +267,7 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
 
 /**
  * Scoped conflict check for one collection (optional locale). Does not sweep
- * products or other entity types — translation reconcile only.
+ * products or other entity types — translation reconcile + latest presence snapshot.
  */
 export async function runCollectionConflictCheck({
   collectionId,
@@ -268,18 +299,20 @@ export async function runCollectionConflictCheck({
     },
   });
 
-  const [differences, locales] = await Promise.all([
+  const [differences, presenceDifferences, locales, checkedAt] = await Promise.all([
     getLatestReconcileDifferences(),
+    getLatestCollectionPresenceDifferences(),
     getStorefrontLocales(),
+    lastSuccessfulCollectionCheckAt(),
   ]);
 
   const signals = buildCatalogConflictSignals({
     commerceProductIds: [],
     differences,
-    presenceDifferences: [],
+    presenceDifferences,
     locales,
     run: translationRun.run,
-    lastSuccessfulFullCheckAt: translationRun.run?.status === "SUCCEEDED" ? translationRun.run.completedAt : null,
+    lastSuccessfulFullCheckAt: checkedAt,
     connected: hasShopifyAdminConfig(),
     recentlyUpdatedProducts: [],
     now: new Date(),
@@ -292,7 +325,7 @@ export async function runCollectionConflictCheck({
   };
 }
 
-/** Full collection translation conflict sweep (no product commerce inspection). */
+/** Full collection conflict sweep: translation reconcile + catalog presence. */
 export async function runCollectionsConflictCheck(requestedBy: string): Promise<{
   signals: CatalogConflictSignals;
   warning?: string;
@@ -303,26 +336,46 @@ export async function runCollectionsConflictCheck(requestedBy: string): Promise<
     scope: { entityType: "COLLECTION" },
   });
 
+  let presenceDifferences;
+  let presenceWarning: string | undefined;
+  try {
+    presenceDifferences = await scanAndSaveCollectionPresence(translationRun.run?.id ?? null);
+  } catch (error) {
+    presenceDifferences = await getLatestCollectionPresenceDifferences();
+    presenceWarning = error instanceof Error ? error.message : "Collection presence could not be checked.";
+  }
+
   const [differences, locales] = await Promise.all([
     getLatestReconcileDifferences(),
     getStorefrontLocales(),
   ]);
   const completedAt = translationRun.run?.status === "SUCCEEDED" ? translationRun.run.completedAt : null;
+  const presenceCheckedAt = await getLatestCollectionPresenceCheckedAt();
+  const checkedAt = [completedAt, presenceCheckedAt]
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0]
+    ?? null;
   const signals = buildCatalogConflictSignals({
     commerceProductIds: [],
     differences,
-    presenceDifferences: [],
+    presenceDifferences,
     locales,
     run: translationRun.run,
-    lastSuccessfulFullCheckAt: completedAt,
+    lastSuccessfulFullCheckAt: checkedAt,
     connected: hasShopifyAdminConfig(),
     recentlyUpdatedProducts: [],
     now: new Date(),
     rootEntityType: "COLLECTION",
   });
 
+  if (presenceWarning && signals.state === "ready") signals.state = "failed";
+  const warnings = [
+    presenceWarning ? `Collection presence could not be checked: ${presenceWarning}` : undefined,
+    translationRun.run?.error ?? undefined,
+  ].filter((warning): warning is string => Boolean(warning));
+
   return {
     signals,
-    warning: translationRun.run?.error ?? undefined,
+    warning: warnings.length > 0 ? warnings.join(" ") : undefined,
   };
 }

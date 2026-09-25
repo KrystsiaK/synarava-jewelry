@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
   getCollectionCatalogConflict: vi.fn(),
   listConflictedCollectionIds: vi.fn(),
   applyReconcileChoice: vi.fn(),
+  applyCollectionPresenceDifference: vi.fn(),
+  scanAndSaveCollectionPresence: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/collection-conflict", () => ({
@@ -13,6 +15,11 @@ vi.mock("@/lib/shopify/collection-conflict", () => ({
 
 vi.mock("@/lib/shopify/reconciliation-apply", () => ({
   applyReconcileChoice: mocks.applyReconcileChoice,
+}));
+
+vi.mock("@/lib/shopify/collection-presence-server", () => ({
+  applyCollectionPresenceDifference: mocks.applyCollectionPresenceDifference,
+  scanAndSaveCollectionPresence: mocks.scanAndSaveCollectionPresence,
 }));
 
 import {
@@ -38,6 +45,37 @@ function field(overrides: Partial<CatalogConflictField> = {}): CatalogConflictFi
     sourceId: "div-1",
     ...overrides,
   };
+}
+
+function presenceField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
+  return field({
+    fieldKey: "presence:collection",
+    label: "Collection exists only in Shopify",
+    scope: { kind: "SHARED" },
+    origin: "PRESENCE",
+    synaravaValue: "— Collection is missing —",
+    shopifyValue: "Remote kits · /remote-kits",
+    localFingerprint: "missing",
+    shopifyFingerprint: "remote",
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    sourceId: null,
+    presenceDifference: {
+      id: "shopify-collection:42",
+      kind: "SHOPIFY_ONLY",
+      localProductId: null,
+      shopifyProductId: "gid://shopify/Collection/42",
+      name: "Remote kits",
+      handle: "remote-kits",
+      sku: "",
+      localFingerprint: "missing",
+      shopifyFingerprint: "remote",
+      remoteMissing: false,
+      matchReason: null,
+      localIdentity: null,
+      shopifyIdentity: { name: "Remote kits", handle: "remote-kits", sku: "" },
+    },
+    ...overrides,
+  });
 }
 
 function conflict(fields: CatalogConflictField[], collectionId = "collection-1") {
@@ -75,6 +113,17 @@ describe("previewCollectionConflictResolution", () => {
     });
     expect(preview.entries).toHaveLength(2);
     expect(mocks.getCollectionCatalogConflict).toHaveBeenCalledTimes(2);
+  });
+
+  it("excludes the impossible presence direction", async () => {
+    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([presenceField()], "shopify-collection:42"));
+    const preview = await previewCollectionConflictResolution({
+      kind: "COLLECTION",
+      collectionId: "shopify-collection:42",
+      direction: "SYNARAVA_TO_SHOPIFY",
+    });
+    expect(preview.entries).toHaveLength(0);
+    expect(preview.excluded[0]?.reason).toMatch(/only exists in Shopify/i);
   });
 });
 
@@ -123,5 +172,38 @@ describe("applyCollectionConflictResolution", () => {
     expect(outcome.appliedCount).toBe(0);
     expect(outcome.results[0]?.reason).toBe("STALE");
     expect(mocks.applyReconcileChoice).not.toHaveBeenCalled();
+  });
+
+  it("refreshes collection presence and applies a one-sided collection through the presence resolver", async () => {
+    const presence = presenceField();
+    mocks.scanAndSaveCollectionPresence.mockResolvedValue([]);
+    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([presence], "shopify-collection:42"));
+    mocks.applyCollectionPresenceDifference.mockResolvedValue({
+      ok: true,
+      localCollectionId: "collection-new",
+      message: "Collection pulled from Shopify.",
+    });
+
+    const outcome = await applyCollectionConflictResolution({
+      acknowledgeClears: false,
+      actorUsername: "admin",
+      entries: [{
+        collectionId: "shopify-collection:42",
+        fieldKey: "presence:collection",
+        direction: "SHOPIFY_TO_SYNARAVA",
+        expectedLocalFingerprint: "missing",
+        expectedShopifyFingerprint: "remote",
+      }],
+    });
+
+    expect(mocks.scanAndSaveCollectionPresence).toHaveBeenCalledWith(null);
+    expect(mocks.applyCollectionPresenceDifference).toHaveBeenCalledWith({
+      difference: presence.presenceDifference,
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+    expect(outcome).toMatchObject({
+      appliedCount: 1,
+      results: [{ ok: true, localCollectionId: "collection-new" }],
+    });
   });
 });

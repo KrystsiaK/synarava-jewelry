@@ -235,8 +235,9 @@ and SYNC-16 asserts that state is handled gracefully.
 | CATCONF-08 | Synarava-only product appears with Push as its sole row action | positive | P1 | ✔ unit / **E2E round trip** | Component and resolver covered; sandbox confirms Shopify create. |
 | CATCONF-09 | Mixed one-sided bulk scopes include only compatible products and explain exclusions | edge | P1 | ✔ unit | Opposite direction stays Not included with reason. |
 | CATCONF-10 | Live EN/PT (and RU when filled) apply round trip on a sandbox product | positive | P1 | **E2E** | Stage 7 gate. Skip without Shopify sandbox credentials. Do not mock. |
-| CATCONF-11 | Collections Show conflicts / Run conflict check use translation-only scope | positive | P1 | ✔ unit | `collection-conflict.test.ts`, `collection-conflict-apply.test.ts`, signals `rootEntityType: COLLECTION`. |
+| CATCONF-11 | Collections Show conflicts / Run conflict check include translation + presence | positive | P1 | ✔ unit | `collection-conflict.test.ts`, `collection-conflict-apply.test.ts`, `collection-presence*.test.ts`, signals `rootEntityType: COLLECTION`. |
 | CATCONF-12 | Collection editor opens scoped conflict workspace after check | positive | P2 | ✔ render | `collection-edit-form.test.tsx` + Collections CMS wiring. |
+| CATCONF-13 | Shopify-only / Synarava-only collection appears with Pull or Push as sole row action | positive | P1 | ✔ unit | `collection-presence.test.ts`, `collection-presence-apply.test.ts`, conflict workspace presence labels. |
 
 ## 10. Collections (`e2e/admin-collections.spec.ts`)
 
