@@ -5,13 +5,12 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
-import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import {
   TERMS_EXCERPT_DEFAULT,
   TERMS_INTRO_DEFAULT,
   TERMS_LAST_UPDATED_DEFAULT,
-  TERMS_SECTIONS,
-  TERMS_SECTION_DEFAULTS,
 } from "@/lib/content/terms-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,7 +39,11 @@ export default async function TermsAndConditionsPage() {
   const privacyHref = localePath(locale, "/privacy");
 
   const exists = isSavedLegalDocument(page);
-  const sections = resolveLegalSections(TERMS_SECTIONS, page?.content.legalSections, exists ? {} : TERMS_SECTION_DEFAULTS);
+  const sections = resolveDocumentSections(
+    page?.content.legalSections,
+    shippedLegalEntries("terms-and-conditions", locale),
+    exists,
+  );
   const intro = resolveLegalText(page?.content.legalIntro, exists ? "" : TERMS_INTRO_DEFAULT);
   const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : TERMS_LAST_UPDATED_DEFAULT);
 

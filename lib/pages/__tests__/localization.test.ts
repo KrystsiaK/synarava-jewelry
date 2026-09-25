@@ -223,6 +223,36 @@ describe("page localization", () => {
       cookies: { title: "Cookies", body: "English cookies" },
     });
   });
+
+  it("keeps EN section order when legalSections are stored as arrays", () => {
+    const resolved = resolvePageLocalizedCopy({
+      locale: "pt",
+      source: {
+        title: "Privacy",
+        excerpt: "",
+        content: {
+          legalSections: [
+            { id: "intro", label: "1. Intro", title: "Intro", body: "English intro" },
+            { id: "cookies", label: "2. Cookies", title: "Cookies", body: "English cookies" },
+          ],
+        },
+      },
+      translation: {
+        title: "Privacidade",
+        excerpt: "",
+        content: {
+          legalSections: [
+            { id: "intro", label: "1. Introdução", title: "Introdução", body: "Introdução PT" },
+          ],
+        },
+      },
+    });
+
+    expect(resolved.content.legalSections).toEqual([
+      { id: "intro", label: "1. Introdução", title: "Introdução", body: "Introdução PT" },
+      { id: "cookies", label: "2. Cookies", title: "Cookies", body: "English cookies" },
+    ]);
+  });
 });
 
 describe("mergeMaterialLexicon", () => {
@@ -238,8 +268,8 @@ describe("mergeMaterialLexicon", () => {
 });
 
 describe("mergeLocalizedSectionRecord", () => {
-  it("returns undefined when source is not a record", () => {
+  it("returns undefined when source is missing, and keeps empty arrays", () => {
     expect(mergeLocalizedSectionRecord(undefined, { a: { title: "X" } })).toBeUndefined();
-    expect(mergeLocalizedSectionRecord([], { a: { title: "X" } })).toBeUndefined();
+    expect(mergeLocalizedSectionRecord([], { a: { title: "X" } })).toEqual([]);
   });
 });

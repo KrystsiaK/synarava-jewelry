@@ -6,10 +6,9 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
-import { resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { resolveServiceDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { shippedServiceEntries } from "@/lib/content/document-section-defaults";
 import {
-  SERVICE_SECTIONS,
-  SERVICE_SECTION_DEFAULTS,
   SERVICE_PAGE_TITLE_DEFAULTS,
   SERVICE_PAGE_INTRO_DEFAULTS,
 } from "@/lib/content/service-page-defaults";
@@ -46,10 +45,9 @@ export default async function ReturnsPage() {
       eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
       title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).returns}
       intro={resolveLegalText(content?.body, introDefaults.intro)}
-      sections={resolveLegalSections(
-        SERVICE_SECTIONS.returns,
+      sections={resolveServiceDocumentSections(
         content?.serviceSections,
-        (SERVICE_SECTION_DEFAULTS[locale] ?? SERVICE_SECTION_DEFAULTS.en).returns,
+        shippedServiceEntries("returns", locale),
       )}
       heroImage={content?.heroImage}
     />

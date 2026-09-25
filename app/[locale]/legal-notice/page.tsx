@@ -5,13 +5,12 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
-import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import {
   LEGAL_NOTICE_EXCERPT_DEFAULT,
   LEGAL_NOTICE_INTRO_DEFAULT,
   LEGAL_NOTICE_LAST_UPDATED_DEFAULT,
-  LEGAL_NOTICE_SECTIONS,
-  LEGAL_NOTICE_SECTION_DEFAULTS,
 } from "@/lib/content/legal-notice-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,7 +39,11 @@ export default async function LegalNoticePage() {
   const termsHref = localePath(locale, "/terms-and-conditions");
 
   const exists = isSavedLegalDocument(page);
-  const sections = resolveLegalSections(LEGAL_NOTICE_SECTIONS, page?.content.legalSections, exists ? {} : LEGAL_NOTICE_SECTION_DEFAULTS);
+  const sections = resolveDocumentSections(
+    page?.content.legalSections,
+    shippedLegalEntries("legal-notice", locale),
+    exists,
+  );
   const intro = resolveLegalText(page?.content.legalIntro, exists ? "" : LEGAL_NOTICE_INTRO_DEFAULT);
   const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : LEGAL_NOTICE_LAST_UPDATED_DEFAULT);
 

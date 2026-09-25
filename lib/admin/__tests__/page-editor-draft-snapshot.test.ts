@@ -16,8 +16,8 @@ describe("page editor draft snapshot", () => {
     expect(
       writePageEditorDraftSnapshot("page-1", {
         draftByLocale: {
-          en: { title: "FAQ", serviceSections: { maker: { title: "Q", body: "A" } } },
-          pt: { title: "Perguntas", serviceSections: { maker: { title: "P", body: "R" } } },
+          en: { title: "FAQ", serviceSections: [{ id: "maker", label: "Maker", title: "Q", body: "A" }] },
+          pt: { title: "Perguntas", serviceSections: [{ id: "maker", label: "Criação", title: "P", body: "R" }] },
         },
         handleByLocale: {},
         editProductIds: ["", "", "", ""],
@@ -30,7 +30,7 @@ describe("page editor draft snapshot", () => {
     const taken = takePageEditorDraftSnapshot("page-1");
     expect(taken?.draftByLocale.pt).toEqual({
       title: "Perguntas",
-      serviceSections: { maker: { title: "P", body: "R" } },
+      serviceSections: [{ id: "maker", label: "Criação", title: "P", body: "R" }],
     });
     expect(takePageEditorDraftSnapshot("page-1")).toBeNull();
   });

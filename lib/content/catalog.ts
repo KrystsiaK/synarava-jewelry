@@ -181,8 +181,10 @@ export type PageContent = {
   finalContactEnabled?: boolean;
   legalIntro?: string;
   legalLastUpdated?: string;
-  legalSections?: Record<string, { title?: string; body?: string }>;
-  serviceSections?: Record<string, { title?: string; body?: string }>;
+  legalSections?: Array<{ id: string; label?: string; title?: string; body?: string }>
+    | Record<string, { label?: string; title?: string; body?: string }>;
+  serviceSections?: Array<{ id: string; label?: string; title?: string; body?: string }>
+    | Record<string, { label?: string; title?: string; body?: string }>;
   translations?: {
     pt?: Omit<PageContent,
       | "translations"

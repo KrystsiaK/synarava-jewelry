@@ -16,10 +16,13 @@ import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import {
+  AdminCollapsiblePanel,
   AdminHelp,
   AdminHrefField,
   AdminListWorkspace,
   AdminLongTextField,
+  AdminOrderedList,
+  AdminOrderedListItemActions,
   AdminRichTextField,
   AdminSelectField,
   AdminTextField,
@@ -35,10 +38,17 @@ import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locale
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
 import { HomePageEditorSections, type HomeArchiveCollectionOption, type HomeEditProductOption, type HomePageEditorSectionsProps, type MaterialDraft } from "@/components/admin/pages/home-page-editor-sections";
 import { CollectionsPageEditorSections } from "@/components/admin/pages/collections-page-editor-sections";
-import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
-import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
-import { PRIVACY_SECTIONS } from "@/lib/content/privacy-defaults";
-import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
+import {
+  isLegalDocumentSlug,
+  isServicePageSlug,
+  shippedLegalEntries,
+  shippedServiceEntries,
+} from "@/lib/content/document-section-defaults";
+import {
+  seedLegalSectionEntries,
+  uniqueLegalSectionId,
+  type LegalSectionEntry,
+} from "@/lib/content/legal-sections";
 import { SERVICE_SECTIONS, type ServicePageSlug } from "@/lib/content/service-page-defaults";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { DEFAULT_HOME_EDIT_PRODUCT_TITLES } from "@/lib/content/home-edit-section";
@@ -89,9 +99,58 @@ type PageLocaleDraft = {
   finalFooterTitle: string;
   finalContactLabel: string;
   legalIntro: string;
-  legalSections: Record<string, { title: string; body: string }>;
-  serviceSections: Record<string, { title: string; body: string }>;
+  legalSections: DocumentSectionDraft[];
+  serviceSections: DocumentSectionDraft[];
 };
+
+type DocumentSectionDraft = LegalSectionEntry & { panelOpen: boolean };
+
+const MAX_DOCUMENT_SECTIONS = 40;
+let documentSectionIdCounter = 0;
+
+function emptyDocumentSection(overrides?: Partial<DocumentSectionDraft>): DocumentSectionDraft {
+  documentSectionIdCounter += 1;
+  return {
+    id: `section-${documentSectionIdCounter}`,
+    label: "",
+    title: "",
+    body: "",
+    panelOpen: false,
+    ...overrides,
+  };
+}
+
+function documentSectionsFromCopy(
+  content: unknown,
+  shipped: LegalSectionEntry[],
+): DocumentSectionDraft[] {
+  return seedLegalSectionEntries(content, shipped).map((entry) => ({
+    ...entry,
+    panelOpen: false,
+  }));
+}
+
+function alignDocumentSectionsToEnglish(
+  english: DocumentSectionDraft[],
+  localized: DocumentSectionDraft[],
+  shipped: LegalSectionEntry[],
+): DocumentSectionDraft[] {
+  const byId = new Map(localized.map((section) => [section.id, section]));
+  const shippedById = new Map(shipped.map((section) => [section.id, section]));
+  return english.map((enSection) => {
+    const existing = byId.get(enSection.id);
+    const fallback = shippedById.get(enSection.id);
+    return existing
+      ? { ...existing, id: enSection.id, panelOpen: enSection.panelOpen }
+      : emptyDocumentSection({
+          id: enSection.id,
+          label: fallback?.label ?? enSection.label,
+          title: fallback?.title ?? "",
+          body: fallback?.body ?? "",
+          panelOpen: enSection.panelOpen,
+        });
+  });
+}
 
 let materialIdCounter = 0;
 function nextMaterialId() {
@@ -132,7 +191,14 @@ function materialsFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCo
   });
 }
 
-function draftFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCopy): PageLocaleDraft {
+function draftFromCopy(
+  copy: EditablePageCopy,
+  sharedImages?: EditablePageCopy,
+  options?: {
+    legalShipped?: LegalSectionEntry[];
+    serviceShipped?: LegalSectionEntry[];
+  },
+): PageLocaleDraft {
   return {
     title: copy.title ?? "",
     eyebrow: copy.eyebrow ?? "",
@@ -162,23 +228,15 @@ function draftFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCopy):
     finalFooterTitle: copy.finalFooterTitle ?? "",
     finalContactLabel: copy.finalContactLabel ?? "",
     legalIntro: copy.legalIntro ?? "",
-    legalSections: Object.fromEntries(
-      Object.entries(copy.legalSections ?? {}).map(([id, section]) => [id, { title: section.title ?? "", body: section.body ?? "" }]),
-    ),
-    serviceSections: Object.fromEntries(
-      Object.entries(copy.serviceSections ?? {}).map(([id, section]) => [id, { title: section.title ?? "", body: section.body ?? "" }]),
-    ),
+    legalSections: documentSectionsFromCopy(copy.legalSections, options?.legalShipped ?? []),
+    serviceSections: documentSectionsFromCopy(copy.serviceSections, options?.serviceShipped ?? []),
   };
 }
 
 function HiddenLocaleFields({
   draftByLocale,
-  legalSectionIds,
-  serviceSectionIds,
 }: {
   draftByLocale: Record<string, PageLocaleDraft>;
-  legalSectionIds: string[];
-  serviceSectionIds: string[];
 }) {
   return (
     <div hidden>
@@ -186,6 +244,12 @@ function HiddenLocaleFields({
         const draft = draftByLocale[locale];
         const name = (key: string) => adminLocaleFieldName(locale, key, SOURCE_LOCALE);
         const field = (key: string, value: string) => <input key={name(key)} type="hidden" name={name(key)} value={value} readOnly />;
+        const sectionFields = (kind: "legal" | "service", sections: DocumentSectionDraft[]) =>
+          sections.flatMap((section) => [
+            field(`${kind}:${section.id}:label`, section.label),
+            field(`${kind}:${section.id}:title`, section.title),
+            field(`${kind}:${section.id}:body`, section.body),
+          ]);
         return [
           field("title", draft.title),
           field("eyebrow", draft.eyebrow),
@@ -220,16 +284,17 @@ function HiddenLocaleFields({
             field(`material${index + 1}Description`, material.description),
             field(`material${index + 1}Properties`, material.properties),
           ]),
-          ...legalSectionIds.flatMap((id) => {
-            const section = draft.legalSections[id] ?? { title: "", body: "" };
-            return [field(`legal:${id}:title`, section.title), field(`legal:${id}:body`, section.body)];
-          }),
-          ...serviceSectionIds.flatMap((id) => {
-            const section = draft.serviceSections[id] ?? { title: "", body: "" };
-            return [field(`service:${id}:title`, section.title), field(`service:${id}:body`, section.body)];
-          }),
+          ...sectionFields("legal", draft.legalSections),
+          ...sectionFields("service", draft.serviceSections),
         ];
       })}
+      {/* Structure (ids + order) is English-owned and shared across locales. */}
+      {draftByLocale[SOURCE_LOCALE]?.legalSections.map((section) => (
+        <input key={`legal-id-${section.id}`} type="hidden" name="legalSectionIds" value={section.id} readOnly />
+      ))}
+      {draftByLocale[SOURCE_LOCALE]?.serviceSections.map((section) => (
+        <input key={`service-id-${section.id}`} type="hidden" name="serviceSectionIds" value={section.id} readOnly />
+      ))}
     </div>
   );
 }
@@ -269,11 +334,11 @@ export function PageEditor({
   const isAboutPage = page.slug === "about";
   const isOfferPage = page.slug === "offer";
   const isTermsPage = page.slug === "terms-and-conditions";
-  const isPrivacyPage = page.slug === "privacy";
   const isLegalNoticePage = page.slug === "legal-notice";
   const isShopPage = page.slug === "shop";
   const isCollectionsPage = page.slug === "collections";
   const isServicePage = SERVICE_PAGE_SLUGS.includes(page.slug as ServicePageSlug);
+  const isLegalDocumentPage = isLegalDocumentSlug(page.slug);
   // Shop and the 4 service pages render Title as their on-page H1 too (like home/about
   // already do). Collections keeps Title as SEO/meta only — on-page heading is secondaryTitle.
   const titleIsMetaOnly = isCollectionsPage;
@@ -285,17 +350,39 @@ export function PageEditor({
   // Collections" callout at the bottom of /shop — dead for Service pages;
   // Collections maps those concepts in CollectionsPageEditorSections.
   const hideShopCalloutFields = isServicePage || isCollectionsPage;
-  const legalSections = isOfferPage ? OFFER_SECTIONS : isTermsPage ? TERMS_SECTIONS : isPrivacyPage ? PRIVACY_SECTIONS.en : isLegalNoticePage ? LEGAL_NOTICE_SECTIONS : [];
-  const serviceSections = isServicePage ? SERVICE_SECTIONS[page.slug as ServicePageSlug] : [];
+  const legalShippedByLocale = Object.fromEntries(
+    [SOURCE_LOCALE, ...translationLocales.map(({ code }) => code)].map((code) => [
+      code,
+      isLegalDocumentPage ? shippedLegalEntries(page.slug, code === "pt" ? "pt" : "en") : [],
+    ]),
+  ) as Record<string, LegalSectionEntry[]>;
+  const serviceShippedByLocale = Object.fromEntries(
+    [SOURCE_LOCALE, ...translationLocales.map(({ code }) => code)].map((code) => [
+      code,
+      isServicePageSlug(page.slug)
+        ? shippedServiceEntries(page.slug, code === "pt" ? "pt" : "en")
+        : [],
+    ]),
+  ) as Record<string, LegalSectionEntry[]>;
   const { pushToast } = useAdminToast();
   const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, tabs);
   const [draftByLocale, setDraftByLocale] = useState<Record<string, PageLocaleDraft>>(() => {
-    const english = draftFromCopy({ ...content, title: page.title, excerpt: page.excerpt ?? "" });
+    const english = draftFromCopy(
+      { ...content, title: page.title, excerpt: page.excerpt ?? "" },
+      undefined,
+      {
+        legalShipped: legalShippedByLocale[SOURCE_LOCALE],
+        serviceShipped: serviceShippedByLocale[SOURCE_LOCALE],
+      },
+    );
     return {
       [SOURCE_LOCALE]: english,
       ...Object.fromEntries(translationLocales.map(({ code }) => {
-        const draft = draftFromCopy(translationCopyFor(code), content);
+        const draft = draftFromCopy(translationCopyFor(code), content, {
+          legalShipped: legalShippedByLocale[code] ?? [],
+          serviceShipped: serviceShippedByLocale[code] ?? [],
+        });
         draft.materials = english.materials.map((enMaterial, index) => {
           const localized = draft.materials[index];
           return emptyMaterial({
@@ -307,6 +394,16 @@ export function PageEditor({
             properties: localized?.properties ?? "",
           });
         });
+        draft.legalSections = alignDocumentSectionsToEnglish(
+          english.legalSections,
+          draft.legalSections,
+          legalShippedByLocale[code] ?? [],
+        );
+        draft.serviceSections = alignDocumentSectionsToEnglish(
+          english.serviceSections,
+          draft.serviceSections,
+          serviceShippedByLocale[code] ?? [],
+        );
         return [code, draft];
       })),
     };
@@ -506,30 +603,81 @@ export function PageEditor({
     return emptyMaterial({ panelOpen: true });
   }
 
-  function updateLegalSection(sectionId: string, key: "title" | "body", value: string) {
+  function setDocumentSections(
+    kind: "legal" | "service",
+    next: DocumentSectionDraft[] | ((current: DocumentSectionDraft[]) => DocumentSectionDraft[]),
+  ) {
+    setDraftByLocale((prev) => {
+      const key = kind === "legal" ? "legalSections" : "serviceSections";
+      const activeCurrent = prev[activeLocale]?.[key] ?? [];
+      const requested = typeof next === "function" ? next(activeCurrent) : next;
+      const englishCurrent = prev[SOURCE_LOCALE]?.[key] ?? [];
+      const enById = new Map(englishCurrent.map((section) => [section.id, section]));
+      // Structure (ids + order) follows the editor action; English keeps its own copy fields.
+      const englishNext = requested.map((item) => {
+        const existing = enById.get(item.id);
+        return existing
+          ? { ...existing, id: item.id, panelOpen: item.panelOpen }
+          : item;
+      });
+      const shippedByLocale = kind === "legal" ? legalShippedByLocale : serviceShippedByLocale;
+
+      return Object.fromEntries(
+        Object.entries(prev).map(([locale, draft]) => {
+          if (locale === SOURCE_LOCALE) {
+            return [locale, { ...draft, [key]: englishNext }];
+          }
+          return [
+            locale,
+            {
+              ...draft,
+              [key]: alignDocumentSectionsToEnglish(
+                englishNext,
+                draft[key],
+                shippedByLocale[locale] ?? [],
+              ),
+            },
+          ];
+        }),
+      );
+    });
+  }
+
+  function updateDocumentSection(
+    kind: "legal" | "service",
+    sectionId: string,
+    key: "label" | "title" | "body",
+    value: string,
+  ) {
+    const listKey = kind === "legal" ? "legalSections" : "serviceSections";
     setDraftByLocale((prev) => ({
       ...prev,
       [activeLocale]: {
         ...prev[activeLocale],
-        legalSections: {
-          ...prev[activeLocale].legalSections,
-          [sectionId]: { ...(prev[activeLocale].legalSections[sectionId] ?? { title: "", body: "" }), [key]: value },
-        },
+        [listKey]: prev[activeLocale][listKey].map((section) =>
+          section.id === sectionId ? { ...section, [key]: value } : section,
+        ),
       },
     }));
   }
 
-  function updateServiceSection(sectionId: string, key: "title" | "body", value: string) {
+  function setDocumentSectionPanelOpen(kind: "legal" | "service", index: number, open: boolean) {
+    const listKey = kind === "legal" ? "legalSections" : "serviceSections";
     setDraftByLocale((prev) => ({
       ...prev,
       [activeLocale]: {
         ...prev[activeLocale],
-        serviceSections: {
-          ...prev[activeLocale].serviceSections,
-          [sectionId]: { ...(prev[activeLocale].serviceSections[sectionId] ?? { title: "", body: "" }), [key]: value },
-        },
+        [listKey]: prev[activeLocale][listKey].map((section, sectionIndex) =>
+          sectionIndex === index ? { ...section, panelOpen: open } : section,
+        ),
       },
     }));
+  }
+
+  function createDocumentSection(kind: "legal" | "service"): DocumentSectionDraft {
+    const existing = draftByLocale[SOURCE_LOCALE]?.[kind === "legal" ? "legalSections" : "serviceSections"] ?? [];
+    const id = uniqueLegalSectionId(`section ${existing.length + 1}`, existing.map((section) => section.id));
+    return emptyDocumentSection({ id, label: "", panelOpen: true });
   }
 
   function formAction(formData: FormData) {
@@ -611,11 +759,7 @@ export function PageEditor({
     <form data-component="PageEditor" ref={formRef} action={formAction} noValidate>
       <input type="hidden" name="pageId" value={page.id} />
       <input type="hidden" name="slug" value={page.slug} />
-      <HiddenLocaleFields
-        draftByLocale={draftByLocale}
-        legalSectionIds={legalSections.map((section) => section.id)}
-        serviceSectionIds={serviceSections.map((section) => section.id)}
-      />
+      <HiddenLocaleFields draftByLocale={draftByLocale} />
 
       <AdminListWorkspace.Root>
         <AdminListWorkspace.Header
@@ -790,7 +934,7 @@ export function PageEditor({
               isShopPage ? (
                 <AdminHelp>The paragraph under the hero heading on /shop.</AdminHelp>
               ) : isServicePage ? (
-                <AdminHelp>The paragraph under the heading on /{page.slug}, above the four sections below.</AdminHelp>
+                <AdminHelp>The paragraph under the heading on /{page.slug}, above the sections below.</AdminHelp>
               ) : undefined
             }
             value={draft.body}
@@ -805,27 +949,48 @@ export function PageEditor({
             <div>
               <h3 id="service-sections-heading" className="adm-title-sm">Page sections</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                These fixed sections render on /{page.slug} in this order. Leave a title or body empty to fall back to the shipped default text.
+                Add, remove, and reorder sections for /{page.slug}. Edit the section name and body for each language.
+                Section order is shared across languages.
               </p>
             </div>
-            {serviceSections.map((section, index) => {
-              const value = draft.serviceSections[section.id];
-              return (
-                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
-                  <p className="adm-section-tag">SECTION {index + 1} — {section.label}</p>
-                  <AdminTextField
-                    label="Title"
-                    value={value?.title ?? ""}
-                    onChange={(event) => updateServiceSection(section.id, "title", event.target.value)}
-                  />
-                  <AdminRichTextField
-                    label="Body"
-                    value={value?.body ?? ""}
-                    onChange={(value) => updateServiceSection(section.id, "body", value)}
-                  />
-                </div>
-              );
-            })}
+            <AdminOrderedList
+              label="Sections"
+              items={draft.serviceSections}
+              onChange={(items) => setDocumentSections("service", items)}
+              getKey={(section) => section.id}
+              minItems={0}
+              maxItems={MAX_DOCUMENT_SECTIONS}
+              createItem={() => createDocumentSection("service")}
+              addLabel="Add section"
+              showItemControls={false}
+              renderItem={(section, controls) => (
+                <AdminCollapsiblePanel
+                  title={section.label.trim() || section.title.trim() || `Section ${controls.index + 1}`}
+                  open={section.panelOpen}
+                  onOpenChange={(open) => setDocumentSectionPanelOpen("service", controls.index, open)}
+                  className="adm-ordered-list__collapse"
+                  trailing={<AdminOrderedListItemActions controls={controls} />}
+                >
+                  <div className="grid gap-4">
+                    <AdminTextField
+                      label="Section name"
+                      value={section.label}
+                      onChange={(event) => updateDocumentSection("service", section.id, "label", event.target.value)}
+                    />
+                    <AdminTextField
+                      label="Title"
+                      value={section.title}
+                      onChange={(event) => updateDocumentSection("service", section.id, "title", event.target.value)}
+                    />
+                    <AdminRichTextField
+                      label="Body"
+                      value={section.body}
+                      onChange={(value) => updateDocumentSection("service", section.id, "body", value)}
+                    />
+                  </div>
+                </AdminCollapsiblePanel>
+              )}
+            />
           </section>
         ) : null}
 
@@ -855,14 +1020,14 @@ export function PageEditor({
           </div>
         </div>
 
-        {isOfferPage || isTermsPage || isPrivacyPage || isLegalNoticePage ? (
+        {isLegalDocumentPage ? (
           <section className="grid gap-4 border-t border-[var(--adm-border)] pt-5" aria-labelledby="legal-copy-heading">
             <div>
               <h3 id="legal-copy-heading" className="adm-title-sm">Legal document</h3>
               <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-                Section order, numbering, and anchors are fixed and shared across languages. Saved legal
-                document content is managed exclusively from Admin. Empty fields remain empty. Default
-                content is used only when a new legal document is created. Body supports Markdown.
+                Add, remove, and reorder sections. Edit the section name (table of contents), title, and Markdown body
+                for each language. Section order is shared across languages. Saved content is managed exclusively from
+                Admin — empty fields remain empty on the site.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -884,26 +1049,47 @@ export function PageEditor({
               />
             </div>
 
-            {legalSections.map((section) => {
-              const value = draft.legalSections[section.id];
-              return (
-                <div key={section.id} className="grid gap-4 border border-[var(--adm-border)] p-4">
-                  <p className="adm-section-tag">{section.label}</p>
-                  <AdminTextField
-                    label="Title"
-                    value={value?.title ?? ""}
-                    onChange={(event) => updateLegalSection(section.id, "title", event.target.value)}
-                  />
-                  <AdminLongTextField
-                    label="Body (Markdown)"
-                    value={value?.body ?? ""}
-                    onChange={(value) => updateLegalSection(section.id, "body", value)}
-                    rows={6}
-                    editorClassName="font-mono text-xs"
-                  />
-                </div>
-              );
-            })}
+            <AdminOrderedList
+              label="Sections"
+              items={draft.legalSections}
+              onChange={(items) => setDocumentSections("legal", items)}
+              getKey={(section) => section.id}
+              minItems={0}
+              maxItems={MAX_DOCUMENT_SECTIONS}
+              createItem={() => createDocumentSection("legal")}
+              addLabel="Add section"
+              showItemControls={false}
+              renderItem={(section, controls) => (
+                <AdminCollapsiblePanel
+                  title={section.label.trim() || section.title.trim() || `Section ${controls.index + 1}`}
+                  open={section.panelOpen}
+                  onOpenChange={(open) => setDocumentSectionPanelOpen("legal", controls.index, open)}
+                  className="adm-ordered-list__collapse"
+                  trailing={<AdminOrderedListItemActions controls={controls} />}
+                >
+                  <div className="grid gap-4">
+                    <AdminTextField
+                      label="Section name"
+                      help={<AdminHelp>Shown in the table of contents and as the section eyebrow on the page.</AdminHelp>}
+                      value={section.label}
+                      onChange={(event) => updateDocumentSection("legal", section.id, "label", event.target.value)}
+                    />
+                    <AdminTextField
+                      label="Title"
+                      value={section.title}
+                      onChange={(event) => updateDocumentSection("legal", section.id, "title", event.target.value)}
+                    />
+                    <AdminLongTextField
+                      label="Body (Markdown)"
+                      value={section.body}
+                      onChange={(value) => updateDocumentSection("legal", section.id, "body", value)}
+                      rows={6}
+                      editorClassName="font-mono text-xs"
+                    />
+                  </div>
+                </AdminCollapsiblePanel>
+              )}
+            />
           </section>
         ) : null}
 

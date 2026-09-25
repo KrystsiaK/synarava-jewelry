@@ -6,12 +6,11 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
-import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import {
   OFFER_INTRO_DEFAULT,
   OFFER_LAST_UPDATED_DEFAULT,
-  OFFER_SECTIONS,
-  OFFER_SECTION_DEFAULTS,
 } from "@/lib/content/offer-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -43,7 +42,11 @@ export default async function OfferPage() {
   const privacyHref = localePath(locale, "/privacy");
 
   const exists = isSavedLegalDocument(page);
-  const sections = resolveLegalSections(OFFER_SECTIONS, page?.content.legalSections, exists ? {} : OFFER_SECTION_DEFAULTS);
+  const sections = resolveDocumentSections(
+    page?.content.legalSections,
+    shippedLegalEntries("offer", locale),
+    exists,
+  );
   const intro = resolveLegalText(page?.content.legalIntro, exists ? "" : OFFER_INTRO_DEFAULT);
   const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : OFFER_LAST_UPDATED_DEFAULT);
 

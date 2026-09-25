@@ -6,8 +6,9 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
-import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
-import { PRIVACY_LAST_UPDATED_DEFAULT, PRIVACY_SECTIONS, PRIVACY_SECTION_DEFAULTS } from "@/lib/content/privacy-defaults";
+import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
+import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
+import { PRIVACY_LAST_UPDATED_DEFAULT } from "@/lib/content/privacy-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
@@ -47,10 +48,10 @@ export default async function PrivacyPage() {
   };
 
   const exists = isSavedLegalDocument(page);
-  const sections = resolveLegalSections(
-    PRIVACY_SECTIONS[locale] ?? PRIVACY_SECTIONS.en,
+  const sections = resolveDocumentSections(
     page?.content.legalSections,
-    exists ? {} : (PRIVACY_SECTION_DEFAULTS[locale] ?? PRIVACY_SECTION_DEFAULTS.en),
+    shippedLegalEntries("privacy", locale),
+    exists,
     vars,
   );
   const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : PRIVACY_LAST_UPDATED_DEFAULT);

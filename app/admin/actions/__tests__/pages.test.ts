@@ -257,23 +257,35 @@ describe("savePageAction", () => {
     formData.set("workflowState", "PUBLISHED");
     formData.set("eyebrow", "Service / FAQ");
     formData.set("body", "Short answers before and after an order.");
+    formData.append("serviceSectionIds", "maker");
+    formData.append("serviceSectionIds", "availability");
+    formData.append("serviceSectionIds", "payment");
+    formData.append("serviceSectionIds", "question");
+    formData.set("service:maker:label", "Maker");
     formData.set("service:maker:title", "Is everything made by Synarava?");
     formData.set("service:maker:body", "Yes — each piece is finished in the studio.");
+    formData.set("service:availability:label", "Availability");
     formData.set("service:availability:title", "How do I know an option is available?");
     formData.set("service:availability:body", "Availability is shown on the product page.");
+    formData.set("service:payment:label", "Payment");
     formData.set("service:payment:title", "Where do I pay?");
     formData.set("service:payment:body", "Checkout is handled securely through Shopify.");
+    formData.set("service:question:label", "Questions");
     formData.set("service:question:title", "Can I ask about a product first?");
     formData.set("service:question:body", "Write to us before ordering if you need advice.");
     formData.set("ptTitle", "Antes de escolher");
     formData.set("ptEyebrow", "Serviço / FAQ");
     formData.set("ptBody", "Respostas breves antes e depois de uma encomenda.");
+    formData.set("ptService:maker:label", "Criação");
     formData.set("ptService:maker:title", "Tudo é feito pela Synarava?");
     formData.set("ptService:maker:body", "Sim — cada peça é acabada no estúdio.");
+    formData.set("ptService:availability:label", "Disponibilidade");
     formData.set("ptService:availability:title", "Como sei se uma opção está disponível?");
     formData.set("ptService:availability:body", "A disponibilidade aparece na página do produto.");
+    formData.set("ptService:payment:label", "Pagamento");
     formData.set("ptService:payment:title", "Onde pago?");
     formData.set("ptService:payment:body", "O checkout é tratado com segurança pela Shopify.");
+    formData.set("ptService:question:label", "Perguntas");
     formData.set("ptService:question:title", "Posso perguntar sobre um produto primeiro?");
     formData.set("ptService:question:body", "Escreva-nos antes de encomendar se precisar de conselho.");
 
@@ -281,24 +293,32 @@ describe("savePageAction", () => {
       success: "Page created.",
       page: {
         content: expect.objectContaining({
-          serviceSections: {
-            maker: {
+          serviceSections: [
+            {
+              id: "maker",
+              label: "Maker",
               title: "Is everything made by Synarava?",
               body: "Yes — each piece is finished in the studio.",
             },
-            availability: {
+            {
+              id: "availability",
+              label: "Availability",
               title: "How do I know an option is available?",
               body: "Availability is shown on the product page.",
             },
-            payment: {
+            {
+              id: "payment",
+              label: "Payment",
               title: "Where do I pay?",
               body: "Checkout is handled securely through Shopify.",
             },
-            question: {
+            {
+              id: "question",
+              label: "Questions",
               title: "Can I ask about a product first?",
               body: "Write to us before ordering if you need advice.",
             },
-          },
+          ],
         }),
       },
     });
@@ -311,24 +331,32 @@ describe("savePageAction", () => {
         content: expect.objectContaining({
           eyebrow: "Serviço / FAQ",
           body: "Respostas breves antes e depois de uma encomenda.",
-          serviceSections: {
-            maker: {
+          serviceSections: [
+            {
+              id: "maker",
+              label: "Criação",
               title: "Tudo é feito pela Synarava?",
               body: "Sim — cada peça é acabada no estúdio.",
             },
-            availability: {
+            {
+              id: "availability",
+              label: "Disponibilidade",
               title: "Como sei se uma opção está disponível?",
               body: "A disponibilidade aparece na página do produto.",
             },
-            payment: {
+            {
+              id: "payment",
+              label: "Pagamento",
               title: "Onde pago?",
               body: "O checkout é tratado com segurança pela Shopify.",
             },
-            question: {
+            {
+              id: "question",
+              label: "Perguntas",
               title: "Posso perguntar sobre um produto primeiro?",
               body: "Escreva-nos antes de encomendar se precisar de conselho.",
             },
-          },
+          ],
         }),
       }),
     }));

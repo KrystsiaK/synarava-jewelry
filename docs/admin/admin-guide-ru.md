@@ -6,7 +6,8 @@
 
 Актуализировано по состоянию на 2026-09-25: Pages draft restore after
 deployment skew reload; product workspace sticky chrome, locale-scoped
-conflict sync, whole-product Save, leave-guard, scroll preserve after Save.
+conflict sync, whole-product Save, leave-guard, scroll preserve after Save;
+legal/service page sections are add/remove/reorder with editable names.
 
 ---
 
@@ -349,6 +350,14 @@ legacy cover, пока не загружены изображения галер
 - Публикация/черновик/архив работают так же, как у товаров и коллекций.
 - Hero-изображение можно загрузить и позже удалить отдельным флагом «убрать
   изображение», не трогая остальной контент.
+- **Legal documents** (`privacy`, `terms-and-conditions`, `offer`,
+  `legal-notice`) и **service pages** (`care`, `faq`, `shipping`, `returns`,
+  `dispute-resolution`): секции — упорядоченный список (`AdminOrderedList`).
+  Можно добавлять, удалять и менять порядок; у каждой секции редактируются
+  **имя** (TOC / eyebrow), **заголовок** и **тело**. Порядок общий для языков;
+  тексты — по локали. Сохранённый список на витрине авторитетен (пустые поля
+  остаются пустыми). Пока документ не создан, витрина показывает shipped
+  defaults из кода.
 
 ## 7. Видео (`/admin/videos`)
 

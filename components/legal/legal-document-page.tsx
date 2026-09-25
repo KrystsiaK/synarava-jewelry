@@ -47,10 +47,9 @@ function legalUrlTransform(url: string): string {
   return isLegalActionHref(url) ? url : defaultUrlTransform(url);
 }
 
-// Shared chrome for /offer and /privacy: hero, sticky table of contents, and
-// a list of markdown-rendered sections. Section ids/order/TOC labels are
-// code-defined (see lib/content/*-defaults.ts) — only each section's title
-// and body are admin-editable, via Admin -> Pages.
+// Shared chrome for legal documents: hero, sticky table of contents, and a
+// list of markdown-rendered sections. Section order, names, titles, and bodies
+// are admin-editable (Admin → Pages); see lib/content/legal-sections.ts.
 export function LegalDocumentPage({
   heroImage,
   eyebrowLabel,

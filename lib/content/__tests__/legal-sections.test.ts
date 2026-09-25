@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { isSavedLegalDocument, resolveLegalSections, resolveLegalText } from "@/lib/content/legal-sections";
+import {
+  buildLegalSectionEntries,
+  isSavedLegalDocument,
+  mergeLocalizedLegalSections,
+  normalizeLegalSectionEntries,
+  resolveDocumentSections,
+  resolveLegalSections,
+  resolveLegalText,
+  seedLegalSectionEntries,
+  uniqueLegalSectionId,
+} from "@/lib/content/legal-sections";
 
 const sections = [
   { id: "a", label: "1. A" },
@@ -10,6 +20,7 @@ const defaults = {
   a: { title: "Default A title", body: "Default A body for {name}." },
   b: { title: "Default B title", body: "Default B body." },
 };
+const shipped = buildLegalSectionEntries(sections, defaults);
 
 describe("resolveLegalSections", () => {
   it("falls back to the shipped default when content is empty", () => {
@@ -44,6 +55,78 @@ describe("resolveLegalSections", () => {
     );
     expect(result[0].body).toBe("Hello World!");
   });
+
+  it("renders an admin-owned array without the fixed skeleton", () => {
+    const result = resolveLegalSections(
+      sections,
+      [{ id: "custom", label: "X. Custom", title: "Hello", body: "World" }],
+      defaults,
+    );
+    expect(result).toEqual([{ id: "custom", label: "X. Custom", title: "Hello", body: "World" }]);
+  });
+});
+
+describe("resolveDocumentSections", () => {
+  it("uses shipped defaults while the document is not saved", () => {
+    expect(resolveDocumentSections(undefined, shipped, false, { name: "Synarava" })[0].body)
+      .toBe("Default A body for Synarava.");
+  });
+
+  it("treats a saved array as authoritative, including empty lists", () => {
+    expect(resolveDocumentSections([], shipped, true)).toEqual([]);
+    expect(resolveDocumentSections(
+      [{ id: "only", label: "1. Only", title: "T", body: "B" }],
+      shipped,
+      true,
+    )).toEqual([{ id: "only", label: "1. Only", title: "T", body: "B" }]);
+  });
+
+  it("keeps empty legacy fields empty once saved (no silent default revive)", () => {
+    const result = resolveDocumentSections(
+      { a: { title: "Admin's title", body: "Admin's body." } },
+      shipped,
+      true,
+    );
+    expect(result[0]).toEqual({ id: "a", label: "1. A", title: "Admin's title", body: "Admin's body." });
+    expect(result[1]).toEqual({ id: "b", label: "2. B", title: "", body: "" });
+  });
+});
+
+describe("normalize / seed helpers", () => {
+  it("seeds missing content from shipped defaults for the admin editor", () => {
+    expect(seedLegalSectionEntries(undefined, shipped)).toEqual(shipped);
+  });
+
+  it("keeps an explicit empty array empty", () => {
+    expect(seedLegalSectionEntries([], shipped)).toEqual([]);
+  });
+
+  it("normalizes a legacy record onto the shipped skeleton", () => {
+    expect(normalizeLegalSectionEntries({ a: { title: "T", body: "B" } }, shipped)).toEqual([
+      { id: "a", label: "1. A", title: "T", body: "B" },
+      { id: "b", label: "2. B", title: "", body: "" },
+    ]);
+  });
+
+  it("builds unique section ids from labels", () => {
+    expect(uniqueLegalSectionId("1. Data Controller", [])).toBe("data-controller");
+    expect(uniqueLegalSectionId("Data Controller", ["data-controller"])).toBe("data-controller-2");
+  });
+});
+
+describe("mergeLocalizedLegalSections", () => {
+  it("overlays translation fields onto an ordered source array", () => {
+    expect(mergeLocalizedLegalSections(
+      [
+        { id: "a", label: "1. A", title: "EN A", body: "Body A" },
+        { id: "b", label: "2. B", title: "EN B", body: "Body B" },
+      ],
+      [{ id: "a", label: "1. A PT", title: "PT A", body: "" }],
+    )).toEqual([
+      { id: "a", label: "1. A PT", title: "PT A", body: "Body A" },
+      { id: "b", label: "2. B", title: "EN B", body: "Body B" },
+    ]);
+  });
 });
 
 describe("resolveLegalText", () => {
@@ -66,33 +149,25 @@ describe("isSavedLegalDocument", () => {
 });
 
 describe("Legal Document page pattern: admin content survives a shipped-default change", () => {
-  // Mirrors exactly what each of app/[locale]/{privacy,offer,terms-and-conditions,legal-notice}/page.tsx
-  // does: resolve against real defaults only while the document doesn't exist yet; once it does,
-  // resolve against {} instead, so a field that's actually empty renders empty rather than
-  // silently reverting to whatever the shipped copy says today.
-  function renderSections(page: unknown, savedContent: Record<string, { title?: string; body?: string }> | undefined, shippedDefaults: typeof defaults) {
-    const exists = isSavedLegalDocument(page);
-    return resolveLegalSections(sections, savedContent, exists ? {} : shippedDefaults);
+  function renderSections(page: unknown, savedContent: unknown, shippedDefaults: typeof shipped) {
+    return resolveDocumentSections(savedContent, shippedDefaults, isSavedLegalDocument(page));
   }
 
   it("a document that has never been created still shows the shipped default", () => {
-    expect(renderSections(null, undefined, defaults)[0].body).toBe("Default A body for {name}.");
+    expect(renderSections(null, undefined, shipped)[0].body).toBe("Default A body for {name}.");
   });
 
   it("acceptance criteria: once saved, admin content survives a later shipped-default change — including a section the admin left blank rendering empty, not the new default", () => {
     const page = { title: "Privacy Policy" };
-    const savedYesterday = { a: { title: "Admin's title", body: "Admin's body." } }; // section "b" was never saved
-    const tomorrowsShippedDefaults = {
+    const savedYesterday = { a: { title: "Admin's title", body: "Admin's body." } };
+    const tomorrowsShipped = buildLegalSectionEntries(sections, {
       a: { title: "REWRITTEN", body: "Completely different shipped copy." },
       b: { title: "Also rewritten", body: "New shipped copy for b." },
-    };
+    });
 
-    const result = renderSections(page, savedYesterday, tomorrowsShippedDefaults);
+    const result = renderSections(page, savedYesterday, tomorrowsShipped);
 
-    // Admin's own saved text for "a" is byte-for-byte unaffected by the rewritten default.
     expect(result[0]).toEqual({ id: "a", label: "1. A", title: "Admin's title", body: "Admin's body." });
-    // "b" was never saved — it renders empty, not the (rewritten) default. That's the
-    // explicit tradeoff: once the document exists, empty means empty.
     expect(result[1]).toEqual({ id: "b", label: "2. B", title: "", body: "" });
   });
 });

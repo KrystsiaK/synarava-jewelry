@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { Locale } from "@/lib/i18n/locales";
 import { hasContent } from "@/lib/i18n/localized-content";
+import { mergeLocalizedLegalSections } from "@/lib/content/legal-sections";
 
 const materialSchema = z.object({
   name: z.string().optional(),
@@ -11,6 +12,8 @@ const materialSchema = z.object({
 });
 
 const legalSectionSchema = z.object({
+  id: z.string().optional(),
+  label: z.string().optional(),
   title: z.string().optional(),
   body: z.string().optional(),
 });
@@ -43,8 +46,15 @@ export const pageTranslationContentSchema = z.object({
   finalContactLabel: z.string().optional(),
   legalIntro: z.string().optional(),
   legalLastUpdated: z.string().optional(),
-  legalSections: z.record(z.string(), legalSectionSchema).optional(),
-  serviceSections: z.record(z.string(), legalSectionSchema).optional(),
+  // Array (admin-owned order) or legacy Record<id, {title,body}>.
+  legalSections: z.union([
+    z.array(legalSectionSchema),
+    z.record(z.string(), legalSectionSchema),
+  ]).optional(),
+  serviceSections: z.union([
+    z.array(legalSectionSchema),
+    z.record(z.string(), legalSectionSchema),
+  ]).optional(),
 });
 
 export type PageTranslationContent = z.infer<typeof pageTranslationContentSchema>;
@@ -75,11 +85,6 @@ type MaterialEntry = {
   image?: string;
 };
 
-type SectionEntry = {
-  title?: string;
-  body?: string;
-};
-
 /**
  * Material lexicon structure (count, order, images) is shared across locales.
  * Translation rows only store text; replacing the whole array would drop images
@@ -107,31 +112,16 @@ export function mergeMaterialLexicon(
 }
 
 /**
- * Section maps keep source keys (structure). Localized title/body overlay
+ * Section maps/lists keep source structure. Localized label/title/body overlay
  * field-by-field so a partial translation cannot delete sections.
+ * @deprecated Prefer mergeLocalizedLegalSections from legal-sections — kept as
+ * a thin re-export for older tests/imports.
  */
 export function mergeLocalizedSectionRecord(
   source: unknown,
   translation: unknown,
-): Record<string, SectionEntry> | undefined {
-  if (!source || typeof source !== "object" || Array.isArray(source)) return undefined;
-  const sourceRecord = source as Record<string, SectionEntry>;
-  const translationRecord = (
-    translation && typeof translation === "object" && !Array.isArray(translation)
-      ? translation
-      : {}
-  ) as Record<string, SectionEntry>;
-
-  return Object.fromEntries(
-    Object.keys(sourceRecord).map((id) => {
-      const entry = sourceRecord[id] ?? {};
-      const localized = translationRecord[id] ?? {};
-      return [id, {
-        title: hasContent(localized.title) ? localized.title : entry.title,
-        body: hasContent(localized.body) ? localized.body : entry.body,
-      }];
-    }),
-  );
+) {
+  return mergeLocalizedLegalSections(source, translation);
 }
 
 function overlayContent(source: Record<string, unknown>, translation: PageTranslationContent) {
@@ -143,7 +133,7 @@ function overlayContent(source: Record<string, unknown>, translation: PageTransl
       continue;
     }
     if (key === "legalSections" || key === "serviceSections") {
-      const merged = mergeLocalizedSectionRecord(source[key], value);
+      const merged = mergeLocalizedLegalSections(source[key], value);
       if (merged) resolved[key] = merged;
       continue;
     }

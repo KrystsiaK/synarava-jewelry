@@ -13,12 +13,8 @@ import { slugify } from "@/lib/text/slug";
 import { savePageImageUpload } from "@/lib/media/local-upload";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
-import { OFFER_SECTIONS } from "@/lib/content/offer-defaults";
-import { TERMS_SECTIONS } from "@/lib/content/terms-defaults";
-import { PRIVACY_SECTIONS } from "@/lib/content/privacy-defaults";
-import { LEGAL_NOTICE_SECTIONS } from "@/lib/content/legal-notice-defaults";
-import { SERVICE_SECTIONS } from "@/lib/content/service-page-defaults";
 import { MAX_HOME_LEXICON_MATERIALS } from "@/lib/content/home-lexicon-section";
+import type { LegalSectionEntry } from "@/lib/content/legal-sections";
 import { isValidOptionalEmail, OPTIONAL_EMAIL_ERROR } from "@/lib/admin/optional-email";
 import { hasLocaleField, readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
@@ -107,22 +103,26 @@ function existingMaterialImage(existingContent: Record<string, unknown>, index: 
   return entry && typeof entry.image === "string" ? entry.image : "";
 }
 
-const LEGAL_SECTION_IDS = [...OFFER_SECTIONS, ...TERMS_SECTIONS, ...PRIVACY_SECTIONS.en, ...LEGAL_NOTICE_SECTIONS].map((s) => s.id);
-const SERVICE_SECTION_IDS = Object.values(SERVICE_SECTIONS).flatMap((sections) => sections.map((s) => s.id));
+const MAX_DOCUMENT_SECTIONS = 40;
 
-// Dynamic per-section fields (`legal:{id}:title` / `legal:{id}:body`, locale-prefixed
-// for a translation via the same adminLocaleFieldName convention every other field
-// uses) aren't worth exploding into the zod schema one property at a time — same
-// approach as the storefront-copy admin action. Reused for the fixed service-page
-// sections (care/faq/returns/shipping), which follow the same shape.
-function readSectionFields(formData: FormData, locale: string, kind: "legal" | "service", ids: string[]) {
-  const sections: Record<string, { title: string; body: string }> = {};
-  for (const id of ids) {
-    const title = readLocaleField(formData, locale, `${kind}:${id}:title`);
-    const body = readLocaleField(formData, locale, `${kind}:${id}:body`);
-    if (title || body) sections[id] = { title, body };
-  }
-  return sections;
+// Dynamic per-section fields (`legal:{id}:label|title|body`, locale-prefixed
+// for a translation) aren't worth exploding into the zod schema. Order comes
+// from repeated `legalSectionIds` / `serviceSectionIds` (English-owned).
+function readDynamicSectionFields(
+  formData: FormData,
+  locale: string,
+  kind: "legal" | "service",
+): LegalSectionEntry[] {
+  const ids = [...new Set(
+    formData.getAll(`${kind}SectionIds`).map((value) => String(value).trim()).filter(Boolean),
+  )].slice(0, MAX_DOCUMENT_SECTIONS);
+
+  return ids.map((id) => ({
+    id,
+    label: readLocaleField(formData, locale, `${kind}:${id}:label`),
+    title: readLocaleField(formData, locale, `${kind}:${id}:title`),
+    body: readLocaleField(formData, locale, `${kind}:${id}:body`),
+  }));
 }
 
 const TRANSLATABLE_PAGE_FIELDS = [
@@ -325,8 +325,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
   const translationLocales = await getAdminTranslationLocales();
-  const legalSections = readSectionFields(formData, "en", "legal", LEGAL_SECTION_IDS);
-  const serviceSections = readSectionFields(formData, "en", "service", SERVICE_SECTION_IDS);
+  const legalSections = readDynamicSectionFields(formData, "en", "legal");
+  const serviceSections = readDynamicSectionFields(formData, "en", "service");
   const editProductIds = [editProductId1, editProductId2, editProductId3, editProductId4].filter(Boolean);
   const finalCtaProductIds = [finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4].filter(Boolean);
   const archiveCollectionIds = [...new Set(
@@ -423,8 +423,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       finalContactLabel: fields.finalContactLabel,
       legalIntro: fields.legalIntro,
       legalLastUpdated,
-      legalSections: readSectionFields(formData, code, "legal", LEGAL_SECTION_IDS),
-      serviceSections: readSectionFields(formData, code, "service", SERVICE_SECTION_IDS),
+      legalSections: readDynamicSectionFields(formData, code, "legal"),
+      serviceSections: readDynamicSectionFields(formData, code, "service"),
     };
     const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
     return { code, label, fields, localizedHandle, content };
@@ -617,8 +617,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
   const translationLocales = await getAdminTranslationLocales();
-  const legalSections = readSectionFields(formData, "en", "legal", LEGAL_SECTION_IDS);
-  const serviceSections = readSectionFields(formData, "en", "service", SERVICE_SECTION_IDS);
+  const legalSections = readDynamicSectionFields(formData, "en", "legal");
+  const serviceSections = readDynamicSectionFields(formData, "en", "service");
   const editProductIds = [editProductId1, editProductId2, editProductId3, editProductId4].filter(Boolean);
   const finalCtaProductIds = [finalCtaProductId1, finalCtaProductId2, finalCtaProductId3, finalCtaProductId4].filter(Boolean);
   const archiveCollectionIds = [...new Set(
@@ -656,8 +656,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       finalContactLabel: fields.finalContactLabel,
       legalIntro: fields.legalIntro,
       legalLastUpdated,
-      legalSections: readSectionFields(formData, code, "legal", LEGAL_SECTION_IDS),
-      serviceSections: readSectionFields(formData, code, "service", SERVICE_SECTION_IDS),
+      legalSections: readDynamicSectionFields(formData, code, "legal"),
+      serviceSections: readDynamicSectionFields(formData, code, "service"),
     };
     const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
     return { code, label, fields, localizedHandle, content };
