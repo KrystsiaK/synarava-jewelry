@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { getCollectionBySlug, getProductsByCollection } from "@/lib/content/catalog";
+import { getCollectionBySlug, getShopFilterData } from "@/lib/content/catalog";
+import { listShopCatalogPage } from "@/lib/content/shop-listing";
+import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
@@ -12,6 +14,18 @@ import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{
+    q?: string;
+    availability?: string;
+    category?: string;
+    productType?: string;
+    tag?: string;
+    material?: string;
+    finish?: string;
+    origin?: string;
+    certified?: string;
+    sort?: string;
+  }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -43,16 +57,43 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function Page({ params }: Props) {
-  const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
+export default async function Page({ params, searchParams }: Props) {
+  const [{ slug }, locale, rawSearch] = await Promise.all([
+    params,
+    getRequestLocale(),
+    searchParams ?? Promise.resolve({} as NonNullable<Awaited<NonNullable<Props["searchParams"]>>>),
+  ]);
+  const rawFilters = rawSearch;
   const [{ t }, collection] = await Promise.all([
     getServerTranslations(),
     getCollectionBySlug(slug, locale),
   ]);
 
   if (!collection) notFound();
-  if (shouldRedirectLocalizedHandle(locale, slug, collection.slug)) redirect(localePath(locale, `/collections/${collection.slug}`));
-  const products = await getProductsByCollection(collection.sourceSlug, locale);
+  if (shouldRedirectLocalizedHandle(locale, slug, collection.slug)) {
+    redirect(localePath(locale, `/collections/${collection.slug}`));
+  }
+
+  const filters = {
+    q: rawFilters.q,
+    category: rawFilters.category,
+    productType: rawFilters.productType,
+    tag: rawFilters.tag,
+    material: rawFilters.material,
+    finish: rawFilters.finish,
+    origin: rawFilters.origin,
+    certified: rawFilters.certified,
+    availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
+    collection: collection.sourceSlug,
+    sort: normalizeShopSort(rawFilters.sort),
+  };
+
+  const [filterData, firstPage] = await Promise.all([
+    getShopFilterData(locale),
+    listShopCatalogPage({ filters, locale, limit: 24 }),
+  ]);
+  const { categories, productTypes, tags, collections, materials, finishes, origins } = filterData;
+  const collectionPath = `/collections/${collection.slug}`;
 
   const siteUrl = getPublicSiteUrl();
   const breadcrumbJsonLd = {
@@ -71,7 +112,25 @@ export default async function Page({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
-      <CollectionDetail collection={collection} products={products} />
+      <CollectionDetail
+        collection={collection}
+        catalog={{
+          collectionName: collection.name,
+          collectionPath,
+          collectionSourceSlug: collection.sourceSlug,
+          initialPage: firstPage,
+          filterProps: {
+            categories: categories.map((c) => ({ value: c.slug, label: c.name })),
+            productTypes: productTypes.map((type) => ({ value: type.slug, label: type.name })),
+            collections: collections.map((c) => ({ value: c.slug, label: c.name })),
+            tags: tags.map((tag) => ({ value: tag.slug, label: tag.name })),
+            materials: materials.map((item) => ({ value: item.slug, label: item.name })),
+            finishes: finishes.map((item) => ({ value: item.slug, label: item.name })),
+            origins: origins.map((item) => ({ value: item.slug, label: item.name })),
+            initialFilters: filters,
+          },
+        }}
+      />
     </>
   );
 }

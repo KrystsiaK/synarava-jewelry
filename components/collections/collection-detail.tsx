@@ -10,9 +10,13 @@ import {
 } from "motion/react";
 import Link from "next/link";
 import { PrimaryCtaButton } from "@/components/ui";
-import type { CollectionSummary, ProductSummary } from "@/lib/content/catalog";
+import type { CollectionSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import {
+  CollectionProductsCatalog,
+  type CollectionProductsCatalogProps,
+} from "@/components/collections/collection-products-catalog";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -320,161 +324,6 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
   );
 }
 
-/* ─── Products Grid ──────────────────────────────────────────────── */
-function ProductCard({
-  product,
-  index,
-}: {
-  product: ProductSummary;
-  index: number;
-}) {
-  const { locale } = useTranslations();
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-8%" });
-  const isOffset = index === 1;
-
-  return (
-    <motion.div
-      ref={ref}
-      className={isOffset ? "md:mt-24" : ""}
-      initial={{ opacity: 0, y: 52 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.9, ease, delay: 0.08 + Math.min(index, 5) * 0.12 }}
-    >
-      <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
-        <motion.div
-          className={`relative mb-5 overflow-hidden bg-stone-beige ${isOffset ? "aspect-[4/5]" : "aspect-square"}`}
-          initial="rest"
-          whileHover="hover"
-          animate="rest"
-        >
-          <motion.div
-            className="relative h-full w-full will-change-transform"
-            variants={{
-              rest: { scale: 1, filter: "grayscale(1) brightness(0.8)" },
-              hover: { scale: 1.06, filter: "grayscale(0) brightness(0.9)" },
-            }}
-            transition={{ type: "spring", stiffness: 240, damping: 30 }}
-          >
-            <Image
-              alt={product.title}
-              className="object-cover"
-              src={product.image}
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-            />
-          </motion.div>
-
-          {/* Overlay reveal */}
-          <motion.div
-            className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-foreground/75 via-foreground/25 to-transparent p-5"
-            variants={{
-              rest: { opacity: 0, y: "30%" },
-              hover: { opacity: 1, y: "0%" },
-            }}
-            transition={{ type: "spring", stiffness: 360, damping: 28 }}
-          >
-            <p className="label-mono mb-1 text-[0.65rem] text-white/75">{product.series}</p>
-            <div className="flex items-end justify-between gap-2">
-              <p
-                className="font-serif leading-tight text-white"
-                style={{ fontSize: "clamp(1rem,1.4vw,1.2rem)" }}
-              >
-                {product.title}
-              </p>
-              <span className="label-mono shrink-0 text-[0.68rem] text-couture-red">{product.price}</span>
-            </div>
-          </motion.div>
-
-          {/* Bottom sweep */}
-          <motion.div
-            className="absolute bottom-0 left-0 h-0.5 bg-couture-red"
-            variants={{ rest: { width: "0%" }, hover: { width: "100%" } }}
-            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </motion.div>
-
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="label-mono mb-1 truncate text-[0.72rem] text-muted-ink">{product.materialLine}</p>
-            <h3
-              className="font-serif transition-colors duration-300 group-hover:text-couture-red"
-              style={{ fontSize: "clamp(1.1rem,1.6vw,1.4rem)" }}
-            >
-              {product.title}
-            </h3>
-          </div>
-          <span className="label-mono shrink-0 text-muted-ink transition-colors duration-300 group-hover:text-couture-red">
-            {product.price}
-          </span>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
-
-function ProductsSection({
-  products,
-  collectionName,
-}: {
-  products: ProductSummary[];
-  collectionName: string;
-}) {
-  const { locale } = useTranslations();
-  const headerRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(headerRef, { once: true, margin: "-8%" });
-
-  return (
-    <section data-component="ProductsSection" className="bg-surface py-20 md:py-36">
-      <div className="site-shell">
-        <div
-          ref={headerRef}
-          className="mb-14 flex flex-col gap-4 md:mb-20 md:flex-row md:items-end md:justify-between"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease }}
-          >
-            <p className="label-mono mb-3 text-muted-ink">Catalogue / {collectionName}</p>
-            <h2 className="font-serif" style={{ fontSize: "clamp(2rem,4vw,3rem)" }}>
-              Products in this Collection
-            </h2>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.7, delay: 0.2 }}
-          >
-            <PrimaryCtaButton href={localePath(locale, "/shop")}>View all products</PrimaryCtaButton>
-          </motion.div>
-        </div>
-
-        {products.length === 0 ? (
-          <motion.div
-            className="flex flex-col items-center gap-4 py-16 text-center"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-          >
-            <p className="text-muted-ink">No products in this collection yet.</p>
-            <PrimaryCtaButton href={localePath(locale, "/shop")}>Browse all products</PrimaryCtaButton>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:items-start md:gap-8">
-            {products.map((product, i) => (
-              <ProductCard
-                key={product.slug}
-                product={product}
-                index={i}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
 /* ─── Next Collection Teaser ─────────────────────────────────────── */
 function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) {
   const { locale } = useTranslations();
@@ -539,10 +388,10 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
 /* ─── Root Export ────────────────────────────────────────────────── */
 export function CollectionDetail({
   collection,
-  products,
+  catalog,
 }: {
   collection: CollectionDetail;
-  products: ProductSummary[];
+  catalog: CollectionProductsCatalogProps;
 }) {
   return (
     <main data-component="CollectionDetail"
@@ -551,7 +400,7 @@ export function CollectionDetail({
       <DetailHero collection={collection} />
       {collection.manifesto && <ManifestoStrip manifesto={collection.manifesto} />}
       <CollectionStory collection={collection} />
-      <ProductsSection products={products} collectionName={collection.name} />
+      <CollectionProductsCatalog {...catalog} />
       <NextCollectionTeaser collection={collection} />
     </main>
   );

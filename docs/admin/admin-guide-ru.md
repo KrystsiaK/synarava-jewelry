@@ -299,12 +299,15 @@ legacy cover, пока не загружены изображения галер
   «Body» и т.д.), хотя структура данных общая.
 - Страница `collections` сохраняет Title / Excerpt / Hero image (SEO и
   медиа). Ниже — секции **Page header** (eyebrow, main heading, introduction),
-  **Collections on this page** (`AdminOrderedList` + select, как Featured
-  collections на Home: любое число, порядок стрелками; пустой выбор = все
-  опубликованные в порядке каталога; снятие строки только убирает карточку
-  со страницы), и **Bottom callout** (eyebrow, heading, button label/href,
+  **Collections on this page** (`AdminOrderedList` + select: задаёт порядок
+  на `/collections`; публикуются все опубликованные коллекции — выбранные
+  строки идут первыми в этом порядке, остальные дописываются в порядке
+  каталога), и **Bottom callout** (eyebrow, heading, button label/href,
   подпись ссылки на карточке). Копирайт локализуется по EN / PT / RU;
   список коллекций общий для языков.
+- Страница коллекции `/collections/[slug]` показывает товары этой коллекции
+  тем же каталогом, что и `/shop`: фильтры, сортировка (по умолчанию Featured
+  = порядок товаров в админке коллекции) и ленивая подгрузка.
 - Home разбит на секции витрины (`01 / Hero` … `06 / Final CTA`) в
   `AdminCollapsiblePanel`. В **Featured collections** админ выбирает
   коллекции через select, добавляет строки и меняет порядок стрелками

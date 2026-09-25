@@ -33,6 +33,13 @@ export type FilterBarProps = {
   initialFilters: ShopFilters;
   totalCount: number;
   onFiltersChange?: (filters: ShopFilters) => void;
+  /** Storefront path without locale prefix. Defaults to `/shop`. */
+  basePath?: string;
+  /**
+   * Filters that stay applied (e.g. collection on `/collections/[slug]`).
+   * Hidden from chips/dropdowns and omitted from the shareable query string.
+   */
+  pinnedFilters?: Pick<ShopFilters, "collection">;
 };
 
 const labelOf = (value: string, opts: FilterOption[]) =>
@@ -49,8 +56,12 @@ export function FilterBar({
   initialFilters,
   totalCount,
   onFiltersChange,
+  basePath = "/shop",
+  pinnedFilters,
 }: FilterBarProps) {
   const { t, plural, locale } = useTranslations();
+  const pinnedCollection = pinnedFilters?.collection;
+  const showCollectionFilter = !pinnedCollection;
 
   const [filters, setFilters] = useState<ShopFilters>(initialFilters);
   const [search, setSearch] = useState(initialFilters.q ?? "");
@@ -70,18 +81,22 @@ export function FilterBar({
 
   useEffect(() => {
     const syncFromHistory = () => {
-      const next = parseShopFilters(new URLSearchParams(window.location.search));
+      const next = {
+        ...parseShopFilters(new URLSearchParams(window.location.search)),
+        ...(pinnedCollection ? { collection: pinnedCollection } : {}),
+      };
       setFilters(next);
       setSearch(next.q ?? "");
       onFiltersChange?.(next);
     };
     window.addEventListener("popstate", syncFromHistory);
     return () => window.removeEventListener("popstate", syncFromHistory);
-  }, [onFiltersChange]);
+  }, [onFiltersChange, pinnedCollection]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(() => Boolean(
-    initialFilters.collection || initialFilters.tag || initialFilters.material
+    (showCollectionFilter && initialFilters.collection)
+      || initialFilters.tag || initialFilters.material
       || initialFilters.finish || initialFilters.origin || initialFilters.certified,
   ));
   // Saved filters pending opt-in restore (not yet applied)
@@ -91,60 +106,82 @@ export function FilterBar({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionCheckedRef = useRef(false);
 
+  function applyPinned(next: ShopFilters): ShopFilters {
+    return pinnedCollection ? { ...next, collection: pinnedCollection } : next;
+  }
+
+  function urlQuery(next: ShopFilters): string {
+    const forUrl = pinnedCollection ? { ...next, collection: undefined } : next;
+    return buildSearchParams(forUrl);
+  }
+
+  function catalogHref(next: ShopFilters): string {
+    const qs = urlQuery(next);
+    return localePath(locale, qs ? `${basePath}?${qs}` : basePath);
+  }
+
   // ── Session restore: offer, don't auto-apply ───────────────────────────────
   useEffect(() => {
     if (sessionCheckedRef.current) return;
     sessionCheckedRef.current = true;
 
-    const hasUrlFilters = countActiveFilters(initialFilters) > 0;
+    const hasUrlFilters = countActiveFilters({
+      ...initialFilters,
+      collection: showCollectionFilter ? initialFilters.collection : undefined,
+    }) > 0;
     if (hasUrlFilters) return; // URL already has filters — don't offer restore
 
     const saved = loadFiltersFromSession();
     if (saved && countActiveFilters(saved) > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPendingRestore(saved);
+      setPendingRestore(applyPinned(saved));
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Navigate with current filters ─────────────────────────────────────────
   const navigate = useCallback(
     (next: ShopFilters) => {
-      saveFiltersToSession(next);
-      const qs = buildSearchParams(next);
-      window.history.pushState(null, "", localePath(locale, qs ? `/shop?${qs}` : "/shop"));
-      onFiltersChange?.(next);
+      const applied = applyPinned(next);
+      saveFiltersToSession(applied);
+      window.history.pushState(null, "", catalogHref(applied));
+      onFiltersChange?.(applied);
     },
-    [locale, onFiltersChange],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale, onFiltersChange, basePath, pinnedCollection],
   );
 
   const setFilter = useCallback(
     (key: keyof ShopFilters, value: string) => {
-      const next = { ...filters, [key]: value || undefined };
+      if (key === "collection" && pinnedCollection) return;
+      const next = applyPinned({ ...filters, [key]: value || undefined });
       setFilters(next);
       navigate(next);
     },
-    [filters, navigate],
+    [filters, navigate, pinnedCollection],
   );
 
   const removeFilter = useCallback(
     (key: keyof ShopFilters) => {
-      const next = { ...filters, [key]: undefined };
+      if (key === "collection" && pinnedCollection) return;
+      const next = applyPinned({ ...filters, [key]: undefined });
       if (key === "q") setSearch("");
       setFilters(next);
       navigate(next);
     },
-    [filters, navigate],
+    [filters, navigate, pinnedCollection],
   );
 
   const clearAll = useCallback(() => {
-    const next = filtersWithoutSort(filters);
+    const next = applyPinned(filtersWithoutSort(filters));
     setFilters(next);
     setSearch("");
     clearFiltersSession();
-    const qs = buildSearchParams(next);
-    window.history.pushState(null, "", localePath(locale, qs ? `/shop?${qs}` : "/shop"));
+    window.history.pushState(null, "", catalogHref(next));
     onFiltersChange?.(next);
-  }, [filters, locale, onFiltersChange]);
+  }, [filters, locale, onFiltersChange, basePath, pinnedCollection]);
+
+  const chipFilters = pinnedCollection ? { ...filters, collection: undefined } : filters;
+  const activeCount = countActiveFilters(chipFilters);
 
   // ── Debounced search ───────────────────────────────────────────────────────
   const handleSearchChange = (value: string) => {
@@ -167,7 +204,6 @@ export function FilterBar({
 
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
-  const activeCount = countActiveFilters(filters);
   const sortOptions: FilterOption[] = [
     { value: "popular", label: t("shop.filters.popular") },
     { value: "newest", label: t("shop.filters.newest") },
@@ -200,7 +236,7 @@ export function FilterBar({
                 {labelOf(pendingRestore.productType, productTypes)}
               </span>
             )}
-            {pendingRestore.collection && (
+            {pendingRestore.collection && showCollectionFilter && (
               <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
                 {labelOf(pendingRestore.collection, collections)}
               </span>
@@ -337,7 +373,9 @@ export function FilterBar({
         </div>
         {advancedOpen ? (
           <div className="flex flex-wrap items-center gap-2.5 border-t border-foreground/[0.06] px-5 py-4 lg:px-6">
-            <FilterDropdown label={t("shop.filters.collection")} options={collections} value={filters.collection ?? ""} onChange={(v) => setFilter("collection", v)} allLabel={t("shop.filters.allCollections")} />
+            {showCollectionFilter ? (
+              <FilterDropdown label={t("shop.filters.collection")} options={collections} value={filters.collection ?? ""} onChange={(v) => setFilter("collection", v)} allLabel={t("shop.filters.allCollections")} />
+            ) : null}
             <FilterDropdown label={t("shop.filters.tag")} options={tags} value={filters.tag ?? ""} onChange={(v) => setFilter("tag", v)} allLabel={t("shop.filters.allTags")} />
             <FilterDropdown label={t("shop.filters.material")} options={materials} value={filters.material ?? ""} onChange={(v) => setFilter("material", v)} allLabel={t("shop.filters.allMaterials")} />
             {showFinish ? <FilterDropdown label={t("shop.filters.finish")} options={finishes} value={filters.finish ?? ""} onChange={(v) => setFilter("finish", v)} allLabel={t("shop.filters.allFinishes")} /> : null}
@@ -421,7 +459,7 @@ export function FilterBar({
       {activeCount > 0 && (
         <div className="mt-3">
           <FilterChips
-            filters={filters}
+            filters={chipFilters}
             categories={categories}
             productTypes={productTypes}
             collections={collections}
@@ -441,16 +479,18 @@ export function FilterBar({
         open={mobileOpen}
         categories={categories}
         productTypes={productTypes}
-        collections={collections}
+        collections={showCollectionFilter ? collections : []}
         tags={tags}
         materials={materials}
         finishes={finishes}
         origins={origins}
         filters={filters}
+        hideCollection={!showCollectionFilter}
         onApply={(next) => {
-          setFilters(next);
+          const applied = applyPinned(next);
+          setFilters(applied);
           setMobileOpen(false);
-          navigate(next);
+          navigate(applied);
         }}
         onClose={() => setMobileOpen(false)}
       />
@@ -470,6 +510,7 @@ type MobileFilterSheetProps = {
   finishes?: FilterOption[];
   origins?: FilterOption[];
   filters: ShopFilters;
+  hideCollection?: boolean;
   onApply: (f: ShopFilters) => void;
   onClose: () => void;
 };
@@ -484,19 +525,24 @@ function MobileFilterSheet({
   finishes = [],
   origins = [],
   filters,
+  hideCollection = false,
   onApply,
   onClose,
 }: MobileFilterSheetProps) {
   const { t, plural } = useTranslations();
   const [local, setLocal] = useState<ShopFilters>(filters);
 
-  const localActiveCount = countActiveFilters(local);
+  const localActiveCount = countActiveFilters(
+    hideCollection ? { ...local, collection: undefined } : local,
+  );
 
   const sections: { key: keyof ShopFilters; label: string; options: FilterOption[] }[] = [
     { key: "category", label: t("shop.filters.category"), options: categories },
     { key: "productType", label: t("shop.filters.productType"), options: productTypes },
     { key: "availability", label: t("shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
-    { key: "collection", label: t("shop.filters.collection"), options: collections },
+    ...(!hideCollection
+      ? [{ key: "collection" as const, label: t("shop.filters.collection"), options: collections }]
+      : []),
     { key: "tag", label: t("shop.filters.tag"), options: tags },
     { key: "material", label: t("shop.filters.material"), options: materials },
     { key: "finish", label: t("shop.filters.finish"), options: finishes },

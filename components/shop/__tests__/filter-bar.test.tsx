@@ -229,4 +229,27 @@ describe("FilterBar", () => {
     expect(screen.getByRole("button", { name: /filters, 2 active/i })).toBeInTheDocument();
     expect(screen.getByText("2 active")).toBeInTheDocument();
   });
+
+  it("pins collection filters to the collection path instead of /shop", async () => {
+    const user = userEvent.setup();
+    const onFiltersChange = vi.fn();
+    render(
+      <FilterBar
+        {...defaultProps}
+        basePath="/collections/heritage"
+        pinnedFilters={{ collection: "heritage" }}
+        initialFilters={{ collection: "heritage" }}
+        onFiltersChange={onFiltersChange}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /more filters/i }));
+    expect(screen.queryByRole("button", { name: /^collection$/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^category$/i }));
+    await user.click(screen.getByRole("option", { name: "Bracelets" }));
+
+    expect(onFiltersChange).toHaveBeenCalledWith({ category: "bracelets", collection: "heritage" });
+    expect(historyPush).toHaveBeenCalledWith(null, "", "/en/collections/heritage?category=bracelets");
+  });
 });

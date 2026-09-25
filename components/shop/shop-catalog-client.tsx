@@ -64,27 +64,49 @@ type EmptyStateProps = {
   productTypes?: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
+  basePath?: string;
+  pinnedFilters?: Pick<ShopFilters, "collection">;
 };
 
 const labelOf = (value: string, opts: FilterOption[]) =>
   opts.find((o) => o.value === value)?.label ?? value;
 
-function EmptyState({ filters, categories, productTypes = [], collections, tags, onSelectFilters }: EmptyStateProps & { onSelectFilters: (filters: ShopFilters) => void }) {
+function EmptyState({
+  filters,
+  categories,
+  productTypes = [],
+  collections,
+  tags,
+  onSelectFilters,
+  basePath = "/shop",
+  pinnedFilters,
+}: EmptyStateProps & { onSelectFilters: (filters: ShopFilters) => void }) {
   const { t, locale } = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
+  const pinnedCollection = pinnedFilters?.collection;
   const dim: Record<keyof ShopFilters, string> = {
     q: t("shop.filters.searchLabel"), availability: t("shop.filters.availability"), category: t("shop.filters.category"), productType: t("shop.filters.productType"), collection: t("shop.filters.collection"), tag: t("shop.filters.tag"),
     material: t("shop.filters.material"), finish: t("shop.filters.finish"), origin: t("shop.filters.origin"), certified: t("shop.filters.certification"), sort: t("shop.filters.sort"),
   };
 
+  const applyPinned = (next: ShopFilters): ShopFilters => (
+    pinnedCollection ? { ...next, collection: pinnedCollection } : next
+  );
+
+  const hrefFor = (next: ShopFilters) => {
+    const forUrl = pinnedCollection ? { ...next, collection: undefined } : next;
+    const qs = buildSearchParams(forUrl);
+    return `${localePath(locale, qs ? `${basePath}?${qs}` : basePath)}#shop-products`;
+  };
+
   const active: { key: keyof ShopFilters; label: string; nextFilters: ShopFilters }[] = [];
-  if (filters.q) active.push({ key: "q", label: `"${filters.q}"`, nextFilters: { ...filters, q: undefined } });
-  if (filters.availability) active.push({ key: "availability", label: t("shop.filters.inStock"), nextFilters: { ...filters, availability: undefined } });
-  if (filters.category) active.push({ key: "category", label: labelOf(filters.category, categories), nextFilters: { ...filters, category: undefined } });
-  if (filters.productType) active.push({ key: "productType", label: labelOf(filters.productType, productTypes), nextFilters: { ...filters, productType: undefined } });
-  if (filters.collection) active.push({ key: "collection", label: labelOf(filters.collection, collections), nextFilters: { ...filters, collection: undefined } });
-  if (filters.tag) active.push({ key: "tag", label: labelOf(filters.tag, tags), nextFilters: { ...filters, tag: undefined } });
+  if (filters.q) active.push({ key: "q", label: `"${filters.q}"`, nextFilters: applyPinned({ ...filters, q: undefined }) });
+  if (filters.availability) active.push({ key: "availability", label: t("shop.filters.inStock"), nextFilters: applyPinned({ ...filters, availability: undefined }) });
+  if (filters.category) active.push({ key: "category", label: labelOf(filters.category, categories), nextFilters: applyPinned({ ...filters, category: undefined }) });
+  if (filters.productType) active.push({ key: "productType", label: labelOf(filters.productType, productTypes), nextFilters: applyPinned({ ...filters, productType: undefined }) });
+  if (filters.collection && !pinnedCollection) active.push({ key: "collection", label: labelOf(filters.collection, collections), nextFilters: { ...filters, collection: undefined } });
+  if (filters.tag) active.push({ key: "tag", label: labelOf(filters.tag, tags), nextFilters: applyPinned({ ...filters, tag: undefined }) });
 
   return (
     <motion.div
@@ -116,7 +138,7 @@ function EmptyState({ filters, categories, productTypes = [], collections, tags,
           {active.map((f) => (
             <Link
               key={f.key}
-              href={`${localePath(locale, `/shop?${buildSearchParams(f.nextFilters)}`)}#shop-products`}
+              href={hrefFor(f.nextFilters)}
               onClick={(event) => {
                 event.preventDefault();
                 onSelectFilters(f.nextFilters);
@@ -138,10 +160,10 @@ function EmptyState({ filters, categories, productTypes = [], collections, tags,
       )}
 
       <Link
-        href={`${localePath(locale, "/shop")}#shop-products`}
+        href={hrefFor(applyPinned({}))}
         onClick={(event) => {
           event.preventDefault();
-          onSelectFilters({});
+          onSelectFilters(applyPinned({}));
         }}
         className="inline-flex min-h-11 items-center bg-foreground px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-couture-red hover:text-white"
       >
@@ -214,6 +236,8 @@ export type ShopCatalogClientProps = {
   collections: FilterOption[];
   tags: FilterOption[];
   onTotalCountChange?: (count: number) => void;
+  basePath?: string;
+  pinnedFilters?: Pick<ShopFilters, "collection">;
 };
 
 export function ShopCatalogClient({
@@ -225,6 +249,8 @@ export function ShopCatalogClient({
   collections,
   tags,
   onTotalCountChange,
+  basePath = "/shop",
+  pinnedFilters,
 }: ShopCatalogClientProps) {
   const { t, locale } = useTranslations();
   // Checked synchronously (not in an effect) so a same-tab Back from a PDP
@@ -522,6 +548,8 @@ export function ShopCatalogClient({
                   collections={collections}
                   tags={tags}
                   onSelectFilters={onSelectFilters}
+                  basePath={basePath}
+                  pinnedFilters={pinnedFilters}
                 />
               )}
             </motion.div>

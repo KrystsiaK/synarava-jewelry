@@ -46,9 +46,12 @@ its models were removed once Shopify covered the same ground.
   - the Home page uses explicit fields for Hero, Department pathway, Featured collections,
     Material lexicon, Manifesto, and Final CTA; visibility is shared across locales while copy is localized
   - the Collections index (`collections`) uses Title/Excerpt/Hero for SEO and media, plus editable
-    page-header copy, an ordered collection selector (same AdminOrderedList pattern as Home Featured
-    collections; empty = all published), and a bottom callout (eyebrow, heading, button label/href)
+    page-header copy, an ordered collection list (same AdminOrderedList pattern as Home Featured
+    collections; all published collections still render — selected IDs come first in configured
+    order), and a bottom callout (eyebrow, heading, button label/href)
     independently per locale
+  - Collection detail (`/collections/[slug]`) reuses the shop catalog client for products:
+    server-filtered pages, infinite scroll, and Featured sort = admin collection product order
   - Material lexicon structure (specimen count, order, images) is shared; locale rows only
     overlay text fields. Resolving a locale must never replace lexicon cards with Featured
     collections or otherwise change Home section composition by language

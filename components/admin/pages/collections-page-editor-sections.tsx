@@ -76,9 +76,10 @@ export function CollectionsPageEditorSections({
           label="Collections"
           help={
             <AdminHelp>
-              Choose which published collections appear on /collections and in what order.
-              Leave empty to show every published collection in catalog order. Removing a row
-              only hides it from this page — the Collection record stays.
+              Sets the default display order on /collections. Every published collection
+              still appears — selected rows come first in this order, then any remaining
+              collections in catalog order. Reorder with the arrows. Leave empty to keep
+              catalog order for all.
             </AdminHelp>
           }
           items={archiveCollectionIds}
