@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
+  CircleDollarSign,
   FileText,
   Gem,
   Images,
@@ -22,6 +23,7 @@ import {
 
 export type ProductEditorSection =
   | "essentials"
+  | "price"
   | "catalog"
   | "content"
   | "media"
@@ -61,8 +63,18 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Sellable product",
     title: "Start with the sellable product",
     description:
-      "Set the product name, handle, SKU, price, inventory, vendor, and type. These are the core values that identify what customers can buy.",
+      "Set the product name, handle, SKU, inventory, vendor, and type. These are the core values that identify what customers can buy.",
     icon: PackageSearch,
+    group: "shopify",
+  },
+  {
+    id: "price",
+    label: "Price",
+    shortLabel: "Sell & tax",
+    title: "Set the selling price",
+    description:
+      "Price, compare-at, tax, and cost mirror Shopify’s Price card on the variant. Profit and margin are calculated locally from price and cost.",
+    icon: CircleDollarSign,
     group: "shopify",
   },
   {

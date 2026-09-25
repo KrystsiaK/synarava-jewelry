@@ -53,6 +53,7 @@ When editing `/admin/products/[id]`:
 - **Shopify skeleton first** — every supported Shopify product/variant field must be editable/visible and verified field by field (pull/push parity with Shopify Admin).
 - **Synarava sections second** — CMS-only settings (materials, craft, lookbook, …) live in a separate tab cluster.
 - Section tabs use `AdminSectionTabs` with `groups`: `{ id: "shopify", label: "Shopify" }` and `{ id: "synarava", label: "Synarava" }`. Do not flatten them into one unlabeled strip.
+- **Price tab** (Shopify group): `price`, `compareAt`, `taxable`, `cost` (`InventoryItem.unitCost`). Profit/margin are UI-only. Unit price measurement is deferred.
 - Ownership detail: [`docs/product-data-ownership.md`](../../../docs/product-data-ownership.md).
 
 ## Component map

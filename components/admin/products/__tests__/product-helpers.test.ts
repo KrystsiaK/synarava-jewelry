@@ -244,6 +244,7 @@ describe("productToDraft", () => {
           title: "Default",
           priceCents: 2500,
           compareAtCents: null,
+          costCents: 900,
           stockOnHand: 7,
           barcode: null,
           taxable: true,
@@ -261,6 +262,8 @@ describe("productToDraft", () => {
     const draft = productToDraft(product);
     expect(draft.sku).toBe("VARIANT-SKU");
     expect(draft.price).toBe("25.00");
+    expect(draft.cost).toBe("9.00");
+    expect(draft.taxable).toBe(true);
     expect(draft.stockOnHand).toBe("7");
   });
 

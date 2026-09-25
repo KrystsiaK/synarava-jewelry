@@ -13,6 +13,8 @@ The product admin is built as **Shopify skeleton + Synarava sections**:
 
 The section tab strip is visually split into two clusters: **Shopify** (commerce skeleton + Sync) and **Synarava** (CMS-only). Tab count and Shopify-side layout will grow to mirror Shopify’s product admin more closely; Synarava tabs stay a separate group.
 
+**Price tab (Shopify group):** mirrors Shopify Admin’s Price card on the primary variant — `price`, `compareAtPrice`, `taxable`, and InventoryItem `unitCost` (local `costCents`). Profit and margin are calculated in the UI only. Unit price measurement is deferred.
+
 The synchronization boundary has three explicit layers:
 
 1. **Shopify standard fields** — Shopify owns identity, sellability, pricing, inventory, variants, options, primary and gallery media, taxonomy, SEO, publication state, shipping measurements, and other supported product/variant fields.

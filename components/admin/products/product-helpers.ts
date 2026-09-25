@@ -95,7 +95,7 @@ function emptyLocaleDraft(): ProductLocaleDraft {
 
 export function emptyDraft(translationLocales: AdminTranslationLocale[] = []): ProductDraft {
   return {
-    name: "", vendor: "", productType: "", slug: "", sku: "", price: "", seriesLabel: "",
+    name: "", vendor: "", productType: "", slug: "", sku: "", price: "", compareAt: "", taxable: true, cost: "", seriesLabel: "",
     shortDescription: "", description: "", seoTitle: "", seoDescription: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
@@ -119,6 +119,9 @@ export function productToDraft(product: ProductRecord, translationLocales: Admin
     slug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
     price: centsToPrice(primaryVariant?.priceCents ?? product.priceCents),
+    compareAt: primaryVariant?.compareAtCents == null ? "" : centsToPrice(primaryVariant.compareAtCents),
+    taxable: primaryVariant?.taxable ?? true,
+    cost: primaryVariant?.costCents == null ? "" : centsToPrice(primaryVariant.costCents),
     seriesLabel: product.seriesLabel ?? "",
     shortDescription: product.shortDescription ?? "",
     description: product.description ?? "",

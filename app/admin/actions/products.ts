@@ -112,6 +112,7 @@ export type SavedProductPayload = {
     title: string;
     priceCents: number;
     compareAtCents: number | null;
+    costCents: number | null;
     stockOnHand: number;
     barcode: string | null;
     taxable: boolean;
@@ -456,6 +457,9 @@ const saveProductFieldsSchema = z.object({
   removeImage: z.string().trim().default(""),
   existingImageUrl: z.string().trim().default(""),
   price: z.string().trim().default("0"),
+  compareAt: z.string().trim().default(""),
+  cost: z.string().trim().default(""),
+  taxable: z.string().trim().default("1"),
   stockOnHand: z.string().trim().default("0"),
   shopifyCategoryId: z.string().trim().default(""),
   shopifyCategoryName: z.string().trim().default(""),
@@ -567,6 +571,15 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const existingImageUrl = removeImage ? "" : parsed.data.existingImageUrl;
   const price = Number(parsed.data.price || "0");
   const stockOnHand = Math.max(0, Math.trunc(Number(parsed.data.stockOnHand || "0")));
+  const compareAtRaw = Number(parsed.data.compareAt || "0");
+  const compareAtCents = parsed.data.compareAt.trim() === "" || !Number.isFinite(compareAtRaw) || compareAtRaw <= 0
+    ? null
+    : Math.round(compareAtRaw * 100);
+  const costRaw = Number(parsed.data.cost || "0");
+  const costCents = parsed.data.cost.trim() === "" || !Number.isFinite(costRaw) || costRaw < 0
+    ? null
+    : Math.round(costRaw * 100);
+  const taxable = parsed.data.taxable !== "0" && parsed.data.taxable !== "false";
   const tagInput = parsed.data.tags;
   const imageFile = formData.get("imageFile");
   const characteristics = parseCharacteristicsForm(formData);
@@ -774,6 +787,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     imageUrl,
     ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : removeImage ? { primaryAssetId: null } : {}),
     priceCents: Math.round(price * 100),
+    compareAtCents,
     ...(hasShopifyCategorySelection ? {
       shopifyCategoryId: shopifyCategory?.id ?? null,
       shopifyCategoryName: shopifyCategory?.name ?? null,
@@ -928,11 +942,29 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   if (existingVariant) {
     await db.productVariant.update({
       where: { id: existingVariant.id },
-      data: { sku, priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : isUnlisted ? "UNLISTED" : "DRAFT" },
+      data: {
+        sku,
+        priceCents: Math.round(price * 100),
+        compareAtCents,
+        costCents,
+        taxable,
+        stockOnHand,
+        status: isPublished ? "ACTIVE" : isUnlisted ? "UNLISTED" : "DRAFT",
+      },
     });
   } else {
     await db.productVariant.create({
-      data: { productId: product.id, sku, title: "Default Title", priceCents: Math.round(price * 100), stockOnHand, status: isPublished ? "ACTIVE" : isUnlisted ? "UNLISTED" : "DRAFT" },
+      data: {
+        productId: product.id,
+        sku,
+        title: "Default Title",
+        priceCents: Math.round(price * 100),
+        compareAtCents,
+        costCents,
+        taxable,
+        stockOnHand,
+        status: isPublished ? "ACTIVE" : isUnlisted ? "UNLISTED" : "DRAFT",
+      },
     });
   }
 

@@ -117,7 +117,7 @@ describe("EditProductForm", () => {
       shopifyProductId: "gid://shopify/Product/1",
       vendor: "Synarava",
       productType: "Necklace",
-      variants: [{ id: "variant-1", shopifyVariantId: "gid://shopify/ProductVariant/1", title: "Default Title", sku: "LAVA-1", barcode: null, priceCents: 4500, compareAtCents: null, stockOnHand: 1, weightGrams: 22, taxable: true, requiresShipping: true, tracked: true, selectedOptions: [] } as ProductRecord["variants"][number]],
+      variants: [{ id: "variant-1", shopifyVariantId: "gid://shopify/ProductVariant/1", title: "Default Title", sku: "LAVA-1", barcode: null, priceCents: 4500, compareAtCents: null, costCents: null, stockOnHand: 1, weightGrams: 22, taxable: true, requiresShipping: true, tracked: true, selectedOptions: [] } as ProductRecord["variants"][number]],
       shopifySnapshot: {
         metafields: [{ namespace: "custom", key: "pearl_grade", type: "single_line_text_field", value: "AAA" }],
         variants: [{ id: "gid://shopify/ProductVariant/1", inventoryItem: { inventoryLevels: [{ location: { id: "gid://shopify/Location/1" }, quantities: [{ name: "available", quantity: 1 }, { name: "committed", quantity: 0 }, { name: "on_hand", quantity: 1 }] }] } }],

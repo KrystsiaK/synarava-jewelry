@@ -119,13 +119,15 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
 2. **Уровень языка** (вкладки EN / PT / …): sticky под шапкой + sync
    control справа — Check/conflicts для **всех секций** активного языка.
 3. **Уровень секции**: табы визуально разделены на две группы —
-   **Shopify** (Essentials, Catalog, Content, Media, Sync) и **Synarava**
-   (Product page и будущие CMS-only секции). В блоке описания секции
+   **Shopify** (Essentials, Price, Catalog, Content, Media, Sync) и **Synarava**
+   (Product page и будущие CMS-only секции). Вкладка **Price** зеркалит карточку
+   Price в Shopify Admin: цена, compare-at, налог (`taxable`), cost; Profit/Margin
+   считаются локально. Unit price (г/кг) — следующий шаг. В блоке описания секции
    (вместо декоративной картинки) — sync control, scoped на
    текущую секцию × язык (shared-секции → EN/shared). Check → список
    конфликтов → Apply по полям. Gallery (Media) и Push/Pull на вкладке
    **Sync** по-прежнему свои отдельные действия. Набор Shopify-табов будет
-   расширяться, чтобы ближе повторять структуру product admin в Shopify.
+   расширяться, чтобы ближе повторить структуру product admin в Shopify.
 
 При уходе со страницы с несохранёнными вкладками открывается модалка
 подтверждения; закрытие вкладки браузера тоже предупреждает.

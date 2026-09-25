@@ -60,6 +60,12 @@ test.describe("Admin products CRUD", () => {
     await expect(page.getByRole("tab", { name: /Essentials/i })).toHaveAttribute("aria-selected", "true");
     await expect(page.locator('input[name="sku"]')).toBeVisible();
 
+    await page.getByRole("tab", { name: /Price Sell/i }).click();
+    await expect(page.getByRole("spinbutton", { name: /Price/ })).toBeVisible();
+    await expect(page.getByRole("spinbutton", { name: /Compare-at price/ })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: /Charge tax on this product/ })).toBeVisible();
+    await expect(page.getByRole("spinbutton", { name: /^Cost/ })).toBeVisible();
+
     await page.getByRole("tab", { name: /Catalog/i }).click();
     await expect(page.getByText("Department & characteristics")).toBeVisible();
     await expect(page.locator('input[name="sku"]')).toBeHidden();

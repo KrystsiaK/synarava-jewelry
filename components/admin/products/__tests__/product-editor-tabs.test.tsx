@@ -26,6 +26,7 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("group", { name: "Shopify" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Synarava" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Essentials/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Price Sell/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Catalog/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Content/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Media/i })).toBeInTheDocument();
@@ -35,6 +36,7 @@ describe("ProductEditorTabs", () => {
 
     const shopifyGroup = screen.getByRole("group", { name: "Shopify" });
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Essentials/i }));
+    expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Price Sell/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Sync/i }));
     expect(screen.getByRole("group", { name: "Synarava" })).toContainElement(
       screen.getByRole("tab", { name: /Product page/i }),

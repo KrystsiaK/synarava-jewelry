@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { FileText, Gem, Images, PackageSearch, Shapes, Store } from "lucide-react";
+import { CircleDollarSign, FileText, Gem, Images, PackageSearch, Shapes, Store } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -15,6 +15,7 @@ const GROUPS: AdminSectionTabGroup[] = [
 
 const ALL_ITEMS: AdminSectionTabItem[] = [
   { id: "essentials", label: "Essentials", detail: "Sellable product", icon: PackageSearch, group: "shopify" },
+  { id: "price", label: "Price", detail: "Sell & tax", icon: CircleDollarSign, group: "shopify" },
   { id: "catalog", label: "Catalog", detail: "Placement & filters", icon: Shapes, tone: "issue", dirty: true, group: "shopify" },
   { id: "content", label: "Content", detail: "Copy & search", icon: FileText, group: "shopify" },
   { id: "media", label: "Media", detail: "Gallery & cover", icon: Images, tone: "conflict", group: "shopify" },

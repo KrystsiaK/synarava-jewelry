@@ -328,6 +328,8 @@ model ProductVariant {
   stockOnHand            Int                         @default(0)
   barcode                String?
   taxable                Boolean                     @default(true)
+  /** Shopify InventoryItem.unitCost in cents (shop currency). Null = unset. */
+  costCents              Int?
   requiresShipping       Boolean                     @default(true)
   tracked                Boolean                     @default(true)
   weightGrams            Decimal?                    @db.Decimal(14, 4)

@@ -112,6 +112,7 @@ type ShopifyProduct = {
       tracked: boolean;
       countryCodeOfOrigin: string | null;
       harmonizedSystemCode: string | null;
+      unitCost?: { amount: string; currencyCode: string } | null;
       inventoryLevels?: ShopifyInventoryLevel[];
       measurement?: {
         weight?: {
@@ -135,7 +136,11 @@ const COLLECTION_FIELDS = `
 const VARIANT_FIELDS = `
   id title sku barcode price compareAtPrice inventoryPolicy taxable inventoryQuantity
   selectedOptions { name value }
-  inventoryItem { id requiresShipping tracked countryCodeOfOrigin harmonizedSystemCode measurement { weight { value unit } } }
+  inventoryItem {
+    id requiresShipping tracked countryCodeOfOrigin harmonizedSystemCode
+    unitCost { amount currencyCode }
+    measurement { weight { value unit } }
+  }
 `;
 
 const PRODUCT_FIELDS = `
@@ -902,6 +907,9 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         title: variant.title,
         priceCents: shopifyAmountToCents(variant.price),
         compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
+        costCents: variant.inventoryItem?.unitCost?.amount
+          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
+          : null,
         stockOnHand,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,
@@ -920,6 +928,9 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         title: variant.title,
         priceCents: shopifyAmountToCents(variant.price),
         compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
+        costCents: variant.inventoryItem?.unitCost?.amount
+          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
+          : null,
         stockOnHand,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,
@@ -1289,6 +1300,8 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const commerceSku = localVariant?.sku ?? product.sku;
     const commercePriceCents = localVariant?.priceCents ?? product.priceCents;
     const commerceCompareAtCents = localVariant?.compareAtCents ?? product.compareAtCents;
+    const commerceTaxable = localVariant?.taxable ?? true;
+    const commerceCostCents = localVariant?.costCents ?? null;
     const metafields = product.characteristics.flatMap((item) => {
       const value = metafieldValue(item);
       if (!value) return [];
@@ -1300,6 +1313,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const unitWeight = product.characteristics.find((item) => item.key === "unit_weight")?.numberValue;
     const inventoryItemInput = {
       sku: commerceSku,
+      ...(commerceCostCents != null ? { cost: (commerceCostCents / 100).toFixed(2) } : {}),
       ...(unitWeight && unitWeight.greaterThan(0)
         ? { measurement: { weight: { value: unitWeight.toNumber(), unit: "GRAMS" as const } } }
         : {}),
@@ -1414,6 +1428,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
           sku: commerceSku,
           price: (commercePriceCents / 100).toFixed(2),
           compareAtPrice: commerceCompareAtCents == null ? null : (commerceCompareAtCents / 100).toFixed(2),
+          taxable: commerceTaxable,
           optionValues: [{ optionName: "Title", name: "Default Title" }],
           inventoryItem: inventoryItemInput,
         }],
@@ -1518,6 +1533,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             id: remoteVariant.id,
             price: (commercePriceCents / 100).toFixed(2),
             compareAtPrice: commerceCompareAtCents == null ? null : (commerceCompareAtCents / 100).toFixed(2),
+            taxable: commerceTaxable,
             inventoryItem: inventoryItemInput,
           }],
         },
@@ -1531,6 +1547,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
           await db.productVariant.create({ data: {
             productId, sku: commerceSku, title: savedVariant.title || "Default Title",
             priceCents: commercePriceCents, compareAtCents: commerceCompareAtCents,
+            costCents: commerceCostCents, taxable: commerceTaxable,
             status: product.status, shopifyVariantId: savedVariant.id,
             shopifyInventoryItemId: savedVariant.inventoryItem?.id ?? null,
           } });

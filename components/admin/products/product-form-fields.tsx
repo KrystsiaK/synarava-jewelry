@@ -27,6 +27,7 @@ import {
 } from "@/components/admin/products/shopify-category-field";
 import { ShopifyProductFactsPanel } from "@/components/admin/products/shopify-product-facts";
 import { ProductPassportFields } from "@/components/admin/products/product-passport-fields";
+import { ProductPriceFields } from "@/components/admin/products/product-price-fields";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductCharacteristicValue } from "@/lib/products/characteristics";
 import {
@@ -733,21 +734,6 @@ export function ProductFormFields({
             defaultValue={draft.seriesLabel}
           />
           <AdminTextField
-            label="Price EUR"
-            owner="Shopify"
-            required
-            name="price"
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputMode="decimal"
-            data-validation-message={PRODUCT_FIELD_MESSAGES.price}
-            defaultValue={draft.price}
-            error={fieldErrors.price}
-            errorId={validation.fieldErrorId("price")}
-            {...validation.fieldProps("price")}
-          />
-          <AdminTextField
             label="Available quantity"
             owner="Shopify"
             help={(
@@ -771,6 +757,19 @@ export function ProductFormFields({
           <AdminTextField label="Vendor / brand" owner="Shopify" name="vendor" defaultValue={draft.vendor} />
           <AdminTextField label="Product type" owner="Shopify" name="productType" defaultValue={draft.productType} />
         </div>
+      </div>
+
+      <div className="grid gap-5" hidden={activeSection !== "price"}>
+        <ProductPriceFields
+          draft={{
+            price: draft.price,
+            compareAt: draft.compareAt,
+            taxable: draft.taxable,
+            cost: draft.cost,
+          }}
+          fieldErrors={fieldErrors}
+          validation={validation}
+        />
       </div>
 
       <div className="grid gap-y-6" hidden={activeSection !== "content"}>

@@ -73,7 +73,7 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
 };
 
 const ALL_SECTIONS: ProductEditorSection[] = [
-  "essentials", "catalog", "content", "media", "details", "shopify",
+  "essentials", "price", "catalog", "content", "media", "details", "shopify",
 ];
 
 function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {
@@ -327,7 +327,7 @@ export function EditProductForm({
         setConfirmOpen(false);
         validation.showFieldErrors(result.fieldErrors ?? {});
         if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
-          setActiveSection("essentials");
+          setActiveSection(result.fieldErrors.price ? "price" : "essentials");
           selectLocale(SOURCE_LOCALE);
         }
         if (result.success) pushToast({ message: result.success, tone: "success" });
@@ -368,22 +368,22 @@ export function EditProductForm({
     setState({});
     const previousSection = activeSection;
     const previousLocale = activeLocale;
-    if (previousSection !== "essentials") {
-      flushSync(() => setActiveSection("essentials"));
-    }
     if (previousLocale !== SOURCE_LOCALE) {
       flushSync(() => selectLocale(SOURCE_LOCALE));
     }
-    const valid = validation.validate();
-    if (valid) {
-      if (previousSection !== "essentials") {
-        flushSync(() => setActiveSection(previousSection));
-      }
-      if (previousLocale !== SOURCE_LOCALE) {
-        flushSync(() => selectLocale(previousLocale));
-      }
-      setConfirmOpen(true);
+
+    // Required fields span Essentials (name/slug/sku) and Price — reveal each for willValidate.
+    flushSync(() => setActiveSection("essentials"));
+    if (!validation.validate()) return;
+
+    flushSync(() => setActiveSection("price"));
+    if (!validation.validate()) return;
+
+    flushSync(() => setActiveSection(previousSection));
+    if (previousLocale !== SOURCE_LOCALE) {
+      flushSync(() => selectLocale(previousLocale));
     }
+    setConfirmOpen(true);
   }
 
   function handleCheckShopify() {
