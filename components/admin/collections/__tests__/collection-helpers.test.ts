@@ -93,9 +93,9 @@ describe("workflowStateFromCollection / collectionStatusLabel", () => {
 });
 
 describe("collectionToDraft", () => {
-  it("maps null content fields to empty strings", () => {
-    const draft = collectionToDraft(makeCollection({ code: null, description: null }));
-    expect(draft.code).toBe("");
+  it("maps null content fields to empty strings and fills a missing accent code", () => {
+    const draft = collectionToDraft(makeCollection({ code: null, description: null, name: "Pendant Necklaces" }));
+    expect(draft.code).toMatch(/^[A-Z0-9]{3,4}-\d{2}$/);
     expect(draft.description).toBe("");
   });
 

@@ -11,6 +11,10 @@ import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import {
+  openConfirmIfFormValid,
+  submitFormAfterConfirmClose,
+} from "@/components/admin/shared/submit-after-confirm";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { slugify } from "@/lib/text/slug";
 import { CollectionFields } from "@/components/admin/collections/collection-fields";
@@ -118,7 +122,7 @@ export function CreateCollectionForm({
             type="button"
             disabled={isPending}
             className="adm-btn-primary"
-            onClick={() => setConfirmOpen(true)}
+            onClick={() => openConfirmIfFormValid(formRef.current, () => setConfirmOpen(true))}
           >
             {submitLabel("Save collection", isPending, "Saving...")}
           </button>
@@ -154,7 +158,7 @@ export function CreateCollectionForm({
         confirmLabel="Create collection"
         pending={isPending}
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => formRef.current?.requestSubmit()}
+        onConfirm={() => submitFormAfterConfirmClose(formRef.current, () => setConfirmOpen(false))}
       />
     </>
   );

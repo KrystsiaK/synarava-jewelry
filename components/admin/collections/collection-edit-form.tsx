@@ -15,6 +15,10 @@ import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
+import {
+  openConfirmIfFormValid,
+  submitFormAfterConfirmClose,
+} from "@/components/admin/shared/submit-after-confirm";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -303,7 +307,7 @@ export function EditCollectionForm({
               type="button"
               disabled={isPending}
               className="adm-btn-primary"
-              onClick={() => setConfirmOpen(true)}
+              onClick={() => openConfirmIfFormValid(formRef.current, () => setConfirmOpen(true))}
             >
               {submitLabel("Update collection", isPending, "Saving...")}
             </button>
@@ -321,7 +325,7 @@ export function EditCollectionForm({
         confirmLabel="Save collection"
         pending={isPending}
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => formRef.current?.requestSubmit()}
+        onConfirm={() => submitFormAfterConfirmClose(formRef.current, () => setConfirmOpen(false))}
       />
       <CollectionConflictWorkspace
         open={conflictListOpen}

@@ -25,6 +25,7 @@ import { AdminFormAlert, useAdminFormValidation } from "@/components/admin/share
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
+import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
@@ -819,7 +820,7 @@ export function EditProductForm({
         confirmLabel="Yes, save changes"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
-          formRef.current?.requestSubmit();
+          submitFormAfterConfirmClose(formRef.current, () => setConfirmOpen(false));
         }}
         pending={isPending}
       />

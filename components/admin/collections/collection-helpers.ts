@@ -110,7 +110,7 @@ export function collectionToDraft(collection: AdminCollection, translationLocale
     name: collection.name,
     subtitle: collection.subtitle ?? "",
     slug: collection.slug,
-    code: collection.code ?? "",
+    code: collection.code?.trim() || generateCollectionCode(collection.name),
     description: collection.description ?? "",
     manifesto: collection.manifesto ?? "",
     searchSummary: collection.searchSummary ?? "",
