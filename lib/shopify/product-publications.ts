@@ -14,17 +14,21 @@ export type ShopifyResourcePublication = {
 };
 
 export function findOnlineStorePublication(
-  nodes: ShopifyResourcePublication[],
+  nodes: Array<ShopifyResourcePublication | null | undefined>,
 ): ShopifyResourcePublication | undefined {
-  return nodes.find((item) => /online store/i.test(item.publication?.name ?? ""));
+  return nodes.find((item) => /online store/i.test(item?.publication?.name ?? ""));
 }
 
-export function publishedPublicationNames(nodes: ShopifyResourcePublication[]): string[] {
+export function publishedPublicationNames(
+  nodes: Array<ShopifyResourcePublication | null | undefined>,
+): string[] {
   return nodes
-    .flatMap((item) => (item.isPublished && item.publication?.name ? [item.publication.name] : []))
+    .flatMap((item) => (item?.isPublished && item.publication?.name ? [item.publication.name] : []))
     .toSorted();
 }
 
-export function isPublishedToOnlineStore(nodes: ShopifyResourcePublication[]): boolean {
+export function isPublishedToOnlineStore(
+  nodes: Array<ShopifyResourcePublication | null | undefined>,
+): boolean {
   return Boolean(findOnlineStorePublication(nodes)?.isPublished);
 }

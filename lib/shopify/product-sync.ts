@@ -445,6 +445,8 @@ async function fetchCategoryMetafieldDisplayValues(productId: string, key: strin
     if (!metafield) break;
     if (metafield.reference) names.push(...displayNamesFromCategoryReference(metafield.reference));
     for (const node of metafield.references?.nodes ?? []) {
+      // Shopify connection nodes may be null; skip rather than crashing pull.
+      if (!node) continue;
       names.push(...displayNamesFromCategoryReference(node));
     }
     const pageInfo = metafield.references?.pageInfo;

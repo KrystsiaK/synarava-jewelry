@@ -48,4 +48,10 @@ describe("product-publications", () => {
       "Wholesale",
     ]);
   });
+
+  it("skips null connection nodes without throwing", () => {
+    expect(() => findOnlineStorePublication([null, nullPublication, onlineStore])).not.toThrow();
+    expect(findOnlineStorePublication([null, onlineStore])).toEqual(onlineStore);
+    expect(publishedPublicationNames([null, wholesale])).toEqual(["Wholesale"]);
+  });
 });

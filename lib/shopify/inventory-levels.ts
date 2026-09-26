@@ -6,7 +6,7 @@ type ShopifyPageInfo = { hasNextPage: boolean; endCursor: string | null };
 
 export type ShopifyInventoryLevel = {
   location: { id: string };
-  quantities: Array<{ name: string; quantity: number }>;
+  quantities: Array<{ name: string; quantity: number } | null>;
 };
 
 /**
@@ -16,11 +16,16 @@ export type ShopifyInventoryLevel = {
  * inventory_levels/update webhook so a multi-location product doesn't
  * report a different stock depending on which sync path touched it last.
  */
-export function selectStockOnHand(levels: ShopifyInventoryLevel[], configuredLocationId?: string | null): number {
+export function selectStockOnHand(
+  levels: Array<ShopifyInventoryLevel | null | undefined>,
+  configuredLocationId?: string | null,
+): number {
+  const present = levels.filter((level): level is ShopifyInventoryLevel => Boolean(level?.location?.id));
   const selectedLevel = configuredLocationId
-    ? levels.find((level) => level.location.id === configuredLocationId)
-    : levels[0];
-  return selectedLevel?.quantities.find((item) => item.name === "available")?.quantity ?? 0;
+    ? present.find((level) => level.location.id === configuredLocationId)
+    : present[0];
+  // quantities entries can be null in live Admin responses
+  return selectedLevel?.quantities.find((item) => item?.name === "available")?.quantity ?? 0;
 }
 
 export async function fetchInventoryLevels(inventoryItemId: string): Promise<ShopifyInventoryLevel[]> {
@@ -46,7 +51,10 @@ export async function fetchInventoryLevels(inventoryItemId: string): Promise<Sho
       { id: inventoryItemId, after },
     );
     if (!data.inventoryItem) break;
-    levels.push(...data.inventoryItem.inventoryLevels.nodes);
+    for (const node of data.inventoryItem.inventoryLevels.nodes) {
+      if (!node?.location?.id) continue;
+      levels.push(node);
+    }
     const pageInfo = data.inventoryItem.inventoryLevels.pageInfo;
     if (pageInfo.hasNextPage && !pageInfo.endCursor) {
       throw new ShopifyAdminError(`Shopify omitted the inventory levels cursor for ${inventoryItemId}.`);

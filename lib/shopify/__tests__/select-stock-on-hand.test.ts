@@ -23,4 +23,12 @@ describe("selectStockOnHand", () => {
   it("returns 0 for an item with no reported levels", () => {
     expect(selectStockOnHand([], "gid://shopify/Location/1")).toBe(0);
   });
+
+  it("does not throw when levels or quantities contain null entries", () => {
+    expect(() => selectStockOnHand([null, levels[0]], "gid://shopify/Location/1")).not.toThrow();
+    expect(selectStockOnHand([null, levels[0]], "gid://shopify/Location/1")).toBe(3);
+    expect(selectStockOnHand([
+      { location: { id: "gid://shopify/Location/1" }, quantities: [null, { name: "available", quantity: 4 }] },
+    ])).toBe(4);
+  });
 });

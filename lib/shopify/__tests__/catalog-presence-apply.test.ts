@@ -93,4 +93,19 @@ describe("applyCatalogPresenceDifference", () => {
     expect(mocks.pullShopifyProduct).not.toHaveBeenCalled();
     expect(mocks.pushProductToShopify).not.toHaveBeenCalled();
   });
+
+  it("surfaces pull TypeErrors with the Shopify product id for diagnosis", async () => {
+    mocks.pullShopifyProduct.mockRejectedValue(new Error("Cannot read properties of null (reading 'name')"));
+
+    const result = await applyCatalogPresenceDifference({ difference: shopifyOnly, direction: "SHOPIFY_TO_SYNARAVA" });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "WRITE_FAILED",
+      message: expect.stringContaining("gid://shopify/Product/42"),
+    });
+    expect(result).toMatchObject({
+      message: expect.stringContaining("Cannot read properties of null (reading 'name')"),
+    });
+  });
 });
