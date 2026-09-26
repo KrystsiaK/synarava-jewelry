@@ -81,6 +81,8 @@ export type SavedProductPayload = {
   imageUrl: string | null;
   primaryAssetId: string | null;
   priceCents: number;
+  /** Shopify compare-at mirror on Product (variant is source of truth for the Price tab). */
+  compareAtCents: number | null;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED" | "UNLISTED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
   shopifyProductId: string | null;
@@ -206,6 +208,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       imageUrl: true,
       primaryAssetId: true,
       priceCents: true,
+      compareAtCents: true,
       status: true,
       visibility: true,
       shopifyProductId: true,
@@ -459,7 +462,8 @@ const saveProductFieldsSchema = z.object({
   price: z.string().trim().default("0"),
   compareAt: z.string().trim().default(""),
   cost: z.string().trim().default(""),
-  taxable: z.string().trim().default("1"),
+  // Unchecked checkbox is absent from FormData — default must be off, not "1".
+  taxable: z.string().trim().default("0"),
   stockOnHand: z.string().trim().default("0"),
   shopifyCategoryId: z.string().trim().default(""),
   shopifyCategoryName: z.string().trim().default(""),
@@ -618,7 +622,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
   // Compare-at is Synarava read-only (edit in Shopify). Preserve last pull; ignore FormData.
-  const compareAtCents = before?.variants[0]?.compareAtCents ?? null;
+  const compareAtCents = before?.variants[0]?.compareAtCents ?? before?.compareAtCents ?? null;
   const translationFields = translationLocales.map(({ code, label }) => ({
     code, label, fields: readProductTranslationFields(formData, code),
   }));

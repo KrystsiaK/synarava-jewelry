@@ -119,7 +119,12 @@ export function productToDraft(product: ProductRecord, translationLocales: Admin
     slug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
     price: centsToPrice(primaryVariant?.priceCents ?? product.priceCents),
-    compareAt: primaryVariant?.compareAtCents == null ? "" : centsToPrice(primaryVariant.compareAtCents),
+    // Same fallback as price: Product.compareAtCents is written on pull even when
+    // a half-failed variant upsert left variants empty / stale.
+    compareAt: (() => {
+      const cents = primaryVariant?.compareAtCents ?? product.compareAtCents;
+      return cents == null ? "" : centsToPrice(cents);
+    })(),
     taxable: primaryVariant?.taxable ?? true,
     cost: primaryVariant?.costCents == null ? "" : centsToPrice(primaryVariant.costCents),
     seriesLabel: product.seriesLabel ?? "",

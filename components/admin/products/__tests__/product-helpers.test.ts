@@ -66,6 +66,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     imageUrl: null,
     primaryAssetId: null,
     priceCents: 4500,
+    compareAtCents: null,
     status: "DRAFT",
     visibility: "PRIVATE",
     shopifyProductId: null,
@@ -236,6 +237,7 @@ describe("productToDraft", () => {
   it("prefers the primary variant's commerce fields over the product's own mirror columns", () => {
     const product = makeProduct({
       priceCents: 1000,
+      compareAtCents: 5000,
       sku: "PRODUCT-SKU",
       variants: [
         {
@@ -265,6 +267,43 @@ describe("productToDraft", () => {
     expect(draft.cost).toBe("9.00");
     expect(draft.taxable).toBe(true);
     expect(draft.stockOnHand).toBe("7");
+  });
+
+  it("falls back to Product.compareAtCents when the variant has none (half-pull / mirror)", () => {
+    const withProductMirror = makeProduct({
+      priceCents: 1000,
+      compareAtCents: 2000,
+      variants: [],
+    });
+    expect(productToDraft(withProductMirror).compareAt).toBe("20.00");
+    expect(productToDraft(withProductMirror).price).toBe("10.00");
+
+    const variantNullCompareAt = makeProduct({
+      priceCents: 1000,
+      compareAtCents: 2000,
+      variants: [
+        {
+          id: "variant-1",
+          sku: "SKU-1",
+          title: "Default",
+          priceCents: 1000,
+          compareAtCents: null,
+          costCents: null,
+          stockOnHand: 0,
+          barcode: null,
+          taxable: false,
+          requiresShipping: true,
+          tracked: true,
+          weightGrams: null,
+          imageUrl: null,
+          selectedOptions: null,
+          shopifyVariantId: null,
+          shopifyInventoryItemId: null,
+        },
+      ],
+    });
+    expect(productToDraft(variantNullCompareAt).compareAt).toBe("20.00");
+    expect(productToDraft(variantNullCompareAt).taxable).toBe(false);
   });
 
   it("excludes the storefront-default collection from the marketing collection slug", () => {
