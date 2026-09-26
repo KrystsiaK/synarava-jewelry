@@ -128,7 +128,9 @@ export function mergeCustomMetafieldsIntoList(
     })
     : [];
 
-  const byId = new Map(current.map((item) => [`${item.namespace}::${item.key}`, { ...item }] as const));
+  const byId = new Map<string, Record<string, unknown>>(
+    current.map((item) => [`${String(item.namespace)}::${String(item.key)}`, { ...item }]),
+  );
   for (const item of customValues) {
     if (isManagedProductMetafieldNamespace(item.namespace)) continue;
     const id = `${item.namespace}::${item.key}`;
