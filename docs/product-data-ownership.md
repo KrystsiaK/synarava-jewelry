@@ -9,7 +9,7 @@ Shopify is the system of record for every customer-facing commerce field that Sh
 The product admin is built as **Shopify skeleton + Synarava sections**:
 
 1. **Shopify skeleton** — every standard Shopify product/variant field we support must appear in admin, sync correctly (pull/push), and match Shopify Admin. We verify this field by field.
-2. **Synarava sections** — settings and editorial modules that exist only in Synarava (materials story, process, lookbook, and future CMS-only controls).
+2. **Synarava sections** — CMS-only Product page: short description, material line, symbolism, materials story, process, lookbook (and future CMS controls). Shopify description/SEO live on the Product tab, not a separate Content tab.
 
 The section tab strip is visually split into two clusters: **Shopify** (commerce skeleton + Sync) and **Synarava** (CMS-only). Tab count and Shopify-side layout will grow to mirror Shopify’s product admin more closely; Synarava tabs stay a separate group.
 
