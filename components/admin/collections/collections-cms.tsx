@@ -27,7 +27,7 @@ import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/share
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { CatalogConflictStatus, CatalogConflictRowBadges } from "@/components/admin/products/catalog-conflict-signals";
-import { CollectionConflictWorkspace } from "@/components/admin/collections/collection-conflict-workspace";
+import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
 import {
   collectionActionCopy,
   collectionStatusLabel,
@@ -61,6 +61,7 @@ export function CollectionsCms({
   const [isPending, startTransition] = useTransition();
   const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
   const [conflictListOpen, setConflictListOpen] = useState(false);
+  const [conflictViewScope, setConflictViewScope] = useState<CollectionConflictViewScope>({ kind: "catalog" });
   const [focusedConflictCollectionId, setFocusedConflictCollectionId] = useState<string | null>(null);
   const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
     base: initialConflictSignals,
@@ -71,7 +72,11 @@ export function CollectionsCms({
     : initialConflictSignals;
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
   const { pushToast } = useAdminToast();
-  const closeConflictList = useCallback(() => setConflictListOpen(false), []);
+  const closeConflictList = useCallback(() => {
+    setConflictListOpen(false);
+    setFocusedConflictCollectionId(null);
+    setConflictViewScope({ kind: "catalog" });
+  }, []);
 
   function setConflictSignals(value: CatalogConflictSignals) {
     setConflictSignalsOverride({ base: initialConflictSignals, value });
@@ -79,6 +84,7 @@ export function CollectionsCms({
 
   function showConflicts(collectionId: string | null = null) {
     setFocusedConflictCollectionId(collectionId);
+    setConflictViewScope(collectionId ? { kind: "collection", collectionId } : { kind: "catalog" });
     setConflictListOpen(true);
   }
 
@@ -340,6 +346,7 @@ export function CollectionsCms({
         onSignalsChange={setConflictSignals}
         collections={items.map((collection) => ({ id: collection.id, name: collection.name, slug: collection.slug }))}
         focusedCollectionId={focusedConflictCollectionId}
+        viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
       />
     </div>

@@ -34,7 +34,7 @@ import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-met
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
-import { CatalogConflictWorkspace } from "@/components/admin/products/catalog-conflict-workspace";
+import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
 import { collectionSelectOptionLabel } from "@/lib/admin/collection-select-options";
 import {
@@ -144,6 +144,7 @@ export function ProductsCms({
   } | null>(null);
   const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
   const [conflictListOpen, setConflictListOpen] = useState(false);
+  const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "catalog" });
   const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
     base: initialConflictSignals,
     value: initialConflictSignals,
@@ -159,7 +160,11 @@ export function ProductsCms({
   const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
-  const closeConflictList = useCallback(() => setConflictListOpen(false), []);
+  const closeConflictList = useCallback(() => {
+    setConflictListOpen(false);
+    setFocusedConflictProductId(null);
+    setConflictViewScope({ kind: "catalog" });
+  }, []);
   const requestIdRef = useRef(0);
   const skipFilterFetchRef = useRef(true);
 
@@ -169,6 +174,7 @@ export function ProductsCms({
 
   function showConflicts(productId: string | null = null) {
     setFocusedConflictProductId(productId);
+    setConflictViewScope(productId ? { kind: "product", productId } : { kind: "catalog" });
     setConflictListOpen(true);
   }
 
@@ -695,6 +701,7 @@ export function ProductsCms({
         onSignalsChange={setConflictSignals}
         products={products.map((product) => ({ id: product.id, name: product.name, sku: product.sku }))}
         focusedProductId={focusedConflictProductId}
+        viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
       />
 

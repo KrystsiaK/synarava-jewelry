@@ -292,6 +292,8 @@ describe("CatalogConflictWorkspace", () => {
     }, { kind: "product", productId: "p1" });
 
     expect(screen.getByText("Amber ring")).toBeInTheDocument();
+    expect(screen.queryByText("1 product need a decision")).toBeInTheDocument();
+    // Catalog bulk and other products stay out of a row-chip open.
     expect(screen.queryByRole("button", { name: /Use Shopify for all/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Use Synarava for all/i })).not.toBeInTheDocument();
   });
