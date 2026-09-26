@@ -5,9 +5,13 @@ import {
   characteristicDisplayValue,
   characteristicGroupLabel,
   characteristicLabel,
+  characteristicUnit,
   parseCharacteristicsForm,
+  parseCharacteristicTextOverlay,
   PRODUCT_CHARACTERISTIC_GROUPS,
   PRODUCT_CHARACTERISTICS,
+  readCharacteristicTextOverlayFromForm,
+  resolveCharacteristicDisplayValue,
 } from "@/lib/products/characteristics";
 
 describe("product characteristics", () => {
@@ -67,24 +71,47 @@ describe("product characteristics", () => {
     });
     expect(values.find((item) => item.key === "origin")?.textValue).toBe("Portugal");
   });
+
+  it("reads locale TEXT overlays from FormData and details JSON", () => {
+    const form = new FormData();
+    form.set("ptCharacteristic_material", "Aço inoxidável");
+    form.set("ptCharacteristic_color", "Âmbar");
+    expect(readCharacteristicTextOverlayFromForm(form, "pt")).toEqual({
+      material: "Aço inoxidável",
+      color: "Âmbar",
+    });
+    expect(readCharacteristicTextOverlayFromForm(form, "en")).toEqual({});
+    expect(parseCharacteristicTextOverlay({
+      characteristics: { material: "Жемчуг", unknown: "ignore" },
+    })).toEqual({ material: "Жемчуг" });
+  });
 });
 
-describe("characteristicLabel / characteristicGroupLabel", () => {
+describe("characteristicLabel / characteristicGroupLabel / characteristicUnit", () => {
   it("returns the English label unchanged for the en locale", () => {
     expect(characteristicLabel("material", "Primary material", "en")).toBe("Primary material");
     expect(characteristicGroupLabel("Materials & construction", "en")).toBe("Materials & construction");
+    expect(characteristicUnit("cm", "en")).toBe("cm");
   });
 
-  it("has a Portuguese translation registered for every defined characteristic and group", () => {
-    const NO_TRANSLATION = "\0NO_PT_TRANSLATION\0";
-    for (const definition of PRODUCT_CHARACTERISTICS) {
-      const label = characteristicLabel(definition.key, NO_TRANSLATION, "pt");
-      expect(label, `missing PT label for "${definition.key}"`).not.toBe(NO_TRANSLATION);
+  it("has Portuguese and Russian translations for every defined characteristic and group", () => {
+    const NO_TRANSLATION = "\0NO_TRANSLATION\0";
+    for (const locale of ["pt", "ru"] as const) {
+      for (const definition of PRODUCT_CHARACTERISTICS) {
+        const label = characteristicLabel(definition.key, NO_TRANSLATION, locale);
+        expect(label, `missing ${locale} label for "${definition.key}"`).not.toBe(NO_TRANSLATION);
+      }
+      for (const group of PRODUCT_CHARACTERISTIC_GROUPS) {
+        const label = characteristicGroupLabel(group, locale);
+        expect(label, `missing ${locale} label for group "${group}"`).not.toBe(group);
+      }
     }
-    for (const group of PRODUCT_CHARACTERISTIC_GROUPS) {
-      const label = characteristicGroupLabel(group, "pt");
-      expect(label, `missing PT label for group "${group}"`).not.toBe(group);
-    }
+  });
+
+  it("localizes units for display", () => {
+    expect(characteristicUnit("cm", "ru")).toBe("см");
+    expect(characteristicUnit("g", "ru")).toBe("г");
+    expect(characteristicUnit("cm", "pt")).toBe("cm");
   });
 
   it("falls back to the persisted English label for an unrecognized/legacy key", () => {
@@ -99,5 +126,24 @@ describe("characteristicLabel / characteristicGroupLabel", () => {
     };
     expect(characteristicDisplayValue(value, "en")).toBe("Yes");
     expect(characteristicDisplayValue(value, "pt")).toBe("Sim");
+    expect(characteristicDisplayValue(value, "ru")).toBe("Да");
+  });
+
+  it("resolves TEXT overlay over EN source value", () => {
+    const value = {
+      key: "material", label: "Primary material", group: "Materials & construction", valueType: "TEXT" as const,
+      textValue: "Freshwater pearl", numberValue: null, booleanValue: null, unit: null, certificateUrl: null, sortOrder: 0,
+    };
+    expect(resolveCharacteristicDisplayValue(value, "pt", { material: "Pérola de água doce" }))
+      .toBe("Pérola de água doce");
+    expect(resolveCharacteristicDisplayValue(value, "pt", {})).toBe("Freshwater pearl");
+  });
+
+  it("formats NUMBER with localized unit", () => {
+    const value = {
+      key: "chain_length", label: "Chain length", group: "Dimensions & fit", valueType: "NUMBER" as const,
+      textValue: null, numberValue: 42, booleanValue: null, unit: "cm", certificateUrl: null, sortOrder: 0,
+    };
+    expect(characteristicDisplayValue(value, "ru")).toBe("42 см");
   });
 });

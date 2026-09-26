@@ -56,11 +56,11 @@ export function localeHasDirty(
   return false;
 }
 
-/** Passport / inventory / metafields / media / shopify / price are shared across languages. */
+/** Inventory / metafields / media / shopify / price are shared across languages.
+ * Passport is locale-scoped: EN owns ProductCharacteristic; PT/RU own TEXT overlays. */
 export function isSharedSection(section: ProductEditorSection): boolean {
   return (
-    section === "passport"
-    || section === "inventory"
+    section === "inventory"
     || section === "metafields"
     || section === "media"
     || section === "shopify"
@@ -69,7 +69,7 @@ export function isSharedSection(section: ProductEditorSection): boolean {
 }
 
 export function isLocaleSection(section: ProductEditorSection): boolean {
-  return section === "essentials" || section === "details";
+  return section === "essentials" || section === "details" || section === "passport";
 }
 
 export function dirtyKeyForEdit(locale: string, section: ProductEditorSection): DirtyScopeKey {
@@ -141,6 +141,10 @@ function isCharacteristicsField(name: string): boolean {
   return name.startsWith("char_") || name.startsWith("characteristic");
 }
 
+function isLocalePrefixedCharacteristicsField(name: string, locale: string): boolean {
+  return matchesLocalePrefix(name, locale, ["characteristic_", "char_"]);
+}
+
 /**
  * Whether a FormData key belongs to the given section/locale branch.
  * Shared sections ignore locale. Locale sections only take that locale's copy fields
@@ -170,7 +174,12 @@ export function fieldBelongsToBranch(
     case "inventory":
       return INVENTORY_SHARED.includes(fieldName);
     case "passport":
-      return isCharacteristicsField(fieldName);
+      if (locale === SOURCE_LOCALE) {
+        // EN owns unprefixed ProductCharacteristic fields only.
+        return isCharacteristicsField(fieldName) && !/^(pt|ru)/i.test(fieldName);
+      }
+      // PT/RU scoped save: TEXT overlays for this locale (EN fields come from baseline).
+      return isLocalePrefixedCharacteristicsField(fieldName, locale);
     case "details":
       return DETAILS_SHARED.includes(fieldName)
         || matchesLocaleKey(fieldName, locale, DETAILS_LOCALE)

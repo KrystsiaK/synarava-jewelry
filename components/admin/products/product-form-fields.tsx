@@ -27,7 +27,10 @@ import {
 } from "@/components/admin/products/shopify-category-field";
 import { ShopifyOrganizationSuggestField } from "@/components/admin/products/shopify-organization-suggest-field";
 import { ShopifyProductFactsPanel } from "@/components/admin/products/shopify-product-facts";
-import { ProductPassportFields } from "@/components/admin/products/product-passport-fields";
+import {
+  HiddenPassportTextOverlayFields,
+  ProductPassportFields,
+} from "@/components/admin/products/product-passport-fields";
 import { ProductPriceFields } from "@/components/admin/products/product-price-fields";
 import {
   ProductInventoryFields,
@@ -76,10 +79,11 @@ type ProductDetailsLocaleDraft = {
   lookbookLabels: string[];
 };
 
-const EMPTY_DETAILS_SOURCE: ProductDetailsSource = {
+const EMPTY_DETAILS_SOURCE: ProductDetailsSource & { characteristics?: Record<string, string> } = {
   materialsEyebrow: "", materialsTitle: "", materials: [],
   process: { eyebrow: "", title: "", stats: [] },
   lookbookEyebrow: "", lookbookTitle: "", lookbook: [],
+  characteristics: {},
 };
 
 function detailsDraftFrom(source: ProductDetailsSource): ProductDetailsLocaleDraft {
@@ -169,6 +173,12 @@ export function ProductDetailFields({
     [SOURCE_LOCALE]: detailsDraftFrom(details),
     ...Object.fromEntries(translationLocales.map(({ code }) => [code, detailsDraftFrom(translationsDetails[code] ?? EMPTY_DETAILS_SOURCE)])),
   }));
+  const [characteristicTextByLocale, setCharacteristicTextByLocale] = useState<Record<string, Record<string, string>>>(() => ({
+    ...Object.fromEntries(translationLocales.map(({ code }) => [
+      code,
+      { ...(translationsDetails[code]?.characteristics ?? {}) },
+    ])),
+  }));
   const draft = draftByLocale[activeLocale] ?? draftByLocale[SOURCE_LOCALE];
   const isEn = activeLocale === SOURCE_LOCALE;
   const shopifyFacts = extractShopifyProductFacts({
@@ -178,6 +188,14 @@ export function ProductDetailFields({
     productType,
     characteristics: characteristicValues,
   });
+
+  function updateCharacteristicText(key: string, value: string) {
+    if (isEn) return;
+    setCharacteristicTextByLocale((prev) => ({
+      ...prev,
+      [activeLocale]: { ...(prev[activeLocale] ?? {}), [key]: value },
+    }));
+  }
 
   function updateField<K extends keyof ProductDetailsLocaleDraft>(key: K, value: ProductDetailsLocaleDraft[K]) {
     setDraftByLocale((prev) => ({ ...prev, [activeLocale]: { ...prev[activeLocale], [key]: value } }));
@@ -227,6 +245,7 @@ export function ProductDetailFields({
       </div>
 
       <HiddenDetailsLocaleFields draftByLocale={draftByLocale} />
+      <HiddenPassportTextOverlayFields overlaysByLocale={characteristicTextByLocale} />
 
       {!isEn && activeSection === "details" ? (
         <p className="text-xs text-[var(--adm-muted)]">
@@ -243,11 +262,16 @@ export function ProductDetailFields({
         <p className="adm-label-row">
           <span className="adm-section-tag">[ SYNARAVA PASSPORT ]</span>
           <AdminHelp>
-            Jewelry core specs for the PDP and filters. Save, then Push as synarava.* metafields.
-            Arbitrary Shopify merchant fields stay on Metafields.
+            Jewelry core specs for the PDP and filters. English Save + Push as synarava.* metafields.
+            Other languages translate TEXT values only; blank falls back to English on the site.
           </AdminHelp>
         </p>
-        <ProductPassportFields characteristics={details.characteristics} />
+        <ProductPassportFields
+          characteristics={details.characteristics}
+          activeLocale={activeLocale}
+          textOverlay={characteristicTextByLocale[activeLocale] ?? {}}
+          onTextOverlayChange={updateCharacteristicText}
+        />
       </div>
 
       {/* Materials */}

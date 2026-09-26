@@ -85,8 +85,16 @@ Shopify contains additional operational and analytical API fields. “All Shopif
 
 Structured jewelry parameters (material, color, size, care, compliance, …) are
 editable under **Synarava → Passport** (**Product parameters**). Save stores them
-locally; Push mirrors them to Shopify as `synarava.*` metafields. Pull seeds
-empty fields from Shopify category attributes and merchant metafields.
+locally; Push mirrors **English** values to Shopify as `synarava.*` metafields.
+Pull seeds empty fields from Shopify category attributes and merchant metafields.
+
+**Localization (no Shopify sync for translations):**
+
+| Layer | Where |
+| --- | --- |
+| Group titles, field labels, units (`cm`/`g`) | Code dictionaries in `lib/products/characteristics.ts` (EN/PT/RU) |
+| TEXT values (material, color, …) | Per-locale overlay on `ProductTranslation.details.characteristics`; blank → EN |
+| NUMBER / BOOLEAN | Shared `ProductCharacteristic` (EN); Yes/No display localized in code |
 
 The passport checklist is intentionally small (jewelry filters + PDP priority).
 Arbitrary merchant fields are **not** added here — use the product editor

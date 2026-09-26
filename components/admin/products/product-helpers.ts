@@ -1,4 +1,5 @@
 import { parseProductDetails } from "@/lib/content/product-details";
+import { parseCharacteristicTextOverlay } from "@/lib/products/characteristics";
 import { productCollectionPosition } from "@/lib/catalog/collection-order";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
@@ -67,11 +68,13 @@ export function costFromShopifySnapshot(snapshot: unknown): string | null {
  */
 export function getProductDetailsTranslation(details: unknown) {
   const parsed = parseProductDetails(details);
+  const characteristics = parseCharacteristicTextOverlay(details);
   return {
     attributes: Array.from({ length: 8 }, (_, index) => {
       const source = parsed.attributes?.[index];
       return { label: source?.label ?? "", value: source?.value ?? "" };
     }),
+    characteristics,
     materialsEyebrow: parsed.materialsEyebrow ?? "",
     materialsTitle: parsed.materialsTitle ?? "",
     materials: Array.from({ length: 3 }, (_, index) => {
@@ -89,7 +92,7 @@ export function getProductDetailsTranslation(details: unknown) {
     lookbookEyebrow: parsed.lookbookEyebrow ?? "",
     lookbookTitle: parsed.lookbookTitle ?? "",
     lookbook: Array.from({ length: 4 }, (_, index) => {
-      const source = parsed.lookbook?.[index];
+      const source: { label?: string } | undefined = parsed.lookbook?.[index];
       return { label: source?.label ?? "" };
     }),
   };

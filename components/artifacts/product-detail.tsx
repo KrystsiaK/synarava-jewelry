@@ -27,7 +27,8 @@ import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
-import { characteristicGroupLabel } from "@/lib/products/characteristics";
+import { characteristicGroupLabel, characteristicUnit } from "@/lib/products/characteristics";
+import { normalizeLocale } from "@/lib/i18n/locales";
 import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
@@ -239,7 +240,16 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
   if (product.sku) add(t("product.specifications.productDetails"), { label: t("product.specifications.sku"), value: product.sku });
   const primaryVariant = product.variantDetails[0];
   if (primaryVariant?.barcode) add(t("product.specifications.productDetails"), { label: t("product.specifications.barcode"), value: primaryVariant.barcode });
-  if (primaryVariant?.weightGrams != null) add(t("product.specifications.dimensionsFit"), { label: t("product.specifications.weight"), value: `${primaryVariant.weightGrams} g` });
+  if (primaryVariant?.weightGrams != null) {
+    const unit = characteristicUnit("g", normalizeLocale(locale));
+    add(
+      t("product.specifications.dimensionsFit"),
+      {
+        label: t("product.specifications.weight"),
+        value: `${primaryVariant.weightGrams} ${unit}`,
+      },
+    );
+  }
   for (const field of product.publicMetafields ?? []) {
     add(t("product.specifications.additionalDetails"), field);
   }

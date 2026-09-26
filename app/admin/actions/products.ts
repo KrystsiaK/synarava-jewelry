@@ -19,7 +19,11 @@ import { slugify } from "@/lib/text/slug";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
-import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
+import {
+  buildProductSearchDocument,
+  parseCharacteristicsForm,
+  readCharacteristicTextOverlayFromForm,
+} from "@/lib/products/characteristics";
 import { parseCustomMetafieldsForm } from "@/lib/shopify/product-metafields-shared";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
@@ -562,7 +566,9 @@ function readProductTranslationDetails(formData: FormData, locale: string) {
   const lookbook = [1, 2, 3, 4]
     .map((index) => ({ label: readLocaleField(formData, locale, `lookbookLabel${index}`) }))
     .filter((item) => item.label);
+  const characteristics = readCharacteristicTextOverlayFromForm(formData, locale);
   return {
+    characteristics,
     materialsEyebrow: readLocaleField(formData, locale, "materialsEyebrow"),
     materialsTitle: readLocaleField(formData, locale, "materialsTitle"),
     materials: materials.filter((item) => item.title && item.body),

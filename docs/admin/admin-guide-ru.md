@@ -188,10 +188,13 @@ legacy cover, пока не загружены изображения галер
   Shopify GID + полное имя. Коллекция выбирается из локальной проекции
   Shopify-коллекций (одно значение в текущей форме, хотя модель допускает
   несколько связей).
-- Характеристики (`characteristics`) — большой фиксированный справочник,
-  сгруппированный по темам: «Dimensions & fit», «Pet sizing & use»,
-  «Age & activity», «Maker compatibility», «Materials & construction»,
-  «Care & fulfilment», «Compliance & sales». Поля бывают текстовые, числовые
+- Характеристики (`characteristics`) — фиксированный jewelry passport
+  (Dimensions & fit, Materials & construction, Care, Compliance). Подписи
+  групп/полей и единицы (`cm`/`g`) живут в коде (EN/PT/RU). **Значения TEXT**
+  (материал, цвет, …) переводятся на вкладке языка → Passport и пишутся в
+  `ProductTranslation.details.characteristics` (без Shopify sync); пустое
+  поле на витрине показывает английский. Числа и boolean — общие (EN);
+  Yes/No локализуются при показе. Поля бывают текстовые, числовые
   и булевы (чекбокс); у некоторых булевых характеристик (например
   REACH-сертификация) есть дополнительное поле URL сертификата — оно
   сохраняется, даже если сам чекбокс выключен.

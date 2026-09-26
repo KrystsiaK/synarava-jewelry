@@ -26,4 +26,20 @@ describe("ProductPassportFields", () => {
     expect(compliance).toHaveAttribute("data-open", "false");
     expect(screen.queryByRole("button", { name: "Pet sizing & use" })).not.toBeInTheDocument();
   });
+
+  it("shows localized labels and TEXT overlays for Portuguese", () => {
+    render(
+      <ProductPassportFields
+        characteristics={{
+          material: { value: "Freshwater pearl", certificateUrl: "" },
+        }}
+        activeLocale="pt"
+        textOverlay={{ material: "Pérola de água doce" }}
+        onTextOverlayChange={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Materiais e construção" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Material principal")).toHaveValue("Pérola de água doce");
+  });
 });

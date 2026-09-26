@@ -6,7 +6,12 @@ import {
   type ProductMaterialStory,
   type ProductProcessStory,
 } from "@/lib/content/product-details";
-import { characteristicDisplayValue, characteristicLabel, type ProductCharacteristicValue } from "@/lib/products/characteristics";
+import {
+  characteristicLabel,
+  parseCharacteristicTextOverlay,
+  resolveCharacteristicDisplayValue,
+  type ProductCharacteristicValue,
+} from "@/lib/products/characteristics";
 import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
@@ -339,6 +344,7 @@ function toSummary(product: {
   const localizedHandle = product.translations.find((translation) => translation.locale === locale)?.localizedHandle;
   const activeSlug = resolveLocalizedHandle(locale, product.slug, localizedHandle);
   const details = parseProductDetails(localized.details);
+  const characteristicTextOverlay = parseCharacteristicTextOverlay(localized.details);
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
     title: details.process?.title ?? "",
@@ -435,12 +441,24 @@ function toSummary(product: {
     collectionName: leadCollectionCopy?.name ?? "",
     materialLine: localized.materialLine,
     attributes: product.characteristics.length
-      ? product.characteristics.map((item) => ({ label: characteristicLabel(item.key, item.label, locale), value: characteristicDisplayValue({ ...item, numberValue: item.numberValue == null ? null : Number(item.numberValue) }, locale) }))
+      ? product.characteristics.map((item) => {
+          const value: ProductCharacteristicValue = {
+            ...item,
+            numberValue: item.numberValue == null ? null : Number(item.numberValue),
+          };
+          return {
+            label: characteristicLabel(item.key, item.label, locale),
+            value: resolveCharacteristicDisplayValue(value, locale, characteristicTextOverlay),
+          };
+        })
       : details.attributes ?? [],
     characteristics: product.characteristics.map((item) => ({
       ...item,
       label: characteristicLabel(item.key, item.label, locale),
       numberValue: item.numberValue == null ? null : Number(item.numberValue),
+      textValue: item.valueType === "TEXT"
+        ? (characteristicTextOverlay[item.key] ?? item.textValue)
+        : item.textValue,
     })),
     categorySlug: product.shopifyCategoryId,
     categoryName: categoryLeafLabel(product.shopifyCategoryName),

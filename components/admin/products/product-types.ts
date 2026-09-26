@@ -58,6 +58,8 @@ export type ProductDraft = {
 
 export type ProductLocaleDetailsDraft = {
   attributes: Array<{ label: string; value: string }>;
+  /** TEXT passport overlays for this locale (empty = fall back to EN ProductCharacteristic). */
+  characteristics: Record<string, string>;
   materialsEyebrow: string;
   materialsTitle: string;
   materials: Array<{ title: string; body: string }>;

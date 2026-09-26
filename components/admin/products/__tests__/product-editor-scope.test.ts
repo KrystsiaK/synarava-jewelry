@@ -9,14 +9,16 @@ import {
 } from "@/components/admin/products/product-editor-scope";
 
 describe("product-editor-scope", () => {
-  it("marks shared passport dirty separately from locale essentials", () => {
-    expect(dirtyKeyForEdit("pt", "passport")).toBe("*:passport");
+  it("marks passport dirty per locale (TEXT overlays), not as shared *", () => {
+    expect(dirtyKeyForEdit("pt", "passport")).toBe("pt:passport");
+    expect(dirtyKeyForEdit("en", "passport")).toBe("en:passport");
     expect(dirtyKeyForEdit("pt", "essentials")).toBe("pt:essentials");
   });
 
   it("detects dirty locale from shared or locale-scoped sections", () => {
-    const dirty = new Set([sectionDirtyKey("*", "passport")]);
+    const dirty = new Set([sectionDirtyKey("en", "passport")]);
     expect(localeHasDirty(dirty, "en", ["essentials", "passport"])).toBe(true);
+    expect(localeHasDirty(dirty, "pt", ["essentials", "passport"])).toBe(false);
     expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "en", ["details"])).toBe(false);
     expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "pt", ["details"])).toBe(true);
   });
@@ -59,8 +61,11 @@ describe("product-editor-scope", () => {
   });
 
   it("attributes passport characteristic fields to Passport, not Product", () => {
-    expect(dirtyKeyForEdit("pt", "passport")).toBe("*:passport");
+    expect(dirtyKeyForEdit("pt", "passport")).toBe("pt:passport");
     expect(fieldBelongsToBranch("characteristic_material", "passport", "en")).toBe(true);
+    expect(fieldBelongsToBranch("characteristic_material", "passport", "pt")).toBe(false);
+    expect(fieldBelongsToBranch("ptCharacteristic_material", "passport", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("ptCharacteristic_material", "passport", "en")).toBe(false);
     expect(fieldBelongsToBranch("characteristic_material", "essentials", "en")).toBe(false);
     expect(fieldBelongsToBranch("collectionSlug", "passport", "en")).toBe(false);
   });
