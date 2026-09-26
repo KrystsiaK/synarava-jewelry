@@ -14,6 +14,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { issuesForField } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
+import { mediaFramesFromProductSnapshots } from "@/lib/shopify/shopify-snapshot-media";
 
 export function ProductMediaManager({
   product,
@@ -31,6 +32,12 @@ export function ProductMediaManager({
   const { pushToast } = useAdminToast();
   const coverIssues = issuesForField(issues, "field-imageUrl");
   const hasCoverIssues = coverIssues.length > 0;
+  const shopifyFrames = product
+    ? mediaFramesFromProductSnapshots({
+      shopifySnapshot: product.shopifySnapshot,
+      workingSnapshot: product.workingSnapshot,
+    })
+    : [];
 
   function apply(result: ProductMediaActionState) {
     if (result.error) pushToast({ message: result.error, tone: "error" });
@@ -113,6 +120,26 @@ export function ProductMediaManager({
               </article>
             );
           })}
+        </div>
+      ) : shopifyFrames.length > 0 ? (
+        <div className="grid gap-3">
+          <p className="rounded-lg border border-[var(--adm-border)] bg-[var(--adm-bg)] p-3 text-xs text-[var(--adm-muted)]">
+            These images live on Shopify. The storefront already uses them. Synarava has no local gallery rows yet —
+            use Sync → Pull to align commerce snapshots, or Add images here to upload Synarava-managed files (Push sends those to Shopify).
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {shopifyFrames.map((frame, index) => (
+              <article key={frame.id ?? frame.url} className="grid gap-3 border border-[var(--adm-border)] p-3">
+                <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
+                  <Image src={frame.url} alt={frame.alt || product?.name || "Shopify image"} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
+                  <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">
+                    {index === 0 ? "01 · Shopify" : String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <p className="truncate text-xs text-[var(--adm-muted)]">{frame.alt}</p>
+              </article>
+            ))}
+          </div>
         </div>
       ) : product?.imageUrl ? (
         <article className="grid max-w-sm gap-3 border border-[var(--adm-border)] p-3">

@@ -14,7 +14,12 @@ describe("canonicalizeShopifyProjection", () => {
       title: "Ring",
       updatedAt: "2026-01-01T00:00:00Z",
       __typename: "Product",
-      media: [{ id: "m1", status: "READY", preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=1" } } }],
+      media: [{
+        id: "m1",
+        status: "READY",
+        originalSource: { url: "https://storage.googleapis.com/signed?token=x" },
+        preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=1" } },
+      }],
       metafields: [{ namespace: "custom", key: "x", value: "1", definition: { name: "X" } }],
       variants: { pageInfo: { hasNextPage: false, endCursor: "c" }, nodes: [] },
     });
@@ -79,12 +84,35 @@ describe("diffShopifyProjections", () => {
       { variants: [{ id: "v1", price: "10.00" }] },
       { variants: [{ id: "v1", price: "12.00" }] },
     );
-    expect(diffs[0]).toMatchObject({
-      path: "variants[0].price",
-      field: "Price",
-      local: "10.00",
-      shopify: "12.00",
-    });
+    expect(diffs).toEqual([
+      {
+        path: "variants[0].price",
+        field: "Price",
+        local: "10.00",
+        shopify: "12.00",
+      },
+    ]);
+  });
+
+  it("summarizes media gallery diffs instead of dumping GraphQL JSON", () => {
+    const diffs = diffShopifyProjections(
+      { media: [] },
+      {
+        media: [{
+          id: "gid://shopify/MediaImage/1",
+          originalSource: { url: "https://storage.googleapis.com/secret" },
+          preview: { image: { url: "https://cdn.shopify.com/ChatGPTImage.png?v=1" } },
+        }],
+      },
+    );
+    expect(diffs).toEqual([
+      {
+        path: "media[0]",
+        field: "Media gallery (image 1)",
+        local: "—",
+        shopify: "ChatGPTImage.png",
+      },
+    ]);
   });
 });
 

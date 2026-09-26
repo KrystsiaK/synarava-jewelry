@@ -65,6 +65,9 @@ function normalizeShopifyCdnUrl(value: string): string {
 function shouldOmitKey(key: string, parentPath: string): boolean {
   if (TECHNICAL_KEYS.has(key)) return true;
   if (key === "status" && /(^|\.)media(\[\d+\])?$/.test(parentPath)) return true;
+  // Ephemeral signed upload URL — not commerce identity; churns and dumps into conflict UI.
+  // https://shopify.dev/docs/api/admin-graphql/latest/objects/mediaimage
+  if (key === "originalSource" && /(^|\.)media(\[\d+\])?$/.test(parentPath)) return true;
   if (key === "definition" && /(^|\.)metafields(\[\d+\])?$/.test(parentPath)) return true;
   return false;
 }
@@ -131,6 +134,48 @@ function displayValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/** Short label for a media node — never dump originalSource / full GraphQL JSON into conflict UI. */
+function mediaItemSummary(value: unknown): string {
+  if (value == null) return "—";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || "—";
+  }
+  if (!isPlainObject(value)) return displayValue(value);
+
+  const preview = isPlainObject(value.preview) ? value.preview : null;
+  const previewImage = preview && isPlainObject(preview.image) ? preview.image : null;
+  const image = isPlainObject(value.image) ? value.image : null;
+  const url =
+    (previewImage && typeof previewImage.url === "string" ? previewImage.url : null)
+    || (image && typeof image.url === "string" ? image.url : null)
+    || (typeof value.url === "string" ? value.url : null);
+
+  if (url) {
+    try {
+      const name = decodeURIComponent(new URL(url).pathname.split("/").pop() || url);
+      return name || url;
+    } catch {
+      return url;
+    }
+  }
+  if (typeof value.alt === "string" && value.alt.trim()) return value.alt.trim();
+  if (typeof value.id === "string") return value.id;
+  return "Image present";
+}
+
+function displayValueForPath(path: string, value: unknown): string {
+  if (/^media\[\d+\]$/.test(path) || path === "media") {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "— (no images)";
+      return value.map((item) => mediaItemSummary(item)).join(", ");
+    }
+    return mediaItemSummary(value);
+  }
+  if (/\.originalSource(\.|$)/.test(path)) return "— (upload source omitted)";
+  return displayValue(value);
+}
+
 export function labelForShopifyProjectionPath(path: string): string {
   for (const entry of PATH_LABELS) {
     if (entry.match.test(path)) return entry.label;
@@ -186,8 +231,8 @@ function walkDiff(
   out.push({
     path,
     field: labelForShopifyProjectionPath(path),
-    local: displayValue(local),
-    shopify: displayValue(shopify),
+    local: displayValueForPath(path, local),
+    shopify: displayValueForPath(path, shopify),
   });
 }
 
