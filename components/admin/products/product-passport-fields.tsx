@@ -8,8 +8,8 @@ import {
   AdminReadonlyField,
   AdminTextField,
 } from "@/components/synarava-cms";
+import { SOURCE_LOCALE } from "@/components/admin/products/product-editor-scope";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
-import { SOURCE_LOCALE } from "@/lib/i18n/admin-translation-locales";
 import type { Locale } from "@/lib/i18n/locales";
 import {
   PRODUCT_CHARACTERISTICS,
@@ -191,7 +191,7 @@ export function ProductPassportFields({
                           <AdminLongTextField
                             label={label}
                             value={overlayValue}
-                            onChange={(event) => onTextOverlayChange?.(definition.key, event.target.value)}
+                            onChange={(value) => onTextOverlayChange?.(definition.key, value)}
                             rows={3}
                             className="col-span-full"
                             placeholder={String(current.value) || undefined}
