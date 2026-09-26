@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   fetchShopifyProduct: vi.fn(),
   adoptShopifyProjectionField: vi.fn(),
   findUniqueProduct: vi.fn(),
+  findFirstProduct: vi.fn(),
   updateProduct: vi.fn(),
   findManyVariant: vi.fn(),
   updateVariant: vi.fn(),
@@ -22,7 +23,11 @@ vi.mock("@/lib/shopify/product-sync", () => ({
 }));
 vi.mock("@/lib/db", () => ({
   db: {
-    product: { findUnique: mocks.findUniqueProduct, update: mocks.updateProduct },
+    product: {
+      findUnique: mocks.findUniqueProduct,
+      findFirst: mocks.findFirstProduct,
+      update: mocks.updateProduct,
+    },
     productVariant: { findMany: mocks.findManyVariant, update: mocks.updateVariant },
   },
 }));
@@ -55,8 +60,68 @@ beforeEach(() => {
 describe("SCOPED_COMMERCE_FIELD_LABELS", () => {
   it("is exactly the plain-scalar fields with a single-field mutation, and nothing structural", () => {
     expect([...SCOPED_COMMERCE_FIELD_LABELS].sort()).toEqual(
-      ["Charge tax", "Compare-at price", "Price", "Product type", "Variant SKU", "Vendor"].sort(),
+      ["Charge tax", "Compare-at price", "Handle", "Name", "Price", "Product type", "Variant SKU", "Vendor"].sort(),
     );
+  });
+});
+
+describe("applyCommerceField — Name and Handle", () => {
+  it("writes Name locally from Shopify", async () => {
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({ differences: [diff("Name", "Old Name", "New Name")] }))
+      .mockResolvedValueOnce(inspection());
+    mocks.updateProduct.mockResolvedValue({ name: "New Name" });
+
+    const result = await applyCommerceField({
+      productId: "product-1",
+      label: "Name",
+      direction: "SHOPIFY_TO_SYNARAVA",
+      ...fingerprintsFor("Old Name", "New Name"),
+    });
+
+    expect(mocks.updateProduct).toHaveBeenCalledWith({
+      where: { id: "product-1" },
+      data: { name: "New Name" },
+    });
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it("pushes Handle to Shopify and rejects empty handles", async () => {
+    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Handle", "—", "shop-handle")] }));
+    const empty = await applyCommerceField({
+      productId: "product-1",
+      label: "Handle",
+      direction: "SYNARAVA_TO_SHOPIFY",
+      ...fingerprintsFor("—", "shop-handle"),
+    });
+    expect(empty).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
+    expect(mocks.request).not.toHaveBeenCalled();
+
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({ differences: [diff("Handle", "our-handle", "shop-handle")] }))
+      .mockResolvedValueOnce(inspection());
+    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
+    mocks.request.mockResolvedValue({
+      productUpdate: {
+        product: { id: "gid://shopify/Product/1", title: "x", handle: "our-handle", vendor: null, productType: null },
+        userErrors: [],
+      },
+    });
+
+    const result = await applyCommerceField({
+      productId: "product-1",
+      label: "Handle",
+      direction: "SYNARAVA_TO_SHOPIFY",
+      ...fingerprintsFor("our-handle", "shop-handle"),
+    });
+
+    expect(mocks.request).toHaveBeenCalledWith(
+      expect.stringContaining("productUpdate"),
+      expect.objectContaining({
+        product: { id: "gid://shopify/Product/1", handle: "our-handle" },
+      }),
+    );
+    expect(result).toMatchObject({ ok: true });
   });
 });
 

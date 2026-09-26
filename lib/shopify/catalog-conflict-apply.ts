@@ -28,16 +28,15 @@ const MAX_APPLY_ENTRIES = 200;
 // (decideProductTranslationPull / push's inline per-locale fetch+compare)
 // that is a *separate* code path from the reconcile system this module's
 // read model (getProductCatalogConflict) is built on. That combination is
-// why those two functions stay off-limits here. A narrow slice of plain
-// scalar fields (SCOPED_COMMERCE_FIELD_LABELS, in commerce-field-apply.ts —
-// Vendor, Product type, Variant SKU, Price, Compare-at price, Charge tax) instead has
-// its own single-field Shopify mutation (productUpdate/
-// productVariantsBulkUpdate with only that key) and a single-column Prisma
-// write — no other field is touched. Everything else stays UNSUPPORTED.
-// Whole-product commerce/translation resolution for one product remains
-// available through the existing
-// pushSingleProductToShopifyAction/pullSingleProductFromShopifyAction — but
-// not from inside this contract's dialogs (see catalog-conflict-resolution-plan.md stage 2).
+// why those two functions stay off-limits here for structural fields. A
+// narrow slice of plain scalar fields (SCOPED_COMMERCE_FIELD_LABELS —
+// Name, Handle, Vendor, Product type, Variant SKU, Price, Compare-at,
+// Charge tax) instead has its own single-field Shopify mutation
+// (productUpdate / productVariantsBulkUpdate with only that key) and a
+// single-column Prisma write — no other field is touched. Status, media,
+// tags, collections, category stay UNSUPPORTED. Whole-product commerce
+// resolution for one product remains available through
+// pushSingleProductToShopifyAction/pullSingleProductFromShopifyAction.
 function isScopedCommerceField(field: CatalogConflictField): boolean {
   return field.origin === "COMMERCE" && SCOPED_COMMERCE_FIELD_LABELS.has(field.label);
 }

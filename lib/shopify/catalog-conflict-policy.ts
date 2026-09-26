@@ -1,4 +1,6 @@
 export const SCOPED_COMMERCE_FIELD_LABELS = new Set([
+  "Name",
+  "Handle",
   "Vendor",
   "Product type",
   "Variant SKU",
@@ -8,7 +10,7 @@ export const SCOPED_COMMERCE_FIELD_LABELS = new Set([
 ]);
 
 export const COMMERCE_UNSUPPORTED_REASON =
-  "No safe field-by-field write yet (e.g. Status mixes Shopify status with Synarava UNLISTED/publication). Resolve via the product editor Push/Pull for the whole commerce record.";
+  "No safe field-by-field write yet (e.g. Status, media gallery, tags). Resolve those via the product editor Sync → Push/Pull for the whole commerce record.";
 
 export function persistPayloadForCommerceInspection(inspection: {
   state: string;

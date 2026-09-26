@@ -1371,6 +1371,14 @@ export async function adoptShopifyProjectionField(
     workingSnapshot: canonicalizeShopifyProjection(nextWorking) as Prisma.InputJsonValue,
   };
 
+  if (path === "title" && typeof value === "string") {
+    columnData.name = value;
+  }
+  if (path === "handle" && typeof value === "string" && value.trim()) {
+    columnData.slug = value.trim();
+    columnData.shopifyHandle = value.trim();
+  }
+
   const priceMatch = path.match(/^variants\[(\d+)\]\.price$/);
   if (priceMatch && typeof value === "string") {
     const cents = shopifyAmountToCents(value);

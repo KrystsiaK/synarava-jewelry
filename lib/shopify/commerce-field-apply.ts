@@ -28,6 +28,7 @@ type UserError = { field?: string[] | null; message: string };
  * own design, not a slot in this set.
  */
 const VARIANT_FIELD_LABELS = new Set(["Variant SKU", "Price", "Compare-at price", "Charge tax"]);
+const PRODUCT_SCALAR_LABELS = new Set(["Name", "Handle", "Vendor", "Product type"]);
 
 export type CommerceFieldApplyResult =
   | { ok: true; message: string }
@@ -82,6 +83,26 @@ async function resolveSingleVariantPair(productId: string): Promise<VariantPair 
 }
 
 async function writeLocally(productId: string, label: string, value: string, variant: VariantPair | null) {
+  if (label === "Name") {
+    const updated = await db.product.update({ where: { id: productId }, data: { name: value } });
+    if (updated.name !== value) throw new Error("Local write did not take effect as expected.");
+    return;
+  }
+  if (label === "Handle") {
+    const handle = value.trim();
+    if (!handle) throw new Error("Handle cannot be empty.");
+    const clash = await db.product.findFirst({
+      where: { slug: handle, NOT: { id: productId } },
+      select: { id: true },
+    });
+    if (clash) throw new Error(`Handle "${handle}" is already used by another Synarava product.`);
+    const updated = await db.product.update({
+      where: { id: productId },
+      data: { slug: handle, shopifyHandle: handle },
+    });
+    if (updated.slug !== handle) throw new Error("Local write did not take effect as expected.");
+    return;
+  }
   if (label === "Vendor") {
     const updated = await db.product.update({ where: { id: productId }, data: { vendor: value || null } });
     if (updated.vendor !== (value || null)) throw new Error("Local write did not take effect as expected.");
@@ -125,24 +146,47 @@ async function writeToShopify(productId: string, label: string, value: string, v
   const product = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
   if (!product?.shopifyProductId) throw new Error("This product is not linked to Shopify.");
 
-  if (label === "Vendor" || label === "Product type") {
-    const key = label === "Vendor" ? "vendor" : "productType";
+  if (PRODUCT_SCALAR_LABELS.has(label)) {
+    const input: Record<string, unknown> = { id: product.shopifyProductId };
+    if (label === "Name") input.title = value;
+    else if (label === "Handle") {
+      const handle = value.trim();
+      if (!handle) throw new Error("Handle cannot be empty.");
+      input.handle = handle;
+    } else if (label === "Vendor") input.vendor = value;
+    else input.productType = value;
+
     const result = await shopifyAdminRequest<{
-      productUpdate: { product: { id: string; vendor: string | null; productType: string | null } | null; userErrors: UserError[] };
+      productUpdate: {
+        product: {
+          id: string;
+          title: string;
+          handle: string;
+          vendor: string | null;
+          productType: string | null;
+        } | null;
+        userErrors: UserError[];
+      };
     }>(
       `mutation SynaravaCommerceFieldUpdate($product: ProductUpdateInput!) {
         productUpdate(product: $product) {
-          product { id vendor productType }
+          product { id title handle vendor productType }
           userErrors { field message }
         }
       }`,
-      { product: { id: product.shopifyProductId, [key]: value } },
+      { product: input },
     );
     throwOnUserErrors(result.productUpdate.userErrors);
     const saved = result.productUpdate.product;
     if (!saved) throw new ShopifyAdminError("Shopify did not return the updated product.");
-    const savedValue = key === "vendor" ? saved.vendor : saved.productType;
-    if ((savedValue ?? "") !== value) throw new ShopifyAdminError("Shopify accepted the request but the read-back value did not match. Nothing is marked resolved.");
+    const savedValue = label === "Name" ? saved.title
+      : label === "Handle" ? saved.handle
+        : label === "Vendor" ? (saved.vendor ?? "")
+          : (saved.productType ?? "");
+    const expected = label === "Handle" ? value.trim() : value;
+    if (savedValue !== expected) {
+      throw new ShopifyAdminError("Shopify accepted the request but the read-back value did not match. Nothing is marked resolved.");
+    }
     return;
   }
 

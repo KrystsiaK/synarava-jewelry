@@ -295,8 +295,8 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
           <h2 className="adm-title-sm mt-2">{product?.name ?? "Product conflict"}</h2>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
             {onlyBlocked
-              ? "These commerce fields are visible for comparison, but this dialog cannot write them yet. Close here and use Push/Pull on the product."
-              : "Each language is independent. Pick either side for the fields you want to merge."}
+              ? "Status, media, and similar fields stay comparison-only here. Close and use Sync → Push/Pull on the product for those."
+              : "Pick Synarava or Shopify for each field. Name and Handle can be chosen here; status and media still need Push/Pull."}
           </p>
         </div>
         <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close conflict details"><X className="size-4" /></button>
@@ -309,8 +309,8 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
         ) : null}
         {onlyBlocked ? (
           <p className="rounded-lg border border-[var(--adm-conflict)] p-3 text-sm">
-            Status / storefront visibility and similar commerce fields stay read-only here on purpose — there is no safe per-field write yet.
-            {conflict ? <> Use the footer action to open the product editor and resolve with Push/Pull.</> : null}
+            These remaining commerce fields (status, media, tags, …) are comparison-only here — there is no safe per-field write yet.
+            {conflict ? <> Use the footer to open the product editor and resolve with Sync → Push/Pull.</> : null}
           </p>
         ) : null}
         {fields.map((field) => (
