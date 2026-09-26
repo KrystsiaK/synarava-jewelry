@@ -2,11 +2,14 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import {
+  collectionStoreKey,
   emptyCommerceStore,
   productStoreKey,
+  setCollectionWindow,
   setProductWindow,
   type CommerceStore,
 } from "@/lib/commerce-store/types";
+import { buildCollectionWindowFromColumns } from "@/lib/shopify/collection-commerce-projection";
 import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
 
 /**
@@ -14,31 +17,47 @@ import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-pro
  * Prefer workingSnapshot; else seed window from columns + shopifySnapshot base.
  */
 export async function buildOurCommerceStore(): Promise<CommerceStore> {
-  const products = await db.product.findMany({
-    select: {
-      id: true,
-      shopifyProductId: true,
-      workingSnapshot: true,
-      shopifySnapshot: true,
-      name: true,
-      slug: true,
-      vendor: true,
-      productType: true,
-      priceCents: true,
-      variants: {
-        orderBy: { createdAt: "asc" },
-        take: 1,
-        select: {
-          shopifyVariantId: true,
-          sku: true,
-          priceCents: true,
-          taxable: true,
-          stockOnHand: true,
+  const [products, collections] = await Promise.all([
+    db.product.findMany({
+      select: {
+        id: true,
+        shopifyProductId: true,
+        workingSnapshot: true,
+        shopifySnapshot: true,
+        name: true,
+        slug: true,
+        vendor: true,
+        productType: true,
+        priceCents: true,
+        variants: {
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: {
+            shopifyVariantId: true,
+            sku: true,
+            priceCents: true,
+            taxable: true,
+            stockOnHand: true,
+          },
         },
       },
-    },
-    orderBy: { id: "asc" },
-  });
+      orderBy: { id: "asc" },
+    }),
+    db.collection.findMany({
+      select: {
+        id: true,
+        shopifyCollectionId: true,
+        workingSnapshot: true,
+        shopifySnapshot: true,
+        name: true,
+        slug: true,
+        description: true,
+        seoTitle: true,
+        seoDescription: true,
+      },
+      orderBy: { id: "asc" },
+    }),
+  ]);
 
   let store = emptyCommerceStore();
   for (const product of products) {
@@ -65,5 +84,24 @@ export async function buildOurCommerceStore(): Promise<CommerceStore> {
       });
     store = setProductWindow(store, key, window);
   }
+
+  for (const collection of collections) {
+    const key = collectionStoreKey({
+      shopifyCollectionId: collection.shopifyCollectionId,
+      localCollectionId: collection.id,
+    });
+    const window = collection.workingSnapshot
+      ?? buildCollectionWindowFromColumns({
+        shopifyCollectionId: collection.shopifyCollectionId,
+        name: collection.name,
+        slug: collection.slug,
+        description: collection.description,
+        seoTitle: collection.seoTitle,
+        seoDescription: collection.seoDescription,
+        shopifySnapshot: collection.shopifySnapshot,
+      });
+    store = setCollectionWindow(store, key, window);
+  }
+
   return store;
 }

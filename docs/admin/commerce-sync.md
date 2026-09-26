@@ -19,19 +19,22 @@ Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/s
 | --- | --- |
 | Dual catalog store | `CommerceSyncStore.ourSnapshot` + `shopifySnapshot`; compare → `conflictReport` |
 | Per-product windows | `Product.workingSnapshot` (OUR) + `Product.shopifySnapshot` (last Shopify) |
+| Per-collection windows | `Collection.workingSnapshot` + `Collection.shopifySnapshot` (title/handle/description/seo V1) |
 | Detect | One normalize → deep-diff windows. **No** commerce field allowlists for detection |
 | Local Save | Write-through columns into `workingSnapshot`, patch OUR store slice, **re-inspect** so tab markers refresh |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
 | Cost / compare-at | Read from Shopify-shaped snapshot projection, not stale Prisma-only guesses |
-| Console | DevTools filter `commerce-store` — full OUR + Shopify + conflicts on `/admin/products` entry |
+| Console | DevTools filter `commerce-store` — full OUR + Shopify + conflicts on `/admin/products` and `/admin/collections` entry |
 
 ```text
-On /admin/products entry → refresh both stores → console flow
-On product Save         → patch OUR + re-inspect → Price/etc. markers from fresh diffs
+On /admin/products or /admin/collections entry → refresh both stores → console flow
+On product/collection Save → patch OUR + re-inspect → markers from fresh diffs
 On push / pull / apply  → refresh windows + reload editor
 ```
 
-Shopify catalog fetch for the full store is **paginated** (not N× `fetchShopifyProduct`).
+Shopify catalog fetch for the full store is **paginated** (products + collections — not N× single-entity fetch).
+
+Collection **membership** (which products belong to a collection) stays product-driven push/pull; it is not part of the collection commerce window yet.
 
 ---
 
@@ -61,7 +64,9 @@ Code: `commerce-conflict-section.ts`, `filterSignalsForView` / `filterConflictFi
 | Admin refresh action | `refreshCommerceSyncStoreAction` in `app/admin/actions/sync.ts` |
 | Editor re-inspect after save | `components/admin/products/product-edit-form.tsx` |
 
-Migrations: `product_shopify_base_snapshot`, `product_working_snapshot`, `commerce_sync_store`.
+Migrations: `product_shopify_base_snapshot`, `product_working_snapshot`, `commerce_sync_store`, `collection_commerce_windows`.
+
+Collection projection: `lib/shopify/collection-commerce-projection.ts`, fetch `collection-commerce-fetch.ts`, push/pull windows in `collection-presence-server.ts`.
 
 ---
 

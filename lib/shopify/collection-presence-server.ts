@@ -11,9 +11,117 @@ import {
   type RemoteCollectionIdentity,
 } from "@/lib/shopify/collection-presence";
 import { findManagedCollectionSourceId, type ShopifyCollectionSource } from "@/lib/shopify/collection-membership";
+import {
+  buildCollectionWindowFromColumns,
+  collectionCommerceInputFromWindow,
+  collectionWindowFromShopifyRemote,
+  plainDescriptionToHtml,
+} from "@/lib/shopify/collection-commerce-projection";
 import { ensureTranslationBinding } from "@/lib/shopify/translation-sync";
 
 const SNAPSHOT_ID = "collections";
+
+async function persistCollectionCommerceWindows(
+  collectionId: string,
+  remote: ShopifyPresenceCollection,
+  extra: {
+    shopifyManualSourceId?: string | null;
+    name?: string;
+    description?: string | null;
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+    slug?: string;
+  } = {},
+) {
+  const window = collectionWindowFromShopifyRemote(remote);
+  await db.collection.update({
+    where: { id: collectionId },
+    data: {
+      shopifyCollectionId: remote.id,
+      shopifyHandle: remote.handle,
+      shopifyManualSourceId: extra.shopifyManualSourceId ?? undefined,
+      shopifySnapshot: window as Prisma.InputJsonValue,
+      workingSnapshot: window as Prisma.InputJsonValue,
+      shopifyUpdatedAt: remote.updatedAt ? new Date(remote.updatedAt) : new Date(),
+      lastSyncedAt: new Date(),
+      syncStatus: "SYNCED",
+      syncError: null,
+      ...(extra.name != null ? { name: extra.name } : {}),
+      ...(extra.description !== undefined ? { description: extra.description } : {}),
+      ...(extra.seoTitle !== undefined ? { seoTitle: extra.seoTitle } : {}),
+      ...(extra.seoDescription !== undefined ? { seoDescription: extra.seoDescription } : {}),
+      ...(extra.slug != null ? { slug: extra.slug } : {}),
+    },
+  });
+}
+
+async function pushLinkedCollectionUpdate(collection: {
+  id: string;
+  shopifyCollectionId: string;
+  workingSnapshot: unknown;
+  shopifySnapshot: unknown;
+  name: string;
+  slug: string;
+  description: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+}) {
+  const window = collection.workingSnapshot
+    ?? buildCollectionWindowFromColumns({
+      shopifyCollectionId: collection.shopifyCollectionId,
+      name: collection.name,
+      slug: collection.slug,
+      description: collection.description,
+      seoTitle: collection.seoTitle,
+      seoDescription: collection.seoDescription,
+      shopifySnapshot: collection.shopifySnapshot,
+    });
+  const input = collectionCommerceInputFromWindow(window);
+  const result = await shopifyAdminRequest<{
+    collectionUpdate: {
+      collection: { id: string; handle: string; updatedAt?: string } | null;
+      userErrors: Array<{ field?: string[]; message: string }>;
+    };
+  }>(
+    `mutation SynaravaCollectionCommerceUpdate($input: CollectionInput!) {
+      collectionUpdate(input: $input) {
+        collection { id handle updatedAt }
+        userErrors { field message }
+      }
+    }`,
+    {
+      input: {
+        id: collection.shopifyCollectionId,
+        title: input.title,
+        handle: input.handle || undefined,
+        descriptionHtml: input.descriptionHtml,
+        seo: input.seo,
+      },
+    },
+  );
+  if (result.collectionUpdate.userErrors.length > 0) {
+    throw new ShopifyAdminError(result.collectionUpdate.userErrors.map((error) => error.message).join("; "));
+  }
+  if (!result.collectionUpdate.collection) {
+    throw new ShopifyAdminError("Shopify did not return the updated collection.");
+  }
+
+  const remote = await fetchShopifyCollection(collection.shopifyCollectionId);
+  const shopifyManualSourceId = findManagedCollectionSourceId(remote.sources ?? []);
+  await persistCollectionCommerceWindows(collection.id, remote, {
+    shopifyManualSourceId,
+    name: remote.title,
+    description: stripHtml(remote.descriptionHtml ?? "") || null,
+    seoTitle: remote.seo?.title ?? null,
+    seoDescription: remote.seo?.description ?? null,
+  });
+  await ensureTranslationBinding({
+    resourceType: "COLLECTION",
+    entityId: collection.id,
+    shopifyResourceId: collection.shopifyCollectionId,
+  });
+  return { ok: true as const, shopifyCollectionId: collection.shopifyCollectionId };
+}
 
 type ShopifyPresenceCollection = {
   id: string;
@@ -101,49 +209,31 @@ export async function pullShopifyCollection(shopifyCollectionId: string, localCo
   const remote = await fetchShopifyCollection(shopifyCollectionId);
   const shopifyManualSourceId = findManagedCollectionSourceId(remote.sources ?? []);
   const description = stripHtml(remote.descriptionHtml ?? "") || null;
+  const columnPatch = {
+    shopifyManualSourceId,
+    name: remote.title,
+    description,
+    seoTitle: remote.seo?.title ?? null,
+    seoDescription: remote.seo?.description ?? null,
+  };
 
-  if (localCollectionId) {
-    const updated = await db.collection.update({
-      where: { id: localCollectionId },
-      data: {
-        shopifyCollectionId: remote.id,
-        shopifyHandle: remote.handle,
-        shopifyManualSourceId,
-        lastSyncedAt: new Date(),
-        name: remote.title,
-        description,
-        seoTitle: remote.seo?.title ?? undefined,
-        seoDescription: remote.seo?.description ?? undefined,
-      },
-    });
+  async function finish(collectionId: string) {
+    await persistCollectionCommerceWindows(collectionId, remote, columnPatch);
     await ensureTranslationBinding({
       resourceType: "COLLECTION",
-      entityId: updated.id,
+      entityId: collectionId,
       shopifyResourceId: remote.id,
     });
-    return { collectionId: updated.id, shopifyCollectionId: remote.id };
+    return { collectionId, shopifyCollectionId: remote.id };
+  }
+
+  if (localCollectionId) {
+    return finish(localCollectionId);
   }
 
   const existingById = await db.collection.findUnique({ where: { shopifyCollectionId: remote.id } });
   if (existingById) {
-    const updated = await db.collection.update({
-      where: { id: existingById.id },
-      data: {
-        shopifyHandle: remote.handle,
-        shopifyManualSourceId,
-        lastSyncedAt: new Date(),
-        name: remote.title,
-        description,
-        seoTitle: remote.seo?.title ?? undefined,
-        seoDescription: remote.seo?.description ?? undefined,
-      },
-    });
-    await ensureTranslationBinding({
-      resourceType: "COLLECTION",
-      entityId: updated.id,
-      shopifyResourceId: remote.id,
-    });
-    return { collectionId: updated.id, shopifyCollectionId: remote.id };
+    return finish(existingById.id);
   }
 
   const existingBySlug = await db.collection.findUnique({ where: { slug: remote.handle } });
@@ -153,25 +243,7 @@ export async function pullShopifyCollection(shopifyCollectionId: string, localCo
         `Collection handle "${remote.handle}" is already linked to ${existingBySlug.shopifyCollectionId}; refusing to replace it with ${remote.id}.`,
       );
     }
-    const updated = await db.collection.update({
-      where: { id: existingBySlug.id },
-      data: {
-        shopifyCollectionId: remote.id,
-        shopifyHandle: remote.handle,
-        shopifyManualSourceId,
-        lastSyncedAt: new Date(),
-        name: remote.title,
-        description,
-        seoTitle: remote.seo?.title ?? undefined,
-        seoDescription: remote.seo?.description ?? undefined,
-      },
-    });
-    await ensureTranslationBinding({
-      resourceType: "COLLECTION",
-      entityId: updated.id,
-      shopifyResourceId: remote.id,
-    });
-    return { collectionId: updated.id, shopifyCollectionId: remote.id };
+    return finish(existingBySlug.id);
   }
 
   const created = await db.collection.create({
@@ -187,31 +259,34 @@ export async function pullShopifyCollection(shopifyCollectionId: string, localCo
       lastSyncedAt: new Date(),
       status: "DRAFT",
       visibility: "PRIVATE",
+      syncStatus: "SYNCED",
     },
   });
-  await ensureTranslationBinding({
-    resourceType: "COLLECTION",
-    entityId: created.id,
-    shopifyResourceId: remote.id,
-  });
-  return { collectionId: created.id, shopifyCollectionId: remote.id };
+  return finish(created.id);
 }
 
-/** Creates a Shopify collection from a local Synarava collection and stores the new identity. */
+/**
+ * Push local collection commerce to Shopify.
+ * Linked → collectionUpdate from workingSnapshot; unlinked → collectionCreate.
+ */
 export async function pushCollectionToShopify(collectionId: string) {
   const collection = await db.collection.findUnique({ where: { id: collectionId } });
   if (!collection) throw new ShopifyAdminError("Collection was not found.");
 
   if (collection.shopifyCollectionId) {
-    // Re-link / recreate when the remote was deleted.
     try {
       await fetchShopifyCollection(collection.shopifyCollectionId);
-      await ensureTranslationBinding({
-        resourceType: "COLLECTION",
-        entityId: collection.id,
-        shopifyResourceId: collection.shopifyCollectionId,
+      return pushLinkedCollectionUpdate({
+        id: collection.id,
+        shopifyCollectionId: collection.shopifyCollectionId,
+        workingSnapshot: collection.workingSnapshot,
+        shopifySnapshot: collection.shopifySnapshot,
+        name: collection.name,
+        slug: collection.slug,
+        description: collection.description,
+        seoTitle: collection.seoTitle,
+        seoDescription: collection.seoDescription,
       });
-      return { ok: true as const, shopifyCollectionId: collection.shopifyCollectionId };
     } catch {
       await db.$transaction([
         db.shopifyTranslationBinding.deleteMany({
@@ -224,15 +299,28 @@ export async function pushCollectionToShopify(collectionId: string) {
             shopifyHandle: null,
             shopifyManualSourceId: null,
             lastSyncedAt: null,
+            shopifySnapshot: Prisma.JsonNull,
+            workingSnapshot: Prisma.JsonNull,
+            shopifyUpdatedAt: null,
+            syncStatus: "UNLINKED",
+            syncError: null,
           },
         }),
       ]);
     }
   }
 
-  const descriptionHtml = collection.description
-    ? `<p>${collection.description.replace(/[<>&]/g, "")}</p>`
-    : "";
+  const window = collection.workingSnapshot
+    ?? buildCollectionWindowFromColumns({
+      name: collection.name,
+      slug: collection.slug,
+      description: collection.description,
+      seoTitle: collection.seoTitle,
+      seoDescription: collection.seoDescription,
+      shopifySnapshot: collection.shopifySnapshot,
+    });
+  const input = collectionCommerceInputFromWindow(window);
+  const descriptionHtml = input.descriptionHtml || plainDescriptionToHtml(collection.description);
   const result = await shopifyAdminRequest<{
     collectionCreate: {
       collection: { id: string; handle: string; sources: ShopifyCollectionSource[] } | null;
@@ -250,13 +338,10 @@ export async function pushCollectionToShopify(collectionId: string) {
     }`,
     {
       collection: {
-        title: collection.name,
-        handle: collection.slug,
+        title: input.title,
+        handle: input.handle || collection.slug,
         descriptionHtml,
-        seo: {
-          title: collection.seoTitle ?? undefined,
-          description: collection.seoDescription ?? undefined,
-        },
+        seo: input.seo,
       },
     },
   );
@@ -267,14 +352,13 @@ export async function pushCollectionToShopify(collectionId: string) {
   const created = result.collectionCreate.collection;
   if (!created) throw new ShopifyAdminError("Shopify did not return the created collection.");
 
-  await db.collection.update({
-    where: { id: collection.id },
-    data: {
-      shopifyCollectionId: created.id,
-      shopifyHandle: created.handle,
-      shopifyManualSourceId: findManagedCollectionSourceId(created.sources),
-      lastSyncedAt: new Date(),
-    },
+  const remote = await fetchShopifyCollection(created.id);
+  await persistCollectionCommerceWindows(collection.id, remote, {
+    shopifyManualSourceId: findManagedCollectionSourceId(created.sources),
+    name: remote.title,
+    description: stripHtml(remote.descriptionHtml ?? "") || null,
+    seoTitle: remote.seo?.title ?? null,
+    seoDescription: remote.seo?.description ?? null,
   });
   await ensureTranslationBinding({
     resourceType: "COLLECTION",

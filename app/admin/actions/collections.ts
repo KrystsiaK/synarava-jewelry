@@ -20,6 +20,7 @@ import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runCollectionConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import { writeThroughLocalCollectionToProjection } from "@/lib/shopify/collection-commerce-projection";
 import {
   createDraftToken,
   hasMeaningfulDraftInput,
@@ -86,6 +87,7 @@ export type SavedCollectionPayload = {
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
   shopifyCollectionId: string | null;
+  syncStatus?: "UNLINKED" | "PENDING" | "SYNCED" | "CONFLICT" | "FAILED";
   translations: SavedCollectionTranslationPayload[];
 };
 
@@ -109,6 +111,7 @@ const savedCollectionSelect = {
   status: true,
   visibility: true,
   shopifyCollectionId: true,
+  syncStatus: true,
   translations: {
     select: {
       id: true, locale: true, name: true, localizedHandle: true, subtitle: true, description: true, manifesto: true,
@@ -436,6 +439,57 @@ export async function saveCollectionAction(
     before,
     after: savedCollection,
   });
+
+  // Dual window: Save write-through into workingSnapshot + patch OUR store slice.
+  if (savedCollection.shopifyCollectionId) {
+    const linked = await db.collection.findUnique({
+      where: { id: savedCollection.id },
+      select: {
+        shopifyCollectionId: true,
+        workingSnapshot: true,
+        shopifySnapshot: true,
+        name: true,
+        slug: true,
+        description: true,
+        seoTitle: true,
+        seoDescription: true,
+        syncStatus: true,
+      },
+    });
+    if (linked?.shopifyCollectionId) {
+      const nextWorking = writeThroughLocalCollectionToProjection(
+        linked.workingSnapshot ?? linked.shopifySnapshot ?? {},
+        {
+          id: linked.shopifyCollectionId,
+          title: linked.name,
+          handle: linked.slug,
+          description: linked.description,
+          seoTitle: linked.seoTitle,
+          seoDescription: linked.seoDescription,
+        },
+      );
+      const nextSyncStatus = linked.syncStatus === "CONFLICT" ? "CONFLICT" : "PENDING";
+      await db.collection.update({
+        where: { id: savedCollection.id },
+        data: {
+          workingSnapshot: nextWorking as Prisma.InputJsonValue,
+          syncStatus: nextSyncStatus,
+          syncError: null,
+        },
+      });
+      const { patchOurCollectionWindow } = await import("@/lib/commerce-store/refresh");
+      await patchOurCollectionWindow({
+        shopifyCollectionId: linked.shopifyCollectionId,
+        localCollectionId: savedCollection.id,
+        window: nextWorking,
+      });
+    }
+  } else {
+    await db.collection.updateMany({
+      where: { id: savedCollection.id, shopifyCollectionId: null },
+      data: { syncStatus: "UNLINKED", syncError: null },
+    });
+  }
 
   const wasPublic = before?.status === "ACTIVE" && before?.visibility === "PUBLIC";
   let cascadeNotice = "";

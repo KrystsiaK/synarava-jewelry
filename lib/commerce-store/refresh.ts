@@ -6,7 +6,10 @@ import { compareCommerceStores } from "@/lib/commerce-store/compare";
 import { buildOurCommerceStore } from "@/lib/commerce-store/build-our-store";
 import { fetchShopifyCommerceStore } from "@/lib/commerce-store/fetch-shopify-store";
 import {
+  coerceCommerceStore,
+  collectionStoreKey,
   productStoreKey,
+  setCollectionWindow,
   setProductWindow,
   type CommerceStore,
   type CommerceStoreRefreshResult,
@@ -56,6 +59,8 @@ export async function persistComparedCommerceStores(
     debug: {
       ourProductCount: Object.keys(our.products).length,
       shopifyProductCount: Object.keys(shopify.products).length,
+      ourCollectionCount: Object.keys(our.collections).length,
+      shopifyCollectionCount: Object.keys(shopify.collections).length,
       conflictCount: conflicts.length,
     },
   };
@@ -66,7 +71,7 @@ export async function readCommerceSyncStore() {
 }
 
 /**
- * Point-update OUR slice after a local commerce edit (Redux-style).
+ * Point-update OUR product slice after a local commerce edit (Redux-style).
  * Re-compares against persisted shopify snapshot; does not refetch Shopify.
  */
 export async function patchOurProductWindow(input: {
@@ -77,13 +82,42 @@ export async function patchOurProductWindow(input: {
   const row = await db.commerceSyncStore.findUnique({ where: { id: COMMERCE_SYNC_STORE_ID } });
   if (!row) return;
 
-  const our = row.ourSnapshot as CommerceStore;
-  const shopify = row.shopifySnapshot as CommerceStore;
+  const our = coerceCommerceStore(row.ourSnapshot);
+  const shopify = coerceCommerceStore(row.shopifySnapshot);
   const key = productStoreKey({
     shopifyProductId: input.shopifyProductId,
     localProductId: input.localProductId,
   });
   const nextOur = setProductWindow(our, key, input.window);
+  const conflicts = compareCommerceStores(nextOur, shopify);
+
+  await db.commerceSyncStore.update({
+    where: { id: COMMERCE_SYNC_STORE_ID },
+    data: {
+      ourSnapshot: nextOur as unknown as Prisma.InputJsonValue,
+      conflictReport: conflicts as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
+/**
+ * Point-update OUR collection slice after a local commerce edit.
+ */
+export async function patchOurCollectionWindow(input: {
+  shopifyCollectionId?: string | null;
+  localCollectionId: string;
+  window: unknown;
+}): Promise<void> {
+  const row = await db.commerceSyncStore.findUnique({ where: { id: COMMERCE_SYNC_STORE_ID } });
+  if (!row) return;
+
+  const our = coerceCommerceStore(row.ourSnapshot);
+  const shopify = coerceCommerceStore(row.shopifySnapshot);
+  const key = collectionStoreKey({
+    shopifyCollectionId: input.shopifyCollectionId,
+    localCollectionId: input.localCollectionId,
+  });
+  const nextOur = setCollectionWindow(our, key, input.window);
   const conflicts = compareCommerceStores(nextOur, shopify);
 
   await db.commerceSyncStore.update({

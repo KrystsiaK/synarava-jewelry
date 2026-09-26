@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { compareCommerceStores } from "@/lib/commerce-store/compare";
 import {
+  collectionStoreKey,
   emptyCommerceStore,
   productStoreKey,
+  setCollectionWindow,
   setProductWindow,
 } from "@/lib/commerce-store/types";
 
@@ -52,5 +54,26 @@ describe("commerce-store compare", () => {
     const b = setProductWindow(a, "k", { title: "A" });
     expect(a.products).toEqual({});
     expect(b.products.k).toEqual({ title: "A" });
+  });
+
+  it("compares collection windows independently of products", () => {
+    const our = setCollectionWindow(emptyCommerceStore(), "gid://shopify/Collection/1", {
+      title: "Local",
+      handle: "rings",
+    });
+    const shopify = setCollectionWindow(emptyCommerceStore(), "gid://shopify/Collection/1", {
+      title: "Remote",
+      handle: "rings",
+    });
+    const conflicts = compareCommerceStores(our, shopify);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]?.kind).toBe("collection");
+    expect(conflicts[0]?.shopifyCollectionId).toBe("gid://shopify/Collection/1");
+  });
+
+  it("collectionStoreKey prefers shopify GID", () => {
+    expect(collectionStoreKey({ shopifyCollectionId: "gid://shopify/Collection/9", localCollectionId: "x" }))
+      .toBe("gid://shopify/Collection/9");
+    expect(collectionStoreKey({ shopifyCollectionId: null, localCollectionId: "x" })).toBe("local:x");
   });
 });

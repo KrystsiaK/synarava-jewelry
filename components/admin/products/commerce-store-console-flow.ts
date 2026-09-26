@@ -34,18 +34,18 @@ async function runFlow(source: string): Promise<void> {
     return;
   }
   console.log(
-    `${tag} 2. GOT OUR snapshot (${Object.keys(ourResult.our.products).length} products):`,
+    `${tag} 2. GOT OUR snapshot (${Object.keys(ourResult.our.products).length} products, ${Object.keys(ourResult.our.collections ?? {}).length} collections):`,
     ourResult.our,
   );
 
-  console.log(`${tag} 3. Fetching SHOPIFY snapshot (paginated catalog — not per-product)…`);
+  console.log(`${tag} 3. Fetching SHOPIFY snapshot (paginated catalog — not per-entity)…`);
   const shopifyResult = await fetchShopifyCommerceStoreAction();
   if ("error" in shopifyResult) {
     console.error(`${tag} 3. FAILED fetching SHOPIFY:`, shopifyResult.error);
     return;
   }
   console.log(
-    `${tag} 4. GOT SHOPIFY snapshot (${Object.keys(shopifyResult.shopify.products).length} products):`,
+    `${tag} 4. GOT SHOPIFY snapshot (${Object.keys(shopifyResult.shopify.products).length} products, ${Object.keys(shopifyResult.shopify.collections ?? {}).length} collections):`,
     shopifyResult.shopify,
   );
 
@@ -59,7 +59,7 @@ async function runFlow(source: string): Promise<void> {
     return;
   }
   console.log(
-    `${tag} 6. GOT conflict products (${compareResult.conflicts.length}):`,
+    `${tag} 6. GOT conflicts (${compareResult.conflicts.length}):`,
     compareResult.conflicts,
   );
   console.log(`${tag} 7. Persisted both snapshots to CommerceSyncStore.`, compareResult.debug);

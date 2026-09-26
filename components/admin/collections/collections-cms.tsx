@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -27,6 +27,7 @@ import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/share
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { CatalogConflictStatus, CatalogConflictRowBadges } from "@/components/admin/products/catalog-conflict-signals";
+import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
 import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
 import {
   collectionActionCopy,
@@ -76,6 +77,13 @@ export function CollectionsCms({
     setConflictListOpen(false);
     setFocusedConflictCollectionId(null);
     setConflictViewScope({ kind: "catalog" });
+  }, []);
+
+  // Dual full-store foundation: same console flow as products (includes collections slice).
+  useEffect(() => {
+    void runCommerceStoreConsoleFlow("collections-list").catch((error) => {
+      console.error("[commerce-store] FLOW EXCEPTION", error);
+    });
   }, []);
 
   function setConflictSignals(value: CatalogConflictSignals) {
