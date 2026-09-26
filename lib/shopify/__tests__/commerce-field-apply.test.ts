@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   request: vi.fn(),
   inspectProductSyncState: vi.fn(),
   fetchShopifyProduct: vi.fn(),
+  adoptShopifyProjectionField: vi.fn(),
   findUniqueProduct: vi.fn(),
   updateProduct: vi.fn(),
   findManyVariant: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock("@/lib/shopify/admin", () => ({
 vi.mock("@/lib/shopify/product-sync", () => ({
   inspectProductSyncState: mocks.inspectProductSyncState,
   fetchShopifyProduct: mocks.fetchShopifyProduct,
+  adoptShopifyProjectionField: mocks.adoptShopifyProjectionField,
 }));
 vi.mock("@/lib/db", () => ({
   db: {
@@ -47,6 +49,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   // Post-write refresh: default to "still conflicted" (no extra DB write) unless a test overrides it.
   mocks.inspectProductSyncState.mockResolvedValue(inspection());
+  mocks.adoptShopifyProjectionField.mockResolvedValue(undefined);
 });
 
 describe("SCOPED_COMMERCE_FIELD_LABELS", () => {

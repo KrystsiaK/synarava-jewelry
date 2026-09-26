@@ -22,6 +22,7 @@ import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
+import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
 import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
 import { validateProductPublication } from "@/lib/products/localization";
@@ -938,12 +939,13 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
 
   const existingVariant = await db.productVariant.findFirst({ where: { productId: product.id }, orderBy: { createdAt: "asc" } });
+  const priceCents = Math.round(price * 100);
   if (existingVariant) {
     await db.productVariant.update({
       where: { id: existingVariant.id },
       data: {
         sku,
-        priceCents: Math.round(price * 100),
+        priceCents,
         compareAtCents,
         costCents,
         taxable,
@@ -957,7 +959,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         productId: product.id,
         sku,
         title: "Default Title",
-        priceCents: Math.round(price * 100),
+        priceCents,
         compareAtCents,
         costCents,
         taxable,
@@ -965,6 +967,61 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         status: isPublished ? "ACTIVE" : isUnlisted ? "UNLISTED" : "DRAFT",
       },
     });
+  }
+
+  // Dual snapshot: Save updates working only; shopifySnapshot changes on refresh/pull.
+  if (before?.shopifyProductId) {
+    const linked = await db.product.findUnique({
+      where: { id: product.id },
+      select: {
+        shopifyProductId: true,
+        workingSnapshot: true,
+        shopifySnapshot: true,
+        name: true,
+        slug: true,
+        vendor: true,
+        productType: true,
+        variants: {
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { shopifyVariantId: true, sku: true, priceCents: true, taxable: true, stockOnHand: true },
+        },
+      },
+    });
+    if (linked?.shopifyProductId) {
+      const variant = linked.variants[0];
+      const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot;
+      const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, {
+        title: linked.name,
+        handle: linked.slug,
+        vendor: linked.vendor,
+        productType: linked.productType,
+        variant: variant
+          ? {
+              shopifyVariantId: variant.shopifyVariantId,
+              sku: variant.sku,
+              priceCents: variant.priceCents,
+              taxable: variant.taxable,
+              inventoryQuantity: variant.stockOnHand,
+            }
+          : {
+              sku,
+              priceCents,
+              taxable,
+              inventoryQuantity: stockOnHand,
+            },
+      });
+      await db.product.update({
+        where: { id: product.id },
+        data: { workingSnapshot: nextWorking as Prisma.InputJsonValue },
+      });
+      const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
+      await patchOurProductWindow({
+        shopifyProductId: linked.shopifyProductId,
+        localProductId: product.id,
+        window: nextWorking,
+      });
+    }
   }
 
   await syncScopedCollectionMembership(

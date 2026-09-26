@@ -4172,6 +4172,19 @@ body.admin-mode .ui-tooltip .ui-tooltip__box {
   background: color-mix(in srgb, var(--adm-danger) 18%, transparent);
 }
 
+.adm-locale-tab[data-conflict="true"] {
+  border-color: color-mix(in srgb, var(--adm-conflict) 55%, var(--adm-border));
+  color: var(--adm-conflict);
+  background: color-mix(in srgb, var(--adm-conflict) 12%, transparent);
+}
+
+.adm-locale-tab[data-conflict="true"]:hover,
+.adm-locale-tab[data-conflict="true"][data-active="true"] {
+  border-color: var(--adm-conflict);
+  color: var(--adm-conflict);
+  background: color-mix(in srgb, var(--adm-conflict) 18%, transparent);
+}
+
 .adm-nav-tree {
   display: flex;
   flex-direction: column;

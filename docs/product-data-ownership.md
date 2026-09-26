@@ -36,7 +36,14 @@ Synarava-only localized fields and other locales are not cleared by that decisio
 - A Shopify pull must never overwrite Synarava-only editorial content.
 - A push sends Shopify-owned fields and mirrored characteristics only. It never flattens Synarava editorial content into the Shopify description.
 - Conflicting edits to a field with shared ownership require an explicit choice: use Shopify or push the saved Synarava value.
-- Technical identifiers and a raw normalized snapshot are retained for reconciliation and audit, but are not exposed as storefront copy.
+- Technical identifiers and a **normalized Shopify-shaped payload** on the product
+  (`shopifySnapshot` / compare field) are the **conflict-detection source of truth**:
+  one normalize (strip technical noise) before save and before compare, then deep-diff.
+  Do not maintain hand allowlists of commerce fields for detection — see
+  [`.agents/skills/shopify-commerce-compare/SKILL.md`](../.agents/skills/shopify-commerce-compare/SKILL.md).
+  Admin view columns are projections for the editor, not a second compare axis.
+  Catalog-level compare uses dual full stores (`CommerceSyncStore` our vs shopify);
+  see [`docs/admin/commerce-sync.md`](./admin/commerce-sync.md).
 - Shopify IDs are scoped to one canonical `*.myshopify.com` store. Switching to a duplicated store requires an explicit rebind before SKU/handle matching can establish the new IDs.
 
 ## Catalog concepts

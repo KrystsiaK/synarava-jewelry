@@ -7,16 +7,21 @@ import type { ProductRecord } from "@/components/admin/products/product-types";
 const mocks = vi.hoisted(() => ({
   saveProductAction: vi.fn(),
   deleteProductAction: vi.fn(),
+  getSavedProductPayload: vi.fn(),
   inspectProductSyncAction: vi.fn(),
   pullSingleProductFromShopifyAction: vi.fn(),
   pushSingleProductToShopifyAction: vi.fn(),
   checkProductConflictsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
+  buildOurCommerceStoreAction: vi.fn(),
+  fetchShopifyCommerceStoreAction: vi.fn(),
+  compareAndPersistCommerceStoresAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/products", () => ({
   saveProductAction: mocks.saveProductAction,
   deleteProductAction: mocks.deleteProductAction,
+  getSavedProductPayload: mocks.getSavedProductPayload,
 }));
 
 vi.mock("@/app/admin/actions/sync", () => ({
@@ -24,6 +29,9 @@ vi.mock("@/app/admin/actions/sync", () => ({
   pullSingleProductFromShopifyAction: mocks.pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
   checkProductConflictsAction: mocks.checkProductConflictsAction,
+  buildOurCommerceStoreAction: mocks.buildOurCommerceStoreAction,
+  fetchShopifyCommerceStoreAction: mocks.fetchShopifyCommerceStoreAction,
+  compareAndPersistCommerceStoresAction: mocks.compareAndPersistCommerceStoresAction,
 }));
 
 vi.mock("@/app/admin/actions/taxonomy", () => ({
@@ -79,6 +87,12 @@ beforeEach(() => {
   mocks.checkProductConflictsAction.mockResolvedValue({
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
     success: "Conflict check complete. No conflicts found.",
+  });
+  mocks.buildOurCommerceStoreAction.mockResolvedValue({ our: { version: 1, products: {} } });
+  mocks.fetchShopifyCommerceStoreAction.mockResolvedValue({ shopify: { version: 1, products: {} } });
+  mocks.compareAndPersistCommerceStoresAction.mockResolvedValue({
+    conflicts: [],
+    debug: { ourProductCount: 0, shopifyProductCount: 0, conflictCount: 0 },
   });
   // The active-locale tab is remembered in sessionStorage per product sku, so
   // tests sharing a sku (they all use "LAVA-1") would otherwise leak their

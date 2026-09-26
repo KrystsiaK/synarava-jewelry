@@ -53,11 +53,11 @@ export function CatalogConflictStatus({
         onClick={onShow}
         className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-conflict)]"
         style={{ borderColor: conflictTone.border, background: conflictTone.fill }}
-        aria-label="Show conflicts"
+        aria-label="Show conflict products"
         title={statusText(signals, entityNoun)}
       >
         <GitCompareArrows className="size-4" style={{ color: conflictTone.ink }} aria-hidden="true" />
-        {plural(signals.totalCount!, "conflict", "conflicts")}
+        {plural(signals.totalCount!, "conflict product", "conflict products")}
       </button>
     );
   }
@@ -74,7 +74,7 @@ export function CatalogConflictStatus({
       <GitCompareArrows className="size-4 shrink-0" style={{ color: conflictTone.ink }} aria-hidden="true" />
       <span className="font-semibold">{statusText(signals, entityNoun)}</span>
       {signals.totalCount !== null && signals.state !== "ready" && hasConflicts ? (
-        <span className="text-[var(--adm-muted)]">{plural(signals.totalCount, "saved conflict", "saved conflicts")}</span>
+        <span className="text-[var(--adm-muted)]">{plural(signals.totalCount, "saved conflict product", "saved conflict products")}</span>
       ) : null}
       {signals.state !== "ready" && signals.checkedAt ? (
         <time className="text-[var(--adm-muted)]" dateTime={signals.checkedAt} title="Last full translation check">

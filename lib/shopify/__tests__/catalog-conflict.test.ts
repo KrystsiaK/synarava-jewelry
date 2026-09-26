@@ -191,14 +191,20 @@ describe("getProductCatalogConflict", () => {
     expect(result.fields[0].sourceId).toBe("divergence-42");
   });
 
-  it("drops one-directional commerce state without surfacing a conflict field", async () => {
+  it("surfaces one-directional commerce differences so Pull/Push can act on them", async () => {
     mocks.inspectProductSyncState.mockResolvedValue(
       inspection({ state: "REMOTE_CHANGES", differences: [{ field: "Vendor", local: "Synarava", shopify: "Other" }] }),
     );
 
     const result = await getProductCatalogConflict("product-1");
 
-    expect(result.fields).toEqual([]);
+    expect(result.fields).toHaveLength(1);
+    expect(result.fields[0]).toMatchObject({
+      origin: "COMMERCE",
+      label: "Vendor",
+      synaravaValue: "Synarava",
+      shopifyValue: "Other",
+    });
   });
 
   it("excludes a commerce EN-duplicate label only when translation reconcile actually reports that exact field as conflicting under en", async () => {

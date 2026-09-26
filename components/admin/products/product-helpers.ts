@@ -12,6 +12,52 @@ export function centsToPrice(cents: number) {
   return (cents / 100).toFixed(2);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Readonly Shopify Price-card projections must come from the Shopify window
+ * when present — not stale Variant columns left behind by an older pull.
+ */
+function primaryVariantFromShopifySnapshot(snapshot: unknown): Record<string, unknown> | null {
+  if (!isPlainObject(snapshot)) return null;
+  const variants = snapshot.variants;
+  if (!Array.isArray(variants) || variants.length === 0) return null;
+  const first = variants[0];
+  return isPlainObject(first) ? first : null;
+}
+
+function moneyAmountToDraft(amount: unknown): string | null {
+  if (typeof amount === "number" && Number.isFinite(amount)) return amount.toFixed(2);
+  if (typeof amount === "string" && amount.trim()) {
+    const parsed = Number(amount);
+    if (Number.isFinite(parsed)) return parsed.toFixed(2);
+  }
+  return null;
+}
+
+/** Compare-at from shopifySnapshot / working window when present. */
+export function compareAtFromShopifySnapshot(snapshot: unknown): string | null {
+  const variant = primaryVariantFromShopifySnapshot(snapshot);
+  if (!variant) return null;
+  return moneyAmountToDraft(variant.compareAtPrice);
+}
+
+/** Unit cost from shopifySnapshot inventoryItem.unitCost. */
+export function costFromShopifySnapshot(snapshot: unknown): string | null {
+  const variant = primaryVariantFromShopifySnapshot(snapshot);
+  if (!variant) return null;
+  const inventoryItem = variant.inventoryItem;
+  if (!isPlainObject(inventoryItem)) return null;
+  const unitCost = inventoryItem.unitCost;
+  if (typeof unitCost === "string" || typeof unitCost === "number") {
+    return moneyAmountToDraft(unitCost);
+  }
+  if (isPlainObject(unitCost)) return moneyAmountToDraft(unitCost.amount);
+  return null;
+}
+
 /**
  * The buyer-facing text inside `details` (attributes, materials, process,
  * lookbook) with fixed slot counts — no images/src, those stay shared
@@ -119,14 +165,21 @@ export function productToDraft(product: ProductRecord, translationLocales: Admin
     slug: product.slug,
     sku: primaryVariant?.sku ?? product.sku,
     price: centsToPrice(primaryVariant?.priceCents ?? product.priceCents),
-    // Same fallback as price: Product.compareAtCents is written on pull even when
-    // a half-failed variant upsert left variants empty / stale.
+    // Readonly Shopify projections: prefer the Shopify window (updated on inspect/pull),
+    // not stale Variant columns that can lag Admin.
     compareAt: (() => {
+      // Owner = Shopify → show the Shopify window, not working/local columns.
+      const fromSnapshot = compareAtFromShopifySnapshot(product.shopifySnapshot);
+      if (fromSnapshot != null) return fromSnapshot;
       const cents = primaryVariant?.compareAtCents ?? product.compareAtCents;
       return cents == null ? "" : centsToPrice(cents);
     })(),
     taxable: primaryVariant?.taxable ?? true,
-    cost: primaryVariant?.costCents == null ? "" : centsToPrice(primaryVariant.costCents),
+    cost: (() => {
+      const fromSnapshot = costFromShopifySnapshot(product.shopifySnapshot);
+      if (fromSnapshot != null) return fromSnapshot;
+      return primaryVariant?.costCents == null ? "" : centsToPrice(primaryVariant.costCents);
+    })(),
     seriesLabel: product.seriesLabel ?? "",
     shortDescription: product.shortDescription ?? "",
     description: product.description ?? "",

@@ -239,7 +239,7 @@ export async function getProductCatalogConflict(productId: string): Promise<Prod
 
   const fields: CatalogConflictField[] = [];
 
-  if (inspection.state === "CONFLICT") {
+  if (inspection.state === "CONFLICT" || inspection.state === "LOCAL_CHANGES" || inspection.state === "REMOTE_CHANGES") {
     for (const difference of inspection.differences) {
       const translationFieldKey = COMMERCE_TRANSLATION_FIELD_KEY[difference.field];
       if (translationFieldKey && enConflictFieldKeys.has(translationFieldKey)) continue;

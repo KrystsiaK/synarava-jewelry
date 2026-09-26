@@ -77,6 +77,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     lastSyncedAt: null,
     syncStatus: "UNLINKED",
     syncError: null,
+    shopifySnapshot: null,
     translations: [],
     media: [],
     characteristics: [],
@@ -267,6 +268,45 @@ describe("productToDraft", () => {
     expect(draft.cost).toBe("9.00");
     expect(draft.taxable).toBe(true);
     expect(draft.stockOnHand).toBe("7");
+  });
+
+  it("prefers Cost / compare-at from shopifySnapshot over stale variant columns", () => {
+    const product = makeProduct({
+      priceCents: 1000,
+      compareAtCents: 2000,
+      shopifySnapshot: {
+        variants: [
+          {
+            price: "10.00",
+            compareAtPrice: "15.00",
+            inventoryItem: { unitCost: { amount: "3.00", currencyCode: "EUR" } },
+          },
+        ],
+      },
+      variants: [
+        {
+          id: "variant-1",
+          sku: "SKU-1",
+          title: "Default",
+          priceCents: 1000,
+          compareAtCents: 2000,
+          costCents: 400,
+          stockOnHand: 1,
+          barcode: null,
+          taxable: true,
+          requiresShipping: true,
+          tracked: true,
+          weightGrams: null,
+          imageUrl: null,
+          selectedOptions: null,
+          shopifyVariantId: null,
+          shopifyInventoryItemId: null,
+        },
+      ],
+    });
+    const draft = productToDraft(product);
+    expect(draft.cost).toBe("3.00");
+    expect(draft.compareAt).toBe("15.00");
   });
 
   it("falls back to Product.compareAtCents when the variant has none (half-pull / mirror)", () => {
