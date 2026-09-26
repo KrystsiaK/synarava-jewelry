@@ -221,7 +221,7 @@
 | COL-12 🆕 | Навигационная коллекция на витрине | Коллекция отмечена как навигационная и опубликована | Открыть витрину | Появляется в верхнем уровне навигации магазина | P2 |
 | COL-13 🆕 | Site state в форме редактирования | Открыта карточка коллекции | Прокрутить форму | Блок **Site state** (Draft/Published) сразу после Name/Slug/Code; у Delete — только Delete guidance, без Publishing guidance | P2 |
 | COL-14 🆕 | Draft коллекции гасит товары | Опубликованная коллекция с 2+ ACTIVE товарами | Draft (таблица или Site state → Save) | Коллекция `DRAFT`/`PRIVATE`; товары → `DRAFT`/`PRIVATE` локально; Shopify product publication не пушится | P1 |
-| COL-15 🆕 | Select Collection показывает Draft | Есть draft-коллекция | New/Edit product → Catalog → Collection | В списке есть `Name (Draft)`; можно выбрать для черновика товара | P2 |
+| COL-15 🆕 | Select Collection показывает Draft | Есть draft-коллекция | New/Edit product → Product → Collection | В списке есть `Name (Draft)`; можно выбрать для черновика товара | P2 |
 | COL-16 🆕 | Live товар + draft коллекция блокируется | Товар Draft, коллекция Draft | Site state → Published + Save | Ошибка на поле Collection; товар не публикуется | P1 |
 | COL-17 🆕 | Shopify pull + draft коллекция | Коллекция Draft, товар в Shopify ACTIVE в этой коллекции | Pull product | Pull успешен; после Problems → Scan — WARNING live-in-unpublished-collection | P1 |
 

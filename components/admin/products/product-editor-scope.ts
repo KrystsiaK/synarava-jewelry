@@ -56,11 +56,10 @@ export function localeHasDirty(
   return false;
 }
 
-/** Catalog / passport / metafields / media / shopify / price are shared across languages. */
+/** Passport / metafields / media / shopify / price are shared across languages. */
 export function isSharedSection(section: ProductEditorSection): boolean {
   return (
-    section === "catalog"
-    || section === "passport"
+    section === "passport"
     || section === "metafields"
     || section === "media"
     || section === "shopify"
@@ -85,6 +84,8 @@ const REQUIRED_FIELDS = new Set(["name", "slug", "sku", "price", "stockOnHand", 
 
 const ESSENTIALS_SHARED = [
   "name", "slug", "vendor", "productType", "tags",
+  "collectionSlug", "workflowState",
+  "shopifyCategoryId", "shopifyCategoryName",
 ];
 /** Shopify description + SEO + title/handle; reviewed flag rides with locale Product tab. */
 const ESSENTIALS_LOCALE = [
@@ -94,10 +95,6 @@ const ESSENTIALS_LOCALE = [
 /** compareAt + cost are Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
 const PRICE_SHARED = ["price", "taxable"];
 const MEDIA_SHARED = ["existingImageUrl", "removeImage", "imageFile"];
-const CATALOG_SHARED = [
-  "collectionSlug", "workflowState",
-  "shopifyCategoryId", "shopifyCategoryName",
-];
 /** Parked on Sync until Inventory tab. */
 const SHOPIFY_TAB_SHARED = ["sku", "stockOnHand"];
 /** Synarava Product page copy (not Shopify description). */
@@ -169,8 +166,6 @@ export function fieldBelongsToBranch(
         || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
     case "price":
       return PRICE_SHARED.includes(fieldName);
-    case "catalog":
-      return CATALOG_SHARED.includes(fieldName);
     case "passport":
       return isCharacteristicsField(fieldName);
     case "details":
@@ -231,8 +226,8 @@ export function buildScopedProductFormData({
     if (typeof value === "string") scoped.set(key, value);
   }
 
-  // workflowState is catalog-owned; only overwrite from current when saving catalog.
-  if (section === "catalog") {
+  // workflowState is Product-tab owned; only overwrite from current when saving essentials.
+  if (section === "essentials") {
     const workflow = current.get("workflowState");
     if (typeof workflow === "string") scoped.set("workflowState", workflow);
   }

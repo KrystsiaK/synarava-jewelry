@@ -241,7 +241,7 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("tablist", { name: "Product editor sections" })).toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("tab", { name: /Catalog/ }));
+    await user.click(screen.getByRole("tab", { name: /Passport/ }));
     expect(screen.getByRole("tablist", { name: "Content language" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Português" })).toBeInTheDocument();
   });

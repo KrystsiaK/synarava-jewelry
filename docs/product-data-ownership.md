@@ -84,8 +84,9 @@ The passport checklist is intentionally small (jewelry filters + PDP priority).
 Arbitrary merchant fields are **not** added here — use the product editor
 **Metafields** tab (Shopify metafield definitions + values via Admin API).
 
-**Catalog** (Shopify group) stays placement only: product category, collection
-membership, site publish state, and the Last Pull facts mirror.
+**Catalog** product-editor tab is gone — category, collection, and site publish
+live on **Product** (Shopify organization). Jewelry passport stays under
+**Synarava → Passport**.
 
 ### Metafields tab (Shopify-native custom fields)
 

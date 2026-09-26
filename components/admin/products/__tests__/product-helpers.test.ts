@@ -439,8 +439,8 @@ describe("filterIssuesByTaxonomySatisfaction", () => {
 
 describe("product issue routing", () => {
   it("maps taxonomy and media fields to shared sections without locale tint", () => {
-    expect(productEditorSectionForField("field-taxonomy-category")).toBe("catalog");
-    expect(productEditorSectionForField("field-taxonomy-collection")).toBe("catalog");
+    expect(productEditorSectionForField("field-taxonomy-category")).toBe("essentials");
+    expect(productEditorSectionForField("field-taxonomy-collection")).toBe("essentials");
     expect(productEditorSectionForField("field-imageUrl")).toBe("media");
     expect(productEditorSectionForField("field-details-materials-0-image")).toBe("details");
     expect(productEditorLocaleForField("field-taxonomy-category")).toBeNull();
@@ -455,14 +455,14 @@ describe("product issue routing", () => {
       makeIssue({ id: "4", fieldPath: "field-imageUrl", status: "OPEN", title: "Broken cover" }),
     ];
 
-    expect([...sectionsWithOpenIssues(issues)].sort()).toEqual(["catalog", "media"]);
+    expect([...sectionsWithOpenIssues(issues)].sort()).toEqual(["essentials", "media"]);
     expect(localesWithOpenIssues(issues).size).toBe(0);
-    expect(issuesForSection(issues, "catalog").map((issue) => issue.title)).toEqual([
+    expect(issuesForSection(issues, "essentials").map((issue) => issue.title)).toEqual([
       "Missing category",
       "Missing collection",
     ]);
     expect(issuesForSection(issues, "media")).toHaveLength(1);
-    expect(issuesForSection(issues, "essentials")).toHaveLength(0);
+    expect(issuesForSection(issues, "details")).toHaveLength(0);
   });
 });
 

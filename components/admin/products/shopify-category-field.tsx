@@ -309,8 +309,8 @@ export function ShopifyCategoryAttributes() {
       ) : null}
 
       <p className="text-xs text-[var(--adm-muted)]">
-        Values filled in Shopify under category attributes appear here after Pull. Synarava product-page
-        sections stay under Product page — they are not a second catalog checklist.
+        Values filled in Shopify under category attributes appear here after Pull. Synarava jewelry
+        specs stay under Passport; product-page story under Product page — not a second checklist.
       </p>
     </div>
   );

@@ -9,14 +9,14 @@ import {
 } from "@/components/admin/products/product-editor-scope";
 
 describe("product-editor-scope", () => {
-  it("marks shared catalog dirty separately from locale essentials", () => {
-    expect(dirtyKeyForEdit("pt", "catalog")).toBe("*:catalog");
+  it("marks shared passport dirty separately from locale essentials", () => {
+    expect(dirtyKeyForEdit("pt", "passport")).toBe("*:passport");
     expect(dirtyKeyForEdit("pt", "essentials")).toBe("pt:essentials");
   });
 
   it("detects dirty locale from shared or locale-scoped sections", () => {
-    const dirty = new Set([sectionDirtyKey("*", "catalog")]);
-    expect(localeHasDirty(dirty, "en", ["essentials", "catalog"])).toBe(true);
+    const dirty = new Set([sectionDirtyKey("*", "passport")]);
+    expect(localeHasDirty(dirty, "en", ["essentials", "passport"])).toBe(true);
     expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "en", ["details"])).toBe(false);
     expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "pt", ["details"])).toBe(true);
   });
@@ -33,7 +33,9 @@ describe("product-editor-scope", () => {
     expect(fieldBelongsToBranch("taxable", "price", "en")).toBe(true);
     expect(fieldBelongsToBranch("cost", "price", "en")).toBe(false);
     expect(fieldBelongsToBranch("price", "essentials", "en")).toBe(false);
-    expect(fieldBelongsToBranch("collectionSlug", "catalog", "en")).toBe(true);
+    expect(fieldBelongsToBranch("collectionSlug", "essentials", "en")).toBe(true);
+    expect(fieldBelongsToBranch("workflowState", "essentials", "en")).toBe(true);
+    expect(fieldBelongsToBranch("shopifyCategoryId", "essentials", "en")).toBe(true);
     expect(fieldBelongsToBranch("description", "essentials", "en")).toBe(true);
     expect(fieldBelongsToBranch("seoTitle", "essentials", "en")).toBe(true);
     expect(fieldBelongsToBranch("ptShortDescription", "details", "pt")).toBe(true);
@@ -52,14 +54,47 @@ describe("product-editor-scope", () => {
   it("attributes custom metafield form fields to the Metafields section", () => {
     expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "metafields", "en")).toBe(true);
     expect(fieldBelongsToBranch("customMetafieldType:custom:warranty", "metafields", "en")).toBe(true);
-    expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "catalog", "en")).toBe(false);
+    expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "essentials", "en")).toBe(false);
   });
 
-  it("attributes passport characteristic fields to Passport, not Catalog", () => {
+  it("attributes passport characteristic fields to Passport, not Product", () => {
     expect(dirtyKeyForEdit("pt", "passport")).toBe("*:passport");
     expect(fieldBelongsToBranch("characteristic_material", "passport", "en")).toBe(true);
-    expect(fieldBelongsToBranch("characteristic_material", "catalog", "en")).toBe(false);
+    expect(fieldBelongsToBranch("characteristic_material", "essentials", "en")).toBe(false);
     expect(fieldBelongsToBranch("collectionSlug", "passport", "en")).toBe(false);
+  });
+
+  it("writes organization fields from the current branch when saving Product", () => {
+    const baseline = new FormData();
+    baseline.set("productId", "p1");
+    baseline.set("name", "Saved Name");
+    baseline.set("slug", "saved-name");
+    baseline.set("sku", "SKU-1");
+    baseline.set("price", "10");
+    baseline.set("stockOnHand", "1");
+    baseline.set("workflowState", "DRAFT");
+    baseline.set("collectionSlug", "old-collection");
+
+    const current = new FormData();
+    current.set("productId", "p1");
+    current.set("name", "Dirty Name");
+    current.set("slug", "dirty-name");
+    current.set("sku", "SKU-1");
+    current.set("price", "10");
+    current.set("stockOnHand", "1");
+    current.set("workflowState", "PUBLISHED");
+    current.set("collectionSlug", "new-collection");
+
+    const scoped = buildScopedProductFormData({
+      baseline,
+      current,
+      section: "essentials",
+      locale: "en",
+    });
+
+    expect(scoped.get("name")).toBe("Dirty Name");
+    expect(scoped.get("workflowState")).toBe("PUBLISHED");
+    expect(scoped.get("collectionSlug")).toBe("new-collection");
   });
 
   it("builds a scoped FormData that keeps baseline values for other branches", () => {
@@ -127,7 +162,7 @@ describe("product-editor-scope", () => {
     expect(scoped.get("name")).toBe("Dirty Name");
     expect(scoped.get("sku")).toBe("SKU-1");
     expect(scoped.get("price")).toBe("10");
-    expect(scoped.get("workflowState")).toBe("DRAFT");
+    expect(scoped.get("workflowState")).toBe("PUBLISHED");
   });
 
   it("writes SKU from the current branch when saving Sync", () => {

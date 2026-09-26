@@ -7,7 +7,6 @@ import {
   Gem,
   Images,
   PackageSearch,
-  Shapes,
   Store,
   Tags,
   type LucideIcon,
@@ -25,7 +24,6 @@ import {
 export type ProductEditorSection =
   | "essentials"
   | "price"
-  | "catalog"
   | "metafields"
   | "media"
   | "details"
@@ -65,7 +63,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Title & organization",
     title: "Product identity",
     description:
-      "Title, handle, vendor, product type, tags, description, and SEO — Shopify product header and search listing. Category and collections are on Catalog; custom metafields on Metafields; jewelry passport on Synarava → Passport; SKU/qty under Sync until Inventory exists.",
+      "Title, handle, vendor, product type, tags, description, SEO, category, collection, and publish state — Shopify product header and organization. Custom metafields on Metafields; jewelry passport on Synarava → Passport; SKU/qty under Sync until Inventory exists.",
     icon: PackageSearch,
     group: "shopify",
   },
@@ -77,16 +75,6 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Price, compare-at, tax, and cost mirror Shopify’s Price card on the variant. Profit and margin are calculated locally from price and cost.",
     icon: CircleDollarSign,
-    group: "shopify",
-  },
-  {
-    id: "catalog",
-    label: "Catalog",
-    shortLabel: "Category & publish",
-    title: "Place it in the catalog",
-    description:
-      "Shopify category, collection membership, and site publish state. Last Pull shows category attributes Shopify currently has. Jewelry passport specs live under Synarava → Passport.",
-    icon: Shapes,
     group: "shopify",
   },
   {

@@ -62,7 +62,7 @@ describe("commerce conflict → editor section", () => {
       { path: "tags", field: "Tags" },
       { path: "category", field: "Product category" },
     ]);
-    expect([...sections].toSorted()).toEqual(["catalog", "essentials", "price"]);
+    expect([...sections].toSorted()).toEqual(["essentials", "price"]);
     expect(sections.has("shopify")).toBe(false);
     expect(sections.has("essentials")).toBe(true);
     expect(sections.has("content" as never)).toBe(false);

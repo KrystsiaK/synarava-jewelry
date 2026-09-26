@@ -81,7 +81,7 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
 };
 
 const ALL_SECTIONS: ProductEditorSection[] = [
-  "essentials", "price", "catalog", "metafields", "media", "passport", "details", "shopify",
+  "essentials", "price", "metafields", "media", "passport", "details", "shopify",
 ];
 
 function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {

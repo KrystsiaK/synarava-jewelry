@@ -207,13 +207,13 @@ export function ProductDetailFields({
     <div
       data-component="ProductDetailFields"
       className="grid gap-6"
-      hidden={activeSection !== "catalog" && activeSection !== "details" && activeSection !== "passport"}
+      hidden={activeSection !== "essentials" && activeSection !== "details" && activeSection !== "passport"}
     >
       <div hidden={activeSection !== "details"}>
         <p className="adm-label-row">
           <span className="adm-section-tag">[ SYNARAVA CMS LAYER ]</span>
           <AdminHelp>
-            Editorial product-page sections enrich the site. Shopify category and publish stay under Catalog; jewelry specs under Passport.
+            Editorial product-page sections enrich the site. Shopify category and publish stay under Product; jewelry specs under Passport.
           </AdminHelp>
         </p>
         <p className="mt-2 text-xs text-[var(--adm-muted)]">
@@ -231,7 +231,7 @@ export function ProductDetailFields({
         </p>
       ) : null}
 
-      <div hidden={activeSection !== "catalog"} className="grid gap-4">
+      <div hidden={activeSection !== "essentials"} className="grid gap-4">
         <ShopifyProductFactsPanel facts={shopifyFacts} linked={shopifyLinked} />
       </div>
 
@@ -915,8 +915,8 @@ export function ProductFormFields({
         />
       </div>
 
-      {/* Taxonomy + state */}
-      <div className="grid gap-5" hidden={activeSection !== "catalog"}>
+      {/* Taxonomy + publish — Shopify Product organization */}
+      <div className="grid gap-5" hidden={activeSection !== "essentials"}>
         <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
           <ShopifyCategoryField
             controlId="field-taxonomy-category-input"

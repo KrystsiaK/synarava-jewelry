@@ -302,7 +302,7 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
   ]}
   items={[
     { id: "essentials", label: "Product", detail: "Title & organization", group: "shopify" },
-    { id: "catalog", label: "Catalog", tone: "issue", group: "shopify" },
+    { id: "passport", label: "Passport", detail: "Jewelry specs", group: "synarava" },
     { id: "sync", label: "Sync", tone: "conflict", dirty: true, group: "shopify" },
     { id: "details", label: "Product page", detail: "Story & craft", group: "synarava" },
   ]}

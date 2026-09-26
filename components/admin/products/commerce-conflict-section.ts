@@ -51,7 +51,7 @@ export function productEditorSectionForCommerceDiff(diff: {
     || field === "Product category"
     || field === "Status"
   ) {
-    return "catalog";
+    return "essentials";
   }
 
   if (

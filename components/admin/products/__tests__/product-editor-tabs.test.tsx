@@ -27,7 +27,7 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("group", { name: "Synarava" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: /Price Sell/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Catalog/i })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Catalog/i })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Metafields/i })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Content/i })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Media/i })).toBeInTheDocument();
@@ -39,7 +39,6 @@ describe("ProductEditorTabs", () => {
     const shopifyGroup = screen.getByRole("group", { name: "Shopify" });
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Title & organization/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Price Sell/i }));
-    expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Catalog/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Metafields/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Sync/i }));
     const synaravaGroup = screen.getByRole("group", { name: "Synarava" });
@@ -51,7 +50,7 @@ describe("ProductEditorTabs", () => {
     render(<TabsHarness includeShopify={false} />);
     expect(screen.queryByRole("tab", { name: /Sync/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Metafields/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Catalog/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Passport/i })).toBeInTheDocument();
   });
 
   it("changes the active explanation when a tab is selected", () => {
@@ -89,17 +88,17 @@ describe("ProductEditorTabs", () => {
 
     render(
       <ProductEditorTabs
-        active="catalog"
+        active="essentials"
         onChange={() => {}}
-        issueSections={new Set(["catalog"])}
+        issueSections={new Set(["essentials"])}
         sectionIssues={issues}
         onIssueActivate={() => {}}
       />,
     );
 
-    expect(screen.getByRole("tab", { name: /Catalog/i })).toHaveAttribute("data-issue", "true");
+    expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("data-issue", "true");
     expect(screen.getByRole("button", { name: /Missing category/i })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /Title & organization/i })).not.toHaveAttribute("data-issue");
+    expect(screen.queryByRole("tab", { name: /Price Sell/i })).not.toHaveAttribute("data-issue");
   });
 
   it("keeps the tabpanel body inside the same root as sticky section chrome", () => {

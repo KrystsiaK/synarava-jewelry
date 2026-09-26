@@ -320,7 +320,7 @@ export function filterIssuesByTaxonomySatisfaction(
  */
 export function productEditorSectionForField(fieldPath: string): ProductEditorSection | null {
   if (fieldPath === "field-imageUrl") return "media";
-  if (fieldPath.startsWith("field-taxonomy-")) return "catalog";
+  if (fieldPath.startsWith("field-taxonomy-")) return "essentials";
   if (fieldPath.startsWith("field-details-")) return "details";
   return null;
 }
