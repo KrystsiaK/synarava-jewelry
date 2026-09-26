@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
 import { resolveSiteVideoMimeType } from "@/lib/media/video-mime";
 import { getS3, getS3Bucket, getS3PublicUrl } from "@/lib/s3";
-import { SITE_VIDEO_SETTING_KEY, siteVideoSlots, type SiteVideoSlot } from "@/lib/site-videos";
+import { releasedSiteVideoKeys, SITE_VIDEO_SETTING_KEY, siteVideoSlots, type SiteVideoSlot } from "@/lib/site-videos";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -43,7 +43,49 @@ function revalidateStorefront() {
   revalidateStorefrontTemplate("/products/[slug]");
 }
 
-/** Multipart upload / clear through the app → site-videos setting (+ S3 for new files). */
+async function deleteReleasedSiteVideos(keys: readonly string[]) {
+  const failures: string[] = [];
+
+  for (const key of keys) {
+    try {
+      const asset = await db.mediaAsset.findUnique({
+        where: { key },
+        select: {
+          id: true,
+          _count: {
+            select: {
+              productPrimaryFor: true,
+              collectionHeroFor: true,
+              collectionCoverFor: true,
+              productMedia: true,
+            },
+          },
+        },
+      });
+      const stillAttached = asset
+        ? Object.values(asset._count).some((count) => count > 0)
+        : false;
+      if (stillAttached) continue;
+
+      await getS3().send(new DeleteObjectCommand({ Bucket: getS3Bucket(), Key: key }));
+      if (asset) {
+        await db.mediaAsset.deleteMany({ where: { id: asset.id, key } });
+      }
+    } catch (error) {
+      failures.push(key);
+      console.error("Site video storage cleanup failed", {
+        key,
+        message: error instanceof Error ? error.message : "Unknown storage error",
+      });
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error("The video was cleared on the site, but the file is still in the bucket.");
+  }
+}
+
+/** Multipart upload / clear through the app → site-videos setting. New files are stored in S3; dropped slots delete that object. */
 export async function POST(request: Request) {
   const session = await getCurrentAdminSession();
   if (!session) return Response.json({ error: "Admin session expired." }, { status: 401 });
@@ -108,8 +150,9 @@ export async function POST(request: Request) {
       where: { key: SITE_VIDEO_SETTING_KEY },
       select: { value: true },
     });
-    const current = existing?.value && typeof existing.value === "object"
-      ? { ...(existing.value as Prisma.InputJsonObject) }
+    const previous = existing?.value ?? null;
+    const current = previous && typeof previous === "object"
+      ? { ...(previous as Prisma.InputJsonObject) }
       : {};
 
     await db.$transaction(async (tx) => {
@@ -142,6 +185,8 @@ export async function POST(request: Request) {
         create: { key: SITE_VIDEO_SETTING_KEY, value: current },
       });
     });
+
+    await deleteReleasedSiteVideos(releasedSiteVideoKeys(previous, current));
 
     revalidateStorefront();
     return Response.json({ uploaded: prepared.length, removed: removals.length });

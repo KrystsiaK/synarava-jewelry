@@ -109,7 +109,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
           <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
           <h2 className="adm-title-sm">Site video</h2>
           <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-            Upload or remove MP4 / WebM (up to 100 MB each). Files go through the app into Railway Bucket. When a slot is set, it replaces the matching static hero image on the storefront after cache revalidation.
+            Upload or remove MP4 / WebM (up to 100 MB each). Files go through the app into Railway Bucket, and removing or replacing a slot deletes that object. When a slot is set, it replaces the matching static hero image on the storefront after cache revalidation.
           </p>
         </div>
       </AdminPanelHeader>

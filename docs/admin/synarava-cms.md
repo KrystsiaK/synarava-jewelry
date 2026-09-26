@@ -169,7 +169,7 @@ import { AdminHelp, AdminVideoField } from "@/components/synarava-cms";
 ```
 
 - Labeled MP4 / WebM picker with **Selected** + **Current** preview panels (and an empty placeholder).
-- Optional `removeFieldName` mirrors image fields: toggle **Remove current video** → hidden `remove_*` = `1` on save.
+- Optional `removeFieldName` mirrors image fields: toggle **Remove current video** → hidden `remove_*` = `1` on save. Save clears the slot and deletes the `uploads/videos/<slot>/` object from the bucket. Replacing a slot deletes the previous object the same way. A file still attached to a product or collection is left in the bucket.
 - Same shell contract as other fields (`AdminFieldShell` + absolute error/warning band).
 - Embed without the shell: `AdminVideoControl`.
 - Upload MIME is normalized: empty browser `File.type` falls back to `.mp4` / `.webm` extension (`lib/media/video-mime.ts`).
