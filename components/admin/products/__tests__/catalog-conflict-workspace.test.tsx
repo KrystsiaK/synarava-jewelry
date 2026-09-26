@@ -195,7 +195,7 @@ describe("CatalogConflictWorkspace", () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
     const { onClose } = renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByText(/cannot write them yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Use the footer to open the product editor/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open product editor" }));
     expect(onClose).toHaveBeenCalled();
     expect(mocks.push).toHaveBeenCalledWith("/admin/products/p1");
