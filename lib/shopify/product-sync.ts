@@ -1440,8 +1440,9 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
 /**
  * Pushes a local product's title, description, price, SKU, inventory,
  * tags, collection membership, product type, vendor, SEO title/description,
- * and `synarava.*` characteristic metafields to Shopify via the Admin
- * GraphQL API, creating the remote product on first push. Product type,
+ * and `synarava.*` characteristic metafields plus merchant custom metafields
+ * from `workingSnapshot` to Shopify via the Admin GraphQL API, creating the
+ * remote product on first push. Product type,
  * vendor, and SEO are omitted from the input (rather than sent as empty
  * strings) when we have no local value, so a push never overwrites
  * Shopify's own value with a blank default.
@@ -1497,6 +1498,16 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         ...(item.certificateUrl ? [{ namespace: "synarava", key: `${item.key}_certificate`, type: "url", value: item.certificateUrl }] : []),
       ];
     });
+    const { customMetafieldsFromWorkingSnapshot } = await import("@/lib/shopify/product-metafields-shared");
+    for (const item of customMetafieldsFromWorkingSnapshot(product.workingSnapshot)) {
+      if (!item.value.trim()) continue;
+      metafields.push({
+        namespace: item.namespace,
+        key: item.key,
+        type: item.type,
+        value: item.value,
+      });
+    }
     const unitWeight = product.characteristics.find((item) => item.key === "unit_weight")?.numberValue;
     const inventoryItemInput = {
       sku: commerceSku,

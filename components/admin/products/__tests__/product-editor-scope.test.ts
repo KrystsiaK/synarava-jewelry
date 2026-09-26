@@ -42,6 +42,16 @@ describe("product-editor-scope", () => {
     expect(dirtyKeyForEdit("pt", "price")).toBe("*:price");
   });
 
+  it("marks metafields as a shared dirty section", () => {
+    expect(dirtyKeyForEdit("pt", "metafields")).toBe("*:metafields");
+  });
+
+  it("attributes custom metafield form fields to the Metafields section", () => {
+    expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "metafields", "en")).toBe(true);
+    expect(fieldBelongsToBranch("customMetafieldType:custom:warranty", "metafields", "en")).toBe(true);
+    expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "catalog", "en")).toBe(false);
+  });
+
   it("builds a scoped FormData that keeps baseline values for other branches", () => {
     const baseline = new FormData();
     baseline.set("productId", "p1");

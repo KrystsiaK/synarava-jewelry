@@ -79,6 +79,26 @@ Local Save write-through includes title, vendor, productType, tags into
 
 ---
 
+## Metafields tab
+
+Shopify-native custom product fields (not the `synarava.*` passport):
+
+| Step | Behavior |
+| --- | --- |
+| Edit values | Form fields → **Save** write-through into `workingSnapshot.metafields` |
+| Sync to Shopify | **Push** / conflict resolve (same dual-window model as Price) |
+| List definitions | `metafieldDefinitions(ownerType: PRODUCT)` |
+| Add definition | `metafieldDefinitionCreate` (shop-wide schema only; not product sync) |
+
+Passport / category taxonomy stay on **Catalog**. Managed namespaces
+(`synarava`, `shopify`, `global`) are excluded from the Metafields editor.
+
+Code: `lib/shopify/product-metafields-*.ts`,
+`ProductMetafieldsPanel`, write-through in `shopify-projection-diff.ts`,
+Push merges custom values from `workingSnapshot`.
+
+---
+
 ## Known gaps (next branches)
 
 - Full 3-way merge with explicit **base** (`B/L/R`) for ahead vs conflict.

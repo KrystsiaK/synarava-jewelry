@@ -30,7 +30,7 @@ function groupHasValue(
 /**
  * Editable product passport. Values Save locally and Push to Shopify as
  * `synarava.*` metafields. Groups with data open by default; empty groups stay
- * collapsed so Pet/Maker/Age do not dominate jewelry or craft products.
+ * collapsed. Merchant-defined Shopify fields live on the Metafields tab.
  */
 export function ProductPassportFields({
   characteristics,
@@ -46,15 +46,12 @@ export function ProductPassportFields({
         <p className="adm-label-row">
           <span className="adm-label">Product parameters</span>
           <AdminHelp>
-            Fill material, color, size, care, and other specs here. Save, then Push to Shopify —
-            Synarava mirrors these as product metafields. Pull brings Shopify values back into empty
-            fields. Category / vendor / type stay in the form above; Product page sections stay under
-            Product page.
+            Jewelry core specs (material, size, care, compliance). Save, then Push to Shopify as
+            synarava metafields. Add arbitrary Shopify fields on the Metafields tab.
           </AdminHelp>
         </p>
         <p className="mt-2 text-xs leading-5 text-[var(--adm-muted)]">
-          Open a group to edit. Groups that already have values open automatically; unused groups
-          (pet, maker, …) stay closed until you need them.
+          Open a group to edit. Groups that already have values open automatically.
         </p>
       </div>
 

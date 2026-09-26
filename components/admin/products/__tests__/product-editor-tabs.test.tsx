@@ -28,6 +28,7 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: /Price Sell/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Catalog/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Metafields/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Content/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Media/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Sync/i })).toBeInTheDocument();
@@ -37,10 +38,18 @@ describe("ProductEditorTabs", () => {
     const shopifyGroup = screen.getByRole("group", { name: "Shopify" });
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Title & organization/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Price Sell/i }));
+    expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Metafields/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Sync/i }));
     expect(screen.getByRole("group", { name: "Synarava" })).toContainElement(
       screen.getByRole("tab", { name: /Product page/i }),
     );
+  });
+
+  it("hides Sync and Metafields when includeShopify is false", () => {
+    render(<TabsHarness includeShopify={false} />);
+    expect(screen.queryByRole("tab", { name: /Sync/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Metafields/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Catalog/i })).toBeInTheDocument();
   });
 
   it("changes the active explanation when a tab is selected", () => {

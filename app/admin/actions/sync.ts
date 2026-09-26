@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
+import {
+  createProductMetafieldDefinition,
+  listCustomProductMetafieldDefinitions,
+  listProductMetafieldDefinitions,
+} from "@/lib/shopify/product-metafields-admin";
+
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import {
@@ -242,6 +248,39 @@ export async function loadProductCatalogConflictAction(productId: string) {
     return { conflict: await getProductCatalogConflict(productId) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not load this product's conflict details." };
+  }
+}
+
+/** Merchant-owned PRODUCT metafield definitions (excludes synarava passport + shopify taxonomy). */
+export async function listCustomProductMetafieldDefinitionsAction() {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    const definitions = listCustomProductMetafieldDefinitions(await listProductMetafieldDefinitions());
+    return { definitions };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not load metafield definitions." };
+  }
+}
+
+/** Shopify Admin “Add definition” for PRODUCT owner type (shop-wide schema, not product sync). */
+export async function createProductMetafieldDefinitionAction(input: {
+  name: string;
+  key?: string;
+  namespace?: string;
+  type?: string;
+  description?: string;
+}) {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
+  try {
+    const definition = await createProductMetafieldDefinition(input);
+    after(() => {
+      revalidatePath("/admin/products");
+    });
+    return { definition, success: `Definition “${definition.name}” created in Shopify.` };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not create the metafield definition." };
   }
 }
 

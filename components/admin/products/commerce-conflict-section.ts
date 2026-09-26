@@ -65,6 +65,8 @@ export function productEditorSectionForCommerceDiff(diff: {
 
   if (/^media(\.|$|\[)/.test(path)) return "media";
 
+  if (/^metafields(\.|$|\[)/.test(path) || field === "Metafields") return "metafields";
+
   return "shopify";
 }
 

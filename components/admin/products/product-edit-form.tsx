@@ -28,6 +28,7 @@ import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
+import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import {
@@ -80,7 +81,7 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
 };
 
 const ALL_SECTIONS: ProductEditorSection[] = [
-  "essentials", "price", "catalog", "content", "media", "details", "shopify",
+  "essentials", "price", "catalog", "metafields", "content", "media", "details", "shopify",
 ];
 
 function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {
@@ -722,7 +723,7 @@ export function EditProductForm({
                       />
                     </div>
 
-                    <div hidden={activeSection === "media"}>
+                    <div hidden={activeSection === "media" || activeSection === "metafields"}>
                       <ProductFormFields
                         key={`${currentProduct.id}-${fieldsRevision}`}
                         draft={draft}
@@ -754,6 +755,16 @@ export function EditProductForm({
                         vendor={currentProduct.vendor ?? draft.vendor}
                         productType={currentProduct.productType ?? draft.productType}
                         characteristicValues={currentProduct.characteristics}
+                      />
+                    </div>
+
+                    <div hidden={activeSection !== "metafields"}>
+                      <ProductMetafieldsPanel
+                        key={`metafields-${currentProduct.id}-${fieldsRevision}`}
+                        productId={currentProduct.id}
+                        shopifyProductId={currentProduct.shopifyProductId}
+                        shopifySnapshot={currentProduct.shopifySnapshot}
+                        workingSnapshot={currentProduct.workingSnapshot}
                       />
                     </div>
 

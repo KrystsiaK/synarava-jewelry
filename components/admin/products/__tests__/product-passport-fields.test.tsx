@@ -19,10 +19,11 @@ describe("ProductPassportFields", () => {
 
     const materials = screen.getByRole("button", { name: "Materials & construction" })
       .closest("[data-component='AdminCollapsiblePanel']");
-    const pet = screen.getByRole("button", { name: "Pet sizing & use" })
+    const compliance = screen.getByRole("button", { name: "Compliance" })
       .closest("[data-component='AdminCollapsiblePanel']");
 
     expect(materials).toHaveAttribute("data-open", "true");
-    expect(pet).toHaveAttribute("data-open", "false");
+    expect(compliance).toHaveAttribute("data-open", "false");
+    expect(screen.queryByRole("button", { name: "Pet sizing & use" })).not.toBeInTheDocument();
   });
 });

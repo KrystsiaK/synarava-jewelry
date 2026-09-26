@@ -1,64 +1,28 @@
 import type { CharacteristicValueType } from "@prisma/client";
 import type { Locale } from "@/lib/i18n/locales";
 
+/**
+ * Curated jewelry passport — mirrored to Shopify as `synarava.*` metafields.
+ * Keep this list small: shop filters + PDP priority + category seed targets.
+ * Arbitrary merchant fields live in the Metafields tab (Shopify definitions).
+ */
 export const PRODUCT_CHARACTERISTICS = [
   { key: "size", label: "Size", group: "Dimensions & fit", type: "TEXT", filterable: true },
   { key: "fit_notes", label: "Fit notes", group: "Dimensions & fit", type: "TEXT", multiline: true, filterable: false },
-  { key: "neck_fit", label: "Neck fit", group: "Dimensions & fit", type: "TEXT", filterable: false },
-  { key: "wrist_fit", label: "Wrist fit", group: "Dimensions & fit", type: "TEXT", filterable: false },
-  { key: "internal_diameter", label: "Internal diameter", group: "Dimensions & fit", type: "NUMBER", unit: "mm" },
-  { key: "external_diameter", label: "External diameter", group: "Dimensions & fit", type: "NUMBER", unit: "mm" },
-  { key: "length", label: "Length", group: "Dimensions & fit", type: "NUMBER", unit: "mm" },
-  { key: "width", label: "Width", group: "Dimensions & fit", type: "NUMBER", unit: "mm" },
-  { key: "height", label: "Height", group: "Dimensions & fit", type: "NUMBER", unit: "mm" },
-  { key: "overall_length", label: "Overall length", group: "Dimensions & fit", type: "NUMBER", unit: "cm" },
   { key: "chain_length", label: "Chain length", group: "Dimensions & fit", type: "NUMBER", unit: "cm" },
   { key: "adjustable_length", label: "Adjustable length", group: "Dimensions & fit", type: "NUMBER", unit: "cm" },
-  { key: "pendant_length", label: "Pendant length", group: "Dimensions & fit", type: "NUMBER", unit: "mm" },
-  { key: "pendant_width", label: "Pendant width", group: "Dimensions & fit", type: "NUMBER", unit: "mm" },
-  { key: "unit_weight", label: "Unit weight", group: "Dimensions & fit", type: "NUMBER", unit: "g", filterable: false },
-  { key: "intended_pet", label: "Intended pet", group: "Pet sizing & use", type: "TEXT", filterable: true },
-  { key: "neck_circumference", label: "Neck circumference", group: "Pet sizing & use", type: "NUMBER", unit: "cm", filterable: true },
-  { key: "chest_circumference", label: "Chest circumference", group: "Pet sizing & use", type: "NUMBER", unit: "cm", filterable: true },
-  { key: "hardware", label: "Hardware", group: "Pet sizing & use", type: "TEXT", filterable: true },
-  { key: "washable", label: "Washable", group: "Pet sizing & use", type: "BOOLEAN", filterable: true },
-  { key: "recommended_age", label: "Recommended age", group: "Age & activity", type: "TEXT", filterable: true },
-  { key: "activity_type", label: "Activity type", group: "Age & activity", type: "TEXT", filterable: true },
-  { key: "skill_level", label: "Skill level", group: "Age & activity", type: "TEXT", filterable: true },
-  { key: "adult_supervision", label: "Adult supervision", group: "Age & activity", type: "BOOLEAN", filterable: false },
-  { key: "small_parts_warning", label: "Small parts warning", group: "Age & activity", type: "BOOLEAN", filterable: false },
-  { key: "tool_type", label: "Tool / component type", group: "Maker compatibility", type: "TEXT", filterable: true },
-  { key: "tool_compatibility", label: "Compatibility", group: "Maker compatibility", type: "TEXT", multiline: true, filterable: true },
-  { key: "component_size", label: "Component size", group: "Maker compatibility", type: "TEXT", filterable: true },
-  { key: "pack_quantity", label: "Pack quantity", group: "Maker compatibility", type: "NUMBER", unit: "pcs", filterable: false },
   { key: "material", label: "Primary material", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "secondary_material", label: "Secondary material", group: "Materials & construction", type: "TEXT", filterable: true },
   { key: "metal", label: "Metal", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "alloy", label: "Purity / alloy", group: "Materials & construction", type: "TEXT", filterable: true },
   { key: "stone_type", label: "Stone / gem", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "stone_color", label: "Stone color", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "stone_shape", label: "Stone shape", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "pearl_type", label: "Pearl type", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "pearl_size", label: "Pearl size", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "finish", label: "Finish / galvanization", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "plating", label: "Plating", group: "Materials & construction", type: "TEXT", filterable: true },
   { key: "color", label: "Color", group: "Materials & construction", type: "TEXT", filterable: true },
+  { key: "finish", label: "Finish", group: "Materials & construction", type: "TEXT", filterable: true },
+  { key: "plating", label: "Plating", group: "Materials & construction", type: "TEXT", filterable: true },
   { key: "origin", label: "Country / region of origin", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "production_method", label: "Production method", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "clasp_type", label: "Clasp type", group: "Materials & construction", type: "TEXT", filterable: true },
-  { key: "care_instructions", label: "Care instructions", group: "Care & fulfilment", type: "TEXT", multiline: true, filterable: false },
-  { key: "packaging", label: "Packaging", group: "Care & fulfilment", type: "TEXT", multiline: true, filterable: false },
-  { key: "warranty", label: "Warranty", group: "Care & fulfilment", type: "TEXT", multiline: true, filterable: false },
-  { key: "lead_time", label: "Production lead time", group: "Care & fulfilment", type: "TEXT", filterable: false },
-  { key: "set_contents", label: "Set contents / sold unit", group: "Care & fulfilment", type: "TEXT", multiline: true, filterable: false },
-  { key: "made_to_order", label: "Made to order", group: "Care & fulfilment", type: "BOOLEAN", filterable: true },
-  { key: "reach_certified", label: "REACH certified", group: "Compliance & sales", type: "BOOLEAN", certificate: true },
-  { key: "lead_free", label: "Lead free", group: "Compliance & sales", type: "BOOLEAN" },
-  { key: "cadmium_free", label: "Cadmium free", group: "Compliance & sales", type: "BOOLEAN" },
-  { key: "nickel_free", label: "Nickel-free release", group: "Compliance & sales", type: "BOOLEAN" },
-  { key: "hypoallergenic", label: "Hypoallergenic", group: "Compliance & sales", type: "BOOLEAN" },
-  { key: "sold_per_piece", label: "Sold per piece", group: "Compliance & sales", type: "BOOLEAN" },
-  { key: "safety_disclosure", label: "Safety disclosure", group: "Compliance & sales", type: "TEXT", multiline: true, filterable: false },
+  { key: "care_instructions", label: "Care instructions", group: "Care", type: "TEXT", multiline: true, filterable: false },
+  { key: "reach_certified", label: "REACH certified", group: "Compliance", type: "BOOLEAN", certificate: true },
+  { key: "lead_free", label: "Lead free", group: "Compliance", type: "BOOLEAN" },
+  { key: "cadmium_free", label: "Cadmium free", group: "Compliance", type: "BOOLEAN" },
+  { key: "nickel_free", label: "Nickel-free release", group: "Compliance", type: "BOOLEAN" },
 ] as const;
 
 export const PRODUCT_CHARACTERISTIC_GROUPS = Array.from(
@@ -66,91 +30,38 @@ export const PRODUCT_CHARACTERISTIC_GROUPS = Array.from(
 );
 
 // Merchant-owned characteristic taxonomy is code-defined, not admin-editable
-// (see docs/translation-field-registry.md) — so it translates the same way
-// the jewelry storefront helpers do (lib/catalog/taxonomy.ts): a static
-// PT map alongside the EN source, not a database row. Values entered per
-// product (textValue/numberValue/booleanValue) are shared/untranslated; only
-// these fixed labels are buyer-facing text.
-// Locale-keyed (not just Portuguese) so a future locale's labels are a new
-// key here, not a new branch in characteristicLabel/characteristicGroupLabel
-// below — Task U11. Only `pt` has real translations today; every other
-// locale (including `ru`) falls back to the English source, same as it
-// always did for any non-Portuguese locale.
+// (see docs/translation-field-registry.md).
 const CHARACTERISTIC_GROUP_LABEL_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   pt: {
     "Dimensions & fit": "Dimensões e ajuste",
-    "Pet sizing & use": "Tamanho e uso para animais",
-    "Age & activity": "Idade e atividade",
-    "Maker compatibility": "Compatibilidade para artesãos",
     "Materials & construction": "Materiais e construção",
-    "Care & fulfilment": "Cuidados e envio",
-    "Compliance & sales": "Conformidade e venda",
+    Care: "Cuidados",
+    Compliance: "Conformidade",
   },
 };
 
 const CHARACTERISTIC_LABEL_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   pt: {
-  size: "Tamanho",
-  fit_notes: "Notas de ajuste",
-  neck_fit: "Ajuste ao pescoço",
-  wrist_fit: "Ajuste ao pulso",
-  internal_diameter: "Diâmetro interno",
-  external_diameter: "Diâmetro externo",
-  length: "Comprimento",
-  width: "Largura",
-  height: "Altura",
-  overall_length: "Comprimento total",
-  chain_length: "Comprimento da corrente",
-  adjustable_length: "Comprimento ajustável",
-  pendant_length: "Comprimento do pingente",
-  pendant_width: "Largura do pingente",
-  unit_weight: "Peso unitário",
-  intended_pet: "Animal indicado",
-  neck_circumference: "Circunferência do pescoço",
-  chest_circumference: "Circunferência do peito",
-  hardware: "Acessórios metálicos",
-  washable: "Lavável",
-  recommended_age: "Idade recomendada",
-  activity_type: "Tipo de atividade",
-  skill_level: "Nível de habilidade",
-  adult_supervision: "Supervisão de adulto",
-  small_parts_warning: "Aviso de peças pequenas",
-  tool_type: "Tipo de ferramenta / componente",
-  tool_compatibility: "Compatibilidade",
-  component_size: "Tamanho do componente",
-  pack_quantity: "Quantidade por pacote",
-  material: "Material principal",
-  secondary_material: "Material secundário",
-  metal: "Metal",
-  alloy: "Pureza / liga",
-  stone_type: "Pedra / gema",
-  stone_color: "Cor da pedra",
-  stone_shape: "Formato da pedra",
-  pearl_type: "Tipo de pérola",
-  pearl_size: "Tamanho da pérola",
-  finish: "Acabamento / galvanização",
-  plating: "Banho (revestimento)",
-  color: "Cor",
-  origin: "País / região de origem",
-  production_method: "Método de produção",
-  clasp_type: "Tipo de fecho",
-  care_instructions: "Instruções de cuidado",
-  packaging: "Embalagem",
-  warranty: "Garantia",
-  lead_time: "Prazo de produção",
-  set_contents: "Conteúdo do conjunto / unidade vendida",
-  made_to_order: "Feito por encomenda",
-  reach_certified: "Certificado REACH",
-  lead_free: "Sem chumbo",
-  cadmium_free: "Sem cádmio",
-  nickel_free: "Libertação sem níquel",
-  hypoallergenic: "Hipoalergénico",
-  sold_per_piece: "Vendido por unidade",
-  safety_disclosure: "Aviso de segurança",
+    size: "Tamanho",
+    fit_notes: "Notas de ajuste",
+    chain_length: "Comprimento da corrente",
+    adjustable_length: "Comprimento ajustável",
+    material: "Material principal",
+    metal: "Metal",
+    stone_type: "Pedra / gema",
+    color: "Cor",
+    finish: "Acabamento",
+    plating: "Banho (revestimento)",
+    origin: "País / região de origem",
+    care_instructions: "Instruções de cuidado",
+    reach_certified: "Certificado REACH",
+    lead_free: "Sem chumbo",
+    cadmium_free: "Sem cádmio",
+    nickel_free: "Libertação sem níquel",
   },
 };
 
-/** Locale-aware label for a characteristic key — falls back to the English source (from PRODUCT_CHARACTERISTICS, or the value's own persisted label for a legacy/unrecognized key) when no translation is registered for `locale`. */
+/** Locale-aware label for a characteristic key — falls back to the English source. */
 export function characteristicLabel(key: string, fallbackLabel: string, locale: Locale): string {
   return CHARACTERISTIC_LABEL_TRANSLATIONS[locale]?.[key] ?? fallbackLabel;
 }
@@ -176,15 +87,7 @@ export type ProductCharacteristicValue = {
 
 /**
  * Reads the fixed `PRODUCT_CHARACTERISTICS` list out of a product form,
- * one `characteristic_<key>` field per definition, and drops any
- * characteristic with nothing meaningful to store: a blank TEXT value, a
- * non-finite/empty NUMBER value, or an unchecked BOOLEAN.
- *
- * The unchecked-BOOLEAN rule has one exception: if a certificate URL was
- * attached (`certificate_<key>_certificate`) even though the checkbox
- * itself is off, the characteristic is still kept so the certificate isn't
- * silently discarded — a certified-but-currently-unchecked claim is still
- * data worth keeping.
+ * one `characteristic_<key>` field per definition, and drops empty rows.
  */
 export function parseCharacteristicsForm(formData: FormData) {
   return PRODUCT_CHARACTERISTICS.flatMap((definition, sortOrder) => {

@@ -75,48 +75,53 @@ Shopify contains additional operational and analytical API fields. “All Shopif
 
 ## Synarava product passport
 
-Structured product parameters (material, color, size, care, …) are editable in
-the Synarava Catalog under **Product parameters**. Save stores them locally;
-Push mirrors them to Shopify as `synarava.*` metafields. Pull seeds empty
-fields from Shopify category attributes and merchant metafields.
+Structured jewelry parameters (material, color, size, care, compliance, …) are
+editable in the Synarava Catalog under **Product parameters**. Save stores them
+locally; Push mirrors them to Shopify as `synarava.*` metafields. Pull seeds
+empty fields from Shopify category attributes and merchant metafields.
 
-A fixed characteristic checklist is the admin editing UI for those mirrored
-facts — not a competing catalog. Empty groups stay collapsed so unused pet /
-maker / jewelry fields do not dominate the screen.
+The passport checklist is intentionally small (jewelry filters + PDP priority).
+Arbitrary merchant fields are **not** added here — use the product editor
+**Metafields** tab (Shopify metafield definitions + values via Admin API).
 
-### Historical passport vocabulary (projection + edit UI)
+### Metafields tab (Shopify-native custom fields)
 
-When seeded from Shopify, searchable/filterable rows may use keys such as:
+- Lists shop-wide PRODUCT metafield definitions excluding managed namespaces
+  (`synarava`, `shopify`, `global`).
+- **Add definition** → `metafieldDefinitionCreate` (shop-wide schema in Shopify;
+  not a product Save).
+- **Values** → edit in the form → **Save** writes OUR `workingSnapshot` →
+  **Push** / conflict resolve sends them via `metafieldsSet` (same dual-window
+  sync as other commerce fields).
+- Same capability as Shopify Admin → Settings → Custom data → Products /
+  product Metafields card.
+
+Docs: [Manage metafield definitions](https://shopify.dev/docs/apps/build/metafields/definitions),
+[`metafieldDefinitionCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldDefinitionCreate),
+[`metafieldsSet`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldsSet).
+
+### Passport vocabulary (edit UI)
+
+Groups with data open by default; empty groups stay collapsed.
 
 ### Dimensions and fit
 
-- internal and external diameter;
-- length, width, height, overall length, chain length, adjustable length;
-- pendant length and width;
-- size, fit notes, neck fit, wrist fit;
-- unit weight (Shopify variant weight is preferred when available).
+- size, fit notes;
+- chain length, adjustable length.
 
 ### Materials and construction
 
-- primary and secondary materials;
-- metal, purity or alloy;
-- stone, pearl, and bead details;
-- finish, plating, color, origin, production method, clasp type.
+- primary material, metal, stone / gem;
+- finish, plating, color, origin.
 
-### Care and fulfilment
+### Care
 
-- care instructions;
-- packaging;
-- warranty;
-- made-to-order and lead-time information;
-- sold unit or set contents.
+- care instructions.
 
-### Compliance and documents
+### Compliance
 
-- REACH certification and certificate URL;
-- lead, cadmium, and nickel-release declarations;
-- hypoallergenic declaration;
-- additional safety or customer-facing disclosure.
+- REACH certification (optional certificate URL);
+- lead, cadmium, and nickel-release declarations.
 
 ## Storefront presentation
 

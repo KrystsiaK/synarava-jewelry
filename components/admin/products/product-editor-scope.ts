@@ -1,4 +1,5 @@
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
+import { isCustomMetafieldFormField } from "@/lib/shopify/product-metafields-shared";
 
 export const SOURCE_LOCALE = "en";
 
@@ -55,9 +56,15 @@ export function localeHasDirty(
   return false;
 }
 
-/** Catalog / media / shopify / price are shared across languages. */
+/** Catalog / metafields / media / shopify / price are shared across languages. */
 export function isSharedSection(section: ProductEditorSection): boolean {
-  return section === "catalog" || section === "media" || section === "shopify" || section === "price";
+  return (
+    section === "catalog"
+    || section === "metafields"
+    || section === "media"
+    || section === "shopify"
+    || section === "price"
+  );
 }
 
 export function isLocaleSection(section: ProductEditorSection): boolean {
@@ -167,6 +174,8 @@ export function fieldBelongsToBranch(
         || matchesLocalePrefix(fieldName, locale, DETAILS_LOCALE_PREFIXES);
     case "media":
       return false;
+    case "metafields":
+      return isCustomMetafieldFormField(fieldName);
     case "shopify":
       return SHOPIFY_TAB_SHARED.includes(fieldName);
     default:

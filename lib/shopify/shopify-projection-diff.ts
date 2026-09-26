@@ -1,3 +1,7 @@
+import {
+  mergeCustomMetafieldsIntoList,
+} from "@/lib/shopify/product-metafields-shared";
+
 /**
  * Object-level Shopify projection compare.
  *
@@ -253,6 +257,8 @@ export type LocalCommerceProjectionPatch = {
   productType?: string | null;
   /** Shopify tag strings (same shape as Admin GraphQL `tags`). */
   tags?: string[];
+  /** Merchant-owned product metafield values (excludes synarava / shopify / global). */
+  customMetafields?: Array<{ namespace: string; key: string; type: string; value: string }>;
   variant?: {
     shopifyVariantId?: string | null;
     sku?: string;
@@ -312,6 +318,15 @@ export function writeThroughLocalCommerceToProjection(
         patch.variant.inventoryQuantity,
       );
     }
+  }
+
+  if (patch.customMetafields) {
+    const existing = getProjectionPath(next, "metafields");
+    next = setProjectionPath(
+      next,
+      "metafields",
+      mergeCustomMetafieldsIntoList(existing, patch.customMetafields),
+    );
   }
 
   return canonicalizeShopifyProjection(next);

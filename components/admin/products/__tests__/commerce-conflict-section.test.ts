@@ -19,6 +19,10 @@ describe("commerce conflict → editor section", () => {
     expect(productEditorSectionForCommerceDiff({ path: "variants[0].sku", field: "Variant SKU" })).toBe("shopify");
   });
 
+  it("maps metafield diffs to the Metafields tab", () => {
+    expect(productEditorSectionForCommerceDiff({ path: "metafields[0].value", field: "Metafields" })).toBe("metafields");
+  });
+
   it("maps presence to Sync, not every tab", () => {
     expect(productEditorSectionForCommerceDiff({ path: "_presence", field: "Presence" })).toBe("shopify");
   });

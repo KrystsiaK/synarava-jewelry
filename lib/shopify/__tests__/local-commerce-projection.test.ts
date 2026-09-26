@@ -64,4 +64,28 @@ describe("localCommerceMatchesProjection", () => {
     );
     expect(next).toEqual({ title: "Ring", tags: ["bracelet", "heritage"] });
   });
+
+  it("write-through of custom metafields updates OUR window without touching synarava", () => {
+    const next = writeThroughLocalCommerceToProjection(
+      {
+        title: "Ring",
+        metafields: [
+          { namespace: "synarava", key: "material", type: "single_line_text_field", value: "Gold" },
+          { namespace: "custom", key: "warranty", type: "single_line_text_field", value: "1 year" },
+        ],
+      },
+      {
+        customMetafields: [
+          { namespace: "custom", key: "warranty", type: "single_line_text_field", value: "2 years" },
+        ],
+      },
+    );
+    expect(next).toMatchObject({ title: "Ring" });
+    const metafields = (next as { metafields: Array<{ namespace: string; key: string; value: string }> }).metafields;
+    expect(metafields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ namespace: "synarava", key: "material", value: "Gold" }),
+      expect.objectContaining({ namespace: "custom", key: "warranty", value: "2 years" }),
+    ]));
+    expect(metafields).toHaveLength(2);
+  });
 });

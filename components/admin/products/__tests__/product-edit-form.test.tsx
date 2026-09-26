@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   buildOurCommerceStoreAction: vi.fn(),
   fetchShopifyCommerceStoreAction: vi.fn(),
   compareAndPersistCommerceStoresAction: vi.fn(),
+  listCustomProductMetafieldDefinitionsAction: vi.fn(),
+  createProductMetafieldDefinitionAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/products", () => ({
@@ -32,6 +34,8 @@ vi.mock("@/app/admin/actions/sync", () => ({
   buildOurCommerceStoreAction: mocks.buildOurCommerceStoreAction,
   fetchShopifyCommerceStoreAction: mocks.fetchShopifyCommerceStoreAction,
   compareAndPersistCommerceStoresAction: mocks.compareAndPersistCommerceStoresAction,
+  listCustomProductMetafieldDefinitionsAction: mocks.listCustomProductMetafieldDefinitionsAction,
+  createProductMetafieldDefinitionAction: mocks.createProductMetafieldDefinitionAction,
 }));
 
 vi.mock("@/app/admin/actions/taxonomy", () => ({
@@ -76,6 +80,8 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     lastSyncedAt: null,
     syncStatus: "UNLINKED",
     syncError: null,
+    shopifySnapshot: null,
+    workingSnapshot: null,
     media: [],
     characteristics: [],
     variants: [],
@@ -98,6 +104,8 @@ beforeEach(() => {
     conflicts: [],
     debug: { ourProductCount: 0, shopifyProductCount: 0, conflictCount: 0 },
   });
+  mocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });
+  mocks.createProductMetafieldDefinitionAction.mockResolvedValue({ success: "Created." });
   // The active-locale tab is remembered in sessionStorage per product sku, so
   // tests sharing a sku (they all use "LAVA-1") would otherwise leak their
   // tab state across `it()` blocks.

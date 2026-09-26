@@ -20,6 +20,7 @@ import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import { buildProductSearchDocument, parseCharacteristicsForm } from "@/lib/products/characteristics";
+import { parseCustomMetafieldsForm } from "@/lib/shopify/product-metafields-shared";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
@@ -68,6 +69,7 @@ export type SavedProductPayload = {
   vendor: string | null;
   productType: string | null;
   shopifySnapshot: unknown;
+  workingSnapshot: unknown;
   seriesLabel: string | null;
   shortDescription: string | null;
   description: string | null;
@@ -195,6 +197,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       vendor: true,
       productType: true,
       shopifySnapshot: true,
+      workingSnapshot: true,
       seriesLabel: true,
       shortDescription: true,
       description: true,
@@ -580,6 +583,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const tagInput = parsed.data.tags;
   const imageFile = formData.get("imageFile");
   const characteristics = parseCharacteristicsForm(formData);
+  const customMetafields = parseCustomMetafieldsForm(formData);
   const tagSlugs = parseTags(tagInput);
   const hasShopifyCategorySelection =
     formData.has("shopifyCategoryId") || formData.has("shopifyCategoryName");
@@ -997,6 +1001,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         vendor: linked.vendor,
         productType: linked.productType,
         tags: tagSlugs.map((slug) => slug.replace(/-/g, " ")),
+        customMetafields: customMetafields.length > 0 ? customMetafields : undefined,
         variant: variant
           ? {
               shopifyVariantId: variant.shopifyVariantId,

@@ -9,6 +9,7 @@ import {
   PackageSearch,
   Shapes,
   Store,
+  Tags,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export type ProductEditorSection =
   | "essentials"
   | "price"
   | "catalog"
+  | "metafields"
   | "content"
   | "media"
   | "details"
@@ -85,6 +87,16 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Choose Shopify category and collection. Edit product parameters here (Save + Push to Shopify). Last Pull shows what Shopify currently has.",
     icon: Shapes,
+    group: "shopify",
+  },
+  {
+    id: "metafields",
+    label: "Metafields",
+    shortLabel: "Custom definitions",
+    title: "Product metafields",
+    description:
+      "Merchant-owned Shopify metafields (same as Shopify Admin → Metafields). Add definitions shop-wide and edit this product’s values. Passport fields stay under Catalog.",
+    icon: Tags,
     group: "shopify",
   },
   {
@@ -238,7 +250,7 @@ export function ProductEditorTabs({
 }) {
   const tabs = includeShopify
     ? PRODUCT_EDITOR_TABS
-    : PRODUCT_EDITOR_TABS.filter((tab) => tab.id !== "shopify");
+    : PRODUCT_EDITOR_TABS.filter((tab) => tab.id !== "shopify" && tab.id !== "metafields");
   const activeTab = tabs.find((tab) => tab.id === active) ?? tabs[0];
   const dirtySet = dirtySections instanceof Set
     ? dirtySections

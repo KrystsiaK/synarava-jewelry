@@ -78,6 +78,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     syncStatus: "UNLINKED",
     syncError: null,
     shopifySnapshot: null,
+    workingSnapshot: null,
     translations: [],
     media: [],
     characteristics: [],
