@@ -752,7 +752,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
       lastSyncedAt: new Date(),
-      syncStatus: "SYNCED",
+      // PENDING until variants/tags/collections finish — a mid-pull throw must not leave SYNCED with empty variants.
+      syncStatus: "PENDING",
       syncError: null,
     },
     create: {
@@ -780,10 +781,34 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
       lastSyncedAt: new Date(),
-      syncStatus: "SYNCED",
+      syncStatus: "PENDING",
     },
   });
 
+  try {
+    return await finishPulledProduct(product, remote, remoteSku, firstVariant, eventId, force);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Shopify pull failed after the product row was written.";
+    await db.product.update({
+      where: { id: product.id },
+      data: { syncStatus: "FAILED", syncError: message },
+    }).catch(() => undefined);
+    throw error;
+  }
+}
+
+/**
+ * Completes a pull after the product row exists: translations, variants, tags,
+ * collections, characteristics, search document, media. Caller marks FAILED if this throws.
+ */
+async function finishPulledProduct(
+  product: { id: string },
+  remote: ShopifyProduct,
+  remoteSku: string,
+  firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
+  eventId: string | undefined,
+  force: boolean,
+) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
   // callers only need a
@@ -1096,6 +1121,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   await db.product.update({
     where: { id: product.id },
     data: {
+      syncStatus: "SYNCED",
+      syncError: null,
       searchDocument: [remote.title, remoteSku, remote.handle, stripHtml(remote.descriptionHtml), ...searchable.flatMap((item) => [item.label, characteristicDisplayValue({ ...item, numberValue: item.numberValue ? Number(item.numberValue) : null })])].join(" "),
     },
   });

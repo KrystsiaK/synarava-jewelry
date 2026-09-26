@@ -16,7 +16,9 @@ export type ShopifyResourcePublication = {
 export function findOnlineStorePublication(
   nodes: Array<ShopifyResourcePublication | null | undefined>,
 ): ShopifyResourcePublication | undefined {
-  return nodes.find((item) => /online store/i.test(item?.publication?.name ?? ""));
+  return nodes.find((item): item is ShopifyResourcePublication =>
+    Boolean(item && /online store/i.test(item.publication?.name ?? "")),
+  );
 }
 
 export function publishedPublicationNames(
