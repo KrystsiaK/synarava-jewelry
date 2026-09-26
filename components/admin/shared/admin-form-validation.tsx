@@ -177,7 +177,10 @@ export function AdminFormAlert({ message, className }: { message?: string; class
   return (
     <div data-component="AdminFormAlert"
       role="alert"
-      className={cn("border border-[var(--adm-danger)] bg-[var(--adm-danger-soft)] px-4 py-3 text-sm leading-6 text-[var(--adm-danger)]", className)}
+      className={cn(
+        "rounded-[12px] border border-[var(--adm-danger)] bg-[var(--adm-danger-soft)] px-adm-inset py-adm-band-y text-sm leading-5 text-[var(--adm-danger)] shadow-[var(--adm-shadow)]",
+        className,
+      )}
     >
       {message}
     </div>

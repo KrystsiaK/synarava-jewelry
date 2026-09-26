@@ -27,14 +27,14 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("group", { name: "Synarava" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: /Price Sell/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Inventory/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Inventory/i })).toHaveTextContent("Stock");
     expect(screen.queryByRole("tab", { name: /Catalog/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Metafields/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Metafields/i })).toHaveTextContent("Fields");
     expect(screen.queryByRole("tab", { name: /Content/i })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Media/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Sync/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Passport/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Product page/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Passport/i })).toHaveTextContent("Pass");
+    expect(screen.getByRole("tab", { name: /Product page/i })).toHaveTextContent("Page");
     expect(screen.getByRole("heading", { name: "Product identity" })).toBeInTheDocument();
 
     const shopifyGroup = screen.getByRole("group", { name: "Shopify" });

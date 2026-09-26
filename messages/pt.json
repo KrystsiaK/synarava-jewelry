@@ -5,6 +5,10 @@
     "collections": "Coleções",
     "about": "Sobre",
     "cart": "Carrinho",
+    "cartWithCount": {
+      "one": "Carrinho, {count} artigo",
+      "other": "Carrinho, {count} artigos"
+    },
     "login": "Entrar",
     "account": "A minha conta",
     "loginRegister": "Entrar / Criar conta",
@@ -251,6 +255,8 @@
     "skip": "Saltar para o conteúdo principal"
   },
   "cart": {
+    "metaTitle": "Carrinho | Synarava",
+    "metaDescription": "Reveja as peças Synarava selecionadas antes de continuar.",
     "emptyTitleLead": "Ainda não selecionou",
     "emptyTitleAccent": "nada.",
     "emptyBody": "Explore a loja e encontre algo que combine consigo.",
@@ -572,5 +578,20 @@
       "aboutLabel": "Sobre nós",
       "footerTitle": "Objectos moldados com tempo,\nguardados para uma vida."
     }
+  },
+  "loginPage": {
+    "metaTitle": "Entrar | Synarava",
+    "metaDescription": "Identifique-se para aceder à sua conta Synarava.",
+    "eyebrow": "Conta de cliente",
+    "title": "Regresse à sua coleção.",
+    "description": "Entre com um código único enviado para o seu email. Não é necessária palavra-passe.",
+    "asideTitle": "As suas peças, lembradas.",
+    "asideBody": "Os dados da conta servem apenas para os pedidos e para tornar as próximas aquisições mais simples.",
+    "panelEyebrow": "Acesso seguro",
+    "panelTitle": "Aceda à sua conta",
+    "submit": "Entrar ou criar conta",
+    "note": "Novos clientes são criados automaticamente após a verificação do email.",
+    "error": "Não foi possível concluir o início de sessão. Tente novamente.",
+    "backToSite": "Voltar ao site"
   }
 }

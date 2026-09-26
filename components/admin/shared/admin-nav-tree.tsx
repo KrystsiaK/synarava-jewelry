@@ -374,7 +374,7 @@ export function AdminNavTree({
                   {hiddenCount > 0 ? (
                     <button
                       type="button"
-                      className="adm-nav-tree__more"
+                      className="adm-nav-tree__more rounded-lg font-medium tracking-normal"
                       onClick={() =>
                         setManualRevealed((current) => new Set(current).add(item.id))
                       }
@@ -386,7 +386,7 @@ export function AdminNavTree({
                   {showAll && children.length > limit ? (
                     <button
                       type="button"
-                      className="adm-nav-tree__more"
+                      className="adm-nav-tree__more rounded-lg font-medium tracking-normal"
                       onClick={() =>
                         setManualRevealed((current) => {
                           const next = new Set(current);

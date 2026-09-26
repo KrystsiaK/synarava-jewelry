@@ -8,7 +8,7 @@ import {
   useAdminFieldIds,
 } from "@/components/admin/shared/admin-field-shell";
 import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label";
-import { AnimatedModal } from "@/components/ui/animated-modal";
+import { AdminModal } from "@/components/admin/shared/admin-modal";
 import { cn } from "@/lib/ui";
 
 export type AdminLongTextFieldProps = {
@@ -162,7 +162,7 @@ export function AdminLongTextField({
         <button
           type="button"
           id={controlId}
-          className="adm-long-text-preview__action"
+          className="adm-btn-ghost shrink-0"
           onClick={openEditor}
           disabled={disabled}
           aria-label={`Edit ${plainLabel}`}
@@ -173,14 +173,11 @@ export function AdminLongTextField({
         </button>
       </div>
 
-      <AnimatedModal
+      <AdminModal
         open={open}
         onClose={closeEditor}
         ariaLabelledBy={titleId}
-        className="adm-panel pointer-events-auto grid max-h-[min(44rem,calc(100dvh-2rem))] w-full max-w-3xl gap-5 overflow-y-auto p-5 sm:p-6"
-        portalClassName="admin-modal-root"
-        zIndexClassName="z-[200]"
-        backdropZIndexClassName="z-[190]"
+        className="grid max-h-[min(44rem,calc(100dvh-2rem))] w-full max-w-3xl gap-5 overflow-y-auto p-5 sm:p-6"
       >
         <div>
           <h3 id={titleId} className="adm-title-sm">{plainLabel}</h3>
@@ -207,7 +204,7 @@ export function AdminLongTextField({
             <button type="button" className="adm-btn-primary" onClick={applyChanges}>Apply changes</button>
           </div>
         </div>
-      </AnimatedModal>
+      </AdminModal>
     </AdminFieldShell>
   );
 }

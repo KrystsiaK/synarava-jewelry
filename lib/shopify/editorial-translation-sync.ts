@@ -11,6 +11,7 @@ import {
 } from "@/lib/i18n/admin-field-registry";
 import { normalizePageTranslationContent } from "@/lib/pages/localization";
 import { STOREFRONT_COPY_KEY, type StorefrontCopy } from "@/lib/content/storefront-copy";
+import { pickStorefrontCopyFields } from "@/lib/content/storefront-copy-fields";
 import {
   ensureEditorialMetaobject,
   registerEditorialMetaobjectTranslation,
@@ -201,11 +202,15 @@ export async function syncStorefrontCopyTranslation(
   const fieldKeys = localizedFields(STOREFRONT_COPY_FIELD_REGISTRY).flatMap((field) =>
     field.shopifyTarget?.kind === "metaobject" ? [field.shopifyTarget.key] : [],
   );
+  // Cart, checkout handoff, and login copy live in a separate setting and must
+  // not ride along on this metaobject, even if an older blob still holds them.
+  const englishFields = pickStorefrontCopyFields(englishCopy, fieldKeys);
+  const localeFields = pickStorefrontCopyFields(localizedCopy, fieldKeys);
   const metaobject = await ensureEditorialMetaobject({
     definition: "storefront_copy",
     name: "Storefront copy",
     handle: "storefront-copy",
-    values: englishCopy,
+    values: englishFields,
     fieldKeys,
   });
   const binding = await ensureTranslationBinding({
@@ -214,8 +219,8 @@ export async function syncStorefrontCopyTranslation(
     shopifyResourceId: metaobject.id,
   });
   try {
-    await registerEditorialMetaobjectTranslation(metaobject.id, localizedCopy, locale.shopifyLocale);
-    await completeTarget(binding.id, localizedCopy, locale, actorUsername);
+    await registerEditorialMetaobjectTranslation(metaobject.id, localeFields, locale.shopifyLocale);
+    await completeTarget(binding.id, localeFields, locale, actorUsername);
     return [{ target: "METAOBJECT", status: "SUCCEEDED" }];
   } catch (error) {
     await recordTargetFailure(binding.id, error, locale, actorUsername);

@@ -190,7 +190,7 @@ export function AdminLocaleTabs({
     <div
       className={[
         "adm-locale-workspace-header",
-        embedded ? "adm-locale-workspace-header--embedded" : "",
+        embedded ? "adm-locale-workspace-header--embedded" : "adm-band",
         stacked ? "adm-locale-workspace-header--stacked" : "",
       ].filter(Boolean).join(" ")}
     >
@@ -198,7 +198,7 @@ export function AdminLocaleTabs({
       <div
         role="tablist"
         aria-label="Content language"
-        className={`flex w-full flex-wrap items-center gap-1.5 ${embedded ? "" : "pb-4"}`}
+        className={`flex w-full flex-wrap items-center gap-1.5 ${embedded ? "" : "pb-adm-band-y"}`}
       >
         <span className="adm-section-tag mr-1">LOCALE /</span>
         {locales.map((locale, index) => (

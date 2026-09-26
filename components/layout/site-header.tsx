@@ -32,7 +32,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
   const rawPathname = usePathname();
   const pathname = rawPathname.replace(/^\/(en|pt)(?=\/|$)/, "") || "/";
   const { resolvedTheme } = useTheme();
-  const { t, locale } = useTranslations();
+  const { t, plural, locale } = useTranslations();
   const reduceMotion = useReducedMotion() ?? false;
   const [cartCountOverride, setCartCountOverride] = useState<{
     count: number;
@@ -210,7 +210,11 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
 
           <Link
             href={localePath(locale, "/cart")}
-            aria-label={`${t("nav.cart")}${hasCartItems ? `, ${cartCount} items` : ""}`}
+            aria-label={
+              hasCartItems
+                ? plural("nav.cartWithCount", cartCount ?? 0)
+                : t("nav.cart")
+            }
             className={`relative inline-flex min-h-11 items-center gap-2 px-3 py-2 transition-[background-color,color,transform] hover:text-accent ${
               /* c8 ignore next 4 */
               isActive("/cart")

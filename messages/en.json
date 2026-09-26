@@ -5,6 +5,10 @@
     "collections": "Collections",
     "about": "About",
     "cart": "Cart",
+    "cartWithCount": {
+      "one": "Cart, {count} item",
+      "other": "Cart, {count} items"
+    },
     "login": "Login",
     "account": "My Account",
     "loginRegister": "Login / Register",
@@ -251,6 +255,8 @@
     "skip": "Skip to main content"
   },
   "cart": {
+    "metaTitle": "Cart | Synarava",
+    "metaDescription": "Review selected Synarava pieces before continuing to acquisition.",
     "emptyTitleLead": "Nothing selected",
     "emptyTitleAccent": "yet.",
     "emptyBody": "Explore the shop and find something that feels right for you.",
@@ -572,5 +578,20 @@
       "aboutLabel": "About us",
       "footerTitle": "Objects shaped slowly,\nkept for a lifetime."
     }
+  },
+  "loginPage": {
+    "metaTitle": "Login | Synarava",
+    "metaDescription": "Identify yourself to access your Synarava account.",
+    "eyebrow": "Customer account",
+    "title": "Return to your collection.",
+    "description": "Sign in securely with a one-time code sent to your email. No password required.",
+    "asideTitle": "Your pieces, remembered.",
+    "asideBody": "Account details are used only to support your orders and make future acquisitions easier.",
+    "panelEyebrow": "Secure access",
+    "panelTitle": "Access your account",
+    "submit": "Sign in or create account",
+    "note": "New customers are created automatically after email verification.",
+    "error": "We could not complete the sign-in. Please try again.",
+    "backToSite": "Back to site"
   }
 }

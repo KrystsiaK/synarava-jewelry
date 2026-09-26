@@ -62,7 +62,12 @@ export function AdminStatusBadge({
       data-component="AdminStatusBadge"
       data-tone={resolved}
       data-role={status ? "workflow-status" : undefined}
-      className={cn(TONE_CLASS[resolved], className)}
+      className={cn(
+        TONE_CLASS[resolved],
+        // Quiet pill over shouty small-caps (CSS .adm-badge still supplies tone colors).
+        "rounded-lg text-[0.75rem] font-medium tracking-normal normal-case",
+        className,
+      )}
       {...props}
     >
       {label}

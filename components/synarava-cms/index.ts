@@ -164,3 +164,7 @@ export {
 } from "@/components/admin/shared/ownership-label";
 
 export { FieldLabel } from "@/components/admin/shared/field-label";
+
+export { AdminModal, type AdminModalProps } from "@/components/admin/shared/admin-modal";
+
+export { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";

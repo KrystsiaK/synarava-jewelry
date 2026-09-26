@@ -605,10 +605,10 @@ export function EditProductForm({
                   type="button"
                   onClick={() => setDeleteOpen(true)}
                   disabled={isPending}
-                  className="adm-btn-danger grid size-12 place-items-center p-0"
+                  className="adm-btn-danger adm-icon-btn"
                   aria-label="Delete product"
                 >
-                  <Trash2 className="size-7" strokeWidth={2.75} aria-hidden="true" />
+                  <Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
                 </button>
               </Tooltip>
               <SaveButtons iconOnly onOpenConfirm={requestSave} pending={isPending} />

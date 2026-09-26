@@ -17,7 +17,7 @@ describe("AdminPanel", () => {
     const root = screen.getByText("Locale band").closest("[data-component='TestPanel']");
     expect(root).toHaveClass("adm-panel");
     expect(root).toHaveStyle({
-      "--adm-panel-radius": "0.75rem",
+      "--adm-panel-radius": "0.875rem",
       "--adm-panel-sticky-above": "5.5rem",
     });
 

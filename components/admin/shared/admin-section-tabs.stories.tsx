@@ -6,21 +6,21 @@ import {
   AdminSectionTabs,
   type AdminSectionTabGroup,
   type AdminSectionTabItem,
-} from "@/components/synarava-cms";
+} from "@/components/admin/shared/admin-section-tabs";
 
 const GROUPS: AdminSectionTabGroup[] = [
-  { id: "shopify", label: "Shopify" },
-  { id: "synarava", label: "Synarava" },
+  { id: "shopify", label: "Shopify", compactLabel: "Shop" },
+  { id: "synarava", label: "Synarava", compactLabel: "Syn" },
 ];
 
 const ALL_ITEMS: AdminSectionTabItem[] = [
-  { id: "essentials", label: "Essentials", detail: "Sellable product", icon: PackageSearch, group: "shopify" },
-  { id: "price", label: "Price", detail: "Sell & tax", icon: CircleDollarSign, group: "shopify" },
-  { id: "catalog", label: "Catalog", detail: "Placement & filters", icon: Shapes, tone: "issue", dirty: true, group: "shopify" },
-  { id: "content", label: "Content", detail: "Copy & search", icon: FileText, group: "shopify" },
-  { id: "media", label: "Media", detail: "Gallery & cover", icon: Images, tone: "conflict", group: "shopify" },
-  { id: "shopify", label: "Sync", detail: "Push, pull & snapshot", icon: Store, group: "shopify" },
-  { id: "details", label: "Product page", detail: "Materials & craft", icon: Gem, group: "synarava" },
+  { id: "essentials", label: "Essentials", stripLabel: "Product", detail: "Sellable product", icon: PackageSearch, group: "shopify" },
+  { id: "price", label: "Price", stripLabel: "Price", detail: "Sell & tax", icon: CircleDollarSign, group: "shopify" },
+  { id: "catalog", label: "Catalog", stripLabel: "Catalog", detail: "Placement & filters", icon: Shapes, tone: "issue", dirty: true, group: "shopify" },
+  { id: "content", label: "Content", stripLabel: "Content", detail: "Copy & search", icon: FileText, group: "shopify" },
+  { id: "media", label: "Media", stripLabel: "Media", detail: "Gallery & cover", icon: Images, tone: "conflict", group: "shopify" },
+  { id: "shopify", label: "Sync", stripLabel: "Sync", detail: "Push, pull & snapshot", icon: Store, group: "shopify" },
+  { id: "details", label: "Product page", stripLabel: "Page", detail: "Materials & craft", icon: Gem, group: "synarava" },
 ];
 
 const meta = {

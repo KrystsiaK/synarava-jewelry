@@ -68,6 +68,7 @@ legal/service page sections are add/remove/reorder with editable names.
   индикатор открытых проблем (issues) со ссылкой, индикатор «Live CMS».
   Topbar зафиксирован сверху при прокрутке.
 - **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Shared`,
+  `Cart & account`,
   `Meta`, `Videos`, `Catalog`, `Shopify Products`, `Problems`, `Collections`, `Localization`,
   `Infrastructure`, `Account`) и
   счётчик открытых проблем рядом с соответствующим пунктом.
@@ -434,9 +435,10 @@ legacy cover, пока не загружены изображения галер
 - **Footer — contact emails:** ordered list of mailto addresses
   (`footer-contact-v1`). The first email is the primary shared contact CTA
   target. Shared across languages.
-- **Chrome & footer labels:** cart/account, brand, column headings, contact aria
+- **Chrome & footer labels:** menu controls, brand, column headings, contact aria
   label, and contact-CTA copy (EN and other registered locales). Empty field =
-  default from `messages/*.json`. Stored in `storefront-copy-v1`.
+  default from `messages/*.json`. Stored in `storefront-copy-v1`. Cart and
+  account labels are edited under **Cart & account**, not here.
 - **Shared — contact CTA:** title, body, and button label for the banner on Care,
   FAQ, Shipping, Returns, and Dispute Resolution (`service.contactTitle` /
   `contactBody` / `contactCta`). One banner for all those pages — not per-slug.
@@ -450,7 +452,32 @@ legacy cover, пока не загружены изображения галер
   **Pages**, не здесь (кроме общего contact CTA выше).
 - Chrome/footer/contact-CTA/cookie translations sync to Shopify metaobject `$app:storefront_copy`;
   header/footer link labels and contact emails are local (no Shopify `MENU`/`LINK`
-  binding yet). Conflicts for synced fields show under **Localization**.
+  binding yet). Cart, account, and login labels moved to **Cart & account**
+  and are not part of this sync. Conflicts for synced fields show under **Localization**.
+
+## 7a-2. Cart & account (`/admin/commerce`)
+
+One screen for the storefront surfaces we render ourselves around an order:
+
+- **Header — cart & account:** cart and login/account labels in the header and
+  mobile menu (`nav.cart`, `nav.login`, `nav.account`, `nav.loginRegister`,
+  plus the screen-reader count). Menu open/close stays in Shared.
+- **Cart:** `/cart` — titles, empty state, line controls, summary, the checkout
+  button, and the note that delivery and payment happen on Shopify.
+- **Add to cart & checkout:** the product button and the confirmation that
+  links to the cart or to checkout.
+- **Login:** `/login` before Shopify Customer Account. The sign-in itself is a
+  one-time email code on Shopify. There is no password form here.
+
+Empty fields fall back to `messages/*.json`. Saved overrides live in
+`SiteSetting` `commerce-copy-v1` and override the dictionary the same way Shared
+does (locale tabs, one panel at a time). This copy is **not** synced to Shopify.
+Checkout address, shipping rates, payment, and the customer-account code screen
+are Shopify-hosted and are not edited here.
+
+Header cart/account labels that were previously saved under Shared stay visible
+until the first save on this screen, which copies them into `commerce-copy-v1`
+and clears them from `storefront-copy-v1`.
 
 ## 7b. Meta (`/admin/meta`)
 

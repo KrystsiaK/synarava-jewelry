@@ -71,11 +71,11 @@ function Row({
     <div
       role="row"
       className={cn(
-        "grid min-w-0 gap-2 px-2 py-2 transition-colors xl:items-center",
+        "grid min-w-0 gap-2 rounded-lg border border-transparent bg-[color-mix(in_srgb,var(--adm-panel-elevated)_88%,transparent)] px-2.5 py-2 transition-colors xl:items-center",
+        "hover:bg-[var(--adm-accent-soft)] aria-selected:bg-[var(--adm-accent-soft)] data-[active=true]:bg-[var(--adm-accent-soft)]",
         gridClassName,
         className,
       )}
-      style={{ border: "1px solid var(--adm-border)" }}
       {...props}
     >
       {children}

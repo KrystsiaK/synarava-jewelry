@@ -160,7 +160,7 @@ export function AdminOrderedList<T>({
             <li
               key={getKey(item, index)}
               className={cn(
-                "adm-ordered-list__row",
+                "adm-ordered-list__row rounded-lg",
                 !showItemControls && "adm-ordered-list__row--solo",
               )}
             >

@@ -307,25 +307,25 @@ export function AdminHrefControl({
           id={resultListId}
           role="listbox"
           className={cn(
-            "adm-popover absolute left-0 right-0 top-full mt-1 max-h-80 overflow-auto border border-[var(--adm-border-strong)] bg-[var(--adm-bg)] shadow-lg",
+            "adm-popover absolute left-0 right-0 top-full mt-1 max-h-64 overflow-auto rounded-[8px] border border-[var(--adm-border-strong)] bg-[var(--adm-bg)]",
           )}
         >
           {pending && !flatHits.length ? (
-            <p className="px-3 py-2 text-xs text-[var(--adm-muted)]" aria-live="polite">
+            <p className="px-3 py-1.5 text-xs text-[var(--adm-muted)]" aria-live="polite">
               Searching…
             </p>
           ) : null}
           {searchError ? (
-            <p id={searchErrorId} className="px-3 py-2 text-xs text-[var(--adm-danger)]" role="alert">
+            <p id={searchErrorId} className="px-3 py-1.5 text-xs text-[var(--adm-danger)]" role="alert">
               {searchError}
             </p>
           ) : null}
           {!pending && !searchError && !flatHits.length ? (
-            <p className="px-3 py-2 text-xs text-[var(--adm-muted)]">No matching paths.</p>
+            <p className="px-3 py-1.5 text-xs text-[var(--adm-muted)]">No matching paths.</p>
           ) : null}
           {indexedSegments.map((segment) => (
             <div key={segment.id} role="group" aria-label={segment.label}>
-              <div className="sticky top-0 border-b border-[var(--adm-border)] bg-[var(--adm-bg-soft)] px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--adm-muted)]">
+              <div className="sticky top-0 border-b border-[var(--adm-border)] bg-[var(--adm-bg-soft)] px-3 py-1 text-xs font-medium text-[var(--adm-muted)]">
                 {segment.label}
               </div>
               {segment.hits.map(({ hit, index }) => {
@@ -338,7 +338,7 @@ export function AdminHrefControl({
                     role="option"
                     aria-selected={active || hit.href === href}
                     className={cn(
-                      "flex w-full items-baseline justify-between gap-3 border-b border-[var(--adm-border)] px-3 py-2.5 text-left text-sm last:border-b-0",
+                      "flex w-full items-baseline justify-between gap-3 border-b border-[var(--adm-border)] px-3 py-2 text-left text-sm last:border-b-0",
                       active ? "bg-[var(--adm-bg-soft)]" : "hover:bg-[var(--adm-bg-soft)]",
                     )}
                     onMouseEnter={() => setActiveIndex(index)}

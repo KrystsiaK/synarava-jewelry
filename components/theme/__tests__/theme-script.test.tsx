@@ -1,16 +1,42 @@
+import type { ReactNode } from "react";
 import { render } from "@testing-library/react";
 import { getThemeScript, ThemeScript } from "../theme-script";
 
+const { callbacks } = vi.hoisted(() => ({
+  callbacks: [] as Array<() => ReactNode>,
+}));
+
+vi.mock("next/navigation", () => ({
+  useServerInsertedHTML: (callback: () => ReactNode) => {
+    callbacks.push(callback);
+  },
+}));
+
+function insertedScript() {
+  const node = callbacks.at(-1)?.();
+  if (!node || typeof node !== "object" || !("props" in node)) {
+    throw new Error("ThemeScript did not register a head script");
+  }
+  return node;
+}
+
 describe("ThemeScript", () => {
-  it("renders without crashing", () => {
-    // dangerouslySetInnerHTML with scripts is intentionally not executed by React in tests
-    expect(() => render(<ThemeScript initialPreference="light" />)).not.toThrow();
+  beforeEach(() => {
+    callbacks.length = 0;
+  });
+
+  it("registers a blocking head script instead of rendering one", () => {
+    const { container } = render(<ThemeScript initialPreference="light" />);
+    expect(container.querySelector("script")).toBeNull();
+    expect(insertedScript().type).toBe("script");
   });
 
   it("forwards the CSP nonce to the inline script", () => {
-    const element = ThemeScript({ initialPreference: "light", nonce: "test-nonce" });
-    expect(element.type).toBe("script");
-    expect(element.props).toMatchObject({ nonce: "test-nonce", suppressHydrationWarning: true });
+    render(<ThemeScript initialPreference="light" nonce="test-nonce" />);
+    expect(insertedScript().props).toMatchObject({
+      id: "theme-initializer-script",
+      nonce: "test-nonce",
+    });
   });
 
   it("generated script contains the initial preference", () => {

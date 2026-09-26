@@ -95,9 +95,12 @@ export function AdminSignalChip({
   className,
 }: AdminSignalChipProps) {
   const styles = TONE_STYLE[tone];
+  const pressable = Boolean(onClick || href);
   const sharedClass = cn(
-    "inline-flex h-7 max-w-full items-center gap-1 rounded-md border px-1.5 text-[0.62rem] font-bold uppercase tracking-[0.04em]",
-    onClick || href ? "cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-accent)]" : "cursor-default",
+    "inline-flex h-7 max-w-full items-center gap-1 rounded-lg border px-1.5 text-[0.75rem] font-medium tracking-normal",
+    pressable
+      ? "adm-sort-chip cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-accent)]"
+      : "cursor-default",
     className,
   );
   const sharedStyle = { color: styles.color, borderColor: styles.border, background: styles.bg };

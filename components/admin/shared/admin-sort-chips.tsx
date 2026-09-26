@@ -61,7 +61,7 @@ export function AdminSortChips<T extends string>({
             aria-pressed={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex min-h-8 items-center rounded-md border px-2 py-1 text-[0.68rem] font-semibold transition-colors",
+              "adm-sort-chip inline-flex min-h-8 items-center rounded-lg border px-2.5 py-1 text-[0.75rem] font-medium",
               active ? "border-transparent text-[var(--adm-panel)]" : "bg-transparent",
             )}
             style={

@@ -23,6 +23,8 @@ import {
   filterLiveHeaderNav,
 } from "@/lib/content/storefront-link-health";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
+import { getCommerceCopy } from "@/lib/content/commerce-copy";
+import { mergeLocaleOverrides } from "@/lib/i18n/utils";
 import { getSiteSeo } from "@/lib/content/site-seo";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
@@ -143,13 +145,14 @@ export default async function RootLayout({
     storefrontRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ROOT_DOMAIN,
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
-  const [cartCount, isLoggedIn, storefrontCopy, headerNavRaw, footerLinksRaw, contactEmails] =
+  const [cartCount, isLoggedIn, storefrontCopy, commerceCopy, headerNavRaw, footerLinksRaw, contactEmails] =
     await Promise.all([
     // An unreachable/slow Shopify Storefront API must not block rendering of the
     // whole app (admin included) for a header badge that isn't essential to any page.
     getStorefrontCartCount().catch(() => null),
     hasShopifyCustomerSession(),
     getStorefrontCopy(),
+    getCommerceCopy(),
     getHeaderNav(),
     getFooterLinks(),
     getFooterContactEmails(),
@@ -182,7 +185,7 @@ export default async function RootLayout({
         <a href="#main-content" className="skip-link">
           {t("a11y.skip")}
         </a>
-        <TranslationProvider initialLocale={initialLocale} initialOverrides={storefrontCopy} availableLocales={availableLocales}>
+        <TranslationProvider initialLocale={initialLocale} initialOverrides={mergeLocaleOverrides(storefrontCopy, commerceCopy)} availableLocales={availableLocales}>
           <PrivacyConsentManager
             initialConsent={cookieStore.get(PRIVACY_CONSENT_COOKIE)?.value}
             shopifyConfig={shopifyPrivacyEnabled ? {

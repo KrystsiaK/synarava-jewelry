@@ -73,7 +73,10 @@ export function AdminCollapsiblePanel({
       className={cn("adm-field-unit adm-collapse-root", className)}
     >
       <div
-        className={cn("adm-collapse", tone === "warning" && "adm-collapse--warning")}
+        className={cn(
+          "adm-collapse rounded-[12px]",
+          tone === "warning" && "adm-collapse--warning",
+        )}
         data-open={open ? "true" : "false"}
       >
         <div className="adm-collapse__header">

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("@/lib/content/storefront-copy", () => ({ getStorefrontCopy: mocks.getStorefrontCopy }));
+vi.mock("@/lib/content/commerce-copy", () => ({ getCommerceCopy: vi.fn(async () => ({})) }));
 
 beforeEach(() => {
   mocks.headers.mockResolvedValue(new Headers({ "x-locale": "ru" }));

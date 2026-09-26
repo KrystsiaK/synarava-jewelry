@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, PackageSearch, Shapes } from "lucide-react";
 import { useState } from "react";
@@ -56,4 +56,57 @@ describe("AdminSectionTabs", () => {
     await user.keyboard("{Home}");
     expect(screen.getByRole("tab", { name: /Essentials/ })).toHaveAttribute("aria-selected", "true");
   });
+
+  it("pans on a horizontal touch and does not activate the tab under the finger", () => {
+    render(<Harness />);
+    const scroller = document.querySelector(".adm-section-tabs__scroller");
+    expect(scroller).toBeInstanceOf(HTMLElement);
+    if (!(scroller instanceof HTMLElement)) return;
+
+    Object.defineProperty(scroller, "scrollWidth", { configurable: true, value: 800 });
+    Object.defineProperty(scroller, "clientWidth", { configurable: true, value: 200 });
+
+    scroller.dispatchEvent(touch("touchstart", 120, 20));
+    const move = touch("touchmove", 40, 22);
+    scroller.dispatchEvent(move);
+    scroller.dispatchEvent(touch("touchend", 40, 22));
+
+    expect(move.defaultPrevented).toBe(true);
+    expect(scroller.scrollLeft).toBeGreaterThan(0);
+
+    const tab = scroller.querySelector("#adm-section-tab-c");
+    expect(tab).toBeInstanceOf(HTMLElement);
+    if (tab instanceof HTMLElement) fireEvent.click(tab);
+    expect(screen.getByRole("tab", { name: /Essentials/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("leaves vertical touches to the page so a tap still changes tabs", () => {
+    render(<Harness />);
+    const scroller = document.querySelector(".adm-section-tabs__scroller");
+    expect(scroller).toBeInstanceOf(HTMLElement);
+    if (!(scroller instanceof HTMLElement)) return;
+
+    Object.defineProperty(scroller, "scrollWidth", { configurable: true, value: 800 });
+    Object.defineProperty(scroller, "clientWidth", { configurable: true, value: 200 });
+
+    scroller.dispatchEvent(touch("touchstart", 40, 10));
+    const move = touch("touchmove", 42, 80);
+    scroller.dispatchEvent(move);
+    scroller.dispatchEvent(touch("touchend", 42, 80));
+
+    expect(move.defaultPrevented).toBe(false);
+    const tab = scroller.querySelector("#adm-section-tab-c");
+    expect(tab).toBeInstanceOf(HTMLElement);
+    if (tab instanceof HTMLElement) fireEvent.click(tab);
+    expect(screen.getByRole("tab", { name: /Content/ })).toHaveAttribute("aria-selected", "true");
+  });
 });
+
+function touch(type: string, x: number, y: number) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  const point = { clientX: x, clientY: y, identifier: 1 };
+  Object.defineProperty(event, "touches", {
+    value: type === "touchend" || type === "touchcancel" ? [] : [point],
+  });
+  return event;
+}

@@ -65,7 +65,7 @@ export function AdminIconButton({
     <span className="relative inline-flex shrink-0">
       {button}
       <span
-        className="pointer-events-none absolute -right-1 -top-1 grid min-w-[1rem] place-items-center rounded-full px-1 text-[0.58rem] font-bold leading-4 text-[var(--adm-panel)]"
+        className="pointer-events-none absolute -right-1 -top-1 grid min-w-[1rem] place-items-center rounded-full px-1 text-[0.58rem] font-semibold leading-4 tracking-[0.01em] text-[var(--adm-panel)]"
         style={{
           background:
             tone === "danger"

@@ -16,6 +16,8 @@ type AnimatedModalProps = {
   ariaLabelledBy?: string;
   zIndexClassName?: string;
   backdropZIndexClassName?: string;
+  /** storefront uses `.t-modal`. admin uses `.adm-modal` and does not touch storefront timing. */
+  chrome?: "storefront" | "admin";
 };
 
 let nextModalId = 0;
@@ -68,6 +70,7 @@ export function AnimatedModal({
   ariaLabelledBy,
   zIndexClassName = "z-50",
   backdropZIndexClassName = "z-40",
+  chrome = "storefront",
 }: AnimatedModalProps) {
   const [mounted, setMounted] = useState(open);
   const [visuallyOpen, setVisuallyOpen] = useState(false);
@@ -93,13 +96,16 @@ export function AnimatedModal({
 
     if (!mounted) return;
     setVisuallyOpen(false);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const closeDuration =
-      variant === "sheet"
-        ? transitionDuration("--panel-close-dur", 350)
-        : transitionDuration("--modal-close-dur", 150);
+      chrome === "admin"
+        ? (reducedMotion ? 160 : 400)
+        : variant === "sheet"
+          ? transitionDuration("--panel-close-dur", 350)
+          : transitionDuration("--modal-close-dur", 150);
     const timer = window.setTimeout(() => setMounted(false), closeDuration);
     return () => window.clearTimeout(timer);
-  }, [mounted, open, variant]);
+  }, [chrome, mounted, open, variant]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -164,12 +170,12 @@ export function AnimatedModal({
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       className={cn(
-        variant === "sheet" ? "t-panel-slide" : "t-modal",
-        variant === "modal" && visuallyOpen && "is-open",
-        variant === "modal" && !open && "is-closing",
+        chrome === "admin" ? "adm-modal" : variant === "sheet" ? "t-panel-slide" : "t-modal",
+        chrome !== "admin" && variant === "modal" && visuallyOpen && "is-open",
+        chrome !== "admin" && variant === "modal" && !open && "is-closing",
         className,
       )}
-      data-open={variant === "sheet" ? String(visuallyOpen) : undefined}
+      data-open={chrome === "admin" || variant === "sheet" ? String(visuallyOpen) : undefined}
     >
       {children}
     </div>

@@ -62,7 +62,7 @@ export function AdminSmartTopbar({ children }: { children: ReactNode }) {
 
   return (
     <div data-component="AdminSmartTopbar"
-      className="adm-topbar shrink-0 flex items-center justify-between gap-4 border-b px-4 py-3 md:px-5"
+      className="adm-topbar adm-band shrink-0 flex items-center justify-between gap-4 border-b"
       data-scrolled={hasScrolled ? "true" : "false"}
     >
       {children}
@@ -218,7 +218,7 @@ export function AdminMobileMenu({
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div
-              className="mb-5 flex items-start justify-between gap-4 border-b pb-4"
+              className="adm-band mb-5 items-start justify-between gap-4 border-b"
               style={{ borderColor: "var(--adm-border)" }}
             >
               <div>
@@ -247,7 +247,7 @@ export function AdminMobileMenu({
 
             {footer ? (
               <div
-                className="mt-auto border-t pt-5"
+                className="adm-band mt-auto border-t"
                 style={{ borderColor: "var(--adm-border)" }}
               >
                 {footer}

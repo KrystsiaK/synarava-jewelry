@@ -124,7 +124,7 @@ export function ImageFileField({
               <Tooltip content="Clear selected image">
                 <button
                   type="button"
-                  className="adm-btn-ghost h-8 min-h-8 px-2"
+                  className="adm-btn-ghost adm-icon-btn"
                   aria-label="Clear selected image"
                   onClick={clearSelectedFile}
                 >
@@ -177,7 +177,7 @@ export function ImageFileField({
             <div className="flex items-center gap-2">
               {currentImageBroken ? (
                 <span
-                  className="text-[0.62rem] font-bold uppercase tracking-[0.08em]"
+                  className="text-xs font-medium"
                   style={{ color: "var(--adm-danger)" }}
                 >
                   Broken
@@ -198,7 +198,7 @@ export function ImageFileField({
             <div
               className={[
                 previewClass,
-                "grid place-items-center p-4 text-center text-xs font-bold uppercase tracking-[0.08em]",
+                "grid place-items-center rounded-[8px] p-4 text-center text-xs font-medium",
               ].join(" ")}
               style={{
                 background: "rgba(216, 182, 106, 0.08)",
@@ -211,7 +211,7 @@ export function ImageFileField({
             <div
               className={[
                 previewClass,
-                "grid place-items-center p-4 text-center text-xs font-bold uppercase tracking-[0.08em]",
+                "grid place-items-center rounded-[8px] p-4 text-center text-xs font-medium",
               ].join(" ")}
               style={{
                 background: "rgba(255, 93, 93, 0.08)",

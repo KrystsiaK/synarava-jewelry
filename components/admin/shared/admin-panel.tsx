@@ -4,13 +4,14 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/lib/ui";
 
-const DEFAULT_RADIUS = "0.75rem";
+/** Apple sheet radius band (~12–14px). */
+const DEFAULT_RADIUS = "0.875rem";
 
 export type AdminPanelRootProps = {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
-  /** Corner radius. Default `0.75rem` (Tailwind `rounded-xl`). */
+  /** Corner radius. Default `0.875rem` (~14px, Apple sheet band). */
   radius?: string;
   /**
    * Height of sticky chrome ABOVE this panel (CSS length or `var(...)`).

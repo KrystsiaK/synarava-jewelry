@@ -15,8 +15,12 @@ export function AdminErrorState({
   onReload: () => void;
 }) {
   return (
-    <div className="mx-auto grid min-h-[70vh] max-w-2xl place-items-center px-4 py-12">
-      <section className="adm-panel w-full p-6 sm:p-8" role="alert" aria-labelledby="admin-error-title">
+    <div className="mx-auto grid min-h-[70vh] max-w-2xl place-items-center px-adm-inset py-12">
+      <section
+        className="adm-panel w-full rounded-[14px] p-6 shadow-[var(--adm-shadow)] sm:p-8"
+        role="alert"
+        aria-labelledby="admin-error-title"
+      >
         <AlertTriangle aria-hidden="true" className="size-7" style={{ color: "var(--adm-accent)" }} />
         <p className="adm-section-tag mt-6">[ RECOVERY ]</p>
         <h1 id="admin-error-title" className="adm-page-title mt-3">
@@ -29,11 +33,15 @@ export function AdminErrorState({
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           {!staleDeployment ? (
-            <button type="button" className="adm-btn" onClick={onRetry}>
+            <button type="button" className="adm-btn-primary" onClick={onRetry}>
               Try again
             </button>
           ) : null}
-          <button type="button" className={staleDeployment ? "adm-btn" : "adm-btn-ghost"} onClick={onReload}>
+          <button
+            type="button"
+            className={staleDeployment ? "adm-btn-primary" : "adm-btn-ghost"}
+            onClick={onReload}
+          >
             Reload latest version
           </button>
         </div>

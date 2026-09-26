@@ -5,8 +5,9 @@ import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 import { normalizeLocale, type Locale } from "./locales";
-import { flattenMessages } from "./utils";
+import { flattenMessages, mergeLocaleOverrides } from "./utils";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
+import { getCommerceCopy } from "@/lib/content/commerce-copy";
 
 type Values = Record<string, string | number>;
 
@@ -35,7 +36,8 @@ export async function getRequestLocale() {
 
 export async function getServerTranslations() {
   const locale = await getRequestLocale();
-  const overrides = await getStorefrontCopy();
+  const [storefrontCopy, commerceCopy] = await Promise.all([getStorefrontCopy(), getCommerceCopy()]);
+  const overrides = mergeLocaleOverrides(storefrontCopy, commerceCopy);
   const messages = { ...dictionaries[locale], ...overrides[locale] };
   const fallback = enDictionary;
   const interpolate = (message: string, values?: Values) => values

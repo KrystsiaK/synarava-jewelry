@@ -42,16 +42,16 @@ export function SaveButtons({
       disabled={pending}
       className={
         iconOnly
-          ? "adm-btn-ghost grid size-12 place-items-center p-0"
+          ? "adm-btn-ghost adm-icon-btn"
           : "adm-btn-primary"
       }
       aria-label={pending ? "Saving product" : "Save product"}
     >
       {iconOnly ? (
         pending ? (
-          <RefreshCw className="size-7 animate-spin" strokeWidth={2.75} aria-hidden="true" />
+          <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
         ) : (
-          <HardDriveUpload className="size-7" strokeWidth={2.75} aria-hidden="true" />
+          <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
         )
       ) : pending ? (
         "Saving..."

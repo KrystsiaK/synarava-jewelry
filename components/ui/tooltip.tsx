@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactElement,
   type ReactNode,
@@ -30,10 +31,14 @@ import { cn } from "@/lib/ui";
 type TooltipTriggerProps = {
   "aria-describedby"?: string;
   onBlur?: (event: ReactFocusEvent<HTMLElement>) => void;
+  onClick?: (event: ReactMouseEvent<HTMLElement>) => void;
   onFocus?: (event: ReactFocusEvent<HTMLElement>) => void;
   onKeyDown?: (event: ReactKeyboardEvent<HTMLElement>) => void;
+  onPointerCancel?: (event: ReactPointerEvent<HTMLElement>) => void;
+  onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerEnter?: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerLeave?: (event: ReactPointerEvent<HTMLElement>) => void;
+  onPointerUp?: (event: ReactPointerEvent<HTMLElement>) => void;
   ref?: Ref<HTMLElement>;
 };
 
@@ -48,6 +53,21 @@ export type TooltipProps = {
 };
 
 const OPEN_EVENT = "synarava:tooltip-open";
+/** After one help tag, the next opens at once — scanning a row should not re-wait. */
+const WARM_MS = 480;
+let warmUntil = 0;
+
+function noteWarm() {
+  warmUntil = Date.now() + WARM_MS;
+}
+
+function isWarm() {
+  return Date.now() < warmUntil;
+}
+
+export function resetTooltipWarmth() {
+  warmUntil = 0;
+}
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
   if (typeof ref === "function") ref(value);
@@ -70,6 +90,9 @@ export function Tooltip({
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frameRef = useRef(0);
+  const touchArmedRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const openRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
@@ -89,14 +112,17 @@ export function Tooltip({
     openTimerRef.current = null;
     closeTimerRef.current = null;
     const commit = () => {
+      if (touchArmedRef.current) suppressClickRef.current = true;
       window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: instanceId }));
       setPortalTarget(
         triggerRef.current?.closest<HTMLElement>(".admin-terminal, .admin-modal-root") ?? document.body,
       );
       setPosition(null);
+      openRef.current = true;
       setOpen(true);
+      noteWarm();
     };
-    if (immediate || delay === 0) commit();
+    if (immediate || delay === 0 || isWarm()) commit();
     else openTimerRef.current = setTimeout(commit, delay);
   }, [content, delay, instanceId]);
 
@@ -106,13 +132,17 @@ export function Tooltip({
     openTimerRef.current = null;
     if (immediate) {
       closeTimerRef.current = null;
+      openRef.current = false;
       setPosition(null);
       setOpen(false);
+      noteWarm();
     } else {
       closeTimerRef.current = setTimeout(() => {
         closeTimerRef.current = null;
+        openRef.current = false;
         setPosition(null);
         setOpen(false);
+        noteWarm();
       }, 80);
     }
   }, []);
@@ -167,6 +197,7 @@ export function Tooltip({
   useEffect(() => {
     const closeOtherTooltip = (event: Event) => {
       if ((event as CustomEvent<string>).detail !== instanceId) {
+        openRef.current = false;
         setPosition(null);
         setOpen(false);
       }
@@ -177,18 +208,26 @@ export function Tooltip({
 
   useEffect(() => {
     if (!open) return;
+    const dismissFromOutside = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (triggerRef.current?.contains(target) || floatingRef.current?.contains(target)) return;
+      hide(true);
+    };
     window.addEventListener("resize", schedulePositionUpdate);
     window.addEventListener("scroll", schedulePositionUpdate, { capture: true, passive: true });
+    document.addEventListener("pointerdown", dismissFromOutside);
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedulePositionUpdate);
     if (triggerRef.current) observer?.observe(triggerRef.current);
     if (floatingRef.current) observer?.observe(floatingRef.current);
     return () => {
       window.removeEventListener("resize", schedulePositionUpdate);
       window.removeEventListener("scroll", schedulePositionUpdate, { capture: true });
+      document.removeEventListener("pointerdown", dismissFromOutside);
       observer?.disconnect();
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-  }, [open, schedulePositionUpdate]);
+  }, [hide, open, schedulePositionUpdate]);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
@@ -202,6 +241,16 @@ export function Tooltip({
       trigger.props.onBlur?.(event);
       hide();
     },
+    onClick: (event) => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        touchArmedRef.current = false;
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      trigger.props.onClick?.(event);
+    },
     onFocus: (event) => {
       trigger.props.onFocus?.(event);
       show(true);
@@ -210,13 +259,31 @@ export function Tooltip({
       trigger.props.onKeyDown?.(event);
       if (event.key === "Escape") hide(true);
     },
+    onPointerCancel: (event) => {
+      trigger.props.onPointerCancel?.(event);
+      touchArmedRef.current = false;
+      hide(true);
+    },
+    onPointerDown: (event) => {
+      trigger.props.onPointerDown?.(event);
+      if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+      touchArmedRef.current = true;
+      show();
+    },
     onPointerEnter: (event) => {
       trigger.props.onPointerEnter?.(event);
       if (event.pointerType !== "touch") show();
     },
     onPointerLeave: (event) => {
       trigger.props.onPointerLeave?.(event);
+      if (event.pointerType === "touch") return;
       hide();
+    },
+    onPointerUp: (event) => {
+      trigger.props.onPointerUp?.(event);
+      if (event.pointerType !== "touch" || openRef.current) return;
+      touchArmedRef.current = false;
+      hide(true);
     },
     ref: (node: HTMLElement | null) => {
       triggerRef.current = node;

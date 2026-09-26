@@ -19,12 +19,12 @@ function conflictCount(
   return productConflictBadgeCount(scoped.products[viewScope.productId], { commerceFieldCount });
 }
 
-/** Same chrome as `.adm-btn-ghost` icon square — 1px border, 8px radius. */
+/** Same square as `.adm-icon-btn` (2rem). Glyph stays ~14px so it doesn't fill the control. */
 const iconBtn =
-  "adm-btn-ghost grid size-12 shrink-0 place-items-center p-0 disabled:opacity-60";
+  "adm-btn-ghost adm-icon-btn shrink-0 disabled:opacity-60";
 
-const ICON_STROKE = 2.75;
-const ICON_SIZE = "size-7";
+const ICON_STROKE = 2;
+const ICON_SIZE = "size-3.5";
 
 /**
  * Compact catalog-conflict entry for the product editor.

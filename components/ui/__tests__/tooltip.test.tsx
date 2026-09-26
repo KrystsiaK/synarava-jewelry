@@ -1,9 +1,71 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { Tooltip } from "@/components/ui/tooltip";
+import { resetTooltipWarmth, Tooltip } from "@/components/ui/tooltip";
 
 describe("Tooltip", () => {
+  it("waits out the rest delay, then opens the next tag immediately", () => {
+    vi.useFakeTimers();
+    resetTooltipWarmth();
+    render(
+      <>
+        <Tooltip content="First hint" delay={500}>
+          <button type="button">One</button>
+        </Tooltip>
+        <Tooltip content="Second hint" delay={500}>
+          <button type="button">Two</button>
+        </Tooltip>
+      </>,
+    );
+
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "One" }), { pointerType: "mouse" });
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(300); });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("First hint");
+
+    fireEvent.pointerLeave(screen.getByRole("button", { name: "One" }), { pointerType: "mouse" });
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "Two" }), { pointerType: "mouse" });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Second hint");
+
+    vi.useRealTimers();
+    resetTooltipWarmth();
+  });
+
+  it("shows a touch hold without activating the button", () => {
+    resetTooltipWarmth();
+    const onClick = vi.fn();
+    render(
+      <Tooltip content="Hold hint" delay={0}>
+        <button type="button" onClick={onClick}>Hold</button>
+      </Tooltip>,
+    );
+    const trigger = screen.getByRole("button", { name: "Hold" });
+    const touch = (type: string) => {
+      const event = new MouseEvent(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "pointerType", { value: "touch" });
+      trigger.dispatchEvent(event);
+    };
+
+    act(() => { touch("pointerdown"); });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Hold hint");
+    act(() => { touch("pointerup"); });
+    fireEvent.click(trigger);
+    expect(onClick).not.toHaveBeenCalled();
+    resetTooltipWarmth();
+  });
+
+  it("still runs a short tap", () => {
+    const onClick = vi.fn();
+    render(
+      <Tooltip content="Hint" delay={400}>
+        <button type="button" onClick={onClick}>Tap</button>
+      </Tooltip>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Tap" }));
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
   it("describes the trigger and opens on keyboard focus", () => {
     render(
       <Tooltip content="Explains this action" delay={0}>

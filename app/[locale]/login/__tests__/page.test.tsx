@@ -6,6 +6,14 @@ vi.mock("next/headers", () => ({
   })),
 }));
 
+vi.mock("@/lib/content/storefront-copy", () => ({
+  getStorefrontCopy: vi.fn(async () => ({})),
+}));
+
+vi.mock("@/lib/content/commerce-copy", () => ({
+  getCommerceCopy: vi.fn(async () => ({})),
+}));
+
 import LoginPage from "../page";
 
 describe("LoginPage", () => {

@@ -54,6 +54,7 @@ describe("admin-nav-config", () => {
 
     const pages = items.find((item) => item.id === "pages");
     const settings = items.find((item) => item.id === "settings");
+    const commerce = items.find((item) => item.id === "commerce");
     const catalog = items.find((item) => item.id === "products");
     const shopifyProducts = items.find((item) => item.id === "shopify-products");
     const collections = items.find((item) => item.id === "collections");
@@ -68,6 +69,9 @@ describe("admin-nav-config", () => {
       true,
     );
     expect(settings?.badge).toEqual({ kind: "sync", count: 1 });
+    expect(commerce).toMatchObject({ href: "/admin/commerce", label: "Cart & account", code: "BAG" });
+    expect(commerce?.children?.some((child) => child.href.includes("#commerce-cart"))).toBe(true);
+    expect(commerce?.badge).toBeUndefined();
     expect(catalog?.children).toBeUndefined();
     expect(catalog?.badge).toEqual({ kind: "sync", count: 5 });
     expect(shopifyProducts).toMatchObject({

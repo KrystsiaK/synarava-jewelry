@@ -7,6 +7,8 @@
 // Footer service / legal / socials links → footer-links-v1.
 // Contact emails → footer-contact-v1.
 // Remaining groups are labels only (headings, chrome, CTA, cookie copy).
+// Cart, checkout handoff, and login live in commerce-copy-fields.ts — not here,
+// so they stay out of the Shopify storefront_copy registry.
 
 // Lives here (not storefront-copy.ts) because that module is `server-only`
 // (it touches the database) — this constant is also needed by client
@@ -31,13 +33,10 @@ export type StorefrontCopyGroup = {
 
 const HEADER_CHROME_GROUP: StorefrontCopyGroup = {
   id: "header-chrome",
-  title: "Header — cart & account",
-  description: "Cart, login, and menu control labels in the header and mobile drawer.",
+  title: "Header — menu",
+  description:
+    "Menu control labels in the header and mobile drawer. Cart and account labels are edited under Cart & account.",
   fields: [
-    { key: "nav.cart", label: "Cart" },
-    { key: "nav.login", label: "Login" },
-    { key: "nav.account", label: "My Account" },
-    { key: "nav.loginRegister", label: "Login / Register" },
     { key: "nav.openMenu", label: "Open menu (aria)" },
     { key: "nav.closeMenu", label: "Close menu (aria)" },
   ],
@@ -203,3 +202,15 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
 export const STOREFRONT_COPY_KEYS: string[] = STOREFRONT_COPY_GROUPS.flatMap(
   (group) => group.fields.map((field) => field.key),
 );
+
+/** Keep a locale map down to the keys this screen actually syncs. */
+export function pickStorefrontCopyFields(
+  copy: Record<string, string> | null | undefined,
+  fieldKeys: readonly string[],
+): Record<string, string> {
+  if (!copy) return {};
+  const allowed = new Set(fieldKeys);
+  return Object.fromEntries(
+    Object.entries(copy).filter(([key, value]) => allowed.has(key) && value.trim().length > 0),
+  );
+}

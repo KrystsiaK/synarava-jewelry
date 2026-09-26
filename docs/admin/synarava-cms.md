@@ -74,11 +74,17 @@ Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-m
 | `--adm-z-popover` | `40` | Absolute menus — class `.adm-popover` (`AdminHrefField`, Shopify category search, …) |
 | `--adm-z-sticky` | `90` | Sticky locale / workspace bands (`90`–`95`) |
 | `--adm-z-modal-backdrop` | `190` | Modal backdrops |
-| `--adm-z-modal` | `200` | Modals (`200`+) |
+| `--adm-z-modal` | `200` | Modals (`AdminModal`, `200`+) |
 | `--adm-z-tooltip` | `280` | Portaled `.ui-tooltip` |
 | `--adm-z-toast` | `600` | `adm-toast-stack` |
 
 **Rule:** never elevate `.adm-help` (or other in-flow field chrome) into the popover band — that made info icons paint over open combobox lists. New absolute admin menus must use `.adm-popover` (or `z-index: var(--adm-z-popover)`), not ad-hoc `z-20`.
+
+Help tags (`.ui-tooltip`) are compact ink hints, not panels. The first one waits on the pointer; the next tag within a short window opens immediately, so a row of icon buttons can be scanned. Keyboard focus opens at once. A touch hold shows the tag and does not fire the button. `prefers-reduced-motion` fades opacity only.
+
+`AdminModal` is the admin dialog. It dims the page and centers a 14px sheet that settles in 400ms on `cubic-bezier(0.32, 0.72, 0, 1)` and leaves on the same path. Reduced motion is a 160ms fade. Storefront `.t-modal` timing is separate. `AdminConfirmModal` is that sheet with Cancel and a confirm action. Long text, rich text, and record details use the same shell.
+
+Library controls share one press: buttons, icon buttons, help, checkboxes, sort chips, and signal chips scale to `0.97` on pointer-down (`100ms`) and sit still when motion is reduced. Fields focus with the accent at 24% mix, so light and dark use the same ring. Collapsible panels open on a 280ms settle. Secondary actions use `.adm-btn-secondary`, the same chrome as `.adm-btn-ghost`.
 
 ### Text
 
@@ -206,7 +212,7 @@ import { AdminPanel } from "@/components/synarava-cms";
 </AdminPanel.Root>
 ```
 
-- Rounded container (`--adm-panel-radius`, default `0.75rem`). Overflow stays **visible** so sticky pins to `.admin-content`.
+- Rounded container (`--adm-panel-radius`, default `0.875rem`). Overflow stays **visible** so sticky pins to `.admin-content`.
 - Soft refresh after save (`refreshPreservingScroll` in `lib/admin/preserve-scroll.ts`) must keep `.admin-content` scroll — do not call bare `router.refresh()` on stay-on-page saves. Navigation (`push` after create/delete) may reset scroll intentionally.
 - Sticky header `top: calc(stickyAbove - radius)` — header **occupies** the rounded top; it is not inset below the crescents.
 - Sticky headers automatically get `.adm-band` + `.adm-band--sticky-radius`: `padding-top = band-pad-y + radius` so optical vertical padding stays equal after the −radius lift.
@@ -276,7 +282,7 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 />
 ```
 
-- **Expand in place:** Pages (DB titles) and Shared (header/footer link editors + storefront copy groups, including the contact CTA and cookie copy). Catalog stays a leaf.
+- **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA and cookie copy), and Cart & account (cart, checkout handoff, login). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
 - **Signals:** left marker shows issue (red) / sync-conflict (amber) / both (split red+amber dots); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
 - **Meaning:** red = open Problems; amber = unresolved Shopify field conflicts / divergences. When a node has both, the split marker keeps both visible.
@@ -286,11 +292,18 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 
 ### Admin section tabs
 
-Reusable card-strip tabs with a cool content well (`AdminSectionTabs`).
+Compact single-row tabs with a cool content well (`AdminSectionTabs`).
 
-Optional **`groups`** split the strip into labeled clusters (product editor:
+The strip is one line. When it is wider than the viewport it pans on the X
+axis: a horizontal touch moves the row (with a short glide after release) and
+does not select the tab under the finger. A vertical touch still scrolls the
+admin page. Edge fades show that more tabs sit off-screen.
+
+Optional **`groups`** keep labeled clusters in that same row (product editor:
 Shopify commerce skeleton vs Synarava-only sections). Each item may set
-`group` to a group id. Keyboard arrows still move across the whole tablist.
+`group` to a group id. `stripLabel` is the short chip; `label` stays in the
+accessible name. Groups may set `compactLabel` for narrow viewports.
+Keyboard arrows still move across the whole tablist.
 
 ```tsx
 import { AdminSectionTabs } from "@/components/synarava-cms";
@@ -301,8 +314,8 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
     { id: "synarava", label: "Synarava" },
   ]}
   items={[
-    { id: "essentials", label: "Product", detail: "Title & organization", group: "shopify" },
-    { id: "passport", label: "Passport", detail: "Jewelry specs", group: "synarava" },
+    { id: "essentials", label: "Product", stripLabel: "Product", detail: "Title & organization", group: "shopify" },
+    { id: "passport", label: "Passport", stripLabel: "Pass", detail: "Jewelry specs", group: "synarava" },
     { id: "sync", label: "Sync", tone: "conflict", dirty: true, group: "shopify" },
     { id: "details", label: "Product page", detail: "Story & craft", group: "synarava" },
   ]}
@@ -315,16 +328,18 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
 
 | State | Look |
 |-------|------|
-| Idle | Warm/white (`--adm-tab-idle`) |
-| Idle hover | Cool lift (`--adm-tab-idle-hover`) |
-| Selected (+ hover) | Cool well (`--adm-tab-well`) + cool underline |
-| Issue (+ hover / selected) | Danger tint; issue wins over conflict |
-| Conflict (+ hover / selected) | Amber conflict tint |
-| Dirty | Amber dot only (does not replace tone) |
-| Grouped strip | Uppercase cluster labels + seam between Shopify / Synarava |
+| Idle | Quiet label on the capsule, no cell fill |
+| Idle hover | Faint ink wash |
+| Selected | Raised thumb under the segment; accent icon; label in ink |
+| Issue | Danger icon and label; thumb keeps a danger hairline |
+| Conflict | Amber icon and label; thumb keeps a conflict hairline |
+| Dirty | Amber dot on the icon |
+| Grouped strip | Two capsules in one row; horizontal pan when the row overflows |
 
 Tokens: `--adm-cool`, `--adm-cool-soft`, `--adm-tab-well`, `--adm-conflict-soft`.  
 Product editor uses this via `ProductEditorTabs` (always grouped). Story: `synarava-cms/AdminSectionTabs`.
+
+Switching a product section settles the title, intro copy, and section mark on a critically damped spring (no overshoot, about 0.4s). Copy and the mark shift a few pixels from the direction of the tab; the form body only fades, so fields do not slide. `prefers-reduced-motion` keeps a short opacity cross-fade and skips the shift.
 
 ### Entity list (tables)
 

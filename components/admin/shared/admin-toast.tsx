@@ -36,30 +36,30 @@ const TOAST_DISMISS_MS = 22_000;
 function toastStyles(tone: AdminToastTone) {
   if (tone === "error") {
     return {
-      borderColor: "rgba(255, 177, 171, 0.72)",
+      borderColor: "rgba(255, 177, 171, 0.55)",
       background:
-        "linear-gradient(180deg, rgba(116, 38, 38, 0.96) 0%, rgba(76, 24, 24, 0.98) 100%)",
+        "linear-gradient(180deg, rgba(116, 38, 38, 0.94) 0%, rgba(76, 24, 24, 0.97) 100%)",
       color: "#fff7f5",
-      shadow: "0 18px 40px rgba(40, 8, 8, 0.42)",
+      shadow: "0 1px 1px rgba(40, 8, 8, 0.12), 0 10px 24px rgba(40, 8, 8, 0.22)",
     };
   }
 
   if (tone === "success") {
     return {
-      borderColor: "rgba(220, 239, 181, 0.74)",
+      borderColor: "rgba(220, 239, 181, 0.55)",
       background:
-        "linear-gradient(180deg, rgba(62, 84, 38, 0.96) 0%, rgba(34, 48, 20, 0.98) 100%)",
+        "linear-gradient(180deg, rgba(62, 84, 38, 0.94) 0%, rgba(34, 48, 20, 0.97) 100%)",
       color: "#fffdf8",
-      shadow: "0 18px 40px rgba(14, 24, 8, 0.4)",
+      shadow: "0 1px 1px rgba(14, 24, 8, 0.1), 0 10px 24px rgba(14, 24, 8, 0.2)",
     };
   }
 
   return {
-    borderColor: "rgba(244, 223, 167, 0.78)",
+    borderColor: "rgba(244, 223, 167, 0.58)",
     background:
-      "linear-gradient(180deg, rgba(87, 69, 30, 0.96) 0%, rgba(58, 43, 15, 0.98) 100%)",
+      "linear-gradient(180deg, rgba(87, 69, 30, 0.94) 0%, rgba(58, 43, 15, 0.97) 100%)",
     color: "#fffdf8",
-    shadow: "0 18px 40px rgba(27, 18, 4, 0.42)",
+    shadow: "0 1px 1px rgba(27, 18, 4, 0.1), 0 10px 24px rgba(27, 18, 4, 0.2)",
   };
 }
 
@@ -103,7 +103,7 @@ function AdminToastCard({
 
   return (
     <div data-component="AdminToastCard"
-      className="adm-toast-card pointer-events-auto rounded-[12px] border px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.28)] backdrop-blur"
+      className="adm-toast-card pointer-events-auto rounded-[12px] border px-3 py-2.5 backdrop-blur"
       role={toast.tone === "error" ? "alert" : "status"}
       aria-live={toast.tone === "error" ? "assertive" : "polite"}
       onMouseEnter={pauseTimer}
@@ -117,22 +117,22 @@ function AdminToastCard({
         boxShadow: toneStyles.shadow,
       }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <div className="min-w-0 flex-1">
           <p
-            className="mb-1 text-[0.68rem] font-bold uppercase tracking-[0.12em]"
+            className="mb-0.5 text-[0.68rem] font-semibold capitalize tracking-[0.02em]"
             style={{ color: "rgba(255,255,255,0.76)" }}
           >
             {toast.tone}
           </p>
-          <p className="min-w-0 text-sm leading-6" style={{ color: toneStyles.color }}>
+          <p className="min-w-0 text-sm leading-5" style={{ color: toneStyles.color }}>
             {toast.message}
           </p>
         </div>
         <button
           type="button"
           aria-label="Close notification"
-          className="rounded-full border px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.1em] transition-opacity hover:opacity-100"
+          className="rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold tracking-[0.01em] transition-opacity hover:opacity-100"
           style={{
             borderColor: "rgba(255,255,255,0.24)",
             color: "#fffdf8",

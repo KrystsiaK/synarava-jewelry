@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { getAdminRecordHistoryAction, restoreAdminRecordVersionAction } from "@/app/admin/actions/history";
 import type { AdminAuditEntityType, AdminRecordHistoryItem } from "@/app/admin/actions/shared";
-import { AnimatedModal } from "@/components/ui/animated-modal";
+import { AdminModal } from "@/components/admin/shared/admin-modal";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 export type AdminRecordMeta = {
@@ -101,13 +101,10 @@ export function AdminRecordMetaModal({
   }
 
   return (
-    <AnimatedModal
+    <AdminModal
       open={open && Boolean(record)}
       onClose={onClose}
-      className="adm-panel pointer-events-auto w-full max-w-lg p-6"
-      portalClassName="admin-modal-root"
-      zIndexClassName="z-[200]"
-      backdropZIndexClassName="z-[190]"
+      className="w-full max-w-lg p-6"
     >
       {record ? (
         <>
@@ -197,6 +194,6 @@ export function AdminRecordMetaModal({
         </div>
         </>
       ) : null}
-    </AnimatedModal>
+    </AdminModal>
   );
 }

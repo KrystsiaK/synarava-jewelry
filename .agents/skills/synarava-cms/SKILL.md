@@ -43,7 +43,7 @@ When the user says **общий компонент**, **shared control**, or **l
 3. **One chrome per control type.** No dual DOM/CSS paths that change the outer field look based on optional props.
 4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). **Warnings** use the same band (`.adm-field-warning`, orange) via the `warning` prop — error wins if both are set. Every unit **always** reserves a one-line message band so siblings never jump; long messages ellipsis + tooltip/`title`. No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot. **Tall media** (`ImageFileField`): keep `AdminFieldIssue` in normal flow (not a direct unit child) so it does not paint over the preview path. **Scroll to field:** `scrollAdminFieldIntoView` (`block: "start"` + scroll-margin) — never `block: "center"` under sticky chrome.
 5. **Tall composites:** control inside the shell; extra panels (e.g. Shopify category attributes) **outside**. Media preview blocks follow the ProductMediaManager / collection-hero pattern.
-6. **Help** is an `i` tooltip beside the label (`AdminHelp` / `help` prop).
+6. **Help** is an `i` tooltip beside the label (`AdminHelp` / `help` prop). Tags are ink hints: first one waits, the next in a short window opens immediately, touch-hold shows the tag without clicking. Buttons, chips, help, and checkboxes share a 0.97 press; `.adm-btn-secondary` matches `.adm-btn-ghost`.
 7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
 8. After contract changes, update `docs/admin/synarava-cms.md` and this skill (keep `.agents` + `.claude` copies in sync); run `graphify update .`.
 
@@ -53,7 +53,7 @@ When editing `/admin/products/[id]`:
 
 - **Shopify skeleton first** — every supported Shopify product/variant field must be editable/visible and verified field by field (pull/push parity with Shopify Admin).
 - **Synarava sections second** — CMS-only settings (materials, craft, lookbook, …) live in a separate tab cluster.
-- Section tabs use `AdminSectionTabs` with `groups`: `{ id: "shopify", label: "Shopify" }` and `{ id: "synarava", label: "Synarava" }`. Do not flatten them into one unlabeled strip.
+- Section tabs use `AdminSectionTabs` with `groups`: `{ id: "shopify", label: "Shopify" }` and `{ id: "synarava", label: "Synarava" }`. Keep both clusters in one compact row. Do not flatten them into one unlabeled strip.
 - **Price tab** (Shopify group): editable `price`, `taxable`, `cost` (`InventoryItem.unitCost`). **Compare-at** is read-only (`AdminReadonlyField`) — edit in Shopify until [TD-01](../../../docs/admin/tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path). Profit/margin are UI-only. Unit price measurement is deferred.
 - Ownership detail: [`docs/product-data-ownership.md`](../../../docs/product-data-ownership.md).
 
@@ -76,7 +76,7 @@ When editing `/admin/products/[id]`:
 | Collapsible section (chevron) | `AdminCollapsiblePanel` |
 | Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` (+ `syncCounts` for amber conflict badges per section) |
-| Section tabs + cool content well | `AdminSectionTabs` (`groups` for Shopify vs Synarava clusters) |
+| Section tabs + cool content well | `AdminSectionTabs` — one compact row, `groups` for Shopify vs Synarava, horizontal touch pan |
 | Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
 | Sticky list chrome (title / filters / body) | `AdminListWorkspace` (`.Root` / `.Header` / `.Filters` / `.Body`) |
 | Icon action + tooltip | `AdminIconButton` |
@@ -84,6 +84,7 @@ When editing `/admin/products/[id]`:
 | Compact sort chips | `AdminSortChips` |
 | Status / workflow pill | `AdminStatusBadge` |
 | Ordered rows (up/down; DnD later) | `AdminOrderedList` |
+| Admin dialog / confirm | `AdminModal` / `AdminConfirmModal` — 14px sheet, dimmed page, no bounce. Not storefront `.t-modal` |
 | Sticky band padding / vertical rhythm | `.adm-band` + `--adm-inset-x` (Tailwind `px-adm-inset`); `--sticky-radius` when first sticky under panel |
 | Custom labeled block | `AdminFieldShell` + control |
 | Home section on/off | Keep existing **switch** UI — not checkbox |

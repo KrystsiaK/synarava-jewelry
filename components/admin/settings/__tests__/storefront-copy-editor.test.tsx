@@ -32,7 +32,7 @@ describe("StorefrontCopyEditor", () => {
     const user = userEvent.setup();
     render(
       <StorefrontCopyEditor
-        copy={{ en: { "nav.cart": "Cart" }, pt: { "nav.cart": "Carrinho" } }}
+        copy={{ en: { "footer.tagline": "Tag" }, pt: { "footer.tagline": "Lema" } }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
         footerLinks={defaultFooter}
@@ -41,14 +41,14 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Cart (EN)")).toBeVisible();
-    expect(screen.getByLabelText("Cart (PT)")).not.toBeVisible();
+    expect(screen.getByLabelText("Tagline (under the logo) (EN)")).toBeVisible();
+    expect(screen.getByLabelText("Tagline (under the logo) (PT)")).not.toBeVisible();
 
     await user.click(screen.getByRole("tab", { name: "Português" }));
 
-    expect(screen.getByLabelText("Cart (EN)")).not.toBeVisible();
-    expect(screen.getByLabelText("Cart (PT)")).toBeVisible();
-    expect(screen.getByLabelText("Cart (PT)")).toHaveValue("Carrinho");
+    expect(screen.getByLabelText("Tagline (under the logo) (EN)")).not.toBeVisible();
+    expect(screen.getByLabelText("Tagline (under the logo) (PT)")).toBeVisible();
+    expect(screen.getByLabelText("Tagline (under the logo) (PT)")).toHaveValue("Lema");
   });
 
   it("submits header nav, footer links, and emails in one save", async () => {
@@ -65,15 +65,15 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("Cart (EN)"), "Bag");
+    await user.type(screen.getByLabelText("Tagline (under the logo) (EN)"), "Bag");
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    await user.type(screen.getByLabelText("Cart (PT)"), "Saco");
+    await user.type(screen.getByLabelText("Tagline (under the logo) (PT)"), "Saco");
     await user.click(screen.getByRole("button", { name: "Save Shared" }));
 
     expect(mocks.saveStorefrontCopyAction).toHaveBeenCalledTimes(1);
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
-    expect(formData.get("en:nav.cart")).toBe("Bag");
-    expect(formData.get("pt:nav.cart")).toBe("Saco");
+    expect(formData.get("en:footer.tagline")).toBe("Bag");
+    expect(formData.get("pt:footer.tagline")).toBe("Saco");
     expect(JSON.parse(String(formData.get("footerContactEmails")))).toEqual([
       DEFAULT_FOOTER_CONTACT_EMAIL,
     ]);
@@ -89,7 +89,7 @@ describe("StorefrontCopyEditor", () => {
     const user = userEvent.setup();
     render(
       <StorefrontCopyEditor
-        copy={{ en: {}, pt: {}, ru: { "nav.cart": "Корзина" } }}
+        copy={{ en: {}, pt: {}, ru: { "footer.tagline": "Слоган" } }}
         defaults={{ en: {}, pt: {} }}
         headerNav={defaultHeaderNav}
         footerLinks={defaultFooter}
@@ -99,12 +99,12 @@ describe("StorefrontCopyEditor", () => {
     );
 
     await user.click(screen.getByRole("tab", { name: "Русский" }));
-    expect(screen.getByLabelText("Cart (RU)")).toBeVisible();
-    expect(screen.getByLabelText("Cart (RU)")).toHaveValue("Корзина");
+    expect(screen.getByLabelText("Tagline (under the logo) (RU)")).toBeVisible();
+    expect(screen.getByLabelText("Tagline (under the logo) (RU)")).toHaveValue("Слоган");
 
     await user.click(screen.getByRole("button", { name: "Save Shared" }));
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
-    expect(formData.get("ru:nav.cart")).toBe("Корзина");
+    expect(formData.get("ru:footer.tagline")).toBe("Слоган");
   });
 
   it("lets the operator add a main link row with name and path fields", async () => {

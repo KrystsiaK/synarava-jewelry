@@ -118,7 +118,9 @@ export function AdminListWorkspaceFilters({
   const trigger = summary ? (
     <span className="adm-list-workspace__filter-title">
       <span>{title}</span>
-      <span className="adm-list-workspace__filter-summary">{summary}</span>
+      <span className="adm-list-workspace__filter-summary font-medium tracking-normal">
+        {summary}
+      </span>
     </span>
   ) : (
     title

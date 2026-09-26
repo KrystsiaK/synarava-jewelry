@@ -1,6 +1,8 @@
 "use client";
 
-import { AnimatedModal } from "@/components/ui/animated-modal";
+import { useId } from "react";
+
+import { AdminModal } from "@/components/admin/shared/admin-modal";
 
 type AdminConfirmModalProps = {
   open: boolean;
@@ -23,22 +25,20 @@ export function AdminConfirmModal({
   onCancel,
   onConfirm,
 }: AdminConfirmModalProps) {
+  const titleId = useId();
+
   return (
-    <AnimatedModal
+    <AdminModal
       open={open}
       onClose={onCancel}
-      className="adm-panel pointer-events-auto w-full max-w-md p-6"
-      portalClassName="admin-modal-root"
-      zIndexClassName="z-[200]"
-      backdropZIndexClassName="z-[190]"
+      ariaLabelledBy={titleId}
+      className="grid w-full max-w-md gap-2 p-6"
     >
-      <p className="adm-section-tag mb-3">[ CONFIRM ACTION ]</p>
-      <h3 className="adm-title-sm">{title}</h3>
-      <p className="adm-copy mt-4">{description}</p>
-      <div
-        className="mt-6 flex flex-wrap justify-end gap-3 pt-4"
-        style={{ borderTop: "1px solid var(--adm-border)" }}
-      >
+      <h2 id={titleId} className="adm-title-sm">
+        {title}
+      </h2>
+      <p className="adm-copy">{description}</p>
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
         <button type="button" onClick={onCancel} className="adm-btn-ghost">
           Cancel
         </button>
@@ -51,6 +51,6 @@ export function AdminConfirmModal({
           {pending ? "Processing..." : confirmLabel}
         </button>
       </div>
-    </AnimatedModal>
+    </AdminModal>
   );
 }

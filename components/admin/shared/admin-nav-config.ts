@@ -1,3 +1,4 @@
+import { COMMERCE_COPY_GROUPS } from "@/lib/content/commerce-copy-fields";
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 
 /** Attention signal for a nav node (open problems and/or Shopify sync conflicts). */
@@ -182,6 +183,14 @@ export function resolveAdminNavItemSignal(
   return undefined;
 }
 
+export function buildCommerceCopyNavChildren(): AdminNavChildConfig[] {
+  return COMMERCE_COPY_GROUPS.map((group) => ({
+    id: `commerce-${group.id}`,
+    href: `/admin/commerce#commerce-${group.id}`,
+    label: group.title,
+  }));
+}
+
 export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
   return [
     {
@@ -266,6 +275,14 @@ export function buildAdminNavItems({
       children: buildStorefrontCopyNavChildren(),
       childPreviewLimit: 12,
       badge: syncBadge(sync.settings),
+    },
+    {
+      id: "commerce",
+      href: "/admin/commerce",
+      label: "Cart & account",
+      code: "BAG",
+      children: buildCommerceCopyNavChildren(),
+      childPreviewLimit: 8,
     },
     { id: "meta", href: "/admin/meta", label: "Meta", code: "META" },
     { id: "videos", href: "/admin/videos", label: "Videos", code: "VID" },

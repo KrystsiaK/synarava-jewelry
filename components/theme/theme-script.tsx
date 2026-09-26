@@ -1,3 +1,6 @@
+"use client";
+
+import { useServerInsertedHTML } from "next/navigation";
 import { THEME_COOKIE_NAME, type ThemePreference } from "@/lib/theme/shared";
 
 type ThemeScriptProps = {
@@ -32,12 +35,15 @@ export function getThemeScript(initialPreference: ThemePreference): string {
 }
 
 export function ThemeScript({ initialPreference, nonce }: ThemeScriptProps) {
-  return (
-    <script data-component="ThemeScript"
+  // Inserted as raw head HTML on the server. A client-rendered <script> is never
+  // executed and warns in React 19. https://nextjs.org/docs/app/guides/css-in-js
+  useServerInsertedHTML(() => (
+    <script
       id="theme-initializer-script"
       nonce={nonce}
-      suppressHydrationWarning
       dangerouslySetInnerHTML={{ __html: getThemeScript(initialPreference) }}
     />
-  );
+  ));
+
+  return null;
 }
