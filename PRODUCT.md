@@ -12,6 +12,7 @@ Synarava is a couture jewelry storefront with a lightweight CMS. The admin exist
 
 - The storefront presents editorial home, manifesto, collection, product, discovery, and customer-account experiences.
 - Shopify owns commerce data, checkout, orders, and customer identity. Synarava owns the editorial presentation layered over synchronized catalog data.
+- In admin product editing the working model is **Shopify skeleton + Synarava sections**: pull and surface every supported Shopify product field first, verify sync field by field, then add Synarava-only CMS settings in a separate tab group. The product tab strip is visually split into Shopify vs Synarava clusters.
 - The admin console provides dedicated Home and About editors, generic Pages, Posts, shared Videos, Catalog, Collections, Problems, and Account surfaces.
 
 ## Home Page CMS

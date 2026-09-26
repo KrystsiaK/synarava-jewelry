@@ -79,7 +79,9 @@ export function filterSignalsForView(
   }
   const locale = normalizeLocaleCode(viewScope.locale);
   const locales = signal.locales.filter((entry) => normalizeLocaleCode(entry.code) === locale);
-  const shared = locale === "en" ? signal.shared : false;
+  // Shared commerce (price, vendor, …) is one payload under every language shell —
+  // not EN-only. See docs/admin/commerce-sync.md.
+  const shared = Boolean(signal.shared);
   const hasLocaleConflict = locales.some((entry) => entry.count > 0);
   if (!hasLocaleConflict && !shared && !signal.presence) {
     return { ...signals, products: {}, totalCount: 0 };
@@ -373,6 +375,7 @@ export function CatalogConflictWorkspace({
   focusedProductId,
   viewScope = { kind: "catalog" },
   onToast,
+  onApplied,
 }: {
   open: boolean;
   onClose: () => void;
@@ -382,6 +385,8 @@ export function CatalogConflictWorkspace({
   focusedProductId: string | null;
   viewScope?: CatalogConflictViewScope;
   onToast: (message: string, tone: ToastTone) => void;
+  /** Fired after a successful apply so the editor can reload product + markers. */
+  onApplied?: (info: { productIds: string[]; appliedCount: number }) => void;
 }) {
   const [details, setDetails] = useState<ProductCatalogConflict | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -537,7 +542,8 @@ export function CatalogConflictWorkspace({
     setPreview(null);
     setDetails(null);
     setResultMessage(null);
-    if (submittedScope?.kind === "BULK") onClose();
+    // Close the list immediately for product-scoped flows — apply continues in background.
+    if (submittedScope?.kind === "BULK" || isProductScoped(viewScope)) onClose();
     startApplyTransition(async () => {
       const result = await applyCatalogConflictResolutionAction({
         acknowledgeClears,
@@ -553,8 +559,18 @@ export function CatalogConflictWorkspace({
         onToast(result.error ?? "Could not apply the conflict resolution.", "error");
         return;
       }
-      if (result.error) onToast(result.error, result.outcome.appliedCount > 0 ? "info" : "error");
-      else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
+      const failureDetail = result.outcome.results
+        .filter((item) => !item.ok)
+        .map((item) => item.message)
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" · ");
+      if (result.error) {
+        onToast(
+          failureDetail ? `${result.error} ${failureDetail}` : result.error,
+          result.outcome.appliedCount > 0 ? "info" : "error",
+        );
+      } else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
       if (result.warning) onToast(result.warning, "info");
       const successfulProducts = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.productId));
       const incomingProducts = new Set(
@@ -564,24 +580,33 @@ export function CatalogConflictWorkspace({
             && entry.field.fieldKey === item.fieldKey
             && entry.direction === "SHOPIFY_TO_SYNARAVA",
           ))
-          .map((item) => item.localProductId ?? item.productId),
+          .map((item) => item.localProductId ?? item.productId)
+          .filter((productId) => Boolean(productId) && !productId.startsWith("shopify:")),
       );
-      const fullyResolved = [...successfulProducts].filter((productId) =>
-        !result.outcome!.results.some((item) => item.productId === productId && !item.ok)
-        && !submittedPreview.excluded.some((item) => item.productId === productId),
-      );
-      if (fullyResolved.length > 0) {
-        const nextProducts = { ...signals.products };
-        fullyResolved.forEach((productId) => delete nextProducts[productId]);
-        const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
-        incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
-        onSignalsChange({ ...signals, products: nextProducts, recentlyUpdatedProducts, totalCount: Object.keys(nextProducts).length });
-      } else if (incomingProducts.size > 0) {
-        const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
-        incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
-        onSignalsChange({ ...signals, recentlyUpdatedProducts });
-      }
       setSelections({});
+      if (result.outcome.appliedCount > 0 && onApplied) {
+        // Editor reloads product + re-checks conflicts — don't optimistic-wipe markers.
+        onApplied({
+          productIds: [...successfulProducts],
+          appliedCount: result.outcome.appliedCount,
+        });
+      } else {
+        const fullyResolved = [...successfulProducts].filter((productId) =>
+          !result.outcome!.results.some((item) => item.productId === productId && !item.ok)
+          && !submittedPreview.excluded.some((item) => item.productId === productId),
+        );
+        if (fullyResolved.length > 0) {
+          const nextProducts = { ...signals.products };
+          fullyResolved.forEach((productId) => delete nextProducts[productId]);
+          const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
+          incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
+          onSignalsChange({ ...signals, products: nextProducts, recentlyUpdatedProducts, totalCount: Object.keys(nextProducts).length });
+        } else if (incomingProducts.size > 0) {
+          const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
+          incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
+          onSignalsChange({ ...signals, recentlyUpdatedProducts });
+        }
+      }
       refreshPreservingScroll(router);
     });
   }

@@ -69,6 +69,71 @@ export async function inspectProductSyncAction(productId: string) {
   }
 }
 
+/**
+ * Stepped dual-store actions — client logs each step in the browser console.
+ */
+export async function buildOurCommerceStoreAction() {
+  await requireAdminSession("/admin/products");
+  try {
+    const { buildOurCommerceStore } = await import("@/lib/commerce-store/build-our-store");
+    return { our: await buildOurCommerceStore() };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not build OUR commerce store." };
+  }
+}
+
+export async function fetchShopifyCommerceStoreAction() {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) {
+    return { error: "Shopify Admin API credentials are not configured." };
+  }
+  try {
+    const { fetchShopifyCommerceStore } = await import("@/lib/commerce-store/fetch-shopify-store");
+    return { shopify: await fetchShopifyCommerceStore() };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not fetch SHOPIFY commerce store." };
+  }
+}
+
+export async function compareAndPersistCommerceStoresAction(
+  our: import("@/lib/commerce-store/types").CommerceStore,
+  shopify: import("@/lib/commerce-store/types").CommerceStore,
+) {
+  await requireAdminSession("/admin/products");
+  try {
+    const { persistComparedCommerceStores } = await import("@/lib/commerce-store/refresh");
+    const result = await persistComparedCommerceStores(our, shopify);
+    return {
+      conflicts: result.conflicts,
+      debug: result.debug,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not compare/persist commerce stores." };
+  }
+}
+
+/**
+ * Full dual-store refresh (single round-trip). Prefer stepped actions for console flow.
+ */
+export async function refreshCommerceSyncStoreAction() {
+  await requireAdminSession("/admin/products");
+  if (!hasShopifyAdminConfig()) {
+    return { error: "Shopify Admin API credentials are not configured." };
+  }
+  try {
+    const { refreshCommerceSyncStore } = await import("@/lib/commerce-store/refresh");
+    const result = await refreshCommerceSyncStore();
+    return {
+      debug: result.debug,
+      our: result.our,
+      shopify: result.shopify,
+      conflicts: result.conflicts,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not refresh commerce sync store." };
+  }
+}
+
 export async function checkCatalogConflictsAction() {
   const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) {
@@ -323,7 +388,10 @@ export async function applyCatalogConflictResolutionAction(input: {
           && entry.fieldKey === result.fieldKey
           && entry.direction === "SHOPIFY_TO_SYNARAVA",
         ))
-        .map((result) => result.localProductId ?? result.productId),
+        .map((result) => result.localProductId ?? result.productId)
+        // Presence applies use virtual ids like `shopify:123` until pull creates
+        // a local row — only watermark real Product ids (FK on ProductIncomingUpdate).
+        .filter((productId) => Boolean(productId) && !productId.startsWith("shopify:")),
     );
     let warning: string | undefined;
     try {
@@ -370,6 +438,8 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
     }
     const result = await pushProductToShopify(productId, force);
     if (!result.ok) return { error: result.error, inspection: before };
+    const { refreshCommerceSyncStore } = await import("@/lib/commerce-store/refresh");
+    await refreshCommerceSyncStore();
     revalidateStorefront();
     revalidatePath("/admin/products");
     const product = await getSavedProductPayload(productId);
@@ -401,6 +471,8 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
     const pullResult = await pullShopifyProduct(product.shopifyProductId, undefined, force);
+    const { refreshCommerceSyncStore } = await import("@/lib/commerce-store/refresh");
+    await refreshCommerceSyncStore();
     revalidateStorefront();
     revalidatePath("/admin/products");
     const savedProduct = await getSavedProductPayload(productId);

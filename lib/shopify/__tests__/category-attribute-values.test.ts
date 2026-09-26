@@ -116,4 +116,10 @@ describe("displayNamesFromCategoryReference", () => {
     })).toEqual(["Hand-dyed"]);
     expect(displayNamesFromCategoryReference({})).toEqual([]);
   });
+
+  it("does not throw when GraphQL returns a null reference node", () => {
+    expect(() => displayNamesFromCategoryReference(null)).not.toThrow();
+    expect(displayNamesFromCategoryReference(null)).toEqual([]);
+    expect(displayNamesFromCategoryReference(undefined)).toEqual([]);
+  });
 });

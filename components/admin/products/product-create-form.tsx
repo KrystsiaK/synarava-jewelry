@@ -99,7 +99,7 @@ export function CreateProductForm({
         setConfirmOpen(false);
         validation.showFieldErrors(result.fieldErrors ?? {});
         if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
-          setActiveSection("essentials");
+          setActiveSection(result.fieldErrors.price ? "price" : "essentials");
         }
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.warning) pushToast({ message: result.warning, tone: "info" });
@@ -125,22 +125,21 @@ export function CreateProductForm({
     setState({});
     const previousSection = activeSection;
     const previousLocale = activeLocale;
-    if (previousSection !== "essentials") {
-      flushSync(() => setActiveSection("essentials"));
-    }
     if (previousLocale !== SOURCE_LOCALE) {
       flushSync(() => selectLocale(SOURCE_LOCALE));
     }
-    const valid = validation.validate();
-    if (valid) {
-      if (previousSection !== "essentials") {
-        flushSync(() => setActiveSection(previousSection));
-      }
-      if (previousLocale !== SOURCE_LOCALE) {
-        flushSync(() => selectLocale(previousLocale));
-      }
-      setConfirmOpen(true);
+
+    flushSync(() => setActiveSection("essentials"));
+    if (!validation.validate()) return;
+
+    flushSync(() => setActiveSection("price"));
+    if (!validation.validate()) return;
+
+    flushSync(() => setActiveSection(previousSection));
+    if (previousLocale !== SOURCE_LOCALE) {
+      flushSync(() => selectLocale(previousLocale));
     }
+    setConfirmOpen(true);
   }
 
   return (

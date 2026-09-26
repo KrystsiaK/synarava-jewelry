@@ -131,6 +131,25 @@ describe("AdminLocaleTabs with a custom locale list", () => {
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
     expect(tabs[1]).toHaveAccessibleName("English");
   });
+
+  it("marks every conflictLocales entry with data-conflict", () => {
+    const locales = [
+      { code: "en", label: "English" },
+      { code: "pt", label: "Português" },
+      { code: "ru", label: "Русский" },
+    ];
+    render(
+      <AdminLocaleTabs
+        active="en"
+        onSelect={() => {}}
+        locales={locales}
+        conflictLocales={new Set(["en", "pt", "ru"])}
+      />,
+    );
+    for (const tab of screen.getAllByRole("tab")) {
+      expect(tab).toHaveAttribute("data-conflict", "true");
+    }
+  });
 });
 
 describe("AdminLocaleTabs trailing", () => {

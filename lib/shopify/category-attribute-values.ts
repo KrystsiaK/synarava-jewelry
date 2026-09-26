@@ -146,14 +146,18 @@ export function displayNamesFromCategoryReference(node: {
   name?: string | null;
   displayName?: string | null;
   fields?: Array<{ key?: string | null; value?: string | null }> | null;
-}): string[] {
+} | null | undefined): string[] {
+  // GraphQL connections can include null nodes; `node.name` on null throws
+  // exactly "Cannot read properties of null (reading 'name')".
+  if (!node) return [];
+
   const taxonomyName = node.name?.trim();
   if (taxonomyName) return [taxonomyName];
 
   const displayName = node.displayName?.trim();
   if (displayName) return [displayName];
 
-  const label = node.fields?.find((field) => field.key === "label")?.value?.trim();
+  const label = node.fields?.find((field) => field?.key === "label")?.value?.trim();
   if (label) return [label];
 
   return [];

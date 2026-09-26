@@ -228,6 +228,31 @@ describe("CatalogConflictWorkspace", () => {
     }));
   });
 
+  it("closes product-scoped workspace and notifies onApplied after confirm", async () => {
+    const onClose = vi.fn();
+    const onApplied = vi.fn();
+    render(
+      <CatalogConflictWorkspace
+        open
+        onClose={onClose}
+        signals={signals}
+        onSignalsChange={vi.fn()}
+        products={[{ id: "p1", name: "Amber ring", sku: "AMB-1" }]}
+        focusedProductId="p1"
+        viewScope={{ kind: "product", productId: "p1" }}
+        onToast={vi.fn()}
+        onApplied={onApplied}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm changes" }));
+    expect(onClose).toHaveBeenCalled();
+    await waitFor(() => expect(onApplied).toHaveBeenCalledWith(expect.objectContaining({
+      productIds: ["p1"],
+      appliedCount: 1,
+    })));
+  });
+
   it("scopes the list to one product and hides catalog bulk actions", () => {
     renderWorkspace(vi.fn(), vi.fn(), vi.fn(), {
       ...signals,

@@ -112,13 +112,29 @@ describe("classifyCatalogPresence", () => {
     });
   });
 
-  it("changes the relevant fingerprint when either side changes", () => {
+  it("keeps presence fingerprints stable when only display fields change", () => {
     const firstLocal = classifyCatalogPresence([local({ shopifyProductId: null })], [])[0];
-    const changedLocal = classifyCatalogPresence([local({ shopifyProductId: null, name: "Changed" })], [])[0];
+    const renamedLocal = classifyCatalogPresence(
+      [local({ shopifyProductId: null, name: "Changed", updatedAt: "2099-01-01T00:00:00.000Z" })],
+      [],
+    )[0];
     const firstRemote = classifyCatalogPresence([], [remote()])[0];
-    const changedRemote = classifyCatalogPresence([], [remote({ title: "Changed" })])[0];
+    const renamedRemote = classifyCatalogPresence(
+      [],
+      [remote({ title: "Changed", updatedAt: "2099-01-01T00:00:00.000Z" })],
+    )[0];
 
-    expect(firstLocal.localFingerprint).not.toBe(changedLocal.localFingerprint);
-    expect(firstRemote.shopifyFingerprint).not.toBe(changedRemote.shopifyFingerprint);
+    expect(firstLocal.localFingerprint).toBe(renamedLocal.localFingerprint);
+    expect(firstRemote.shopifyFingerprint).toBe(renamedRemote.shopifyFingerprint);
+  });
+
+  it("changes presence fingerprints when membership identity changes", () => {
+    const firstLocal = classifyCatalogPresence([local({ shopifyProductId: null })], [])[0];
+    const skuChanged = classifyCatalogPresence([local({ shopifyProductId: null, sku: "OTHER" })], [])[0];
+    const firstRemote = classifyCatalogPresence([], [remote()])[0];
+    const otherRemote = classifyCatalogPresence([], [remote({ id: "gid://shopify/Product/99" })])[0];
+
+    expect(firstLocal.localFingerprint).not.toBe(skuChanged.localFingerprint);
+    expect(firstRemote.shopifyFingerprint).not.toBe(otherRemote.shopifyFingerprint);
   });
 });

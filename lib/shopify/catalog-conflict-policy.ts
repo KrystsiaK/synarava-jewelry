@@ -4,6 +4,7 @@ export const SCOPED_COMMERCE_FIELD_LABELS = new Set([
   "Variant SKU",
   "Price",
   "Compare-at price",
+  "Charge tax",
 ]);
 
 export const COMMERCE_UNSUPPORTED_REASON =

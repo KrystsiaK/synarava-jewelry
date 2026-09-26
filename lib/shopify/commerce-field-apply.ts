@@ -2,9 +2,10 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
+import { shopifyAmountToCents } from "@/lib/shopify/money";
 
 import { commerceFingerprint } from "./catalog-conflict";
-import { fetchShopifyProduct, inspectProductSyncState } from "./product-sync";
+import { adoptShopifyProjectionField, fetchShopifyProduct, inspectProductSyncState } from "./product-sync";
 import { SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
 
 export { SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
@@ -15,13 +16,8 @@ type UserError = { field?: string[] | null; message: string };
  * Commerce fields safe to apply individually right now: plain scalars on
  * the product or its single variant, with a Shopify mutation that accepts
  * a partial input (only the changed key), so nothing else on the product
- * is read back or rewritten. Their inspectProductSyncState label carries a
- * " (SKU)" suffix once Shopify reports more than one variant (see
- * product-sync.ts's variantSuffix) — that suffixed label never matches
- * this set. A local product with more than one variant row (even against
- * a single Shopify variant) is caught separately, at write time, by
- * resolveSingleVariantPair below — see the "several local variants, one
- * Shopify variant" case that label-suffix checking alone cannot catch.
+ * is read back or rewritten. Multi-variant labels from projection diff
+ * (`Price (variant 2)`) never match this set.
  *
  * Left out of this first slice: Status (Product.status has a fourth,
  * Synarava-only "UNLISTED" value with no Shopify equivalent — it's coupled
@@ -31,7 +27,7 @@ type UserError = { field?: string[] | null; message: string };
  * Characteristics (array-shaped, need real merge semantics). Each needs its
  * own design, not a slot in this set.
  */
-const VARIANT_FIELD_LABELS = new Set(["Variant SKU", "Price", "Compare-at price"]);
+const VARIANT_FIELD_LABELS = new Set(["Variant SKU", "Price", "Compare-at price", "Charge tax"]);
 
 export type CommerceFieldApplyResult =
   | { ok: true; message: string }
@@ -40,6 +36,21 @@ export type CommerceFieldApplyResult =
 /** `inspectProductSyncState`/`compare()` renders an empty value as "—"; this reverses that back to the real value to write. */
 function rawValue(displayValue: string): string {
   return displayValue === "—" ? "" : displayValue;
+}
+
+/** Projection stores Shopify money strings; older inspections used integer cents. */
+function moneyToCents(value: string): number {
+  const trimmed = value.trim();
+  if (!trimmed) return 0;
+  if (trimmed.includes(".")) return shopifyAmountToCents(trimmed);
+  return Number(trimmed);
+}
+
+function moneyToShopifyAmount(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "0.00";
+  if (trimmed.includes(".")) return Number(trimmed).toFixed(2);
+  return (Number(trimmed) / 100).toFixed(2);
 }
 
 function throwOnUserErrors(errors: UserError[]) {
@@ -88,14 +99,23 @@ async function writeLocally(productId: string, label: string, value: string, var
     return;
   }
   if (label === "Price") {
-    const updated = await db.productVariant.update({ where: { id: variant.localVariantId }, data: { priceCents: Number(value) } });
-    if (updated.priceCents !== Number(value)) throw new Error("Local write did not take effect as expected.");
+    const cents = moneyToCents(value);
+    const updated = await db.productVariant.update({ where: { id: variant.localVariantId }, data: { priceCents: cents } });
+    if (updated.priceCents !== cents) throw new Error("Local write did not take effect as expected.");
+    await db.product.update({ where: { id: productId }, data: { priceCents: cents } });
     return;
   }
   if (label === "Compare-at price") {
-    const nextValue = value ? Number(value) : null;
+    const nextValue = value.trim() ? moneyToCents(value) : null;
     const updated = await db.productVariant.update({ where: { id: variant.localVariantId }, data: { compareAtCents: nextValue } });
     if (updated.compareAtCents !== nextValue) throw new Error("Local write did not take effect as expected.");
+    await db.product.update({ where: { id: productId }, data: { compareAtCents: nextValue } });
+    return;
+  }
+  if (label === "Charge tax") {
+    const nextValue = value === "Yes" || value === "true";
+    const updated = await db.productVariant.update({ where: { id: variant.localVariantId }, data: { taxable: nextValue } });
+    if (updated.taxable !== nextValue) throw new Error("Local write did not take effect as expected.");
     return;
   }
   throw new Error(`${label} is not a supported commerce field.`);
@@ -126,22 +146,29 @@ async function writeToShopify(productId: string, label: string, value: string, v
     return;
   }
 
-  if (label === "Variant SKU" || label === "Price" || label === "Compare-at price") {
+  if (label === "Variant SKU" || label === "Price" || label === "Compare-at price" || label === "Charge tax") {
     if (!variant) throw new Error("This product's variant could not be determined.");
     const input: Record<string, unknown> = { id: variant.shopifyVariantId };
-    if (label === "Price") input.price = (Number(value) / 100).toFixed(2);
-    else if (label === "Compare-at price") input.compareAtPrice = value ? (Number(value) / 100).toFixed(2) : null;
+    if (label === "Price") input.price = moneyToShopifyAmount(value);
+    else if (label === "Compare-at price") input.compareAtPrice = value.trim() ? moneyToShopifyAmount(value) : null;
+    else if (label === "Charge tax") input.taxable = value === "Yes" || value === "true";
     else input.inventoryItem = { sku: value };
 
     const result = await shopifyAdminRequest<{
       productVariantsBulkUpdate: {
-        productVariants: Array<{ id: string; price: string; compareAtPrice: string | null; inventoryItem: { sku: string | null } }>;
+        productVariants: Array<{
+          id: string;
+          price: string;
+          compareAtPrice: string | null;
+          taxable: boolean;
+          inventoryItem: { sku: string | null };
+        }>;
         userErrors: UserError[];
       };
     }>(
       `mutation SynaravaCommerceVariantUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
         productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-          productVariants { id price compareAtPrice inventoryItem { sku } }
+          productVariants { id price compareAtPrice taxable inventoryItem { sku } }
           userErrors { field message }
         }
       }`,
@@ -150,9 +177,12 @@ async function writeToShopify(productId: string, label: string, value: string, v
     throwOnUserErrors(result.productVariantsBulkUpdate.userErrors);
     const saved = result.productVariantsBulkUpdate.productVariants[0];
     if (!saved) throw new ShopifyAdminError("Shopify did not return the updated variant.");
+    const expectedPrice = moneyToShopifyAmount(value);
+    const expectedCompareAt = value.trim() ? moneyToShopifyAmount(value) : "";
     const readBackMatches = label === "Variant SKU" ? (saved.inventoryItem.sku ?? "") === value
-      : label === "Price" ? saved.price === (Number(value) / 100).toFixed(2)
-        : (saved.compareAtPrice ?? "") === (value ? (Number(value) / 100).toFixed(2) : "");
+      : label === "Price" ? saved.price === expectedPrice
+        : label === "Charge tax" ? saved.taxable === (value === "Yes" || value === "true")
+          : (saved.compareAtPrice ?? "") === expectedCompareAt;
     if (!readBackMatches) throw new ShopifyAdminError("Shopify accepted the request but the read-back value did not match. Nothing is marked resolved.");
     return;
   }
@@ -306,8 +336,11 @@ export async function applyCommerceField({
   try {
     if (direction === "SHOPIFY_TO_SYNARAVA") {
       await writeLocally(productId, label, rawValue(difference.shopify), variant);
+      await adoptShopifyProjectionField(productId, difference.path);
     } else {
       await writeToShopify(productId, label, rawValue(difference.local), variant);
+      // Accept Shopify's normalized echo into L and advance B for this path.
+      await adoptShopifyProjectionField(productId, difference.path);
     }
   } catch (error) {
     return { ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This change could not be applied." };

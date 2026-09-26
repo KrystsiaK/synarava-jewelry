@@ -5,11 +5,17 @@ const mocks = vi.hoisted(() => ({
   getLatestReconcileDifferences: vi.fn(),
   getPublishedStorefrontLocales: vi.fn(),
   findManyProduct: vi.fn(),
+  findUniqueProduct: vi.fn(),
   getLatestCatalogPresenceDifferences: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
-  db: { product: { findMany: mocks.findManyProduct } },
+  db: {
+    product: {
+      findMany: mocks.findManyProduct,
+      findUnique: mocks.findUniqueProduct,
+    },
+  },
 }));
 vi.mock("@/lib/shopify/product-sync", () => ({
   inspectProductSyncState: mocks.inspectProductSyncState,
@@ -62,6 +68,7 @@ beforeEach(() => {
   mocks.getPublishedStorefrontLocales.mockResolvedValue(LOCALES);
   mocks.getLatestReconcileDifferences.mockResolvedValue([]);
   mocks.findManyProduct.mockResolvedValue([]);
+  mocks.findUniqueProduct.mockResolvedValue({ id: "product-1" });
   mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([]);
 });
 
@@ -72,6 +79,7 @@ describe("getProductCatalogConflict", () => {
     const result = await getProductCatalogConflict("shopify:42");
 
     expect(mocks.inspectProductSyncState).not.toHaveBeenCalled();
+    expect(mocks.findUniqueProduct).not.toHaveBeenCalled();
     expect(result.fields[0]).toMatchObject({
       origin: "PRESENCE",
       label: "Product exists only in Shopify",
@@ -79,6 +87,43 @@ describe("getProductCatalogConflict", () => {
       synaravaValue: "— Product is missing —",
       shopifyValue: "Remote ring · SKU R-42",
     });
+  });
+
+  it("resolves a remapped Shopify-only row by Shopify GID after re-scan changes the presence id", async () => {
+    mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([presenceDiff({
+      id: "local-matched",
+      localProductId: "local-matched",
+      matchReason: "SKU",
+      localIdentity: { name: "Draft", handle: "draft", sku: "R-42" },
+    })]);
+
+    const result = await getProductCatalogConflict("shopify:42");
+
+    expect(mocks.inspectProductSyncState).not.toHaveBeenCalled();
+    expect(result.fields[0]?.presenceDifference?.id).toBe("local-matched");
+    expect(result.fields[0]).toMatchObject({
+      origin: "PRESENCE",
+      synaravaValue: "Draft · SKU R-42",
+    });
+  });
+
+  it("does not throw when a virtual Shopify-only id is gone from the presence snapshot", async () => {
+    mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([]);
+
+    const result = await getProductCatalogConflict("shopify:42");
+
+    expect(result.fields).toEqual([]);
+    expect(mocks.inspectProductSyncState).not.toHaveBeenCalled();
+    expect(mocks.findUniqueProduct).not.toHaveBeenCalled();
+  });
+
+  it("does not throw when a local product id no longer exists", async () => {
+    mocks.findUniqueProduct.mockResolvedValue(null);
+
+    const result = await getProductCatalogConflict("deleted-product");
+
+    expect(result.fields).toEqual([]);
+    expect(mocks.inspectProductSyncState).not.toHaveBeenCalled();
   });
 
   it("keeps local and Shopify identity distinct when Pull will link an existing local match", async () => {
@@ -146,14 +191,20 @@ describe("getProductCatalogConflict", () => {
     expect(result.fields[0].sourceId).toBe("divergence-42");
   });
 
-  it("drops one-directional commerce state without surfacing a conflict field", async () => {
+  it("surfaces one-directional commerce differences so Pull/Push can act on them", async () => {
     mocks.inspectProductSyncState.mockResolvedValue(
       inspection({ state: "REMOTE_CHANGES", differences: [{ field: "Vendor", local: "Synarava", shopify: "Other" }] }),
     );
 
     const result = await getProductCatalogConflict("product-1");
 
-    expect(result.fields).toEqual([]);
+    expect(result.fields).toHaveLength(1);
+    expect(result.fields[0]).toMatchObject({
+      origin: "COMMERCE",
+      label: "Vendor",
+      synaravaValue: "Synarava",
+      shopifyValue: "Other",
+    });
   });
 
   it("excludes a commerce EN-duplicate label only when translation reconcile actually reports that exact field as conflicting under en", async () => {

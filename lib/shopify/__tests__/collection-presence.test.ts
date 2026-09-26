@@ -83,4 +83,13 @@ describe("classifyCollectionPresence", () => {
       shopifyProductId: "gid://shopify/Collection/1",
     });
   });
+
+  it("keeps collection presence fingerprints stable when only display fields change", () => {
+    const first = classifyCollectionPresence([], [remote()])[0];
+    const renamed = classifyCollectionPresence(
+      [],
+      [remote({ title: "Changed", updatedAt: "2099-01-01T00:00:00.000Z" })],
+    )[0];
+    expect(first.shopifyFingerprint).toBe(renamed.shopifyFingerprint);
+  });
 });

@@ -119,6 +119,11 @@ export type AdminLocaleTabsProps = {
   /** Locale codes with open language-scoped QA issues — tints that tab. */
   issueLocales?: ReadonlySet<string> | readonly string[];
   /**
+   * Locale shells that should show a commerce conflict mark.
+   * Shared fields (price, …) mark every language; locale-only copy marks one.
+   */
+  conflictLocales?: ReadonlySet<string> | readonly string[];
+  /**
    * Nest inside a parent locale shell (product editor). Drops default sticky
    * chrome. Prefer wrapping with `AdminPanel.Header sticky` so the band occupies
    * the panel radius (`top: stickyAbove - radius`) instead of sitting below it.
@@ -148,6 +153,7 @@ export function AdminLocaleTabs({
   panelId,
   dirtyLocales,
   issueLocales,
+  conflictLocales,
   embedded = false,
   stacked = false,
 }: AdminLocaleTabsProps) {
@@ -161,6 +167,9 @@ export function AdminLocaleTabs({
   const issueSet = issueLocales instanceof Set
     ? issueLocales
     : new Set(issueLocales ?? []);
+  const conflictSet = conflictLocales instanceof Set
+    ? conflictLocales
+    : new Set(conflictLocales ?? []);
 
   function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const lastIndex = locales.length - 1;
@@ -208,6 +217,7 @@ export function AdminLocaleTabs({
             data-active={active === locale.code ? "true" : undefined}
             data-dirty={dirtySet.has(locale.code) ? "true" : undefined}
             data-issue={issueSet.has(locale.code) ? "true" : undefined}
+            data-conflict={conflictSet.has(locale.code) ? "true" : undefined}
             className="adm-locale-tab"
           >
             {locale.code}
@@ -223,6 +233,13 @@ export function AdminLocaleTabs({
                 className="ml-1 inline-block size-1.5 rounded-full bg-[var(--adm-danger)]"
                 title="Open problem"
                 aria-label="Open problem"
+              />
+            ) : null}
+            {conflictSet.has(locale.code) ? (
+              <span
+                className="ml-1 inline-block size-1.5 rounded-full bg-[var(--adm-conflict)]"
+                title="Shopify conflict"
+                aria-label="Shopify conflict"
               />
             ) : null}
           </button>

@@ -66,6 +66,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     imageUrl: null,
     primaryAssetId: null,
     priceCents: 4500,
+    compareAtCents: null,
     status: "DRAFT",
     visibility: "PRIVATE",
     shopifyProductId: null,
@@ -76,6 +77,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     lastSyncedAt: null,
     syncStatus: "UNLINKED",
     syncError: null,
+    shopifySnapshot: null,
     translations: [],
     media: [],
     characteristics: [],
@@ -236,6 +238,7 @@ describe("productToDraft", () => {
   it("prefers the primary variant's commerce fields over the product's own mirror columns", () => {
     const product = makeProduct({
       priceCents: 1000,
+      compareAtCents: 5000,
       sku: "PRODUCT-SKU",
       variants: [
         {
@@ -244,6 +247,7 @@ describe("productToDraft", () => {
           title: "Default",
           priceCents: 2500,
           compareAtCents: null,
+          costCents: 900,
           stockOnHand: 7,
           barcode: null,
           taxable: true,
@@ -261,7 +265,85 @@ describe("productToDraft", () => {
     const draft = productToDraft(product);
     expect(draft.sku).toBe("VARIANT-SKU");
     expect(draft.price).toBe("25.00");
+    expect(draft.cost).toBe("9.00");
+    expect(draft.taxable).toBe(true);
     expect(draft.stockOnHand).toBe("7");
+  });
+
+  it("prefers Cost / compare-at from shopifySnapshot over stale variant columns", () => {
+    const product = makeProduct({
+      priceCents: 1000,
+      compareAtCents: 2000,
+      shopifySnapshot: {
+        variants: [
+          {
+            price: "10.00",
+            compareAtPrice: "15.00",
+            inventoryItem: { unitCost: { amount: "3.00", currencyCode: "EUR" } },
+          },
+        ],
+      },
+      variants: [
+        {
+          id: "variant-1",
+          sku: "SKU-1",
+          title: "Default",
+          priceCents: 1000,
+          compareAtCents: 2000,
+          costCents: 400,
+          stockOnHand: 1,
+          barcode: null,
+          taxable: true,
+          requiresShipping: true,
+          tracked: true,
+          weightGrams: null,
+          imageUrl: null,
+          selectedOptions: null,
+          shopifyVariantId: null,
+          shopifyInventoryItemId: null,
+        },
+      ],
+    });
+    const draft = productToDraft(product);
+    expect(draft.cost).toBe("3.00");
+    expect(draft.compareAt).toBe("15.00");
+  });
+
+  it("falls back to Product.compareAtCents when the variant has none (half-pull / mirror)", () => {
+    const withProductMirror = makeProduct({
+      priceCents: 1000,
+      compareAtCents: 2000,
+      variants: [],
+    });
+    expect(productToDraft(withProductMirror).compareAt).toBe("20.00");
+    expect(productToDraft(withProductMirror).price).toBe("10.00");
+
+    const variantNullCompareAt = makeProduct({
+      priceCents: 1000,
+      compareAtCents: 2000,
+      variants: [
+        {
+          id: "variant-1",
+          sku: "SKU-1",
+          title: "Default",
+          priceCents: 1000,
+          compareAtCents: null,
+          costCents: null,
+          stockOnHand: 0,
+          barcode: null,
+          taxable: false,
+          requiresShipping: true,
+          tracked: true,
+          weightGrams: null,
+          imageUrl: null,
+          selectedOptions: null,
+          shopifyVariantId: null,
+          shopifyInventoryItemId: null,
+        },
+      ],
+    });
+    expect(productToDraft(variantNullCompareAt).compareAt).toBe("20.00");
+    expect(productToDraft(variantNullCompareAt).taxable).toBe(false);
   });
 
   it("excludes the storefront-default collection from the marketing collection slug", () => {

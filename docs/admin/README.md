@@ -3,12 +3,16 @@
 Четыре документа, каждый со своей ролью. Если не уверены, с чего начать —
 начните с гайда.
 
-Контракт [разрешения конфликтов каталога](./catalog-conflict-resolution-ux.md) описывает уже подключённый flow на `/admin/products`. Live Shopify round trip и оставшиеся unsupported commerce-поля отмечены в [плане задачи](../../tasks/catalog-conflict-resolution-plan.md).
+Контракт [разрешения конфликтов каталога](./catalog-conflict-resolution-ux.md) описывает уже подключённый flow на `/admin/products`. Текущая модель commerce sync (dual store, detect, маркеры, freeze): [`commerce-sync.md`](./commerce-sync.md). Live Shopify round trip и оставшиеся unsupported commerce-поля отмечены в [плане задачи](../../tasks/catalog-conflict-resolution-plan.md).
+
+**Модель редактора товара:** остов Shopify (все поддерживаемые commerce-поля + проверка sync поле за полем) + секции Synarava (CMS-only). Табы секций визуально в двух группах — Shopify и Synarava. Ownership: [`../product-data-ownership.md`](../product-data-ownership.md).
 
 | Документ | Кому | Зачем |
 |---|---|---|
 | [`admin-guide-ru.md`](./admin-guide-ru.md) | всем | Как устроена и как ведёт себя админка. Справочник поведения: разделы, поля, правила публикации, синхронизация с Shopify. Источник истины для ожидаемых результатов в тест-кейсах. |
-| [`synarava-cms.md`](./synarava-cms.md) | разработчик / агент | Контракт библиотеки **synarava-cms** (`@/components/synarava-cms`: Text / Select / Checkbox / shell). Обязателен при любой правке UI форм в `components/admin/`. |
+| [`commerce-sync.md`](./commerce-sync.md) | разработчик / агент | Текущий freeze: dual commerce store, deep-diff detect, write-through Save, marker tree, code map. |
+| [`synarava-cms.md`](./synarava-cms.md) | разработчик / агент | Контракт библиотеки **synarava-cms** (`@/components/synarava-cms`: Text / Readonly / Select / Checkbox / shell). Обязателен при любой правке UI форм в `components/admin/`. |
+| [`tech-debt.md`](./tech-debt.md) | разработчик / продукт | Открытый техдолг админки (например compare-at legal / edit path). |
 | [`infrastructure-audit.md`](./infrastructure-audit.md) | разработчик / ops | Read-only аудит Postgres + Railway Bucket (медиа, целостность, размеры таблиц). Очистка — только после явного подтверждения. |
 | [`test-plan-ru.md`](./test-plan-ru.md) | тимлид, тестировщик | План автоматизации: что уже есть, чего не хватает, фазы работ, решения по инфраструктуре и рискам. |
 | [`test-cases-manual-ru.md`](./test-cases-manual-ru.md) | ручной тестировщик | Все кейсы с шагами и ожидаемым результатом. Помечено, что уже закрыто автотестами (можно пропустить) и что добавлено в последней ревизии. |

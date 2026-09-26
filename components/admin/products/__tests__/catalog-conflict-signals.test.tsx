@@ -22,10 +22,9 @@ describe("catalog conflict signals", () => {
     const open = vi.fn();
     render(<><CatalogConflictStatus signals={signals} onShow={open} onCheck={vi.fn()} /><CatalogConflictStatus signals={signals} onShow={open} onCheck={vi.fn()} compact /></>);
     expect(screen.getByText(/2 products with conflicts/)).toBeTruthy();
-    expect(screen.getByText("2 conflicts")).toBeTruthy();
-    const buttons = screen.getAllByRole("button", { name: "Show conflicts" });
-    expect(buttons).toHaveLength(2);
-    buttons.forEach((button) => fireEvent.click(button));
+    expect(screen.getByText("2 conflict products")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show conflicts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show conflict products" }));
     expect(open).toHaveBeenCalledTimes(2);
   });
 
@@ -63,10 +62,12 @@ describe("catalog conflict signals", () => {
 
   it("updates both counters when the last persisted conflict disappears", () => {
     const { rerender } = render(<><CatalogConflictStatus signals={signals} onShow={vi.fn()} onCheck={vi.fn()} /><CatalogConflictStatus signals={signals} onShow={vi.fn()} onCheck={vi.fn()} compact /></>);
-    expect(screen.getAllByRole("button", { name: "Show conflicts" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Show conflicts" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Show conflict products" })).toBeTruthy();
     const cleared: CatalogConflictSignals = { ...signals, totalCount: 0, products: {} };
     rerender(<><CatalogConflictStatus signals={cleared} onShow={vi.fn()} onCheck={vi.fn()} /><CatalogConflictStatus signals={cleared} onShow={vi.fn()} onCheck={vi.fn()} compact /></>);
     expect(screen.getByText("No saved conflicts")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Show conflicts" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show conflict products" })).toBeNull();
   });
 });

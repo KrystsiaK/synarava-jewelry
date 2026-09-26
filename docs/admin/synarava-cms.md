@@ -22,6 +22,7 @@ two visual variants remain. Agent skill encodes this contract.
 |--------|------|
 | `AdminFieldShell` | Label + owner + help + absolute error/`issue` (`.adm-field-unit`) |
 | `AdminTextField` / `AdminTextControl` | Labeled text / embeddable control |
+| `AdminReadonlyField` | Label + value only (no input); synced or derived facts |
 | `AdminSelectField` / `AdminSelectControl` | Select / embeddable select |
 | `AdminHrefField` / `AdminHrefControl` | Segmented storefront path combobox (routes / pages / collections / products) |
 | `AdminVideoField` / `AdminVideoControl` | Site video (MP4/WebM) upload + current/selected preview |
@@ -31,7 +32,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminCollapsiblePanel` | Titled collapsible panel (chevron; header/body divider) |
 | `AdminPanel` | Rounded shell (`Root` / `Header` / `Body`); sticky header lifts by −radius |
 | `AdminNavTree` / `buildAdminNavItems` | Config-driven admin sidebar tree (expand, show-more, router sync) |
-| `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones) |
+| `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones; optional Shopify/Synarava groups) |
 | `AdminEntityList` | Dense list shell (header / row / infinite-scroll load more) |
 | `AdminListWorkspace` | Sticky list chrome (`Root` / `Header` / `Filters` / `Body`) over `AdminPanel` |
 | `AdminIconButton` | Square icon action + tooltip (`adm-icon-btn`, fixed 2rem, no wrap) |
@@ -96,6 +97,25 @@ import { AdminTextField } from "@/components/synarava-cms";
 - Embed / combobox: `AdminTextControl` (same group chrome; optional `clearable`).
 - Product single-line fields consume `AdminTextField` / `AdminTextControl` via
   `@/components/synarava-cms`. Story: `synarava-cms/AdminTextField`.
+
+### Readonly (label + value)
+
+```tsx
+import { AdminHelp, AdminReadonlyField } from "@/components/synarava-cms";
+
+<AdminReadonlyField
+  label="Compare-at price"
+  owner="Shopify"
+  value="€148.00"
+  emptyLabel="Not set"
+  help={<AdminHelp>Edit in Shopify Admin.</AdminHelp>}
+/>
+```
+
+- **No input chrome** — label row (owner / help) + typographic value only.
+- Empty / null / `""` → `emptyLabel` (default `—`) with muted empty styling.
+- Use for Shopify-synced facts edited elsewhere, or derived UI-only metrics
+  (Profit / Margin). Story: `synarava-cms/AdminReadonlyField`.
 
 ### Select
 
@@ -268,14 +288,24 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 
 Reusable card-strip tabs with a cool content well (`AdminSectionTabs`).
 
+Optional **`groups`** split the strip into labeled clusters (product editor:
+Shopify commerce skeleton vs Synarava-only sections). Each item may set
+`group` to a group id. Keyboard arrows still move across the whole tablist.
+
 ```tsx
 import { AdminSectionTabs } from "@/components/synarava-cms";
 
 <AdminSectionTabs
+  groups={[
+    { id: "shopify", label: "Shopify" },
+    { id: "synarava", label: "Synarava" },
+  ]}
   items={[
-    { id: "content", label: "Content", detail: "Copy & search", icon: FileText },
-    { id: "catalog", label: "Catalog", tone: "issue" },
-    { id: "shopify", label: "Shopify", tone: "conflict", dirty: true },
+    { id: "essentials", label: "Essentials", detail: "Sellable", group: "shopify" },
+    { id: "content", label: "Content", detail: "Copy & search", icon: FileText, group: "shopify" },
+    { id: "catalog", label: "Catalog", tone: "issue", group: "shopify" },
+    { id: "sync", label: "Sync", tone: "conflict", dirty: true, group: "shopify" },
+    { id: "details", label: "Product page", group: "synarava" },
   ]}
   active={active}
   onChange={setActive}
@@ -292,9 +322,10 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
 | Issue (+ hover / selected) | Danger tint; issue wins over conflict |
 | Conflict (+ hover / selected) | Amber conflict tint |
 | Dirty | Amber dot only (does not replace tone) |
+| Grouped strip | Uppercase cluster labels + seam between Shopify / Synarava |
 
 Tokens: `--adm-cool`, `--adm-cool-soft`, `--adm-tab-well`, `--adm-conflict-soft`.  
-Product editor uses this via `ProductEditorTabs`. Story: `synarava-cms/AdminSectionTabs`.
+Product editor uses this via `ProductEditorTabs` (always grouped). Story: `synarava-cms/AdminSectionTabs`.
 
 ### Entity list (tables)
 

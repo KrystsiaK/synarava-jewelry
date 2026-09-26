@@ -61,7 +61,14 @@ describe("CreateProductForm", () => {
     expect(screen.getByLabelText(/Name/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Slug/)).toBeInTheDocument();
     expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Price EUR/)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
+    expect(screen.getByRole("spinbutton", { name: /Price/ })).toBeInTheDocument();
+    expect(screen.getByText("Compare-at price")).toBeInTheDocument();
+    expect(screen.getByText("Cost")).toBeInTheDocument();
+    expect(screen.getAllByText("Not set").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByRole("spinbutton", { name: /Compare-at price/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Charge tax on this product/ })).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: /^Cost/ })).not.toBeInTheDocument();
     expect(screen.getByText("Product gallery")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Catalog/ }));
     expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
@@ -115,7 +122,8 @@ describe("CreateProductForm", () => {
     await user.type(screen.getByLabelText(/Name/), "Lava Ring");
     await user.type(screen.getByLabelText(/Slug/), "lava-ring");
     await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
-    await user.type(screen.getByLabelText(/Price EUR/), "45.00");
+    await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");
 
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
     await user.click(await screen.findByRole("button", { name: "Continue and save" }));
@@ -132,7 +140,8 @@ describe("CreateProductForm", () => {
     await user.type(screen.getByLabelText(/Name/), "Lava Ring");
     await user.type(screen.getByLabelText(/Slug/), "lava-ring");
     await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
-    await user.type(screen.getByLabelText(/Price EUR/), "45.00");
+    await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
     await user.click(await screen.findByRole("button", { name: "Continue and save" }));
 

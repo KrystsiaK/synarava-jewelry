@@ -208,10 +208,12 @@ export async function applyCatalogPresenceDifference({
     await removeCatalogPresenceDifference(difference.id);
     return { ok: true, localProductId: difference.localProductId, message: "Product pushed to Shopify." };
   } catch (error) {
+    const detail = error instanceof Error ? error.message : "The product could not be synchronized.";
+    const target = difference.shopifyProductId ?? difference.localProductId ?? difference.id;
     return {
       ok: false,
       reason: "WRITE_FAILED",
-      message: error instanceof Error ? error.message : "The product could not be synchronized.",
+      message: `Presence ${difference.kind} apply failed for ${target}: ${detail}`,
     };
   }
 }

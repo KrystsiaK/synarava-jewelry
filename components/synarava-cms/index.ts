@@ -22,6 +22,11 @@ export {
 } from "@/components/admin/shared/admin-text-field";
 
 export {
+  AdminReadonlyField,
+  type AdminReadonlyFieldProps,
+} from "@/components/admin/shared/admin-readonly-field";
+
+export {
   AdminSelectControl,
   AdminSelectField,
   type AdminSelectControlProps,
@@ -80,6 +85,7 @@ export {
 
 export {
   AdminSectionTabs,
+  type AdminSectionTabGroup,
   type AdminSectionTabItem,
   type AdminSectionTabsProps,
   type AdminSectionTabTone,

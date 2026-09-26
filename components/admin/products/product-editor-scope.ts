@@ -55,9 +55,9 @@ export function localeHasDirty(
   return false;
 }
 
-/** Catalog / media / shopify are shared across languages. */
+/** Catalog / media / shopify / price are shared across languages. */
 export function isSharedSection(section: ProductEditorSection): boolean {
-  return section === "catalog" || section === "media" || section === "shopify";
+  return section === "catalog" || section === "media" || section === "shopify" || section === "price";
 }
 
 export function isLocaleSection(section: ProductEditorSection): boolean {
@@ -76,9 +76,11 @@ const ALWAYS_FROM_CURRENT = new Set([
 const REQUIRED_FIELDS = new Set(["name", "slug", "sku", "price", "stockOnHand", "workflowState"]);
 
 const ESSENTIALS_SHARED = [
-  "name", "slug", "sku", "price", "stockOnHand", "vendor", "productType", "seriesLabel",
+  "name", "slug", "sku", "stockOnHand", "vendor", "productType", "seriesLabel",
 ];
 const ESSENTIALS_LOCALE = ["title", "localizedHandle"];
+/** compareAt + cost are Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
+const PRICE_SHARED = ["price", "taxable"];
 const CONTENT_LOCALE = [
   "shortDescription", "description", "seoTitle", "seoDescription",
   "materialLine", "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2", "reviewed",
@@ -136,8 +138,11 @@ export function fieldBelongsToBranch(
   locale: string,
 ): boolean {
   if (ALWAYS_FROM_CURRENT.has(fieldName) || REQUIRED_FIELDS.has(fieldName)) {
-    // Required fields are injected separately; still "belong" to essentials for marking.
-    if (section === "essentials") return ESSENTIALS_SHARED.includes(fieldName) || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
+    // Required fields are injected separately; still "belong" to their owner section for marking.
+    if (section === "essentials") {
+      return ESSENTIALS_SHARED.includes(fieldName) || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
+    }
+    if (section === "price") return PRICE_SHARED.includes(fieldName);
     return false;
   }
 
@@ -145,6 +150,8 @@ export function fieldBelongsToBranch(
     case "essentials":
       return ESSENTIALS_SHARED.includes(fieldName)
         || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
+    case "price":
+      return PRICE_SHARED.includes(fieldName);
     case "catalog":
       return CATALOG_SHARED.includes(fieldName) || isCharacteristicsField(fieldName);
     case "content":
@@ -193,8 +200,11 @@ export function buildScopedProductFormData({
 
   for (const key of REQUIRED_FIELDS) {
     const essentialsOwned = section === "essentials"
-      && (key === "name" || key === "slug" || key === "sku" || key === "price" || key === "stockOnHand");
-    const value = (essentialsOwned ? current.get(key) : null) ?? baseline.get(key) ?? current.get(key);
+      && (key === "name" || key === "slug" || key === "sku" || key === "stockOnHand");
+    const priceOwned = section === "price" && key === "price";
+    const value = ((essentialsOwned || priceOwned) ? current.get(key) : null)
+      ?? baseline.get(key)
+      ?? current.get(key);
     if (typeof value === "string") scoped.set(key, value);
   }
 
@@ -212,6 +222,16 @@ export function buildScopedProductFormData({
       copyEntry(scoped, key, value);
     }
   }
+
+  // Unchecked checkboxes are absent from FormData — force the Price-tab value.
+  if (section === "price") {
+    const taxable = current.get("taxable");
+    scoped.set("taxable", taxable === "1" || taxable === "on" ? "1" : "0");
+  }
+
+  // Pull projections — never written from the editor FormData.
+  scoped.delete("cost");
+  scoped.delete("compareAt");
 
   scoped.set("saveScope", `${locale}:${section}`);
   return scoped;

@@ -4,6 +4,17 @@
 
 Shopify is the system of record for every customer-facing commerce field that Shopify can represent. Synarava must pull and preserve those fields before adding its own data. Synarava is an enrichment layer, not a competing catalog.
 
+### Admin product editor (working model)
+
+The product admin is built as **Shopify skeleton + Synarava sections**:
+
+1. **Shopify skeleton** — every standard Shopify product/variant field we support must appear in admin, sync correctly (pull/push), and match Shopify Admin. We verify this field by field.
+2. **Synarava sections** — settings and editorial modules that exist only in Synarava (materials story, process, lookbook, and future CMS-only controls).
+
+The section tab strip is visually split into two clusters: **Shopify** (commerce skeleton + Sync) and **Synarava** (CMS-only). Tab count and Shopify-side layout will grow to mirror Shopify’s product admin more closely; Synarava tabs stay a separate group.
+
+**Price tab (Shopify group):** mirrors Shopify Admin’s Price card on the primary variant — editable `price` and `taxable`. **Compare-at** and **Cost** (`unitCost` → local `costCents`) are Synarava **read-only** (`AdminReadonlyField`): shown from the last Shopify pull; edit only in Shopify Admin (compare-at also waits on legal/reference-price rules — [tech debt TD-01](./admin/tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path)). Profit and margin are calculated in the UI only. Unit price measurement is deferred.
+
 The synchronization boundary has three explicit layers:
 
 1. **Shopify standard fields** — Shopify owns identity, sellability, pricing, inventory, variants, options, primary and gallery media, taxonomy, SEO, publication state, shipping measurements, and other supported product/variant fields.
@@ -25,7 +36,14 @@ Synarava-only localized fields and other locales are not cleared by that decisio
 - A Shopify pull must never overwrite Synarava-only editorial content.
 - A push sends Shopify-owned fields and mirrored characteristics only. It never flattens Synarava editorial content into the Shopify description.
 - Conflicting edits to a field with shared ownership require an explicit choice: use Shopify or push the saved Synarava value.
-- Technical identifiers and a raw normalized snapshot are retained for reconciliation and audit, but are not exposed as storefront copy.
+- Technical identifiers and a **normalized Shopify-shaped payload** on the product
+  (`shopifySnapshot` / compare field) are the **conflict-detection source of truth**:
+  one normalize (strip technical noise) before save and before compare, then deep-diff.
+  Do not maintain hand allowlists of commerce fields for detection — see
+  [`.agents/skills/shopify-commerce-compare/SKILL.md`](../.agents/skills/shopify-commerce-compare/SKILL.md).
+  Admin view columns are projections for the editor, not a second compare axis.
+  Catalog-level compare uses dual full stores (`CommerceSyncStore` our vs shopify);
+  see [`docs/admin/commerce-sync.md`](./admin/commerce-sync.md).
 - Shopify IDs are scoped to one canonical `*.myshopify.com` store. Switching to a duplicated store requires an explicit rebind before SKU/handle matching can establish the new IDs.
 
 ## Catalog concepts

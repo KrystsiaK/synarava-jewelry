@@ -14,6 +14,7 @@ type ProductCommerceSnapshot = {
     priceCents: number;
     compareAtCents: number | null;
     stockOnHand: number;
+    taxable?: boolean;
   }>;
   tags: Array<{ tag: { slug: string } }>;
   characteristics: Array<{
@@ -40,6 +41,7 @@ export function productCommerceSignature(product: ProductCommerceSnapshot) {
     sku: primaryVariant?.sku ?? product.sku,
     priceCents: primaryVariant?.priceCents ?? product.priceCents,
     compareAtCents: primaryVariant?.compareAtCents ?? null,
+    taxable: primaryVariant?.taxable ?? true,
     stockOnHand: primaryVariant?.stockOnHand ?? 0,
     tags: product.tags.map((item) => item.tag.slug).sort(),
     characteristics: product.characteristics

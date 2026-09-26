@@ -30,7 +30,7 @@ const MAX_APPLY_ENTRIES = 200;
 // read model (getProductCatalogConflict) is built on. That combination is
 // why those two functions stay off-limits here. A narrow slice of plain
 // scalar fields (SCOPED_COMMERCE_FIELD_LABELS, in commerce-field-apply.ts —
-// Vendor, Product type, Variant SKU, Price, Compare-at price) instead has
+// Vendor, Product type, Variant SKU, Price, Compare-at price, Charge tax) instead has
 // its own single-field Shopify mutation (productUpdate/
 // productVariantsBulkUpdate with only that key) and a single-column Prisma
 // write — no other field is touched. Everything else stays UNSUPPORTED.
@@ -237,7 +237,17 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
-    if (field.localFingerprint !== entry.expectedLocalFingerprint || field.shopifyFingerprint !== entry.expectedShopifyFingerprint) {
+    // Presence freshness is the re-scan above: if the membership row is still
+    // present with an allowed direction, apply the *current* difference.
+    // Comparing preview fingerprints to post-scan hashes is wrong here —
+    // preview reads a saved snapshot, apply re-scans live; title/updatedAt
+    // schema churn or SKU rematch change hashes without invalidating Pull.
+    // Field conflicts (commerce/translation) still require fingerprint match.
+    if (
+      field.origin !== "PRESENCE"
+      && (field.localFingerprint !== entry.expectedLocalFingerprint
+        || field.shopifyFingerprint !== entry.expectedShopifyFingerprint)
+    ) {
       results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }

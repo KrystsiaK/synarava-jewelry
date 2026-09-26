@@ -10,13 +10,11 @@ import { characteristicDisplayValue, PRODUCT_CHARACTERISTICS } from "@/lib/produ
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
 import {
-  compareVariantCommerce,
   diffCollectionMembership,
   pickShopifyProductImageUrl,
   refreshShopifyProductAfterPush,
   synaravaVisibilityForShopifyProduct,
   type RemoteProductStatus,
-  variantCommerceChangeLabel,
 } from "@/lib/shopify/reconciliation";
 import {
   findManagedCollectionSourceId,
@@ -37,6 +35,12 @@ import {
 } from "@/lib/shopify/staged-product-media";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
+  findOnlineStorePublication,
+  isPublishedToOnlineStore,
+  publishedPublicationNames,
+  type ShopifyResourcePublication,
+} from "@/lib/shopify/product-publications";
+import {
   characteristicKeyForShopifyCategoryMetafield,
   displayNamesFromCategoryReference,
   extractSimpleTextCharacteristicSeeds,
@@ -49,6 +53,13 @@ import {
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import {
+  canonicalizeShopifyProjection,
+  diffShopifyProjections,
+  getProjectionPath,
+  setProjectionPath,
+  writeThroughLocalCommerceToProjection,
+} from "@/lib/shopify/shopify-projection-diff";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = {
@@ -89,11 +100,7 @@ type ShopifyProduct = {
     title: string;
     sources: ShopifyCollectionSource[];
   }> };
-  resourcePublicationsV2: { pageInfo: ShopifyPageInfo; nodes: Array<{
-    isPublished: boolean;
-    publishDate: string | null;
-    publication: { id: string; name: string };
-  }> };
+  resourcePublicationsV2: { pageInfo: ShopifyPageInfo; nodes: ShopifyResourcePublication[] };
   featuredMedia?: { id: string; preview?: { image?: { url: string } | null } | null } | null;
   variants: { pageInfo: ShopifyPageInfo; nodes: Array<{
     id: string;
@@ -112,6 +119,7 @@ type ShopifyProduct = {
       tracked: boolean;
       countryCodeOfOrigin: string | null;
       harmonizedSystemCode: string | null;
+      unitCost?: { amount: string; currencyCode: string } | null;
       inventoryLevels?: ShopifyInventoryLevel[];
       measurement?: {
         weight?: {
@@ -135,7 +143,11 @@ const COLLECTION_FIELDS = `
 const VARIANT_FIELDS = `
   id title sku barcode price compareAtPrice inventoryPolicy taxable inventoryQuantity
   selectedOptions { name value }
-  inventoryItem { id requiresShipping tracked countryCodeOfOrigin harmonizedSystemCode measurement { weight { value unit } } }
+  inventoryItem {
+    id requiresShipping tracked countryCodeOfOrigin harmonizedSystemCode
+    unitCost { amount currencyCode }
+    measurement { weight { value unit } }
+  }
 `;
 
 const PRODUCT_FIELDS = `
@@ -286,8 +298,9 @@ function weightInGrams(weight: NonNullable<NonNullable<ShopifyProduct["variants"
   return Math.round(weight.value * multiplier * 10000) / 10000;
 }
 
-function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
-  return JSON.parse(JSON.stringify({
+/** Shopify-shaped projection; noise stripped before persist and before compare. */
+export function snapshotForShopifyProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
+  return canonicalizeShopifyProjection({
     id: remote.id,
     title: remote.title,
     handle: remote.handle,
@@ -318,7 +331,18 @@ function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
       inventoryItem: variant.inventoryItem,
     })),
     updatedAt: remote.updatedAt,
-  })) as Prisma.InputJsonValue;
+  }) as Prisma.InputJsonValue;
+}
+
+/** @deprecated use snapshotForShopifyProduct */
+function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
+  return snapshotForShopifyProduct(remote);
+}
+
+/** L and B agree with live Shopify after successful pull/push. */
+function agreedProjectionWrite(remote: ShopifyProduct) {
+  const snap = snapshotForProduct(remote);
+  return { shopifySnapshot: snap, workingSnapshot: snap };
 }
 
 async function syncOnlineStorePublication(productId: string, published: boolean) {
@@ -438,6 +462,8 @@ async function fetchCategoryMetafieldDisplayValues(productId: string, key: strin
     if (!metafield) break;
     if (metafield.reference) names.push(...displayNamesFromCategoryReference(metafield.reference));
     for (const node of metafield.references?.nodes ?? []) {
+      // Shopify connection nodes may be null; skip rather than crashing pull.
+      if (!node) continue;
       names.push(...displayNamesFromCategoryReference(node));
     }
     const pageInfo = metafield.references?.pageInfo;
@@ -476,6 +502,42 @@ export async function fetchShopifyProduct(id: string) {
     variant.inventoryItem.inventoryLevels = await fetchInventoryLevels(variant.inventoryItem.id);
   }
   return product;
+}
+
+/**
+ * Catalog-wide commerce windows for dual-store compare.
+ * Paginated list query only — does NOT run per-product inventory/category enrichment
+ * (that path freezes admin when run for every product).
+ */
+export async function listShopifyProductWindowsForCommerceStore(
+  onProgress?: (info: { page: number; fetched: number }) => void,
+): Promise<Array<{ id: string; window: Prisma.InputJsonValue }>> {
+  const out: Array<{ id: string; window: Prisma.InputJsonValue }> = [];
+  let after: string | null = null;
+  let page = 0;
+  do {
+    page += 1;
+    const data = await shopifyAdminRequest<{
+      products: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: ShopifyProduct[];
+      };
+    }>(
+      `query SynaravaCommerceStoreProducts($after: String) {
+        products(first: 25, after: $after, sortKey: ID) {
+          pageInfo { hasNextPage endCursor }
+          nodes { ${PRODUCT_FIELDS} }
+        }
+      }`,
+      { after },
+    );
+    for (const remote of data.products.nodes) {
+      out.push({ id: remote.id, window: snapshotForShopifyProduct(remote) });
+    }
+    onProgress?.({ page, fetched: out.length });
+    after = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;
+  } while (after);
+  return out;
 }
 
 type LocalProductAsset = StagedProductMedia & {
@@ -656,7 +718,8 @@ async function releaseReadyLocalProductMedia(productId: string, remote: ShopifyP
  */
 async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force = false) {
   const firstVariant = remote.variants.nodes[0];
-  const onlineStorePublication = remote.resourcePublicationsV2.nodes.find((item) => /online store/i.test(item.publication.name));
+  // Shopify can return resourcePublicationsV2 nodes with publication: null.
+  const onlineStorePublication = findOnlineStorePublication(remote.resourcePublicationsV2.nodes);
   const remoteSku = firstVariant?.sku?.trim() || `SHOPIFY-${remote.id.split("/").pop()}`;
   const imageUrl = pickShopifyProductImageUrl({
     featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
@@ -665,7 +728,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       imageUrl: item.preview?.image?.url,
     })),
   });
-  const isPublishedOnline = Boolean(onlineStorePublication?.isPublished);
+  const isPublishedOnline = isPublishedToOnlineStore(remote.resourcePublicationsV2.nodes);
   const visibility = synaravaVisibilityForShopifyProduct(remote.status, isPublishedOnline);
   const existingById = await db.product.findUnique({ where: { shopifyProductId: remote.id } });
   const existingBySku = existingById ? null : await db.product.findUnique({ where: { sku: remoteSku } });
@@ -730,7 +793,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
       seoTitle: remote.seo.title || null,
       seoDescription: remote.seo.description || null,
-      shopifySnapshot: snapshotForProduct(remote),
+      ...agreedProjectionWrite(remote),
       productType: remote.productType || null,
       priceCents: shopifyAmountToCents(firstVariant?.price),
       compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
@@ -742,7 +805,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
       lastSyncedAt: new Date(),
-      syncStatus: "SYNCED",
+      // PENDING until variants/tags/collections finish — a mid-pull throw must not leave SYNCED with empty variants.
+      syncStatus: "PENDING",
       syncError: null,
     },
     create: {
@@ -757,7 +821,7 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
       shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
       seoTitle: remote.seo.title || null,
       seoDescription: remote.seo.description || null,
-      shopifySnapshot: snapshotForProduct(remote),
+      ...agreedProjectionWrite(remote),
       productType: remote.productType || null,
       currency: "EUR",
       priceCents: shopifyAmountToCents(firstVariant?.price),
@@ -770,10 +834,34 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         : null,
       shopifyUpdatedAt: new Date(remote.updatedAt),
       lastSyncedAt: new Date(),
-      syncStatus: "SYNCED",
+      syncStatus: "PENDING",
     },
   });
 
+  try {
+    return await finishPulledProduct(product, remote, remoteSku, firstVariant, eventId, force);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Shopify pull failed after the product row was written.";
+    await db.product.update({
+      where: { id: product.id },
+      data: { syncStatus: "FAILED", syncError: message },
+    }).catch(() => undefined);
+    throw error;
+  }
+}
+
+/**
+ * Completes a pull after the product row exists: translations, variants, tags,
+ * collections, characteristics, search document, media. Caller marks FAILED if this throws.
+ */
+async function finishPulledProduct(
+  product: { id: string },
+  remote: ShopifyProduct,
+  remoteSku: string,
+  firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
+  eventId: string | undefined,
+  force: boolean,
+) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
   // callers only need a
@@ -902,6 +990,9 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         title: variant.title,
         priceCents: shopifyAmountToCents(variant.price),
         compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
+        costCents: variant.inventoryItem?.unitCost?.amount
+          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
+          : null,
         stockOnHand,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,
@@ -920,6 +1011,9 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
         title: variant.title,
         priceCents: shopifyAmountToCents(variant.price),
         compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
+        costCents: variant.inventoryItem?.unitCost?.amount
+          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
+          : null,
         stockOnHand,
         barcode: variant.barcode,
         inventoryPolicy: variant.inventoryPolicy,
@@ -1080,6 +1174,8 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   await db.product.update({
     where: { id: product.id },
     data: {
+      syncStatus: "SYNCED",
+      syncError: null,
       searchDocument: [remote.title, remoteSku, remote.handle, stripHtml(remote.descriptionHtml), ...searchable.flatMap((item) => [item.label, characteristicDisplayValue({ ...item, numberValue: item.numberValue ? Number(item.numberValue) : null })])].join(" "),
     },
   });
@@ -1102,6 +1198,21 @@ export type ProductSyncDifference = {
   field: string;
   local: string;
   shopify: string;
+  /** JSON path in the Shopify projection (absent for legacy non-projection rows). */
+  path?: string;
+  kind?: "ahead" | "remote" | "conflict";
+};
+
+/** Debug payload for dual-snapshot inspect (browser console). */
+export type ProductSyncInspectDebug = {
+  /** 1 — raw Admin GraphQL product (as fetched). */
+  shopifyResponse: unknown;
+  /** 2 — window stored as shopifySnapshot (same shape, thin canonicalize). */
+  shopifySnapshot: unknown;
+  /** 3 — workingSnapshot from our DB. */
+  workingSnapshot: unknown;
+  /** 4 — path diffs working vs shopify. */
+  differences: ProductSyncDifference[];
 };
 
 export type ProductSyncInspection = {
@@ -1109,15 +1220,38 @@ export type ProductSyncInspection = {
   remoteUpdatedAt: string | null;
   publications: string[];
   differences: ProductSyncDifference[];
+  debug?: ProductSyncInspectDebug;
 };
 
+/**
+ * Dual-snapshot inspect:
+ * 1) fetch Shopify → write shopifySnapshot
+ * 2) ensure workingSnapshot (seed once from shopify if missing)
+ * 3) diff(working, shopify) → state
+ */
 export async function inspectProductSyncState(productId: string): Promise<ProductSyncInspection> {
   const local = await db.product.findUniqueOrThrow({
     where: { id: productId },
-    include: {
-      variants: { orderBy: { createdAt: "asc" } },
-      tags: { include: { tag: true } },
-      characteristics: { orderBy: [{ group: "asc" }, { sortOrder: "asc" }] },
+    select: {
+      shopifyProductId: true,
+      shopifySnapshot: true,
+      workingSnapshot: true,
+      name: true,
+      slug: true,
+      vendor: true,
+      productType: true,
+      priceCents: true,
+      variants: {
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: {
+          shopifyVariantId: true,
+          sku: true,
+          priceCents: true,
+          taxable: true,
+          stockOnHand: true,
+        },
+      },
     },
   });
   if (!local.shopifyProductId) {
@@ -1129,90 +1263,153 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     return { state: "REMOTE_MISSING", remoteUpdatedAt: null, publications: [], differences: [] };
   }
 
-  const differences: ProductSyncDifference[] = [];
-  const compare = (field: string, localValue: string | number | null | undefined, remoteValue: string | number | null | undefined) => {
-    const left = localValue == null ? "" : String(localValue).trim();
-    const right = remoteValue == null ? "" : String(remoteValue).trim();
-    if (left !== right) differences.push({ field, local: left || "—", shopify: right || "—" });
-  };
-  const remoteVariant = remote.variants.nodes[0] ?? null;
+  const shopifySnapshot = snapshotForProduct(remote);
 
-  compare("Name", local.name, remote.title);
-  compare("Handle", local.slug, remote.handle);
-  compare("Description", local.description ?? "", stripHtml(remote.descriptionHtml));
-  compare("Product category", local.shopifyCategoryId ?? "", remote.category?.id ?? "");
-  compare("Product type", local.productType ?? "", remote.productType ?? "");
-  compare("Vendor", local.vendor ?? "", remote.vendor ?? "");
-  compare("SEO title", local.seoTitle ?? "", remote.seo.title ?? "");
-  compare("SEO description", local.seoDescription ?? "", remote.seo.description ?? "");
-  compare("Status", local.status, remote.status);
-  const publishedPublications = remote.resourcePublicationsV2.nodes
-    .filter((item) => item.isPublished)
-    .map((item) => item.publication.name)
-    .sort();
-  const remoteImageUrl = pickShopifyProductImageUrl({
-    featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
-    media: remote.media.nodes.map((item) => ({
-      mediaContentType: item.mediaContentType,
-      imageUrl: item.preview?.image?.url,
-    })),
-  });
-  const isPublishedOnline = publishedPublications.some((name) => /online store/i.test(name));
-  compare("Synarava storefront visibility", local.visibility, synaravaVisibilityForShopifyProduct(remote.status, isPublishedOnline));
-  compare("Primary image", local.imageUrl ?? "", remoteImageUrl ?? "");
-  for (const difference of compareVariantCommerce(local.variants, remote.variants.nodes)) {
-    const variantSuffix = remote.variants.nodes.length > 1 ? ` (${difference.variant})` : "";
-    compare(
-      `${variantCommerceChangeLabel(difference.field)}${variantSuffix}`,
-      difference.local,
-      difference.shopify,
-    );
+  // working = Synarava window. Seed once; never overwrite on inspect/refresh.
+  let workingSnapshot = local.workingSnapshot;
+  if (workingSnapshot == null) {
+    const variant = local.variants[0];
+    const seeded = writeThroughLocalCommerceToProjection(shopifySnapshot, {
+      title: local.name,
+      handle: local.slug,
+      vendor: local.vendor,
+      productType: local.productType,
+      variant: variant
+        ? {
+            shopifyVariantId: variant.shopifyVariantId,
+            sku: variant.sku,
+            priceCents: variant.priceCents,
+            taxable: variant.taxable,
+            inventoryQuantity: variant.stockOnHand,
+          }
+        : { priceCents: local.priceCents },
+    });
+    workingSnapshot = seeded as Prisma.JsonValue;
   }
-  compare(
-    "Tags",
-    local.tags.map((item) => item.tag.slug).sort().join(", "),
-    remote.tags.map(tagSlug).filter(Boolean).sort().join(", "),
+
+  await db.product.update({
+    where: { id: productId },
+    data: {
+      shopifySnapshot,
+      workingSnapshot: workingSnapshot as Prisma.InputJsonValue,
+      shopifyUpdatedAt: new Date(remote.updatedAt),
+    },
+  });
+
+  const differences: ProductSyncDifference[] = diffShopifyProjections(
+    workingSnapshot,
+    shopifySnapshot,
+  ).map((item) => ({
+    field: item.field,
+    local: item.local,
+    shopify: item.shopify,
+    path: item.path,
+  }));
+
+  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
+  if (state === "SYNCED") {
+    await db.product.update({
+      where: { id: productId },
+      data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
+    });
+  } else {
+    await db.product.update({
+      where: { id: productId },
+      data: { syncStatus: "CONFLICT", syncError: "workingSnapshot and shopifySnapshot differ." },
+    });
+  }
+
+  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
+  const debug: ProductSyncInspectDebug = {
+    shopifyResponse: remote,
+    shopifySnapshot,
+    workingSnapshot,
+    differences,
+  };
+
+  return {
+    state,
+    remoteUpdatedAt: remote.updatedAt,
+    publications: publishedPublications,
+    differences,
+    debug,
+  };
+}
+
+/** Patch one path from live Shopify into working (+ refresh shopify window). */
+export async function adoptShopifyProjectionField(
+  productId: string,
+  path: string | undefined,
+): Promise<void> {
+  if (!path) return;
+  const product = await db.product.findUniqueOrThrow({
+    where: { id: productId },
+    select: {
+      shopifyProductId: true,
+      shopifySnapshot: true,
+      workingSnapshot: true,
+      variants: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, shopifyVariantId: true },
+      },
+    },
+  });
+  if (!product.shopifyProductId) return;
+  const remote = await fetchShopifyProduct(product.shopifyProductId);
+  if (!remote) return;
+  const live = snapshotForProduct(remote);
+  const value = getProjectionPath(live, path);
+  const nextWorking = setProjectionPath(
+    product.workingSnapshot ?? product.shopifySnapshot ?? {},
+    path,
+    value,
   );
 
-  const remoteMetafields = new Map(remote.metafields.nodes
-    .filter((item) => item.namespace === "synarava")
-    .map((item) => [item.key, item.value]));
-  const localCharacteristics = new Map(local.characteristics.map((item) => [item.key, item]));
-  const remotePrimaryWeight = weightInGrams(remoteVariant?.inventoryItem?.measurement?.weight);
-  for (const definition of PRODUCT_CHARACTERISTICS) {
-    const characteristic = localCharacteristics.get(definition.key);
-    const remoteValue = definition.key === "unit_weight" && remotePrimaryWeight != null
-      ? String(remotePrimaryWeight)
-      : remoteMetafields.get(definition.key);
-    if (!characteristic && remoteValue == null) continue;
-    compare(
-      `Characteristic: ${definition.label}`,
-      characteristic ? metafieldValue(characteristic) : "",
-      remoteValue ?? "",
-    );
-    const remoteCertificate = remoteMetafields.get(`${definition.key}_certificate`);
-    if (characteristic?.certificateUrl || remoteCertificate) {
-      compare(
-        `Certificate: ${definition.label}`,
-        characteristic?.certificateUrl ?? "",
-        remoteCertificate ?? "",
-      );
+  const columnData: Prisma.ProductUpdateInput = {
+    shopifySnapshot: live,
+    workingSnapshot: canonicalizeShopifyProjection(nextWorking) as Prisma.InputJsonValue,
+  };
+
+  const priceMatch = path.match(/^variants\[(\d+)\]\.price$/);
+  if (priceMatch && typeof value === "string") {
+    const cents = shopifyAmountToCents(value);
+    columnData.priceCents = cents;
+    const variantIndex = Number(priceMatch[1]);
+    const remoteVariant = remote.variants.nodes[variantIndex];
+    const localVariant = remoteVariant
+      ? product.variants.find((item) => item.shopifyVariantId === remoteVariant.id)
+        ?? product.variants[variantIndex]
+      : product.variants[variantIndex];
+    if (localVariant) {
+      await db.productVariant.update({
+        where: { id: localVariant.id },
+        data: { priceCents: cents },
+      });
     }
   }
 
-  const remoteChanged = differences.length > 0 ||
-    !local.shopifyUpdatedAt ||
-    new Date(remote.updatedAt).getTime() > local.shopifyUpdatedAt.getTime();
-  const localChanged = local.syncStatus === "PENDING" || local.syncStatus === "FAILED" || local.syncStatus === "CONFLICT";
-  const state = remoteChanged && localChanged
-    ? "CONFLICT"
-    : remoteChanged
-      ? "REMOTE_CHANGES"
-      : localChanged
-        ? "LOCAL_CHANGES"
-        : "SYNCED";
+  const compareMatch = path.match(/^variants\[(\d+)\]\.compareAtPrice$/);
+  if (compareMatch) {
+    const cents = value == null || value === "" ? null : shopifyAmountToCents(String(value));
+    columnData.compareAtCents = cents;
+    const variantIndex = Number(compareMatch[1]);
+    const remoteVariant = remote.variants.nodes[variantIndex];
+    const localVariant = remoteVariant
+      ? product.variants.find((item) => item.shopifyVariantId === remoteVariant.id)
+        ?? product.variants[variantIndex]
+      : product.variants[variantIndex];
+    if (localVariant) {
+      await db.productVariant.update({
+        where: { id: localVariant.id },
+        data: { compareAtCents: cents },
+      });
+    }
+  }
 
-  return { state, remoteUpdatedAt: remote.updatedAt, publications: publishedPublications, differences };
+  await db.product.update({
+    where: { id: productId },
+    data: columnData,
+  });
 }
 
 export async function pullShopifyInventory(inventoryItemId: string, eventId?: string) {
@@ -1289,6 +1486,8 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const commerceSku = localVariant?.sku ?? product.sku;
     const commercePriceCents = localVariant?.priceCents ?? product.priceCents;
     const commerceCompareAtCents = localVariant?.compareAtCents ?? product.compareAtCents;
+    const commerceTaxable = localVariant?.taxable ?? true;
+    const commerceCostCents = localVariant?.costCents ?? null;
     const metafields = product.characteristics.flatMap((item) => {
       const value = metafieldValue(item);
       if (!value) return [];
@@ -1300,6 +1499,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const unitWeight = product.characteristics.find((item) => item.key === "unit_weight")?.numberValue;
     const inventoryItemInput = {
       sku: commerceSku,
+      ...(commerceCostCents != null ? { cost: (commerceCostCents / 100).toFixed(2) } : {}),
       ...(unitWeight && unitWeight.greaterThan(0)
         ? { measurement: { weight: { value: unitWeight.toNumber(), unit: "GRAMS" as const } } }
         : {}),
@@ -1414,6 +1614,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
           sku: commerceSku,
           price: (commercePriceCents / 100).toFixed(2),
           compareAtPrice: commerceCompareAtCents == null ? null : (commerceCompareAtCents / 100).toFixed(2),
+          taxable: commerceTaxable,
           optionValues: [{ optionName: "Title", name: "Default Title" }],
           inventoryItem: inventoryItemInput,
         }],
@@ -1518,6 +1719,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             id: remoteVariant.id,
             price: (commercePriceCents / 100).toFixed(2),
             compareAtPrice: commerceCompareAtCents == null ? null : (commerceCompareAtCents / 100).toFixed(2),
+            taxable: commerceTaxable,
             inventoryItem: inventoryItemInput,
           }],
         },
@@ -1531,6 +1733,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
           await db.productVariant.create({ data: {
             productId, sku: commerceSku, title: savedVariant.title || "Default Title",
             priceCents: commercePriceCents, compareAtCents: commerceCompareAtCents,
+            costCents: commerceCostCents, taxable: commerceTaxable,
             status: product.status, shopifyVariantId: savedVariant.id,
             shopifyInventoryItemId: savedVariant.inventoryItem?.id ?? null,
           } });
@@ -1583,7 +1786,11 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       shopifyHandle: settled.product.handle,
       shopifyCategoryId: settled.product.category?.id ?? null,
       shopifyCategoryName: settled.product.category?.fullName ?? settled.product.category?.name ?? null,
-      shopifySnapshot: snapshotForProduct(settled.product),
+      ...agreedProjectionWrite(settled.product),
+      priceCents: shopifyAmountToCents(settled.product.variants.nodes[0]?.price),
+      compareAtCents: settled.product.variants.nodes[0]?.compareAtPrice
+        ? shopifyAmountToCents(settled.product.variants.nodes[0].compareAtPrice)
+        : null,
       shopifyUpdatedAt: new Date(settled.product.updatedAt),
       lastSyncedAt: new Date(),
       syncStatus: "SYNCED" as const,

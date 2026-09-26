@@ -31,6 +31,11 @@ export type ProductDraft = {
   slug: string;
   sku: string;
   price: string;
+  /** Compare-at in EUR string (Shopify pull projection; Synarava read-only). */
+  compareAt: string;
+  taxable: boolean;
+  /** Unit cost in EUR string (Shopify pull projection; Synarava read-only). */
+  cost: string;
   seriesLabel: string;
   shortDescription: string;
   description: string;

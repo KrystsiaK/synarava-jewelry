@@ -7,16 +7,21 @@ import type { ProductRecord } from "@/components/admin/products/product-types";
 const mocks = vi.hoisted(() => ({
   saveProductAction: vi.fn(),
   deleteProductAction: vi.fn(),
+  getSavedProductPayload: vi.fn(),
   inspectProductSyncAction: vi.fn(),
   pullSingleProductFromShopifyAction: vi.fn(),
   pushSingleProductToShopifyAction: vi.fn(),
   checkProductConflictsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
+  buildOurCommerceStoreAction: vi.fn(),
+  fetchShopifyCommerceStoreAction: vi.fn(),
+  compareAndPersistCommerceStoresAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/products", () => ({
   saveProductAction: mocks.saveProductAction,
   deleteProductAction: mocks.deleteProductAction,
+  getSavedProductPayload: mocks.getSavedProductPayload,
 }));
 
 vi.mock("@/app/admin/actions/sync", () => ({
@@ -24,6 +29,9 @@ vi.mock("@/app/admin/actions/sync", () => ({
   pullSingleProductFromShopifyAction: mocks.pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
   checkProductConflictsAction: mocks.checkProductConflictsAction,
+  buildOurCommerceStoreAction: mocks.buildOurCommerceStoreAction,
+  fetchShopifyCommerceStoreAction: mocks.fetchShopifyCommerceStoreAction,
+  compareAndPersistCommerceStoresAction: mocks.compareAndPersistCommerceStoresAction,
 }));
 
 vi.mock("@/app/admin/actions/taxonomy", () => ({
@@ -80,6 +88,12 @@ beforeEach(() => {
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
     success: "Conflict check complete. No conflicts found.",
   });
+  mocks.buildOurCommerceStoreAction.mockResolvedValue({ our: { version: 1, products: {} } });
+  mocks.fetchShopifyCommerceStoreAction.mockResolvedValue({ shopify: { version: 1, products: {} } });
+  mocks.compareAndPersistCommerceStoresAction.mockResolvedValue({
+    conflicts: [],
+    debug: { ourProductCount: 0, shopifyProductCount: 0, conflictCount: 0 },
+  });
   // The active-locale tab is remembered in sessionStorage per product sku, so
   // tests sharing a sku (they all use "LAVA-1") would otherwise leak their
   // tab state across `it()` blocks.
@@ -117,7 +131,7 @@ describe("EditProductForm", () => {
       shopifyProductId: "gid://shopify/Product/1",
       vendor: "Synarava",
       productType: "Necklace",
-      variants: [{ id: "variant-1", shopifyVariantId: "gid://shopify/ProductVariant/1", title: "Default Title", sku: "LAVA-1", barcode: null, priceCents: 4500, compareAtCents: null, stockOnHand: 1, weightGrams: 22, taxable: true, requiresShipping: true, tracked: true, selectedOptions: [] } as ProductRecord["variants"][number]],
+      variants: [{ id: "variant-1", shopifyVariantId: "gid://shopify/ProductVariant/1", title: "Default Title", sku: "LAVA-1", barcode: null, priceCents: 4500, compareAtCents: null, costCents: null, stockOnHand: 1, weightGrams: 22, taxable: true, requiresShipping: true, tracked: true, selectedOptions: [] } as ProductRecord["variants"][number]],
       shopifySnapshot: {
         metafields: [{ namespace: "custom", key: "pearl_grade", type: "single_line_text_field", value: "AAA" }],
         variants: [{ id: "gid://shopify/ProductVariant/1", inventoryItem: { inventoryLevels: [{ location: { id: "gid://shopify/Location/1" }, quantities: [{ name: "available", quantity: 1 }, { name: "committed", quantity: 0 }, { name: "on_hand", quantity: 1 }] }] } }],

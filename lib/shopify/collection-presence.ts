@@ -38,18 +38,17 @@ function fingerprint(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
+/** Membership identity only — see product `localCatalogFingerprint`. */
 export function localCollectionFingerprint(collection: LocalCollectionIdentity): string {
   return fingerprint({
     id: collection.id,
-    name: collection.name,
     slug: collection.slug,
     shopifyCollectionId: collection.shopifyCollectionId,
-    updatedAt: collection.updatedAt,
   });
 }
 
 export function remoteCollectionFingerprint(collection: RemoteCollectionIdentity): string {
-  return fingerprint(collection);
+  return fingerprint({ id: collection.id });
 }
 
 function uniqueByHandle<T extends { slug?: string; handle?: string }>(

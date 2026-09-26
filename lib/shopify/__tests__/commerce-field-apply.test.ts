@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   request: vi.fn(),
   inspectProductSyncState: vi.fn(),
   fetchShopifyProduct: vi.fn(),
+  adoptShopifyProjectionField: vi.fn(),
   findUniqueProduct: vi.fn(),
   updateProduct: vi.fn(),
   findManyVariant: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock("@/lib/shopify/admin", () => ({
 vi.mock("@/lib/shopify/product-sync", () => ({
   inspectProductSyncState: mocks.inspectProductSyncState,
   fetchShopifyProduct: mocks.fetchShopifyProduct,
+  adoptShopifyProjectionField: mocks.adoptShopifyProjectionField,
 }));
 vi.mock("@/lib/db", () => ({
   db: {
@@ -47,12 +49,13 @@ beforeEach(() => {
   vi.resetAllMocks();
   // Post-write refresh: default to "still conflicted" (no extra DB write) unless a test overrides it.
   mocks.inspectProductSyncState.mockResolvedValue(inspection());
+  mocks.adoptShopifyProjectionField.mockResolvedValue(undefined);
 });
 
 describe("SCOPED_COMMERCE_FIELD_LABELS", () => {
   it("is exactly the plain-scalar fields with a single-field mutation, and nothing structural", () => {
     expect([...SCOPED_COMMERCE_FIELD_LABELS].sort()).toEqual(
-      ["Compare-at price", "Price", "Product type", "Variant SKU", "Vendor"].sort(),
+      ["Charge tax", "Compare-at price", "Price", "Product type", "Variant SKU", "Vendor"].sort(),
     );
   });
 });

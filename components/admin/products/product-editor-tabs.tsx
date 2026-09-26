@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
+  CircleDollarSign,
   FileText,
   Gem,
   Images,
@@ -15,17 +16,22 @@ import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import {
   AdminSectionTabs,
+  type AdminSectionTabGroup,
   type AdminSectionTabItem,
   type AdminSectionTabTone,
 } from "@/components/admin/shared/admin-section-tabs";
 
 export type ProductEditorSection =
   | "essentials"
+  | "price"
   | "catalog"
   | "content"
   | "media"
   | "details"
   | "shopify";
+
+/** Tab strip clusters — Shopify commerce skeleton vs Synarava-only sections. */
+export type ProductEditorTabGroupId = "shopify" | "synarava";
 
 type ProductEditorTab = {
   id: ProductEditorSection;
@@ -34,7 +40,21 @@ type ProductEditorTab = {
   title: string;
   description: string;
   icon: LucideIcon;
+  /** Which strip cluster owns this tab. */
+  group: ProductEditorTabGroupId;
 };
+
+/**
+ * Product editor sections.
+ *
+ * Shopify group = commerce skeleton pulled/pushed from Shopify (more tabs will
+ * land here as we mirror Shopify’s product admin field-by-field).
+ * Synarava group = editorial sections that exist only in our CMS.
+ */
+const PRODUCT_EDITOR_TAB_GROUPS: readonly AdminSectionTabGroup[] = [
+  { id: "shopify", label: "Shopify" },
+  { id: "synarava", label: "Synarava" },
+];
 
 const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   {
@@ -43,8 +63,19 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Sellable product",
     title: "Start with the sellable product",
     description:
-      "Set the product name, handle, SKU, price, inventory, vendor, and type. These are the core values that identify what customers can buy.",
+      "Set the product name, handle, SKU, inventory, vendor, and type. These are the core values that identify what customers can buy.",
     icon: PackageSearch,
+    group: "shopify",
+  },
+  {
+    id: "price",
+    label: "Price",
+    shortLabel: "Sell & tax",
+    title: "Set the selling price",
+    description:
+      "Price, compare-at, tax, and cost mirror Shopify’s Price card on the variant. Profit and margin are calculated locally from price and cost.",
+    icon: CircleDollarSign,
+    group: "shopify",
   },
   {
     id: "catalog",
@@ -54,6 +85,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Choose Shopify category, collection, and tags. Edit product parameters here (Save + Push to Shopify). Last Pull shows what Shopify currently has.",
     icon: Shapes,
+    group: "shopify",
   },
   {
     id: "content",
@@ -63,6 +95,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Write the customer-facing description, translations, symbolism, and search copy. Empty translations safely fall back to English.",
     icon: FileText,
+    group: "shopify",
   },
   {
     id: "media",
@@ -72,6 +105,17 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Add and order the images customers will browse. The first image becomes the catalog cover and is sent to Shopify first. Gallery changes save immediately.",
     icon: Images,
+    group: "shopify",
+  },
+  {
+    id: "shopify",
+    label: "Sync",
+    shortLabel: "Push, pull & snapshot",
+    title: "Review the commerce connection",
+    description:
+      "Compare the saved Synarava record with Shopify, push or pull intentional changes, and inspect the last stored commerce snapshot.",
+    icon: Store,
+    group: "shopify",
   },
   {
     id: "details",
@@ -81,15 +125,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Synarava-only editorial sections: materials story, process, and lookbook. These enrich the product page without replacing Shopify commerce data.",
     icon: Gem,
-  },
-  {
-    id: "shopify",
-    label: "Shopify",
-    shortLabel: "Sync & source data",
-    title: "Review the commerce connection",
-    description:
-      "Compare the saved Synarava record with Shopify, push or pull intentional changes, and inspect the last stored commerce snapshot.",
-    icon: Store,
+    group: "synarava",
   },
 ];
 
@@ -220,18 +256,23 @@ export function ProductEditorTabs({
     label: tab.label,
     detail: tab.shortLabel,
     icon: tab.icon,
+    group: tab.group,
     dirty: dirtySet.has(tab.id),
     tone: resolveTabTone(tab.id, issueSet, conflictSet),
   }));
+
+  const visibleGroups = PRODUCT_EDITOR_TAB_GROUPS.filter((group) =>
+    items.some((item) => item.group === group.id),
+  );
 
   return (
     <div data-component="ProductEditorTabs">
       <AdminSectionTabs
         items={items}
+        groups={visibleGroups}
         active={activeTab.id}
         onChange={(id) => onChange(id as ProductEditorSection)}
         aria-label="Product editor sections"
-        columns={tabs.length}
         embedded={embedded}
         idPrefix="product-editor-tab"
       >

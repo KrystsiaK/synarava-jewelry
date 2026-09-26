@@ -269,6 +269,64 @@ describe("applyCatalogConflictResolution", () => {
     expect(outcome.results[0]).toMatchObject({ ok: true, productId: "shopify:42", localProductId: "product-new" });
   });
 
+  it("applies Shopify-only pull after re-scan even when membership fingerprints changed", async () => {
+    // Preview captured snapshot fingerprints; re-scan rematched SKU → new local FP.
+    const previewField = presenceField();
+    const afterScan = presenceField({
+      localFingerprint: "local-after-sku-match",
+      shopifyFingerprint: "remote-gid-only",
+      presenceDifference: {
+        id: "local-matched",
+        kind: "SHOPIFY_ONLY",
+        localProductId: "local-matched",
+        shopifyProductId: "gid://shopify/Product/42",
+        name: "Remote ring",
+        handle: "remote-ring",
+        sku: "R-42",
+        localFingerprint: "local-after-sku-match",
+        shopifyFingerprint: "remote-gid-only",
+        remoteMissing: false,
+        matchReason: "SKU",
+        localIdentity: { name: "Draft", handle: "draft", sku: "R-42" },
+        shopifyIdentity: { name: "Remote ring", handle: "remote-ring", sku: "R-42" },
+      },
+    });
+    mocks.scanAndSaveCatalogPresence.mockResolvedValue([]);
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([afterScan], "shopify:42"));
+    mocks.applyCatalogPresenceDifference.mockResolvedValue({
+      ok: true,
+      localProductId: "local-matched",
+      message: "Product pulled from Shopify.",
+    });
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(previewField, "SHOPIFY_TO_SYNARAVA", "shopify:42")],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(outcome).toMatchObject({ appliedCount: 1, failedCount: 0 });
+    expect(mocks.applyCatalogPresenceDifference).toHaveBeenCalledWith({
+      difference: afterScan.presenceDifference,
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+  });
+
+  it("reports STALE for presence when re-scan removed the membership conflict", async () => {
+    const previewField = presenceField();
+    mocks.scanAndSaveCatalogPresence.mockResolvedValue([]);
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([], "shopify:42"));
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(previewField, "SHOPIFY_TO_SYNARAVA", "shopify:42")],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(outcome.results[0]).toMatchObject({ ok: false, reason: "STALE" });
+    expect(mocks.applyCatalogPresenceDifference).not.toHaveBeenCalled();
+  });
+
   it("never writes an unsupported commerce field — always reports UNSUPPORTED, with no write attempted", async () => {
     const field = commerceField();
     mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
