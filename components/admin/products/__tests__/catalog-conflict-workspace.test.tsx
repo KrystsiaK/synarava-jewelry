@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   preview: vi.fn(),
   refresh: vi.fn(),
   push: vi.fn(),
+  pullProduct: vi.fn(),
+  pushProduct: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }) }));
@@ -14,6 +16,8 @@ vi.mock("@/app/admin/actions/sync", () => ({
   applyCatalogConflictResolutionAction: mocks.apply,
   loadProductCatalogConflictAction: mocks.load,
   previewCatalogConflictResolutionAction: mocks.preview,
+  pullSingleProductFromShopifyAction: mocks.pullProduct,
+  pushSingleProductToShopifyAction: mocks.pushProduct,
 }));
 
 import { CatalogConflictWorkspace } from "@/components/admin/products/catalog-conflict-workspace";
@@ -191,15 +195,16 @@ describe("CatalogConflictWorkspace", () => {
     }));
   });
 
-  it("sends only-blocked commerce conflicts to the product editor instead of a dead merge", async () => {
+  it("offers inline Pull/Push for only-blocked commerce conflicts instead of a dead merge", async () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
-    const { onClose } = renderWorkspace();
+    mocks.pullProduct.mockResolvedValue({ success: "Pulled." });
+    renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByText(/Use the footer to go to Sync/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Open product editor" }));
-    expect(onClose).toHaveBeenCalled();
-    expect(mocks.push).toHaveBeenCalledWith("/admin/products/p1");
+    expect(await screen.findByRole("button", { name: /Pull from Shopify/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Push to Shopify/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Review merge" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Pull from Shopify/i }));
+    await waitFor(() => expect(mocks.pullProduct).toHaveBeenCalledWith("p1", true));
   });
 
   it("does not trap the page behind Working with Shopify while details are still loading", async () => {
@@ -362,7 +367,7 @@ describe("CatalogConflictWorkspace", () => {
     expect(screen.queryByText("Title")).not.toBeInTheDocument();
   });
 
-  it("keeps media gallery rows under the Media section and routes to Sync", async () => {
+  it("lets media gallery rows choose a side under Media (same apply contract)", async () => {
     mocks.load.mockResolvedValue({
       conflict: {
         productId: "p1",
@@ -373,18 +378,17 @@ describe("CatalogConflictWorkspace", () => {
           origin: "COMMERCE" as const,
           targetKind: "NATIVE" as const,
           synaravaValue: "—",
-          shopifyValue: "https://cdn.shopify.com/a.jpg",
+          shopifyValue: "ring.jpg",
           baseValue: null,
           localFingerprint: "local",
           shopifyFingerprint: "shopify",
-          allowedDirections: [] as const,
-          blockedReason: "No safe field-by-field write yet",
+          allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] as const,
+          blockedReason: null,
           sourceId: null,
           path: "media[0].id",
         }],
       },
     });
-    const onOpenSyncTab = vi.fn();
     render(
       <CatalogConflictWorkspace
         open
@@ -400,13 +404,60 @@ describe("CatalogConflictWorkspace", () => {
         focusedProductId="p1"
         viewScope={{ kind: "productSection", productId: "p1", locale: "en", section: "media" }}
         onToast={vi.fn()}
-        onOpenSyncTab={onOpenSyncTab}
       />,
     );
 
     expect(await screen.findByText("Media gallery (image 1)")).toBeInTheDocument();
-    expect(screen.getByText(/Cannot choose here/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Go to Sync/i }));
-    expect(onOpenSyncTab).toHaveBeenCalled();
+    expect(screen.queryByText(/Cannot choose here/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Review merge/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Go to Sync/i })).not.toBeInTheDocument();
+  });
+
+  it("offers inline Pull/Push when only blocked fields remain", async () => {
+    mocks.load.mockResolvedValue({
+      conflict: {
+        productId: "p1",
+        fields: [{
+          fieldKey: "commerce:status",
+          label: "Status",
+          scope: { kind: "SHARED" as const },
+          origin: "COMMERCE" as const,
+          targetKind: "NATIVE" as const,
+          synaravaValue: "ACTIVE",
+          shopifyValue: "DRAFT",
+          baseValue: null,
+          localFingerprint: "local",
+          shopifyFingerprint: "shopify",
+          allowedDirections: [] as const,
+          blockedReason: "No safe field-by-field write yet",
+          sourceId: null,
+        }],
+      },
+    });
+    mocks.pullProduct.mockResolvedValue({ success: "Pulled." });
+    const onToast = vi.fn();
+    const onApplied = vi.fn();
+    render(
+      <CatalogConflictWorkspace
+        open
+        onClose={vi.fn()}
+        signals={{
+          ...signals,
+          products: {
+            p1: { shared: true, sharedCount: 1, locales: [] },
+          },
+        }}
+        onSignalsChange={vi.fn()}
+        products={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
+        focusedProductId="p1"
+        viewScope={{ kind: "product", productId: "p1" }}
+        onToast={onToast}
+        onApplied={onApplied}
+      />,
+    );
+
+    expect(await screen.findByText("Status")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Pull from Shopify/i }));
+    await waitFor(() => expect(mocks.pullProduct).toHaveBeenCalledWith("p1", true));
   });
 });

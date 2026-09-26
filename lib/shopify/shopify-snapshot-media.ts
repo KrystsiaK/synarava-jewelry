@@ -1,9 +1,9 @@
 /**
- * Read gallery frames from a product's Shopify-shaped snapshot (working or shopify).
- * Admin Media tab uses this when local ProductMedia rows are empty but Shopify already has images.
+ * Gallery frames from the OUR commerce tree (`workingSnapshot.media`).
+ * ProductMedia / S3 rows are a staging cache — conflict UI and Media tab read the tree.
  */
 
-export type ShopifySnapshotMediaFrame = {
+export type WorkingSnapshotMediaFrame = {
   id: string | null;
   url: string;
   alt: string;
@@ -15,7 +15,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function frameFromMediaNode(node: unknown, index: number): ShopifySnapshotMediaFrame | null {
+function frameFromMediaNode(node: unknown, index: number): WorkingSnapshotMediaFrame | null {
   if (!isPlainObject(node)) return null;
   const preview = isPlainObject(node.preview) ? node.preview : null;
   const previewImage = preview && isPlainObject(preview.image) ? preview.image : null;
@@ -33,26 +33,27 @@ function frameFromMediaNode(node: unknown, index: number): ShopifySnapshotMediaF
   return {
     id: typeof node.id === "string" ? node.id : null,
     url,
-    alt: typeof node.alt === "string" && node.alt.trim() ? node.alt.trim() : `Shopify image ${index + 1}`,
+    alt: typeof node.alt === "string" && node.alt.trim() ? node.alt.trim() : `Image ${index + 1}`,
     width,
     height,
   };
 }
 
-/** Prefer shopifySnapshot, fall back to workingSnapshot — both are Shopify-shaped. */
+/** Frames from OUR window only — never fall back to shopifySnapshot (that was a second UI world). */
+export function mediaFramesFromWorkingSnapshot(workingSnapshot: unknown): WorkingSnapshotMediaFrame[] {
+  if (!isPlainObject(workingSnapshot)) return [];
+  const media = workingSnapshot.media;
+  if (!Array.isArray(media) || media.length === 0) return [];
+  return media.flatMap((node, index) => {
+    const frame = frameFromMediaNode(node, index);
+    return frame ? [frame] : [];
+  });
+}
+
+/** @deprecated use mediaFramesFromWorkingSnapshot */
 export function mediaFramesFromProductSnapshots(input: {
   shopifySnapshot?: unknown;
   workingSnapshot?: unknown;
-}): ShopifySnapshotMediaFrame[] {
-  for (const snapshot of [input.shopifySnapshot, input.workingSnapshot]) {
-    if (!isPlainObject(snapshot)) continue;
-    const media = snapshot.media;
-    if (!Array.isArray(media) || media.length === 0) continue;
-    const frames = media.flatMap((node, index) => {
-      const frame = frameFromMediaNode(node, index);
-      return frame ? [frame] : [];
-    });
-    if (frames.length > 0) return frames;
-  }
-  return [];
+}): WorkingSnapshotMediaFrame[] {
+  return mediaFramesFromWorkingSnapshot(input.workingSnapshot);
 }

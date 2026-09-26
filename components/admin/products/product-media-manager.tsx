@@ -14,7 +14,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { issuesForField } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
-import { mediaFramesFromProductSnapshots } from "@/lib/shopify/shopify-snapshot-media";
+import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 
 export function ProductMediaManager({
   product,
@@ -32,12 +32,11 @@ export function ProductMediaManager({
   const { pushToast } = useAdminToast();
   const coverIssues = issuesForField(issues, "field-imageUrl");
   const hasCoverIssues = coverIssues.length > 0;
-  const shopifyFrames = product
-    ? mediaFramesFromProductSnapshots({
-      shopifySnapshot: product.shopifySnapshot,
-      workingSnapshot: product.workingSnapshot,
-    })
-    : [];
+  const localMedia = product?.media ?? [];
+  const treeFrames = product ? mediaFramesFromWorkingSnapshot(product.workingSnapshot) : [];
+  // OUR tree is SoT for display when local ProductMedia rows are empty (e.g. after Pull).
+  const showLocalEditor = localMedia.length > 0;
+  const showTreeFrames = !showLocalEditor && treeFrames.length > 0;
 
   function apply(result: ProductMediaActionState) {
     if (result.error) pushToast({ message: result.error, tone: "error" });
@@ -91,7 +90,8 @@ export function ProductMediaManager({
         <div>
           <p className="adm-label">Product gallery</p>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
-            Upload up to 250 images. Position 1 is the catalog cover and is sent first to Shopify.
+            Upload up to 250 images. Position 1 is the catalog cover. Gallery lives in the OUR commerce tree
+            (`workingSnapshot.media`); uploads write through there for conflict detect.
           </p>
           <AdminFieldIssue issues={coverIssues} />
         </div>
@@ -100,20 +100,20 @@ export function ProductMediaManager({
           <input ref={inputRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => upload(event.target.files)} disabled={pending} />
         </label>
       </div>
-      {product?.media.length ? (
+      {showLocalEditor ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {product.media.map((item, index) => {
-            const primary = product.primaryAssetId === item.assetId;
+          {localMedia.map((item, index) => {
+            const primary = product!.primaryAssetId === item.assetId;
             return (
               <article key={item.id} className="grid gap-3 border border-[var(--adm-border)] p-3">
                 <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
-                  <Image src={item.url} alt={item.alt || product.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
+                  <Image src={item.url} alt={item.alt || product!.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
                   <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">{primary ? "01 · Cover" : String(index + 1).padStart(2, "0")}</span>
                 </div>
                 <p className="truncate text-xs text-[var(--adm-muted)]">{item.alt || `Image ${index + 1}`}</p>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</button>
-                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === product.media.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</button>
+                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === localMedia.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</button>
                   {!primary ? <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending} onClick={() => mutate(() => setPrimaryProductMediaAction(item.id))}>Move to first</button> : null}
                   <button type="button" className="adm-btn-danger min-h-9 px-3" disabled={pending} onClick={() => mutate(() => removeProductMediaAction(item.id))}>Remove</button>
                 </div>
@@ -121,25 +121,19 @@ export function ProductMediaManager({
             );
           })}
         </div>
-      ) : shopifyFrames.length > 0 ? (
-        <div className="grid gap-3">
-          <p className="rounded-lg border border-[var(--adm-border)] bg-[var(--adm-bg)] p-3 text-xs text-[var(--adm-muted)]">
-            These images live on Shopify. The storefront already uses them. Synarava has no local gallery rows yet —
-            use Sync → Pull to align commerce snapshots, or Add images here to upload Synarava-managed files (Push sends those to Shopify).
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {shopifyFrames.map((frame, index) => (
-              <article key={frame.id ?? frame.url} className="grid gap-3 border border-[var(--adm-border)] p-3">
-                <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
-                  <Image src={frame.url} alt={frame.alt || product?.name || "Shopify image"} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
-                  <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">
-                    {index === 0 ? "01 · Shopify" : String(index + 1).padStart(2, "0")}
-                  </span>
-                </div>
-                <p className="truncate text-xs text-[var(--adm-muted)]">{frame.alt}</p>
-              </article>
-            ))}
-          </div>
+      ) : showTreeFrames ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {treeFrames.map((frame, index) => (
+            <article key={frame.id ?? frame.url} className="grid gap-3 border border-[var(--adm-border)] p-3">
+              <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
+                <Image src={frame.url} alt={frame.alt || product?.name || "Gallery image"} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
+                <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">
+                  {index === 0 ? "01 · Cover" : String(index + 1).padStart(2, "0")}
+                </span>
+              </div>
+              <p className="truncate text-xs text-[var(--adm-muted)]">{frame.alt}</p>
+            </article>
+          ))}
         </div>
       ) : product?.imageUrl ? (
         <article className="grid max-w-sm gap-3 border border-[var(--adm-border)] p-3">

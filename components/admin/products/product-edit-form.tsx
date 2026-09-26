@@ -870,7 +870,6 @@ export function EditProductForm({
         viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
         onApplied={(info) => { void handleConflictsApplied(info); }}
-        onOpenSyncTab={() => setActiveSection("shopify")}
       />
     </>
   );

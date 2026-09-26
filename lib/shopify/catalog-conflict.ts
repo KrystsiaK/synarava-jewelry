@@ -8,7 +8,7 @@ import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-regist
 
 import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
 import { inspectProductSyncState, type ProductSyncDifference } from "./product-sync";
-import { COMMERCE_UNSUPPORTED_REASON, SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
+import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
 import type { CatalogPresenceDifference } from "./catalog-presence";
 import { getLatestCatalogPresenceDifferences } from "./catalog-presence-server";
 
@@ -86,7 +86,7 @@ export function commerceFingerprint(value: string): string {
 }
 
 function commerceField(difference: ProductSyncDifference): CatalogConflictField {
-  const supported = SCOPED_COMMERCE_FIELD_LABELS.has(difference.field);
+  const supported = isScopedCommerceFieldLabel(difference.field);
   // Prefer path in the key so two "Media gallery (image N)" rows stay distinct.
   const keySource = difference.path?.trim() || difference.field;
   return {

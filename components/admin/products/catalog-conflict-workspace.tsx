@@ -8,6 +8,8 @@ import {
   applyCatalogConflictResolutionAction,
   loadProductCatalogConflictAction,
   previewCatalogConflictResolutionAction,
+  pullSingleProductFromShopifyAction,
+  pushSingleProductToShopifyAction,
 } from "@/app/admin/actions/sync";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import { AnimatedModal } from "@/components/ui/animated-modal";
@@ -276,24 +278,24 @@ function DetailsModal({
   selections,
   loading,
   applying,
-  productScoped,
   onClose,
   onSelect,
   onSelectAll,
   onContinue,
-  onOpenEditor,
+  onPull,
+  onPush,
 }: {
   conflict: ProductCatalogConflict | null;
   product?: ProductSummary;
   selections: Record<string, CatalogConflictDirection>;
   loading: boolean;
   applying: boolean;
-  productScoped: boolean;
   onClose: () => void;
   onSelect: (fieldKey: string, direction: CatalogConflictDirection) => void;
   onSelectAll: (direction: CatalogConflictDirection) => void;
   onContinue: () => void;
-  onOpenEditor: (productId: string) => void;
+  onPull: (productId: string) => void;
+  onPush: (productId: string) => void;
 }) {
   if (!conflict && !loading) return null;
   const fields = conflict ? orderedConflictFields(conflict.fields) : [];
@@ -302,7 +304,6 @@ function DetailsModal({
   const emptyScope = conflict !== null && !loading && fields.length === 0;
   const needsWholeRecordSync = onlyBlocked || emptyScope;
   const busy = applying;
-  const syncCtaLabel = productScoped ? "Go to Sync → Pull / Push" : "Open product editor";
   return (
     <AnimatedModal open onClose={busy ? () => undefined : onClose} ariaLabel="Choose conflict values" portalClassName="admin-modal-root" zIndexClassName="z-[300]" backdropZIndexClassName="z-[290]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,60rem)] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
       <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5">
@@ -311,8 +312,8 @@ function DetailsModal({
           <h2 className="adm-title-sm mt-2">{product?.name ?? "Product conflict"}</h2>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
             {needsWholeRecordSync
-              ? "Gallery, status, and similar fields cannot be chosen one-by-one here. Use Sync → Pull (take Shopify) or Push (send Synarava)."
-              : "Pick Synarava or Shopify for each field. Name and Handle can be chosen here; status and media still need Push/Pull."}
+              ? "These fields need a whole-record resolve. Pull takes Shopify into OUR; Push sends OUR to Shopify."
+              : "Pick Synarava or Shopify for each field. Media uses the same contract (Pull adopts gallery; Push sends gallery)."}
           </p>
         </div>
         <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close conflict details"><X className="size-4" /></button>
@@ -325,13 +326,12 @@ function DetailsModal({
         ) : null}
         {emptyScope ? (
           <p className="rounded-lg border border-[var(--adm-conflict)] p-3 text-sm">
-            No field-by-field choices in this view. If you added images in Shopify, open Sync and Pull from Shopify to bring the gallery here.
+            No per-field choices in this view. Use Pull or Push below to align the whole commerce record.
           </p>
         ) : null}
         {onlyBlocked ? (
           <p className="rounded-lg border border-[var(--adm-conflict)] p-3 text-sm">
-            These commerce fields (media gallery, status, tags, …) are comparison-only — there is no safe per-field write yet.
-            {conflict ? <> Use the footer to go to Sync and resolve with Pull or Push for the whole commerce record.</> : null}
+            These commerce fields cannot be chosen one-by-one yet. Use Pull (take Shopify) or Push (send Synarava) below.
           </p>
         ) : null}
         {fields.map((field) => (
@@ -366,7 +366,14 @@ function DetailsModal({
             <button type="button" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
           </>
         ) : conflict ? (
-          <button type="button" disabled={busy} onClick={() => onOpenEditor(conflict.productId)} className="adm-btn-primary">{syncCtaLabel}</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={busy} onClick={() => onPull(conflict.productId)} className="adm-btn-secondary inline-flex items-center gap-2">
+              <ArrowDownToLine className="size-4" />Pull from Shopify
+            </button>
+            <button type="button" disabled={busy} onClick={() => onPush(conflict.productId)} className="adm-btn-primary inline-flex items-center gap-2">
+              <ArrowUpFromLine className="size-4" />Push to Shopify
+            </button>
+          </div>
         ) : null}
       </footer>
     </AnimatedModal>
@@ -428,7 +435,6 @@ export function CatalogConflictWorkspace({
   viewScope = { kind: "catalog" },
   onToast,
   onApplied,
-  onOpenSyncTab,
 }: {
   open: boolean;
   onClose: () => void;
@@ -440,8 +446,6 @@ export function CatalogConflictWorkspace({
   onToast: (message: string, tone: ToastTone) => void;
   /** Fired after a successful apply so the editor can reload product + markers. */
   onApplied?: (info: { productIds: string[]; appliedCount: number }) => void;
-  /** When already inside the product editor, jump to Sync instead of re-routing. */
-  onOpenSyncTab?: () => void;
 }) {
   const [details, setDetails] = useState<ProductCatalogConflict | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -605,6 +609,34 @@ export function CatalogConflictWorkspace({
     viewScope.kind === "productSection" ? viewScope.section : null,
   ]);
 
+  function runWholeRecord(productId: string, direction: CatalogConflictDirection) {
+    if (applying) return;
+    setApplying(true);
+    void (async () => {
+      try {
+        const result = direction === "SHOPIFY_TO_SYNARAVA"
+          ? await pullSingleProductFromShopifyAction(productId, true)
+          : await pushSingleProductToShopifyAction(productId, true);
+        if (result.error) {
+          onToast(result.error, "error");
+          return;
+        }
+        if (result.success) onToast(result.success, "success");
+        setDetails(null);
+        setDetailsLoading(false);
+        setSelections({});
+        setApplying(false);
+        if (onApplied) onApplied({ productIds: [productId], appliedCount: 1 });
+        else refreshPreservingScroll(router);
+        onClose();
+      } catch (error) {
+        onToast(error instanceof Error ? error.message : "Could not sync with Shopify.", "error");
+      } finally {
+        setApplying(false);
+      }
+    })();
+  }
+
   function confirm(acknowledgeClears: boolean) {
     if (!preview || applying) return;
     const submittedPreview = preview;
@@ -712,7 +744,6 @@ export function CatalogConflictWorkspace({
           selections={selections}
           loading={detailsLoading}
           applying={applying}
-          productScoped={isProductScoped(viewScope)}
           onClose={() => { if (!applying) { setDetails(null); setDetailsLoading(false); setSelections({}); } }}
           onSelect={(fieldKey, direction) => setSelections((current) => ({ ...current, [fieldKey]: direction }))}
           onSelectAll={(direction) => setSelections((current) => {
@@ -724,14 +755,8 @@ export function CatalogConflictWorkspace({
             return next;
           })}
           onContinue={() => details && openPreview({ kind: "MANUAL", selections: Object.entries(selections).map(([fieldKey, direction]) => ({ productId: details.productId, fieldKey, direction })) })}
-          onOpenEditor={(productId) => {
-            closeAll();
-            if (onOpenSyncTab && isProductScoped(viewScope)) {
-              onOpenSyncTab();
-              return;
-            }
-            router.push(`/admin/products/${productId}`);
-          }}
+          onPull={(productId) => runWholeRecord(productId, "SHOPIFY_TO_SYNARAVA")}
+          onPush={(productId) => runWholeRecord(productId, "SYNARAVA_TO_SHOPIFY")}
         />
       ) : null}
       {preview ? <PreviewModal preview={preview} productsById={productsById} applying={applying} resultMessage={resultMessage} onClose={() => { if (!applying) { setPreview(null); setResultMessage(null); } }} onConfirm={confirm} /> : null}

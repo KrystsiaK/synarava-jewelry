@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   inspectProductSyncState: vi.fn(),
   fetchShopifyProduct: vi.fn(),
   adoptShopifyProjectionField: vi.fn(),
+  pushProductToShopify: vi.fn(),
   findUniqueProduct: vi.fn(),
   findFirstProduct: vi.fn(),
   updateProduct: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("@/lib/shopify/product-sync", () => ({
   inspectProductSyncState: mocks.inspectProductSyncState,
   fetchShopifyProduct: mocks.fetchShopifyProduct,
   adoptShopifyProjectionField: mocks.adoptShopifyProjectionField,
+  pushProductToShopify: mocks.pushProductToShopify,
 }));
 vi.mock("@/lib/db", () => ({
   db: {
@@ -459,5 +461,46 @@ describe("applyCommerceField — unsupported field", () => {
     expect(mocks.request).not.toHaveBeenCalled();
     expect(mocks.updateProduct).not.toHaveBeenCalled();
     expect(mocks.updateVariant).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyCommerceField — Media gallery", () => {
+  it("Pull adopts the whole media path from Shopify into OUR", async () => {
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({
+        differences: [diff("Media gallery (image 1)", "—", "ring.jpg")],
+      }))
+      .mockResolvedValueOnce(inspection({ differences: [] }));
+
+    const result = await applyCommerceField({
+      productId: "product-1",
+      label: "Media gallery (image 1)",
+      direction: "SHOPIFY_TO_SYNARAVA",
+      ...fingerprintsFor("—", "ring.jpg"),
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(mocks.adoptShopifyProjectionField).toHaveBeenCalledWith("product-1", "media");
+    expect(mocks.pushProductToShopify).not.toHaveBeenCalled();
+  });
+
+  it("Push runs the product push pipeline then adopts media echo", async () => {
+    mocks.inspectProductSyncState
+      .mockResolvedValueOnce(inspection({
+        differences: [diff("Media gallery (image 1)", "local.jpg", "—")],
+      }))
+      .mockResolvedValueOnce(inspection({ differences: [] }));
+    mocks.pushProductToShopify.mockResolvedValue({ ok: true, shopifyProductId: "gid://shopify/Product/1" });
+
+    const result = await applyCommerceField({
+      productId: "product-1",
+      label: "Media gallery (image 1)",
+      direction: "SYNARAVA_TO_SHOPIFY",
+      ...fingerprintsFor("local.jpg", "—"),
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("product-1", true);
+    expect(mocks.adoptShopifyProjectionField).toHaveBeenCalledWith("product-1", "media");
   });
 });

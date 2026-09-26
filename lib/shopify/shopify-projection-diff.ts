@@ -309,6 +309,8 @@ export type LocalCommerceProjectionPatch = {
   tags?: string[];
   /** Merchant-owned product metafield values (excludes synarava / shopify / global). */
   customMetafields?: Array<{ namespace: string; key: string; type: string; value: string }>;
+  /** Shopify-shaped media nodes (gallery write-through from ProductMedia). */
+  media?: unknown[];
   variant?: {
     shopifyVariantId?: string | null;
     sku?: string;
@@ -377,6 +379,10 @@ export function writeThroughLocalCommerceToProjection(
       "metafields",
       mergeCustomMetafieldsIntoList(existing, patch.customMetafields),
     );
+  }
+
+  if (patch.media !== undefined) {
+    next = setProjectionPath(next, "media", patch.media);
   }
 
   return canonicalizeShopifyProjection(next);

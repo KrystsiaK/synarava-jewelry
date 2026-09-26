@@ -143,15 +143,14 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
    (вместо декоративной картинки) — sync control, scoped на
    текущую секцию × язык (shared-секции → EN/shared). Check → список
    конфликтов → Apply по полям. **Галерея (Media):** бейдж конфликта значит,
-   что в Shopify и Synarava разные commerce-снимки media. Вкладка Media
-   показывает локальные `ProductMedia` **или** картинки из Shopify snapshot
-   (read-only), если локальных строк ещё нет — раньше при пустой таблице
-   казалось, что «картинок нет», хотя Shopify уже отдавал media в конфликте.
-   Поле-за-полем выбрать сторону для gallery нельзя: Sync → Pull / Push.
-   JSON/`originalSource` в диалоге больше не сбрасывается — только короткое
-   имя файла. Push/Pull на Sync — путь для media / status / tags. Набор
-   Shopify-табов будет расширяться, чтобы ближе повторить структуру product
-   admin в Shopify.
+   что в Shopify и Synarava разные commerce-снимки `media`. Вкладка Media
+   читает **OUR** дерево (`workingSnapshot.media`); локальные `ProductMedia`
+   — staging для upload/reorder (write-through в то же дерево). В Field
+   Decisions галерею можно взять/отправить тем же контрактом (Pull = adopt
+   `media`, Push = push pipeline) или целым Pull/Push, если поле ещё без
+   scoped write (Status, tags). JSON/`originalSource` в диалоге не
+   сбрасывается — только короткое имя файла. Набор Shopify-табов будет
+   расширяться, чтобы ближе повторить структуру product admin в Shopify.
 
 При уходе со страницы с несохранёнными вкладками открывается модалка
 подтверждения; закрытие вкладки браузера тоже предупреждает.

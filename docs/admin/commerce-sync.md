@@ -81,6 +81,24 @@ Local Save write-through includes title, vendor, productType, tags into
 
 ---
 
+## Media tab
+
+Gallery is part of the dual commerce windows — **not** a parallel ProductMedia world.
+
+| Piece | Behavior |
+| --- | --- |
+| SoT for detect / Media UI | `workingSnapshot.media` (OUR tree) |
+| Local upload / reorder / remove | `ProductMedia` staging → write-through into `workingSnapshot.media` |
+| After Pull with no local rows | Media tab shows OUR tree frames (CDN URLs from Shopify adopt) |
+| Field Decisions | Media labels are choosable: Pull adopts whole `media`; Push runs product media pipeline |
+| Whole-record fallback | Status / tags still use inline **Pull from Shopify** / **Push to Shopify** in the same dialog (no “Go to Sync”) |
+
+Code: `shopify-snapshot-media.ts`, `finishProductMediaMutation` write-through,
+`isMediaGalleryFieldLabel` in `catalog-conflict-policy.ts`,
+`applyCommerceField` media branch.
+
+---
+
 ## Inventory tab
 
 Shopify Inventory + Shipping cards for the **primary variant**:

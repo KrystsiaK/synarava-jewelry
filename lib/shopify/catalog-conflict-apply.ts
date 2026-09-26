@@ -7,7 +7,7 @@ import {
   type CatalogConflictField,
 } from "./catalog-conflict";
 import { applyCommerceField } from "./commerce-field-apply";
-import { COMMERCE_UNSUPPORTED_REASON, SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
+import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
 import { applyReconcileChoice } from "./reconciliation-apply";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
 
@@ -28,17 +28,15 @@ const MAX_APPLY_ENTRIES = 200;
 // (decideProductTranslationPull / push's inline per-locale fetch+compare)
 // that is a *separate* code path from the reconcile system this module's
 // read model (getProductCatalogConflict) is built on. That combination is
-// why those two functions stay off-limits here for structural fields. A
+// why those two functions stay off-limits here for structural fields except
+// Media (adopt `media` / push pipeline via applyCommerceField). A
 // narrow slice of plain scalar fields (SCOPED_COMMERCE_FIELD_LABELS —
 // Name, Handle, Vendor, Product type, Variant SKU, Price, Compare-at,
-// Charge tax) instead has its own single-field Shopify mutation
-// (productUpdate / productVariantsBulkUpdate with only that key) and a
-// single-column Prisma write — no other field is touched. Status, media,
-// tags, collections, category stay UNSUPPORTED. Whole-product commerce
-// resolution for one product remains available through
-// pushSingleProductToShopifyAction/pullSingleProductFromShopifyAction.
+// Charge tax) plus Media gallery labels instead has its own writer.
+// Status, tags, collections, category stay UNSUPPORTED; Field Decisions
+// offers inline whole-record Pull/Push for those.
 function isScopedCommerceField(field: CatalogConflictField): boolean {
-  return field.origin === "COMMERCE" && SCOPED_COMMERCE_FIELD_LABELS.has(field.label);
+  return field.origin === "COMMERCE" && isScopedCommerceFieldLabel(field.label);
 }
 
 export type CatalogConflictApplyScope =

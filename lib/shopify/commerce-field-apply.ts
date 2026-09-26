@@ -5,10 +5,19 @@ import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
 
 import { commerceFingerprint } from "./catalog-conflict";
-import { adoptShopifyProjectionField, fetchShopifyProduct, inspectProductSyncState } from "./product-sync";
-import { SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
+import {
+  adoptShopifyProjectionField,
+  fetchShopifyProduct,
+  inspectProductSyncState,
+  pushProductToShopify,
+} from "./product-sync";
+import {
+  isMediaGalleryFieldLabel,
+  isScopedCommerceFieldLabel,
+  SCOPED_COMMERCE_FIELD_LABELS,
+} from "./catalog-conflict-policy";
 
-export { SCOPED_COMMERCE_FIELD_LABELS } from "./catalog-conflict-policy";
+export { SCOPED_COMMERCE_FIELD_LABELS, isMediaGalleryFieldLabel, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
 
 type UserError = { field?: string[] | null; message: string };
 
@@ -292,7 +301,10 @@ async function refreshAfterWrite(productId: string, label: string): Promise<Refr
     };
   }
 
-  if (inspection.differences.some((item) => item.field === label)) {
+  const stillOpen = isMediaGalleryFieldLabel(label)
+    ? inspection.differences.some((item) => isMediaGalleryFieldLabel(item.field))
+    : inspection.differences.some((item) => item.field === label);
+  if (stillOpen) {
     return { status: "still-conflicting" };
   }
 
@@ -349,7 +361,7 @@ export async function applyCommerceField({
   expectedLocalFingerprint: string;
   expectedShopifyFingerprint: string;
 }): Promise<CommerceFieldApplyResult> {
-  if (!SCOPED_COMMERCE_FIELD_LABELS.has(label)) {
+  if (!isScopedCommerceFieldLabel(label)) {
     return { ok: false, reason: "UNSUPPORTED", message: `${label} is not a supported commerce field.` };
   }
 
@@ -365,26 +377,39 @@ export async function applyCommerceField({
     return { ok: false, reason: "STALE", message: "Synarava or Shopify changed since this was reviewed. Refresh and try again." };
   }
 
-  let variant: VariantPair | null = null;
-  if (VARIANT_FIELD_LABELS.has(label)) {
-    variant = await resolveSingleVariantPair(productId);
-    if (!variant) {
-      return {
-        ok: false,
-        reason: "UNSUPPORTED",
-        message: "This product's variant couldn't be matched unambiguously (more than one local variant, or more than one in Shopify) — SKU/price can't be safely applied to a single variant yet.",
-      };
-    }
-  }
-
   try {
-    if (direction === "SHOPIFY_TO_SYNARAVA") {
-      await writeLocally(productId, label, rawValue(difference.shopify), variant);
-      await adoptShopifyProjectionField(productId, difference.path);
+    if (isMediaGalleryFieldLabel(label)) {
+      // Gallery is one array in the commerce tree — adopt / push the whole media path.
+      if (direction === "SHOPIFY_TO_SYNARAVA") {
+        await adoptShopifyProjectionField(productId, "media");
+      } else {
+        const pushed = await pushProductToShopify(productId, true);
+        if (!pushed.ok) {
+          return { ok: false, reason: "WRITE_FAILED", message: pushed.error ?? "Media could not be pushed to Shopify." };
+        }
+        await adoptShopifyProjectionField(productId, "media");
+      }
     } else {
-      await writeToShopify(productId, label, rawValue(difference.local), variant);
-      // Accept Shopify's normalized echo into L and advance B for this path.
-      await adoptShopifyProjectionField(productId, difference.path);
+      let variant: VariantPair | null = null;
+      if (VARIANT_FIELD_LABELS.has(label)) {
+        variant = await resolveSingleVariantPair(productId);
+        if (!variant) {
+          return {
+            ok: false,
+            reason: "UNSUPPORTED",
+            message: "This product's variant couldn't be matched unambiguously (more than one local variant, or more than one in Shopify) — SKU/price can't be safely applied to a single variant yet.",
+          };
+        }
+      }
+
+      if (direction === "SHOPIFY_TO_SYNARAVA") {
+        await writeLocally(productId, label, rawValue(difference.shopify), variant);
+        await adoptShopifyProjectionField(productId, difference.path);
+      } else {
+        await writeToShopify(productId, label, rawValue(difference.local), variant);
+        // Accept Shopify's normalized echo into L and advance B for this path.
+        await adoptShopifyProjectionField(productId, difference.path);
+      }
     }
   } catch (error) {
     return { ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This change could not be applied." };

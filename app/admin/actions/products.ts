@@ -294,10 +294,59 @@ export type ProductMediaActionState = {
 };
 
 async function finishProductMediaMutation(productId: string, success: string): Promise<ProductMediaActionState> {
-  await db.product.updateMany({
-    where: { id: productId, shopifyProductId: { not: null } },
-    data: { syncStatus: "PENDING", syncError: null },
+  const linked = await db.product.findUnique({
+    where: { id: productId },
+    select: {
+      shopifyProductId: true,
+      workingSnapshot: true,
+      shopifySnapshot: true,
+      media: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          assetId: true,
+          alt: true,
+          asset: { select: { key: true, width: true, height: true } },
+        },
+      },
+    },
   });
+
+  if (linked?.shopifyProductId) {
+    const media = linked.media.map((item) => {
+      const url = getS3PublicUrl(item.asset.key);
+      return {
+        id: `local:${item.assetId}`,
+        alt: item.alt ?? "",
+        mediaContentType: "IMAGE",
+        preview: { image: { url, width: item.asset.width, height: item.asset.height } },
+        image: { url, width: item.asset.width, height: item.asset.height },
+      };
+    });
+    const nextWorking = writeThroughLocalCommerceToProjection(
+      linked.workingSnapshot ?? linked.shopifySnapshot ?? {},
+      { media },
+    );
+    await db.product.update({
+      where: { id: productId },
+      data: {
+        syncStatus: "PENDING",
+        syncError: null,
+        workingSnapshot: nextWorking as Prisma.InputJsonValue,
+      },
+    });
+    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
+    await patchOurProductWindow({
+      shopifyProductId: linked.shopifyProductId,
+      localProductId: productId,
+      window: nextWorking,
+    });
+  } else {
+    await db.product.updateMany({
+      where: { id: productId, shopifyProductId: { not: null } },
+      data: { syncStatus: "PENDING", syncError: null },
+    });
+  }
+
   revalidatePath("/admin/products");
   revalidateStorefront();
   return { success, product: await getSavedProductPayload(productId) };
