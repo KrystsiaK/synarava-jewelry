@@ -6,7 +6,7 @@
 // Header main links → header-nav-v1.
 // Footer service / legal / socials links → footer-links-v1.
 // Contact emails → footer-contact-v1.
-// Remaining groups are labels only (headings, chrome, CTA copy).
+// Remaining groups are labels only (headings, chrome, CTA, cookie copy).
 
 // Lives here (not storefront-copy.ts) because that module is `server-only`
 // (it touches the database) — this constant is also needed by client
@@ -112,6 +112,83 @@ const SERVICE_CONTACT_GROUP: StorefrontCopyGroup = {
 // live on the Page record (Pages → that slug). The shared contact CTA above is
 // the exception — one banner for all service pages.
 
+const COOKIE_CONSENT_GROUP: StorefrontCopyGroup = {
+  id: "cookies-consent",
+  title: "Cookies — banner & preferences",
+  description:
+    "First-visit banner and the preferences form (modal and /cookie-settings). One set of labels for both.",
+  fields: [
+    { key: "privacyConsent.eyebrow", label: "Eyebrow" },
+    { key: "privacyConsent.title", label: "Banner title" },
+    {
+      key: "privacyConsent.description",
+      label: "Banner description",
+      area: true,
+      hint: "Body under the banner title, before the privacy-policy link.",
+    },
+    {
+      key: "privacyConsent.policyLink",
+      label: "Policy link",
+      hint: "Link text after the banner description. Opens /privacy#cookies.",
+    },
+    { key: "privacyConsent.acceptAll", label: "Accept all" },
+    {
+      key: "privacyConsent.rejectAll",
+      label: "Reject optional",
+      hint: "Banner button and the same action on the preferences form.",
+    },
+    { key: "privacyConsent.customize", label: "Customize" },
+    { key: "privacyConsent.preferencesTitle", label: "Preferences title" },
+    {
+      key: "privacyConsent.preferencesDescription",
+      label: "Preferences description",
+      area: true,
+    },
+    { key: "privacyConsent.necessaryTitle", label: "Necessary — title" },
+    {
+      key: "privacyConsent.necessaryDescription",
+      label: "Necessary — description",
+      area: true,
+    },
+    { key: "privacyConsent.preferenceTitle", label: "Preferences — title" },
+    {
+      key: "privacyConsent.preferenceDescription",
+      label: "Preferences — description",
+      area: true,
+    },
+    { key: "privacyConsent.analyticsTitle", label: "Analytics — title" },
+    {
+      key: "privacyConsent.analyticsDescription",
+      label: "Analytics — description",
+      area: true,
+    },
+    { key: "privacyConsent.marketingTitle", label: "Marketing — title" },
+    {
+      key: "privacyConsent.marketingDescription",
+      label: "Marketing — description",
+      area: true,
+    },
+    { key: "privacyConsent.save", label: "Save choices" },
+  ],
+};
+
+const COOKIE_SETTINGS_PAGE_GROUP: StorefrontCopyGroup = {
+  id: "cookies-page",
+  title: "Cookies — settings page",
+  description:
+    "Page-only lines on /cookie-settings: confirmation, back link, and SEO. The preference form is edited above.",
+  fields: [
+    { key: "cookieSettings.metaTitle", label: "SEO title" },
+    {
+      key: "cookieSettings.metaDescription",
+      label: "SEO description",
+      area: true,
+    },
+    { key: "cookieSettings.saved", label: "Saved confirmation" },
+    { key: "cookieSettings.backToPrivacy", label: "Back to Privacy Policy" },
+  ],
+};
+
 export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   HEADER_CHROME_GROUP,
   FOOTER_BRAND_GROUP,
@@ -119,6 +196,8 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   FOOTER_SERVICE_HEADING_GROUP,
   FOOTER_SOCIAL_HEADING_GROUP,
   SERVICE_CONTACT_GROUP,
+  COOKIE_CONSENT_GROUP,
+  COOKIE_SETTINGS_PAGE_GROUP,
 ];
 
 export const STOREFRONT_COPY_KEYS: string[] = STOREFRONT_COPY_GROUPS.flatMap(

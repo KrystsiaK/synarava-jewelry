@@ -68,7 +68,7 @@ its models were removed once Shopify covered the same ground.
   - singleton-like global content: Header main links (`header-nav-v1`: ordered
     label + path), footer link columns (`footer-links-v1`: service / legal /
     socials), footer contact emails (`footer-contact-v1`), Shared screen
-    chrome/footer/contact-CTA label overrides (`storefront-copy-v1`), and site-wide SEO defaults
+    chrome/footer/contact-CTA/cookie-consent label overrides (`storefront-copy-v1`), and site-wide SEO defaults
     (`site-seo-v1`)
   - storefront rendering filters header/footer paths that no longer resolve
     (deleted page/product/collection); admin keeps the row and surfaces an error- `MediaAsset`
@@ -103,7 +103,8 @@ The implemented admin is intentionally small and task-focused:
 - `Overview` — content/catalog summary and QA entry point;
 - `Pages` — editorial CMS for all pages including Home and About;
 - `Shared` — site-wide pieces: header and footer links (name + path, add/remove),
-  contact emails, chrome/footer labels, and the service-page contact CTA;
+  contact emails, chrome/footer labels, the service-page contact CTA, and cookie
+  banner / settings copy;
 - `Meta` — site-wide SEO defaults and links to page/product SEO editors;
 - `Videos` — shared S3-backed storefront video assets;
 - `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;

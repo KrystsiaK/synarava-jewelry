@@ -7,6 +7,11 @@ individually in the first-visit modal, and reopen the same controls anytime at
 `/cookie-settings` (footer “Cookie settings”, Privacy Policy links, or any
 WYSIWYG `/cookie-settings` href).
 
+Banner, preferences form, and `/cookie-settings` page copy are edited in admin
+**Shared** (`privacyConsent.*` and `cookieSettings.*` in `storefront-copy-v1`),
+per locale, the same way as other shared labels. Empty fields fall back to
+`messages/*.json`. The footer link name stays in Footer — legal links.
+
 ## Production configuration
 
 Set these public, non-secret deployment values:

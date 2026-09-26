@@ -29,6 +29,8 @@ const SECTION_JUMPS = [
   { href: "#copy-footer-socials", label: "Social" },
   { href: "#copy-footer-emails", label: "Emails" },
   { href: "#copy-service-contact", label: "Contact CTA" },
+  { href: "#copy-cookies-consent", label: "Cookies" },
+  { href: "#copy-cookies-page", label: "Cookie page" },
 ] as const;
 
 export function StorefrontCopyEditor({

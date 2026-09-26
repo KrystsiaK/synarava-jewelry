@@ -145,6 +145,10 @@ describe("StorefrontCopyEditor", () => {
     expect(screen.getByText("Footer — contact emails")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Email (primary)" })).toHaveValue("ops@synarava.com");
     expect(screen.getByText("Shared — contact CTA")).toBeInTheDocument();
+    expect(screen.getByText("Cookies — banner & preferences")).toBeInTheDocument();
+    expect(screen.getByText("Cookies — settings page")).toBeInTheDocument();
+    expect(screen.getByLabelText("Banner title (EN)")).toBeInTheDocument();
+    expect(screen.getByLabelText("SEO title (EN)")).toBeInTheDocument();
     expect(screen.queryByLabelText("Care Guide (EN)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Privacy Policy (EN)")).not.toBeInTheDocument();
     expect(screen.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);

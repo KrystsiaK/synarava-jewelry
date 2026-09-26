@@ -53,9 +53,9 @@ export default async function AdminSettingsPage() {
         <h1 className="adm-page-title">Shared</h1>
         <p className="adm-page-subtitle">
           Site-wide pieces: header and footer links (name + path, add/remove/reorder), contact emails,
-          chrome labels, and the service-page contact CTA. Links to deleted pages stay in admin with an
-          error and are hidden on the storefront. Empty labels fall back to shipped defaults. Per-page
-          copy is edited under Pages.
+          chrome labels, the service-page contact CTA, and cookie banner / settings copy. Links to deleted
+          pages stay in admin with an error and are hidden on the storefront. Empty labels fall back to
+          shipped defaults. Per-page copy is edited under Pages.
         </p>
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />
       </div>
