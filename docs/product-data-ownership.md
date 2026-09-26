@@ -9,7 +9,7 @@ Shopify is the system of record for every customer-facing commerce field that Sh
 The product admin is built as **Shopify skeleton + Synarava sections**:
 
 1. **Shopify skeleton** — every standard Shopify product/variant field we support must appear in admin, sync correctly (pull/push), and match Shopify Admin. We verify this field by field.
-2. **Synarava sections** — CMS-only Product page: short description, material line, symbolism, materials story, process, lookbook (and future CMS controls). Shopify description/SEO live on the Product tab, not a separate Content tab.
+2. **Synarava sections** — CMS-only: **Passport** (jewelry parameters → `synarava.*` metafields on Push) and **Product page** (short description, material line, symbolism, materials story, process, lookbook). Shopify description/SEO live on the Product tab, not a separate Content tab.
 
 The section tab strip is visually split into two clusters: **Shopify** (commerce skeleton + Sync) and **Synarava** (CMS-only). Tab count and Shopify-side layout will grow to mirror Shopify’s product admin more closely; Synarava tabs stay a separate group.
 
@@ -76,13 +76,16 @@ Shopify contains additional operational and analytical API fields. “All Shopif
 ## Synarava product passport
 
 Structured jewelry parameters (material, color, size, care, compliance, …) are
-editable in the Synarava Catalog under **Product parameters**. Save stores them
+editable under **Synarava → Passport** (**Product parameters**). Save stores them
 locally; Push mirrors them to Shopify as `synarava.*` metafields. Pull seeds
 empty fields from Shopify category attributes and merchant metafields.
 
 The passport checklist is intentionally small (jewelry filters + PDP priority).
 Arbitrary merchant fields are **not** added here — use the product editor
 **Metafields** tab (Shopify metafield definitions + values via Admin API).
+
+**Catalog** (Shopify group) stays placement only: product category, collection
+membership, site publish state, and the Last Pull facts mirror.
 
 ### Metafields tab (Shopify-native custom fields)
 

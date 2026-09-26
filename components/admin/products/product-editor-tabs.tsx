@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import {
   CircleDollarSign,
+  ClipboardList,
   Gem,
   Images,
   PackageSearch,
@@ -28,6 +29,7 @@ export type ProductEditorSection =
   | "metafields"
   | "media"
   | "details"
+  | "passport"
   | "shopify";
 
 /** Tab strip clusters — Shopify commerce skeleton vs Synarava-only sections. */
@@ -63,7 +65,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Title & organization",
     title: "Product identity",
     description:
-      "Title, handle, vendor, product type, tags, description, and SEO — Shopify product header and search listing. Category and collections are on Catalog; custom metafields on Metafields; SKU/qty under Sync until Inventory exists.",
+      "Title, handle, vendor, product type, tags, description, and SEO — Shopify product header and search listing. Category and collections are on Catalog; custom metafields on Metafields; jewelry passport on Synarava → Passport; SKU/qty under Sync until Inventory exists.",
     icon: PackageSearch,
     group: "shopify",
   },
@@ -80,10 +82,10 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   {
     id: "catalog",
     label: "Catalog",
-    shortLabel: "Placement & parameters",
+    shortLabel: "Category & publish",
     title: "Place it in the catalog",
     description:
-      "Choose Shopify category and collection. Edit product parameters here (Save + Push to Shopify). Last Pull shows what Shopify currently has.",
+      "Shopify category, collection membership, and site publish state. Last Pull shows category attributes Shopify currently has. Jewelry passport specs live under Synarava → Passport.",
     icon: Shapes,
     group: "shopify",
   },
@@ -93,7 +95,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Custom definitions",
     title: "Product metafields",
     description:
-      "Merchant-owned Shopify metafields (same as Shopify Admin → Metafields). Add definitions shop-wide and edit this product’s values. Passport fields stay under Catalog.",
+      "Merchant-owned Shopify metafields (same as Shopify Admin → Metafields). Add definitions shop-wide and edit this product’s values. Jewelry passport fields live under Synarava → Passport.",
     icon: Tags,
     group: "shopify",
   },
@@ -116,6 +118,16 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
       "Compare the saved Synarava record with Shopify, push or pull intentional changes, and inspect the last stored commerce snapshot.",
     icon: Store,
     group: "shopify",
+  },
+  {
+    id: "passport",
+    label: "Passport",
+    shortLabel: "Jewelry specs",
+    title: "Product passport",
+    description:
+      "Synarava jewelry parameters (fit, materials, care, compliance). Save locally; Push mirrors them as synarava.* metafields. Not Shopify Admin collapsible rows.",
+    icon: ClipboardList,
+    group: "synarava",
   },
   {
     id: "details",

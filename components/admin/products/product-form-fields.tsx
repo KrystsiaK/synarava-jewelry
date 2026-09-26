@@ -207,13 +207,13 @@ export function ProductDetailFields({
     <div
       data-component="ProductDetailFields"
       className="grid gap-6"
-      hidden={activeSection !== "catalog" && activeSection !== "details"}
+      hidden={activeSection !== "catalog" && activeSection !== "details" && activeSection !== "passport"}
     >
       <div hidden={activeSection !== "details"}>
         <p className="adm-label-row">
           <span className="adm-section-tag">[ SYNARAVA CMS LAYER ]</span>
           <AdminHelp>
-            Editorial product-page sections enrich the site. Shopify catalog facts stay under Catalog and are refreshed by Pull.
+            Editorial product-page sections enrich the site. Shopify category and publish stay under Catalog; jewelry specs under Passport.
           </AdminHelp>
         </p>
         <p className="mt-2 text-xs text-[var(--adm-muted)]">
@@ -233,6 +233,16 @@ export function ProductDetailFields({
 
       <div hidden={activeSection !== "catalog"} className="grid gap-4">
         <ShopifyProductFactsPanel facts={shopifyFacts} linked={shopifyLinked} />
+      </div>
+
+      <div hidden={activeSection !== "passport"} className="grid gap-4">
+        <p className="adm-label-row">
+          <span className="adm-section-tag">[ SYNARAVA PASSPORT ]</span>
+          <AdminHelp>
+            Jewelry core specs for the PDP and filters. Save, then Push as synarava.* metafields.
+            Arbitrary Shopify merchant fields stay on Metafields.
+          </AdminHelp>
+        </p>
         <ProductPassportFields characteristics={details.characteristics} />
       </div>
 

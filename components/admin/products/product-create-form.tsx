@@ -184,16 +184,18 @@ export function CreateProductForm({
             aria-labelledby={`product-editor-tab-${activeSection}`}
             className="grid gap-4 rounded-b-lg border border-t-0 border-[var(--adm-border)] px-[var(--adm-inset-x)] py-4"
           >
-            <ProductFormFields
-              draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
-              collections={collections}
-              validation={validation}
-              translationLocales={translationLocales}
-              activeSection={activeSection}
-              activeLocale={activeLocale}
-              onLocaleChange={selectLocale}
-              mode="create"
-            />
+            <div hidden={activeSection === "passport" || activeSection === "media"}>
+              <ProductFormFields
+                draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
+                collections={collections}
+                validation={validation}
+                translationLocales={translationLocales}
+                activeSection={activeSection}
+                activeLocale={activeLocale}
+                onLocaleChange={selectLocale}
+                mode="create"
+              />
+            </div>
             <div hidden={activeSection !== "media"}>
               <ProductMediaManager
                 product={draftProduct}

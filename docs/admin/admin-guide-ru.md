@@ -127,8 +127,11 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
    control справа — Check/conflicts для **всех секций** активного языка.
 3. **Уровень секции**: табы визуально разделены на две группы —
    **Shopify** (Product, Price, Catalog, Metafields, Media, Sync) и **Synarava**
-   (Product page — short description, symbolism, materials, process, lookbook).
+   (Passport — jewelry specs / `synarava.*`; Product page — short description,
+   symbolism, materials, process, lookbook).
    Description и SEO — на вкладке **Product** (Shopify). Отдельной вкладки Content нет.
+   **Catalog** — только placement: category, collection, Site state (publish) и
+   зеркало Last Pull. Характеристики паспорта — на **Passport**, не на Catalog.
    Вкладка **Price** зеркалит карточку
    Price в Shopify Admin: цена, налог (`taxable`); **compare-at** и **cost**
    только чтение (правка в Shopify Admin — compare-at также см. [tech debt TD-01](./tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path));
@@ -152,8 +155,8 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
 подсвечивает контрол (красная рамка и фон) и текст ошибки выезжает
 абсолютом под ним — без сдвига соседних рядов; отдельные баннеры над
 инпутом не используются. Shared-поля (категория,
-коллекция, галерея) язык не красят. Большие группы
-характеристик на вкладке Catalog свёрнуты и раскрываются независимо.
+коллекция, галерея, passport) язык не красят. Большие группы
+характеристик на вкладке Passport свёрнуты и раскрываются независимо.
 Если у товара есть `imageUrl`, но галерея ещё пустая, Media показывает
 legacy cover, пока не загружены изображения галереи.
 

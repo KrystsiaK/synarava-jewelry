@@ -56,10 +56,11 @@ export function localeHasDirty(
   return false;
 }
 
-/** Catalog / metafields / media / shopify / price are shared across languages. */
+/** Catalog / passport / metafields / media / shopify / price are shared across languages. */
 export function isSharedSection(section: ProductEditorSection): boolean {
   return (
     section === "catalog"
+    || section === "passport"
     || section === "metafields"
     || section === "media"
     || section === "shopify"
@@ -169,7 +170,9 @@ export function fieldBelongsToBranch(
     case "price":
       return PRICE_SHARED.includes(fieldName);
     case "catalog":
-      return CATALOG_SHARED.includes(fieldName) || isCharacteristicsField(fieldName);
+      return CATALOG_SHARED.includes(fieldName);
+    case "passport":
+      return isCharacteristicsField(fieldName);
     case "details":
       return DETAILS_SHARED.includes(fieldName)
         || matchesLocaleKey(fieldName, locale, DETAILS_LOCALE)

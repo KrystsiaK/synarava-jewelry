@@ -55,6 +55,13 @@ describe("product-editor-scope", () => {
     expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "catalog", "en")).toBe(false);
   });
 
+  it("attributes passport characteristic fields to Passport, not Catalog", () => {
+    expect(dirtyKeyForEdit("pt", "passport")).toBe("*:passport");
+    expect(fieldBelongsToBranch("characteristic_material", "passport", "en")).toBe(true);
+    expect(fieldBelongsToBranch("characteristic_material", "catalog", "en")).toBe(false);
+    expect(fieldBelongsToBranch("collectionSlug", "passport", "en")).toBe(false);
+  });
+
   it("builds a scoped FormData that keeps baseline values for other branches", () => {
     const baseline = new FormData();
     baseline.set("productId", "p1");

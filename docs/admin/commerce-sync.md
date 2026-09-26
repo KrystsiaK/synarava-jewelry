@@ -72,7 +72,8 @@ Mirror Shopify Admin product header + Product organization:
 - Title, handle/slug, SKU, inventory
 - Vendor / Product type / Tags — suggestions from Shopify `productVendors`,
   `productTypes`, `productTags` (store-wide used values; free text still allowed)
-- Category + Collections stay on the Catalog tab; Media stays separate
+- Category + Collections + site publish stay on the Catalog tab; Media stays separate
+- Jewelry passport (synarava.*) lives on Synarava → Passport, not Catalog
 
 Local Save write-through includes title, vendor, productType, tags into
 `workingSnapshot` so conflict markers refresh after save.
@@ -90,8 +91,8 @@ Shopify-native custom product fields (not the `synarava.*` passport):
 | List definitions | `metafieldDefinitions(ownerType: PRODUCT)` |
 | Add definition | `metafieldDefinitionCreate` (shop-wide schema only; not product sync) |
 
-Passport / category taxonomy stay on **Catalog**. Managed namespaces
-(`synarava`, `shopify`, `global`) are excluded from the Metafields editor.
+Passport stays on **Synarava → Passport**. Category taxonomy stays on **Catalog**.
+Managed namespaces (`synarava`, `shopify`, `global`) are excluded from the Metafields editor.
 
 Code: `lib/shopify/product-metafields-*.ts`,
 `ProductMetafieldsPanel`, write-through in `shopify-projection-diff.ts`,

@@ -1,7 +1,7 @@
 import { AdminHelp } from "@/components/synarava-cms";
 import type { ShopifyProductFact } from "@/lib/shopify/product-facts";
 
-/** Read-only snapshot of what the last Shopify Pull resolved — edit specs in Product parameters. */
+/** Read-only snapshot of what the last Shopify Pull resolved — edit specs on Passport. */
 export function ShopifyProductFactsPanel({
   facts,
   linked,
@@ -19,8 +19,8 @@ export function ShopifyProductFactsPanel({
           <span className="adm-label">Last Pull from Shopify</span>
           <AdminHelp>
             Reference only — values Shopify had on the last Pull (category attributes, public
-            metafields, weight, origin). To change specs from Synarava, use Product parameters below,
-            Save, then Push. To refresh this list, Pull again.
+            metafields, weight, origin). To change Synarava jewelry specs, open Passport, Save,
+            then Push. To refresh this list, Pull again.
           </AdminHelp>
         </p>
       </div>
@@ -31,7 +31,7 @@ export function ShopifyProductFactsPanel({
         </p>
       ) : facts.length === 0 ? (
         <p className="text-sm text-[var(--adm-muted)]">
-          Nothing resolved on the last Pull yet. Fill Product parameters below or edit in Shopify, then Pull.
+          Nothing resolved on the last Pull yet. Fill Passport (Synarava) or edit in Shopify, then Pull.
         </p>
       ) : (
         <dl className="grid gap-3 text-sm sm:grid-cols-2">

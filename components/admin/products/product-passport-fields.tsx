@@ -30,7 +30,8 @@ function groupHasValue(
 /**
  * Editable product passport. Values Save locally and Push to Shopify as
  * `synarava.*` metafields. Groups with data open by default; empty groups stay
- * collapsed. Merchant-defined Shopify fields live on the Metafields tab.
+ * collapsed. Lives on the Synarava → Passport tab (not Shopify Catalog).
+ * Merchant-defined Shopify fields live on the Metafields tab.
  */
 export function ProductPassportFields({
   characteristics,

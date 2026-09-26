@@ -81,7 +81,7 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
 };
 
 const ALL_SECTIONS: ProductEditorSection[] = [
-  "essentials", "price", "catalog", "metafields", "media", "details", "shopify",
+  "essentials", "price", "catalog", "metafields", "media", "passport", "details", "shopify",
 ];
 
 function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {
@@ -724,21 +724,23 @@ export function EditProductForm({
                     </div>
 
                     <div hidden={activeSection === "media" || activeSection === "metafields"}>
-                      <ProductFormFields
-                        key={`${currentProduct.id}-${fieldsRevision}`}
-                        draft={draft}
-                        collections={collections}
-                        variantExists={currentProduct.variants.length > 0}
-                        issues={visibleIssues}
-                        validation={validation}
-                        translationLocales={translationLocales}
-                        activeSection={activeSection}
-                        activeLocale={activeLocale}
-                        onLocaleChange={selectLocale}
-                        onTaxonomySatisfactionChange={setTaxonomySatisfaction}
-                        selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
-                        mode="edit"
-                      />
+                      <div hidden={activeSection === "passport"}>
+                        <ProductFormFields
+                          key={`${currentProduct.id}-${fieldsRevision}`}
+                          draft={draft}
+                          collections={collections}
+                          variantExists={currentProduct.variants.length > 0}
+                          issues={visibleIssues}
+                          validation={validation}
+                          translationLocales={translationLocales}
+                          activeSection={activeSection}
+                          activeLocale={activeLocale}
+                          onLocaleChange={selectLocale}
+                          onTaxonomySatisfactionChange={setTaxonomySatisfaction}
+                          selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
+                          mode="edit"
+                        />
+                      </div>
                       <ProductDetailFields
                         key={`details-${currentProduct.id}-${fieldsRevision}`}
                         details={details}
