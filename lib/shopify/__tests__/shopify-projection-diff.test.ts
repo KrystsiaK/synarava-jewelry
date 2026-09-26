@@ -101,5 +101,7 @@ describe("projection path helpers", () => {
   it("labels known paths", () => {
     expect(labelForShopifyProjectionPath("vendor")).toBe("Vendor");
     expect(labelForShopifyProjectionPath("variants[0].taxable")).toBe("Charge tax");
+    expect(labelForShopifyProjectionPath("media[0].preview.image.url")).toBe("Media gallery (image 1)");
+    expect(labelForShopifyProjectionPath("media")).toBe("Media gallery");
   });
 });

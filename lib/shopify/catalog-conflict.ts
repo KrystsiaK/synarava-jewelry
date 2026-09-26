@@ -52,6 +52,8 @@ export type CatalogConflictField = {
   blockedReason: string | null;
   /** The underlying ShopifyFieldDivergence row id for a TRANSLATION field (what applyReconcileChoice needs); null for COMMERCE, which applies as a whole-product write instead of one row per field. */
   sourceId: string | null;
+  /** Shopify projection path for COMMERCE rows — used to map media/etc. to the owning editor tab. */
+  path?: string | null;
   presenceDifference?: CatalogPresenceDifference;
 };
 
@@ -85,8 +87,10 @@ export function commerceFingerprint(value: string): string {
 
 function commerceField(difference: ProductSyncDifference): CatalogConflictField {
   const supported = SCOPED_COMMERCE_FIELD_LABELS.has(difference.field);
+  // Prefer path in the key so two "Media gallery (image N)" rows stay distinct.
+  const keySource = difference.path?.trim() || difference.field;
   return {
-    fieldKey: `commerce:${slugFieldKey(difference.field)}`,
+    fieldKey: `commerce:${slugFieldKey(keySource)}`,
     label: difference.field,
     scope: { kind: "SHARED" },
     origin: "COMMERCE",
@@ -99,6 +103,7 @@ function commerceField(difference: ProductSyncDifference): CatalogConflictField 
     allowedDirections: supported ? ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] : [],
     blockedReason: supported ? null : COMMERCE_UNSUPPORTED_REASON,
     sourceId: null,
+    path: difference.path ?? null,
   };
 }
 

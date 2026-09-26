@@ -135,6 +135,11 @@ export function labelForShopifyProjectionPath(path: string): string {
   for (const entry of PATH_LABELS) {
     if (entry.match.test(path)) return entry.label;
   }
+  if (path === "media" || path.startsWith("media.")) return "Media gallery";
+  const mediaMatch = path.match(/^media\[(\d+)\]/);
+  if (mediaMatch) {
+    return `Media gallery (image ${Number(mediaMatch[1]) + 1})`;
+  }
   // variants[0].sku → Variant SKU; generic fallback keeps path readable
   const variantMatch = path.match(/^variants\[(\d+)\]\.(.+)$/);
   if (variantMatch) {

@@ -270,12 +270,25 @@ function orderedConflictFields(fields: CatalogConflictField[]) {
   });
 }
 
-function DetailsModal({ conflict, product, selections, loading, applying, onClose, onSelect, onSelectAll, onContinue, onOpenEditor }: {
+function DetailsModal({
+  conflict,
+  product,
+  selections,
+  loading,
+  applying,
+  productScoped,
+  onClose,
+  onSelect,
+  onSelectAll,
+  onContinue,
+  onOpenEditor,
+}: {
   conflict: ProductCatalogConflict | null;
   product?: ProductSummary;
   selections: Record<string, CatalogConflictDirection>;
   loading: boolean;
   applying: boolean;
+  productScoped: boolean;
   onClose: () => void;
   onSelect: (fieldKey: string, direction: CatalogConflictDirection) => void;
   onSelectAll: (direction: CatalogConflictDirection) => void;
@@ -286,7 +299,10 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
   const fields = conflict ? orderedConflictFields(conflict.fields) : [];
   const actionable = fields.filter((field) => !field.blockedReason && field.allowedDirections.length > 0);
   const onlyBlocked = conflict !== null && fields.length > 0 && actionable.length === 0;
+  const emptyScope = conflict !== null && !loading && fields.length === 0;
+  const needsWholeRecordSync = onlyBlocked || emptyScope;
   const busy = applying;
+  const syncCtaLabel = productScoped ? "Go to Sync → Pull / Push" : "Open product editor";
   return (
     <AnimatedModal open onClose={busy ? () => undefined : onClose} ariaLabel="Choose conflict values" portalClassName="admin-modal-root" zIndexClassName="z-[300]" backdropZIndexClassName="z-[290]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,60rem)] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
       <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5">
@@ -294,8 +310,8 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
           <p className="adm-section-tag">[ FIELD DECISIONS ]</p>
           <h2 className="adm-title-sm mt-2">{product?.name ?? "Product conflict"}</h2>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
-            {onlyBlocked
-              ? "Status, media, and similar fields stay comparison-only here. Close and use Sync → Push/Pull on the product for those."
+            {needsWholeRecordSync
+              ? "Gallery, status, and similar fields cannot be chosen one-by-one here. Use Sync → Pull (take Shopify) or Push (send Synarava)."
               : "Pick Synarava or Shopify for each field. Name and Handle can be chosen here; status and media still need Push/Pull."}
           </p>
         </div>
@@ -307,10 +323,15 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
             <LoaderCircle className="size-4 animate-spin" />Loading live field comparison…
           </p>
         ) : null}
+        {emptyScope ? (
+          <p className="rounded-lg border border-[var(--adm-conflict)] p-3 text-sm">
+            No field-by-field choices in this view. If you added images in Shopify, open Sync and Pull from Shopify to bring the gallery here.
+          </p>
+        ) : null}
         {onlyBlocked ? (
           <p className="rounded-lg border border-[var(--adm-conflict)] p-3 text-sm">
-            These remaining commerce fields (status, media, tags, …) are comparison-only here — there is no safe per-field write yet.
-            {conflict ? <> Use the footer to open the product editor and resolve with Sync → Push/Pull.</> : null}
+            These commerce fields (media gallery, status, tags, …) are comparison-only — there is no safe per-field write yet.
+            {conflict ? <> Use the footer to go to Sync and resolve with Pull or Push for the whole commerce record.</> : null}
           </p>
         ) : null}
         {fields.map((field) => (
@@ -334,8 +355,8 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
         ))}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-secondary">{onlyBlocked ? "Back to list" : "Cancel"}</button>
-        {!onlyBlocked ? (
+        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-secondary">{needsWholeRecordSync ? "Back" : "Cancel"}</button>
+        {!needsWholeRecordSync ? (
           <>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" disabled={busy || loading || actionable.length === 0} onClick={() => onSelectAll("SHOPIFY_TO_SYNARAVA")} className="adm-btn-ghost">Select Shopify for visible fields</button>
@@ -345,7 +366,7 @@ function DetailsModal({ conflict, product, selections, loading, applying, onClos
             <button type="button" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
           </>
         ) : conflict ? (
-          <button type="button" disabled={busy} onClick={() => onOpenEditor(conflict.productId)} className="adm-btn-primary">Open product editor</button>
+          <button type="button" disabled={busy} onClick={() => onOpenEditor(conflict.productId)} className="adm-btn-primary">{syncCtaLabel}</button>
         ) : null}
       </footer>
     </AnimatedModal>
@@ -407,6 +428,7 @@ export function CatalogConflictWorkspace({
   viewScope = { kind: "catalog" },
   onToast,
   onApplied,
+  onOpenSyncTab,
 }: {
   open: boolean;
   onClose: () => void;
@@ -418,6 +440,8 @@ export function CatalogConflictWorkspace({
   onToast: (message: string, tone: ToastTone) => void;
   /** Fired after a successful apply so the editor can reload product + markers. */
   onApplied?: (info: { productIds: string[]; appliedCount: number }) => void;
+  /** When already inside the product editor, jump to Sync instead of re-routing. */
+  onOpenSyncTab?: () => void;
 }) {
   const [details, setDetails] = useState<ProductCatalogConflict | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -688,6 +712,7 @@ export function CatalogConflictWorkspace({
           selections={selections}
           loading={detailsLoading}
           applying={applying}
+          productScoped={isProductScoped(viewScope)}
           onClose={() => { if (!applying) { setDetails(null); setDetailsLoading(false); setSelections({}); } }}
           onSelect={(fieldKey, direction) => setSelections((current) => ({ ...current, [fieldKey]: direction }))}
           onSelectAll={(direction) => setSelections((current) => {
@@ -701,6 +726,10 @@ export function CatalogConflictWorkspace({
           onContinue={() => details && openPreview({ kind: "MANUAL", selections: Object.entries(selections).map(([fieldKey, direction]) => ({ productId: details.productId, fieldKey, direction })) })}
           onOpenEditor={(productId) => {
             closeAll();
+            if (onOpenSyncTab && isProductScoped(viewScope)) {
+              onOpenSyncTab();
+              return;
+            }
             router.push(`/admin/products/${productId}`);
           }}
         />

@@ -195,7 +195,7 @@ describe("CatalogConflictWorkspace", () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
     const { onClose } = renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByText(/Use the footer to open the product editor/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Use the footer to go to Sync/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open product editor" }));
     expect(onClose).toHaveBeenCalled();
     expect(mocks.push).toHaveBeenCalledWith("/admin/products/p1");
@@ -360,5 +360,53 @@ describe("CatalogConflictWorkspace", () => {
     expect(screen.getByText("Price")).toBeInTheDocument();
     expect(screen.queryByText("Vendor")).not.toBeInTheDocument();
     expect(screen.queryByText("Title")).not.toBeInTheDocument();
+  });
+
+  it("keeps media gallery rows under the Media section and routes to Sync", async () => {
+    mocks.load.mockResolvedValue({
+      conflict: {
+        productId: "p1",
+        fields: [{
+          fieldKey: "commerce:media-0-id",
+          label: "Media gallery (image 1)",
+          scope: { kind: "SHARED" as const },
+          origin: "COMMERCE" as const,
+          targetKind: "NATIVE" as const,
+          synaravaValue: "—",
+          shopifyValue: "https://cdn.shopify.com/a.jpg",
+          baseValue: null,
+          localFingerprint: "local",
+          shopifyFingerprint: "shopify",
+          allowedDirections: [] as const,
+          blockedReason: "No safe field-by-field write yet",
+          sourceId: null,
+          path: "media[0].id",
+        }],
+      },
+    });
+    const onOpenSyncTab = vi.fn();
+    render(
+      <CatalogConflictWorkspace
+        open
+        onClose={vi.fn()}
+        signals={{
+          ...signals,
+          products: {
+            p1: { shared: true, sharedCount: 1, locales: [] },
+          },
+        }}
+        onSignalsChange={vi.fn()}
+        products={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
+        focusedProductId="p1"
+        viewScope={{ kind: "productSection", productId: "p1", locale: "en", section: "media" }}
+        onToast={vi.fn()}
+        onOpenSyncTab={onOpenSyncTab}
+      />,
+    );
+
+    expect(await screen.findByText("Media gallery (image 1)")).toBeInTheDocument();
+    expect(screen.getByText(/Cannot choose here/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Go to Sync/i }));
+    expect(onOpenSyncTab).toHaveBeenCalled();
   });
 });

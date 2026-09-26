@@ -36,6 +36,24 @@ describe("commerce conflict → editor section", () => {
     expect(productEditorSectionForCommerceDiff({ path: "_presence", field: "Presence" })).toBe("shopify");
   });
 
+  it("maps media diffs to the Media tab (path and unlabeled path-as-label)", () => {
+    expect(productEditorSectionForCommerceDiff({ path: "media[0].id", field: "Media gallery (image 1)" })).toBe("media");
+    expect(productEditorSectionForCommerceDiff({ field: "media[0].preview.image.url" })).toBe("media");
+    expect(productEditorSectionForConflictField({
+      origin: "COMMERCE",
+      label: "Media gallery (image 1)",
+      fieldKey: "commerce:media-0-id",
+      path: "media[0].id",
+    })).toBe("media");
+    // Regression: without path, path-shaped labels must still land on Media — otherwise
+    // the Media tab badge opens an empty Field Decisions dialog.
+    expect(productEditorSectionForConflictField({
+      origin: "COMMERCE",
+      label: "media[0].preview.image.url",
+      fieldKey: "commerce:media-0-preview-image-url",
+    })).toBe("media");
+  });
+
   it("maps conflict-modal field rows to the owning section", () => {
     expect(productEditorSectionForConflictField({
       origin: "COMMERCE",

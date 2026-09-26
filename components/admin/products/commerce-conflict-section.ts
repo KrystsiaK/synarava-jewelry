@@ -64,7 +64,14 @@ export function productEditorSectionForCommerceDiff(diff: {
     return "essentials";
   }
 
-  if (/^media(\.|$|\[)/.test(path)) return "media";
+  // Path is authoritative; label may be the raw path (unlabeled leaf) or "Media gallery (…)".
+  if (
+    /^media(\.|$|\[)/.test(path)
+    || /^media(\.|$|\[)/i.test(field)
+    || /^Media gallery/i.test(field)
+  ) {
+    return "media";
+  }
 
   if (/^metafields(\.|$|\[)/.test(path) || field === "Metafields") return "metafields";
 
@@ -73,16 +80,20 @@ export function productEditorSectionForCommerceDiff(diff: {
 
 /**
  * Map a conflict-modal field row → the editor section that owns it.
- * Commerce uses the label map; translation keys land on Product / Content.
+ * Commerce uses path when present (media diffs are unlabeled paths); else label.
  */
 export function productEditorSectionForConflictField(field: {
   origin: "COMMERCE" | "TRANSLATION" | "PRESENCE";
   label: string;
   fieldKey: string;
+  path?: string | null;
 }): ProductEditorSection {
   if (field.origin === "PRESENCE") return "shopify";
   if (field.origin === "COMMERCE") {
-    return productEditorSectionForCommerceDiff({ field: field.label });
+    return productEditorSectionForCommerceDiff({
+      path: field.path ?? undefined,
+      field: field.label,
+    });
   }
   const key = field.fieldKey.split(":")[2] ?? "";
   if (key === "title" || key === "localizedHandle" || key === "name" || key === "handle") {
