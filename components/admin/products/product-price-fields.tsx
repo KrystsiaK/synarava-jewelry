@@ -46,10 +46,15 @@ function formatCompareAtDisplay(raw: string): string | null {
   return formatMoney(amount);
 }
 
+function formatCostDisplay(raw: string): string | null {
+  const amount = parseMoneyInput(raw);
+  if (amount == null || amount < 0) return null;
+  return formatMoney(amount);
+}
+
 /**
- * Shopify Price card projection: price, compare-at (read-only), taxable, cost.
- * Profit / margin are local calculations (not Shopify fields).
- * Compare-at is edited only in Shopify Admin until legal display rules are settled.
+ * Shopify Price card projection: editable price + taxable; compare-at and cost
+ * are pull projections (edit in Shopify Admin). Profit / margin are local UI math.
  */
 export function ProductPriceFields({
   draft,
@@ -66,10 +71,9 @@ export function ProductPriceFields({
   validation: AdminFormValidation<ProductFieldName>;
 }) {
   const [price, setPrice] = useState(draft.price);
-  const [cost, setCost] = useState(draft.cost);
 
   const priceAmount = parseMoneyInput(price);
-  const costAmount = parseMoneyInput(cost);
+  const costAmount = parseMoneyInput(draft.cost);
   const profit = priceAmount != null && costAmount != null ? priceAmount - costAmount : null;
   const marginLabel = formatMargin(priceAmount, costAmount);
   const marginDisplay = marginLabel === "—" ? null : marginLabel;
@@ -126,20 +130,15 @@ export function ProductPriceFields({
         className="grid gap-3 pt-4 sm:grid-cols-3"
         style={{ borderTop: "1px solid color-mix(in srgb, var(--adm-cool) 16%, var(--adm-border))" }}
       >
-        <AdminTextField
+        <AdminReadonlyField
           label="Cost"
           owner="Shopify"
-          name="cost"
-          type="number"
-          min="0"
-          step="0.01"
-          inputMode="decimal"
-          startAdornment="€"
-          value={cost}
-          onChange={(event) => setCost(event.target.value)}
+          value={formatCostDisplay(draft.cost)}
+          emptyLabel="Not set"
           help={(
             <AdminHelp label="Cost guidance">
-              Shopify InventoryItem unit cost (shop currency). Used only for profit/margin — not shown on the storefront.
+              Shopify InventoryItem unit cost. Shown for profit/margin only — edit cost
+              in Shopify Admin. Synarava does not push cost changes from this field.
             </AdminHelp>
           )}
         />

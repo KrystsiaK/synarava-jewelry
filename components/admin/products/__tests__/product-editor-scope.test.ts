@@ -28,7 +28,7 @@ describe("product-editor-scope", () => {
     expect(fieldBelongsToBranch("price", "price", "en")).toBe(true);
     expect(fieldBelongsToBranch("compareAt", "price", "en")).toBe(false);
     expect(fieldBelongsToBranch("taxable", "price", "en")).toBe(true);
-    expect(fieldBelongsToBranch("cost", "price", "en")).toBe(true);
+    expect(fieldBelongsToBranch("cost", "price", "en")).toBe(false);
     expect(fieldBelongsToBranch("price", "essentials", "en")).toBe(false);
     expect(fieldBelongsToBranch("collectionSlug", "catalog", "en")).toBe(true);
     expect(fieldBelongsToBranch("ptShortDescription", "content", "pt")).toBe(true);
@@ -138,7 +138,7 @@ describe("product-editor-scope", () => {
     });
 
     expect(scoped.get("price")).toBe("25.50");
-    expect(scoped.get("cost")).toBe("8");
+    expect(scoped.get("cost")).toBeNull();
     expect(scoped.get("taxable")).toBe("0");
     expect(scoped.get("name")).toBe("Saved Name");
   });

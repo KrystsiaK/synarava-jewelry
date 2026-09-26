@@ -44,8 +44,8 @@ risks storefront claims we cannot defend.
 
 ### Code pointers
 
-- UI: `components/admin/products/product-price-fields.tsx` (`AdminReadonlyField`)
-- Save preserves DB compare-at (ignores FormData): `app/admin/actions/products.ts`
+- UI: `components/admin/products/product-price-fields.tsx` (`AdminReadonlyField` for compare-at and cost)
+- Save preserves DB compare-at and cost (ignores FormData): `app/admin/actions/products.ts`
 - Sync: `lib/shopify/product-sync.ts` (pull/push still round-trip the projection)
 - Conflict apply: `lib/shopify/commerce-field-apply.ts` (“Compare-at price”)
 - Library control: `AdminReadonlyField` in synarava-cms

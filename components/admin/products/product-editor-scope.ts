@@ -79,8 +79,8 @@ const ESSENTIALS_SHARED = [
   "name", "slug", "sku", "stockOnHand", "vendor", "productType", "seriesLabel",
 ];
 const ESSENTIALS_LOCALE = ["title", "localizedHandle"];
-/** compareAt is Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
-const PRICE_SHARED = ["price", "taxable", "cost"];
+/** compareAt + cost are Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
+const PRICE_SHARED = ["price", "taxable"];
 const CONTENT_LOCALE = [
   "shortDescription", "description", "seoTitle", "seoDescription",
   "materialLine", "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2", "reviewed",
@@ -228,6 +228,10 @@ export function buildScopedProductFormData({
     const taxable = current.get("taxable");
     scoped.set("taxable", taxable === "1" || taxable === "on" ? "1" : "0");
   }
+
+  // Pull projections — never written from the editor FormData.
+  scoped.delete("cost");
+  scoped.delete("compareAt");
 
   scoped.set("saveScope", `${locale}:${section}`);
   return scoped;
