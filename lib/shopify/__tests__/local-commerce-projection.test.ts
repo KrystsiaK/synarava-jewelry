@@ -56,4 +56,12 @@ describe("localCommerceMatchesProjection", () => {
       }).state,
     ).toBe("LOCAL_CHANGES");
   });
+
+  it("write-through of tags updates the compare projection", () => {
+    const next = writeThroughLocalCommerceToProjection(
+      { title: "Ring", tags: ["old"] },
+      { tags: ["bracelet", "heritage"] },
+    );
+    expect(next).toEqual({ title: "Ring", tags: ["bracelet", "heritage"] });
+  });
 });

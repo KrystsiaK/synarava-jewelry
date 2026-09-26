@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
@@ -342,11 +343,13 @@ export async function applyCollectionConflictResolutionAction(input: {
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
     const outcome = await applyCollectionConflictResolution({ ...input, actorUsername: session.username });
-    revalidateStorefront();
-    revalidatePath("/admin/collections");
-    for (const collectionId of new Set(input.entries.map((entry) => entry.collectionId))) {
-      revalidatePath(`/admin/collections/${collectionId}`);
-    }
+    after(() => {
+      revalidateStorefront();
+      revalidatePath("/admin/collections");
+      for (const collectionId of new Set(input.entries.map((entry) => entry.collectionId))) {
+        revalidatePath(`/admin/collections/${collectionId}`);
+      }
+    });
     return {
       outcome,
       success: outcome.appliedCount > 0
@@ -400,8 +403,11 @@ export async function applyCatalogConflictResolutionAction(input: {
       console.error("[catalog-conflicts] applied values but could not record the review watermark", error);
       warning = "Values were applied, but the new-from-Shopify review badge could not be saved.";
     }
-    revalidateStorefront();
-    revalidatePath("/admin/products");
+    // Return write outcome immediately; cache refresh must not hold the client overlay.
+    after(() => {
+      revalidateStorefront();
+      revalidatePath("/admin/products");
+    });
     return {
       outcome,
       warning,

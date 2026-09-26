@@ -59,11 +59,11 @@ const PRODUCT_EDITOR_TAB_GROUPS: readonly AdminSectionTabGroup[] = [
 const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   {
     id: "essentials",
-    label: "Essentials",
-    shortLabel: "Sellable product",
-    title: "Start with the sellable product",
+    label: "Product",
+    shortLabel: "Title & organization",
+    title: "Product identity",
     description:
-      "Set the product name, handle, SKU, inventory, vendor, and type. These are the core values that identify what customers can buy.",
+      "Title, handle, vendor, product type, and tags — Shopify product header and Product organization. Category and collections are on Catalog; SKU/qty live under Sync until Inventory exists.",
     icon: PackageSearch,
     group: "shopify",
   },
@@ -83,7 +83,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Placement & parameters",
     title: "Place it in the catalog",
     description:
-      "Choose Shopify category, collection, and tags. Edit product parameters here (Save + Push to Shopify). Last Pull shows what Shopify currently has.",
+      "Choose Shopify category and collection. Edit product parameters here (Save + Push to Shopify). Last Pull shows what Shopify currently has.",
     icon: Shapes,
     group: "shopify",
   },

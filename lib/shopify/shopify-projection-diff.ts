@@ -251,6 +251,8 @@ export type LocalCommerceProjectionPatch = {
   handle?: string;
   vendor?: string | null;
   productType?: string | null;
+  /** Shopify tag strings (same shape as Admin GraphQL `tags`). */
+  tags?: string[];
   variant?: {
     shopifyVariantId?: string | null;
     sku?: string;
@@ -276,6 +278,9 @@ export function writeThroughLocalCommerceToProjection(
   if (patch.vendor !== undefined) next = setProjectionPath(next, "vendor", patch.vendor ?? "");
   if (patch.productType !== undefined) {
     next = setProjectionPath(next, "productType", patch.productType ?? "");
+  }
+  if (patch.tags !== undefined) {
+    next = setProjectionPath(next, "tags", patch.tags);
   }
 
   if (patch.variant) {

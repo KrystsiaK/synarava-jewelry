@@ -100,6 +100,8 @@ describe("buildCatalogConflictSignals", () => {
         { code: "de", nativeName: "Deutsch", count: 1 },
       ],
     });
+    // Without explicit field counts, CONFLICT commerce rows fall back to sharedCount 1.
+    expect(result.products["a"]?.sharedCount).toBe(1);
     expect(result.products["b"]?.locales).toMatchObject([{ code: "en", count: 1 }]);
     expect(result.products["c"]).toBeUndefined();
     expect(result.recentlyUpdatedProducts["c"]).toEqual({ updatedAt: "2026-09-23T09:59:00.000Z" });
@@ -232,6 +234,20 @@ describe("persistPayloadForCommerceInspection", () => {
       differences: [{ field: "Vendor" }],
       remoteUpdatedAt: "2026-09-23T12:00:00.000Z",
     })).toEqual({ syncStatus: "CONFLICT" });
+  });
+
+  it("stores sharedCount from commerceFieldCounts for badge field totals", () => {
+    const result = buildCatalogConflictSignals({
+      commerceProductIds: ["p1"],
+      commerceFieldCounts: { p1: 2 },
+      differences: [],
+      locales,
+      run: { trigger: "MANUAL", status: "SUCCEEDED", completedAt: "2026-09-23T10:00:00.000Z" },
+      connected: true,
+      now: new Date("2026-09-23T10:01:00.000Z"),
+    });
+
+    expect(result.products["p1"]).toMatchObject({ shared: true, sharedCount: 2 });
   });
 
   it("does not persist a CONFLICT with no remaining field differences", () => {

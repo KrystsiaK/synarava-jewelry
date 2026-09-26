@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine, Columns2, Languages, LoaderCircle, Trash2, X } from "lucide-react";
 
@@ -173,7 +173,7 @@ export function CollectionConflictWorkspace({
   const [preview, setPreview] = useState<CollectionConflictPreview | null>(null);
   const [activeScope, setActiveScope] = useState<CollectionConflictApplyScope | null>(null);
   const [acknowledgeClears, setAcknowledgeClears] = useState(false);
-  const [applying, startApplyTransition] = useTransition();
+  const [applying, setApplying] = useState(false);
   const router = useRouter();
   const focusedRef = useRef<HTMLElement>(null);
   const scopedSignals = useMemo(() => filterSignalsForView(signals, viewScope), [signals, viewScope]);
@@ -324,36 +324,44 @@ export function CollectionConflictWorkspace({
     setPreview(null);
     setDetails(null);
     if (submittedScope?.kind === "BULK") onClose();
-    startApplyTransition(async () => {
-      const result = await applyCollectionConflictResolutionAction({
-        acknowledgeClears,
-        entries: submittedPreview.entries.map((entry) => ({
-          collectionId: entry.collectionId,
-          fieldKey: entry.field.fieldKey,
-          direction: entry.direction,
-          expectedLocalFingerprint: entry.field.localFingerprint,
-          expectedShopifyFingerprint: entry.field.shopifyFingerprint,
-        })),
-      });
-      if (!result.outcome) {
-        onToast(result.error ?? "Could not apply the conflict resolution.", "error");
-        return;
+    setApplying(true);
+    void (async () => {
+      try {
+        const result = await applyCollectionConflictResolutionAction({
+          acknowledgeClears,
+          entries: submittedPreview.entries.map((entry) => ({
+            collectionId: entry.collectionId,
+            fieldKey: entry.field.fieldKey,
+            direction: entry.direction,
+            expectedLocalFingerprint: entry.field.localFingerprint,
+            expectedShopifyFingerprint: entry.field.shopifyFingerprint,
+          })),
+        });
+        if (!result.outcome) {
+          onToast(result.error ?? "Could not apply the conflict resolution.", "error");
+          return;
+        }
+        if (result.error) onToast(result.error, result.outcome.appliedCount > 0 ? "info" : "error");
+        else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
+        const successful = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.collectionId));
+        const fullyResolved = [...successful].filter((collectionId) =>
+          !result.outcome!.results.some((item) => item.collectionId === collectionId && !item.ok)
+          && !submittedPreview.excluded.some((item) => item.collectionId === collectionId),
+        );
+        setApplying(false);
+        if (fullyResolved.length > 0) {
+          const nextProducts = { ...signals.products };
+          fullyResolved.forEach((collectionId) => delete nextProducts[collectionId]);
+          onSignalsChange({ ...signals, products: nextProducts, totalCount: Object.keys(nextProducts).length });
+        }
+        setSelections({});
+        refreshPreservingScroll(router);
+      } catch (error) {
+        onToast(error instanceof Error ? error.message : "Could not apply the conflict resolution.", "error");
+      } finally {
+        setApplying(false);
       }
-      if (result.error) onToast(result.error, result.outcome.appliedCount > 0 ? "info" : "error");
-      else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
-      const successful = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.collectionId));
-      const fullyResolved = [...successful].filter((collectionId) =>
-        !result.outcome!.results.some((item) => item.collectionId === collectionId && !item.ok)
-        && !submittedPreview.excluded.some((item) => item.collectionId === collectionId),
-      );
-      if (fullyResolved.length > 0) {
-        const nextProducts = { ...signals.products };
-        fullyResolved.forEach((collectionId) => delete nextProducts[collectionId]);
-        onSignalsChange({ ...signals, products: nextProducts, totalCount: Object.keys(nextProducts).length });
-      }
-      setSelections({});
-      refreshPreservingScroll(router);
-    });
+    })();
   }
 
   const detailFields = details ? orderedConflictFields(details.fields) : [];

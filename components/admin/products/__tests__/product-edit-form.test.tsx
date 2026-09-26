@@ -39,6 +39,10 @@ vi.mock("@/app/admin/actions/taxonomy", () => ({
   getShopifyCategoryAttributesAction: mocks.getShopifyCategoryAttributesAction,
 }));
 
+vi.mock("@/app/admin/actions/product-organization", () => ({
+  listShopifyProductOrganizationAction: vi.fn().mockResolvedValue({ options: [] }),
+}));
+
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
 
 function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
@@ -107,8 +111,8 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     expect(screen.getByRole("heading", { name: "Choose an area to edit" })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Name/)).toHaveValue("Lava Ring");
-    expect(screen.getByLabelText(/SKU/)).toHaveValue("LAVA-1");
+    expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toHaveValue("Lava Ring");
+    expect(screen.getByLabelText(/SKU/)).not.toBeVisible();
     expect(mocks.inspectProductSyncAction).not.toHaveBeenCalled();
   });
 
@@ -138,7 +142,7 @@ describe("EditProductForm", () => {
       },
     })} collections={[]} />);
 
-    expect(screen.getByLabelText(/Vendor \/ brand/)).toHaveValue("Synarava");
+    expect(screen.getByLabelText(/^Vendor/)).toHaveValue("Synarava");
     expect(screen.getByLabelText(/Product type/)).toHaveValue("Necklace");
     expect(screen.getAllByText("custom.pearl_grade").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("AAA").length).toBeGreaterThanOrEqual(1);
@@ -166,13 +170,13 @@ describe("EditProductForm", () => {
     render(<EditProductForm product={makeProduct()} collections={[]} />);
     await act(async () => {});
 
-    await user.clear(screen.getByLabelText(/Name/));
+    await user.clear(screen.getByRole("textbox", { name: /Title \* Shopify/ }));
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    expect(screen.getByLabelText(/Name/)).not.toBeVisible();
+    expect(screen.getByRole("textbox", { name: /Title \* Shopify/, hidden: true })).not.toBeVisible();
 
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
 
-    // Client-side validate() catches the blank required Name even while its
+    // Client-side validate() catches the blank required Title even while its
     // panel is hidden (jsdom, like real browsers, computes `validity` from
     // the constraint itself, not from whether the field is rendered) — so
     // the confirm dialog never opens...
@@ -180,17 +184,17 @@ describe("EditProductForm", () => {
     expect(mocks.saveProductAction).not.toHaveBeenCalled();
     // ...and the EN tab reopens so the user can actually see the error
     // instead of being stuck looking at the PT panel.
-    expect(await screen.findByLabelText(/Name/)).toBeVisible();
+    expect(await screen.findByRole("textbox", { name: /Title \* Shopify/ })).toBeVisible();
   });
 
-  it("keeps shared Vendor/brand and Product type visible on the PT tab", async () => {
+  it("keeps shared Vendor and Product type visible on the PT tab", async () => {
     const user = userEvent.setup();
     render(<EditProductForm product={makeProduct({ vendor: "Synarava", productType: "Necklace" })} collections={[]} />);
     await act(async () => {});
 
-    expect(screen.getByLabelText(/Vendor \/ brand/)).toBeVisible();
+    expect(screen.getByLabelText(/^Vendor/)).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    expect(screen.getByLabelText(/Vendor \/ brand/)).toBeVisible();
+    expect(screen.getByLabelText(/^Vendor/)).toBeVisible();
     expect(screen.getByLabelText(/Product type/)).toBeVisible();
   });
 
@@ -251,8 +255,8 @@ describe("EditProductForm", () => {
     render(<EditProductForm product={makeProduct({ shopifyProductId: "gid://shopify/Product/1" })} collections={[]} />);
     await act(async () => {});
 
-    await user.type(screen.getByLabelText(/Name/), " Updated");
-    expect(screen.getByLabelText("Essentials has unsaved edits")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), " Updated");
+    expect(screen.getByLabelText("Product has unsaved edits")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save this branch" })).not.toBeInTheDocument();
   });
 

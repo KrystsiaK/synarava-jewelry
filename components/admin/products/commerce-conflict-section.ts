@@ -32,23 +32,23 @@ export function productEditorSectionForCommerceDiff(diff: {
     || field === "Available quantity"
     || field === "Inventory policy"
   ) {
-    return "essentials";
+    return "shopify";
   }
 
   if (
-    /^(title|handle|vendor|productType)(\.|$)/.test(path)
+    /^(title|handle|vendor|productType|tags)(\.|$|\[)/.test(path)
     || field === "Name"
     || field === "Handle"
     || field === "Vendor"
     || field === "Product type"
+    || field === "Tags"
   ) {
     return "essentials";
   }
 
   if (
-    /^(category|tags|status|collections|resourcePublicationsV2|publications)(\.|$|\[)/.test(path)
+    /^(category|status|collections|resourcePublicationsV2|publications)(\.|$|\[)/.test(path)
     || field === "Product category"
-    || field === "Tags"
     || field === "Status"
   ) {
     return "catalog";
@@ -66,6 +66,36 @@ export function productEditorSectionForCommerceDiff(diff: {
   if (/^media(\.|$|\[)/.test(path)) return "media";
 
   return "shopify";
+}
+
+/**
+ * Map a conflict-modal field row → the editor section that owns it.
+ * Commerce uses the label map; translation keys land on Product / Content.
+ */
+export function productEditorSectionForConflictField(field: {
+  origin: "COMMERCE" | "TRANSLATION" | "PRESENCE";
+  label: string;
+  fieldKey: string;
+}): ProductEditorSection {
+  if (field.origin === "PRESENCE") return "shopify";
+  if (field.origin === "COMMERCE") {
+    return productEditorSectionForCommerceDiff({ field: field.label });
+  }
+  const key = field.fieldKey.split(":")[2] ?? "";
+  if (key === "title" || key === "localizedHandle" || key === "name" || key === "handle") {
+    return "essentials";
+  }
+  if (
+    key === "description"
+    || key === "body"
+    || key === "shortDescription"
+    || key === "seoTitle"
+    || key === "seoDescription"
+    || key === "materialLine"
+  ) {
+    return "content";
+  }
+  return "content";
 }
 
 /** Sections whose tabs should show conflict tone for the given differences. */

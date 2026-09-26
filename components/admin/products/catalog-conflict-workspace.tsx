@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine, Columns2, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
@@ -23,15 +23,21 @@ import type {
   ProductCatalogConflict,
 } from "@/lib/shopify/catalog-conflict";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
+import { productEditorSectionForConflictField } from "@/components/admin/products/commerce-conflict-section";
 
 type ProductSummary = { id: string; name: string; sku: string | null };
 type ToastTone = "success" | "error" | "info";
 
-/** Same conflict UI, different tree node: full catalog, one product, or one product locale. */
+/**
+ * Same conflict UI, different tree node:
+ * full catalog · one product · one product locale · one editor section.
+ */
 export type CatalogConflictViewScope =
   | { kind: "catalog" }
   | { kind: "product"; productId: string }
-  | { kind: "productLocale"; productId: string; locale: string };
+  | { kind: "productLocale"; productId: string; locale: string }
+  | { kind: "productSection"; productId: string; locale: string; section: ProductEditorSection };
 
 const directionCopy: Record<CatalogConflictDirection, { short: string; full: string }> = {
   SHOPIFY_TO_SYNARAVA: { short: "Use Shopify", full: "Apply Shopify values to Synarava" },
@@ -56,12 +62,26 @@ export function fieldMatchesViewLocale(field: CatalogConflictField, locale: stri
   return field.scope.kind === "LOCALE" && normalizeLocaleCode(field.scope.code) === code;
 }
 
+export function fieldMatchesViewSection(
+  field: CatalogConflictField,
+  section: ProductEditorSection,
+  locale: string,
+): boolean {
+  if (productEditorSectionForConflictField(field) !== section) return false;
+  // Shared commerce belongs under every language shell for that section.
+  if (field.scope.kind === "SHARED") return true;
+  return fieldMatchesViewLocale(field, locale);
+}
+
 export function filterConflictFieldsForView(
   fields: CatalogConflictField[],
   viewScope: CatalogConflictViewScope | undefined,
 ): CatalogConflictField[] {
   if (!viewScope || viewScope.kind === "catalog" || viewScope.kind === "product") return fields;
-  return fields.filter((field) => fieldMatchesViewLocale(field, viewScope.locale));
+  if (viewScope.kind === "productLocale") {
+    return fields.filter((field) => fieldMatchesViewLocale(field, viewScope.locale));
+  }
+  return fields.filter((field) => fieldMatchesViewSection(field, viewScope.section, viewScope.locale));
 }
 
 export function filterSignalsForView(
@@ -101,8 +121,19 @@ export function filterSignalsForView(
 
 function isProductScoped(viewScope: CatalogConflictViewScope | undefined): viewScope is
   | { kind: "product"; productId: string }
-  | { kind: "productLocale"; productId: string; locale: string } {
-  return viewScope?.kind === "product" || viewScope?.kind === "productLocale";
+  | { kind: "productLocale"; productId: string; locale: string }
+  | { kind: "productSection"; productId: string; locale: string; section: ProductEditorSection } {
+  return viewScope?.kind === "product"
+    || viewScope?.kind === "productLocale"
+    || viewScope?.kind === "productSection";
+}
+
+function isLocaleOrSectionScoped(
+  viewScope: CatalogConflictViewScope,
+): viewScope is
+  | { kind: "productLocale"; productId: string; locale: string }
+  | { kind: "productSection"; productId: string; locale: string; section: ProductEditorSection } {
+  return viewScope.kind === "productLocale" || viewScope.kind === "productSection";
 }
 
 function LocaleMark({ field }: { field: CatalogConflictField }) {
@@ -395,7 +426,9 @@ export function CatalogConflictWorkspace({
   const [preview, setPreview] = useState<CatalogConflictPreview | null>(null);
   const [activeScope, setActiveScope] = useState<CatalogConflictApplyScope | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
-  const [applying, startApplyTransition] = useTransition();
+  // Explicit flag — not useTransition. Async server actions can leave
+  // transition-pending stuck after the write already finished.
+  const [applying, setApplying] = useState(false);
   const router = useRouter();
   const scopedSignals = useMemo(() => filterSignalsForView(signals, viewScope), [signals, viewScope]);
   const scopedFocusId = isProductScoped(viewScope) ? viewScope.productId : focusedProductId;
@@ -431,10 +464,12 @@ export function CatalogConflictWorkspace({
           return;
         }
         if (result.preview) {
-          const nextPreview = viewScope.kind === "productLocale"
+          const nextPreview = isLocaleOrSectionScoped(viewScope)
             ? {
                 ...result.preview,
-                entries: result.preview.entries.filter((entry) => fieldMatchesViewLocale(entry.field, viewScope.locale)),
+                entries: result.preview.entries.filter((entry) => (
+                  filterConflictFieldsForView([entry.field], viewScope).length > 0
+                )),
               }
             : result.preview;
           setActiveScope(scope);
@@ -465,9 +500,9 @@ export function CatalogConflictWorkspace({
       .finally(() => setDetailsLoading(false));
   }
 
-  /** Product-wide direction under a locale tab becomes MANUAL over only that locale's fields. */
+  /** Product-wide direction under a locale/section tab becomes MANUAL over only that scope's fields. */
   function openProductDirection(productId: string, direction: CatalogConflictDirection) {
-    if (viewScope.kind !== "productLocale") {
+    if (!isLocaleOrSectionScoped(viewScope)) {
       openPreview({ kind: "PRODUCT", productId, direction });
       return;
     }
@@ -482,7 +517,12 @@ export function CatalogConflictWorkspace({
         const fields = filterConflictFieldsForView(result.conflict?.fields ?? [], viewScope)
           .filter((field) => !field.blockedReason && field.allowedDirections.includes(direction));
         if (fields.length === 0) {
-          onToast("No supported fields for this language in that direction.", "info");
+          onToast(
+            viewScope.kind === "productSection"
+              ? "No supported fields for this section in that direction."
+              : "No supported fields for this language in that direction.",
+            "info",
+          );
           setPreviewLoading(false);
           return;
         }
@@ -533,7 +573,13 @@ export function CatalogConflictWorkspace({
     };
     // Auto-open details once when entering a product-scoped view.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, viewScope.kind, isProductScoped(viewScope) ? viewScope.productId : null, viewScope.kind === "productLocale" ? viewScope.locale : null]);
+  }, [
+    open,
+    viewScope.kind,
+    isProductScoped(viewScope) ? viewScope.productId : null,
+    viewScope.kind === "productLocale" || viewScope.kind === "productSection" ? viewScope.locale : null,
+    viewScope.kind === "productSection" ? viewScope.section : null,
+  ]);
 
   function confirm(acknowledgeClears: boolean) {
     if (!preview || applying) return;
@@ -544,71 +590,79 @@ export function CatalogConflictWorkspace({
     setResultMessage(null);
     // Close the list immediately for product-scoped flows — apply continues in background.
     if (submittedScope?.kind === "BULK" || isProductScoped(viewScope)) onClose();
-    startApplyTransition(async () => {
-      const result = await applyCatalogConflictResolutionAction({
-        acknowledgeClears,
-        entries: submittedPreview.entries.map((entry) => ({
-          productId: entry.productId,
-          fieldKey: entry.field.fieldKey,
-          direction: entry.direction,
-          expectedLocalFingerprint: entry.field.localFingerprint,
-          expectedShopifyFingerprint: entry.field.shopifyFingerprint,
-        })),
-      });
-      if (!result.outcome) {
-        onToast(result.error ?? "Could not apply the conflict resolution.", "error");
-        return;
-      }
-      const failureDetail = result.outcome.results
-        .filter((item) => !item.ok)
-        .map((item) => item.message)
-        .filter(Boolean)
-        .slice(0, 2)
-        .join(" · ");
-      if (result.error) {
-        onToast(
-          failureDetail ? `${result.error} ${failureDetail}` : result.error,
-          result.outcome.appliedCount > 0 ? "info" : "error",
-        );
-      } else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
-      if (result.warning) onToast(result.warning, "info");
-      const successfulProducts = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.productId));
-      const incomingProducts = new Set(
-        result.outcome.results
-          .filter((item) => item.ok && submittedPreview.entries.some((entry) =>
-            entry.productId === item.productId
-            && entry.field.fieldKey === item.fieldKey
-            && entry.direction === "SHOPIFY_TO_SYNARAVA",
-          ))
-          .map((item) => item.localProductId ?? item.productId)
-          .filter((productId) => Boolean(productId) && !productId.startsWith("shopify:")),
-      );
-      setSelections({});
-      if (result.outcome.appliedCount > 0 && onApplied) {
-        // Editor reloads product + re-checks conflicts — don't optimistic-wipe markers.
-        onApplied({
-          productIds: [...successfulProducts],
-          appliedCount: result.outcome.appliedCount,
+    setApplying(true);
+    void (async () => {
+      try {
+        const result = await applyCatalogConflictResolutionAction({
+          acknowledgeClears,
+          entries: submittedPreview.entries.map((entry) => ({
+            productId: entry.productId,
+            fieldKey: entry.field.fieldKey,
+            direction: entry.direction,
+            expectedLocalFingerprint: entry.field.localFingerprint,
+            expectedShopifyFingerprint: entry.field.shopifyFingerprint,
+          })),
         });
-      } else {
-        const fullyResolved = [...successfulProducts].filter((productId) =>
-          !result.outcome!.results.some((item) => item.productId === productId && !item.ok)
-          && !submittedPreview.excluded.some((item) => item.productId === productId),
-        );
-        if (fullyResolved.length > 0) {
-          const nextProducts = { ...signals.products };
-          fullyResolved.forEach((productId) => delete nextProducts[productId]);
-          const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
-          incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
-          onSignalsChange({ ...signals, products: nextProducts, recentlyUpdatedProducts, totalCount: Object.keys(nextProducts).length });
-        } else if (incomingProducts.size > 0) {
-          const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
-          incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
-          onSignalsChange({ ...signals, recentlyUpdatedProducts });
+        if (!result.outcome) {
+          onToast(result.error ?? "Could not apply the conflict resolution.", "error");
+          return;
         }
+        const failureDetail = result.outcome.results
+          .filter((item) => !item.ok)
+          .map((item) => item.message)
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(" · ");
+        if (result.error) {
+          onToast(
+            failureDetail ? `${result.error} ${failureDetail}` : result.error,
+            result.outcome.appliedCount > 0 ? "info" : "error",
+          );
+        } else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
+        if (result.warning) onToast(result.warning, "info");
+        const successfulProducts = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.productId));
+        const incomingProducts = new Set(
+          result.outcome.results
+            .filter((item) => item.ok && submittedPreview.entries.some((entry) =>
+              entry.productId === item.productId
+              && entry.field.fieldKey === item.fieldKey
+              && entry.direction === "SHOPIFY_TO_SYNARAVA",
+            ))
+            .map((item) => item.localProductId ?? item.productId)
+            .filter((productId) => Boolean(productId) && !productId.startsWith("shopify:")),
+        );
+        setSelections({});
+        // Drop the blocker before editor reload / conflict re-check — those can take longer than the write.
+        setApplying(false);
+        if (result.outcome.appliedCount > 0 && onApplied) {
+          onApplied({
+            productIds: [...successfulProducts],
+            appliedCount: result.outcome.appliedCount,
+          });
+        } else {
+          const fullyResolved = [...successfulProducts].filter((productId) =>
+            !result.outcome!.results.some((item) => item.productId === productId && !item.ok)
+            && !submittedPreview.excluded.some((item) => item.productId === productId),
+          );
+          if (fullyResolved.length > 0) {
+            const nextProducts = { ...signals.products };
+            fullyResolved.forEach((productId) => delete nextProducts[productId]);
+            const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
+            incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
+            onSignalsChange({ ...signals, products: nextProducts, recentlyUpdatedProducts, totalCount: Object.keys(nextProducts).length });
+          } else if (incomingProducts.size > 0) {
+            const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
+            incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
+            onSignalsChange({ ...signals, recentlyUpdatedProducts });
+          }
+        }
+        refreshPreservingScroll(router);
+      } catch (error) {
+        onToast(error instanceof Error ? error.message : "Could not apply the conflict resolution.", "error");
+      } finally {
+        setApplying(false);
       }
-      refreshPreservingScroll(router);
-    });
+    })();
   }
 
   return (

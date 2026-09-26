@@ -2,6 +2,8 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { COMMERCE_SYNC_STORE_ID } from "@/lib/commerce-store/refresh";
+import type { CommerceStoreConflict } from "@/lib/commerce-store/types";
 import { getPublishedStorefrontLocales, getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { buildCatalogConflictSignals, type CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
@@ -19,6 +21,24 @@ import {
   getLatestCollectionPresenceDifferences,
   scanAndSaveCollectionPresence,
 } from "@/lib/shopify/collection-presence-server";
+
+/** Field-diff totals from the dual-store conflict report (local product id → count). */
+async function commerceFieldCountsFromStore(): Promise<Record<string, number>> {
+  const row = await db.commerceSyncStore.findUnique({
+    where: { id: COMMERCE_SYNC_STORE_ID },
+    select: { conflictReport: true },
+  });
+  if (!row?.conflictReport || !Array.isArray(row.conflictReport)) return {};
+  const counts: Record<string, number> = {};
+  for (const entry of row.conflictReport as CommerceStoreConflict[]) {
+    const productId = entry.localProductId;
+    if (!productId || !Array.isArray(entry.differences)) continue;
+    const fieldDiffs = entry.differences.filter((diff) => diff.path !== "_presence");
+    if (fieldDiffs.length === 0) continue;
+    counts[productId] = fieldDiffs.length;
+  }
+  return counts;
+}
 
 async function resolveShopifyLocale(registryCode: string): Promise<string | null> {
   if (registryCode === "en") return "en";
@@ -63,7 +83,7 @@ async function lastSuccessfulCollectionCheckAt(): Promise<string | null> {
 }
 
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
-  const [commerceProducts, differences, presenceDifferences, locales, run, checkedAt, recentlyUpdatedProducts] = await Promise.all([
+  const [commerceProducts, differences, presenceDifferences, locales, run, checkedAt, recentlyUpdatedProducts, commerceFieldCounts] = await Promise.all([
     db.product.findMany({ where: { syncStatus: "CONFLICT" }, select: { id: true } }),
     getLatestReconcileDifferences(),
     getLatestCatalogPresenceDifferences(),
@@ -71,10 +91,12 @@ export async function getCatalogConflictSignals(adminUsername?: string): Promise
     getLatestReconcileRun(),
     lastSuccessfulFullCheckAt(),
     adminUsername ? listUnseenIncomingProductUpdates(adminUsername) : Promise.resolve([]),
+    commerceFieldCountsFromStore(),
   ]);
 
   return buildCatalogConflictSignals({
     commerceProductIds: commerceProducts.map((product) => product.id),
+    commerceFieldCounts,
     differences,
     presenceDifferences,
     locales,
@@ -146,12 +168,16 @@ export async function runProductConflictCheck({
   });
 
   const commerceProductIds: string[] = [];
+  const commerceFieldCounts: Record<string, number> = {};
   const failures: string[] = [];
   try {
     const inspection = await inspectProductSyncState(productId);
     const persist = persistPayloadForCommerceInspection(inspection);
     if (persist) await db.product.update({ where: { id: productId }, data: persist });
-    if (persist?.syncStatus === "CONFLICT") commerceProductIds.push(productId);
+    if (persist?.syncStatus === "CONFLICT") {
+      commerceProductIds.push(productId);
+      commerceFieldCounts[productId] = inspection.differences.length;
+    }
   } catch (error) {
     failures.push(error instanceof Error ? error.message : `Could not inspect ${productId}.`);
   }
@@ -175,6 +201,7 @@ export async function runProductConflictCheck({
 
   const signals = buildCatalogConflictSignals({
     commerceProductIds,
+    commerceFieldCounts,
     differences,
     presenceDifferences,
     locales,
@@ -217,6 +244,7 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
     orderBy: { createdAt: "asc" },
   });
   const commerceProductIds: string[] = [];
+  const commerceFieldCounts: Record<string, number> = {};
   const failures: string[] = [];
 
   // Deliberately sequential: this is an explicit admin check and predictable
@@ -226,7 +254,10 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
       const inspection = await inspectProductSyncState(product.id);
       const persist = persistPayloadForCommerceInspection(inspection);
       if (persist) await db.product.update({ where: { id: product.id }, data: persist });
-      if (persist?.syncStatus === "CONFLICT") commerceProductIds.push(product.id);
+      if (persist?.syncStatus === "CONFLICT") {
+        commerceProductIds.push(product.id);
+        commerceFieldCounts[product.id] = inspection.differences.length;
+      }
     } catch (error) {
       failures.push(error instanceof Error ? error.message : `Could not inspect ${product.id}.`);
     }
@@ -240,6 +271,7 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
   const completedAt = translationRun.run?.status === "SUCCEEDED" ? translationRun.run.completedAt : null;
   const signals = buildCatalogConflictSignals({
     commerceProductIds,
+    commerceFieldCounts,
     differences,
     presenceDifferences,
     locales,

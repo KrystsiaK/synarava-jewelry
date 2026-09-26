@@ -24,7 +24,10 @@ describe("product-editor-scope", () => {
   it("attributes translation and shared fields to the right branch", () => {
     expect(fieldBelongsToBranch("ptTitle", "essentials", "pt")).toBe(true);
     expect(fieldBelongsToBranch("ptTitle", "essentials", "en")).toBe(false);
-    expect(fieldBelongsToBranch("sku", "essentials", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("sku", "shopify", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("sku", "essentials", "pt")).toBe(false);
+    expect(fieldBelongsToBranch("seriesLabel", "details", "en")).toBe(true);
+    expect(fieldBelongsToBranch("tags", "essentials", "en")).toBe(true);
     expect(fieldBelongsToBranch("price", "price", "en")).toBe(true);
     expect(fieldBelongsToBranch("compareAt", "price", "en")).toBe(false);
     expect(fieldBelongsToBranch("taxable", "price", "en")).toBe(true);
@@ -102,9 +105,40 @@ describe("product-editor-scope", () => {
     });
 
     expect(scoped.get("name")).toBe("Dirty Name");
-    expect(scoped.get("sku")).toBe("SKU-2");
+    expect(scoped.get("sku")).toBe("SKU-1");
     expect(scoped.get("price")).toBe("10");
     expect(scoped.get("workflowState")).toBe("DRAFT");
+  });
+
+  it("writes SKU from the current branch when saving Sync", () => {
+    const baseline = new FormData();
+    baseline.set("productId", "p1");
+    baseline.set("name", "Saved Name");
+    baseline.set("slug", "saved-name");
+    baseline.set("sku", "SKU-1");
+    baseline.set("price", "10");
+    baseline.set("stockOnHand", "1");
+    baseline.set("workflowState", "DRAFT");
+
+    const current = new FormData();
+    current.set("productId", "p1");
+    current.set("name", "Saved Name");
+    current.set("slug", "saved-name");
+    current.set("sku", "SKU-2");
+    current.set("price", "10");
+    current.set("stockOnHand", "3");
+    current.set("workflowState", "DRAFT");
+
+    const scoped = buildScopedProductFormData({
+      baseline,
+      current,
+      section: "shopify",
+      locale: "en",
+    });
+
+    expect(scoped.get("sku")).toBe("SKU-2");
+    expect(scoped.get("stockOnHand")).toBe("3");
+    expect(scoped.get("name")).toBe("Saved Name");
   });
 
   it("writes price-tab fields from the current branch when saving price", () => {

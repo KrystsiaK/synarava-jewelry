@@ -253,6 +253,29 @@ describe("CatalogConflictWorkspace", () => {
     })));
   });
 
+  it("clears Working with Shopify before a slow onApplied reload finishes", async () => {
+    let resolveApplied: () => void = () => undefined;
+    const onApplied = vi.fn(() => new Promise<void>((resolve) => { resolveApplied = resolve; }));
+    render(
+      <CatalogConflictWorkspace
+        open
+        onClose={vi.fn()}
+        signals={signals}
+        onSignalsChange={vi.fn()}
+        products={[{ id: "p1", name: "Amber ring", sku: "AMB-1" }]}
+        focusedProductId="p1"
+        viewScope={{ kind: "product", productId: "p1" }}
+        onToast={vi.fn()}
+        onApplied={onApplied}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm changes" }));
+    await waitFor(() => expect(onApplied).toHaveBeenCalled());
+    expect(screen.queryByLabelText("Working with Shopify")).not.toBeInTheDocument();
+    await act(async () => { resolveApplied(); });
+  });
+
   it("scopes the list to one product and hides catalog bulk actions", () => {
     renderWorkspace(vi.fn(), vi.fn(), vi.fn(), {
       ...signals,
@@ -291,5 +314,51 @@ describe("CatalogConflictWorkspace", () => {
     expect(screen.getByText("RU · Русский")).toBeInTheDocument();
     expect(screen.queryByText("PT · Português")).not.toBeInTheDocument();
     expect(screen.queryByText("SHARED")).not.toBeInTheDocument();
+  });
+
+  it("opens section-scoped details with only that editor section's fields", async () => {
+    mocks.load.mockResolvedValue({
+      conflict: {
+        productId: "p1",
+        fields: [
+          {
+            ...blockedField,
+            fieldKey: "commerce:price",
+            label: "Price",
+            blockedReason: null,
+            allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] as const,
+            synaravaValue: "11.00",
+            shopifyValue: "5.00",
+          },
+          {
+            ...blockedField,
+            fieldKey: "commerce:vendor",
+            label: "Vendor",
+            blockedReason: null,
+            allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] as const,
+            synaravaValue: "Local",
+            shopifyValue: "Shopify",
+          },
+          field,
+        ],
+      },
+    });
+    renderWorkspace(
+      vi.fn(),
+      vi.fn(),
+      vi.fn(),
+      {
+        ...signals,
+        products: {
+          p1: { shared: true, sharedCount: 2, locales: [] },
+        },
+      },
+      { kind: "productSection", productId: "p1", locale: "en", section: "price" },
+    );
+
+    expect(await screen.findByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
+    expect(screen.getByText("Price")).toBeInTheDocument();
+    expect(screen.queryByText("Vendor")).not.toBeInTheDocument();
+    expect(screen.queryByText("Title")).not.toBeInTheDocument();
   });
 });

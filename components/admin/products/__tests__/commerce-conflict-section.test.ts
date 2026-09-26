@@ -1,9 +1,8 @@
-import { describe, expect, it } from "vitest";
-
 import {
   conflictLocalesFromCommerce,
   conflictSectionsFromDifferences,
   productEditorSectionForCommerceDiff,
+  productEditorSectionForConflictField,
 } from "@/components/admin/products/commerce-conflict-section";
 
 describe("commerce conflict → editor section", () => {
@@ -13,14 +12,38 @@ describe("commerce conflict → editor section", () => {
     expect(productEditorSectionForCommerceDiff({ field: "Compare-at price" })).toBe("price");
   });
 
-  it("maps identity/SKU to Essentials", () => {
+  it("maps identity/tags to Product tab and SKU to Sync (until Inventory)", () => {
     expect(productEditorSectionForCommerceDiff({ path: "title", field: "Name" })).toBe("essentials");
     expect(productEditorSectionForCommerceDiff({ path: "vendor", field: "Vendor" })).toBe("essentials");
-    expect(productEditorSectionForCommerceDiff({ path: "variants[0].sku", field: "Variant SKU" })).toBe("essentials");
+    expect(productEditorSectionForCommerceDiff({ path: "tags", field: "Tags" })).toBe("essentials");
+    expect(productEditorSectionForCommerceDiff({ path: "variants[0].sku", field: "Variant SKU" })).toBe("shopify");
   });
 
   it("maps presence to Sync, not every tab", () => {
     expect(productEditorSectionForCommerceDiff({ path: "_presence", field: "Presence" })).toBe("shopify");
+  });
+
+  it("maps conflict-modal field rows to the owning section", () => {
+    expect(productEditorSectionForConflictField({
+      origin: "COMMERCE",
+      label: "Price",
+      fieldKey: "commerce:price",
+    })).toBe("price");
+    expect(productEditorSectionForConflictField({
+      origin: "COMMERCE",
+      label: "Vendor",
+      fieldKey: "commerce:vendor",
+    })).toBe("essentials");
+    expect(productEditorSectionForConflictField({
+      origin: "TRANSLATION",
+      label: "Title",
+      fieldKey: "translation:pt:title",
+    })).toBe("essentials");
+    expect(productEditorSectionForConflictField({
+      origin: "TRANSLATION",
+      label: "Description",
+      fieldKey: "translation:ru:description",
+    })).toBe("content");
   });
 
   it("collects only owning sections from a mixed diff list", () => {
@@ -28,6 +51,7 @@ describe("commerce conflict → editor section", () => {
       { path: "variants[0].price", field: "Price" },
       { path: "vendor", field: "Vendor" },
       { path: "tags", field: "Tags" },
+      { path: "category", field: "Product category" },
     ]);
     expect([...sections].toSorted()).toEqual(["catalog", "essentials", "price"]);
     expect(sections.has("shopify")).toBe(false);

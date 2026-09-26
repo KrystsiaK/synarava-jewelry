@@ -41,8 +41,11 @@ Language is a **shell** over the same product. Shared commerce (price, …) is o
 payload shown under every language. One price conflict → catalog row + product +
 all locale shells + **Price** tab only (not every section).
 
-Code: `commerce-conflict-section.ts`, `filterSignalsForView` (`shared`),
-`AdminLocaleTabs` / section conflict chips.
+Opening conflicts from a **section** chip opens only that section’s fields.
+Product and language chrome open the full product / locale set.
+
+Code: `commerce-conflict-section.ts`, `filterSignalsForView` / `filterConflictFieldsForView`
+(`product` · `productLocale` · `productSection`), `AdminLocaleTabs` / section conflict chips.
 
 ---
 
@@ -62,10 +65,22 @@ Migrations: `product_shopify_base_snapshot`, `product_working_snapshot`, `commer
 
 ---
 
-## Known gaps (next branches — not this freeze)
+## Product tab (first Shopify section)
 
-- Full 3-way merge with explicit **base** (`B/L/R`) for ahead vs conflict — designed earlier; **not** required for this freeze.
-- Remaining unsupported Shopify commerce fields / round-trip parity — continue per field on feature branches.
-- Catalog conflict UX polish and presence flows — keep iterating off main.
+Mirror Shopify Admin product header + Product organization:
 
-**Freeze bar:** dual store + deep-diff detect + write-through save + Price markers after save are good enough to land; do not block main on perfect field coverage.
+- Title, handle/slug, SKU, inventory
+- Vendor / Product type / Tags — suggestions from Shopify `productVendors`,
+  `productTypes`, `productTags` (store-wide used values; free text still allowed)
+- Category + Collections stay on the Catalog tab; Media stays separate
+
+Local Save write-through includes title, vendor, productType, tags into
+`workingSnapshot` so conflict markers refresh after save.
+
+---
+
+## Known gaps (next branches)
+
+- Full 3-way merge with explicit **base** (`B/L/R`) for ahead vs conflict.
+- Remaining Shopify commerce fields / round-trip parity — continue per field.
+- Catalog conflict UX polish and presence flows.

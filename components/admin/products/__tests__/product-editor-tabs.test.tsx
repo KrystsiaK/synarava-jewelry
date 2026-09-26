@@ -25,17 +25,17 @@ describe("ProductEditorTabs", () => {
 
     expect(screen.getByRole("group", { name: "Shopify" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Synarava" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Essentials/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: /Price Sell/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Catalog/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Content/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Media/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Sync/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Product page/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Start with the sellable product" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Product identity" })).toBeInTheDocument();
 
     const shopifyGroup = screen.getByRole("group", { name: "Shopify" });
-    expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Essentials/i }));
+    expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Title & organization/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Price Sell/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Sync/i }));
     expect(screen.getByRole("group", { name: "Synarava" })).toContainElement(
@@ -88,7 +88,7 @@ describe("ProductEditorTabs", () => {
 
     expect(screen.getByRole("tab", { name: /Catalog/i })).toHaveAttribute("data-issue", "true");
     expect(screen.getByRole("button", { name: /Missing category/i })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /Essentials/i })).not.toHaveAttribute("data-issue");
+    expect(screen.queryByRole("tab", { name: /Title & organization/i })).not.toHaveAttribute("data-issue");
   });
 
   it("keeps the tabpanel body inside the same root as sticky section chrome", () => {

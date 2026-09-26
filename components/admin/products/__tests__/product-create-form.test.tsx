@@ -18,6 +18,10 @@ vi.mock("@/app/admin/actions/taxonomy", () => ({
   getShopifyCategoryAttributesAction: mocks.getShopifyCategoryAttributesAction,
 }));
 
+vi.mock("@/app/admin/actions/product-organization", () => ({
+  listShopifyProductOrganizationAction: vi.fn().mockResolvedValue({ options: [] }),
+}));
+
 import { CreateProductForm } from "@/components/admin/products/product-create-form";
 import type { CollectionOption } from "@/components/admin/products/product-types";
 
@@ -58,7 +62,7 @@ describe("CreateProductForm", () => {
     render(<CreateProductForm collections={collections} />);
 
     expect(screen.getByRole("heading", { name: "Build the product one area at a time" })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Name/)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toBeInTheDocument();
     expect(screen.getByLabelText(/Slug/)).toBeInTheDocument();
     expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
@@ -119,7 +123,7 @@ describe("CreateProductForm", () => {
     render(<CreateProductForm collections={collections} />);
     await act(async () => {});
 
-    await user.type(screen.getByLabelText(/Name/), "Lava Ring");
+    await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
     await user.type(screen.getByLabelText(/Slug/), "lava-ring");
     await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
@@ -137,7 +141,7 @@ describe("CreateProductForm", () => {
     render(<CreateProductForm collections={collections} />);
     await act(async () => {});
 
-    await user.type(screen.getByLabelText(/Name/), "Lava Ring");
+    await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
     await user.type(screen.getByLabelText(/Slug/), "lava-ring");
     await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));

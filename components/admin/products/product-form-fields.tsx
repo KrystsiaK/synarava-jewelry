@@ -25,6 +25,7 @@ import {
   ShopifyCategoryControl,
   ShopifyCategoryField,
 } from "@/components/admin/products/shopify-category-field";
+import { ShopifyOrganizationSuggestField } from "@/components/admin/products/shopify-organization-suggest-field";
 import { ShopifyProductFactsPanel } from "@/components/admin/products/shopify-product-facts";
 import { ProductPassportFields } from "@/components/admin/products/product-passport-fields";
 import { ProductPriceFields } from "@/components/admin/products/product-price-fields";
@@ -529,6 +530,7 @@ export function ProductFormFields({
   onLocaleChange,
   onTaxonomySatisfactionChange,
   selectedShopifyCategoryAttributes = [],
+  mode = "edit",
 }: {
   draft: ProductDraft;
   collections: CollectionOption[];
@@ -547,6 +549,7 @@ export function ProductFormFields({
   onTaxonomySatisfactionChange?: (satisfaction: TaxonomySatisfaction) => void;
   /** Resolved Shopify category attribute values from the last pull snapshot. */
   selectedShopifyCategoryAttributes?: ShopifyCategoryAttributeSelection[];
+  mode?: "create" | "edit";
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -650,7 +653,7 @@ export function ProductFormFields({
           */}
           <div hidden={activeLocale !== SOURCE_LOCALE}>
             <AdminTextField
-              label="Name"
+              label="Title"
               owner="Shopify"
               required
               name="name"
@@ -716,47 +719,88 @@ export function ProductFormFields({
         </div>
 
         <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
-          <AdminTextField
-            label="SKU"
+          <ShopifyOrganizationSuggestField
+            kind="vendors"
+            label="Vendor"
             owner="Shopify"
-            required
-            name="sku"
-            data-validation-message={PRODUCT_FIELD_MESSAGES.sku}
-            defaultValue={draft.sku}
-            error={fieldErrors.sku}
-            errorId={validation.fieldErrorId("sku")}
-            {...validation.fieldProps("sku")}
+            name="vendor"
+            defaultValue={draft.vendor}
+            clearable
           />
-          <AdminTextField
-            label="Series label"
-            owner="Synarava"
-            name="seriesLabel"
-            defaultValue={draft.seriesLabel}
-          />
-          <AdminTextField
-            label="Available quantity"
+          <ShopifyOrganizationSuggestField
+            kind="types"
+            label="Product type"
             owner="Shopify"
-            help={(
-              <AdminHelp label="Inventory guidance">
-                {variantExists
-                  ? "Primary variant inventory synced with Shopify."
-                  : "No variant record yet. Enter quantity and save to create the primary variant."}
-              </AdminHelp>
-            )}
-            name="stockOnHand"
-            type="number"
-            min="0"
-            step="1"
-            inputMode="numeric"
-            defaultValue={draft.stockOnHand}
+            name="productType"
+            defaultValue={draft.productType}
+            clearable
           />
         </div>
+        <ShopifyOrganizationSuggestField
+          kind="tags"
+          unitId="field-taxonomy-tags"
+          id="field-taxonomy-tags-input"
+          label="Tags"
+          owner="Shopify"
+          name="tags"
+          defaultValue={draft.tags}
+          placeholder="bracelet, heritage, symbolic"
+          clearable
+          invalid={tagsIssues.length > 0}
+          issue={<AdminFieldIssue issues={tagsIssues} />}
+          onChange={(event) => updateTaxonomySatisfaction({ hasTags: Boolean(event.target.value.trim()) })}
+          onClear={() => updateTaxonomySatisfaction({ hasTags: false })}
+        />
+      </div>
 
-        {/* Vendor/brand and Product type are shared across locales — always visible, no PT counterpart. */}
-        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
-          <AdminTextField label="Vendor / brand" owner="Shopify" name="vendor" defaultValue={draft.vendor} />
-          <AdminTextField label="Product type" owner="Shopify" name="productType" defaultValue={draft.productType} />
-        </div>
+      {/* Synarava-only — lives under Product page, not Shopify Product identity. */}
+      <div className="max-w-md" hidden={activeSection !== "details"}>
+        <AdminTextField
+          label="Series label"
+          owner="Synarava"
+          name="seriesLabel"
+          defaultValue={draft.seriesLabel}
+          help={(
+            <AdminHelp label="Series label guidance">
+              Synarava-only merchandising line for shop listing/search — not a Shopify product field.
+            </AdminHelp>
+          )}
+        />
+      </div>
+
+      {/* Create: keep on Product (no Sync tab). Edit: Sync until Inventory exists. */}
+      <div
+        className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2"
+        hidden={mode === "create" ? activeSection !== "essentials" : activeSection !== "shopify"}
+      >
+        <AdminTextField
+          label="SKU"
+          owner="Shopify"
+          required
+          name="sku"
+          data-validation-message={PRODUCT_FIELD_MESSAGES.sku}
+          defaultValue={draft.sku}
+          error={fieldErrors.sku}
+          errorId={validation.fieldErrorId("sku")}
+          {...validation.fieldProps("sku")}
+        />
+        <AdminTextField
+          label="Available quantity"
+          owner="Shopify"
+          help={(
+            <AdminHelp label="Inventory guidance">
+              {variantExists
+                ? "Primary variant inventory synced with Shopify. Moves to Inventory when that tab exists."
+                : "No variant record yet. Enter quantity and save to create the primary variant."}
+            </AdminHelp>
+          )}
+          name="stockOnHand"
+          type="number"
+          min="0"
+          step="1"
+          inputMode="numeric"
+          defaultValue={draft.stockOnHand}
+        />
       </div>
 
       <div className="grid gap-5" hidden={activeSection !== "price"}>
@@ -923,20 +967,6 @@ export function ProductFormFields({
               </option>
             ))}
           </AdminSelectField>
-          <AdminTextField
-            unitId="field-taxonomy-tags"
-            id="field-taxonomy-tags-input"
-            label="Tags"
-            owner="Shopify push"
-            name="tags"
-            defaultValue={draft.tags}
-            placeholder="lava, heritage, symbolic"
-            clearable
-            invalid={tagsIssues.length > 0}
-            issue={<AdminFieldIssue issues={tagsIssues} />}
-            onChange={(event) => updateTaxonomySatisfaction({ hasTags: Boolean(event.target.value.trim()) })}
-            onClear={() => updateTaxonomySatisfaction({ hasTags: false })}
-          />
         </div>
 
         <AdminSelectField

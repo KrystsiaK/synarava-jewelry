@@ -76,7 +76,7 @@ const ALWAYS_FROM_CURRENT = new Set([
 const REQUIRED_FIELDS = new Set(["name", "slug", "sku", "price", "stockOnHand", "workflowState"]);
 
 const ESSENTIALS_SHARED = [
-  "name", "slug", "sku", "stockOnHand", "vendor", "productType", "seriesLabel",
+  "name", "slug", "vendor", "productType", "tags",
 ];
 const ESSENTIALS_LOCALE = ["title", "localizedHandle"];
 /** compareAt + cost are Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
@@ -87,9 +87,11 @@ const CONTENT_LOCALE = [
 ];
 const CONTENT_SHARED = ["existingImageUrl", "removeImage", "imageFile"];
 const CATALOG_SHARED = [
-  "collectionSlug", "tags", "workflowState",
+  "collectionSlug", "workflowState",
   "shopifyCategoryId", "shopifyCategoryName",
 ];
+/** Parked on Sync until Inventory tab. */
+const SHOPIFY_TAB_SHARED = ["sku", "stockOnHand"];
 const DETAILS_LOCALE_PREFIXES = [
   "materialsEyebrow", "materialsTitle", "materialTitle", "materialBody",
   "processEyebrow", "processTitle", "processStatValue", "processStatLabel",
@@ -100,6 +102,7 @@ const DETAILS_SHARED_PREFIXES = [
   "existingProcessMediaImage", "processMediaImageFile", "removeProcessMediaImage",
   "existingLookbookImage", "lookbookImageFile", "removeLookbookImage", "lookbookFeatured",
 ];
+const DETAILS_SHARED = ["seriesLabel"];
 
 function localePrefixed(locale: string, key: string): string {
   if (locale === SOURCE_LOCALE) return key;
@@ -143,6 +146,7 @@ export function fieldBelongsToBranch(
       return ESSENTIALS_SHARED.includes(fieldName) || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
     }
     if (section === "price") return PRICE_SHARED.includes(fieldName);
+    if (section === "shopify") return SHOPIFY_TAB_SHARED.includes(fieldName);
     return false;
   }
 
@@ -158,11 +162,13 @@ export function fieldBelongsToBranch(
       return CONTENT_SHARED.includes(fieldName)
         || matchesLocaleKey(fieldName, locale, CONTENT_LOCALE);
     case "details":
-      return matchesPrefix(fieldName, DETAILS_SHARED_PREFIXES)
+      return DETAILS_SHARED.includes(fieldName)
+        || matchesPrefix(fieldName, DETAILS_SHARED_PREFIXES)
         || matchesLocalePrefix(fieldName, locale, DETAILS_LOCALE_PREFIXES);
     case "media":
-    case "shopify":
       return false;
+    case "shopify":
+      return SHOPIFY_TAB_SHARED.includes(fieldName);
     default:
       return false;
   }
@@ -200,9 +206,11 @@ export function buildScopedProductFormData({
 
   for (const key of REQUIRED_FIELDS) {
     const essentialsOwned = section === "essentials"
-      && (key === "name" || key === "slug" || key === "sku" || key === "stockOnHand");
+      && (key === "name" || key === "slug");
+    const shopifyOwned = section === "shopify"
+      && (key === "sku" || key === "stockOnHand");
     const priceOwned = section === "price" && key === "price";
-    const value = ((essentialsOwned || priceOwned) ? current.get(key) : null)
+    const value = ((essentialsOwned || shopifyOwned || priceOwned) ? current.get(key) : null)
       ?? baseline.get(key)
       ?? current.get(key);
     if (typeof value === "string") scoped.set(key, value);

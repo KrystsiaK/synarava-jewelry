@@ -996,6 +996,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         handle: linked.slug,
         vendor: linked.vendor,
         productType: linked.productType,
+        tags: tagSlugs.map((slug) => slug.replace(/-/g, " ")),
         variant: variant
           ? {
               shopifyVariantId: variant.shopifyVariantId,

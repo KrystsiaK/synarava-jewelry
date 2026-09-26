@@ -30,7 +30,11 @@ import { AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
-import { conflictLocalesFromCommerce, conflictSectionsFromDifferences } from "@/components/admin/products/commerce-conflict-section";
+import {
+  conflictLocalesFromCommerce,
+  conflictSectionsFromDifferences,
+  productEditorSectionForCommerceDiff,
+} from "@/components/admin/products/commerce-conflict-section";
 import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
@@ -176,6 +180,12 @@ export function EditProductForm({
   const sectionConflictSignals = activeSectionHasConflict
     ? conflictSignals
     : { ...conflictSignals, products: {}, totalCount: 0 };
+  const commerceFieldCount = inspection?.differences.length ?? 0;
+  const sectionCommerceFieldCount = activeSectionHasConflict
+    ? (inspection?.differences ?? []).filter(
+      (difference) => productEditorSectionForCommerceDiff(difference) === activeSection,
+    ).length
+    : 0;
   const localeTone = localeWorkspaceTone(activeLocale);
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
 
@@ -581,6 +591,7 @@ export function EditProductForm({
                   locale={SOURCE_LOCALE}
                   localeLabel="this product"
                   signals={conflictSignals}
+                  commerceFieldCount={commerceFieldCount}
                   checking={conflictChecking}
                   onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
                   onCheck={() => void refreshConflicts()}
@@ -642,6 +653,7 @@ export function EditProductForm({
                       locale={activeLocale}
                       localeLabel={`${activeLocaleLabel} (all sections)`}
                       signals={conflictSignals}
+                      commerceFieldCount={commerceFieldCount}
                       checking={conflictChecking}
                       onOpen={() => openConflicts({
                         kind: "productLocale",
@@ -677,11 +689,13 @@ export function EditProductForm({
                           : `${activeLocaleLabel} · ${activeSection}`
                       }
                       signals={sectionConflictSignals}
+                      commerceFieldCount={sectionCommerceFieldCount}
                       checking={conflictChecking}
                       onOpen={() => openConflicts({
-                        kind: "productLocale",
+                        kind: "productSection",
                         productId: currentProduct.id,
                         locale: syncLocale,
+                        section: activeSection,
                       })}
                       onCheck={() => void refreshConflicts(
                         isSharedSection(activeSection) ? undefined : activeLocale,
@@ -722,6 +736,7 @@ export function EditProductForm({
                         onLocaleChange={selectLocale}
                         onTaxonomySatisfactionChange={setTaxonomySatisfaction}
                         selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
+                        mode="edit"
                       />
                       <ProductDetailFields
                         key={`details-${currentProduct.id}-${fieldsRevision}`}

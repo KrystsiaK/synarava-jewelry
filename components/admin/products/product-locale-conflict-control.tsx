@@ -7,17 +7,16 @@ import {
   filterSignalsForView,
   type CatalogConflictViewScope,
 } from "@/components/admin/products/catalog-conflict-workspace";
+import { productConflictBadgeCount } from "@/components/admin/products/product-conflict-badge-count";
 import { Tooltip } from "@/components/ui/tooltip";
 
 function conflictCount(
   signals: CatalogConflictSignals,
   viewScope: Extract<CatalogConflictViewScope, { kind: "product" } | { kind: "productLocale" }>,
+  commerceFieldCount?: number,
 ) {
   const scoped = filterSignalsForView(signals, viewScope);
-  const signal = scoped.products[viewScope.productId];
-  if (!signal) return 0;
-  const localeCount = signal.locales.reduce((sum, entry) => sum + entry.count, 0);
-  return localeCount + (signal.shared || signal.presence ? 1 : 0);
+  return productConflictBadgeCount(scoped.products[viewScope.productId], { commerceFieldCount });
 }
 
 /** Same chrome as `.adm-btn-ghost` icon square — 1px border, 8px radius. */
@@ -41,6 +40,8 @@ export function ProductLocaleConflictControl({
   onCheck,
   scope = "locale",
   checkIconOnly = false,
+  /** Live inspect diff count — preferred over signal.shared boolean for commerce badges. */
+  commerceFieldCount,
 }: {
   productId: string;
   locale: string;
@@ -53,12 +54,13 @@ export function ProductLocaleConflictControl({
   scope?: "product" | "locale";
   /** Icon + tooltip actions (header / locale strip). */
   checkIconOnly?: boolean;
+  commerceFieldCount?: number;
 }) {
   const viewScope =
     scope === "product"
       ? ({ kind: "product", productId } as const)
       : ({ kind: "productLocale", productId, locale } as const);
-  const count = conflictCount(signals, viewScope);
+  const count = conflictCount(signals, viewScope, commerceFieldCount);
   const hasConflicts = count > 0;
   const statusLabel = hasConflicts
     ? `${count} conflict${count === 1 ? "" : "s"} for ${localeLabel}. Open to compare and choose Shopify or Synarava.`

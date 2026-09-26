@@ -13,6 +13,11 @@ export type CatalogConflictLocaleSignal = {
 
 export type CatalogConflictProductSignal = {
   shared: boolean;
+  /**
+   * How many shared commerce fields differ (price, vendor, title, …).
+   * When set, badge counts use this instead of treating `shared` as a single unit.
+   */
+  sharedCount?: number;
   locales: CatalogConflictLocaleSignal[];
   presence?: CatalogPresenceDifference["kind"] | "BOTH";
   localProductId?: string | null;
@@ -42,6 +47,7 @@ const STALE_AFTER_MS = 30 * 60 * 1000;
 /** A persisted, catalog-wide signal. This never claims a live Shopify comparison. */
 export function buildCatalogConflictSignals({
   commerceProductIds,
+  commerceFieldCounts = {},
   differences,
   presenceDifferences = [],
   locales,
@@ -54,6 +60,8 @@ export function buildCatalogConflictSignals({
   rootEntityType = "PRODUCT",
 }: {
   commerceProductIds: string[];
+  /** Per-product count of differing shared commerce fields (from inspect). */
+  commerceFieldCounts?: Record<string, number>;
   differences: Difference[];
   presenceDifferences?: CatalogPresenceDifference[];
   locales: Locale[];
@@ -72,6 +80,7 @@ export function buildCatalogConflictSignals({
   for (const difference of presenceDifferences) {
     products[difference.id] = {
       shared: true,
+      sharedCount: 0,
       locales: [],
       presence: difference.kind,
       localProductId: difference.localProductId,
@@ -92,8 +101,11 @@ export function buildCatalogConflictSignals({
   }
   if (rootEntityType === "PRODUCT") {
     for (const productId of commerceProductIds) {
-      products[productId] = products[productId] ?? { shared: true, locales: [] };
+      const fieldCount = Math.max(0, Math.trunc(commerceFieldCounts[productId] ?? 0));
+      products[productId] = products[productId] ?? { shared: true, locales: [], sharedCount: 0 };
       products[productId].shared = true;
+      // Prefer an explicit inspect count; fall back to 1 so legacy CONFLICT rows still badge.
+      products[productId].sharedCount = fieldCount > 0 ? fieldCount : Math.max(products[productId].sharedCount ?? 0, 1);
     }
   }
   for (const difference of differences) {

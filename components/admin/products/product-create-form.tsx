@@ -192,6 +192,7 @@ export function CreateProductForm({
               activeSection={activeSection}
               activeLocale={activeLocale}
               onLocaleChange={selectLocale}
+              mode="create"
             />
             <div hidden={activeSection !== "media"}>
               <ProductMediaManager
