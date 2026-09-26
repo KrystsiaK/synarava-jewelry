@@ -71,14 +71,12 @@ test.describe("Admin products CRUD", () => {
     await expect(page.getByText("Department & characteristics")).toBeVisible();
     await expect(page.locator('input[name="sku"]')).toBeHidden();
 
-    await page.getByRole("tab", { name: /Content/i }).click();
+    await page.getByRole("tab", { name: /Product page/i }).click();
     await expect(page.getByRole("button", { name: "Edit Short description" })).toBeVisible();
+    await expect(page.getByText("Materials", { exact: true })).toBeVisible();
 
     await page.getByRole("tab", { name: /Media/i }).click();
     await expect(page.getByRole("region", { name: "Product gallery" })).toBeVisible();
-
-    await page.getByRole("tab", { name: /Product page/i }).click();
-    await expect(page.getByText("Materials", { exact: true })).toBeVisible();
 
     await page.getByRole("tab", { name: /Sync/i }).click();
     await expect(page.getByRole("region", { name: "Commerce synchronization" })).toBeVisible();

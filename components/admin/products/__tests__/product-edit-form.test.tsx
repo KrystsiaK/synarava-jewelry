@@ -222,6 +222,7 @@ describe("EditProductForm", () => {
     render(<EditProductForm product={product} collections={[]} />);
     await act(async () => {});
 
+    await user.click(screen.getByRole("tab", { name: /Product page/i }));
     expect(screen.getByText("A refined piece.")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Português" }));
     expect(screen.getByText("Uma peça refinada.")).toBeInTheDocument();

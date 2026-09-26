@@ -126,8 +126,10 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
 2. **Уровень языка** (вкладки EN / PT / …): sticky под шапкой + sync
    control справа — Check/conflicts для **всех секций** активного языка.
 3. **Уровень секции**: табы визуально разделены на две группы —
-   **Shopify** (Essentials, Price, Catalog, Content, Media, Sync) и **Synarava**
-   (Product page и будущие CMS-only секции). Вкладка **Price** зеркалит карточку
+   **Shopify** (Product, Price, Catalog, Metafields, Media, Sync) и **Synarava**
+   (Product page — short description, symbolism, materials, process, lookbook).
+   Description и SEO — на вкладке **Product** (Shopify). Отдельной вкладки Content нет.
+   Вкладка **Price** зеркалит карточку
    Price в Shopify Admin: цена, налог (`taxable`); **compare-at** и **cost**
    только чтение (правка в Shopify Admin — compare-at также см. [tech debt TD-01](./tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path));
    Profit/Margin считаются локально. Unit price (г/кг) — следующий шаг. В блоке описания секции
@@ -422,9 +424,15 @@ legacy cover, пока не загружены изображения галер
 - **Shared — contact CTA:** title, body, and button label for the banner on Care,
   FAQ, Shipping, Returns, and Dispute Resolution (`service.contactTitle` /
   `contactBody` / `contactCta`). One banner for all those pages — not per-slug.
+- **Cookies — banner & preferences:** first-visit banner and the preferences
+  form (modal and `/cookie-settings`). Same labels on both surfaces
+  (`privacyConsent.*`).
+- **Cookies — settings page:** confirmation, back link, and SEO on
+  `/cookie-settings` (`cookieSettings.*`). The footer “Cookie settings” link
+  name stays in Footer — legal links.
 - Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
   **Pages**, не здесь (кроме общего contact CTA выше).
-- Chrome/footer/contact-CTA translations sync to Shopify metaobject `$app:storefront_copy`;
+- Chrome/footer/contact-CTA/cookie translations sync to Shopify metaobject `$app:storefront_copy`;
   header/footer link labels and contact emails are local (no Shopify `MENU`/`LINK`
   binding yet). Conflicts for synced fields show under **Localization**.
 

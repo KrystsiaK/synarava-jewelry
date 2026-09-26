@@ -17,8 +17,8 @@ describe("product-editor-scope", () => {
   it("detects dirty locale from shared or locale-scoped sections", () => {
     const dirty = new Set([sectionDirtyKey("*", "catalog")]);
     expect(localeHasDirty(dirty, "en", ["essentials", "catalog"])).toBe(true);
-    expect(localeHasDirty(new Set([sectionDirtyKey("pt", "content")]), "en", ["content"])).toBe(false);
-    expect(localeHasDirty(new Set([sectionDirtyKey("pt", "content")]), "pt", ["content"])).toBe(true);
+    expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "en", ["details"])).toBe(false);
+    expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "pt", ["details"])).toBe(true);
   });
 
   it("attributes translation and shared fields to the right branch", () => {
@@ -34,8 +34,11 @@ describe("product-editor-scope", () => {
     expect(fieldBelongsToBranch("cost", "price", "en")).toBe(false);
     expect(fieldBelongsToBranch("price", "essentials", "en")).toBe(false);
     expect(fieldBelongsToBranch("collectionSlug", "catalog", "en")).toBe(true);
-    expect(fieldBelongsToBranch("ptShortDescription", "content", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("description", "essentials", "en")).toBe(true);
+    expect(fieldBelongsToBranch("seoTitle", "essentials", "en")).toBe(true);
+    expect(fieldBelongsToBranch("ptShortDescription", "details", "pt")).toBe(true);
     expect(fieldBelongsToBranch("ptShortDescription", "essentials", "pt")).toBe(false);
+    expect(fieldBelongsToBranch("symbolismBody", "details", "en")).toBe(true);
   });
 
   it("marks price as a shared dirty section", () => {
@@ -78,14 +81,14 @@ describe("product-editor-scope", () => {
     const scoped = buildScopedProductFormData({
       baseline,
       current,
-      section: "content",
+      section: "details",
       locale: "pt",
     });
 
     expect(scoped.get("name")).toBe("Saved Name");
     expect(scoped.get("shortDescription")).toBe("Saved EN blurb");
     expect(scoped.get("ptShortDescription")).toBe("Dirty PT blurb");
-    expect(scoped.get("saveScope")).toBe("pt:content");
+    expect(scoped.get("saveScope")).toBe("pt:details");
   });
 
   it("writes essentials required fields from the current branch when saving essentials", () => {

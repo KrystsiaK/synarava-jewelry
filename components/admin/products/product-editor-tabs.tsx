@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import {
   CircleDollarSign,
-  FileText,
   Gem,
   Images,
   PackageSearch,
@@ -27,7 +26,6 @@ export type ProductEditorSection =
   | "price"
   | "catalog"
   | "metafields"
-  | "content"
   | "media"
   | "details"
   | "shopify";
@@ -65,7 +63,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Title & organization",
     title: "Product identity",
     description:
-      "Title, handle, vendor, product type, and tags — Shopify product header and Product organization. Category and collections are on Catalog; SKU/qty live under Sync until Inventory exists.",
+      "Title, handle, vendor, product type, tags, description, and SEO — Shopify product header and search listing. Category and collections are on Catalog; custom metafields on Metafields; SKU/qty under Sync until Inventory exists.",
     icon: PackageSearch,
     group: "shopify",
   },
@@ -100,16 +98,6 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     group: "shopify",
   },
   {
-    id: "content",
-    label: "Content",
-    shortLabel: "Copy & search",
-    title: "Shape the product story",
-    description:
-      "Write the customer-facing description, translations, symbolism, and search copy. Empty translations safely fall back to English.",
-    icon: FileText,
-    group: "shopify",
-  },
-  {
     id: "media",
     label: "Media",
     shortLabel: "Gallery & cover",
@@ -132,10 +120,10 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   {
     id: "details",
     label: "Product page",
-    shortLabel: "Materials & craft",
-    title: "Explain what makes it special",
+    shortLabel: "Story & craft",
+    title: "Synarava product page",
     description:
-      "Synarava-only editorial sections: materials story, process, and lookbook. These enrich the product page without replacing Shopify commerce data.",
+      "Synarava-only editorial: short blurb, material line, symbolism, materials story, process, and lookbook. Not pushed as Shopify description.",
     icon: Gem,
     group: "synarava",
   },

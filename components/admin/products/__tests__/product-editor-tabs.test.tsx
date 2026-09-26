@@ -29,7 +29,7 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("tab", { name: /Price Sell/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Catalog/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Metafields/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Content/i })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Content/i })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Media/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Sync/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Product page/i })).toBeInTheDocument();
@@ -102,8 +102,8 @@ describe("ProductEditorTabs", () => {
 
   it("keeps the tabpanel body inside the same root as sticky section chrome", () => {
     render(
-      <ProductEditorTabs active="content" onChange={() => {}}>
-        <div role="tabpanel" aria-labelledby="product-editor-tab-content">
+      <ProductEditorTabs active="details" onChange={() => {}}>
+        <div role="tabpanel" aria-labelledby="product-editor-tab-details">
           Panel body
         </div>
       </ProductEditorTabs>,

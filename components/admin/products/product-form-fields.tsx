@@ -217,7 +217,8 @@ export function ProductDetailFields({
           </AdminHelp>
         </p>
         <p className="mt-2 text-xs text-[var(--adm-muted)]">
-          Materials story, process, and lookbook are Synarava-only. Commerce fields and category attributes come from Shopify.
+          Short description, symbolism, materials, process, and lookbook are Synarava-only.
+          Shopify description and SEO live under Product.
         </p>
       </div>
 
@@ -623,7 +624,7 @@ export function ProductFormFields({
       <HiddenCoreLocaleFields draftByLocale={draftByLocale} />
 
       {activeTranslation ? (
-        <div className="border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4" hidden={activeSection !== "content"}>
+        <div className="border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4" hidden={activeSection !== "essentials" && activeSection !== "details"}>
           <p className="adm-section-tag">[ {activeLabel.toUpperCase()} ]</p>
           <p className="mt-2 text-xs text-[var(--adm-muted)]">
             Optional — publishing never blocks on this. Whatever is left blank here shows the English text
@@ -751,9 +752,97 @@ export function ProductFormFields({
           onChange={(event) => updateTaxonomySatisfaction({ hasTags: Boolean(event.target.value.trim()) })}
           onClear={() => updateTaxonomySatisfaction({ hasTags: false })}
         />
+
+        <AdminLongTextField
+          label="Description"
+          owner="Shopify"
+          dialogLabel="Description"
+          value={coreDraft.description}
+          onChange={(value) => updateCore("description", value)}
+        />
+        <AdminTextField
+          label="SEO title"
+          owner="Shopify"
+          value={coreDraft.seoTitle}
+          onChange={(event) => updateCore("seoTitle", event.target.value)}
+        />
+        <AdminLongTextField
+          label="SEO description"
+          owner="Shopify"
+          dialogLabel="SEO description"
+          value={coreDraft.seoDescription}
+          onChange={(value) => updateCore("seoDescription", value)}
+          rows={7}
+        />
       </div>
 
-      {/* Synarava-only — lives under Product page, not Shopify Product identity. */}
+      {/* Synarava Product page — editorial copy (not Shopify description). */}
+      <div className="grid gap-y-6" hidden={activeSection !== "details"}>
+        <AdminLongTextField
+          label="Short description"
+          owner="Synarava"
+          dialogLabel="Short description"
+          value={coreDraft.shortDescription}
+          onChange={(value) => updateCore("shortDescription", value)}
+          rows={8}
+        />
+        <AdminTextField
+          label="Material line"
+          owner="Synarava"
+          value={coreDraft.materialLine}
+          onChange={(event) => updateCore("materialLine", event.target.value)}
+        />
+        <div>
+          <p className="adm-label-row">
+            <span className="adm-section-tag">[ PRODUCT SYMBOLISM ]</span>
+            <AdminHelp>If empty, the symbolism section stays hidden on the product page.</AdminHelp>
+          </p>
+        </div>
+        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
+          <AdminTextField
+            value={coreDraft.symbolismLabel}
+            onChange={(event) => updateCore("symbolismLabel", event.target.value)}
+            placeholder="Symbolic Language"
+          />
+          <AdminTextField
+            value={coreDraft.symbolismTitle}
+            onChange={(event) => updateCore("symbolismTitle", event.target.value)}
+            placeholder="Wood, Lava, Embroidery"
+          />
+        </div>
+        <AdminLongTextField label="Symbolism body" dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
+        <AdminLongTextField label="Symbolism continuation" dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} rows={8} />
+      </div>
+
+      {/* Cover is managed in Product gallery (Media). Keep form mirrors for save. */}
+      <div hidden>
+        <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
+        <input type="hidden" name="removeImage" value="0" />
+      </div>
+
+      {activeTranslation ? (
+        <div className="border-t border-[var(--adm-border)] pt-4" hidden={activeSection !== "essentials"}>
+          {/* No `name` here — hidden mirrors below carry every locale's real "on"/"" value. */}
+          <AdminCheckboxControl
+            checked={reviewedByLocale[activeLocale] ?? false}
+            onChange={(event) => setReviewedByLocale((prev) => ({ ...prev, [activeLocale]: event.target.checked }))}
+            label={`${activeLabel} translation reviewed`}
+          />
+        </div>
+      ) : null}
+      <div hidden>
+        {translationLocales.map(({ code }) => (
+          <input
+            key={code}
+            type="hidden"
+            readOnly
+            name={adminLocaleFieldName(code, "reviewed", SOURCE_LOCALE)}
+            value={reviewedByLocale[code] ? "on" : ""}
+          />
+        ))}
+      </div>
+
+      {/* Synarava-only — Product page. */}
       <div className="max-w-md" hidden={activeSection !== "details"}>
         <AdminTextField
           label="Series label"
@@ -814,98 +903,6 @@ export function ProductFormFields({
           fieldErrors={fieldErrors}
           validation={validation}
         />
-      </div>
-
-      <div className="grid gap-y-6" hidden={activeSection !== "content"}>
-        <AdminLongTextField
-          label="Short description"
-          owner="Synarava"
-          dialogLabel="Short description"
-          value={coreDraft.shortDescription}
-          onChange={(value) => updateCore("shortDescription", value)}
-          rows={8}
-        />
-        <AdminTextField
-          label="SEO title"
-          owner="Shopify"
-          value={coreDraft.seoTitle}
-          onChange={(event) => updateCore("seoTitle", event.target.value)}
-        />
-        <AdminLongTextField
-          label="SEO description"
-          owner="Shopify"
-          dialogLabel="SEO description"
-          value={coreDraft.seoDescription}
-          onChange={(value) => updateCore("seoDescription", value)}
-          rows={7}
-        />
-        <AdminLongTextField
-          label="Description"
-          owner="Shopify"
-          dialogLabel="Description"
-          value={coreDraft.description}
-          onChange={(value) => updateCore("description", value)}
-        />
-        <AdminTextField
-          label="Material line"
-          owner="Synarava"
-          value={coreDraft.materialLine}
-          onChange={(event) => updateCore("materialLine", event.target.value)}
-        />
-      </div>
-      {/* Cover is managed in Product gallery (Media). Keep form mirrors for save. */}
-      <div hidden>
-        <input type="hidden" name="existingImageUrl" value={draft.imageUrl} />
-        <input type="hidden" name="removeImage" value="0" />
-      </div>
-
-      {/* Symbolism */}
-      <div
-        className="grid gap-y-6 pt-2"
-        hidden={activeSection !== "content"}
-      >
-        <div>
-          <p className="adm-label-row">
-            <span className="adm-section-tag">[ PRODUCT SYMBOLISM OVERRIDE ]</span>
-            <AdminHelp>If empty, the symbolism section stays hidden on the product page.</AdminHelp>
-          </p>
-        </div>
-        <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
-          <AdminTextField
-            value={coreDraft.symbolismLabel}
-            onChange={(event) => updateCore("symbolismLabel", event.target.value)}
-            placeholder="Symbolic Language"
-          />
-          <AdminTextField
-            value={coreDraft.symbolismTitle}
-            onChange={(event) => updateCore("symbolismTitle", event.target.value)}
-            placeholder="Wood, Lava, Embroidery"
-          />
-        </div>
-        <AdminLongTextField label="Symbolism body" dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
-        <AdminLongTextField label="Symbolism continuation" dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} rows={8} />
-      </div>
-
-      {activeTranslation ? (
-        <div className="border-t border-[var(--adm-border)] pt-4" hidden={activeSection !== "content"}>
-          {/* No `name` here — hidden mirrors below carry every locale's real "on"/"" value. */}
-          <AdminCheckboxControl
-            checked={reviewedByLocale[activeLocale] ?? false}
-            onChange={(event) => setReviewedByLocale((prev) => ({ ...prev, [activeLocale]: event.target.checked }))}
-            label={`${activeLabel} translation reviewed`}
-          />
-        </div>
-      ) : null}
-      <div hidden>
-        {translationLocales.map(({ code }) => (
-          <input
-            key={code}
-            type="hidden"
-            readOnly
-            name={adminLocaleFieldName(code, "reviewed", SOURCE_LOCALE)}
-            value={reviewedByLocale[code] ? "on" : ""}
-          />
-        ))}
       </div>
 
       {/* Taxonomy + state */}

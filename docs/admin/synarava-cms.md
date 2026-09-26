@@ -276,7 +276,7 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 />
 ```
 
-- **Expand in place:** Pages (DB titles) and Shared (header/footer link editors + storefront copy groups, including the contact CTA). Catalog stays a leaf.
+- **Expand in place:** Pages (DB titles) and Shared (header/footer link editors + storefront copy groups, including the contact CTA and cookie copy). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
 - **Signals:** left marker shows issue (red) / sync-conflict (amber) / both (split red+amber dots); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
 - **Meaning:** red = open Problems; amber = unresolved Shopify field conflicts / divergences. When a node has both, the split marker keeps both visible.
@@ -301,11 +301,10 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
     { id: "synarava", label: "Synarava" },
   ]}
   items={[
-    { id: "essentials", label: "Essentials", detail: "Sellable", group: "shopify" },
-    { id: "content", label: "Content", detail: "Copy & search", icon: FileText, group: "shopify" },
+    { id: "essentials", label: "Product", detail: "Title & organization", group: "shopify" },
     { id: "catalog", label: "Catalog", tone: "issue", group: "shopify" },
     { id: "sync", label: "Sync", tone: "conflict", dirty: true, group: "shopify" },
-    { id: "details", label: "Product page", group: "synarava" },
+    { id: "details", label: "Product page", detail: "Story & craft", group: "synarava" },
   ]}
   active={active}
   onChange={setActive}

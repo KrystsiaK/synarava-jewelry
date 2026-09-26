@@ -60,7 +60,7 @@ export function productEditorSectionForCommerceDiff(diff: {
     || field === "SEO title"
     || field === "SEO description"
   ) {
-    return "content";
+    return "essentials";
   }
 
   if (/^media(\.|$|\[)/.test(path)) return "media";
@@ -90,14 +90,22 @@ export function productEditorSectionForConflictField(field: {
   if (
     key === "description"
     || key === "body"
-    || key === "shortDescription"
     || key === "seoTitle"
     || key === "seoDescription"
-    || key === "materialLine"
   ) {
-    return "content";
+    return "essentials";
   }
-  return "content";
+  if (
+    key === "shortDescription"
+    || key === "materialLine"
+    || key === "symbolismLabel"
+    || key === "symbolismTitle"
+    || key === "symbolismBody"
+    || key === "symbolismBody2"
+  ) {
+    return "details";
+  }
+  return "details";
 }
 
 /** Sections whose tabs should show conflict tone for the given differences. */

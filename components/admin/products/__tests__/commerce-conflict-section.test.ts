@@ -47,7 +47,12 @@ describe("commerce conflict → editor section", () => {
       origin: "TRANSLATION",
       label: "Description",
       fieldKey: "translation:ru:description",
-    })).toBe("content");
+    })).toBe("essentials");
+    expect(productEditorSectionForConflictField({
+      origin: "TRANSLATION",
+      label: "Short description",
+      fieldKey: "translation:pt:shortDescription",
+    })).toBe("details");
   });
 
   it("collects only owning sections from a mixed diff list", () => {
@@ -59,7 +64,8 @@ describe("commerce conflict → editor section", () => {
     ]);
     expect([...sections].toSorted()).toEqual(["catalog", "essentials", "price"]);
     expect(sections.has("shopify")).toBe(false);
-    expect(sections.has("content")).toBe(false);
+    expect(sections.has("essentials")).toBe(true);
+    expect(sections.has("content" as never)).toBe(false);
   });
 
   it("marks every language shell for a shared price conflict", () => {

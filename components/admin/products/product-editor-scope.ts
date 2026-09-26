@@ -68,7 +68,7 @@ export function isSharedSection(section: ProductEditorSection): boolean {
 }
 
 export function isLocaleSection(section: ProductEditorSection): boolean {
-  return section === "essentials" || section === "content" || section === "details";
+  return section === "essentials" || section === "details";
 }
 
 export function dirtyKeyForEdit(locale: string, section: ProductEditorSection): DirtyScopeKey {
@@ -85,20 +85,25 @@ const REQUIRED_FIELDS = new Set(["name", "slug", "sku", "price", "stockOnHand", 
 const ESSENTIALS_SHARED = [
   "name", "slug", "vendor", "productType", "tags",
 ];
-const ESSENTIALS_LOCALE = ["title", "localizedHandle"];
+/** Shopify description + SEO + title/handle; reviewed flag rides with locale Product tab. */
+const ESSENTIALS_LOCALE = [
+  "title", "localizedHandle",
+  "description", "seoTitle", "seoDescription", "reviewed",
+];
 /** compareAt + cost are Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
 const PRICE_SHARED = ["price", "taxable"];
-const CONTENT_LOCALE = [
-  "shortDescription", "description", "seoTitle", "seoDescription",
-  "materialLine", "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2", "reviewed",
-];
-const CONTENT_SHARED = ["existingImageUrl", "removeImage", "imageFile"];
+const MEDIA_SHARED = ["existingImageUrl", "removeImage", "imageFile"];
 const CATALOG_SHARED = [
   "collectionSlug", "workflowState",
   "shopifyCategoryId", "shopifyCategoryName",
 ];
 /** Parked on Sync until Inventory tab. */
 const SHOPIFY_TAB_SHARED = ["sku", "stockOnHand"];
+/** Synarava Product page copy (not Shopify description). */
+const DETAILS_LOCALE = [
+  "shortDescription", "materialLine",
+  "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
+];
 const DETAILS_LOCALE_PREFIXES = [
   "materialsEyebrow", "materialsTitle", "materialTitle", "materialBody",
   "processEyebrow", "processTitle", "processStatValue", "processStatLabel",
@@ -165,15 +170,13 @@ export function fieldBelongsToBranch(
       return PRICE_SHARED.includes(fieldName);
     case "catalog":
       return CATALOG_SHARED.includes(fieldName) || isCharacteristicsField(fieldName);
-    case "content":
-      return CONTENT_SHARED.includes(fieldName)
-        || matchesLocaleKey(fieldName, locale, CONTENT_LOCALE);
     case "details":
       return DETAILS_SHARED.includes(fieldName)
+        || matchesLocaleKey(fieldName, locale, DETAILS_LOCALE)
         || matchesPrefix(fieldName, DETAILS_SHARED_PREFIXES)
         || matchesLocalePrefix(fieldName, locale, DETAILS_LOCALE_PREFIXES);
     case "media":
-      return false;
+      return MEDIA_SHARED.includes(fieldName);
     case "metafields":
       return isCustomMetafieldFormField(fieldName);
     case "shopify":
