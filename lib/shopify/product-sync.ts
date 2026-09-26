@@ -131,6 +131,12 @@ type ShopifyProduct = {
   }> };
   metafields: { pageInfo: ShopifyPageInfo; nodes: ShopifyMetafield[] };
 };
+type ShopifyProductsConnection = {
+  products: {
+    pageInfo: ShopifyPageInfo;
+    nodes: ShopifyProduct[];
+  };
+};
 
 const COLLECTION_FIELDS = `
   id handle title
@@ -517,12 +523,7 @@ export async function listShopifyProductWindowsForCommerceStore(
   let page = 0;
   do {
     page += 1;
-    const data = await shopifyAdminRequest<{
-      products: {
-        pageInfo: { hasNextPage: boolean; endCursor: string | null };
-        nodes: ShopifyProduct[];
-      };
-    }>(
+    const data: ShopifyProductsConnection = await shopifyAdminRequest<ShopifyProductsConnection>(
       `query SynaravaCommerceStoreProducts($after: String) {
         products(first: 25, after: $after, sortKey: ID) {
           pageInfo { hasNextPage endCursor }

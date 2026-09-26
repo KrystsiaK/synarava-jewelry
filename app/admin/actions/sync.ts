@@ -476,6 +476,16 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
     revalidateStorefront();
     revalidatePath("/admin/products");
     const savedProduct = await getSavedProductPayload(productId);
+    const inspection = await inspectProductSyncState(productId);
+    if (pullResult.status !== "SYNCED") {
+      return {
+        error: pullResult.status === "LOCAL_CHANGES"
+          ? "Shopify pull skipped. Saved local commerce changes are newer than Shopify."
+          : "Shopify pull did not apply. Commerce identity or fields conflict; review them before pulling again.",
+        product: savedProduct,
+        inspection,
+      };
+    }
     return {
       success: pullResult.translationStatus === "CONFLICT"
         ? "Shopify commerce data pulled. One or more translations have edits on both sides; choose Pull or Push to resolve them."
@@ -484,7 +494,7 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
           : "Latest Shopify commerce and registered translations pulled. Synarava-only editorial fields were preserved.",
       translationWarning: pullResult.translationStatus === "CONFLICT" || pullResult.translationStatus === "UNAVAILABLE",
       product: savedProduct,
-      inspection: await inspectProductSyncState(productId),
+      inspection,
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Shopify pull failed." };

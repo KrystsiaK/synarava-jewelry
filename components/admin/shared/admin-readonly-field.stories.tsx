@@ -45,6 +45,11 @@ export const Empty: Story = {
 };
 
 export const DerivedMetrics: Story = {
+  // Required by StoryObj when the component has required props; render owns the UI.
+  args: {
+    label: "Profit",
+    value: "€42.50",
+  },
   render: () => (
     <div className="grid max-w-xl gap-5 sm:grid-cols-2">
       <AdminReadonlyField
