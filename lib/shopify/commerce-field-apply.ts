@@ -31,7 +31,7 @@ type UserError = { field?: string[] | null; message: string };
  * Characteristics (array-shaped, need real merge semantics). Each needs its
  * own design, not a slot in this set.
  */
-const VARIANT_FIELD_LABELS = new Set(["Variant SKU", "Price", "Compare-at price"]);
+const VARIANT_FIELD_LABELS = new Set(["Variant SKU", "Price", "Compare-at price", "Charge tax"]);
 
 export type CommerceFieldApplyResult =
   | { ok: true; message: string }
@@ -98,6 +98,12 @@ async function writeLocally(productId: string, label: string, value: string, var
     if (updated.compareAtCents !== nextValue) throw new Error("Local write did not take effect as expected.");
     return;
   }
+  if (label === "Charge tax") {
+    const nextValue = value === "Yes" || value === "true";
+    const updated = await db.productVariant.update({ where: { id: variant.localVariantId }, data: { taxable: nextValue } });
+    if (updated.taxable !== nextValue) throw new Error("Local write did not take effect as expected.");
+    return;
+  }
   throw new Error(`${label} is not a supported commerce field.`);
 }
 
@@ -126,22 +132,29 @@ async function writeToShopify(productId: string, label: string, value: string, v
     return;
   }
 
-  if (label === "Variant SKU" || label === "Price" || label === "Compare-at price") {
+  if (label === "Variant SKU" || label === "Price" || label === "Compare-at price" || label === "Charge tax") {
     if (!variant) throw new Error("This product's variant could not be determined.");
     const input: Record<string, unknown> = { id: variant.shopifyVariantId };
     if (label === "Price") input.price = (Number(value) / 100).toFixed(2);
     else if (label === "Compare-at price") input.compareAtPrice = value ? (Number(value) / 100).toFixed(2) : null;
+    else if (label === "Charge tax") input.taxable = value === "Yes" || value === "true";
     else input.inventoryItem = { sku: value };
 
     const result = await shopifyAdminRequest<{
       productVariantsBulkUpdate: {
-        productVariants: Array<{ id: string; price: string; compareAtPrice: string | null; inventoryItem: { sku: string | null } }>;
+        productVariants: Array<{
+          id: string;
+          price: string;
+          compareAtPrice: string | null;
+          taxable: boolean;
+          inventoryItem: { sku: string | null };
+        }>;
         userErrors: UserError[];
       };
     }>(
       `mutation SynaravaCommerceVariantUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
         productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-          productVariants { id price compareAtPrice inventoryItem { sku } }
+          productVariants { id price compareAtPrice taxable inventoryItem { sku } }
           userErrors { field message }
         }
       }`,
@@ -152,7 +165,8 @@ async function writeToShopify(productId: string, label: string, value: string, v
     if (!saved) throw new ShopifyAdminError("Shopify did not return the updated variant.");
     const readBackMatches = label === "Variant SKU" ? (saved.inventoryItem.sku ?? "") === value
       : label === "Price" ? saved.price === (Number(value) / 100).toFixed(2)
-        : (saved.compareAtPrice ?? "") === (value ? (Number(value) / 100).toFixed(2) : "");
+        : label === "Charge tax" ? saved.taxable === (value === "Yes" || value === "true")
+          : (saved.compareAtPrice ?? "") === (value ? (Number(value) / 100).toFixed(2) : "");
     if (!readBackMatches) throw new ShopifyAdminError("Shopify accepted the request but the read-back value did not match. Nothing is marked resolved.");
     return;
   }

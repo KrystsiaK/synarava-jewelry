@@ -17,6 +17,7 @@ const localVariant: LocalCommerceVariant = {
   priceCents: 12900,
   compareAtCents: null,
   stockOnHand: 4,
+  taxable: true,
 };
 
 const remoteVariant: RemoteCommerceVariant = {
@@ -25,6 +26,7 @@ const remoteVariant: RemoteCommerceVariant = {
   price: "129.00",
   compareAtPrice: null,
   inventoryQuantity: 4,
+  taxable: true,
 };
 
 describe("compareVariantCommerce", () => {
@@ -44,6 +46,22 @@ describe("compareVariantCommerce", () => {
         field: "inventoryQuantity",
         local: 4,
         shopify: 9,
+      },
+    ]);
+  });
+
+  it("detects a taxable mismatch as Charge tax", () => {
+    const differences = compareVariantCommerce(
+      [localVariant],
+      [{ ...remoteVariant, taxable: false }],
+    );
+
+    expect(differences).toEqual([
+      {
+        variant: "FORM-001",
+        field: "taxable",
+        local: "Yes",
+        shopify: "No",
       },
     ]);
   });

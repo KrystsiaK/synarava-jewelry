@@ -52,7 +52,7 @@ beforeEach(() => {
 describe("SCOPED_COMMERCE_FIELD_LABELS", () => {
   it("is exactly the plain-scalar fields with a single-field mutation, and nothing structural", () => {
     expect([...SCOPED_COMMERCE_FIELD_LABELS].sort()).toEqual(
-      ["Compare-at price", "Price", "Product type", "Variant SKU", "Vendor"].sort(),
+      ["Charge tax", "Compare-at price", "Price", "Product type", "Variant SKU", "Vendor"].sort(),
     );
   });
 });

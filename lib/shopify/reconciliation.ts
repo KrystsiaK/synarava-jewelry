@@ -6,6 +6,7 @@ export type LocalCommerceVariant = {
   priceCents: number;
   compareAtCents: number | null;
   stockOnHand: number;
+  taxable: boolean;
 };
 
 export type RemoteCommerceVariant = {
@@ -14,6 +15,7 @@ export type RemoteCommerceVariant = {
   price: string;
   compareAtPrice: string | null;
   inventoryQuantity?: number | null;
+  taxable: boolean;
 };
 
 export type RemoteProductStatus = "ACTIVE" | "DRAFT" | "ARCHIVED" | "UNLISTED";
@@ -60,7 +62,7 @@ export function pickShopifyProductImageUrl({
 
 export type VariantCommerceDifference = {
   variant: string;
-  field: "variant" | "sku" | "price" | "compareAtPrice" | "inventoryQuantity";
+  field: "variant" | "sku" | "price" | "compareAtPrice" | "inventoryQuantity" | "taxable";
   local: string | number | null;
   shopify: string | number | null;
 };
@@ -124,6 +126,11 @@ const VARIANT_FIELD_COMPARATORS = [
     local: (variant: LocalCommerceVariant) => variant.stockOnHand,
     shopify: (variant: RemoteCommerceVariant) => variant.inventoryQuantity ?? 0,
   },
+  {
+    field: "taxable" as const,
+    local: (variant: LocalCommerceVariant) => (variant.taxable ? "Yes" : "No"),
+    shopify: (variant: RemoteCommerceVariant) => (variant.taxable ? "Yes" : "No"),
+  },
 ] as const;
 
 export function compareVariantCommerce(
@@ -175,6 +182,7 @@ const VARIANT_CHANGE_LABELS: Record<VariantCommerceDifference["field"], string> 
   price: "Price",
   compareAtPrice: "Compare-at price",
   inventoryQuantity: "Available quantity",
+  taxable: "Charge tax",
 };
 
 export function variantCommerceChangeLabel(

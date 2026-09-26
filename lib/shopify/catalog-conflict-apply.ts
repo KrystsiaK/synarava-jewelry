@@ -30,7 +30,7 @@ const MAX_APPLY_ENTRIES = 200;
 // read model (getProductCatalogConflict) is built on. That combination is
 // why those two functions stay off-limits here. A narrow slice of plain
 // scalar fields (SCOPED_COMMERCE_FIELD_LABELS, in commerce-field-apply.ts —
-// Vendor, Product type, Variant SKU, Price, Compare-at price) instead has
+// Vendor, Product type, Variant SKU, Price, Compare-at price, Charge tax) instead has
 // its own single-field Shopify mutation (productUpdate/
 // productVariantsBulkUpdate with only that key) and a single-column Prisma
 // write — no other field is touched. Everything else stays UNSUPPORTED.
