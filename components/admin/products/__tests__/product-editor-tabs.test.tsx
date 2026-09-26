@@ -27,6 +27,7 @@ describe("ProductEditorTabs", () => {
     expect(screen.getByRole("group", { name: "Synarava" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: /Price Sell/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Inventory/i })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Catalog/i })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Metafields/i })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Content/i })).not.toBeInTheDocument();
@@ -39,6 +40,7 @@ describe("ProductEditorTabs", () => {
     const shopifyGroup = screen.getByRole("group", { name: "Shopify" });
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Title & organization/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Price Sell/i }));
+    expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Inventory/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Metafields/i }));
     expect(shopifyGroup).toContainElement(screen.getByRole("tab", { name: /Sync/i }));
     const synaravaGroup = screen.getByRole("group", { name: "Synarava" });
@@ -50,6 +52,7 @@ describe("ProductEditorTabs", () => {
     render(<TabsHarness includeShopify={false} />);
     expect(screen.queryByRole("tab", { name: /Sync/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Metafields/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Inventory/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Passport/i })).toBeInTheDocument();
   });
 

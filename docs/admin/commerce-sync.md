@@ -69,7 +69,7 @@ Migrations: `product_shopify_base_snapshot`, `product_working_snapshot`, `commer
 
 Mirror Shopify Admin product header + Product organization:
 
-- Title, handle/slug, SKU, inventory
+- Title, handle/slug, description, SEO
 - Vendor / Product type / Tags — suggestions from Shopify `productVendors`,
   `productTypes`, `productTags` (store-wide used values; free text still allowed)
 - Category + Collections + site publish live on the Product tab (Shopify organization);
@@ -78,6 +78,19 @@ Mirror Shopify Admin product header + Product organization:
 
 Local Save write-through includes title, vendor, productType, tags into
 `workingSnapshot` so conflict markers refresh after save.
+
+---
+
+## Inventory tab
+
+Shopify Inventory + Shipping cards for the **primary variant**:
+
+| Field | Behavior |
+| --- | --- |
+| SKU, Available quantity | Editable → Save → Push |
+| Location quantities, barcode, tracked, sell-when-out-of-stock, weight, origin, HS | Pull projections (`AdminReadonlyField`); edit in Shopify Admin for now |
+
+No separate Variants tab yet — multi-variant detail remains on Sync.
 
 ---
 

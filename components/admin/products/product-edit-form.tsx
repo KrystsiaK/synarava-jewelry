@@ -30,6 +30,7 @@ import { AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
+import { inventoryShippingFactsFromProduct } from "@/components/admin/products/product-inventory-fields";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import {
   conflictLocalesFromCommerce,
@@ -81,7 +82,7 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
 };
 
 const ALL_SECTIONS: ProductEditorSection[] = [
-  "essentials", "price", "metafields", "media", "passport", "details", "shopify",
+  "essentials", "price", "inventory", "metafields", "media", "passport", "details", "shopify",
 ];
 
 function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {
@@ -730,6 +731,10 @@ export function EditProductForm({
                           draft={draft}
                           collections={collections}
                           variantExists={currentProduct.variants.length > 0}
+                          inventoryFacts={inventoryShippingFactsFromProduct({
+                            primaryVariant: currentProduct.variants[0] ?? null,
+                            shopifySnapshot: currentProduct.shopifySnapshot,
+                          })}
                           issues={visibleIssues}
                           validation={validation}
                           translationLocales={translationLocales}

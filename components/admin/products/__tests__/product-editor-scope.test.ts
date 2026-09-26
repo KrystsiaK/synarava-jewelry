@@ -24,8 +24,9 @@ describe("product-editor-scope", () => {
   it("attributes translation and shared fields to the right branch", () => {
     expect(fieldBelongsToBranch("ptTitle", "essentials", "pt")).toBe(true);
     expect(fieldBelongsToBranch("ptTitle", "essentials", "en")).toBe(false);
-    expect(fieldBelongsToBranch("sku", "shopify", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("sku", "inventory", "pt")).toBe(true);
     expect(fieldBelongsToBranch("sku", "essentials", "pt")).toBe(false);
+    expect(fieldBelongsToBranch("sku", "shopify", "pt")).toBe(false);
     expect(fieldBelongsToBranch("seriesLabel", "details", "en")).toBe(true);
     expect(fieldBelongsToBranch("tags", "essentials", "en")).toBe(true);
     expect(fieldBelongsToBranch("price", "price", "en")).toBe(true);
@@ -165,7 +166,7 @@ describe("product-editor-scope", () => {
     expect(scoped.get("workflowState")).toBe("PUBLISHED");
   });
 
-  it("writes SKU from the current branch when saving Sync", () => {
+  it("writes SKU from the current branch when saving Inventory", () => {
     const baseline = new FormData();
     baseline.set("productId", "p1");
     baseline.set("name", "Saved Name");
@@ -187,13 +188,17 @@ describe("product-editor-scope", () => {
     const scoped = buildScopedProductFormData({
       baseline,
       current,
-      section: "shopify",
+      section: "inventory",
       locale: "en",
     });
 
     expect(scoped.get("sku")).toBe("SKU-2");
     expect(scoped.get("stockOnHand")).toBe("3");
     expect(scoped.get("name")).toBe("Saved Name");
+  });
+
+  it("marks inventory as a shared dirty section", () => {
+    expect(dirtyKeyForEdit("pt", "inventory")).toBe("*:inventory");
   });
 
   it("writes price-tab fields from the current branch when saving price", () => {

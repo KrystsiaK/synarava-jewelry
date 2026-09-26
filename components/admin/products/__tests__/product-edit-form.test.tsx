@@ -124,6 +124,27 @@ describe("EditProductForm", () => {
     expect(mocks.inspectProductSyncAction).not.toHaveBeenCalled();
   });
 
+  it("shows SKU and inventory location table on the Inventory tab", async () => {
+    mocks.inspectProductSyncAction.mockResolvedValue({
+      inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
+    });
+    const user = userEvent.setup();
+    render(<EditProductForm product={makeProduct({
+      shopifyProductId: "gid://shopify/Product/1",
+      variants: [{ id: "variant-1", shopifyVariantId: "gid://shopify/ProductVariant/1", title: "Default Title", sku: "LAVA-1", barcode: null, priceCents: 4500, compareAtCents: null, costCents: null, stockOnHand: 1, weightGrams: 22, taxable: true, requiresShipping: true, tracked: true, selectedOptions: [], shopifyInventoryItemId: null, imageUrl: null } as ProductRecord["variants"][number]],
+      shopifySnapshot: {
+        variants: [{ id: "gid://shopify/ProductVariant/1", inventoryPolicy: "DENY", inventoryItem: { inventoryLevels: [{ location: { id: "gid://shopify/Location/1", name: "Shop location" }, quantities: [{ name: "available", quantity: 2 }, { name: "committed", quantity: 0 }, { name: "on_hand", quantity: 2 }] }] } }],
+      },
+    })} collections={[]} />);
+    await act(async () => {});
+
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+    expect(screen.getByLabelText(/^SKU/)).toBeVisible();
+    expect(screen.getByRole("spinbutton", { name: /Available quantity/ })).toBeVisible();
+    expect(screen.getAllByText("Shop location").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("button", { name: "Shipping" })).toBeInTheDocument();
+  });
+
   it("checks Shopify sync state on mount when linked", async () => {
     mocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
@@ -154,8 +175,8 @@ describe("EditProductForm", () => {
     expect(screen.getByLabelText(/Product type/)).toHaveValue("Necklace");
     expect(screen.getAllByText("custom.pearl_grade").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("AAA").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Inventory by location")).toBeInTheDocument();
-    expect(screen.getByText("Location 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Inventory by location").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Location 1").length).toBeGreaterThanOrEqual(1);
     await act(async () => {});
   });
 

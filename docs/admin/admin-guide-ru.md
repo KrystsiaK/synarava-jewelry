@@ -126,13 +126,16 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
 2. **Уровень языка** (вкладки EN / PT / …): sticky под шапкой + sync
    control справа — Check/conflicts для **всех секций** активного языка.
 3. **Уровень секции**: табы визуально разделены на две группы —
-   **Shopify** (Product, Price, Metafields, Media, Sync) и **Synarava**
+   **Shopify** (Product, Price, Inventory, Metafields, Media, Sync) и **Synarava**
    (Passport — jewelry specs / `synarava.*`; Product page — short description,
    symbolism, materials, process, lookbook).
    Description и SEO — на вкладке **Product** (Shopify). Отдельной вкладки Content нет.
    Category, collection и Site state (publish) тоже на **Product** (как organization
    в Shopify Admin). Отдельной вкладки Catalog нет. Характеристики паспорта — на
    **Passport**.
+   **Inventory** — SKU и available qty (Save + Push); location table, barcode,
+   tracking, sell-when-out-of-stock, weight, origin, HS — с последнего Pull
+   (правка пока в Shopify Admin). Отдельной вкладки Variants пока нет.
    Вкладка **Price** зеркалит карточку
    Price в Shopify Admin: цена, налог (`taxable`); **compare-at** и **cost**
    только чтение (правка в Shopify Admin — compare-at также см. [tech debt TD-01](./tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path));

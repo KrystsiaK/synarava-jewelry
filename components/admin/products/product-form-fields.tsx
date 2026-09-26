@@ -29,6 +29,10 @@ import { ShopifyOrganizationSuggestField } from "@/components/admin/products/sho
 import { ShopifyProductFactsPanel } from "@/components/admin/products/shopify-product-facts";
 import { ProductPassportFields } from "@/components/admin/products/product-passport-fields";
 import { ProductPriceFields } from "@/components/admin/products/product-price-fields";
+import {
+  ProductInventoryFields,
+  type InventoryShippingFacts,
+} from "@/components/admin/products/product-inventory-fields";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductCharacteristicValue } from "@/lib/products/characteristics";
 import {
@@ -533,6 +537,7 @@ export function ProductFormFields({
   draft,
   collections,
   variantExists = false,
+  inventoryFacts,
   issues = [],
   validation,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
@@ -546,6 +551,8 @@ export function ProductFormFields({
   draft: ProductDraft;
   collections: CollectionOption[];
   variantExists?: boolean;
+  /** Pull projections for Inventory tab shipping / location cards. */
+  inventoryFacts?: InventoryShippingFacts;
   issues?: AdminIssueSummary[];
   validation: AdminFormValidation<ProductFieldName>;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
@@ -867,38 +874,23 @@ export function ProductFormFields({
         />
       </div>
 
-      {/* Create: keep on Product (no Sync tab). Edit: Sync until Inventory exists. */}
-      <div
-        className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2"
-        hidden={mode === "create" ? activeSection !== "essentials" : activeSection !== "shopify"}
-      >
-        <AdminTextField
-          label="SKU"
-          owner="Shopify"
-          required
-          name="sku"
-          data-validation-message={PRODUCT_FIELD_MESSAGES.sku}
-          defaultValue={draft.sku}
-          error={fieldErrors.sku}
-          errorId={validation.fieldErrorId("sku")}
-          {...validation.fieldProps("sku")}
-        />
-        <AdminTextField
-          label="Available quantity"
-          owner="Shopify"
-          help={(
-            <AdminHelp label="Inventory guidance">
-              {variantExists
-                ? "Primary variant inventory synced with Shopify. Moves to Inventory when that tab exists."
-                : "No variant record yet. Enter quantity and save to create the primary variant."}
-            </AdminHelp>
-          )}
-          name="stockOnHand"
-          type="number"
-          min="0"
-          step="1"
-          inputMode="numeric"
-          defaultValue={draft.stockOnHand}
+      {/* Inventory + shipping — Shopify Inventory / Shipping cards (primary variant). */}
+      <div hidden={activeSection !== "inventory"}>
+        <ProductInventoryFields
+          draft={{ sku: draft.sku, stockOnHand: draft.stockOnHand }}
+          variantExists={variantExists}
+          facts={inventoryFacts ?? {
+            barcode: null,
+            tracked: null,
+            inventoryPolicy: null,
+            requiresShipping: null,
+            weightGrams: null,
+            countryCodeOfOrigin: null,
+            harmonizedSystemCode: null,
+            locations: [],
+          }}
+          fieldErrors={fieldErrors}
+          validation={validation}
         />
       </div>
 

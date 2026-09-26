@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Gem,
   Images,
+  Package,
   PackageSearch,
   Store,
   Tags,
@@ -24,6 +25,7 @@ import {
 export type ProductEditorSection =
   | "essentials"
   | "price"
+  | "inventory"
   | "metafields"
   | "media"
   | "details"
@@ -63,7 +65,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Title & organization",
     title: "Product identity",
     description:
-      "Title, handle, vendor, product type, tags, description, SEO, category, collection, and publish state — Shopify product header and organization. Custom metafields on Metafields; jewelry passport on Synarava → Passport; SKU/qty under Sync until Inventory exists.",
+      "Title, handle, vendor, product type, tags, description, SEO, category, collection, and publish state — Shopify product header and organization. Inventory and shipping live on Inventory; custom metafields on Metafields; jewelry passport on Synarava → Passport.",
     icon: PackageSearch,
     group: "shopify",
   },
@@ -75,6 +77,16 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Price, compare-at, tax, and cost mirror Shopify’s Price card on the variant. Profit and margin are calculated locally from price and cost.",
     icon: CircleDollarSign,
+    group: "shopify",
+  },
+  {
+    id: "inventory",
+    label: "Inventory",
+    shortLabel: "Stock & shipping",
+    title: "Inventory and shipping",
+    description:
+      "Primary-variant SKU and available quantity (Save + Push). Location breakdown, barcode, tracking, sell-when-out-of-stock, weight, origin, and HS code come from the last Pull — edit those in Shopify Admin for now. Variants stay on Sync until a Variants tab exists.",
+    icon: Package,
     group: "shopify",
   },
   {

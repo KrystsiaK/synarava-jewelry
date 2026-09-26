@@ -56,10 +56,11 @@ export function localeHasDirty(
   return false;
 }
 
-/** Passport / metafields / media / shopify / price are shared across languages. */
+/** Passport / inventory / metafields / media / shopify / price are shared across languages. */
 export function isSharedSection(section: ProductEditorSection): boolean {
   return (
     section === "passport"
+    || section === "inventory"
     || section === "metafields"
     || section === "media"
     || section === "shopify"
@@ -95,8 +96,8 @@ const ESSENTIALS_LOCALE = [
 /** compareAt + cost are Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */
 const PRICE_SHARED = ["price", "taxable"];
 const MEDIA_SHARED = ["existingImageUrl", "removeImage", "imageFile"];
-/** Parked on Sync until Inventory tab. */
-const SHOPIFY_TAB_SHARED = ["sku", "stockOnHand"];
+/** Primary-variant inventory editable on Inventory tab. */
+const INVENTORY_SHARED = ["sku", "stockOnHand"];
 /** Synarava Product page copy (not Shopify description). */
 const DETAILS_LOCALE = [
   "shortDescription", "materialLine",
@@ -156,7 +157,7 @@ export function fieldBelongsToBranch(
       return ESSENTIALS_SHARED.includes(fieldName) || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
     }
     if (section === "price") return PRICE_SHARED.includes(fieldName);
-    if (section === "shopify") return SHOPIFY_TAB_SHARED.includes(fieldName);
+    if (section === "inventory") return INVENTORY_SHARED.includes(fieldName);
     return false;
   }
 
@@ -166,6 +167,8 @@ export function fieldBelongsToBranch(
         || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
     case "price":
       return PRICE_SHARED.includes(fieldName);
+    case "inventory":
+      return INVENTORY_SHARED.includes(fieldName);
     case "passport":
       return isCharacteristicsField(fieldName);
     case "details":
@@ -178,7 +181,7 @@ export function fieldBelongsToBranch(
     case "metafields":
       return isCustomMetafieldFormField(fieldName);
     case "shopify":
-      return SHOPIFY_TAB_SHARED.includes(fieldName);
+      return false;
     default:
       return false;
   }
@@ -217,10 +220,10 @@ export function buildScopedProductFormData({
   for (const key of REQUIRED_FIELDS) {
     const essentialsOwned = section === "essentials"
       && (key === "name" || key === "slug");
-    const shopifyOwned = section === "shopify"
+    const inventoryOwned = section === "inventory"
       && (key === "sku" || key === "stockOnHand");
     const priceOwned = section === "price" && key === "price";
-    const value = ((essentialsOwned || shopifyOwned || priceOwned) ? current.get(key) : null)
+    const value = ((essentialsOwned || inventoryOwned || priceOwned) ? current.get(key) : null)
       ?? baseline.get(key)
       ?? current.get(key);
     if (typeof value === "string") scoped.set(key, value);

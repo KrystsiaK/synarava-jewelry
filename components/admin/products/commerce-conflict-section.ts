@@ -27,12 +27,13 @@ export function productEditorSectionForCommerceDiff(diff: {
 
   if (
     /^variants\[\d+\]\.(sku|barcode|inventoryQuantity|inventoryPolicy)(\.|$)/.test(path)
+    || /^variants\[\d+\]\.inventoryItem\.(requiresShipping|tracked|countryCodeOfOrigin|harmonizedSystemCode|measurement)(\.|$)/.test(path)
     || field === "Variant SKU"
     || field === "Barcode"
     || field === "Available quantity"
     || field === "Inventory policy"
   ) {
-    return "shopify";
+    return "inventory";
   }
 
   if (

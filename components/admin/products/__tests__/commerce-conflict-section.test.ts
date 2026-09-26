@@ -16,7 +16,16 @@ describe("commerce conflict → editor section", () => {
     expect(productEditorSectionForCommerceDiff({ path: "title", field: "Name" })).toBe("essentials");
     expect(productEditorSectionForCommerceDiff({ path: "vendor", field: "Vendor" })).toBe("essentials");
     expect(productEditorSectionForCommerceDiff({ path: "tags", field: "Tags" })).toBe("essentials");
-    expect(productEditorSectionForCommerceDiff({ path: "variants[0].sku", field: "Variant SKU" })).toBe("shopify");
+    expect(productEditorSectionForCommerceDiff({ path: "variants[0].sku", field: "Variant SKU" })).toBe("inventory");
+  });
+
+  it("maps inventory and shipping facts to the Inventory tab", () => {
+    expect(productEditorSectionForCommerceDiff({ path: "variants[0].barcode", field: "Barcode" })).toBe("inventory");
+    expect(productEditorSectionForCommerceDiff({ path: "variants[0].inventoryPolicy", field: "Inventory policy" })).toBe("inventory");
+    expect(productEditorSectionForCommerceDiff({
+      path: "variants[0].inventoryItem.requiresShipping",
+      field: "Requires shipping",
+    })).toBe("inventory");
   });
 
   it("maps metafield diffs to the Metafields tab", () => {

@@ -13,7 +13,15 @@ The product admin is built as **Shopify skeleton + Synarava sections**:
 
 The section tab strip is visually split into two clusters: **Shopify** (commerce skeleton + Sync) and **Synarava** (CMS-only). Tab count and Shopify-side layout will grow to mirror Shopify’s product admin more closely; Synarava tabs stay a separate group.
 
-**Price tab (Shopify group):** mirrors Shopify Admin’s Price card on the primary variant — editable `price` and `taxable`. **Compare-at** and **Cost** (`unitCost` → local `costCents`) are Synarava **read-only** (`AdminReadonlyField`): shown from the last Shopify pull; edit only in Shopify Admin (compare-at also waits on legal/reference-price rules — [tech debt TD-01](./admin/tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path)). Profit and margin are calculated in the UI only. Unit price measurement is deferred.
+The Price tab (Shopify group) mirrors Shopify Admin’s Price card on the primary
+variant — editable `price` and `taxable`. **Compare-at** and **Cost** are
+Synarava read-only pull projections.
+
+The **Inventory** tab (Shopify group) mirrors Shopify’s Inventory + Shipping
+cards for the primary variant: editable `sku` and available quantity; location
+quantities, barcode, tracking, sell-when-out-of-stock, weight, country of origin,
+and HS code are Pull projections (edit in Shopify Admin for now). No separate
+Variants tab yet — multi-variant detail stays on Sync.
 
 The synchronization boundary has three explicit layers:
 
