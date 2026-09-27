@@ -3154,6 +3154,12 @@ select.adm-field option {
   list-style: decimal;
 }
 
+/* Legal bodies use both classes. The rich-text marker would sit beside the diamond. */
+.legal-markdown.rich-text ul,
+.legal-markdown.rich-text ol {
+  list-style: none;
+}
+
 .rich-text li {
   margin: 0.25em 0;
 }

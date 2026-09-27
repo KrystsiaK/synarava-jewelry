@@ -54,6 +54,7 @@ export default async function PrivacyPage() {
     exists,
     vars,
   );
+  const intro = resolveLegalText(page?.content.body, "");
   const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : PRIVACY_LAST_UPDATED_DEFAULT);
 
   return (
@@ -61,6 +62,7 @@ export default async function PrivacyPage() {
       heroImage={heroImage}
       eyebrowLabel="Legal"
       title={t("legal.privacy.title")}
+      intro={intro}
       lastUpdatedLabel={t("legal.common.lastUpdated")}
       lastUpdated={lastUpdated}
       contentsLabel={t("legal.common.contents")}
