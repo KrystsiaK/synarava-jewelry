@@ -6,6 +6,7 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
+import { resolveLegalLastUpdatedLabel, resolveSharedLegalDate } from "@/lib/content/legal-date";
 import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import {
@@ -48,15 +49,24 @@ export default async function OfferPage() {
     exists,
   );
   const intro = resolveLegalText(page?.content.legalIntro, exists ? "" : OFFER_INTRO_DEFAULT);
-  const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : OFFER_LAST_UPDATED_DEFAULT);
+  const lastUpdatedLabel = resolveLegalLastUpdatedLabel(
+    page?.content.legalLastUpdatedLabel,
+    t("legal.common.lastUpdated"),
+  );
+  const lastUpdated = resolveSharedLegalDate({
+    date: page?.content.legalLastUpdated,
+    saved: exists,
+    fallbackDate: OFFER_LAST_UPDATED_DEFAULT,
+    translate: t,
+  });
 
   return (
     <LegalDocumentPage
       heroImage={heroImage}
-      eyebrowLabel="Legal"
+      eyebrowLabel={t("legal.common.eyebrow")}
       title={page?.title || t("legal.offer.title")}
       intro={intro}
-      lastUpdatedLabel={t("legal.common.lastUpdated")}
+      lastUpdatedLabel={lastUpdatedLabel}
       lastUpdated={lastUpdated}
       contentsLabel={t("legal.common.contents")}
       sections={sections}

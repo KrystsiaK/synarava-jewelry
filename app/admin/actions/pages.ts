@@ -132,7 +132,7 @@ const TRANSLATABLE_PAGE_FIELDS = [
   "materialSectionEyebrow", "materialSectionTitle", "materialSectionNoteLabel",
   "manifestoSectionLabel", "manifestoSectionAttribution",
   "finalCtaLabel", "finalSecondaryCtaLabel", "finalSecondaryCtaHref",
-  "finalFooterTitle", "finalContactLabel", "legalIntro",
+  "finalFooterTitle", "finalContactLabel", "legalIntro", "legalLastUpdatedLabel",
 ] as const;
 
 type MaterialTextEntry = {
@@ -295,6 +295,7 @@ const pageContentFieldsSchema = z.object({
   finalContactEnabled: z.string().trim().default(""),
   legalIntro: z.string().trim().default(""),
   legalLastUpdated: z.string().trim().default(""),
+  legalLastUpdatedLabel: z.string().trim().default(""),
 });
 
 const savePageSchema = pageContentFieldsSchema.extend({
@@ -320,7 +321,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
-    legalIntro, legalLastUpdated,
+    legalIntro, legalLastUpdated, legalLastUpdatedLabel,
     calloutEyebrow, calloutHeading, calloutCtaHref,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title);
@@ -389,7 +390,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     materialSectionTitle, materialSectionNoteLabel, materialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
-    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
+    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalLastUpdatedLabel, legalSections, serviceSections,
   };
   // Images/src stay shared with English (see materialImages above) and are
   // never re-uploaded per locale.
@@ -422,6 +423,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       finalFooterTitle: fields.finalFooterTitle,
       finalContactLabel: fields.finalContactLabel,
       legalIntro: fields.legalIntro,
+      legalLastUpdatedLabel: fields.legalLastUpdatedLabel,
       legalLastUpdated,
       legalSections: readDynamicSectionFields(formData, code, "legal"),
       serviceSections: readDynamicSectionFields(formData, code, "service"),
@@ -475,6 +477,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       finalContactEnabled: contactEnabled,
       legalIntro,
       legalLastUpdated,
+      legalLastUpdatedLabel,
       legalSections,
       serviceSections,
       heroImage,
@@ -612,7 +615,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel, finalCtaHref,
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, finalContactEmail, finalContactEnabled,
-    legalIntro, legalLastUpdated,
+    legalIntro, legalLastUpdated, legalLastUpdatedLabel,
     calloutEyebrow, calloutHeading, calloutCtaHref,
   } = parsed.data;
   const slug = slugify(parsed.data.slug || title) || createDraftToken("draft-page");
@@ -655,6 +658,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       finalFooterTitle: fields.finalFooterTitle,
       finalContactLabel: fields.finalContactLabel,
       legalIntro: fields.legalIntro,
+      legalLastUpdatedLabel: fields.legalLastUpdatedLabel,
       legalLastUpdated,
       legalSections: readDynamicSectionFields(formData, code, "legal"),
       serviceSections: readDynamicSectionFields(formData, code, "service"),
@@ -710,6 +714,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       finalContactEnabled: contactEnabled,
       legalIntro,
       legalLastUpdated,
+      legalLastUpdatedLabel,
       legalSections,
       serviceSections,
       // Legacy, Portuguese-only fallback — see the identical comment in savePageAction.
@@ -753,7 +758,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
-    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalSections, serviceSections,
+    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalLastUpdatedLabel, legalSections, serviceSections,
   };
   await Promise.all([
     db.pageTranslation.upsert({

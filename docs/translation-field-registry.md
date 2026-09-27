@@ -63,9 +63,11 @@ page only uses the subset of keys its template renders (keys mirror
 | title | localized | always | native `PAGE.title` |
 | localizedHandle | localized | optional | native `PAGE.handle` (Task 23) |
 | body | localized | when-published | native `PAGE.body_html` |
-| excerpt, eyebrow, ctaLabel, calloutEyebrow/Heading/CtaHref, quote, secondaryTitle/Body, archive/The Edit/material/manifesto/final-cta section copy (incl. secondary CTA label/href), materialLexicon, legalIntro, legalLastUpdated, legalSections | localized | optional (see code for exceptions) | metaobject `page_section_copy.*` |
+| excerpt, eyebrow, ctaLabel, calloutEyebrow/Heading/CtaHref, quote, secondaryTitle/Body, archive/The Edit/material/manifesto/final-cta section copy (incl. secondary CTA label/href), materialLexicon, legalIntro, legalLastUpdatedLabel, legalSections | localized | optional (see code for exceptions) | metaobject `page_section_copy.*` |
 | seoTitle/seoDescription | localized | when-published | native `PAGE.meta_title`/`meta_description` |
-| slug, template, status, visibility, heroImage, ctaHref, finalCtaHref, finalContactEmail, editProductIds, finalCtaProductIds, section enabled flags | shared | — | — |
+| slug, template, status, visibility, heroImage, ctaHref, finalCtaHref, finalContactEmail, editProductIds, finalCtaProductIds, section enabled flags, legalLastUpdated | shared | — | — |
+
+`legalLastUpdated` is one shared display date (for example `5 September 2026`). Save copies it onto every locale row; it is not per-locale copy, and the admin does not retype it per language. The storefront formats the month from `messages/<locale>.json` (`legal.common.months`, optional `legal.common.datePattern`). `legalLastUpdatedLabel` is the per-locale label; when that field is empty the page uses `legal.common.lastUpdated`. See [Adding a new language](./translation-operations.md#adding-a-new-language).
 
 Flat legal policy pages that match a Shopify `SHOP_POLICY` (Privacy, Terms)
 sync `body`/`title` there instead of `PAGE` — resolved per-page in Task 16,

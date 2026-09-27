@@ -6,6 +6,7 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
+import { resolveLegalLastUpdatedLabel, resolveSharedLegalDate } from "@/lib/content/legal-date";
 import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import { PRIVACY_LAST_UPDATED_DEFAULT } from "@/lib/content/privacy-defaults";
@@ -55,15 +56,24 @@ export default async function PrivacyPage() {
     vars,
   );
   const intro = resolveLegalText(page?.content.body, "");
-  const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : PRIVACY_LAST_UPDATED_DEFAULT);
+  const lastUpdatedLabel = resolveLegalLastUpdatedLabel(
+    page?.content.legalLastUpdatedLabel,
+    t("legal.common.lastUpdated"),
+  );
+  const lastUpdated = resolveSharedLegalDate({
+    date: page?.content.legalLastUpdated,
+    saved: exists,
+    fallbackDate: PRIVACY_LAST_UPDATED_DEFAULT,
+    translate: t,
+  });
 
   return (
     <LegalDocumentPage
       heroImage={heroImage}
-      eyebrowLabel="Legal"
+      eyebrowLabel={t("legal.common.eyebrow")}
       title={t("legal.privacy.title")}
       intro={intro}
-      lastUpdatedLabel={t("legal.common.lastUpdated")}
+      lastUpdatedLabel={lastUpdatedLabel}
       lastUpdated={lastUpdated}
       contentsLabel={t("legal.common.contents")}
       sections={sections}

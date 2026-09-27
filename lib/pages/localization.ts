@@ -46,6 +46,7 @@ export const pageTranslationContentSchema = z.object({
   finalContactLabel: z.string().optional(),
   legalIntro: z.string().optional(),
   legalLastUpdated: z.string().optional(),
+  legalLastUpdatedLabel: z.string().optional(),
   // Array (admin-owned order) or legacy Record<id, {title,body}>.
   legalSections: z.union([
     z.array(legalSectionSchema),
@@ -165,10 +166,19 @@ export function resolvePageLocalizedCopy({
     content: legacyTranslation,
   } : null);
   const translatedContent = normalizePageTranslationContent(selected?.content);
+  const content = overlayContent(sourceContent, translatedContent);
+  // The label is per locale. An empty translation must not inherit the English
+  // admin string — the storefront then uses that locale's dictionary.
+  const sourceLabel = typeof sourceContent.legalLastUpdatedLabel === "string"
+    ? sourceContent.legalLastUpdatedLabel
+    : undefined;
+  if (!hasContent(translatedContent.legalLastUpdatedLabel) && hasContent(sourceLabel)) {
+    content.legalLastUpdatedLabel = "";
+  }
 
   return {
     title: hasContent(selected?.title) ? selected!.title : source.title,
     excerpt: hasContent(selected?.excerpt) ? selected!.excerpt! : source.excerpt ?? "",
-    content: overlayContent(sourceContent, translatedContent),
+    content,
   };
 }

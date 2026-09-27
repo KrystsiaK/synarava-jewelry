@@ -99,6 +99,7 @@ type PageLocaleDraft = {
   finalFooterTitle: string;
   finalContactLabel: string;
   legalIntro: string;
+  legalLastUpdatedLabel: string;
   legalSections: DocumentSectionDraft[];
   serviceSections: DocumentSectionDraft[];
 };
@@ -228,6 +229,7 @@ function draftFromCopy(
     finalFooterTitle: copy.finalFooterTitle ?? "",
     finalContactLabel: copy.finalContactLabel ?? "",
     legalIntro: copy.legalIntro ?? "",
+    legalLastUpdatedLabel: copy.legalLastUpdatedLabel ?? "",
     legalSections: documentSectionsFromCopy(copy.legalSections, options?.legalShipped ?? []),
     serviceSections: documentSectionsFromCopy(copy.serviceSections, options?.serviceShipped ?? []),
   };
@@ -278,6 +280,7 @@ function HiddenLocaleFields({
           field("finalFooterTitle", draft.finalFooterTitle),
           field("finalContactLabel", draft.finalContactLabel),
           field("legalIntro", draft.legalIntro),
+          field("legalLastUpdatedLabel", draft.legalLastUpdatedLabel),
           ...draft.materials.flatMap((material, index) => [
             field(`material${index + 1}Name`, material.name),
             field(`material${index + 1}Category`, material.category),
@@ -1043,11 +1046,17 @@ export function PageEditor({
                 />
               ) : null}
               <AdminTextField
+                label="Last updated label"
+                help={<AdminHelp>Per language. Leave blank to use the dictionary for that language.</AdminHelp>}
+                value={draft.legalLastUpdatedLabel}
+                onChange={(event) => updateField("legalLastUpdatedLabel", event.target.value)}
+              />
+              <AdminTextField
                 label="Last updated"
-                help={<AdminHelp>Shared across languages — a display date, not translated copy.</AdminHelp>}
+                help={<AdminHelp>Shared across languages — one date, not translated copy. Type day, English month, year (for example 5 September 2026). The storefront writes the month from the dictionary of the active language.</AdminHelp>}
                 name="legalLastUpdated"
                 defaultValue={content.legalLastUpdated ?? ""}
-                placeholder="e.g. 1 June 2025"
+                placeholder="e.g. 5 September 2026"
               />
             </div>
 

@@ -1,5 +1,12 @@
 import { db } from "@/lib/db";
 
+/**
+ * Locale rows for the storefront. Adding a language starts here and
+ * continues in docs/translation-operations.md (Adding a new language):
+ * messages file, dictionary-only strings (including legal date month names),
+ * admin-per-locale vs shared fields. The shared legal date is not per-locale copy.
+ */
+
 export type StorefrontLocaleRecord = {
   id: string;
   code: string;

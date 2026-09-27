@@ -538,9 +538,25 @@
   },
   "legal": {
     "common": {
+      "eyebrow": "Informação legal",
       "lastUpdated": "Última atualização",
       "contents": "Índice",
-      "backToStore": "← Voltar à loja"
+      "backToStore": "← Voltar à loja",
+      "datePattern": "{day} de {month} de {year}",
+      "months": {
+        "january": "janeiro",
+        "february": "fevereiro",
+        "march": "março",
+        "april": "abril",
+        "may": "maio",
+        "june": "junho",
+        "july": "julho",
+        "august": "agosto",
+        "september": "setembro",
+        "october": "outubro",
+        "november": "novembro",
+        "december": "dezembro"
+      }
     },
     "privacy": {
       "metaTitle": "Política de Privacidade | Synarava",
@@ -554,6 +570,18 @@
       "metaDescription": "Condições gerais para a compra de produtos Synarava.",
       "title": "Condições gerais de venda",
       "nextLabel": "Política de privacidade →"
+    },
+    "terms": {
+      "metaTitle": "Termos e Condições | Synarava",
+      "metaDescription": "Termos e condições que regem as compras na Synarava Shop, incluindo encomendas, pagamento, entrega, devoluções, direitos do consumidor e garantias legais.",
+      "title": "Termos e Condições",
+      "nextLabel": "Política de privacidade →"
+    },
+    "notice": {
+      "metaTitle": "Aviso legal | Synarava",
+      "metaDescription": "Informação legal e comercial da Synarava Shop, incluindo a identificação e os contactos de quem opera esta loja.",
+      "title": "Aviso legal",
+      "nextLabel": "Termos e Condições →"
     }
   },
   "home": {

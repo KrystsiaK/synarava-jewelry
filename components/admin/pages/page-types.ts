@@ -45,6 +45,7 @@ export type EditablePageCopy = {
   finalContactEnabled?: boolean;
   legalIntro?: string;
   legalLastUpdated?: string;
+  legalLastUpdatedLabel?: string;
   legalSections?: Array<{ id: string; label?: string; title?: string; body?: string }>
     | Record<string, { label?: string; title?: string; body?: string }>;
   serviceSections?: Array<{ id: string; label?: string; title?: string; body?: string }>

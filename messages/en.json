@@ -538,9 +538,25 @@
   },
   "legal": {
     "common": {
+      "eyebrow": "Legal",
       "lastUpdated": "Last updated",
       "contents": "Contents",
-      "backToStore": "← Back to store"
+      "backToStore": "← Back to store",
+      "datePattern": "{day} {month} {year}",
+      "months": {
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December"
+      }
     },
     "privacy": {
       "metaTitle": "Privacy Policy | Synarava",
@@ -554,6 +570,18 @@
       "metaDescription": "Terms of the public offer for the purchase of Synarava Jewelry products.",
       "title": "Public Offer Agreement",
       "nextLabel": "Privacy Policy →"
+    },
+    "terms": {
+      "metaTitle": "Terms & Conditions | Synarava",
+      "metaDescription": "Terms and conditions governing purchases from Synarava Shop, including orders, payment, delivery, returns, consumer rights and legal guarantees.",
+      "title": "Terms & Conditions",
+      "nextLabel": "Privacy Policy →"
+    },
+    "notice": {
+      "metaTitle": "Legal Notice | Synarava",
+      "metaDescription": "Legal and business information for Synarava Shop, including the identity and contact details of the seller operating this online store.",
+      "title": "Legal Notice",
+      "nextLabel": "Terms & Conditions →"
     }
   },
   "home": {

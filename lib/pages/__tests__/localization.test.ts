@@ -253,6 +253,46 @@ describe("page localization", () => {
       { id: "cookies", label: "2. Cookies", title: "Cookies", body: "English cookies" },
     ]);
   });
+
+  it("keeps an empty last-updated label empty so the dictionary can fill it", () => {
+    const resolved = resolvePageLocalizedCopy({
+      locale: "ru",
+      source: {
+        title: "Privacy",
+        excerpt: "",
+        content: {
+          legalLastUpdated: "5 September 2026",
+          legalLastUpdatedLabel: "Last updated",
+        },
+      },
+      translation: {
+        title: "Конфиденциальность",
+        excerpt: "",
+        content: { legalLastUpdated: "5 September 2026", legalLastUpdatedLabel: "" },
+      },
+    });
+
+    expect(resolved.content.legalLastUpdated).toBe("5 September 2026");
+    expect(resolved.content.legalLastUpdatedLabel).toBe("");
+  });
+
+  it("uses the locale last-updated label when the admin filled it", () => {
+    const resolved = resolvePageLocalizedCopy({
+      locale: "ru",
+      source: {
+        title: "Privacy",
+        excerpt: "",
+        content: { legalLastUpdatedLabel: "Last updated" },
+      },
+      translation: {
+        title: "Конфиденциальность",
+        excerpt: "",
+        content: { legalLastUpdatedLabel: "Обновлено" },
+      },
+    });
+
+    expect(resolved.content.legalLastUpdatedLabel).toBe("Обновлено");
+  });
 });
 
 describe("mergeMaterialLexicon", () => {

@@ -157,6 +157,54 @@
     "viewCart": "Открыть корзину",
     "checkout": "Оформить"
   },
+  "legal": {
+    "common": {
+      "eyebrow": "Правовая информация",
+      "lastUpdated": "Последнее обновление",
+      "contents": "Содержание",
+      "backToStore": "← Назад в магазин",
+      "datePattern": "{day} {month} {year}",
+      "months": {
+        "january": "января",
+        "february": "февраля",
+        "march": "марта",
+        "april": "апреля",
+        "may": "мая",
+        "june": "июня",
+        "july": "июля",
+        "august": "августа",
+        "september": "сентября",
+        "october": "октября",
+        "november": "ноября",
+        "december": "декабря"
+      }
+    },
+    "privacy": {
+      "metaTitle": "Политика конфиденциальности | Synarava",
+      "metaDescription": "Как Synarava Jewelry собирает, использует и защищает ваши персональные данные.",
+      "title": "Политика конфиденциальности",
+      "nextLabel": "Условия и положения →",
+      "postalAddressLabel": "Почтовый адрес"
+    },
+    "offer": {
+      "metaTitle": "Публичная оферта | Synarava",
+      "metaDescription": "Условия публичной оферты на покупку изделий Synarava Jewelry.",
+      "title": "Публичная оферта",
+      "nextLabel": "Политика конфиденциальности →"
+    },
+    "terms": {
+      "metaTitle": "Условия и положения | Synarava",
+      "metaDescription": "Условия покупок в Synarava Shop: заказы, оплата, доставка, возвраты, права потребителя и гарантии.",
+      "title": "Условия и положения",
+      "nextLabel": "Политика конфиденциальности →"
+    },
+    "notice": {
+      "metaTitle": "Правовое уведомление | Synarava",
+      "metaDescription": "Правовые и коммерческие сведения о Synarava Shop: кто ведёт магазин и как связаться.",
+      "title": "Правовое уведомление",
+      "nextLabel": "Условия и положения →"
+    }
+  },
   "loginPage": {
     "metaTitle": "Вход | Synarava",
     "metaDescription": "Войдите, чтобы открыть аккаунт Synarava.",

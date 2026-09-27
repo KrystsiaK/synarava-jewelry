@@ -2,22 +2,26 @@ import type { Metadata } from "next";
 
 import { LegalDocumentPage } from "@/components/legal/legal-document-page";
 import { getPageBySlug } from "@/lib/content/catalog";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { resolveLegalLastUpdatedLabel, resolveSharedLegalDate } from "@/lib/content/legal-date";
+import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import {
-  TERMS_EXCERPT_DEFAULT,
   TERMS_INTRO_DEFAULT,
   TERMS_LAST_UPDATED_DEFAULT,
 } from "@/lib/content/terms-defaults";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getRequestLocale();
+  const { t, locale } = await getServerTranslations();
   const page = await getPageBySlug("terms-and-conditions", locale);
-  const title = page?.title || "Terms & Conditions | Synarava";
-  const description = page?.excerpt || TERMS_EXCERPT_DEFAULT;
+  const { title, description } = localizedPageMetadataCopy({
+    page,
+    fallbackTitle: t("legal.terms.metaTitle"),
+    fallbackDescription: t("legal.terms.metaDescription"),
+  });
   return {
     title,
     description,
@@ -32,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TermsAndConditionsPage() {
-  const locale = await getRequestLocale();
+  const { t, locale } = await getServerTranslations();
   const page = await getPageBySlug("terms-and-conditions", locale);
   const heroImage = page?.content.heroImage;
   const homeHref = localePath(locale, "/");
@@ -45,22 +49,31 @@ export default async function TermsAndConditionsPage() {
     exists,
   );
   const intro = resolveLegalText(page?.content.legalIntro, exists ? "" : TERMS_INTRO_DEFAULT);
-  const lastUpdated = resolveLegalText(page?.content.legalLastUpdated, exists ? "" : TERMS_LAST_UPDATED_DEFAULT);
+  const lastUpdatedLabel = resolveLegalLastUpdatedLabel(
+    page?.content.legalLastUpdatedLabel,
+    t("legal.common.lastUpdated"),
+  );
+  const lastUpdated = resolveSharedLegalDate({
+    date: page?.content.legalLastUpdated,
+    saved: exists,
+    fallbackDate: TERMS_LAST_UPDATED_DEFAULT,
+    translate: t,
+  });
 
   return (
     <LegalDocumentPage
       heroImage={heroImage}
-      eyebrowLabel="Legal"
-      title={page?.title || "Terms & Conditions"}
+      eyebrowLabel={t("legal.common.eyebrow")}
+      title={page?.title || t("legal.terms.title")}
       intro={intro}
-      lastUpdatedLabel="Last updated"
+      lastUpdatedLabel={lastUpdatedLabel}
       lastUpdated={lastUpdated}
-      contentsLabel="Contents"
+      contentsLabel={t("legal.common.contents")}
       sections={sections}
       backHref={homeHref}
-      backLabel="← Back to store"
+      backLabel={t("legal.common.backToStore")}
       nextHref={privacyHref}
-      nextLabel="Privacy Policy →"
+      nextLabel={t("legal.terms.nextLabel")}
     />
   );
 }
