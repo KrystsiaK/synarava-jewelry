@@ -403,6 +403,7 @@ export function AdminSectionTabs({
       data-component="AdminSectionTabs"
       data-embedded={embedded ? "true" : undefined}
       data-grouped={grouped ? "true" : undefined}
+      data-active-group={activeItem?.group}
       className={cn("adm-section-tabs", className)}
     >
       <div

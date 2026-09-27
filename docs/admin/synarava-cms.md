@@ -80,7 +80,7 @@ Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-m
 
 **Rule:** never elevate `.adm-help` (or other in-flow field chrome) into the popover band — that made info icons paint over open combobox lists. New absolute admin menus must use `.adm-popover` (or `z-index: var(--adm-z-popover)`), not ad-hoc `z-20`.
 
-Help tags (`.ui-tooltip`) are compact ink hints, not panels. The first one waits on the pointer; the next tag within a short window opens immediately, so a row of icon buttons can be scanned. Keyboard focus opens at once. A touch hold shows the tag and does not fire the button. `prefers-reduced-motion` fades opacity only.
+The help mark is a blue italic serif **i** (`--adm-info`), larger than the label kicker. Hover lays a soft blue disc; press scales to 0.97. Help tags (`.ui-tooltip`) are compact ink hints, not panels. The first one waits on the pointer; the next tag within a short window opens immediately, so a row of icon buttons can be scanned. Keyboard focus opens at once. A touch hold shows the tag and does not fire the button. `prefers-reduced-motion` fades opacity only.
 
 `AdminModal` is the admin dialog. It dims the page and centers a 14px sheet that settles in 400ms on `cubic-bezier(0.32, 0.72, 0, 1)` and leaves on the same path. Reduced motion is a 160ms fade. Storefront `.t-modal` timing is separate. `AdminConfirmModal` is that sheet with Cancel and a confirm action. Long text, rich text, and record details use the same shell.
 
@@ -304,6 +304,15 @@ Shopify commerce skeleton vs Synarava-only sections). Each item may set
 `group` to a group id. `stripLabel` is the short chip; `label` stays in the
 accessible name. Groups may set `compactLabel` for narrow viewports.
 Keyboard arrows still move across the whole tablist.
+
+Product editor color is two levels. Each language button carries its own
+hue (`--adm-locale-en` gold, `--adm-locale-pt` sage, `--adm-locale-ru`
+steel): a tint at rest, the solid color when selected. The two-letter label
+stays centered; a status mark sits on the chip’s corner. `AdminLocaleTabs`
+paints that same color as a 3px border on the shell that contains the tabs
+(the enclosing admin panel, or the form when there is no panel). Pages,
+collections, commerce copy, and storefront copy use this one path. Inside
+a product, section tabs are colored by background: Shopify cool, Synarava warm.
 
 ```tsx
 import { AdminSectionTabs } from "@/components/synarava-cms";

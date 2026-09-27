@@ -43,7 +43,7 @@ When the user says **общий компонент**, **shared control**, or **l
 3. **One chrome per control type.** No dual DOM/CSS paths that change the outer field look based on optional props.
 4. **Errors stay absolute** under `.adm-field-unit` (`.adm-field-error`). **Warnings** use the same band (`.adm-field-warning`, orange) via the `warning` prop — error wins if both are set. Every unit **always** reserves a one-line message band so siblings never jump; long messages ellipsis + tooltip/`title`. No banners above the control for field-level validation. Issue links use `AdminFieldIssue` via the shell `issue` slot. **Tall media** (`ImageFileField`): keep `AdminFieldIssue` in normal flow (not a direct unit child) so it does not paint over the preview path. **Scroll to field:** `scrollAdminFieldIntoView` (`block: "start"` + scroll-margin) — never `block: "center"` under sticky chrome.
 5. **Tall composites:** control inside the shell; extra panels (e.g. Shopify category attributes) **outside**. Media preview blocks follow the ProductMediaManager / collection-hero pattern.
-6. **Help** is an `i` tooltip beside the label (`AdminHelp` / `help` prop). Tags are ink hints: first one waits, the next in a short window opens immediately, touch-hold shows the tag without clicking. Buttons, chips, help, and checkboxes share a 0.97 press; `.adm-btn-secondary` matches `.adm-btn-ghost`.
+6. **Help** is a blue italic serif `i` tooltip beside the label (`AdminHelp` / `help` prop, `--adm-info`). Tags are ink hints: first one waits, the next in a short window opens immediately, touch-hold shows the tag without clicking. Buttons, chips, help, and checkboxes share a 0.97 press; `.adm-btn-secondary` matches `.adm-btn-ghost`.
 7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
 8. After contract changes, update `docs/admin/synarava-cms.md` and this skill (keep `.agents` + `.claude` copies in sync); run `graphify update .`.
 
@@ -76,7 +76,7 @@ When editing `/admin/products/[id]`:
 | Collapsible section (chevron) | `AdminCollapsiblePanel` |
 | Rounded shell + optional sticky header | `AdminPanel` (`.Root` / `.Header` / `.Body`) |
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` (+ `syncCounts` for amber conflict badges per section) |
-| Section tabs + cool content well | `AdminSectionTabs` — one compact row, `groups` for Shopify vs Synarava, horizontal touch pan |
+| Section tabs + content well | `AdminSectionTabs` — one compact row. Each language button is its own hue (tint at rest, solid when selected). `AdminLocaleTabs` paints a 3px border of that color on the enclosing panel or form. Section tabs color their background |
 | Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
 | Sticky list chrome (title / filters / body) | `AdminListWorkspace` (`.Root` / `.Header` / `.Filters` / `.Body`) |
 | Icon action + tooltip | `AdminIconButton` |

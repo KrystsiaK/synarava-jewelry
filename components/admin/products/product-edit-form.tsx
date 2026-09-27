@@ -45,7 +45,6 @@ import {
   dirtyKeyForEdit,
   isSharedSection,
   localeHasDirty,
-  localeWorkspaceTone,
   sectionDirtyKey,
   snapshotFormData,
   SOURCE_LOCALE,
@@ -189,7 +188,6 @@ export function EditProductForm({
       (difference) => productEditorSectionForCommerceDiff(difference) === activeSection,
     ).length
     : 0;
-  const localeTone = localeWorkspaceTone(activeLocale);
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
 
   function activateIssue(issue: AdminIssueSummary) {
@@ -620,24 +618,12 @@ export function EditProductForm({
 
           <AdminPanel.Root
             data-component="ProductLocaleWorkspace"
-            data-locale={activeLocale}
             stickyAbove="var(--adm-product-workspace-sticky-height, 5.5rem)"
-            className="border"
-            style={{
-              background: localeTone.background,
-              borderColor: localeTone.border,
-              ["--locale-tone-border" as string]: localeTone.border,
-              ["--locale-tone-accent" as string]: localeTone.accent,
-              ["--locale-tone-bg" as string]: localeTone.background,
-            }}
           >
             <AdminPanel.Header
               sticky
               stickyBand="locale"
               className="adm-panel__header--ruled"
-              style={{
-                background: localeTone.background,
-              }}
             >
               <AdminLocaleTabs
                 embedded

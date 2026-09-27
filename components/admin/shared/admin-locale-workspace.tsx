@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { AdminStatusBadge, type AdminStatusBadgeTone } from "@/components/synarava-cms";
 
@@ -24,6 +24,46 @@ export type AdminLocaleStatus = "SYNCED" | "PENDING" | "CONFLICT" | "FAILED" | "
 
 function statusLabel(status: AdminLocaleStatus) {
   return status === "NOT_APPLICABLE" ? "LOCAL ONLY" : status;
+}
+
+/**
+ * The language frame belongs to the tabs, not to one editor.
+ * Product used to paint it on its own panel; pages, collections, and copy
+ * editors share these tabs but had no frame, so the border never followed.
+ * Stamp the nearest shell that actually contains the tabs: the locale
+ * workspace, else the enclosing admin panel, else the form.
+ */
+function localeFrameHost(node: HTMLElement): HTMLElement | null {
+  return (
+    node.closest<HTMLElement>("[data-component='AdminLocaleWorkspace']")
+    ?? node.closest<HTMLElement>(".adm-panel")
+    ?? node.closest<HTMLElement>("form")
+  );
+}
+
+function localeAccent(locale: string): string {
+  const code = locale.toLowerCase();
+  if (code === "pt") return "var(--adm-locale-pt)";
+  if (code === "ru") return "var(--adm-locale-ru)";
+  if (code === "en") return "var(--adm-locale-en)";
+  return "var(--adm-border)";
+}
+
+function paintLocaleFrame(host: HTMLElement, locale: string) {
+  const accent = localeAccent(locale);
+  host.classList.add("adm-locale-frame");
+  host.dataset.locale = locale.toLowerCase();
+  host.style.setProperty("--locale-tone-accent", accent);
+  host.style.setProperty("--locale-tone-border", `color-mix(in srgb, ${accent} 42%, var(--adm-border))`);
+  host.style.setProperty("--locale-tone-bg", "var(--adm-panel)");
+}
+
+function clearLocaleFrame(host: HTMLElement) {
+  host.classList.remove("adm-locale-frame");
+  delete host.dataset.locale;
+  host.style.removeProperty("--locale-tone-accent");
+  host.style.removeProperty("--locale-tone-border");
+  host.style.removeProperty("--locale-tone-bg");
 }
 
 function localeSyncTone(status: AdminLocaleStatus): AdminStatusBadgeTone {
@@ -158,7 +198,16 @@ export function AdminLocaleTabs({
   stacked = false,
 }: AdminLocaleTabsProps) {
   const tabRefs = useRef<Record<AdminLocale, HTMLButtonElement | null>>({});
+  const rootRef = useRef<HTMLDivElement>(null);
   const fallbackId = useId();
+
+  useLayoutEffect(() => {
+    const node = rootRef.current;
+    const host = node ? localeFrameHost(node) : null;
+    if (!host) return;
+    paintLocaleFrame(host, active);
+    return () => clearLocaleFrame(host);
+  }, [active]);
   const idFor = tabId ?? ((locale: AdminLocale) => `${fallbackId}-tab-${locale}`);
   const panelIdFor = panelId;
   const dirtySet = dirtyLocales instanceof Set
@@ -188,6 +237,7 @@ export function AdminLocaleTabs({
 
   return (
     <div
+      ref={rootRef}
       className={[
         "adm-locale-workspace-header",
         embedded ? "adm-locale-workspace-header--embedded" : "adm-band",
@@ -201,6 +251,7 @@ export function AdminLocaleTabs({
         className={`flex w-full flex-wrap items-center gap-1.5 ${embedded ? "" : "pb-adm-band-y"}`}
       >
         <span className="adm-section-tag mr-1">LOCALE /</span>
+        <div className="adm-locale-tabs">
         {locales.map((locale, index) => (
           <button
             key={locale.code}
@@ -214,6 +265,7 @@ export function AdminLocaleTabs({
             tabIndex={active === locale.code ? 0 : -1}
             onClick={() => onSelect(locale.code)}
             onKeyDown={(event) => onTabKeyDown(event, index)}
+            data-locale={locale.code.toLowerCase()}
             data-active={active === locale.code ? "true" : undefined}
             data-dirty={dirtySet.has(locale.code) ? "true" : undefined}
             data-issue={issueSet.has(locale.code) ? "true" : undefined}
@@ -221,29 +273,22 @@ export function AdminLocaleTabs({
             className="adm-locale-tab"
           >
             {locale.code}
-            {dirtySet.has(locale.code) ? (
-              <span
-                className="ml-1 inline-block size-1.5 rounded-full bg-[var(--adm-warning)]"
-                title="Unsaved edits"
-                aria-label="Unsaved edits"
-              />
-            ) : null}
-            {issueSet.has(locale.code) ? (
-              <span
-                className="ml-1 inline-block size-1.5 rounded-full bg-[var(--adm-danger)]"
-                title="Open problem"
-                aria-label="Open problem"
-              />
-            ) : null}
-            {conflictSet.has(locale.code) ? (
-              <span
-                className="ml-1 inline-block size-1.5 rounded-full bg-[var(--adm-conflict)]"
-                title="Shopify conflict"
-                aria-label="Shopify conflict"
-              />
+            {dirtySet.has(locale.code) || issueSet.has(locale.code) || conflictSet.has(locale.code) ? (
+              <span className="adm-locale-tab__marks">
+                {dirtySet.has(locale.code) ? (
+                  <span className="adm-locale-tab__pip" data-tone="dirty" title="Unsaved edits" aria-label="Unsaved edits" />
+                ) : null}
+                {issueSet.has(locale.code) ? (
+                  <span className="adm-locale-tab__pip" data-tone="issue" title="Open problem" aria-label="Open problem" />
+                ) : null}
+                {conflictSet.has(locale.code) ? (
+                  <span className="adm-locale-tab__pip" data-tone="conflict" title="Shopify conflict" aria-label="Shopify conflict" />
+                ) : null}
+              </span>
             ) : null}
           </button>
         ))}
+        </div>
         {ptStatus ? (
           <AdminStatusBadge
             tone={localeSyncTone(ptStatus)}

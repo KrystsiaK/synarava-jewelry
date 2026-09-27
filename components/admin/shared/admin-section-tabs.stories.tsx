@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { CircleDollarSign, FileText, Gem, Images, PackageSearch, Shapes, Store } from "lucide-react";
 import { useState } from "react";
 
+const LOCALES = ["en", "pt", "ru"] as const;
+
 import {
   AdminSectionTabs,
   type AdminSectionTabGroup,
@@ -28,7 +30,10 @@ const meta = {
   component: AdminSectionTabs,
   decorators: [
     (Story) => (
-      <div className="admin-terminal admin-modal-root min-h-screen bg-[var(--adm-bg)] p-6 text-[var(--adm-ink)]">
+      <div
+        className="admin-terminal admin-modal-root bg-[var(--adm-bg)] p-6 text-[var(--adm-ink)]"
+        style={{ display: "block", height: "auto", overflow: "visible" }}
+      >
         <div className="mx-auto max-w-5xl rounded-xl border border-[var(--adm-border)] bg-[var(--adm-panel)] p-0 overflow-hidden">
           <Story />
         </div>
@@ -59,12 +64,44 @@ function TabsPlayground({
       <div className="adm-inset-x space-y-3 py-5">
         <h2 className="text-xl font-semibold">Open section: {active}</h2>
         <p className="max-w-[60ch] text-sm text-[var(--adm-muted)]">
-          Cool well background marks that you are inside this tab. Idle tabs stay warm/white; selected
-          tabs share the well color. Catalog shows issue tone; Media shows conflict tone.
-          Product editor splits the strip into Shopify vs Synarava groups.
+          The language color is the container border. Section tabs are filled:
+          Shopify cool, Synarava warm. Catalog shows issue tone; Media shows conflict tone.
         </p>
       </div>
     </AdminSectionTabs>
+  );
+}
+
+function LanguageAndSections() {
+  const [locale, setLocale] = useState<(typeof LOCALES)[number]>("en");
+  const accent = `var(--adm-locale-${locale})`;
+  return (
+    <div
+      className="adm-locale-frame overflow-hidden rounded-[0.875rem] bg-[var(--adm-panel)]"
+      data-locale={locale}
+      style={{ ["--locale-tone-accent" as string]: accent }}
+    >
+      <div className="flex flex-wrap items-center gap-1.5 px-4 py-3">
+        <div className="adm-locale-tabs">
+        {LOCALES.map((code) => (
+          <button
+            key={code}
+            type="button"
+            className="adm-locale-tab"
+            data-locale={code}
+            data-active={locale === code ? "true" : undefined}
+            onClick={() => setLocale(code)}
+          >
+            {code}
+            <span className="adm-locale-tab__marks">
+              <span className="adm-locale-tab__pip" data-tone="conflict" />
+            </span>
+          </button>
+        ))}
+        </div>
+      </div>
+      <TabsPlayground items={ALL_ITEMS} groups={GROUPS} />
+    </div>
   );
 }
 
@@ -74,7 +111,7 @@ export const StateMatrix: Story = {
     active: "content",
     onChange: () => {},
   },
-  render: () => <TabsPlayground items={ALL_ITEMS} groups={GROUPS} />,
+  render: () => <LanguageAndSections />,
 };
 
 export const FlatUngrouped: Story = {

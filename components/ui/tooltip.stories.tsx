@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { Tooltip } from "@/components/ui/tooltip";
 
 const meta = {
@@ -34,14 +35,9 @@ export const HelpTags: Story = {
           </Tooltip>
         ))}
       </div>
-      <Tooltip
-        content="Price, compare-at, tax, and cost mirror Shopify’s Price card. Profit is calculated locally."
-        maxWidth={260}
-      >
-        <button type="button" className="adm-help__trigger" aria-label="Field guidance">
-          i
-        </button>
-      </Tooltip>
+      <AdminHelp label="Field guidance">
+        Price, compare-at, tax, and cost mirror Shopify’s Price card. Profit is calculated locally.
+      </AdminHelp>
     </div>
   ),
 };

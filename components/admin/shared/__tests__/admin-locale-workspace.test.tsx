@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -149,6 +150,56 @@ describe("AdminLocaleTabs with a custom locale list", () => {
     for (const tab of screen.getAllByRole("tab")) {
       expect(tab).toHaveAttribute("data-conflict", "true");
     }
+  });
+});
+
+describe("AdminLocaleTabs language frame", () => {
+  const locales = [
+    { code: "en", label: "English" },
+    { code: "pt", label: "Português" },
+    { code: "ru", label: "Русский" },
+  ];
+
+  function FrameHarness({ shell }: { shell: "panel" | "form" }) {
+    const [active, setActive] = useState("en");
+    const tabs = (
+      <AdminLocaleTabs active={active} onSelect={setActive} locales={locales} />
+    );
+    if (shell === "form") {
+      return <form data-testid="shell">{tabs}</form>;
+    }
+    return (
+      <div className="adm-panel" data-testid="outer">
+        <div className="adm-panel" data-testid="shell">{tabs}</div>
+      </div>
+    );
+  }
+
+  it("paints the nearest panel, and follows the selected language", async () => {
+    const user = userEvent.setup();
+    render(<FrameHarness shell="panel" />);
+    const shell = screen.getByTestId("shell");
+    const outer = screen.getByTestId("outer");
+
+    expect(shell).toHaveClass("adm-locale-frame");
+    expect(shell).toHaveAttribute("data-locale", "en");
+    expect(outer).not.toHaveClass("adm-locale-frame");
+
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(shell).toHaveAttribute("data-locale", "pt");
+    expect(outer).not.toHaveAttribute("data-locale");
+  });
+
+  it("paints the enclosing form when the tabs are not inside a panel", async () => {
+    const user = userEvent.setup();
+    render(<FrameHarness shell="form" />);
+    const shell = screen.getByTestId("shell");
+
+    expect(shell).toHaveClass("adm-locale-frame");
+    expect(shell).toHaveAttribute("data-locale", "en");
+
+    await user.click(screen.getByRole("tab", { name: "Русский" }));
+    expect(shell).toHaveAttribute("data-locale", "ru");
   });
 });
 
