@@ -294,6 +294,11 @@ describe("PageEditor", () => {
     expect(screen.getByRole("textbox", { name: "Button label" })).toHaveValue("Shop all products");
     expect(screen.getByRole("textbox", { name: "Collection card link label" })).toHaveValue("Explore collection");
     expect(screen.getByRole("textbox", { name: "Shop button" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Manifesto eyebrow" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Story eyebrow" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Accent code label" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Scroll cue" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /05 \/ Manifesto & story chrome/i })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Button href" })).toBeInTheDocument();
     expect(hiddenFieldValue(container, "calloutCtaHref")).toBe("/shop");
     expect(screen.getByRole("tab", { name: "Русский" })).toBeInTheDocument();

@@ -91,6 +91,11 @@ type PageLocaleDraft = {
   heroQualifier: string;
   detailShopLabel: string;
   detailCollectionsLabel: string;
+  detailScrollLabel: string;
+  detailManifestoEyebrow: string;
+  detailManifestoGhost: string;
+  detailStoryEyebrow: string;
+  detailAccentCodeLabel: string;
   detailTeaserEyebrow: string;
   detailTeaserHeading: string;
   detailTeaserShopLabel: string;
@@ -233,6 +238,11 @@ function draftFromCopy(
     heroQualifier: copy.heroQualifier ?? "",
     detailShopLabel: copy.detailShopLabel ?? "",
     detailCollectionsLabel: copy.detailCollectionsLabel ?? "",
+    detailScrollLabel: copy.detailScrollLabel ?? "",
+    detailManifestoEyebrow: copy.detailManifestoEyebrow ?? "",
+    detailManifestoGhost: copy.detailManifestoGhost ?? "",
+    detailStoryEyebrow: copy.detailStoryEyebrow ?? "",
+    detailAccentCodeLabel: copy.detailAccentCodeLabel ?? "",
     detailTeaserEyebrow: copy.detailTeaserEyebrow ?? "",
     detailTeaserHeading: copy.detailTeaserHeading ?? "",
     detailTeaserShopLabel: copy.detailTeaserShopLabel ?? "",
@@ -298,6 +308,11 @@ function HiddenLocaleFields({
           field("heroQualifier", draft.heroQualifier),
           field("detailShopLabel", draft.detailShopLabel),
           field("detailCollectionsLabel", draft.detailCollectionsLabel),
+          field("detailScrollLabel", draft.detailScrollLabel),
+          field("detailManifestoEyebrow", draft.detailManifestoEyebrow),
+          field("detailManifestoGhost", draft.detailManifestoGhost),
+          field("detailStoryEyebrow", draft.detailStoryEyebrow),
+          field("detailAccentCodeLabel", draft.detailAccentCodeLabel),
           field("detailTeaserEyebrow", draft.detailTeaserEyebrow),
           field("detailTeaserHeading", draft.detailTeaserHeading),
           field("detailTeaserShopLabel", draft.detailTeaserShopLabel),

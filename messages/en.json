@@ -633,6 +633,10 @@
       "browseAll": "Browse all collections",
       "shopAll": "Shop all products",
       "scroll": "Scroll",
+      "manifestoEyebrow": "Collection Manifesto",
+      "manifestoGhost": "MANIFESTO",
+      "storyEyebrow": "Collection Story",
+      "accentCodeLabel": "Accent code",
       "catalogEyebrow": "Catalogue",
       "catalogHeading": "Products in this Collection"
     }

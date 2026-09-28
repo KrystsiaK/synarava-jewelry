@@ -123,6 +123,11 @@ export default async function Page({ params, searchParams }: Props) {
         labels={{
           shopLabel: collectionsPage?.content.detailShopLabel,
           collectionsLabel: collectionsPage?.content.detailCollectionsLabel,
+          scrollLabel: collectionsPage?.content.detailScrollLabel,
+          manifestoEyebrow: collectionsPage?.content.detailManifestoEyebrow,
+          manifestoGhost: collectionsPage?.content.detailManifestoGhost,
+          storyEyebrow: collectionsPage?.content.detailStoryEyebrow,
+          accentCodeLabel: collectionsPage?.content.detailAccentCodeLabel,
           teaserEyebrow: collectionsPage?.content.detailTeaserEyebrow,
           teaserHeading: collectionsPage?.content.detailTeaserHeading,
           teaserShopLabel: collectionsPage?.content.detailTeaserShopLabel,

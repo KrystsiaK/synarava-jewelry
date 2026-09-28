@@ -27,6 +27,11 @@ export type CollectionsPageDraftFields = {
   secondaryBody: string;
   detailShopLabel: string;
   detailCollectionsLabel: string;
+  detailScrollLabel: string;
+  detailManifestoEyebrow: string;
+  detailManifestoGhost: string;
+  detailStoryEyebrow: string;
+  detailAccentCodeLabel: string;
   detailTeaserEyebrow: string;
   detailTeaserHeading: string;
   detailTeaserShopLabel: string;
@@ -213,6 +218,13 @@ export function CollectionsPageEditorSections({
             placeholder="All collections"
           />
           <AdminTextField
+            label="Scroll cue"
+            help={<AdminHelp>Vertical label on the hero scroll indicator (default: Scroll).</AdminHelp>}
+            value={draft.detailScrollLabel}
+            onChange={(event) => updateField("detailScrollLabel", event.target.value)}
+            placeholder="Scroll"
+          />
+          <AdminTextField
             label="Teaser eyebrow"
             help={<AdminHelp>Small label above the closing heading (default: Explore more).</AdminHelp>}
             value={draft.detailTeaserEyebrow}
@@ -235,7 +247,61 @@ export function CollectionsPageEditorSections({
         </div>
       </AdminCollapsiblePanel>
 
-      <AdminCollapsiblePanel title="05 / Products in this collection" defaultOpen>
+      <AdminCollapsiblePanel title="05 / Manifesto & story chrome" defaultOpen>
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminTextField
+            label="Manifesto eyebrow"
+            help={
+              <AdminHelp>
+                Red section label above the manifesto quote on every collection page (default: Collection
+                Manifesto). The quote itself is edited on each collection.
+              </AdminHelp>
+            }
+            value={draft.detailManifestoEyebrow}
+            onChange={(event) => updateField("detailManifestoEyebrow", event.target.value)}
+            placeholder="Collection Manifesto"
+          />
+          <AdminTextField
+            label="Manifesto watermark"
+            help={
+              <AdminHelp>
+                Huge faint background word behind the manifesto (default: MANIFESTO). Decorative only —
+                the diamond hairlines under the quote stay as fixed design chrome.
+              </AdminHelp>
+            }
+            value={draft.detailManifestoGhost}
+            onChange={(event) => updateField("detailManifestoGhost", event.target.value)}
+            placeholder="MANIFESTO"
+          />
+          <AdminTextField
+            label="Story eyebrow"
+            help={
+              <AdminHelp>
+                Red label beside the story heading (default: Collection Story). Story heading and
+                paragraph are per collection. The red rule beside this label and the grey borders around
+                the block are fixed design chrome.
+              </AdminHelp>
+            }
+            value={draft.detailStoryEyebrow}
+            onChange={(event) => updateField("detailStoryEyebrow", event.target.value)}
+            placeholder="Collection Story"
+          />
+          <AdminTextField
+            label="Accent code label"
+            help={
+              <AdminHelp>
+                Caption next to the collection accent letter on the story image (default: Accent code).
+                The letter itself comes from the collection.
+              </AdminHelp>
+            }
+            value={draft.detailAccentCodeLabel}
+            onChange={(event) => updateField("detailAccentCodeLabel", event.target.value)}
+            placeholder="Accent code"
+          />
+        </div>
+      </AdminCollapsiblePanel>
+
+      <AdminCollapsiblePanel title="06 / Products in this collection" defaultOpen>
         <div className="grid gap-4 md:grid-cols-2">
           <AdminTextField
             label="Catalog eyebrow"

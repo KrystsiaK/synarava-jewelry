@@ -633,6 +633,10 @@
       "browseAll": "Ver todas as coleções",
       "shopAll": "Ver todos os produtos",
       "scroll": "Deslizar",
+      "manifestoEyebrow": "Manifesto da coleção",
+      "manifestoGhost": "MANIFESTO",
+      "storyEyebrow": "História da coleção",
+      "accentCodeLabel": "Código de destaque",
       "catalogEyebrow": "Catálogo",
       "catalogHeading": "Produtos nesta coleção"
     }

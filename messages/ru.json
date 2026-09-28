@@ -219,6 +219,10 @@
       "browseAll": "Все коллекции",
       "shopAll": "Все изделия",
       "scroll": "Листать",
+      "manifestoEyebrow": "Манифест коллекции",
+      "manifestoGhost": "MANIFESTO",
+      "storyEyebrow": "История коллекции",
+      "accentCodeLabel": "Код акцента",
       "catalogEyebrow": "Каталог",
       "catalogHeading": "Изделия в этой коллекции"
     }

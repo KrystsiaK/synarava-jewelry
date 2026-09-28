@@ -155,6 +155,11 @@ export type PageContent = {
   heroQualifier?: string;
   detailShopLabel?: string;
   detailCollectionsLabel?: string;
+  detailScrollLabel?: string;
+  detailManifestoEyebrow?: string;
+  detailManifestoGhost?: string;
+  detailStoryEyebrow?: string;
+  detailAccentCodeLabel?: string;
   detailTeaserEyebrow?: string;
   detailTeaserHeading?: string;
   detailTeaserShopLabel?: string;

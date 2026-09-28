@@ -24,6 +24,11 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export type CollectionDetailLabels = {
   shopLabel?: string;
   collectionsLabel?: string;
+  scrollLabel?: string;
+  manifestoEyebrow?: string;
+  manifestoGhost?: string;
+  storyEyebrow?: string;
+  accentCodeLabel?: string;
   teaserEyebrow?: string;
   teaserHeading?: string;
   teaserShopLabel?: string;
@@ -178,18 +183,29 @@ function DetailHero({
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
           />
         </div>
-        <span className="label-mono text-[0.62rem] text-foreground/35 [writing-mode:vertical-rl]">{t("collections.detail.scroll")}</span>
+        <span className="label-mono text-[0.62rem] text-foreground/35 [writing-mode:vertical-rl]">
+          {labelOr(labels?.scrollLabel, t("collections.detail.scroll"))}
+        </span>
       </motion.div>
     </motion.header>
   );
 }
 
 /* ─── Manifesto Strip ────────────────────────────────────────────── */
-function ManifestoStrip({ manifesto }: { manifesto: string }) {
+function ManifestoStrip({
+  manifesto,
+  labels,
+}: {
+  manifesto: string;
+  labels?: CollectionDetailLabels;
+}) {
+  const { t } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-12%" });
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const bgScale = useTransform(scrollYProgress, [0, 1], [0.88, 1.06]);
+  const ghost = labelOr(labels?.manifestoGhost, t("collections.detail.manifestoGhost"));
+  const eyebrow = labelOr(labels?.manifestoEyebrow, t("collections.detail.manifestoEyebrow"));
 
   return (
     <section data-component="ManifestoStrip" ref={ref} className="relative overflow-hidden border-t border-foreground/10 bg-background py-20 text-foreground md:py-40">
@@ -202,7 +218,7 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
           className="select-none text-center font-serif leading-none text-foreground"
           style={{ fontSize: "clamp(4rem,15vw,13rem)", opacity: 0.03, whiteSpace: "nowrap" }}
         >
-          MANIFESTO
+          {ghost}
         </span>
       </motion.div>
 
@@ -213,7 +229,7 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease }}
         >
-          Collection Manifesto
+          {eyebrow}
         </motion.p>
 
         <motion.blockquote
@@ -226,6 +242,7 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
           {manifesto}
         </motion.blockquote>
 
+        {/* Fixed design ornament — not CMS copy */}
         <motion.div
           className="mt-12 flex items-center gap-5"
           initial={{ opacity: 0 }}
@@ -254,9 +271,18 @@ function ManifestoStrip({ manifesto }: { manifesto: string }) {
 }
 
 /* ─── Collection Story ───────────────────────────────────────────── */
-function CollectionStory({ collection }: { collection: CollectionDetail }) {
+function CollectionStory({
+  collection,
+  labels,
+}: {
+  collection: CollectionDetail;
+  labels?: CollectionDetailLabels;
+}) {
+  const { t } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-14%" });
+  const storyEyebrow = labelOr(labels?.storyEyebrow, t("collections.detail.storyEyebrow"));
+  const accentCodeLabel = labelOr(labels?.accentCodeLabel, t("collections.detail.accentCodeLabel"));
 
   return (
     <section data-component="CollectionStory" ref={ref} className="relative overflow-hidden bg-background py-16 text-foreground md:py-16 lg:py-28">
@@ -293,7 +319,7 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
             <figcaption className="absolute bottom-5 left-5 flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-foreground/72 md:bottom-7 md:left-7">
               <span>{collection.accent}</span>
               <span className="h-px w-12 bg-couture-red" />
-              <span className="text-couture-red">Accent code</span>
+              <span className="text-couture-red">{accentCodeLabel}</span>
             </figcaption>
           </motion.figure>
 
@@ -305,7 +331,7 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
           >
             <div className="border-y border-foreground/14 py-7 lg:py-8">
               <div className="mb-6 flex items-center gap-4 text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-couture-red">
-                <span>Collection Story</span>
+                <span>{storyEyebrow}</span>
                 <span className="h-px flex-1 bg-current/35" />
               </div>
               <DisplayHeading
@@ -430,8 +456,8 @@ export function CollectionDetail({
       className="collection-detail-experience artifact-shell overflow-x-clip bg-background text-foreground"
     >
       <DetailHero collection={collection} labels={labels} />
-      {collection.manifesto && <ManifestoStrip manifesto={collection.manifesto} />}
-      <CollectionStory collection={collection} />
+      {collection.manifesto && <ManifestoStrip manifesto={collection.manifesto} labels={labels} />}
+      <CollectionStory collection={collection} labels={labels} />
       <CollectionProductsCatalog {...catalog} />
       <NextCollectionTeaser collection={collection} labels={labels} />
     </main>

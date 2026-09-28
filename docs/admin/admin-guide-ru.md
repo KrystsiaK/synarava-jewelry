@@ -362,7 +362,11 @@ legacy cover, пока не загружены изображения галер
   коллекции, подпись одна на страницу, с переводами), **Bottom callout** (eyebrow,
   heading, button label/href) и
   **Collection page buttons** (кнопки под описанием на странице коллекции и
-  в нижнем тизере) и **Products in this collection** (надпись перед названием
+  в нижнем тизере, плюс scroll cue на hero), **Manifesto & story chrome**
+  (общие лейблы секций: manifesto eyebrow / watermark, story eyebrow, accent
+  code label — цитата манифеста и story heading/paragraph редактируются на
+  самой коллекции; декоративные линии и ромб — фиксированный дизайн, не CMS) и
+  **Products in this collection** (надпись перед названием
   коллекции и заголовок сетки товаров). Копирайт локализуется по EN / PT / RU; список коллекций
   общий для языков. Пустая подпись на витрине берёт словарь языка.
 - Страница коллекции `/collections/[slug]` показывает товары этой коллекции
