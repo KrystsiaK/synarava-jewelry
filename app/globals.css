@@ -1678,7 +1678,7 @@ body.admin-mode .artifact-footer {
   --adm-rhythm-5: calc(var(--adm-rhythm) * 5); /* 20px */
   --adm-rhythm-6: calc(var(--adm-rhythm) * 6); /* 24px */
   --adm-inset-x: var(--adm-rhythm-4); /* ONE side gutter inside panels */
-  /* Small-caps field kicker. Help uses the same size so 1cap matches the label. */
+  /* Small-caps field kicker. The help mark uses this same size. */
   --adm-label-size: 0.72rem;
   --adm-band-pad-y: var(--adm-rhythm-3); /* single-row chrome */
   --adm-band-pad-y-lg: var(--adm-rhythm-4); /* multi-line workspace title */
@@ -3336,7 +3336,7 @@ select.adm-field option {
 .adm-label-row {
   display: flex;
   align-items: center;
-  /* Tight to the kicker. The mark is cap-sized, so a wide gap reads as a hole. */
+  /* Tight beside the kicker. The mark matches the label size, so the gap stays short. */
   gap: 0.2rem;
 }
 
@@ -3360,14 +3360,14 @@ select.adm-field option {
   position: relative;
   display: inline-grid;
   place-items: center;
-  /* Label metrics so 1cap matches .adm-label. The box stays under min-h-6. */
+  /* Same em as .adm-label. 1em stays inside the min-h-6 row, so the input top does not move. */
   font-family: var(--font-sans), sans-serif;
   font-size: var(--adm-label-size, 0.72rem);
   font-weight: 700;
   font-style: normal;
   line-height: 1;
-  width: 1cap;
-  height: 1cap;
+  width: 1em;
+  height: 1em;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -3376,10 +3376,10 @@ select.adm-field option {
   cursor: help;
   flex: 0 0 auto;
   /*
-   * The upright i already sits high in its em. Nudge it down onto the cap center.
+   * Share the label baseline. A downward nudge drops the stem below the caps.
    * https://developer.mozilla.org/en-US/docs/Web/CSS/cap
    */
-  transform: translateY(0.03em);
+  transform: none;
   transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1), color 160ms cubic-bezier(0.23, 1, 0.32, 1), transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -3398,16 +3398,27 @@ select.adm-field option {
   font-family: var(--font-playfair, "Iowan Old Style"), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
   font-style: normal;
   font-weight: 700;
-  /* Parent cap is the kicker. Em matches that cap; the upright i reads smaller, the stroke stays heavy. */
-  font-size: 1cap;
-  font-optical-sizing: auto;
+  /*
+   * Same size as .adm-label (about 0.72rem), not the cap and not 1.125rem.
+   * Optical sizing would thin this small mark; keep the full 700 stem.
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/font-optical-sizing
+   */
+  font-size: 1em;
+  font-optical-sizing: none;
   letter-spacing: 0;
   line-height: 1;
   text-transform: none;
+  /*
+   * Heavier than the Hanken 700 kicker. Stroke, not a larger box.
+   * Half the stroke sits outside the outline.
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/text-stroke
+   */
+  -webkit-text-stroke: 0.45px currentColor;
+  paint-order: stroke fill;
 }
 
 .adm-help__trigger:active {
-  transform: translateY(0.03em) scale(0.97);
+  transform: scale(0.97);
 }
 
 .adm-help__trigger:hover,
@@ -5434,7 +5445,7 @@ html[data-theme="light"] .adm-locale-tab:hover:not([data-active="true"]) {
   }
 
   .adm-help__trigger:active {
-    transform: translateY(0.03em);
+    transform: none;
   }
 }
 
