@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { Heart, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { useEphemeralToast } from "@/components/ui/ephemeral-toast";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
@@ -25,11 +26,10 @@ export function WishlistHeartButton({
 }) {
   const { t, locale } = useTranslations();
   const router = useRouter();
-  const errorId = useId();
+  const { pushToast } = useEphemeralToast();
   const hasInteracted = useRef(false);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -58,7 +58,6 @@ export function WishlistHeartButton({
 
     hasInteracted.current = true;
     const next = !saved;
-    setError(null);
     setSaved(next);
     setPending(true);
     try {
@@ -78,14 +77,17 @@ export function WishlistHeartButton({
         if (payload?.requiresLogin) {
           router.push(signInHref(locale));
         } else {
-          setError(payload?.error || t("product.wishlistSaveFailed"));
+          pushToast({
+            message: payload?.error || t("product.wishlistSaveFailed"),
+            tone: "error",
+          });
         }
         return;
       }
       setSaved(Boolean(payload.isSaved));
     } catch {
       setSaved(!next);
-      setError(t("product.wishlistSaveFailed"));
+      pushToast({ message: t("product.wishlistSaveFailed"), tone: "error" });
     } finally {
       setPending(false);
     }
@@ -98,7 +100,6 @@ export function WishlistHeartButton({
         onClick={handleClick}
         disabled={pending}
         aria-busy={pending}
-        aria-describedby={error ? errorId : undefined}
         aria-pressed={saved}
         aria-label={saved ? t("product.removeFromWishlist") : t("product.addToWishlist")}
         className={cn(
@@ -119,24 +120,6 @@ export function WishlistHeartButton({
           {pending ? t("product.saving") : saved ? t("product.saved") : t("product.save")}
         </span>
       </button>
-
-      {error ? (
-        <span
-          id={errorId}
-          role="alert"
-          className="absolute left-0 top-full z-20 mt-3 flex w-[min(18rem,calc(100vw-2.5rem))] items-start gap-3 border border-couture-red/25 bg-background px-4 py-3 text-xs leading-5 text-foreground shadow-[0_14px_36px_rgba(25,24,23,0.12)]"
-        >
-          <span className="min-w-0 flex-1">{error}</span>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            className="-mr-1 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center text-foreground/48 transition-colors hover:text-couture-red motion-reduce:transition-none"
-            aria-label={t("product.dismissWishlistError")}
-          >
-            <X className="size-3.5" aria-hidden="true" />
-          </button>
-        </span>
-      ) : null}
     </span>
   );
 }

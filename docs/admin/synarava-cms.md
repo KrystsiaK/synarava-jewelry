@@ -94,9 +94,13 @@ Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-m
 | `--adm-z-modal-backdrop` | `190` | Modal backdrops |
 | `--adm-z-modal` | `200` | Modals (`AdminModal`, `200`+) |
 | `--adm-z-tooltip` | `280` | Portaled `.ui-tooltip` |
-| `--adm-z-toast` | `600` | `adm-toast-stack` |
+| `--adm-z-toast` | `600` | Shared ephemeral toast stack (admin surface; see [`docs/ui/ephemeral-toast.md`](../ui/ephemeral-toast.md)) |
 
 **Rule:** never elevate `.adm-help` (or other in-flow field chrome) into the popover band — that made info icons paint over open combobox lists. New absolute admin menus must use `.adm-popover` (or `z-index: var(--adm-z-popover)`), not ad-hoc `z-20`.
+
+### Ephemeral toast (not synarava-cms)
+
+Mutation feedback toasts are **shared UI** in `components/ui/ephemeral-toast` — usable from admin and storefront. They are **not** synarava-cms form controls. Admin keeps a thin adapter (`AdminToastProvider` / `useAdminToast` from `components/admin/shared/admin-toast`) so existing call sites keep working. Form-level save banners still use `AdminAlert`. Contract: [`docs/ui/ephemeral-toast.md`](../ui/ephemeral-toast.md).
 
 A string `help` is always that **i**, including when the field has an owner badge. It is never printed into the label row. The name itself is one line (`.adm-label__text`): if it does not fit, it ellipsizes and the full name shows in the shared tooltip. The required mark and the owner badge stay outside the clipped text.
 
@@ -549,6 +553,8 @@ Never put tall follow-on panels inside the same `adm-field-unit` as the absolute
 - Home section visibility switches
 
 When adding a new control type, extend **synarava-cms** first (implementation under `admin/shared`, re-export from `components/synarava-cms`); update this doc and the skill in the same change.
+
+**Not synarava-cms:** cross-surface chrome shared with the storefront (ephemeral toast, storefront modal shell, tooltip) belongs in `components/ui/` — see [`docs/ui/ephemeral-toast.md`](../ui/ephemeral-toast.md) and [`docs/ui-kit.md`](../ui-kit.md).
 
 ## Graphify
 

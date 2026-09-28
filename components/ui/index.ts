@@ -7,6 +7,14 @@ export { DisplayHeading } from "./display-heading";
 export { DividerOrnament } from "./divider-ornament";
 export { EditorialSplitFeature } from "./editorial-split-feature";
 export { EditorialHeading } from "./editorial-heading";
+export {
+  EphemeralToastProvider,
+  useEphemeralToast,
+  MAX_VISIBLE_TOASTS,
+  TOAST_DURATION_MS,
+  enqueueToast,
+} from "./ephemeral-toast";
+export type { EphemeralToastItem, EphemeralToastTone } from "./ephemeral-toast";
 export { FolkBorder, FolkOrnamentBand, FolkSpiderOrnament, KodRoda, Kola, Ziamla } from "./folk-patterns";
 export { InfoList } from "./info-list";
 export { MagneticButton } from "./magnetic-button";

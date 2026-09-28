@@ -8,7 +8,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: navigation.push }),
 }));
 
+import { EphemeralToastProvider } from "@/components/ui/ephemeral-toast";
 import { WishlistHeartButton } from "../wishlist-heart-button";
+
+function renderWishlist(ui: React.ReactElement) {
+  return render(<EphemeralToastProvider>{ui}</EphemeralToastProvider>);
+}
 
 describe("WishlistHeartButton", () => {
   beforeEach(() => {
@@ -20,7 +25,7 @@ describe("WishlistHeartButton", () => {
     const user = userEvent.setup();
     window.history.replaceState({}, "", "/en/products/pearl-necklace?finish=gold");
 
-    render(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn={false} />);
+    renderWishlist(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn={false} />);
     await user.click(screen.getByRole("button", { name: "Save to wishlist" }));
 
     expect(navigation.push).toHaveBeenCalledWith(
@@ -38,7 +43,7 @@ describe("WishlistHeartButton", () => {
         { status: 400 },
       ));
 
-    render(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn />);
+    renderWishlist(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: "Save to wishlist" }));
 
@@ -56,7 +61,7 @@ describe("WishlistHeartButton", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, isSaved: false })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, isSaved: true })));
 
-    render(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn />);
+    renderWishlist(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: "Save to wishlist" }));
 
@@ -74,7 +79,7 @@ describe("WishlistHeartButton", () => {
       .mockReturnValueOnce(initialLookup)
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, isSaved: true })));
 
-    render(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn />);
+    renderWishlist(<WishlistHeartButton productSlug="pearl-necklace" isSignedIn />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: "Save to wishlist" }));
     expect(await screen.findByRole("button", { name: "Remove from wishlist" })).toHaveTextContent("Saved");

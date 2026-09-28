@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { WebVitalsReporter } from "@/components/telemetry/web-vitals-reporter";
 import { PrivacyConsentManager } from "@/components/privacy/privacy-consent-manager";
+import { EphemeralToastProvider } from "@/components/ui/ephemeral-toast";
 import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
@@ -223,13 +224,15 @@ export default async function RootLayout({
                 ProductCard, CartShell, ShopFooter) that never checks useReducedMotion()
                 itself — a per-component audit isn't needed for new motion usage either. */}
             <MotionConfig reducedMotion="user">
-              <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} headerNav={headerNav} />
-              <div id="main-content" tabIndex={-1}>{children}</div>
-              <SiteFooter
-                headerNav={headerNav}
-                footerLinks={footerLinks}
-                contactEmails={contactEmails}
-              />
+              <EphemeralToastProvider surface="storefront">
+                <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} headerNav={headerNav} />
+                <div id="main-content" tabIndex={-1}>{children}</div>
+                <SiteFooter
+                  headerNav={headerNav}
+                  footerLinks={footerLinks}
+                  contactEmails={contactEmails}
+                />
+              </EphemeralToastProvider>
             </MotionConfig>
           </ThemeProvider>
         </TranslationProvider>

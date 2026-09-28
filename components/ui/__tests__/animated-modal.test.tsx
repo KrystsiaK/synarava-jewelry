@@ -60,9 +60,9 @@ describe("AnimatedModal", () => {
     expect(onChildAction).toHaveBeenCalledOnce();
   });
 
-  it("does not make the admin toast portal inert while a modal is open", () => {
+  it("does not make the ephemeral toast portal inert while a modal is open", () => {
     const toastRoot = document.createElement("div");
-    toastRoot.dataset.adminToastRoot = "true";
+    toastRoot.dataset.ephemeralToastRoot = "true";
     toastRoot.innerHTML = '<button type="button">Close notification</button>';
     document.body.append(toastRoot);
 

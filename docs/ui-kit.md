@@ -109,6 +109,18 @@ The admin should reuse the same foundations, but with denser information:
 - `StatusBadge`
 - `PermissionMatrix`
 
+Admin **form** controls live in **synarava-cms** (`@/components/synarava-cms`) — not in this storefront UI kit. See [`docs/admin/synarava-cms.md`](./admin/synarava-cms.md).
+
+Cross-surface chrome that both admin and storefront need (e.g. ephemeral toast) lives in `components/ui/` — see [`docs/ui/ephemeral-toast.md`](./ui/ephemeral-toast.md). Do not put shared toasts inside synarava-cms.
+
 ## Implementation rule
 
 Before building pages, implement primitives first and compose screens from them. If a page needs a unique visual pattern, promote it into a reusable component instead of embedding raw markup into one page file.
+
+### Where new UI goes
+
+| Need | Put it in |
+|------|-----------|
+| Admin form field / panel / list chrome | synarava-cms (`components/admin/shared` + re-export) |
+| Shared admin+storefront surface (toast, modal shell, tooltip) | `components/ui/` |
+| Storefront-only editorial section | feature folder under `components/` (`home/`, `shop/`, …) composing `components/ui` primitives |

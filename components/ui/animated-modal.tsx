@@ -34,6 +34,7 @@ function releaseDocumentLocksIfIdle() {
       element instanceof HTMLElement
       && element.dataset.animatedModalRoot !== "true"
       && element.dataset.adminToastRoot !== "true"
+      && element.dataset.ephemeralToastRoot !== "true"
     ) {
       element.inert = false;
     }
@@ -44,7 +45,8 @@ function isLockableBackground(element: Element, modalRoot: HTMLElement | null): 
   return element instanceof HTMLElement
     && element !== modalRoot
     && element.dataset.animatedModalRoot !== "true"
-    && element.dataset.adminToastRoot !== "true";
+    && element.dataset.adminToastRoot !== "true"
+    && element.dataset.ephemeralToastRoot !== "true";
 }
 
 function transitionDuration(variable: string, fallback: number) {
