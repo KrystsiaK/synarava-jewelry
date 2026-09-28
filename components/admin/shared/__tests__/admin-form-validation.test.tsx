@@ -82,6 +82,38 @@ describe("useAdminFormValidation", () => {
     expect(screen.getByRole("textbox", { name: "First field" })).not.toHaveAttribute("aria-invalid", "true");
   });
 
+  it("scrolls to the visible validation anchor instead of a hidden mirror", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    function AnchoredForm() {
+      const formRef = useRef<HTMLFormElement>(null);
+      const validation = useAdminFormValidation<"manifesto">({ formRef });
+      return (
+        <form ref={formRef}>
+          <input type="hidden" name="manifesto" value="" />
+          <div data-validation-for="manifesto">
+            <button type="button">Edit Manifesto</button>
+          </div>
+          <button type="button" onClick={() => validation.showFieldErrors({ manifesto: "Manifesto is required." })}>
+            Show manifesto error
+          </button>
+        </form>
+      );
+    }
+
+    render(<AnchoredForm />);
+    await user.click(screen.getByRole("button", { name: "Show manifesto error" }));
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+    });
+    expect(scrollIntoView.mock.instances[0]).toBe(
+      document.querySelector("[data-validation-for='manifesto']"),
+    );
+  });
+
   it("focuses server errors in form order rather than object-key order", async () => {
     const user = userEvent.setup();
     HTMLElement.prototype.scrollIntoView = vi.fn();

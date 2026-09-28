@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -19,7 +19,18 @@ beforeEach(() => {
   mocks.autosaveCollectionDraftAction.mockResolvedValue({});
   URL.createObjectURL = vi.fn(() => "blob:mock");
   URL.revokeObjectURL = vi.fn();
+  HTMLElement.prototype.scrollIntoView = vi.fn();
 });
+
+async function applyLongText(user: ReturnType<typeof userEvent.setup>, label: string, value: string) {
+  await user.click(screen.getByRole("button", { name: `Edit ${label}` }));
+  const dialog = await screen.findByRole("dialog");
+  const editor = within(dialog).getByRole("textbox", { name: label });
+  await user.clear(editor);
+  await user.type(editor, value);
+  await user.click(within(dialog).getByRole("button", { name: "Apply changes" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+}
 
 describe("CreateCollectionForm", () => {
   it("renders the required fields and auto-fills slug/code from the name", async () => {
@@ -46,26 +57,16 @@ describe("CreateCollectionForm", () => {
     await user.type(screen.getByLabelText(/^Name\*/), "Lava Heritage");
     const heroImageInput = container.querySelector<HTMLInputElement>('input[name="heroImageFile"]');
     expect(heroImageInput).not.toBeNull();
+    expect(heroImageInput).not.toBeRequired();
     await user.upload(
       heroImageInput!,
       new File(["image"], "hero.png", { type: "image/png" }),
     );
     expect(heroImageInput!.files).toHaveLength(1);
     expect(heroImageInput!.files?.[0]?.name).toBe("hero.png");
-    // JSDOM keeps a required file input invalid even after userEvent attaches a
-    // File. The assertions above cover the upload; disable only that incomplete
-    // validity implementation so requestSubmit can exercise the React action.
-    heroImageInput!.required = false;
-    await user.type(screen.getByLabelText(/^Collection summary\*/), "A collection summary.");
-    await user.type(screen.getByLabelText(/^Manifesto\*/), "A collection manifesto.");
-    await user.type(screen.getByLabelText(/^Search summary\*/), "A search summary.");
-
-    const invalidRequiredFields = Array.from(
-      container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[required]"),
-    )
-      .filter((field) => !field.checkValidity())
-      .map((field) => field.name);
-    expect(invalidRequiredFields).toEqual([]);
+    await applyLongText(user, "Collection summary", "A collection summary.");
+    await applyLongText(user, "Manifesto", "A collection manifesto.");
+    await applyLongText(user, "Search summary", "A search summary.");
 
     await user.click(screen.getByRole("button", { name: "Save collection" }));
     await user.click(await screen.findByRole("button", { name: "Create collection" }));

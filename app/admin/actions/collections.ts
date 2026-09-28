@@ -21,6 +21,7 @@ import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runCollectionConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import { writeThroughLocalCollectionToProjection } from "@/lib/shopify/collection-commerce-projection";
+import { validateCollectionInput, type CollectionFieldName } from "@/lib/admin/collection-form-validation";
 import {
   createDraftToken,
   hasMeaningfulDraftInput,
@@ -28,6 +29,8 @@ import {
   writeAuditLog,
   type DraftAutosaveResult,
 } from "./shared";
+
+export type { CollectionFieldName };
 
 export type CollectionActionState = {
   error?: string;
@@ -38,16 +41,6 @@ export type CollectionActionState = {
   collections?: SavedCollectionPayload[];
   deletedCollectionId?: string;
 };
-
-export type CollectionFieldName =
-  | "name"
-  | "slug"
-  | "code"
-  | "description"
-  | "manifesto"
-  | "searchSummary"
-  | "workflowState"
-  | "heroImageFile";
 
 export type SavedCollectionTranslationPayload = {
   id: string;
@@ -156,55 +149,8 @@ export async function getSavedCollectionPayload(collectionId: string): Promise<S
   return collection;
 }
 
-function validateCollectionInput(input: {
-  name: string;
-  slug: string;
-  code: string;
-  description: string;
-  manifesto: string;
-  searchSummary: string;
-  workflowState: string;
-  hasHeroImage: boolean;
-}) {
-  const fieldErrors: Partial<Record<CollectionFieldName, string>> = {};
-
-  if (!input.name) {
-    fieldErrors.name = "Collection name is required.";
-  }
-
-  if (!input.slug) {
-    fieldErrors.slug = "Slug is required.";
-  }
-
-  if (!input.code) {
-    fieldErrors.code = "Collection code is required.";
-  }
-
-  if (!input.description) {
-    fieldErrors.description = "Collection summary is required.";
-  }
-
-  if (!input.manifesto) {
-    fieldErrors.manifesto = "Manifesto is required.";
-  }
-
-  if (!input.searchSummary) {
-    fieldErrors.searchSummary = "Search summary is required.";
-  }
-
-  if (!input.hasHeroImage) {
-    fieldErrors.heroImageFile = "Hero image is required.";
-  }
-
-  if (input.workflowState !== "DRAFT" && input.workflowState !== "PUBLISHED") {
-    fieldErrors.workflowState = "Choose Draft or Published.";
-  }
-
-  return fieldErrors;
-}
-
-// Requiredness for these fields is reported per-field (see
-// validateCollectionInput's fieldErrors), not as a single pass/fail, so
+// Requiredness is reported per-field (see validateCollectionInput), not as a
+// single pass/fail, so
 // this schema only extracts and trims — it deliberately has no `.min(1)`
 // of its own.
 const collectionFieldsSchema = z.object({

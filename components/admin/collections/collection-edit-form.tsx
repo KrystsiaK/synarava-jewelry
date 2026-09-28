@@ -15,10 +15,8 @@ import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
-import {
-  openConfirmIfFormValid,
-  submitFormAfterConfirmClose,
-} from "@/components/admin/shared/submit-after-confirm";
+import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
+import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
 import { AdminAlert } from "@/components/synarava-cms";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -134,6 +132,7 @@ export function EditCollectionForm({
   const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
   const [draft, setDraft] = useState<CollectionDraft>(() => collectionToDraft(collection, translationLocales.map((l) => l.code)));
   const formRef = useRef<HTMLFormElement>(null);
+  const validation = useCollectionFormValidation(formRef);
   const fileInputKey = collection.heroImageUrl ?? collection.id;
   const { pushToast } = useAdminToast();
   const [codeLocked, setCodeLocked] = useState(Boolean(collection.code?.trim()));
@@ -190,6 +189,7 @@ export function EditCollectionForm({
       const nextState = await saveCollectionAction(initialState, formData);
       setState(nextState);
       setConfirmOpen(false);
+      validation.showFieldErrors(nextState.fieldErrors ?? {});
       if (nextState.error) pushToast({ message: nextState.error, tone: "error" });
       if (nextState.success) pushToast({ message: nextState.success, tone: "success" });
       if (nextState.collection) {
@@ -262,7 +262,7 @@ export function EditCollectionForm({
           </AdminHelp>
         </div>
 
-        <form ref={formRef} action={formAction} className="grid gap-4">
+        <form ref={formRef} action={formAction} noValidate className="grid gap-4">
           <input type="hidden" name="collectionId" value={collection.id} />
           <input
             type="hidden"
@@ -277,7 +277,8 @@ export function EditCollectionForm({
               updateDraft(key, value);
             }}
             onChangeTranslation={updateDraftTranslation}
-            fieldErrors={state.fieldErrors}
+            fieldErrors={validation.fieldErrors}
+            onFieldEdit={validation.clearFieldError}
             currentHeroImageUrl={collection.heroImageUrl}
             currentHeroImageLabel={collection.name}
             fileInputKey={fileInputKey}
@@ -307,7 +308,7 @@ export function EditCollectionForm({
               type="button"
               disabled={isPending}
               className="adm-btn-primary"
-              onClick={() => openConfirmIfFormValid(formRef.current, () => setConfirmOpen(true))}
+              onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
             >
               {submitLabel("Update collection", isPending, "Saving...")}
             </button>

@@ -16,6 +16,8 @@ type ImageFileFieldProps = {
   previewAspect?: "square" | "video";
   removeFieldName?: string;
   removeLabel?: string;
+  onFileChange?: (file: File | null) => void;
+  onRemoveChange?: (removing: boolean) => void;
   "aria-invalid"?: boolean;
 };
 
@@ -38,6 +40,8 @@ export function ImageFileField({
   previewAspect = "square",
   removeFieldName,
   removeLabel = "Remove current image",
+  onFileChange,
+  onRemoveChange,
   "aria-invalid": ariaInvalid,
 }: ImageFileFieldProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -53,6 +57,26 @@ export function ImageFileField({
         URL.revokeObjectURL(previewUrlRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    const form = inputRef.current?.form;
+    if (!form) return;
+
+    // A resolved form action resets uncontrolled file inputs. Drop the preview
+    // with them so the card cannot show a file the next save will not send.
+    function handleReset() {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = "";
+      }
+      setSelectedFile(null);
+      setPreviewUrl("");
+      setRemoveCurrentImage(false);
+    }
+
+    form.addEventListener("reset", handleReset);
+    return () => form.removeEventListener("reset", handleReset);
   }, []);
 
   function updateSelectedFile(file: File | null) {
@@ -82,10 +106,15 @@ export function ImageFileField({
     if (inputRef.current) {
       inputRef.current.value = "";
     }
+    onFileChange?.(null);
   }
 
   function toggleRemoveCurrentImage() {
-    setRemoveCurrentImage((current) => !current);
+    setRemoveCurrentImage((current) => {
+      const next = !current;
+      onRemoveChange?.(next);
+      return next;
+    });
     clearSelectedFile();
   }
 
@@ -106,7 +135,9 @@ export function ImageFileField({
         className={className}
         aria-invalid={ariaInvalid}
         onChange={(event) => {
-          updateSelectedFile(event.target.files?.[0] ?? null);
+          const file = event.target.files?.[0] ?? null;
+          updateSelectedFile(file);
+          onFileChange?.(file);
         }}
       />
 

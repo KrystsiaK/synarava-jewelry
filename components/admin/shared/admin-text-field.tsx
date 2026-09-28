@@ -162,6 +162,7 @@ export type AdminTextFieldProps = InputProps & {
   invalid?: boolean;
   className?: string;
   unitId?: string;
+  validationName?: string;
   issue?: ReactNode;
   inputClassName?: string;
   startAdornment?: ReactNode;
@@ -187,6 +188,7 @@ export function AdminTextField({
   disabled,
   className,
   unitId,
+  validationName,
   issue,
   inputClassName,
   startAdornment,
@@ -215,6 +217,7 @@ export function AdminTextField({
       disabled={disabled}
       className={className}
       controlId={controlId}
+      validationName={validationName}
     >
       <AdminTextControl
         {...inputProps}

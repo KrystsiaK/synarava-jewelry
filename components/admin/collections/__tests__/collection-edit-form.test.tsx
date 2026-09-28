@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -80,7 +80,20 @@ beforeEach(() => {
   // tests sharing a slug would otherwise leak their tab state across `it()` blocks.
   sessionStorage.clear();
   window.history.replaceState(null, "", "/admin/collections/collection-1");
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+  URL.createObjectURL = vi.fn(() => "blob:mock");
+  URL.revokeObjectURL = vi.fn();
 });
+
+async function applyLongText(user: ReturnType<typeof userEvent.setup>, label: string, value: string) {
+  await user.click(screen.getByRole("button", { name: `Edit ${label}` }));
+  const dialog = await screen.findByRole("dialog");
+  const editor = within(dialog).getByRole("textbox", { name: label });
+  await user.clear(editor);
+  await user.type(editor, value);
+  await user.click(within(dialog).getByRole("button", { name: "Apply changes" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+}
 
 function longTextPreview(label: string | RegExp) {
   const button = screen.getByRole("button", {
@@ -157,6 +170,88 @@ describe("EditCollectionForm", () => {
     // Both locales' real values are always in the hidden fields the server reads.
     expect(container.querySelector<HTMLInputElement>('input[type="hidden"][name="name"]')?.value).toBe("Wanderlust");
     expect(container.querySelector<HTMLInputElement>('input[type="hidden"][name="ptName"]')?.value).toBe("Rituais de Verão");
+  });
+
+  it("clears manifesto and search summary errors once those fields are filled", async () => {
+    const user = userEvent.setup();
+    const reportValidity = vi.spyOn(HTMLFormElement.prototype, "reportValidity");
+    render(<EditCollectionForm collection={makeCollection({
+      manifesto: "",
+      searchSummary: "",
+    })} />);
+
+    await user.click(screen.getByRole("button", { name: "Update collection" }));
+
+    expect(screen.getByText("Manifesto is required.")).toBeInTheDocument();
+    expect(screen.getByText("Search summary is required.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save collection" })).not.toBeInTheDocument();
+    expect(mocks.saveCollectionAction).not.toHaveBeenCalled();
+    expect(reportValidity).not.toHaveBeenCalled();
+
+    await applyLongText(user, "Manifesto", "A collection manifesto.");
+    await applyLongText(user, "Search summary", "A search summary.");
+
+    expect(screen.queryByText("Manifesto is required.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Search summary is required.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Update collection" }));
+    expect(await screen.findByRole("button", { name: "Save collection" })).toBeInTheDocument();
+    expect(screen.queryByText("Hero image is required.")).not.toBeInTheDocument();
+  });
+
+  it("accepts a chosen hero file and does not ask to select the current image again", async () => {
+    const user = userEvent.setup();
+    const reportValidity = vi.spyOn(HTMLFormElement.prototype, "reportValidity");
+    const { container } = render(<EditCollectionForm collection={makeCollection({
+      heroImageUrl: null,
+    })} />);
+
+    const heroImageInput = container.querySelector<HTMLInputElement>('input[name="heroImageFile"]');
+    expect(heroImageInput).not.toBeRequired();
+    await user.upload(
+      heroImageInput!,
+      new File(["image"], "hero.png", { type: "image/png" }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Update collection" }));
+
+    expect(screen.queryByText("Hero image is required.")).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Save collection" })).toBeInTheDocument();
+    expect(reportValidity).not.toHaveBeenCalled();
+  });
+
+  it("asks for a hero image on the image field when none is saved or chosen", async () => {
+    const user = userEvent.setup();
+    render(<EditCollectionForm collection={makeCollection({ heroImageUrl: null })} />);
+
+    await user.click(screen.getByRole("button", { name: "Update collection" }));
+
+    expect(screen.getByText("Hero image is required.")).toBeInTheDocument();
+    expect(document.querySelector("[data-validation-for='heroImageFile']")).toContainElement(
+      screen.getByText("Hero image is required."),
+    );
+    expect(screen.queryByRole("button", { name: "Save collection" })).not.toBeInTheDocument();
+  });
+
+  it("drops the selected-image preview when the form resets the file input", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<EditCollectionForm collection={makeCollection({
+      heroImageUrl: null,
+    })} />);
+    const heroImageInput = container.querySelector<HTMLInputElement>('input[name="heroImageFile"]');
+    await user.upload(
+      heroImageInput!,
+      new File(["image"], "hero.png", { type: "image/png" }),
+    );
+    expect(screen.getByText("Selected image")).toBeInTheDocument();
+
+    act(() => {
+      container.querySelector("form")!.reset();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Selected image")).not.toBeInTheDocument();
+    });
   });
 
   it("saves through saveCollectionAction when the existing hero image is kept", async () => {

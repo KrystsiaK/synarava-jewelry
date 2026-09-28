@@ -1,8 +1,11 @@
 "use client";
 
-import type { CollectionFieldName } from "@/app/admin/actions/collections";
+import { useEffect } from "react";
+
+import type { CollectionFieldName } from "@/lib/admin/collection-form-validation";
 import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import { AdminFieldError } from "@/components/admin/shared/admin-form-validation";
+import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
@@ -60,7 +63,7 @@ export function WorkflowStateField({
   ];
 
   return (
-    <div id="field-workflowState" data-component="WorkflowStateField" className="grid gap-2">
+    <div id="field-workflowState" data-component="WorkflowStateField" data-validation-for="workflowState" className="grid gap-2">
       <p className="adm-label-row">
         <span className="adm-section-tag">[ SITE STATE ]</span>
         <AdminHelp label="Site state guidance">
@@ -155,6 +158,7 @@ export function CollectionFields({
   onChange,
   onChangeTranslation,
   fieldErrors,
+  onFieldEdit,
   currentHeroImageUrl,
   currentHeroImageLabel,
   fileInputKey,
@@ -166,6 +170,8 @@ export function CollectionFields({
   onChange: <K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) => void;
   onChangeTranslation: <K extends keyof CollectionLocaleDraft>(locale: string, key: K, value: CollectionLocaleDraft[K]) => void;
   fieldErrors?: Partial<Record<CollectionFieldName, string>>;
+  /** Clears that field's error as soon as the operator edits it. */
+  onFieldEdit?: (name: CollectionFieldName) => void;
   currentHeroImageUrl?: string | null;
   currentHeroImageLabel?: string;
   fileInputKey?: string | number;
@@ -178,6 +184,14 @@ export function CollectionFields({
   const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
   const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, tabs);
   const isEn = locale === SOURCE_LOCALE;
+
+  useEffect(() => {
+    if (!fieldErrors) return;
+    const forced = localeOfFirstError(fieldErrors, translationLocales.map((item) => item.code));
+    if (forced) selectLocale(forced);
+    // selectLocale identity changes with the tab list; errors are the signal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldErrors]);
   const active = isEn ? null : draft.translations[locale] ?? EMPTY_TRANSLATION;
   const activeLabel = tabs.find((tab) => tab.code === locale)?.label ?? locale;
   const heroIssues = issues.filter(
@@ -203,8 +217,17 @@ export function CollectionFields({
         <AdminTextField
           label="Name"
           required={isEn}
+          unitId="field-name"
+          validationName="name"
           value={isEn ? draft.name : active!.name}
-          onChange={(e) => (isEn ? onChange("name", e.target.value) : updateActiveTranslation("name", e.target.value))}
+          onChange={(e) => {
+            if (isEn) {
+              onChange("name", e.target.value);
+              onFieldEdit?.("name");
+            } else {
+              updateActiveTranslation("name", e.target.value);
+            }
+          }}
           error={isEn ? fieldErrors?.name : undefined}
           placeholder={isEn ? "Earth Rituals" : "Optional — shows the English name until filled in."}
         />
@@ -227,9 +250,14 @@ export function CollectionFields({
           label="Slug"
           name="slug"
           required
+          unitId="field-slug"
+          validationName="slug"
           help="Auto-generated from the collection name until you edit it manually. Keep it short, lowercase, and URL-friendly."
           value={draft.slug}
-          onChange={(e) => onChange("slug", e.target.value)}
+          onChange={(e) => {
+            onChange("slug", e.target.value);
+            onFieldEdit?.("slug");
+          }}
           error={fieldErrors?.slug}
           placeholder="earth-rituals"
         />
@@ -238,9 +266,14 @@ export function CollectionFields({
           label="Accent code"
           name="code"
           required
+          unitId="field-code"
+          validationName="code"
           help="Short collection code used in site views and admin references."
           value={draft.code}
-          onChange={(e) => onChange("code", e.target.value)}
+          onChange={(e) => {
+            onChange("code", e.target.value);
+            onFieldEdit?.("code");
+          }}
           error={fieldErrors?.code}
           placeholder="COL-01"
         />
@@ -253,7 +286,10 @@ export function CollectionFields({
       >
         <WorkflowStateField
           value={draft.workflowState}
-          onChange={(value) => onChange("workflowState", value)}
+          onChange={(value) => {
+            onChange("workflowState", value);
+            onFieldEdit?.("workflowState");
+          }}
           error={fieldErrors?.workflowState}
         />
       </div>
@@ -267,6 +303,7 @@ export function CollectionFields({
         <section
           id="field-heroImageUrl"
           data-component="CollectionHeroField"
+          data-validation-for="heroImageFile"
           className="grid gap-2"
           style={
             hasHeroIssues
@@ -289,7 +326,6 @@ export function CollectionFields({
           <ImageFileField
             key={fileInputKey}
             name="heroImageFile"
-            required={!currentHeroImageUrl}
             className={fieldClass(fieldErrors?.heroImageFile ?? (hasHeroIssues ? "broken" : undefined))}
             aria-invalid={Boolean(fieldErrors?.heroImageFile) || hasHeroIssues}
             currentImageUrl={currentHeroImageUrl}
@@ -298,6 +334,12 @@ export function CollectionFields({
             previewAspect="video"
             removeFieldName="removeHeroImage"
             removeLabel="Remove"
+            onFileChange={(file) => {
+              if (file && file.size > 0) onFieldEdit?.("heroImageFile");
+            }}
+            onRemoveChange={(removing) => {
+              if (!removing && currentHeroImageUrl) onFieldEdit?.("heroImageFile");
+            }}
           />
           <FieldError message={fieldErrors?.heroImageFile} />
         </section>
@@ -306,8 +348,17 @@ export function CollectionFields({
       <AdminLongTextField
         label="Collection summary"
         required={isEn}
+        unitId="field-description"
+        validationName="description"
         value={isEn ? draft.description : active!.description}
-        onChange={(value) => (isEn ? onChange("description", value) : updateActiveTranslation("description", value))}
+        onChange={(value) => {
+          if (isEn) {
+            onChange("description", value);
+            onFieldEdit?.("description");
+          } else {
+            updateActiveTranslation("description", value);
+          }
+        }}
         error={isEn ? fieldErrors?.description : undefined}
         rows={3}
         placeholder={isEn ? "This text appears on the collection card and collection hero." : "Optional — shows the English summary until filled in."}
@@ -316,8 +367,17 @@ export function CollectionFields({
       <AdminLongTextField
         label="Manifesto"
         required={isEn}
+        unitId="field-manifesto"
+        validationName="manifesto"
         value={isEn ? draft.manifesto : active!.manifesto}
-        onChange={(value) => (isEn ? onChange("manifesto", value) : updateActiveTranslation("manifesto", value))}
+        onChange={(value) => {
+          if (isEn) {
+            onChange("manifesto", value);
+            onFieldEdit?.("manifesto");
+          } else {
+            updateActiveTranslation("manifesto", value);
+          }
+        }}
         error={isEn ? fieldErrors?.manifesto : undefined}
         rows={4}
         placeholder={isEn ? "This text powers the manifesto strip on the collection page." : "Optional — shows the English manifesto until filled in."}
@@ -326,8 +386,17 @@ export function CollectionFields({
       <AdminLongTextField
         label="Search summary"
         required={isEn}
+        unitId="field-searchSummary"
+        validationName="searchSummary"
         value={isEn ? draft.searchSummary : active!.searchSummary}
-        onChange={(value) => (isEn ? onChange("searchSummary", value) : updateActiveTranslation("searchSummary", value))}
+        onChange={(value) => {
+          if (isEn) {
+            onChange("searchSummary", value);
+            onFieldEdit?.("searchSummary");
+          } else {
+            updateActiveTranslation("searchSummary", value);
+          }
+        }}
         error={isEn ? fieldErrors?.searchSummary : undefined}
         rows={2}
         placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}

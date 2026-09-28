@@ -52,11 +52,25 @@ export function collectNativeFieldErrors(form: HTMLFormElement): AdminFieldError
 }
 
 export function focusFirstInvalidField(form: HTMLFormElement, fieldErrors: AdminFieldErrors) {
-  const invalidNames = new Set(Object.keys(fieldErrors));
-  if (invalidNames.size === 0) return;
+  const invalidNames = Object.keys(fieldErrors);
+  if (invalidNames.length === 0) return;
 
+  // Visible unit wins over a hidden mirror with the same name. Hidden inputs
+  // are excluded from constraint validation and scroll to the top of the form.
+  for (const name of invalidNames) {
+    const anchor = form.querySelector<HTMLElement>(`[data-validation-for="${CSS.escape(name)}"]`);
+    if (anchor) {
+      scrollAdminFieldIntoView(anchor);
+      return;
+    }
+  }
+
+  const invalidNameSet = new Set(invalidNames);
   const field = Array.from(form.elements).find(
-    (element): element is ValidatableField => isValidatableField(element) && invalidNames.has(element.name),
+    (element): element is ValidatableField =>
+      isValidatableField(element)
+      && invalidNameSet.has(element.name)
+      && element.type !== "hidden",
   );
   if (!field) return;
 

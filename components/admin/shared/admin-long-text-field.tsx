@@ -32,6 +32,7 @@ export type AdminLongTextFieldProps = {
   disabled?: boolean;
   className?: string;
   unitId?: string;
+  validationName?: string;
   id?: string;
   /** Extra classes for the modal editor (e.g. font-mono for Markdown). */
   editorClassName?: string;
@@ -62,6 +63,7 @@ export function AdminLongTextField({
   disabled = false,
   className,
   unitId,
+  validationName,
   id,
   editorClassName,
 }: AdminLongTextFieldProps) {
@@ -133,6 +135,7 @@ export function AdminLongTextField({
       disabled={disabled}
       className={cn("w-full min-w-0", className)}
       controlId={controlId}
+      validationName={validationName}
     >
       {name ? (
         <textarea

@@ -11,10 +11,8 @@ import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal
 import { AdminAlert } from "@/components/synarava-cms";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import {
-  openConfirmIfFormValid,
-  submitFormAfterConfirmClose,
-} from "@/components/admin/shared/submit-after-confirm";
+import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
+import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { slugify } from "@/lib/text/slug";
 import { CollectionFields } from "@/components/admin/collections/collection-fields";
@@ -40,6 +38,7 @@ export function CreateCollectionForm({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [draftId, setDraftId] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const validation = useCollectionFormValidation(formRef);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [slugLocked, setSlugLocked] = useState(false);
   const [codeLocked, setCodeLocked] = useState(false);
@@ -63,6 +62,7 @@ export function CreateCollectionForm({
       const nextState = await saveCollectionAction(initialState, formData);
       setState(nextState);
       setConfirmOpen(false);
+      validation.showFieldErrors(nextState.fieldErrors ?? {});
       if (nextState.error) pushToast({ message: nextState.error, tone: "error" });
       if (nextState.success) pushToast({ message: nextState.success, tone: "success" });
 
@@ -101,7 +101,7 @@ export function CreateCollectionForm({
 
   return (
     <>
-      <form ref={formRef} action={formAction} className="adm-panel grid gap-4 p-5">
+      <form ref={formRef} action={formAction} noValidate className="adm-panel grid gap-4 p-5">
         <input type="hidden" name="collectionId" value={draftId} />
         <div
           className="flex items-center justify-between gap-4 pb-4"
@@ -122,7 +122,7 @@ export function CreateCollectionForm({
             type="button"
             disabled={isPending}
             className="adm-btn-primary"
-            onClick={() => openConfirmIfFormValid(formRef.current, () => setConfirmOpen(true))}
+            onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
           >
             {submitLabel("Save collection", isPending, "Saving...")}
           </button>
@@ -146,7 +146,8 @@ export function CreateCollectionForm({
             ...current,
             translations: { ...current.translations, [locale]: { ...current.translations[locale], [key]: value } },
           }))}
-          fieldErrors={state.fieldErrors}
+          fieldErrors={validation.fieldErrors}
+          onFieldEdit={validation.clearFieldError}
           fileInputKey={fileInputKey}
           translationLocales={translationLocales}
         />

@@ -29,6 +29,8 @@ export type AdminFieldShellProps = {
   disabled?: boolean;
   className?: string;
   controlId: string;
+  /** Scroll target for useAdminFormValidation. Matches the submitted field name. */
+  validationName?: string;
   children: ReactNode;
   /** data-component value for the shell. */
   component?: string;
@@ -49,6 +51,7 @@ export function AdminFieldShell({
   disabled = false,
   className,
   controlId,
+  validationName,
   children,
   component = "AdminFieldShell",
 }: AdminFieldShellProps) {
@@ -70,6 +73,7 @@ export function AdminFieldShell({
       id={id}
       data-component={component}
       data-disabled={disabled ? "true" : "false"}
+      data-validation-for={validationName}
       className={cn("adm-field-unit", disabled ? "pointer-events-none opacity-55" : null, className)}
     >
       {labelNode ? <label htmlFor={controlId}>{labelNode}</label> : null}
