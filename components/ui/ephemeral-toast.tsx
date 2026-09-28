@@ -7,7 +7,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -15,26 +14,26 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/ui";
+import { TOAST_DURATION_MS, type EphemeralToastItem, type EphemeralToastTone } from "./ephemeral-toast-queue";
 import {
-  dismissToast,
-  enqueueToast,
-  TOAST_DURATION_MS,
-  type EphemeralToastItem,
-  type EphemeralToastTone,
-} from "./ephemeral-toast-queue";
+  dismissToastFromStore,
+  getToastStoreServerSnapshot,
+  getToastStoreSnapshot,
+  pushToastToStore,
+  registerAdminToastSurface,
+  subscribeToastStore,
+  type PushToastInput,
+  type ToastSurface,
+} from "./ephemeral-toast-store";
 
 export type { EphemeralToastItem, EphemeralToastTone };
 export { MAX_VISIBLE_TOASTS, TOAST_DURATION_MS, enqueueToast } from "./ephemeral-toast-queue";
+export { pushToastToStore as enqueueToastToStore } from "./ephemeral-toast-store";
 
 const emptySubscribe = () => () => undefined;
 
 /** Close open help/action tooltips so they do not compete with Save feedback. */
 export const EPHEMERAL_TOAST_EVENT = "synarava:ephemeral-toast";
-
-type PushToastInput = {
-  message: string;
-  tone: EphemeralToastTone;
-};
 
 type EphemeralToastContextValue = {
   pushToast: (input: PushToastInput) => void;
@@ -43,12 +42,6 @@ type EphemeralToastContextValue = {
 const EphemeralToastContext = createContext<EphemeralToastContextValue>({
   pushToast: () => undefined,
 });
-
-type Surface = "storefront" | "admin";
-
-function createToastId() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 function announceToast() {
   if (typeof window === "undefined") return;
@@ -118,36 +111,20 @@ function EphemeralToastCard({
   );
 }
 
-export function EphemeralToastProvider({
-  children,
-  surface = "storefront",
-}: {
-  children: ReactNode;
-  surface?: Surface;
-}) {
-  const [toasts, setToasts] = useState<EphemeralToastItem[]>([]);
+function EphemeralToastHost() {
+  const { toasts, surface } = useSyncExternalStore(
+    subscribeToastStore,
+    getToastStoreSnapshot,
+    getToastStoreServerSnapshot,
+  );
   // Client-only portal mount without setState-in-effect (React docs: useSyncExternalStore).
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
-  const pushToast = useCallback((input: PushToastInput) => {
-    const message = input.message.trim();
-    if (!message) return;
-    const item: EphemeralToastItem = {
-      id: createToastId(),
-      message,
-      tone: input.tone,
-    };
-    // Dismiss Save/icon tooltips first — confirm-modal focus return otherwise
-    // opens the button tooltip and steals attention from the toast.
-    announceToast();
-    setToasts((current) => enqueueToast(current, item));
-  }, []);
-
   const removeToast = useCallback((id: string) => {
-    setToasts((current) => dismissToast(current, id));
+    dismissToastFromStore(id);
   }, []);
 
-  const value = useMemo(() => ({ pushToast }), [pushToast]);
+  if (!mounted) return null;
 
   const stack = (
     <div
@@ -155,7 +132,7 @@ export function EphemeralToastProvider({
       data-admin-toast-root={surface === "admin" ? "true" : undefined}
       data-surface={surface}
       className={cn(
-        "ephemeral-toast-stack pointer-events-none fixed inset-x-0",
+        "ephemeral-toast-stack pointer-events-none",
         surface === "admin" ? "ephemeral-toast-stack--admin" : "ephemeral-toast-stack--storefront",
       )}
     >
@@ -167,11 +144,45 @@ export function EphemeralToastProvider({
     </div>
   );
 
+  return createPortal(stack, document.body);
+}
+
+/**
+ * @param host — Only the root provider should host the portal. Nested admin
+ *   adapters pass `host={false}` so soft refresh remounts do not duplicate or
+ *   orphan the stack; the module store keeps the queue alive.
+ */
+export function EphemeralToastProvider({
+  children,
+  surface = "storefront",
+  host = true,
+}: {
+  children: ReactNode;
+  surface?: ToastSurface;
+  /** When false, only registers surface + context (no portal). */
+  host?: boolean;
+}) {
+  useEffect(() => {
+    if (surface !== "admin") return;
+    return registerAdminToastSurface();
+  }, [surface]);
+
+  const pushToast = useCallback((input: PushToastInput) => {
+    const message = input.message.trim();
+    if (!message) return;
+    // Dismiss Save/icon tooltips first — confirm-modal focus return otherwise
+    // opens the button tooltip and steals attention from the toast.
+    announceToast();
+    pushToastToStore(input);
+  }, []);
+
+  const value = useMemo(() => ({ pushToast }), [pushToast]);
+
   return (
     <EphemeralToastContext.Provider value={value}>
       {children}
       {/* Portal above modals / sticky chrome. Stay outside inert app-shell. */}
-      {mounted ? createPortal(stack, document.body) : null}
+      {host ? <EphemeralToastHost /> : null}
     </EphemeralToastContext.Provider>
   );
 }

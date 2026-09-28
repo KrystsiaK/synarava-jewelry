@@ -2149,10 +2149,16 @@ html[data-theme="light"] .adm-workflow-btn--off:hover {
    Admin: top-center near Save chrome — confirm-modal focus return used to open
    the Save button tooltip there; toast must own that band. Max 2; see docs. */
 .ephemeral-toast-stack {
+  /* Hardcoded fixed — do not rely only on Tailwind `fixed` surviving purge. */
+  position: fixed;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   padding-inline: max(0.75rem, env(safe-area-inset-left, 0px))
     max(0.75rem, env(safe-area-inset-right, 0px));
+  /* Never clip / never inherit a transformed ancestor (portal to body). */
+  pointer-events: none;
 }
 
 .ephemeral-toast-stack--storefront {

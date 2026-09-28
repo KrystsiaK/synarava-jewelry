@@ -56,9 +56,11 @@ Tones: `error` | `success` | `info`. Empty messages are ignored.
 
 ## Providers
 
-- Storefront: `EphemeralToastProvider` in `app/layout.tsx`
-- Admin console: `AdminToastProvider` in `app/admin/(admin)/layout.tsx` (nested admin surface / z-index)
+- Storefront (portal host): `EphemeralToastProvider` in `app/layout.tsx`
+- Admin console: `AdminToastProvider` in `app/admin/(admin)/layout.tsx` — nested adapter with `host={false}`; registers admin placement while mounted
+- Queue lives in a **module store** (`ephemeral-toast-store.ts`), not React `useState`, so Save → `router.refresh()` remounts cannot wipe the toast
 - Modals must not mark the toast portal `inert` (`data-ephemeral-toast-root`, legacy `data-admin-toast-root`)
+- Stack CSS uses hardcoded `position: fixed` (not Tailwind-only) so purge/utility gaps cannot leave the host in document flow
 
 ## Replaced UI
 

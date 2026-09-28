@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
 import { EphemeralToastProvider, useEphemeralToast } from "./ephemeral-toast";
@@ -74,11 +75,42 @@ export const AdminSurface: Story = {
   render: () => (
     <div className="admin-terminal min-h-screen bg-[var(--adm-bg,#090807)] p-6 text-[var(--adm-ink,#f4efe7)]">
       <p className="mb-4 text-sm text-[var(--adm-muted,#b8aea1)]">
-        Admin toasts anchor top-center (near Save). Push success after focusing a Save tip.
+        Same provider tree as production admin: root host + nested admin adapter (host=false).
       </p>
-      <EphemeralToastProvider surface="admin">
-        <ToastDemo />
+      <EphemeralToastProvider surface="storefront">
+        <EphemeralToastProvider surface="admin" host={false}>
+          <ToastDemo />
+        </EphemeralToastProvider>
       </EphemeralToastProvider>
     </div>
   ),
+};
+
+/** Mimics Save → pushToast → remount (router.refresh) without losing the card. */
+export const SurvivesRemount: Story = {
+  args: {
+    children: <ToastDemo />,
+  },
+  render: function SurvivesRemountStory() {
+    const [tick, setTick] = useState(0);
+    return (
+      <div className="admin-terminal min-h-screen bg-[var(--adm-bg,#090807)] p-6 text-[var(--adm-ink,#f4efe7)]">
+        <p className="mb-4 text-sm text-[var(--adm-muted,#b8aea1)]">
+          Push success, then Remount tree — toast must stay (module store).
+        </p>
+        <button
+          type="button"
+          className="mb-4 rounded-full border border-foreground/20 px-4 py-2 text-sm"
+          onClick={() => setTick((value) => value + 1)}
+        >
+          Remount tree
+        </button>
+        <EphemeralToastProvider key={`root-${tick}`} surface="storefront">
+          <EphemeralToastProvider key={`admin-${tick}`} surface="admin" host={false}>
+            <ToastDemo />
+          </EphemeralToastProvider>
+        </EphemeralToastProvider>
+      </div>
+    );
+  },
 };

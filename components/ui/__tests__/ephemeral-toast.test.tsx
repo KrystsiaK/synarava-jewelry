@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   EphemeralToastProvider,
@@ -8,6 +8,7 @@ import {
   TOAST_DURATION_MS,
 } from "../ephemeral-toast";
 import { enqueueToast } from "../ephemeral-toast-queue";
+import { resetToastStoreForTests } from "../ephemeral-toast-store";
 
 function ToastProbe() {
   const { pushToast } = useEphemeralToast();
@@ -35,6 +36,10 @@ function ToastProbe() {
     </div>
   );
 }
+
+afterEach(() => {
+  resetToastStoreForTests();
+});
 
 describe("ephemeral-toast-queue", () => {
   it("caps concurrent toasts and keeps the newest", () => {
@@ -152,5 +157,49 @@ describe("EphemeralToastProvider", () => {
     expect(announced).toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent("Saved.");
     window.removeEventListener("synarava:ephemeral-toast", announced);
+  });
+
+  it("keeps toasts across provider remount (Save → router.refresh)", () => {
+    // Production tree: root host + nested admin adapter (host=false).
+    const { unmount } = render(
+      <EphemeralToastProvider>
+        <EphemeralToastProvider surface="admin" host={false}>
+          <ToastProbe />
+        </EphemeralToastProvider>
+      </EphemeralToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Success" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Saved.");
+    expect(document.querySelector("[data-surface='admin']")).toBeTruthy();
+
+    // Soft-refresh remounts RSC layout clients — module store must still paint.
+    unmount();
+    render(
+      <EphemeralToastProvider>
+        <EphemeralToastProvider surface="admin" host={false}>
+          <div>remounted</div>
+        </EphemeralToastProvider>
+      </EphemeralToastProvider>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Saved.");
+    expect(document.querySelector("[data-ephemeral-toast-root][data-surface='admin']")).toBeTruthy();
+  });
+
+  it("uses the root host when nested admin adapter has host=false", () => {
+    render(
+      <EphemeralToastProvider>
+        <EphemeralToastProvider surface="admin" host={false}>
+          <ToastProbe />
+        </EphemeralToastProvider>
+      </EphemeralToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Success" }));
+    const roots = document.querySelectorAll("[data-ephemeral-toast-root]");
+    expect(roots).toHaveLength(1);
+    expect(roots[0]).toHaveAttribute("data-surface", "admin");
+    expect(screen.getByRole("status")).toHaveTextContent("Saved.");
   });
 });

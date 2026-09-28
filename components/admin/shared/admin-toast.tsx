@@ -17,7 +17,14 @@ import {
 export type AdminToastTone = EphemeralToastTone;
 
 export function AdminToastProvider({ children }: { children: ReactNode }) {
-  return <EphemeralToastProvider surface="admin">{children}</EphemeralToastProvider>;
+  // host=false: root `EphemeralToastProvider` in app/layout.tsx owns the portal.
+  // This adapter only flips placement to admin while mounted and wires pushToast
+  // to the module store — so Save → router.refresh() remounts cannot wipe toasts.
+  return (
+    <EphemeralToastProvider surface="admin" host={false}>
+      {children}
+    </EphemeralToastProvider>
+  );
 }
 
 export function useAdminToast() {
