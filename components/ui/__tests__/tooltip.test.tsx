@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { EphemeralToastProvider, useEphemeralToast } from "@/components/ui/ephemeral-toast";
 import { resetTooltipWarmth, Tooltip } from "@/components/ui/tooltip";
 
 describe("Tooltip", () => {
@@ -152,5 +153,44 @@ describe("Tooltip", () => {
 
     const adminSurface = container.querySelector(".admin-terminal");
     expect(screen.getByRole("tooltip").parentElement).toBe(adminSurface);
+  });
+
+  it("closes and suppresses focus-open when an ephemeral toast fires", () => {
+    resetTooltipWarmth();
+    function SaveWithToast() {
+      const { pushToast } = useEphemeralToast();
+      return (
+        <>
+          <Tooltip content="Save page copy and publishing state." delay={0}>
+            <button type="button">Save page</button>
+          </Tooltip>
+          <button
+            type="button"
+            onClick={() => pushToast({ message: "Page updated.", tone: "success" })}
+          >
+            Finish save
+          </button>
+        </>
+      );
+    }
+
+    render(
+      <EphemeralToastProvider surface="admin">
+        <SaveWithToast />
+      </EphemeralToastProvider>,
+    );
+
+    const save = screen.getByRole("button", { name: "Save page" });
+    fireEvent.focus(save);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Save page copy and publishing state.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish save" }));
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Page updated.");
+
+    // Confirm-modal style focus return must not reopen the instructional tip.
+    fireEvent.focus(save);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    resetTooltipWarmth();
   });
 });

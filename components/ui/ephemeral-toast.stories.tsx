@@ -73,6 +73,9 @@ export const AdminSurface: Story = {
   },
   render: () => (
     <div className="admin-terminal min-h-screen bg-[var(--adm-bg,#090807)] p-6 text-[var(--adm-ink,#f4efe7)]">
+      <p className="mb-4 text-sm text-[var(--adm-muted,#b8aea1)]">
+        Admin toasts anchor top-center (near Save). Push success after focusing a Save tip.
+      </p>
       <EphemeralToastProvider surface="admin">
         <ToastDemo />
       </EphemeralToastProvider>

@@ -100,7 +100,9 @@ Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-m
 
 ### Ephemeral toast (not synarava-cms)
 
-Mutation feedback toasts are **shared UI** in `components/ui/ephemeral-toast` — usable from admin and storefront. They are **not** synarava-cms form controls. Admin keeps a thin adapter (`AdminToastProvider` / `useAdminToast` from `components/admin/shared/admin-toast`) so existing call sites keep working. Form-level save banners still use `AdminAlert`. Contract: [`docs/ui/ephemeral-toast.md`](../ui/ephemeral-toast.md).
+Mutation feedback toasts are **shared UI** in `components/ui/ephemeral-toast` — usable from admin and storefront. They are **not** synarava-cms form controls. Admin keeps a thin adapter (`AdminToastProvider` / `useAdminToast` from `components/admin/shared/admin-toast`) so existing call sites keep working. Form-level save banners still use `AdminAlert`.
+
+Save uses `AdminIconButton` / `SaveButtons` with an instructional tooltip — that tip is **not** save feedback. `pushToast` owns success/error and closes competing tooltips. Admin toasts sit **top-center** (near Save). Contract: [`docs/ui/ephemeral-toast.md`](../ui/ephemeral-toast.md).
 
 A string `help` is always that **i**, including when the field has an owner badge. It is never printed into the label row. The name itself is one line (`.adm-label__text`): if it does not fit, it ellipsizes and the full name shows in the shared tooltip. The required mark and the owner badge stay outside the clipped text.
 

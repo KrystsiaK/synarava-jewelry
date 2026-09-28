@@ -28,6 +28,9 @@ export { MAX_VISIBLE_TOASTS, TOAST_DURATION_MS, enqueueToast } from "./ephemeral
 
 const emptySubscribe = () => () => undefined;
 
+/** Close open help/action tooltips so they do not compete with Save feedback. */
+export const EPHEMERAL_TOAST_EVENT = "synarava:ephemeral-toast";
+
 type PushToastInput = {
   message: string;
   tone: EphemeralToastTone;
@@ -45,6 +48,11 @@ type Surface = "storefront" | "admin";
 
 function createToastId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function announceToast() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(EPHEMERAL_TOAST_EVENT));
 }
 
 function EphemeralToastCard({
@@ -129,6 +137,9 @@ export function EphemeralToastProvider({
       message,
       tone: input.tone,
     };
+    // Dismiss Save/icon tooltips first — confirm-modal focus return otherwise
+    // opens the button tooltip and steals attention from the toast.
+    announceToast();
     setToasts((current) => enqueueToast(current, item));
   }, []);
 
@@ -144,8 +155,8 @@ export function EphemeralToastProvider({
       data-admin-toast-root={surface === "admin" ? "true" : undefined}
       data-surface={surface}
       className={cn(
-        "ephemeral-toast-stack pointer-events-none fixed inset-x-0 z-[var(--z-toast,60)]",
-        surface === "admin" && "ephemeral-toast-stack--admin",
+        "ephemeral-toast-stack pointer-events-none fixed inset-x-0",
+        surface === "admin" ? "ephemeral-toast-stack--admin" : "ephemeral-toast-stack--storefront",
       )}
     >
       <div className="ephemeral-toast-stack__inner">

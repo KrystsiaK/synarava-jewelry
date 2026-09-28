@@ -53,9 +53,14 @@ export type TooltipProps = {
 };
 
 const OPEN_EVENT = "synarava:tooltip-open";
+/** Fired by ephemeral toasts so Save-button tooltips do not become primary feedback. */
+const TOAST_EVENT = "synarava:ephemeral-toast";
 /** After one help tag, the next opens at once — scanning a row should not re-wait. */
 const WARM_MS = 480;
+/** Suppress focus-open after a toast (confirm-modal restores focus onto Save). */
+const TOAST_FOCUS_SUPPRESS_MS = 900;
 let warmUntil = 0;
+let suppressFocusUntil = 0;
 
 function noteWarm() {
   warmUntil = Date.now() + WARM_MS;
@@ -67,6 +72,7 @@ function isWarm() {
 
 export function resetTooltipWarmth() {
   warmUntil = 0;
+  suppressFocusUntil = 0;
 }
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
@@ -202,9 +208,20 @@ export function Tooltip({
         setOpen(false);
       }
     };
+    const closeForToast = () => {
+      clearTimers();
+      suppressFocusUntil = Date.now() + TOAST_FOCUS_SUPPRESS_MS;
+      openRef.current = false;
+      setPosition(null);
+      setOpen(false);
+    };
     window.addEventListener(OPEN_EVENT, closeOtherTooltip);
-    return () => window.removeEventListener(OPEN_EVENT, closeOtherTooltip);
-  }, [instanceId]);
+    window.addEventListener(TOAST_EVENT, closeForToast);
+    return () => {
+      window.removeEventListener(OPEN_EVENT, closeOtherTooltip);
+      window.removeEventListener(TOAST_EVENT, closeForToast);
+    };
+  }, [clearTimers, instanceId]);
 
   useEffect(() => {
     if (!open) return;
@@ -253,6 +270,9 @@ export function Tooltip({
     },
     onFocus: (event) => {
       trigger.props.onFocus?.(event);
+      // Confirm-modal focus return onto Save must not open the instructional
+      // tooltip as if it were the save result — toast owns that moment.
+      if (Date.now() < suppressFocusUntil) return;
       show(true);
     },
     onKeyDown: (event) => {

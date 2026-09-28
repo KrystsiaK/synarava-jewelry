@@ -2145,18 +2145,26 @@ html[data-theme="light"] .adm-workflow-btn--off:hover {
 }
 
 /* Shared ephemeral toast — admin + storefront (`components/ui/ephemeral-toast`).
-   Bottom-center: clears sticky headers / admin topbar; leaves privacy (BL) and
-   cart confirmation (BR) alone. Max 2; see docs/ui/ephemeral-toast.md. */
+   Storefront: bottom-center (clears header; leaves privacy BL / cart BR alone).
+   Admin: top-center near Save chrome — confirm-modal focus return used to open
+   the Save button tooltip there; toast must own that band. Max 2; see docs. */
 .ephemeral-toast-stack {
-  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
-  top: auto;
   display: flex;
   justify-content: center;
   padding-inline: max(0.75rem, env(safe-area-inset-left, 0px))
     max(0.75rem, env(safe-area-inset-right, 0px));
 }
 
+.ephemeral-toast-stack--storefront {
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  top: auto;
+  z-index: var(--z-toast, 60);
+}
+
 .ephemeral-toast-stack--admin {
+  top: max(1rem, env(safe-area-inset-top, 0px));
+  bottom: auto;
+  /* On body, not inside .admin-terminal — keep a numeric fallback. */
   z-index: var(--adm-z-toast, 600);
 }
 
@@ -2268,6 +2276,21 @@ html[data-theme="dark"] .ephemeral-toast {
   from {
     opacity: 0;
     transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ephemeral-toast-stack--admin .ephemeral-toast {
+  animation-name: ephemeral-toast-enter-top;
+}
+
+@keyframes ephemeral-toast-enter-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;

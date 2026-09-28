@@ -136,4 +136,21 @@ describe("EphemeralToastProvider", () => {
     expect(screen.getByText("Second note.")).toBeInTheDocument();
     expect(screen.getByText("Third note.")).toBeInTheDocument();
   });
+
+  it("marks the admin surface and announces so Save tooltips yield", () => {
+    const announced = vi.fn();
+    window.addEventListener("synarava:ephemeral-toast", announced);
+    render(
+      <EphemeralToastProvider surface="admin">
+        <ToastProbe />
+      </EphemeralToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Success" }));
+    const root = document.querySelector("[data-ephemeral-toast-root][data-surface='admin']");
+    expect(root).toHaveClass("ephemeral-toast-stack--admin");
+    expect(announced).toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Saved.");
+    window.removeEventListener("synarava:ephemeral-toast", announced);
+  });
 });

@@ -46,10 +46,11 @@ Tones: `error` | `success` | `info`. Empty messages are ignored.
 
 | Rule | Choice |
 |------|--------|
-| Placement | **Bottom-center**, safe-area aware. Clears sticky storefront header and admin topbar; leaves privacy consent (bottom-left) and cart confirmation (bottom-right) alone. |
+| Placement | **Storefront: bottom-center** (clears header; leaves privacy BL / cart BR alone). **Admin: top-center** near Save chrome — confirm-modal focus return must not leave the Save button tooltip as the only feedback. |
 | Duration | success `3200ms`, info `4000ms`, error `7000ms`. Pause on hover/focus; resume with remaining time. |
 | Queue | Max **2** visible. Same `message`+`tone` **replaces** (no duplicate stack). At capacity, oldest drops; newest shows. |
-| Motion | Short enter from below; `prefers-reduced-motion` → opacity fade only. |
+| Motion | Short enter; `prefers-reduced-motion` → opacity fade only. |
+| Tooltips | `pushToast` dispatches `synarava:ephemeral-toast` so open action tooltips close and focus-open is suppressed briefly — Save icon tooltips stay instructional, never primary save feedback. |
 | A11y | `role="alert"` + assertive for errors; `role="status"` + polite otherwise. Focus not stolen. Dismiss control is keyboard-reachable. |
 | Visual | Brand glass (`--color-glass`, `--blur-glass`), quiet tone accent hairline — no loud red slabs, no emoji, no tone title shouting “Error”. |
 
