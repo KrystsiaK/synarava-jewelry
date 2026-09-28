@@ -10,6 +10,7 @@ import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import {
+  resolveTermsHeaderCopy,
   TERMS_INTRO_DEFAULT,
   TERMS_LAST_UPDATED_DEFAULT,
 } from "@/lib/content/terms-defaults";
@@ -49,6 +50,12 @@ export default async function TermsAndConditionsPage() {
     exists,
   );
   const intro = resolveLegalText(page?.content.legalIntro, exists ? "" : TERMS_INTRO_DEFAULT);
+  const header = resolveTermsHeaderCopy({
+    locale,
+    eyebrow: page?.ownedEyebrow,
+    excerpt: page?.ownedExcerpt,
+    intro,
+  });
   const lastUpdatedLabel = resolveLegalLastUpdatedLabel(
     page?.content.legalLastUpdatedLabel,
     t("legal.common.lastUpdated"),
@@ -63,9 +70,9 @@ export default async function TermsAndConditionsPage() {
   return (
     <LegalDocumentPage
       heroImage={heroImage}
-      eyebrowLabel={t("legal.common.eyebrow")}
+      eyebrowLabel={header.eyebrow}
       title={page?.title || t("legal.terms.title")}
-      intro={intro}
+      intro={header.excerpt}
       lastUpdatedLabel={lastUpdatedLabel}
       lastUpdated={lastUpdated}
       contentsLabel={t("legal.common.contents")}

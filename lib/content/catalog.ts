@@ -30,7 +30,7 @@ import {
   type ProductTranslationRecord,
 } from "@/lib/products/localization";
 import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/localization";
-import { resolvePageLocalizedCopy } from "@/lib/pages/localization";
+import { ownedLocalizedPageFields, resolvePageLocalizedCopy } from "@/lib/pages/localization";
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 import { findLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 
@@ -828,11 +828,19 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
 
   const content = (page.content ?? {}) as PageContent;
   const normalizedTranslation = page.translations?.[0] ?? null;
+  const source = { title: page.title, excerpt: page.excerpt, content: content as Record<string, unknown> };
+  const legacyTranslation = (content.translations as Record<string, Record<string, unknown>> | undefined)?.[locale];
   const resolved = resolvePageLocalizedCopy({
     locale,
-    source: { title: page.title, excerpt: page.excerpt, content: content as Record<string, unknown> },
+    source,
     translation: normalizedTranslation,
-    legacyTranslation: (content.translations as Record<string, Record<string, unknown>> | undefined)?.[locale],
+    legacyTranslation,
+  });
+  const owned = ownedLocalizedPageFields({
+    locale,
+    source,
+    translation: normalizedTranslation,
+    legacyTranslation,
   });
 
   return {
@@ -840,6 +848,8 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
     sourceSlug: page.slug,
     title: resolved.title,
     excerpt: resolved.excerpt,
+    ownedEyebrow: owned.eyebrow,
+    ownedExcerpt: owned.excerpt,
     content: resolved.content as PageContent,
   };
 }

@@ -874,7 +874,9 @@ export function PageEditor({
             <AdminTextField
               label="Eyebrow"
               help={
-                isServicePage ? (
+                isTermsPage ? (
+                  <AdminHelp>Small label above the title on /terms-and-conditions. Blank uses the default for this language.</AdminHelp>
+                ) : isServicePage ? (
                   <AdminHelp>Small label above the H1 on /{page.slug}.</AdminHelp>
                 ) : isShopPage ? (
                   <AdminHelp>The small red label above the heading in the “Browse the Collections” callout at the bottom of /shop.</AdminHelp>
@@ -891,7 +893,9 @@ export function PageEditor({
         <AdminLongTextField
           label="Excerpt"
           help={
-            hideDeadCopyFields ? (
+            isTermsPage ? (
+              <AdminHelp>Paragraph under the title on /terms-and-conditions. A value saved for this language replaces the default.</AdminHelp>
+            ) : hideDeadCopyFields ? (
               <AdminHelp>Search-engine result description (meta description). Not shown on the page itself.</AdminHelp>
             ) : undefined
           }

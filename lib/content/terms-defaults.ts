@@ -31,6 +31,43 @@ export const TERMS_SECTIONS: LegalSectionMeta[] = [
 export const TERMS_INTRO_DEFAULT =
   "These Terms & Conditions apply to purchases made through Synarava Shop. Please read them before placing an order.";
 
+export const TERMS_RU_EXCERPT_DEFAULT =
+  "Настоящие Условия продажи применяются к покупкам, совершаемым через интернет-магазин Synarava. Пожалуйста, ознакомьтесь с ними перед оформлением заказа.";
+
+/** Header defaults when the locale’s saved Eyebrow / Excerpt is empty. */
+export const TERMS_HEADER_DEFAULTS = {
+  en: { eyebrow: "Legal", excerpt: TERMS_INTRO_DEFAULT },
+  pt: { eyebrow: "INFORMAÇÃO LEGAL" },
+  ru: { eyebrow: "ЮРИДИЧЕСКАЯ ИНФОРМАЦИЯ", excerpt: TERMS_RU_EXCERPT_DEFAULT },
+} as const;
+
+/**
+ * Admin Eyebrow and Excerpt win. An empty saved field uses the locale default.
+ * Portuguese has no new excerpt: an empty PT excerpt keeps the current intro.
+ */
+export function resolveTermsHeaderCopy({
+  locale,
+  eyebrow,
+  excerpt,
+  intro,
+}: {
+  locale: string;
+  eyebrow?: string | null;
+  excerpt?: string | null;
+  intro?: string | null;
+}): { eyebrow: string; excerpt: string } {
+  const resolvedLocale = locale === "pt" || locale === "ru" ? locale : "en";
+  const savedEyebrow = eyebrow?.trim() ?? "";
+  const savedExcerpt = excerpt?.trim() ?? "";
+  const currentIntro = intro?.trim() ?? "";
+  const eyebrowLabel = savedEyebrow || TERMS_HEADER_DEFAULTS[resolvedLocale].eyebrow;
+
+  if (savedExcerpt) return { eyebrow: eyebrowLabel, excerpt: savedExcerpt };
+  if (resolvedLocale === "ru") return { eyebrow: eyebrowLabel, excerpt: TERMS_HEADER_DEFAULTS.ru.excerpt };
+  if (resolvedLocale === "pt") return { eyebrow: eyebrowLabel, excerpt: currentIntro };
+  return { eyebrow: eyebrowLabel, excerpt: currentIntro || TERMS_HEADER_DEFAULTS.en.excerpt };
+}
+
 export const TERMS_EXCERPT_DEFAULT =
   "Terms and conditions governing purchases from Synarava Shop, including orders, payment, delivery, returns, consumer rights and legal guarantees.";
 

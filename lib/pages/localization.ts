@@ -125,6 +125,52 @@ export function mergeLocalizedSectionRecord(
   return mergeLocalizedLegalSections(source, translation);
 }
 
+function selectedPageTranslation(
+  translation: PageTranslationRow | null | undefined,
+  legacyTranslation: Record<string, unknown> | null | undefined,
+): PageTranslationRow | null {
+  if (translation) return translation;
+  if (!legacyTranslation) return null;
+  return {
+    title: typeof legacyTranslation.title === "string" ? legacyTranslation.title : "",
+    excerpt: typeof legacyTranslation.excerpt === "string" ? legacyTranslation.excerpt : "",
+    content: legacyTranslation,
+  };
+}
+
+/**
+ * Eyebrow and excerpt saved for this locale only.
+ * An empty translation must not inherit the English string — Terms uses that
+ * emptiness to show the locale default. Other pages keep reading `excerpt`
+ * and `content.eyebrow`, which still fall back to English.
+ */
+export function ownedLocalizedPageFields({
+  locale,
+  source,
+  translation,
+  legacyTranslation,
+}: {
+  locale: Locale;
+  source: PageSource;
+  translation?: PageTranslationRow | null;
+  legacyTranslation?: Record<string, unknown> | null;
+}): { eyebrow: string; excerpt: string } {
+  const sourceContent = source.content ?? {};
+  const sourceEyebrow = typeof sourceContent.eyebrow === "string" ? sourceContent.eyebrow : "";
+  if (locale === "en") {
+    return { eyebrow: sourceEyebrow, excerpt: source.excerpt ?? "" };
+  }
+
+  const selected = selectedPageTranslation(translation, legacyTranslation);
+  const translatedContent = normalizePageTranslationContent(selected?.content);
+  const eyebrow = typeof translatedContent.eyebrow === "string" ? translatedContent.eyebrow : "";
+  const excerpt = typeof selected?.excerpt === "string" ? selected.excerpt : "";
+  return {
+    eyebrow: hasContent(eyebrow) ? eyebrow : "",
+    excerpt: hasContent(excerpt) ? excerpt : "",
+  };
+}
+
 function overlayContent(source: Record<string, unknown>, translation: PageTranslationContent) {
   const resolved = { ...source };
   for (const [key, value] of Object.entries(translation)) {
@@ -160,11 +206,7 @@ export function resolvePageLocalizedCopy({
     return { title: source.title, excerpt: source.excerpt ?? "", content: overlayContent(sourceContent, {}) };
   }
 
-  const selected = translation ?? (legacyTranslation ? {
-    title: typeof legacyTranslation.title === "string" ? legacyTranslation.title : "",
-    excerpt: typeof legacyTranslation.excerpt === "string" ? legacyTranslation.excerpt : "",
-    content: legacyTranslation,
-  } : null);
+  const selected = selectedPageTranslation(translation, legacyTranslation);
   const translatedContent = normalizePageTranslationContent(selected?.content);
   const content = overlayContent(sourceContent, translatedContent);
   // The label is per locale. An empty translation must not inherit the English

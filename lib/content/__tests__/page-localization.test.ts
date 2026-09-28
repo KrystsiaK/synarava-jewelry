@@ -80,6 +80,26 @@ describe("getPageBySlug localization", () => {
     });
   });
 
+  it("exposes locale-owned eyebrow and excerpt without the English fallback", async () => {
+    mocks.getRequestLocale.mockResolvedValue("ru");
+    mocks.findUniquePage.mockResolvedValue({
+      slug: "terms-and-conditions",
+      title: "Terms & Conditions",
+      excerpt: "English excerpt",
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      content: { eyebrow: "Legal" },
+      translations: [{ locale: "ru", title: "Условия и положения", excerpt: "", content: { eyebrow: "" } }],
+    });
+
+    await expect(getPageBySlug("terms-and-conditions", "ru")).resolves.toMatchObject({
+      excerpt: "English excerpt",
+      ownedEyebrow: "",
+      ownedExcerpt: "",
+      content: { eyebrow: "Legal" },
+    });
+  });
+
   it("resolves the active Portuguese handle and follows a persisted previous handle", async () => {
     const row = {
       id: "page-1", slug: "journal", title: "Journal", excerpt: null,
