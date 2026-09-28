@@ -8,7 +8,7 @@ import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { buildAlternates } from "@/lib/seo/alternates";
-import { safeJsonLd } from "@/lib/seo/json-ld";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { CollectionDetail } from "@/components/collections/collection-detail";
 import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
 
@@ -114,10 +114,7 @@ export default async function Page({ params, searchParams }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
-      />
+      <JsonLdScript id="collection-breadcrumb-json-ld" data={breadcrumbJsonLd} />
       <CollectionDetail
         collection={collection}
         labels={{

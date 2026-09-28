@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { ServicePageView } from "@/components/service/service-page-view";
 import { getPageBySlug } from "@/lib/content/catalog";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildFaqJsonLd } from "@/lib/seo/faq-json-ld";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { resolveServiceDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedServiceEntries } from "@/lib/content/document-section-defaults";
@@ -39,17 +41,22 @@ export default async function FaqPage() {
   const page = await getPageBySlug("faq", locale);
   const content = page?.content;
   const introDefaults = (SERVICE_PAGE_INTRO_DEFAULTS[locale] ?? SERVICE_PAGE_INTRO_DEFAULTS.en).faq;
+  const sections = resolveServiceDocumentSections(
+    content?.serviceSections,
+    shippedServiceEntries("faq", locale),
+  );
+  const faqJsonLd = buildFaqJsonLd(sections);
 
   return (
-    <ServicePageView
-      eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
-      title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).faq}
-      intro={resolveLegalText(content?.body, introDefaults.intro)}
-      sections={resolveServiceDocumentSections(
-        content?.serviceSections,
-        shippedServiceEntries("faq", locale),
-      )}
-      heroImage={content?.heroImage}
-    />
+    <>
+      {faqJsonLd ? <JsonLdScript id="faq-json-ld" data={faqJsonLd} /> : null}
+      <ServicePageView
+        eyebrow={resolveLegalText(content?.eyebrow, introDefaults.eyebrow)}
+        title={page?.title || (SERVICE_PAGE_TITLE_DEFAULTS[locale] ?? SERVICE_PAGE_TITLE_DEFAULTS.en).faq}
+        intro={resolveLegalText(content?.body, introDefaults.intro)}
+        sections={sections}
+        heroImage={content?.heroImage}
+      />
+    </>
   );
 }

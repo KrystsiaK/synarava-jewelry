@@ -336,6 +336,7 @@ the same transaction ID and no PII in analytics.
 - [x] Complete Product JSON-LD and sitemap timestamp fixes.
 - [x] Wire collection/page SEO fields into storefront metadata and page Shopify upsert.
 - [x] Include published custom CMS pages in the dynamic sitemap.
+- [x] Nonced JSON-LD helper + FAQPage structured data from visible FAQ sections.
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.

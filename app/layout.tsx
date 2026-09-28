@@ -29,7 +29,7 @@ import { mergeLocaleOverrides } from "@/lib/i18n/utils";
 import { getSiteSeo } from "@/lib/content/site-seo";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
-import { safeJsonLd } from "@/lib/seo/json-ld";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
 import "./globals.css";
@@ -174,13 +174,7 @@ export default async function RootLayout({
     >
       <head>
         <ThemeScript initialPreference={themePreference} nonce={nonce} />
-        <script
-          id="organization-json-ld"
-          nonce={nonce}
-          suppressHydrationWarning
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationJsonLd) }}
-        />
+        <JsonLdScript id="organization-json-ld" data={organizationJsonLd} nonce={nonce} />
       </head>
       <body>
         <a href="#main-content" className="skip-link">

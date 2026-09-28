@@ -11,8 +11,8 @@ import { buildAlternates } from "@/lib/seo/alternates";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { buildProductJsonLd } from "@/lib/seo/product-json-ld";
-import { safeJsonLd } from "@/lib/seo/json-ld";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getProductReviewsBySlug } from "@/lib/content/product-reviews";
 import { submitProductReviewAction } from "@/app/actions/product-reviews";
@@ -88,14 +88,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(productJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
-      />
+      <JsonLdScript id="product-json-ld" data={productJsonLd} />
+      <JsonLdScript id="product-breadcrumb-json-ld" data={breadcrumbJsonLd} />
       <ProductDetail
         product={product}
         fitVideoSrc={hasFitFilm() ? videos.braceletFilm : undefined}
