@@ -64,7 +64,7 @@ These primitives should be used across all screens:
 - `MediaFrame`
   - image wrapper with optional mirrored crop, overlay, caption
 - `DividerOrnament`
-  - stitched / symbolic separator
+  - hairline section divider with a single accent diamond in the pause
 - `InfoList`
   - compact label/value list for PDP and admin sidebars
 

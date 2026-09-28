@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import Link from "next/link";
 
 import { RichText } from "@/components/content/rich-text";
-import { PageHeroImage } from "@/components/ui";
+import { DividerOrnament, PageHeroImage } from "@/components/ui";
 import { LegalSectionScroll } from "@/components/legal/legal-section-scroll";
 import { LegalSectionBody } from "@/components/legal/legal-section-body";
 import { cn } from "@/lib/ui";
@@ -80,7 +80,7 @@ export function LegalDocumentPage({
                 <h2 className="mb-5 font-serif text-[1.8rem] leading-tight md:text-[2.2rem]">{s.title}</h2>
                 <LegalSectionBody content={s.body} />
               </section>
-              {index < sections.length - 1 ? <div className="embroidery-separator" /> : null}
+              {index < sections.length - 1 ? <DividerOrnament /> : null}
             </Fragment>
           ))}
 

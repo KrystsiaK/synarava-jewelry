@@ -1362,25 +1362,31 @@ html[data-theme="dark"] .etched-glass {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
 }
 
+/* Section rule: the hairline stops so one accent diamond can sit in the pause. */
 .embroidery-separator {
   position: relative;
   height: 1px;
-  background: var(--color-border-subtle);
   margin: 4rem 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-border-subtle) 0,
+    var(--color-border-subtle) calc(50% - 0.8rem),
+    transparent calc(50% - 0.8rem),
+    transparent calc(50% + 0.8rem),
+    var(--color-border-subtle) calc(50% + 0.8rem),
+    var(--color-border-subtle) 100%
+  );
 }
 
 .embroidery-separator::after {
-  content: "⬥ ❖ ⬥";
+  content: "";
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--color-linen);
-  padding: 0 1rem;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
+  width: 0.45rem;
+  height: 0.45rem;
+  background: var(--color-accent);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 /* Admin-authored Markdown on /offer and /privacy (see legal-document-page.tsx) */
