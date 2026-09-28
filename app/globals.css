@@ -1678,6 +1678,8 @@ body.admin-mode .artifact-footer {
   --adm-rhythm-5: calc(var(--adm-rhythm) * 5); /* 20px */
   --adm-rhythm-6: calc(var(--adm-rhythm) * 6); /* 24px */
   --adm-inset-x: var(--adm-rhythm-4); /* ONE side gutter inside panels */
+  /* Small-caps field kicker. Help uses the same size so 1cap matches the label. */
+  --adm-label-size: 0.72rem;
   --adm-band-pad-y: var(--adm-rhythm-3); /* single-row chrome */
   --adm-band-pad-y-lg: var(--adm-rhythm-4); /* multi-line workspace title */
   /* Bridge to Tailwind @theme spacing utilities */
@@ -3324,7 +3326,7 @@ select.adm-field option {
 
 .adm-label {
   font-family: var(--font-sans), sans-serif;
-  font-size: 0.72rem;
+  font-size: var(--adm-label-size, 0.72rem);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3357,8 +3359,9 @@ select.adm-field option {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  /* Same band as FieldLabel / OwnershipLabel min-h-6, so help cannot drop the input. */
+  width: 1.5rem;
+  height: 1.5rem;
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -3369,15 +3372,38 @@ select.adm-field option {
   transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1), color 160ms cubic-bezier(0.23, 1, 0.32, 1), transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* Label metrics only — 1cap must match .adm-label, not the serif glyph. */
 .adm-help__mark {
+  position: relative;
+  display: block;
+  width: 1em;
+  height: 1em;
+  font-family: var(--font-sans), sans-serif;
+  font-size: var(--adm-label-size, 0.72rem);
+  font-weight: 700;
+  font-style: normal;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+  /*
+   * Cap center is above the em center by half the descender space.
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/cap
+   */
+  transform: translateY(calc(-0.5 * (1em - 1cap)));
+}
+
+.adm-help__glyph {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   font-family: var(--font-playfair, "Iowan Old Style"), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
   font-style: italic;
-  font-weight: 500;
-  font-size: 1.25rem;
+  font-weight: 600;
+  font-size: 1.125rem;
   font-optical-sizing: auto;
   letter-spacing: 0;
   line-height: 1;
-  transform: translateY(0.04em);
+  transform: translate(-50%, -50%);
 }
 
 .adm-help__trigger:active {
