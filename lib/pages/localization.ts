@@ -38,6 +38,8 @@ export const pageTranslationContentSchema = z.object({
   detailTeaserEyebrow: z.string().optional(),
   detailTeaserHeading: z.string().optional(),
   detailTeaserShopLabel: z.string().optional(),
+  detailCatalogEyebrow: z.string().optional(),
+  detailCatalogHeading: z.string().optional(),
   quote: z.string().optional(),
   secondaryTitle: z.string().optional(),
   secondaryBody: z.string().optional(),
@@ -188,6 +190,17 @@ export function ownedLocalizedPageFields({
   };
 }
 
+const CATALOG_HEADING_KEYS = ["detailCatalogEyebrow", "detailCatalogHeading"] as const;
+
+function blankUntranslatedCatalogHeading(
+  content: Record<string, unknown>,
+  translation: PageTranslationContent,
+) {
+  for (const key of CATALOG_HEADING_KEYS) {
+    if (!hasContent(translation[key])) content[key] = "";
+  }
+}
+
 function overlayContent(source: Record<string, unknown>, translation: PageTranslationContent) {
   const resolved = { ...source };
   for (const [key, value] of Object.entries(translation)) {
@@ -236,6 +249,8 @@ export function resolvePageLocalizedCopy({
   }
   // Shop section labels fall back to the active locale's dictionary, not English admin copy.
   blankUntranslatedShopPageCopy(content, translatedContent);
+  // Collection catalog heading does the same: an empty locale uses messages, not the English admin string.
+  blankUntranslatedCatalogHeading(content, translatedContent);
 
   return {
     title: hasContent(selected?.title) ? selected!.title : source.title,

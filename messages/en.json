@@ -601,7 +601,9 @@
       "exploreMore": "Explore more",
       "browseAll": "Browse all collections",
       "shopAll": "Shop all products",
-      "scroll": "Scroll"
+      "scroll": "Scroll",
+      "catalogEyebrow": "Catalogue",
+      "catalogHeading": "Products in this Collection"
     }
   },
   "home": {

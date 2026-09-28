@@ -20,6 +20,8 @@ export type CollectionProductsCatalogProps = {
   collectionSourceSlug: string;
   initialPage: InitialCatalogPage;
   filterProps: Omit<FilterBarProps, "totalCount" | "basePath" | "pinnedFilters" | "onFiltersChange">;
+  catalogEyebrow?: string;
+  catalogHeading?: string;
 };
 
 export function CollectionProductsCatalog({
@@ -28,8 +30,10 @@ export function CollectionProductsCatalog({
   collectionSourceSlug,
   initialPage,
   filterProps,
+  catalogEyebrow,
+  catalogHeading,
 }: CollectionProductsCatalogProps) {
-  const { locale } = useTranslations();
+  const { locale, t } = useTranslations();
   const headerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(headerRef, { once: true, margin: "-8%" });
   const pinnedFilters = { collection: collectionSourceSlug } as const;
@@ -60,10 +64,12 @@ export function CollectionProductsCatalog({
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease }}
           >
-            <p className="label-mono mb-3 text-muted-ink">Catalogue / {collectionName}</p>
+            <p className="label-mono mb-3 text-muted-ink">
+              {catalogEyebrow?.trim() || t("collections.detail.catalogEyebrow")} / {collectionName}
+            </p>
             <DisplayHeading
               as="h2"
-              text="Products in this Collection"
+              text={catalogHeading?.trim() || t("collections.detail.catalogHeading")}
               style={{ fontSize: "clamp(2rem,4vw,3rem)" }}
             />
           </motion.div>

@@ -156,6 +156,8 @@ export type PageContent = {
   detailTeaserEyebrow?: string;
   detailTeaserHeading?: string;
   detailTeaserShopLabel?: string;
+  detailCatalogEyebrow?: string;
+  detailCatalogHeading?: string;
   quote?: string;
   secondaryTitle?: string;
   secondaryBody?: string;

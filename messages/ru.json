@@ -218,7 +218,9 @@
       "exploreMore": "Смотреть ещё",
       "browseAll": "Все коллекции",
       "shopAll": "Все изделия",
-      "scroll": "Листать"
+      "scroll": "Листать",
+      "catalogEyebrow": "Каталог",
+      "catalogHeading": "Изделия в этой коллекции"
     }
   },
   "loginPage": {

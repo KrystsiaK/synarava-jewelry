@@ -30,6 +30,8 @@ export type CollectionsPageDraftFields = {
   detailTeaserEyebrow: string;
   detailTeaserHeading: string;
   detailTeaserShopLabel: string;
+  detailCatalogEyebrow: string;
+  detailCatalogHeading: string;
 };
 
 type Props = {
@@ -223,6 +225,25 @@ export function CollectionsPageEditorSections({
             value={draft.detailTeaserShopLabel}
             onChange={(event) => updateField("detailTeaserShopLabel", event.target.value)}
             placeholder="Shop all products"
+          />
+        </div>
+      </AdminCollapsiblePanel>
+
+      <AdminCollapsiblePanel title="05 / Products in this collection" defaultOpen>
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminTextField
+            label="Catalog eyebrow"
+            help={<AdminHelp>Word before the collection name above the product grid (default: Catalogue).</AdminHelp>}
+            value={draft.detailCatalogEyebrow}
+            onChange={(event) => updateField("detailCatalogEyebrow", event.target.value)}
+            placeholder="Catalogue"
+          />
+          <AdminTextField
+            label="Catalog heading"
+            help={<AdminHelp>Heading of the product grid on a collection page (default: Products in this Collection).</AdminHelp>}
+            value={draft.detailCatalogHeading}
+            onChange={(event) => updateField("detailCatalogHeading", event.target.value)}
+            placeholder="Products in this Collection"
           />
         </div>
       </AdminCollapsiblePanel>

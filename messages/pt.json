@@ -601,7 +601,9 @@
       "exploreMore": "Explorar mais",
       "browseAll": "Ver todas as coleções",
       "shopAll": "Ver todos os produtos",
-      "scroll": "Deslizar"
+      "scroll": "Deslizar",
+      "catalogEyebrow": "Catálogo",
+      "catalogHeading": "Produtos nesta coleção"
     }
   },
   "home": {

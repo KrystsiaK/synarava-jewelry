@@ -70,6 +70,34 @@ describe("getPageBySlug localization", () => {
     });
   });
 
+  it("keeps an empty collection catalog heading on the locale dictionary instead of English admin copy", async () => {
+    mocks.getRequestLocale.mockResolvedValue("ru");
+    mocks.findUniquePage.mockResolvedValue({
+      slug: "collections",
+      title: "Collections",
+      excerpt: "",
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      content: {
+        detailCatalogEyebrow: "Catalogue",
+        detailCatalogHeading: "Products in this Collection",
+      },
+      translations: [{
+        locale: "ru",
+        title: "Коллекции",
+        excerpt: "",
+        content: { detailCatalogEyebrow: "Каталог", detailCatalogHeading: "" },
+      }],
+    });
+
+    await expect(getPageBySlug("collections")).resolves.toMatchObject({
+      content: {
+        detailCatalogEyebrow: "Каталог",
+        detailCatalogHeading: "",
+      },
+    });
+  });
+
   it("uses an explicit locale without reading request headers", async () => {
     mocks.getRequestLocale.mockClear();
     mocks.findUniquePage.mockResolvedValue({

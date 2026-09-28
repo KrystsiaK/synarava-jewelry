@@ -89,6 +89,8 @@ type PageLocaleDraft = {
   detailTeaserEyebrow: string;
   detailTeaserHeading: string;
   detailTeaserShopLabel: string;
+  detailCatalogEyebrow: string;
+  detailCatalogHeading: string;
   quote: string;
   secondaryTitle: string;
   secondaryBody: string;
@@ -227,6 +229,8 @@ function draftFromCopy(
     detailTeaserEyebrow: copy.detailTeaserEyebrow ?? "",
     detailTeaserHeading: copy.detailTeaserHeading ?? "",
     detailTeaserShopLabel: copy.detailTeaserShopLabel ?? "",
+    detailCatalogEyebrow: copy.detailCatalogEyebrow ?? "",
+    detailCatalogHeading: copy.detailCatalogHeading ?? "",
     quote: copy.quote ?? "",
     secondaryTitle: copy.secondaryTitle ?? "",
     secondaryBody: copy.secondaryBody ?? "",
@@ -288,6 +292,8 @@ function HiddenLocaleFields({
           field("detailTeaserEyebrow", draft.detailTeaserEyebrow),
           field("detailTeaserHeading", draft.detailTeaserHeading),
           field("detailTeaserShopLabel", draft.detailTeaserShopLabel),
+          field("detailCatalogEyebrow", draft.detailCatalogEyebrow),
+          field("detailCatalogHeading", draft.detailCatalogHeading),
           field("quote", draft.quote),
           field("secondaryTitle", draft.secondaryTitle),
           field("secondaryBody", draft.secondaryBody),

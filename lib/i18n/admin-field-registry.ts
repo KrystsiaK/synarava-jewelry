@@ -130,6 +130,8 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "detailTeaserEyebrow", label: "Collection detail — teaser eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "detail_teaser_eyebrow") },
     { key: "detailTeaserHeading", label: "Collection detail — teaser heading", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "detail_teaser_heading") },
     { key: "detailTeaserShopLabel", label: "Collection detail — teaser shop button", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "detail_teaser_shop_label") },
+    { key: "detailCatalogEyebrow", label: "Collection detail — catalog eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "detail_catalog_eyebrow") },
+    { key: "detailCatalogHeading", label: "Collection detail — catalog heading", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "detail_catalog_heading") },
     { key: "quote", label: "Quote", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("page_section_copy", "quote") },
     { key: "secondaryTitle", label: "Secondary title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "secondary_title") },
     { key: "secondaryBody", label: "Secondary body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("page_section_copy", "secondary_body") },

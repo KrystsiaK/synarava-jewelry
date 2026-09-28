@@ -137,6 +137,8 @@ export default async function Page({ params, searchParams }: Props) {
             origins: origins.map((item) => ({ value: item.slug, label: item.name })),
             initialFilters: filters,
           },
+          catalogEyebrow: collectionsPage?.content.detailCatalogEyebrow,
+          catalogHeading: collectionsPage?.content.detailCatalogHeading,
         }}
       />
     </>

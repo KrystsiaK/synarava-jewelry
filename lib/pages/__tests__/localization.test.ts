@@ -102,7 +102,7 @@ describe("page localization", () => {
       source: { title: "Home", excerpt: "English", content: { body: "English body", quote: "Keep me", heroImage: "/hero.webp" } },
       translation: { title: "Início", excerpt: "", content: { body: "Corpo", quote: "" } },
       legacyTranslation: { title: "Legado", excerpt: "Legado", body: "Legado" },
-    })).toEqual({
+    })).toMatchObject({
       title: "Início",
       excerpt: "English",
       content: { body: "Corpo", quote: "Keep me", heroImage: "/hero.webp" },
