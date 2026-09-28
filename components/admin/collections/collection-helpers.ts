@@ -13,7 +13,8 @@ function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
 export function emptyCollectionDraft(translationLocales: string[] = ["pt"]): CollectionDraft {
   return {
     name: "", subtitle: "", slug: "", code: "", description: "",
-    manifesto: "", searchSummary: "", storyTitle: "", storyBody: "", symbolismLabel: "", symbolismTitle: "",
+    manifesto: "", searchSummary: "", seoTitle: "", seoDescription: "", storyTitle: "", storyBody: "",
+    symbolismLabel: "", symbolismTitle: "",
     symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT",
     translations: Object.fromEntries(translationLocales.map((locale) => [locale, emptyCollectionLocaleDraft()])),
   };
@@ -115,6 +116,8 @@ export function collectionToDraft(collection: AdminCollection, translationLocale
     description: collection.description ?? "",
     manifesto: collection.manifesto ?? "",
     searchSummary: collection.searchSummary ?? "",
+    seoTitle: collection.seoTitle ?? "",
+    seoDescription: collection.seoDescription ?? "",
     storyTitle: collection.storyTitle ?? "",
     storyBody: collection.storyBody ?? "",
     symbolismLabel: collection.symbolismLabel ?? "",

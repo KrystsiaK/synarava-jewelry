@@ -81,7 +81,7 @@ long-lived-tab recovery path in AUTH-20.
 | UI-02 | Topbar stays pinned while the page scrolls | positive | P3 | ✔ E2E | Same. |
 | UI-03 | No horizontal overflow on `/admin/products` at 778px | positive | P3 | ✔ E2E | Same. |
 | UI-04 | Open-issue counter shows when `AdminIssue` rows are `OPEN` and links correctly | positive | P2 | **E2E** | Seed an open issue, assert badge count and `href`. |
-| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Pages, Shared, Cart & account, Meta, Videos, Catalog, Shopify Products, Problems, Collections, Localization, Infrastructure, Account` (`admin-nav-config.ts`). Home and About are edited under Pages. |
+| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Pages, Shared, Cart & account, Customer account, Meta, Videos, Catalog, Problems, Collections, Localization, Infrastructure, Account` (`admin-nav-config.ts`). Home and About are edited under Pages. |
 | UI-06 | Theme toggle switches and persists across navigation | positive | P3 | **E2E** | |
 | UI-07 | Dashboard tiles reflect actual counts | positive | P2 | **E2E** | **There are exactly three tiles: Pages, Products, Collections.** Categories/Tags tiles were removed with those sections. Status row also shows Products live/draft, Collections live, active locale (`EN`). |
 
@@ -235,7 +235,7 @@ and SYNC-16 asserts that state is handled gracefully.
 | CATCONF-08 | Synarava-only product appears with Push as its sole row action | positive | P1 | ✔ unit / **E2E round trip** | Component and resolver covered; sandbox confirms Shopify create. |
 | CATCONF-09 | Mixed one-sided bulk scopes include only compatible products and explain exclusions | edge | P1 | ✔ unit | Opposite direction stays Not included with reason. |
 | CATCONF-10 | Live EN/PT (and RU when filled) apply round trip on a sandbox product | positive | P1 | **E2E** | Stage 7 gate. Skip without Shopify sandbox credentials. Do not mock. |
-| CATCONF-11 | Collections Show conflicts / Run conflict check include translation + presence | positive | P1 | ✔ unit | `collection-conflict.test.ts`, `collection-conflict-apply.test.ts`, `collection-presence*.test.ts`, signals `rootEntityType: COLLECTION`. |
+| CATCONF-11 | Collections Show conflicts / Run conflict check include every unresolved translation kind (both sides, Synarava-only, Shopify-only) + presence, matching the Collections nav badge | positive | P1 | ✔ unit | `collection-conflict.test.ts`, `collection-conflict-apply.test.ts`, `collection-presence*.test.ts`, signals `rootEntityType: COLLECTION`. |
 | CATCONF-12 | Collection editor opens scoped conflict workspace after check | positive | P2 | ✔ render | `collection-edit-form.test.tsx` + Collections CMS wiring. |
 | CATCONF-13 | Shopify-only / Synarava-only collection appears with Pull or Push as sole row action | positive | P1 | ✔ unit | `collection-presence.test.ts`, `collection-presence-apply.test.ts`, conflict workspace presence labels. |
 
@@ -255,7 +255,7 @@ and SYNC-16 asserts that state is handled gracefully.
 | COL-10 | Filling one field autosaves a Draft collection | positive | P3 | **E2E** | `autosaveCollectionDraftAction`; same debounce caveat as PROD-C36. |
 | COL-11 | Collection code auto-generates from the name and is deterministic | positive | P2 | ✔ unit | `collection-helpers.test.ts`. |
 | COL-12 | *(retired)* Primary-nav storefront navigation | — | — | — | Removed with the department model (September 2026). |
-| COL-13 | Edit form shows Site state after identity fields; Delete help is delete-only | positive | P2 | **render** | `WorkflowStateField` at `#field-workflowState`; no orphan Publishing guidance near Delete. |
+| COL-13 | Edit form uses the Site state dropdown; Delete and Save are header icons | positive | P2 | **render** | `AdminSelectField` at `#field-workflowState`; sticky header has Delete and Save icon buttons; no text Open page and no bottom action bar. |
 | COL-14 | Drafting a collection drafts ACTIVE/UNLISTED member products locally | positive | P1 | **unit** / **action** | `draftMemberProductsLocally`; no Shopify `syncStatus` change. |
 | COL-15 | Product Collection select keeps draft collections labeled `(Draft)` | positive | P2 | ✔ unit | `collection-select-options.test.ts`; archived only when currently assigned. |
 | COL-16 | Publishing/Unlisting a product while marketing collection is Draft is blocked | negative | P1 | ✔ unit / **action** | `liveProductRequiresPublishedCollectionMessage` + `saveProductAction` / row Publish. |

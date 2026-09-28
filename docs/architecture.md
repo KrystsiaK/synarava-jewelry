@@ -7,7 +7,7 @@ Public pages use `/en` or `/pt` prefixes. `/[locale]` is the home page;
 in the browser; `/[locale]/collections` and `/[locale]/collections/[slug]` present
 curated groups; `/[locale]/products/[slug]` contains the product gallery, variant
 selector, reviews, and purchase controls. `/[locale]/profile` shows Shopify-owned
-customer data and orders. `/[locale]/about`, `/[locale]/about/manifesto`, service
+customer data, orders, and that customer's published product reviews. `/[locale]/about`, `/[locale]/about/manifesto`, service
 pages, and CMS pages provide editorial content. `/admin` is the separate CMS and
 commerce console.
 
@@ -86,8 +86,13 @@ audiences, each with its own auth mechanism:
   tracks the logged-in session. Every admin action guards on `requireAdminSession()` — there is a
   single admin role, not a permission matrix, because there is a single kind of admin operator.
 - **Storefront customers** authenticate via Shopify Customer Account OAuth
-  (`lib/shopify/customer-account/`). Shopify owns the customer identity, session, and
-  password/OTP flow entirely; this app only stores the resulting session token.
+  (`lib/shopify/customer-account/`). The sign-in control is a full document
+  navigation to `/api/auth/shopify`, which redirects to Shopify's hosted login.
+  The email code is entered there. Shopify owns the customer identity, session,
+  and OTP flow; this app only stores the resulting session token. A signed-out
+  visit to `/profile` opens `/login` first, so OAuth is not started by a
+  client-side fetch. A localhost start is sent to the public `APP_URL` before
+  any cookie is set, because Shopify returns the browser to that callback host.
 
 An earlier local email/password customer auth system plus an RBAC layer (`User`, `Role`,
 `Permission`, `UserRole`, `RolePermission`, `UserSession`, `AuthAccount`, `VerificationToken`)

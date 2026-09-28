@@ -42,6 +42,24 @@ describe("AdminTextField", () => {
     expect(input).toHaveValue("AX-1");
   });
 
+  it("keeps owned-field help on the info mark so the label stays one line", () => {
+    render(
+      <AdminTextField
+        label="Slug"
+        owner="Shopify"
+        required
+        help="Auto-generated from the collection name until you edit it manually."
+        defaultValue=""
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: /Slug/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Field guidance" })).toBeInTheDocument();
+    expect(screen.queryByText(/Auto-generated from the collection name/)).not.toBeInTheDocument();
+    expect(document.querySelector(".adm-label__text")).toHaveTextContent("Slug");
+    expect(document.querySelector(".adm-label__text")).toHaveClass("adm-label__text");
+  });
+
   it("uses FieldLabel when owner is omitted", () => {
     render(<AdminTextField label="Subtitle" help="Shown under the name." defaultValue="" />);
     expect(screen.getByRole("textbox", { name: /Subtitle/i })).toBeInTheDocument();

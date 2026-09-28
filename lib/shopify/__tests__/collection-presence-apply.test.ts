@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   findUniqueCollection: vi.fn(),
   findManyCollections: vi.fn(),
   updateCollection: vi.fn(),
+  updateTranslations: vi.fn(),
   createCollection: vi.fn(),
   deleteCollection: vi.fn(),
   deleteBindings: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("@/lib/db", () => ({
       create: mocks.createCollection,
       delete: mocks.deleteCollection,
     },
+    collectionTranslation: { updateMany: mocks.updateTranslations },
     $transaction: mocks.transaction,
   },
 }));
@@ -131,6 +133,41 @@ describe("applyCollectionPresenceDifference", () => {
     }));
   });
 
+  it("overwrites local title, handle, description, and SEO when pulling Shopify onto an existing collection", async () => {
+    mocks.shopifyAdminRequest.mockResolvedValue({
+      collection: {
+        id: "gid://shopify/Collection/42",
+        title: "Remote kits",
+        handle: "remote-kits",
+        updatedAt: "2026-09-23T10:00:00.000Z",
+        descriptionHtml: "",
+        seo: { title: "Kits", description: null },
+        sources: [],
+      },
+    });
+    mocks.findUniqueCollection.mockResolvedValue(null);
+    mocks.updateCollection.mockResolvedValue({ id: "local-9" });
+    mocks.updateTranslations.mockResolvedValue({ count: 1 });
+
+    const result = await applyCollectionPresenceDifference({
+      difference: { ...shopifyOnly, localProductId: "local-9" },
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+
+    expect(result).toMatchObject({ ok: true, localCollectionId: "local-9" });
+    expect(mocks.createCollection).not.toHaveBeenCalled();
+    expect(mocks.updateCollection).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "local-9" },
+      data: expect.objectContaining({
+        name: "Remote kits",
+        slug: "remote-kits",
+        description: null,
+        seoTitle: "Kits",
+        seoDescription: null,
+      }),
+    }));
+  });
+
   it("pushes a Synarava-only collection to Shopify", async () => {
     mocks.findUniqueCollection.mockResolvedValue({
       id: "local-7",
@@ -141,15 +178,30 @@ describe("applyCollectionPresenceDifference", () => {
       seoDescription: null,
       shopifyCollectionId: null,
     });
-    mocks.shopifyAdminRequest.mockResolvedValue({
-      collectionCreate: {
+    mocks.shopifyAdminRequest.mockImplementation(async (query: string) => {
+      if (query.includes("collectionCreate")) {
+        return {
+          collectionCreate: {
+            collection: {
+              id: "gid://shopify/Collection/70",
+              handle: "local-kits",
+              sources: [],
+            },
+            userErrors: [],
+          },
+        };
+      }
+      return {
         collection: {
           id: "gid://shopify/Collection/70",
+          title: "Local kits",
           handle: "local-kits",
+          updatedAt: "2026-09-23T10:00:00.000Z",
+          descriptionHtml: "<p>Desc</p>",
+          seo: { title: null, description: null },
           sources: [],
         },
-        userErrors: [],
-      },
+      };
     });
     mocks.updateCollection.mockResolvedValue({ id: "local-7" });
 

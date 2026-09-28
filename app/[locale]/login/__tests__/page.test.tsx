@@ -17,19 +17,19 @@ vi.mock("@/lib/content/commerce-copy", () => ({
 import LoginPage from "../page";
 
 describe("LoginPage", () => {
-  it("starts Shopify OAuth with a navigation instead of a CSP-restricted form submission", async () => {
+  it("starts Shopify OAuth with a document navigation, not a client-side fetch", async () => {
     render(
       await LoginPage({
         searchParams: Promise.resolve({ redirectTo: "/profile?tab=orders" }),
       }),
     );
 
-    expect(
-      screen.getByRole("link", { name: "Sign in or create account" }),
-    ).toHaveAttribute(
+    const signIn = screen.getByRole("link", { name: "Sign in or create account" });
+    expect(signIn).toHaveAttribute(
       "href",
       "/api/auth/shopify?returnTo=%2Fprofile%3Ftab%3Dorders",
     );
+    expect(signIn).toHaveAttribute("data-component", "CustomerSignInLink");
     expect(screen.queryByRole("button", { name: "Sign in or create account" })).not.toBeInTheDocument();
   });
 });

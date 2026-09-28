@@ -19,7 +19,7 @@ Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/s
 | --- | --- |
 | Dual catalog store | `CommerceSyncStore.ourSnapshot` + `shopifySnapshot`; compare → `conflictReport` |
 | Per-product windows | `Product.workingSnapshot` (OUR) + `Product.shopifySnapshot` (last Shopify) |
-| Per-collection windows | `Collection.workingSnapshot` + `Collection.shopifySnapshot` (title/handle/description/seo V1) |
+| Per-collection windows | `Collection.workingSnapshot` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
 | Detect | One normalize → deep-diff windows. **No** commerce field allowlists for detection |
 | Local Save | Write-through columns into `workingSnapshot`, patch OUR store slice, **re-inspect** so tab markers refresh |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |

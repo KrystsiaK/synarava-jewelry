@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion, useInView, useReducedMotion } from "motion/react";
 
+import { ArtifactButton, ArtifactLink } from "@/components/ui/artifact-button";
 import { ProductCard } from "@/components/ui/product-card";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
@@ -159,16 +160,16 @@ function EmptyState({
         </div>
       )}
 
-      <Link
+      <ArtifactLink
         href={hrefFor(applyPinned({}))}
+        size="md"
         onClick={(event) => {
           event.preventDefault();
           onSelectFilters(applyPinned({}));
         }}
-        className="inline-flex min-h-11 items-center bg-foreground px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-couture-red hover:text-white"
       >
         {t("shop.empty.showAll")}
-      </Link>
+      </ArtifactLink>
     </motion.div>
   );
 }
@@ -532,13 +533,9 @@ export function ShopCatalogClient({
               {state.error ? (
                 <div className="panel flex flex-col items-start gap-5 p-8 md:p-12">
                   <p className="font-serif text-[1.6rem]">{t("shop.catalog.error")}</p>
-                  <button
-                    type="button"
-                    onClick={retry}
-                    className="inline-flex min-h-11 items-center bg-foreground px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-couture-red hover:text-white"
-                  >
+                  <ArtifactButton type="button" size="md" onClick={retry}>
                     {t("shop.catalog.retry")}
-                  </button>
+                  </ArtifactButton>
                 </div>
               ) : (
                 <EmptyState
@@ -564,24 +561,21 @@ export function ShopCatalogClient({
           {state.error ? (
             <>
               <p className="text-sm text-foreground/60">{t("shop.catalog.error")}</p>
-              <button
-                type="button"
-                onClick={retry}
-                className="min-h-11 border border-foreground/30 px-8 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-foreground transition-colors hover:border-couture-red hover:text-couture-red"
-              >
+              <ArtifactButton type="button" variant="secondary" size="md" onClick={retry}>
                 {t("shop.catalog.retry")}
-              </button>
+              </ArtifactButton>
             </>
           ) : state.hasNextPage ? (
-            <button
+            <ArtifactButton
               type="button"
+              variant="secondary"
+              size="md"
               aria-controls="shop-product-grid"
               onClick={loadMore}
               disabled={state.loadingMore}
-              className="min-h-11 border border-foreground/30 px-8 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-foreground transition-colors hover:border-couture-red hover:text-couture-red disabled:opacity-50"
             >
               {state.loadingMore ? t("shop.catalog.loadingMore") : t("shop.loadMoreProducts")}
-            </button>
+            </ArtifactButton>
           ) : null}
         </div>
       )}

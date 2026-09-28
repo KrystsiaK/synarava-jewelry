@@ -28,6 +28,8 @@ export type CollectionDraft = {
   description: string;
   manifesto: string;
   searchSummary: string;
+  seoTitle: string;
+  seoDescription: string;
   storyTitle: string;
   storyBody: string;
   symbolismLabel: string;

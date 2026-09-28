@@ -14,10 +14,12 @@ import { useTranslations } from "@/lib/i18n/context";
 import { localeTag } from "@/lib/i18n/format";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
+import { AccountReviews } from "@/components/profile/account-reviews";
 import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 import { ArtifactLink } from "@/components/ui";
+import type { AccountReviewRow } from "@/lib/profile/account-reviews";
 
-const tabs = ["overview", "wishlist", "orders", "addresses", "security"] as const;
+const tabs = ["overview", "wishlist", "orders", "reviews", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
 
 function tabHref(tab: Tab, locale: Locale) {
@@ -65,11 +67,13 @@ export function ShopifyProfileShell({
   customer,
   activeTab,
   wishlistProducts,
+  reviews,
   sessionExpiresAt,
 }: {
   customer: ShopifyCustomerProfile;
   activeTab: Tab;
   wishlistProducts: ProductSummary[];
+  reviews: AccountReviewRow[];
   sessionExpiresAt: string;
 }) {
   const router = useRouter();
@@ -78,6 +82,7 @@ export function ShopifyProfileShell({
     overview: t("profile.tabs.overview"),
     wishlist: t("profile.tabs.wishlist"),
     orders: t("profile.tabs.orders"),
+    reviews: t("profile.tabs.reviews"),
     addresses: t("profile.tabs.addresses"),
     security: t("profile.tabs.security"),
   };
@@ -399,6 +404,8 @@ export function ShopifyProfileShell({
                 ) : null}
               </div>
             ) : null}
+
+            {activeTab === "reviews" ? <AccountReviews reviews={reviews} /> : null}
 
             {activeTab === "addresses" ? (
               <div className="space-y-5">

@@ -34,6 +34,17 @@ async function persistCollectionCommerceWindows(
   } = {},
 ) {
   const window = collectionWindowFromShopifyRemote(remote);
+  if (extra.slug) {
+    const slugOwner = await db.collection.findUnique({
+      where: { slug: extra.slug },
+      select: { id: true },
+    });
+    if (slugOwner && slugOwner.id !== collectionId) {
+      throw new ShopifyAdminError(
+        `Shopify handle "${extra.slug}" is already used by another Synarava collection.`,
+      );
+    }
+  }
   await db.collection.update({
     where: { id: collectionId },
     data: {
@@ -51,6 +62,15 @@ async function persistCollectionCommerceWindows(
       ...(extra.seoTitle !== undefined ? { seoTitle: extra.seoTitle } : {}),
       ...(extra.seoDescription !== undefined ? { seoDescription: extra.seoDescription } : {}),
       ...(extra.slug != null ? { slug: extra.slug } : {}),
+    },
+  });
+  await db.collectionTranslation.updateMany({
+    where: { collectionId, locale: "en" },
+    data: {
+      ...(extra.name != null ? { name: extra.name } : {}),
+      ...(extra.description !== undefined ? { description: extra.description } : {}),
+      ...(extra.seoTitle !== undefined ? { seoTitle: extra.seoTitle } : {}),
+      ...(extra.seoDescription !== undefined ? { seoDescription: extra.seoDescription } : {}),
     },
   });
 }
@@ -111,6 +131,7 @@ async function pushLinkedCollectionUpdate(collection: {
   await persistCollectionCommerceWindows(collection.id, remote, {
     shopifyManualSourceId,
     name: remote.title,
+    slug: remote.handle,
     description: stripHtml(remote.descriptionHtml ?? "") || null,
     seoTitle: remote.seo?.title ?? null,
     seoDescription: remote.seo?.description ?? null,
@@ -212,6 +233,7 @@ export async function pullShopifyCollection(shopifyCollectionId: string, localCo
   const columnPatch = {
     shopifyManualSourceId,
     name: remote.title,
+    slug: remote.handle,
     description,
     seoTitle: remote.seo?.title ?? null,
     seoDescription: remote.seo?.description ?? null,
@@ -356,6 +378,7 @@ export async function pushCollectionToShopify(collectionId: string) {
   await persistCollectionCommerceWindows(collection.id, remote, {
     shopifyManualSourceId: findManagedCollectionSourceId(created.sources),
     name: remote.title,
+    slug: remote.handle,
     description: stripHtml(remote.descriptionHtml ?? "") || null,
     seoTitle: remote.seo?.title ?? null,
     seoDescription: remote.seo?.description ?? null,

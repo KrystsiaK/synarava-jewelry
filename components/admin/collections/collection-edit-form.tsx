@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import { HardDriveUpload, RefreshCw, Trash2 } from "lucide-react";
 
 import {
   deleteCollectionAction,
@@ -17,16 +17,14 @@ import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-ty
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
-import { AdminAlert } from "@/components/synarava-cms";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminAlert, AdminIconButton, AdminListWorkspace } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
 import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
-import { CollectionFields } from "@/components/admin/collections/collection-fields";
+import { CollectionFields, CollectionLocaleProvider, CollectionLocaleTabs } from "@/components/admin/collections/collection-fields";
 import {
   collectionToDraft,
   generateCollectionCode,
-  submitLabel,
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
@@ -75,17 +73,15 @@ function DeleteCollectionForm({
 
   return (
     <>
-      <div className="flex flex-col items-start gap-2">
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          disabled={isPending}
-          className="adm-btn-danger"
-        >
-          {submitLabel("Delete collection", isPending, "Deleting...")}
-        </button>
-        <AdminAlert message={state.error} />
-      </div>
+      <AdminIconButton
+        label="Delete collection"
+        tooltip="Permanently delete this collection. Products stay in the catalog but lose this assignment."
+        tone="danger"
+        disabled={isPending}
+        onClick={() => setConfirmOpen(true)}
+      >
+        <Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
+      </AdminIconButton>
       <AdminConfirmModal
         open={confirmOpen}
         title={`Permanently delete ${collectionSlug}`}
@@ -223,98 +219,89 @@ export function EditCollectionForm({
 
   return (
     <>
-      <div className="adm-panel grid gap-4 p-5">
-        <div
-          className="flex flex-wrap items-start justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
-        >
-          <div>
-            <p className="adm-section-tag">[ EDIT COLLECTION ]</p>
-            <h2 className="adm-title-sm mt-2">{collection.name}</h2>
-            <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
-              /{collection.slug}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <CatalogConflictStatus
-              signals={conflictSignals}
-              onShow={() => {
-                setConflictViewScope({ kind: "collection", collectionId: collection.id });
-                setConflictListOpen(true);
-              }}
-              onCheck={handleConflictCheck}
-              checking={isConflictCheckPending}
-              compact={Boolean(collectionConflict)}
-              entityNoun={ENTITY_NOUN}
-            />
-            <Link href={`/collections/${collection.slug}`} className="adm-btn-ghost">
-              Open page
-            </Link>
-          </div>
-        </div>
-        <AdminAlert message={state.error} />
-        {visibleIssues.length > 0 ? (
-          <AdminIssueInlineWarning issues={visibleIssues} onIssueActivate={activateIssue} />
-        ) : null}
-        <div>
-          <AdminHelp label="Save guidance">
-            Fields marked with * are required. Drafts stay in the form until a save succeeds. After save, a scoped Shopify conflict check refreshes the conflict signal for this collection.
-          </AdminHelp>
-        </div>
-
-        <form ref={formRef} action={formAction} noValidate className="grid gap-4">
-          <input type="hidden" name="collectionId" value={collection.id} />
-          <input
-            type="hidden"
-            name="existingHeroImageUrl"
-            value={collection.heroImageUrl ?? ""}
-          />
-
-          <CollectionFields
-            draft={draft}
-            onChange={(key, value) => {
-              if (key === "code") setCodeLocked(Boolean(String(value).trim()));
-              updateDraft(key, value);
-            }}
-            onChangeTranslation={updateDraftTranslation}
-            fieldErrors={validation.fieldErrors}
-            onFieldEdit={validation.clearFieldError}
-            currentHeroImageUrl={collection.heroImageUrl}
-            currentHeroImageLabel={collection.name}
-            fileInputKey={fileInputKey}
-            entityId={collection.id}
-            translationLocales={translationLocales}
-            issues={visibleIssues}
-          />
-
-          <div
-            className="flex flex-wrap items-center justify-between gap-4 py-5"
-            style={{
-              borderTop: "1px solid var(--adm-border)",
-              borderBottom: "1px solid var(--adm-border)",
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <DeleteCollectionForm
-                collectionId={collection.id}
-                collectionSlug={collection.slug}
-                onDeleted={onDeleted}
-              />
-              <AdminHelp label="Delete guidance">
-                Delete permanently removes this collection record and its sections. It does not change Draft or Published site state — use Site state above for that. Products stay in the catalog but lose this collection assignment.
-              </AdminHelp>
-            </div>
-            <button
-              type="button"
-              disabled={isPending}
-              className="adm-btn-primary"
-              onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
+      <CollectionLocaleProvider
+        draft={draft}
+        translationLocales={translationLocales}
+        fieldErrors={validation.fieldErrors}
+      >
+        <form ref={formRef} action={formAction} noValidate>
+          <AdminListWorkspace.Root>
+            <AdminListWorkspace.Header
+              tag="[ EDIT COLLECTION ]"
+              title={collection.name}
+              meta={`/${collection.slug}`}
+              actions={
+                <div className="flex items-center gap-1.5">
+                  <CatalogConflictStatus
+                    signals={conflictSignals}
+                    onShow={() => {
+                      setConflictViewScope({ kind: "collection", collectionId: collection.id });
+                      setConflictListOpen(true);
+                    }}
+                    onCheck={handleConflictCheck}
+                    checking={isConflictCheckPending}
+                    compact={Boolean(collectionConflict)}
+                    entityNoun={ENTITY_NOUN}
+                  />
+                  <DeleteCollectionForm
+                    collectionId={collection.id}
+                    collectionSlug={collection.slug}
+                    onDeleted={onDeleted}
+                  />
+                  <AdminIconButton
+                    label={isPending ? "Saving collection" : "Save collection"}
+                    tooltip={
+                      isPending
+                        ? "Saving collection…"
+                        : "Save collection locally. Shopify does not change until you push."
+                    }
+                    disabled={isPending}
+                    onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
+                  >
+                    {isPending ? (
+                      <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+                    ) : (
+                      <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+                    )}
+                  </AdminIconButton>
+                </div>
+              }
             >
-              {submitLabel("Update collection", isPending, "Saving...")}
-            </button>
-          </div>
+              <CollectionLocaleTabs embedded />
+            </AdminListWorkspace.Header>
+
+            <AdminListWorkspace.Body className="grid gap-4">
+              <AdminAlert message={state.error} />
+              {visibleIssues.length > 0 ? (
+                <AdminIssueInlineWarning issues={visibleIssues} onIssueActivate={activateIssue} />
+              ) : null}
+              <input type="hidden" name="collectionId" value={collection.id} />
+              <input
+                type="hidden"
+                name="existingHeroImageUrl"
+                value={collection.heroImageUrl ?? ""}
+              />
+
+              <CollectionFields
+                draft={draft}
+                onChange={(key, value) => {
+                  if (key === "code") setCodeLocked(Boolean(String(value).trim()));
+                  updateDraft(key, value);
+                }}
+                onChangeTranslation={updateDraftTranslation}
+                fieldErrors={validation.fieldErrors}
+                onFieldEdit={validation.clearFieldError}
+                currentHeroImageUrl={collection.heroImageUrl}
+                currentHeroImageLabel={collection.name}
+                fileInputKey={fileInputKey}
+                entityId={collection.id}
+                translationLocales={translationLocales}
+                issues={visibleIssues}
+              />
+            </AdminListWorkspace.Body>
+          </AdminListWorkspace.Root>
         </form>
-      </div>
+      </CollectionLocaleProvider>
       <AdminConfirmModal
         open={confirmOpen}
         title={`Save ${collection.name}`}

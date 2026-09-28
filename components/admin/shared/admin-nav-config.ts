@@ -1,3 +1,4 @@
+import { ACCOUNT_PAGE_AREAS } from "@/lib/content/account-page-fields";
 import { COMMERCE_COPY_GROUPS } from "@/lib/content/commerce-copy-fields";
 
 /** Attention signal for a nav node (open problems and/or Shopify sync conflicts). */
@@ -182,6 +183,14 @@ export function resolveAdminNavItemSignal(
   return undefined;
 }
 
+export function buildAccountPageNavChildren(): AdminNavChildConfig[] {
+  return ACCOUNT_PAGE_AREAS.map((area) => ({
+    id: `account-${area.id}`,
+    href: `/admin/customer-account#account-${area.id}`,
+    label: area.label,
+  }));
+}
+
 export function buildCommerceCopyNavChildren(): AdminNavChildConfig[] {
   return COMMERCE_COPY_GROUPS.map((group) => ({
     id: `commerce-${group.id}`,
@@ -196,6 +205,7 @@ export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
     { id: "settings-footer", href: "/admin/settings#shared-footer", label: "Footer" },
     { id: "settings-cookies", href: "/admin/settings#shared-cookies", label: "Cookies" },
     { id: "settings-contact", href: "/admin/settings#shared-contact", label: "Contact" },
+    { id: "settings-reviews", href: "/admin/settings#shared-reviews", label: "Reviews" },
   ];
 }
 
@@ -246,7 +256,7 @@ export function buildAdminNavItems({
       label: "Shared",
       code: "SHR",
       children: buildStorefrontCopyNavChildren(),
-      childPreviewLimit: 4,
+      childPreviewLimit: 5,
       badge: syncBadge(sync.settings),
     },
     {
@@ -257,6 +267,14 @@ export function buildAdminNavItems({
       children: buildCommerceCopyNavChildren(),
       childPreviewLimit: 8,
     },
+    {
+      id: "customer-account",
+      href: "/admin/customer-account",
+      label: "Customer account",
+      code: "CUS",
+      children: buildAccountPageNavChildren(),
+      childPreviewLimit: 8,
+    },
     { id: "meta", href: "/admin/meta", label: "Meta", code: "META" },
     { id: "videos", href: "/admin/videos", label: "Videos", code: "VID" },
     {
@@ -265,12 +283,6 @@ export function buildAdminNavItems({
       label: "Catalog",
       code: "CAT",
       badge: syncBadge(sync.products),
-    },
-    {
-      id: "shopify-products",
-      href: "/admin/shopify-products",
-      label: "Shopify Products",
-      code: "SHP",
     },
     {
       id: "issues",

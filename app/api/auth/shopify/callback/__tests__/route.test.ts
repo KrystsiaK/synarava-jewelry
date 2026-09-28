@@ -33,6 +33,8 @@ vi.mock("@/lib/shopify/customer-account/session-store", () => ({
   createStoredCustomerSession: vi.fn(),
 }));
 
+import { decryptCustomerSecret } from "@/lib/shopify/customer-account/crypto";
+
 import { GET } from "../route";
 
 describe("Shopify customer account callback", () => {
@@ -58,6 +60,27 @@ describe("Shopify customer account callback", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
       "https://shop.synarava.com/login?error=shopify",
+    );
+  });
+
+  it("keeps the return path when Shopify denies the authorization", async () => {
+    vi.mocked(decryptCustomerSecret).mockReturnValue(JSON.stringify({
+      createdAt: Date.now(),
+      nonce: "nonce",
+      returnTo: "/pt/products/ring",
+      state: "state-value",
+      verifier: "v".repeat(43),
+    }));
+    const request = new NextRequest(
+      "https://localhost:8080/api/auth/shopify/callback?error=access_denied&state=state-value",
+      { headers: { cookie: "synarava-shopify-customer-oauth=encrypted" } },
+    );
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://shop.synarava.com/pt/login?error=shopify&redirectTo=%2Fpt%2Fproducts%2Fring",
     );
   });
 });

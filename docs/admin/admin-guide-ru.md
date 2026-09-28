@@ -69,7 +69,8 @@ legal/service page sections are add/remove/reorder with editable names.
   Topbar зафиксирован сверху при прокрутке.
 - **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Shared`,
   `Cart & account`,
-  `Meta`, `Videos`, `Catalog`, `Shopify Products`, `Problems`, `Collections`, `Localization`,
+  `Customer account`,
+  `Meta`, `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`,
   `Infrastructure`, `Account`) и
   счётчик открытых проблем рядом с соответствующим пунктом.
   Home и About редактируются внутри `Pages` (`/admin/pages/home`,
@@ -94,12 +95,6 @@ legal/service page sections are add/remove/reorder with editable names.
 Самый сложный раздел админки: карточка товара одновременно хранит данные,
 которыми управляет Shopify («коммерческое ядро»), и редакторский контент,
 который принадлежит только Synarava CMS и переживает любую синхронизацию.
-
-### 4.0. Shopify Products (`/admin/shopify-products`)
-
-Отдельный пункт меню рядом с Catalog. Только таблица локальной проекции
-товаров Shopify и одна кнопка **Update from Shopify** (импорт новых +
-обновление связанных). Catalog authoring не меняется.
 
 ### 4.1. Список товаров
 
@@ -314,10 +309,10 @@ legacy cover, пока не загружены изображения галер
   абзаца) — это Symbolism label / title / body / secondary body.
 - Статусы: `DRAFT` (`PRIVATE`) / `ACTIVE` (`PUBLIC`, `publishedAt` = дата
   публикации) / `ARCHIVED` (`PRIVATE`).
-- В форме редактирования блок **Site state** (Draft / Published) стоит сразу
-  после Name / Slug / Accent code — не у кнопки Delete. Подсказка у Delete
-  описывает только удаление записи; смена видимости — только через Site state
-  или быстрые действия в таблице.
+- В форме редактирования **Site state** (Draft / Published) — тот же
+  выпадающий список, что у товара, среди полей Name / Slug / Accent code.
+  Save и Delete — иконки в липкой шапке, как у товара. Смена видимости —
+  только через Site state или быстрые действия в таблице.
 - Перевод коллекции в **Draft** (форма Site state → Draft + Save, или
   быстрое действие Draft в таблице) скрывает коллекцию **и** переводит все
   её товары со статусом `ACTIVE` / `UNLISTED` в локальный Draft
@@ -437,10 +432,10 @@ legacy cover, пока не загружены изображения галер
 
 ## 7a. Shared (`/admin/settings`)
 
-Четыре вкладки: **Header**, **Footer**, **Cookies**, **Contact**. Язык — полоса
+Пять вкладок: **Header**, **Footer**, **Cookies**, **Contact**, **Reviews**. Язык — полоса
 LOCALE над ними. Одна кнопка **Save Shared** пишет все вкладки сразу. Боковое
 меню ведёт на ту же вкладку (`#shared-header`, `#shared-footer`,
-`#shared-cookies`, `#shared-contact`).
+`#shared-cookies`, `#shared-contact`, `#shared-reviews`).
 
 - **Header — main links:** ordered list of name + path (storefront path autocomplete).
   Add/remove/reorder like other CMS lists. Path is shared across locales; name is
@@ -472,9 +467,13 @@ LOCALE над ними. Одна кнопка **Save Shared** пишет все 
 - **Cookies — settings page:** confirmation, back link, and SEO on
   `/cookie-settings` (`cookieSettings.*`). The footer “Cookie settings” link
   name stays in Footer — legal links.
+- **Reviews — leave a review:** the product-page form (`reviews.shareTitle`,
+  `reviews.form.*`, star counts). The reviews themselves are Shopify
+  `product_review` entries and are not edited here. The account table is
+  **Customer account → Reviews**.
 - Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
   **Pages**, не здесь (кроме общего contact CTA выше).
-- Chrome/footer/contact-CTA/cookie translations sync to Shopify metaobject `$app:storefront_copy`;
+- Chrome, footer, contact CTA, cookies, and the leave-a-review form sync to Shopify metaobject `$app:storefront_copy`;
   header/footer link labels and contact emails are local (no Shopify `MENU`/`LINK`
   binding yet). Cart, account, and login labels moved to **Cart & account**
   and are not part of this sync. Conflicts for synced fields show under **Localization**.
@@ -495,13 +494,29 @@ One screen for the storefront surfaces we render ourselves around an order:
 
 Empty fields fall back to `messages/*.json`. Saved overrides live in
 `SiteSetting` `commerce-copy-v1` and override the dictionary the same way Shared
-does (locale tabs, one panel at a time). This copy is **not** synced to Shopify.
+does. The screen is the shared locale panel: sticky language band with **Save
+cart & account**, then Header / Cart / Checkout / Login tabs. One section is
+open at a time. This copy is **not** synced to Shopify.
 Checkout address, shipping rates, payment, and the customer-account code screen
 are Shopify-hosted and are not edited here.
 
 Header cart/account labels that were previously saved under Shared stay visible
 until the first save on this screen, which copies them into `commerce-copy-v1`
 and clears them from `storefront-copy-v1`.
+
+The signed-in account page (`/profile`) is edited on **Customer account**, not here.
+
+## 7a-3. Customer account (`/admin/customer-account`)
+
+Copy for the page a signed-in customer sees: the frame (eyebrow, sign out, tab
+names, browser title), then one section per storefront tab — Overview, Wishlist,
+Orders, Reviews, Addresses, Sign-in & security — and the return request on an order.
+
+Name, email, order rows, amounts, dates, address lines, and the review text come
+from Shopify and are not fields here. The form for leaving a review is **Shared → Reviews**. Empty fields fall back to `messages/*.json`. Overrides
+are stored in `SiteSetting` `commerce-copy-v1` with the cart copy, but this
+screen writes only `profile.*` keys, and Cart & account does not clear them.
+This copy is not synced to Shopify.
 
 ## 7b. Meta (`/admin/meta`)
 

@@ -109,7 +109,10 @@ export function buildCatalogConflictSignals({
     }
   }
   for (const difference of differences) {
-    if (difference.rootEntityType !== rootEntityType || difference.kind !== "CONFLICT") continue;
+    if (difference.rootEntityType !== rootEntityType) continue;
+    // Products keep two-sided conflicts only. Collections must match the sidebar,
+    // which counts every unresolved divergence (also changed only here or only in Shopify).
+    if (rootEntityType === "PRODUCT" && difference.kind !== "CONFLICT") continue;
     const product = products[difference.rootEntityId] ?? { shared: false, locales: [] };
     products[difference.rootEntityId] = product;
     const registered = localeByShopifyCode.get(difference.locale);

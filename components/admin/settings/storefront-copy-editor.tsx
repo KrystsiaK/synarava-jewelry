@@ -26,6 +26,7 @@ const SHARED_AREAS = [
   { id: "footer", label: "Footer", detail: "Columns, legal line, emails" },
   { id: "cookies", label: "Cookies", detail: "Banner and settings page" },
   { id: "contact", label: "Contact", detail: "Banner on service pages" },
+  { id: "reviews", label: "Reviews", detail: "Form for leaving a review" },
 ] as const;
 
 type SharedAreaId = (typeof SHARED_AREAS)[number]["id"];
@@ -39,6 +40,7 @@ const GROUP_AREA: Record<string, SharedAreaId> = {
   "cookies-consent": "cookies",
   "cookies-page": "cookies",
   "service-contact": "contact",
+  "reviews-form": "reviews",
 };
 
 function areaForHash(hash: string): SharedAreaId | null {
@@ -48,6 +50,7 @@ function areaForHash(hash: string): SharedAreaId | null {
   if (id === "shared-footer" || id.startsWith("copy-footer")) return "footer";
   if (id === "shared-cookies" || id.startsWith("copy-cookies")) return "cookies";
   if (id === "shared-contact" || id === "copy-service-contact") return "contact";
+  if (id === "shared-reviews" || id === "copy-reviews-form") return "reviews";
   return null;
 }
 
@@ -85,7 +88,7 @@ export function StorefrontCopyEditor({
   }, []);
 
   function selectArea(next: string) {
-    if (next !== "header" && next !== "footer" && next !== "cookies" && next !== "contact") return;
+    if (next !== "header" && next !== "footer" && next !== "cookies" && next !== "contact" && next !== "reviews") return;
     setArea(next);
     const hash = `#shared-${next}`;
     if (window.location.hash !== hash) {
@@ -241,6 +244,20 @@ export function StorefrontCopyEditor({
 
             <div id="shared-contact" hidden={area !== "contact"} className="grid gap-10">
               {copyGroups("contact").map((group) => (
+                <CopyGroup
+                  key={group.id}
+                  group={group}
+                  copy={copy}
+                  defaults={defaults}
+                  englishDefaults={englishDefaults}
+                  locales={locales}
+                  activeLocale={activeLocale}
+                />
+              ))}
+            </div>
+
+            <div id="shared-reviews" hidden={area !== "reviews"} className="grid gap-10">
+              {copyGroups("reviews").map((group) => (
                 <CopyGroup
                   key={group.id}
                   group={group}

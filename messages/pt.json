@@ -424,10 +424,13 @@
     }
   },
   "profile": {
+    "metaTitle": "A minha conta | Synarava",
+    "metaDescription": "Gerir a conta Synarava, as encomendas e as preferências.",
     "tabs": {
       "overview": "Visão geral",
       "wishlist": "Favoritos",
       "orders": "Encomendas",
+      "reviews": "Avaliações",
       "addresses": "Moradas",
       "security": "Início de sessão e segurança"
     },
@@ -464,6 +467,20 @@
       "loadMore": "Carregar mais encomendas",
       "loadMoreFailed": "Não foi possível carregar mais encomendas.",
       "requiresLogin": "A sua sessão expirou — inicie sessão novamente para ver mais encomendas."
+    },
+    "reviews": {
+      "title": "As minhas avaliações",
+      "empty": "Ainda não publicou uma avaliação. Pode deixar uma avaliação na página do produto.",
+      "colProduct": "Produto",
+      "colRating": "Classificação",
+      "colDate": "Data",
+      "colReview": "Avaliação",
+      "ratingOnly": "Apenas classificação",
+      "close": "Fechar",
+      "verified": "Comprador verificado",
+      "reply": "Resposta da Synarava",
+      "missingProduct": "Produto já não listado",
+      "openProduct": "Ver produto"
     },
     "addresses": {
       "title": "Moradas guardadas",
@@ -513,7 +530,21 @@
     "firstBody": "Partilhe detalhes que ajudem outra pessoa a escolher com confiança.",
     "verifiedBuyer": "Comprador verificado",
     "merchantReply": "Resposta da Synarava",
-    "signInAgain": "Inicie sessão novamente."
+    "signInAgain": "Inicie sessão novamente.",
+    "form": {
+      "checkFields": "Verifique os campos assinalados.",
+      "requiresLogin": "Inicie sessão com a Shopify para escrever uma avaliação.",
+      "verifyFailed": "A Shopify não conseguiu verificar a sua conta. Tente novamente mais tarde.",
+      "productNotReady": "Este produto ainda não está pronto para avaliações na Shopify.",
+      "rateLimited": "Demasiadas avaliações desta conta hoje. Tente novamente amanhã.",
+      "publishFailed": "A Shopify não conseguiu publicar a avaliação. Tente novamente mais tarde.",
+      "success": "A sua avaliação foi publicada.",
+      "field": {
+        "rating": "Escolha uma classificação de 1 a 5.",
+        "title": "Mantenha o título abaixo de 120 caracteres.",
+        "body": "Escreva pelo menos 10 caracteres, ou deixe em branco."
+      }
+    }
   },
   "service": {
     "contactTitle": "Precisa de uma resposta específica?",

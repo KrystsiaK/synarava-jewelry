@@ -84,6 +84,7 @@ export type AdminSelectFieldProps = SelectProps & {
   invalid?: boolean;
   className?: string;
   unitId?: string;
+  validationName?: string;
   issue?: ReactNode;
   selectClassName?: string;
   children: ReactNode;
@@ -105,6 +106,7 @@ export function AdminSelectField({
   disabled,
   className,
   unitId,
+  validationName,
   issue,
   selectClassName,
   children,
@@ -129,6 +131,7 @@ export function AdminSelectField({
       issue={issue}
       disabled={disabled}
       className={className}
+      validationName={validationName}
       controlId={controlId}
     >
       <AdminSelectControl

@@ -57,7 +57,7 @@ describe("submitProductReviewAction", () => {
     mocks.getShopifyCustomerProfile.mockResolvedValue(null);
 
     await expect(submitProductReviewAction({}, reviewFormData())).resolves.toEqual({
-      error: "Sign in with Shopify to write a review.",
+      notice: "requiresLogin",
       requiresLogin: true,
     });
     expect(mocks.upsertShopifyProductReview).not.toHaveBeenCalled();
@@ -65,7 +65,7 @@ describe("submitProductReviewAction", () => {
 
   it("marks a review verified only when the customer ordered this Shopify product", async () => {
     await expect(submitProductReviewAction({}, reviewFormData())).resolves.toMatchObject({
-      success: "Your review is now published.",
+      notice: "success",
       average: 5,
       count: 1,
     });
@@ -94,7 +94,7 @@ describe("submitProductReviewAction", () => {
     formData.set("body", "");
 
     await expect(submitProductReviewAction({}, formData)).resolves.toMatchObject({
-      success: "Your review is now published.",
+      notice: "success",
     });
     expect(mocks.upsertShopifyProductReview).toHaveBeenCalledWith(expect.objectContaining({ body: "" }));
   });
@@ -105,8 +105,8 @@ describe("submitProductReviewAction", () => {
     formData.set("body", "short");
 
     await expect(submitProductReviewAction({}, formData)).resolves.toMatchObject({
-      error: "Check the highlighted review fields.",
-      fieldErrors: expect.objectContaining({ rating: expect.any(String), body: expect.any(String) }),
+      notice: "checkFields",
+      fieldErrors: expect.objectContaining({ rating: "rating", body: "body" }),
     });
     expect(mocks.upsertShopifyProductReview).not.toHaveBeenCalled();
   });
@@ -115,7 +115,7 @@ describe("submitProductReviewAction", () => {
     mocks.getShopifyCustomerProfile.mockRejectedValue(new Error("Shopify unavailable"));
 
     await expect(submitProductReviewAction({}, reviewFormData())).resolves.toEqual({
-      error: "Shopify could not verify your customer account. Please try again later.",
+      notice: "verifyFailed",
     });
     expect(mocks.upsertShopifyProductReview).not.toHaveBeenCalled();
   });

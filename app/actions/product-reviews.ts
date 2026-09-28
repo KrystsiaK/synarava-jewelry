@@ -20,14 +20,24 @@ const reviewSchema = z.object({
   body: z.string().trim().max(2_000, "Keep the review under 2,000 characters.")
     .refine((value) => value.length === 0 || value.length >= 10, "Write at least 10 characters, or leave this blank.")
     .default(""),
-  locale: z.enum(["en", "pt"]).default("en"),
+  locale: z.enum(["en", "pt", "ru"]).default("en"),
 });
 
+export type ProductReviewNotice =
+  | "checkFields"
+  | "requiresLogin"
+  | "verifyFailed"
+  | "productNotReady"
+  | "rateLimited"
+  | "publishFailed"
+  | "success";
+
+export type ProductReviewField = "rating" | "title" | "body";
+
 export type ProductReviewActionState = {
-  error?: string;
-  success?: string;
+  notice?: ProductReviewNotice;
   requiresLogin?: boolean;
-  fieldErrors?: Partial<Record<"rating" | "title" | "body", string>>;
+  fieldErrors?: Partial<Record<ProductReviewField, ProductReviewField>>;
   average?: number | null;
   count?: number;
   reviews?: ShopifyProductReview[];
@@ -54,11 +64,11 @@ export async function submitProductReviewAction(
   if (!parsed.success) {
     const fields = parsed.error.flatten().fieldErrors;
     return {
-      error: "Check the highlighted review fields.",
+      notice: "checkFields",
       fieldErrors: {
-        rating: fields.rating?.[0],
-        title: fields.title?.[0],
-        body: fields.body?.[0],
+        rating: fields.rating?.[0] ? "rating" : undefined,
+        title: fields.title?.[0] ? "title" : undefined,
+        body: fields.body?.[0] ? "body" : undefined,
       },
     };
   }
@@ -67,10 +77,10 @@ export async function submitProductReviewAction(
   try {
     customer = await getShopifyCustomerProfile();
   } catch {
-    return { error: "Shopify could not verify your customer account. Please try again later." };
+    return { notice: "verifyFailed" };
   }
   if (!customer) {
-    return { error: "Sign in with Shopify to write a review.", requiresLogin: true };
+    return { notice: "requiresLogin", requiresLogin: true };
   }
 
   const product = await db.product.findUnique({
@@ -78,7 +88,7 @@ export async function submitProductReviewAction(
     select: { shopifyProductId: true },
   });
   if (!product?.shopifyProductId) {
-    return { error: "This product is not ready for Shopify reviews yet." };
+    return { notice: "productNotReady" };
   }
 
   const rateLimit = await checkRateLimit(
@@ -86,7 +96,7 @@ export async function submitProductReviewAction(
     `${customer.id}:${product.shopifyProductId}`,
     { max: 5, windowMs: 24 * 60 * 60 * 1_000 },
   );
-  if (!rateLimit.ok) return { error: rateLimit.error };
+  if (!rateLimit.ok) return { notice: "rateLimited" };
 
   try {
     const matchingOrderId = await findShopifyCustomerOrderForProduct(product.shopifyProductId);
@@ -104,14 +114,12 @@ export async function submitProductReviewAction(
     });
     revalidateStorefrontPath(`/products/${parsed.data.productSlug}`);
     return {
-      success: "Your review is now published.",
+      notice: "success",
       average: reviews.average,
       count: reviews.count,
       reviews: reviews.reviews,
     };
   } catch {
-    return {
-      error: "Shopify could not publish the review. Please try again later.",
-    };
+    return { notice: "publishFailed" };
   }
 }

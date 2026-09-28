@@ -56,7 +56,6 @@ describe("admin-nav-config", () => {
     const settings = items.find((item) => item.id === "settings");
     const commerce = items.find((item) => item.id === "commerce");
     const catalog = items.find((item) => item.id === "products");
-    const shopifyProducts = items.find((item) => item.id === "shopify-products");
     const collections = items.find((item) => item.id === "collections");
     const problems = items.find((item) => item.id === "issues");
     const localization = items.find((item) => item.id === "translations");
@@ -70,18 +69,26 @@ describe("admin-nav-config", () => {
       "Footer",
       "Cookies",
       "Contact",
+      "Reviews",
     ]);
     expect(settings?.badge).toEqual({ kind: "sync", count: 1 });
     expect(commerce).toMatchObject({ href: "/admin/commerce", label: "Cart & account", code: "BAG" });
+    const customerAccount = items.find((item) => item.id === "customer-account");
+    expect(customerAccount).toMatchObject({ href: "/admin/customer-account", label: "Customer account", code: "CUS" });
+    expect(customerAccount?.children?.map((child) => child.label)).toEqual([
+      "Frame",
+      "Overview",
+      "Wishlist",
+      "Orders",
+      "Reviews",
+      "Addresses",
+      "Sign-in",
+      "Returns",
+    ]);
     expect(commerce?.children?.some((child) => child.href.includes("#commerce-cart"))).toBe(true);
     expect(commerce?.badge).toBeUndefined();
     expect(catalog?.children).toBeUndefined();
     expect(catalog?.badge).toEqual({ kind: "sync", count: 5 });
-    expect(shopifyProducts).toMatchObject({
-      href: "/admin/shopify-products",
-      label: "Shopify Products",
-      code: "SHP",
-    });
     expect(collections?.badge).toEqual({ kind: "sync", count: 1 });
     expect(problems?.badge).toEqual({ kind: "issues", count: 3 });
     expect(localization?.badge).toEqual({ kind: "sync", count: 9 });

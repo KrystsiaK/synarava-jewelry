@@ -60,9 +60,8 @@ export function AdminFieldShell({
   const softMessageId = warningId ?? `${reactId}-warning`;
 
   const labelNode = label == null ? null : owner ? (
-    <OwnershipLabel owner={owner} help={help}>
+    <OwnershipLabel owner={owner} help={help} required={required}>
       {label}
-      {required ? " *" : null}
     </OwnershipLabel>
   ) : (
     <FieldLabel help={help} required={required}>{label}</FieldLabel>

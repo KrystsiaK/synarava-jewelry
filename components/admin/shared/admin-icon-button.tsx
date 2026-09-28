@@ -18,7 +18,7 @@ const TONE_CLASS: Record<AdminIconButtonTone, string> = {
 const TONE_SURFACE: Record<AdminIconButtonTone, string> = {
   default: "adm-btn-ghost",
   primary: "adm-btn-primary",
-  danger: "adm-btn-ghost",
+  danger: "adm-btn-danger",
   warning: "adm-btn-ghost",
   conflict: "adm-btn-ghost",
 };

@@ -969,6 +969,59 @@ html[data-theme="dark"] .auth-art-direction {
     linear-gradient(90deg, #080809 0%, #0d0d10 58%, #111116 100%);
 }
 
+.customer-sign-in {
+  position: relative;
+  overflow: hidden;
+}
+
+.customer-sign-in__label {
+  position: relative;
+  z-index: 1;
+  transition: opacity 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.customer-sign-in__sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-140%);
+}
+
+.customer-sign-in[aria-busy="true"] .customer-sign-in__label {
+  opacity: 0.7;
+}
+
+.customer-sign-in[aria-busy="true"] .customer-sign-in__sheen {
+  opacity: 1;
+  animation: customer-sign-in-sheen 1.15s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes customer-sign-in-sheen {
+  from { transform: translateX(-140%); }
+  to { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-sign-in__label,
+  .customer-sign-in__sheen {
+    transition: none;
+    animation: none;
+  }
+
+  .customer-sign-in[aria-busy="true"] .customer-sign-in__sheen {
+    opacity: 0;
+  }
+
+  .customer-sign-in[aria-busy="true"] .customer-sign-in__label {
+    opacity: 0.55;
+  }
+}
+
 .auth-form-surface,
 .checkout-form-surface {
   border: 1px solid var(--color-stroke);
@@ -3417,8 +3470,65 @@ select.adm-field option {
 .adm-label-row {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
   /* Close to the kicker. The button is only as wide as the italic, so the gap stays short. */
   gap: 0.18rem;
+}
+
+/* Grid items default to min-width: auto, which lets a long name wrap the row. */
+.adm-field-unit > label {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.adm-label--owner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.adm-label__lead {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.adm-label--owner .adm-label__lead {
+  flex: 1 1 auto;
+}
+
+.adm-label-row > .adm-label__lead {
+  flex: 0 1 auto;
+}
+
+.adm-label__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-label__required,
+.adm-label__owner,
+.adm-label__lead > .adm-help,
+.adm-label-row > .adm-help {
+  flex: 0 0 auto;
+}
+
+.adm-label__owner {
+  white-space: nowrap;
+}
+
+.adm-label__required--accent {
+  color: var(--adm-accent);
 }
 
 .adm-help {
@@ -3527,6 +3637,25 @@ select.adm-field option {
 .adm-help__trigger:hover::after,
 .adm-help__trigger:focus-visible::after {
   background: var(--adm-info-soft);
+}
+
+/* Between sections the italic has no kicker to sit on, so it is a button. */
+.adm-help[data-detached="true"] .adm-help__trigger {
+  translate: none;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--adm-info) 32%, transparent);
+  background: var(--adm-info-soft);
+}
+
+.adm-help[data-detached="true"] .adm-help__trigger::after {
+  display: none;
+}
+
+.adm-help[data-detached="true"] .adm-help__trigger:hover,
+.adm-help[data-detached="true"] .adm-help__trigger:focus-visible {
+  background: color-mix(in srgb, var(--adm-info) 18%, var(--adm-info-soft));
 }
 
 .adm-help__trigger:focus-visible {

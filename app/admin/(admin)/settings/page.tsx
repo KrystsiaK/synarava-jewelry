@@ -52,7 +52,7 @@ export default async function AdminSettingsPage() {
         <p className="adm-section-tag mb-3">[ SYN-ADM // SHARED ]</p>
         <h1 className="adm-page-title">Shared</h1>
         <p className="adm-page-subtitle">
-          Header, footer, cookies, and the service-page contact banner. One save covers every tab.
+          Header, footer, cookies, the service-page contact banner, and the leave-a-review form. One save covers every tab.
           Empty labels fall back to shipped defaults. Per-page copy stays under Pages.
         </p>
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />

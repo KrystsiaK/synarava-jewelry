@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { createContext, use, useEffect, type ReactNode } from "react";
 
 import type { CollectionFieldName } from "@/lib/admin/collection-form-validation";
 import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
@@ -18,6 +18,7 @@ import {
   AdminCheckboxControl,
   AdminHelp,
   AdminLongTextField,
+  AdminSelectField,
   AdminTextField,
   FieldLabel,
 } from "@/components/synarava-cms";
@@ -34,6 +35,80 @@ const EMPTY_TRANSLATION: CollectionLocaleDraft = {
   reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
 };
 
+type CollectionLocaleContextValue = {
+  locale: string;
+  selectLocale: (code: string) => void;
+  tabs: AdminLocaleTab[];
+  isEn: boolean;
+  active: CollectionLocaleDraft | null;
+  activeLabel: string;
+  ptStatus?: AdminLocaleStatus;
+};
+
+const CollectionLocaleContext = createContext<CollectionLocaleContextValue | null>(null);
+
+function useCollectionLocale() {
+  const value = use(CollectionLocaleContext);
+  if (!value) throw new Error("Collection fields must render inside CollectionLocaleProvider.");
+  return value;
+}
+
+export function CollectionLocaleProvider({
+  draft,
+  translationLocales = DEFAULT_TRANSLATION_LOCALES,
+  fieldErrors,
+  children,
+}: {
+  draft: CollectionDraft;
+  translationLocales?: AdminTranslationLocale[];
+  fieldErrors?: Partial<Record<CollectionFieldName, string>>;
+  children: ReactNode;
+}) {
+  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+  const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, tabs);
+  const isEn = locale === SOURCE_LOCALE;
+
+  useEffect(() => {
+    if (!fieldErrors) return;
+    const forced = localeOfFirstError(fieldErrors, translationLocales.map((item) => item.code));
+    if (forced) selectLocale(forced);
+    // selectLocale identity changes with the tab list; errors are the signal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldErrors]);
+
+  const active = isEn ? null : draft.translations[locale] ?? EMPTY_TRANSLATION;
+  const activeLabel = tabs.find((tab) => tab.code === locale)?.label ?? locale;
+
+  return (
+    <CollectionLocaleContext.Provider
+      value={{
+        locale,
+        selectLocale,
+        tabs,
+        isEn,
+        active,
+        activeLabel,
+        ptStatus: active?.syncStatus as AdminLocaleStatus | undefined,
+      }}
+    >
+      {children}
+    </CollectionLocaleContext.Provider>
+  );
+}
+
+export function CollectionLocaleTabs({ embedded = false }: { embedded?: boolean }) {
+  const { locale, selectLocale, tabs, ptStatus } = useCollectionLocale();
+  return (
+    <AdminLocaleTabs
+      embedded={embedded}
+      active={locale}
+      onSelect={selectLocale}
+      locales={tabs}
+      ptStatus={ptStatus}
+    />
+  );
+}
+
 export function FieldError({ message }: { message?: string }) {
   return <AdminFieldError message={message} />;
 }
@@ -47,63 +122,23 @@ export function WorkflowStateField({
   onChange: (value: CollectionDraft["workflowState"]) => void;
   error?: string;
 }) {
-  const options: Array<{
-    value: CollectionDraft["workflowState"];
-    title: string;
-    description: string;
-  }> = [
-    {
-      value: "DRAFT",
-      title: "Draft",
-      description: "Hidden from the site; live member products also go to draft locally.",
-    },
-    {
-      value: "PUBLISHED",
-      title: "Published",
-      description: "Visible on collection listings and the public collection page.",
-    },
-  ];
-
   return (
-    <div id="field-workflowState" data-component="WorkflowStateField" data-validation-for="workflowState" className="grid gap-2">
-      <p className="adm-label-row">
-        <span className="adm-section-tag">[ SITE STATE ]</span>
-        <AdminHelp label="Site state guidance">
-          Draft keeps this collection private (hidden from the collections index and its detail page)
-          and moves its live member products to Draft locally — Shopify commerce status is not pushed.
-          Published makes the collection public on the index and detail page; it does not auto-publish products.
-        </AdminHelp>
-      </p>
-      <FieldLabel required help="Draft: collection private + member products draft locally (no Shopify push). Published: collection public; products keep their own status.">
-        Site state
-      </FieldLabel>
-      <input type="hidden" name="workflowState" value={value} />
-      <div className="grid gap-3 md:grid-cols-2">
-        {options.map((option) => {
-          const selected = value === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange(option.value)}
-              className={selected ? "adm-workflow-btn adm-workflow-btn--on" : "adm-workflow-btn adm-workflow-btn--off"}
-              aria-pressed={selected}
-              aria-label={`${option.title}. ${option.description}`}
-            >
-              <span className="adm-label-row">
-                <span
-                  className="text-left text-[0.72rem] font-bold uppercase tracking-[0.08em]"
-                  style={{ color: selected ? "var(--adm-accent)" : "var(--adm-muted)" }}
-                >
-                  {option.title}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <FieldError message={error} />
-    </div>
+    <AdminSelectField
+      label="Site state"
+      owner="Synarava"
+      name="workflowState"
+      required
+      unitId="field-workflowState"
+      validationName="workflowState"
+      help="Draft hides the collection and moves its live member products to Draft locally. Shopify commerce status is not pushed. Published shows the collection; it does not auto-publish products."
+      value={value}
+      onChange={(event) => onChange(event.target.value as CollectionDraft["workflowState"])}
+      error={error}
+      className="md:max-w-xs"
+    >
+      <option value="DRAFT">Draft — hidden</option>
+      <option value="PUBLISHED">Published — visible</option>
+    </AdminSelectField>
   );
 }
 
@@ -124,6 +159,8 @@ function HiddenLocaleFields({ draft, translationLocales }: { draft: CollectionDr
       {keys.map((key) => (
         <input key={key} type="hidden" readOnly name={key} value={draft[key]} />
       ))}
+      <input type="hidden" readOnly name="seoTitle" value={draft.seoTitle} />
+      <input type="hidden" readOnly name="seoDescription" value={draft.seoDescription} />
       {translationLocales.flatMap(({ code }) => {
         const translation = draft.translations[code] ?? EMPTY_TRANSLATION;
         return [
@@ -184,19 +221,7 @@ export function CollectionFields({
   translationLocales?: AdminTranslationLocale[];
   issues?: AdminIssueSummary[];
 }) {
-  const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
-  const [locale, selectLocale] = useAdminActiveLocale(`collection:${draft.slug || "new"}`, tabs);
-  const isEn = locale === SOURCE_LOCALE;
-
-  useEffect(() => {
-    if (!fieldErrors) return;
-    const forced = localeOfFirstError(fieldErrors, translationLocales.map((item) => item.code));
-    if (forced) selectLocale(forced);
-    // selectLocale identity changes with the tab list; errors are the signal.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldErrors]);
-  const active = isEn ? null : draft.translations[locale] ?? EMPTY_TRANSLATION;
-  const activeLabel = tabs.find((tab) => tab.code === locale)?.label ?? locale;
+  const { locale, isEn, active, activeLabel } = useCollectionLocale();
   const heroIssues = issues.filter(
     (issue) => issue.fieldPath === "field-heroImageUrl" && issue.status === "OPEN",
   );
@@ -208,17 +233,12 @@ export function CollectionFields({
 
   return (
     <>
-      <AdminLocaleTabs
-        active={locale}
-        onSelect={selectLocale}
-        locales={tabs}
-        ptStatus={active?.syncStatus as AdminLocaleStatus | undefined}
-      />
       <HiddenLocaleFields draft={draft} translationLocales={translationLocales} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <AdminTextField
           label="Name"
+          owner="Shopify"
           required={isEn}
           unitId="field-name"
           validationName="name"
@@ -236,6 +256,7 @@ export function CollectionFields({
         />
         <AdminTextField
           label="Subtitle"
+          owner="Synarava"
           value={isEn ? draft.subtitle : active!.subtitle}
           onChange={(e) => (isEn ? onChange("subtitle", e.target.value) : updateActiveTranslation("subtitle", e.target.value))}
           placeholder={isEn ? "A short editorial line" : "Optional — shows the English subtitle until filled in."}
@@ -251,6 +272,7 @@ export function CollectionFields({
 
         <AdminTextField
           label="Slug"
+          owner="Shopify"
           name="slug"
           required
           unitId="field-slug"
@@ -267,6 +289,7 @@ export function CollectionFields({
 
         <AdminTextField
           label="Accent code"
+          owner="Synarava"
           name="code"
           required
           unitId="field-code"
@@ -281,12 +304,6 @@ export function CollectionFields({
           placeholder="COL-01"
         />
 
-      </div>
-
-      <div
-        className="grid gap-4 pt-4"
-        style={{ borderTop: "1px solid var(--adm-border)" }}
-      >
         <WorkflowStateField
           value={draft.workflowState}
           onChange={(value) => {
@@ -350,6 +367,7 @@ export function CollectionFields({
 
       <AdminLongTextField
         label="Collection summary"
+        owner="Shopify"
         required={isEn}
         unitId="field-description"
         validationName="description"
@@ -367,8 +385,27 @@ export function CollectionFields({
         placeholder={isEn ? "This text appears on the collection card and collection hero." : "Optional — shows the English summary until filled in."}
       />
 
+      <div className="grid gap-4 md:grid-cols-2" hidden={!isEn}>
+        <AdminTextField
+          label="SEO title"
+          owner="Shopify"
+          value={draft.seoTitle}
+          onChange={(event) => onChange("seoTitle", event.target.value)}
+          placeholder="Search result title"
+        />
+        <AdminLongTextField
+          label="SEO description"
+          owner="Shopify"
+          value={draft.seoDescription}
+          onChange={(value) => onChange("seoDescription", value)}
+          rows={2}
+          placeholder="Search result description"
+        />
+      </div>
+
       <AdminLongTextField
         label="Manifesto"
+        owner="Synarava"
         required={isEn}
         unitId="field-manifesto"
         validationName="manifesto"
@@ -388,6 +425,7 @@ export function CollectionFields({
 
       <AdminLongTextField
         label="Search summary"
+        owner="Synarava"
         required={isEn}
         unitId="field-searchSummary"
         validationName="searchSummary"
@@ -405,6 +443,7 @@ export function CollectionFields({
         placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}
       />
 
+      {/* First text block beside the collection image. Independent of the header summary. */}
       <div
         className="grid gap-4 pt-4"
         style={{ borderTop: "1px solid var(--adm-border)" }}
@@ -435,7 +474,7 @@ export function CollectionFields({
         />
       </div>
 
-      {/* Default symbolism — shared layout, value switches with the locale tab */}
+      {/* Second text block — shared layout, value switches with the locale tab */}
       <div
         className="grid gap-4 pt-4"
         style={{ borderTop: "1px solid var(--adm-border)" }}

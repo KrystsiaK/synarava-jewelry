@@ -37,10 +37,13 @@ function equalSecret(left: string, right: string) {
   );
 }
 
-function loginError(appOrigin: string) {
-  const response = NextResponse.redirect(
-    new URL("/login?error=shopify", appOrigin),
-  );
+function loginError(appOrigin: string, returnTo?: string) {
+  const url = new URL("/login", appOrigin);
+  const locale = returnTo?.match(/^\/([a-z]{2})(?=\/|\?|$)/)?.[1];
+  if (locale) url.pathname = `/${locale}/login`;
+  url.searchParams.set("error", "shopify");
+  if (returnTo) url.searchParams.set("redirectTo", returnTo);
+  const response = NextResponse.redirect(url);
   response.cookies.set(SHOPIFY_CUSTOMER_OAUTH_COOKIE, "", {
     httpOnly: true,
     maxAge: 0,
@@ -59,16 +62,19 @@ export async function GET(request: NextRequest) {
     SHOPIFY_CUSTOMER_OAUTH_COOKIE,
   )?.value;
 
-  if (!code || !returnedState || !storedTransaction) {
+  const returnTo = returnToFromTransaction(storedTransaction);
+  const shopifyError = request.nextUrl.searchParams.get("error");
+  if (shopifyError || !code || !returnedState || !storedTransaction) {
     const missing = [
+      shopifyError && `Shopify error ${safeOAuthError(shopifyError)}`,
       !code && "code",
       !returnedState && "state",
       !storedTransaction && "OAuth transaction cookie",
     ].filter(Boolean);
     console.error(
-      `[shopify-customer-auth] Callback rejected: missing ${missing.join(", ")}.`,
+      `[shopify-customer-auth] Callback rejected: ${missing.join(", ")}.`,
     );
-    return loginError(config.appOrigin);
+    return loginError(config.appOrigin, returnTo);
   }
 
   try {
@@ -82,7 +88,7 @@ export async function GET(request: NextRequest) {
       console.error(
         "[shopify-customer-auth] Callback rejected: OAuth transaction expired or state mismatch.",
       );
-      return loginError(config.appOrigin);
+      return loginError(config.appOrigin, transaction.returnTo);
     }
 
     const discovery = await getCustomerAuthorizationDiscovery();
@@ -138,6 +144,19 @@ export async function GET(request: NextRequest) {
       "[shopify-customer-auth] Callback failed:",
       error instanceof Error ? error.message : "Unknown error",
     );
-    return loginError(config.appOrigin);
+    return loginError(config.appOrigin, returnTo);
+  }
+}
+
+function safeOAuthError(value: string) {
+  return /^[a-z0-9_]{1,64}$/.test(value) ? value : "unrecognized";
+}
+
+function returnToFromTransaction(stored: string | undefined) {
+  if (!stored) return undefined;
+  try {
+    return transactionSchema.parse(JSON.parse(decryptCustomerSecret(stored))).returnTo;
+  } catch {
+    return undefined;
   }
 }

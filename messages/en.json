@@ -424,10 +424,13 @@
     }
   },
   "profile": {
+    "metaTitle": "My Account | Synarava",
+    "metaDescription": "Manage your Synarava account, orders, and preferences.",
     "tabs": {
       "overview": "Overview",
       "wishlist": "Wishlist",
       "orders": "Orders",
+      "reviews": "Reviews",
       "addresses": "Addresses",
       "security": "Sign-in & security"
     },
@@ -464,6 +467,20 @@
       "loadMore": "Load more orders",
       "loadMoreFailed": "Couldn’t load more orders.",
       "requiresLogin": "Your session has expired — sign in again to see more orders."
+    },
+    "reviews": {
+      "title": "My reviews",
+      "empty": "You have not published a review yet. A review can be left on a product page.",
+      "colProduct": "Product",
+      "colRating": "Rating",
+      "colDate": "Date",
+      "colReview": "Review",
+      "ratingOnly": "Rating only",
+      "close": "Close",
+      "verified": "Verified buyer",
+      "reply": "Synarava reply",
+      "missingProduct": "Product no longer listed",
+      "openProduct": "View product"
     },
     "addresses": {
       "title": "Saved addresses",
@@ -513,7 +530,21 @@
     "firstBody": "Share details that would help another customer choose with confidence.",
     "verifiedBuyer": "Verified buyer",
     "merchantReply": "Synarava reply",
-    "signInAgain": "Sign in again."
+    "signInAgain": "Sign in again.",
+    "form": {
+      "checkFields": "Check the highlighted review fields.",
+      "requiresLogin": "Sign in with Shopify to write a review.",
+      "verifyFailed": "Shopify could not verify your customer account. Please try again later.",
+      "productNotReady": "This product is not ready for Shopify reviews yet.",
+      "rateLimited": "Too many reviews from this account today. Please try again tomorrow.",
+      "publishFailed": "Shopify could not publish the review. Please try again later.",
+      "success": "Your review is now published.",
+      "field": {
+        "rating": "Choose a rating from 1 to 5.",
+        "title": "Keep the title under 120 characters.",
+        "body": "Write at least 10 characters, or leave this blank."
+      }
+    }
   },
   "service": {
     "contactTitle": "Need a specific answer?",

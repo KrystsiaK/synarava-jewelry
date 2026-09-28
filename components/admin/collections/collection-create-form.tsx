@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 
 import {
   autosaveCollectionDraftAction,
@@ -8,18 +9,16 @@ import {
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import { AdminAlert } from "@/components/synarava-cms";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminAlert, AdminHelp, AdminIconButton, AdminListWorkspace } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { slugify } from "@/lib/text/slug";
-import { CollectionFields } from "@/components/admin/collections/collection-fields";
+import { CollectionFields, CollectionLocaleProvider, CollectionLocaleTabs } from "@/components/admin/collections/collection-fields";
 import {
   emptyCollectionDraft,
   generateCollectionCode,
-  submitLabel,
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionDraft } from "@/components/admin/collections/collection-types";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
@@ -101,57 +100,67 @@ export function CreateCollectionForm({
 
   return (
     <>
-      <form ref={formRef} action={formAction} noValidate className="adm-panel grid gap-4 p-5">
-        <input type="hidden" name="collectionId" value={draftId} />
-        <div
-          className="flex items-center justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
-        >
-          <div>
-            <p className="adm-section-tag">[ NEW COLLECTION ]</p>
-            <div className="adm-label-row mt-2">
-              <h2 className="adm-title-sm">
-                Create collection
-              </h2>
-              <AdminHelp label="Collection fields guidance">
-                Name and summary feed the collection card and hero. The collection eyebrow and numbering are generated automatically from sort order. Hero image replaces current media only when a file is selected. Manifesto and symbolism defaults shape the public collection story. State controls draft versus published visibility.
-              </AdminHelp>
-            </div>
-          </div>
-          <button
-            type="button"
-            disabled={isPending}
-            className="adm-btn-primary"
-            onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
-          >
-            {submitLabel("Save collection", isPending, "Saving...")}
-          </button>
-        </div>
-
-        <AdminAlert message={state.error} />
-        <div>
-          <AdminHelp label="Save guidance">
-            Fields marked with * are required. Drafts stay in the form until a save succeeds.
-          </AdminHelp>
-        </div>
-
-        <CollectionFields
-          draft={draft}
-          onChange={(key, value) => {
-            if (key === "slug") setSlugLocked(Boolean(String(value).trim()));
-            if (key === "code") setCodeLocked(Boolean(String(value).trim()));
-            updateDraft(key, value);
-          }}
-          onChangeTranslation={(locale, key, value) => setDraft((current) => ({
-            ...current,
-            translations: { ...current.translations, [locale]: { ...current.translations[locale], [key]: value } },
-          }))}
-          fieldErrors={validation.fieldErrors}
-          onFieldEdit={validation.clearFieldError}
-          fileInputKey={fileInputKey}
-          translationLocales={translationLocales}
-        />
-      </form>
+      <CollectionLocaleProvider
+        draft={draft}
+        translationLocales={translationLocales}
+        fieldErrors={validation.fieldErrors}
+      >
+        <form ref={formRef} action={formAction} noValidate>
+          <input type="hidden" name="collectionId" value={draftId} />
+          <AdminListWorkspace.Root>
+            <AdminListWorkspace.Header
+              tag="[ NEW COLLECTION ]"
+              title={
+                <span className="adm-label-row">
+                  Create collection
+                  <AdminHelp label="Collection fields guidance">
+                    Name and summary feed the collection card and hero. The collection eyebrow and numbering are generated automatically from sort order. Hero image replaces current media only when a file is selected. Manifesto and symbolism defaults shape the public collection story. State controls draft versus published visibility.
+                  </AdminHelp>
+                </span>
+              }
+              actions={
+                <AdminIconButton
+                  label={isPending ? "Saving collection" : "Save collection"}
+                  tooltip={
+                    isPending
+                      ? "Saving collection…"
+                      : "Save collection locally. Fields marked with * are required."
+                  }
+                  disabled={isPending}
+                  onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
+                >
+                  {isPending ? (
+                    <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+                  ) : (
+                    <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+                  )}
+                </AdminIconButton>
+              }
+            >
+              <CollectionLocaleTabs embedded />
+            </AdminListWorkspace.Header>
+            <AdminListWorkspace.Body className="grid gap-4">
+              <AdminAlert message={state.error} />
+              <CollectionFields
+                draft={draft}
+                onChange={(key, value) => {
+                  if (key === "slug") setSlugLocked(Boolean(String(value).trim()));
+                  if (key === "code") setCodeLocked(Boolean(String(value).trim()));
+                  updateDraft(key, value);
+                }}
+                onChangeTranslation={(locale, key, value) => setDraft((current) => ({
+                  ...current,
+                  translations: { ...current.translations, [locale]: { ...current.translations[locale], [key]: value } },
+                }))}
+                fieldErrors={validation.fieldErrors}
+                onFieldEdit={validation.clearFieldError}
+                fileInputKey={fileInputKey}
+                translationLocales={translationLocales}
+              />
+            </AdminListWorkspace.Body>
+          </AdminListWorkspace.Root>
+        </form>
+      </CollectionLocaleProvider>
       <AdminConfirmModal
         open={confirmOpen}
         title="Create collection"

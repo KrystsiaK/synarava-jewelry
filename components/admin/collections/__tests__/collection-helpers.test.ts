@@ -25,6 +25,8 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     description: null,
     manifesto: null,
     searchSummary: null,
+    seoTitle: null,
+    seoDescription: null,
     symbolismLabel: null,
     symbolismTitle: null,
     symbolismBody: null,

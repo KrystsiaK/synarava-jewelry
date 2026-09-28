@@ -32,6 +32,8 @@ export async function saveCommerceCopyAction(formData: FormData): Promise<Commer
     legacyClear[locale.code] = Object.fromEntries(MOVED_HEADER_ACCOUNT_KEYS.map((key) => [key, ""]));
   }
 
+  // Account-page keys live in the same setting and are written only by
+  // saveAccountPageAction, so this save must not include them.
   await setCommerceCopy(updates);
   await setStorefrontCopy(legacyClear);
   revalidatePath("/", "layout");

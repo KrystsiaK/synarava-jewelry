@@ -188,6 +188,44 @@ const COOKIE_SETTINGS_PAGE_GROUP: StorefrontCopyGroup = {
   ],
 };
 
+const PLURAL = "Keep {count}. “one” is a single item; “few” and “many” are for languages such as Russian; “other” covers everything else. Leave few/many empty to reuse “other”.";
+
+const REVIEW_FORM_GROUP: StorefrontCopyGroup = {
+  id: "reviews-form",
+  title: "Reviews — leave a review",
+  description:
+    "The form on a product page. The reviews themselves are Shopify product_review entries and are not edited here. The account table is edited under Customer account.",
+  fields: [
+    { key: "reviews.shareTitle", label: "Heading" },
+    { key: "reviews.ratingLabel", label: "Rating label" },
+    { key: "reviews.star.one", label: "Stars — one", hint: PLURAL },
+    { key: "reviews.star.few", label: "Stars — few", hint: PLURAL },
+    { key: "reviews.star.many", label: "Stars — many", hint: PLURAL },
+    { key: "reviews.star.other", label: "Stars — other", hint: PLURAL },
+    { key: "reviews.titleLabel", label: "Title label" },
+    { key: "reviews.optional", label: "Optional" },
+    { key: "reviews.titlePlaceholder", label: "Title placeholder" },
+    { key: "reviews.bodyLabel", label: "Review label" },
+    { key: "reviews.bodyPlaceholder", label: "Review placeholder" },
+    { key: "reviews.publishing", label: "Publishing" },
+    { key: "reviews.publish", label: "Publish" },
+    { key: "reviews.storedNotice", label: "Stored in Shopify", area: true },
+    { key: "reviews.signInBody", label: "Sign-in prompt", area: true },
+    { key: "reviews.signInCta", label: "Sign-in link" },
+    { key: "reviews.signInAgain", label: "Sign in again" },
+    { key: "reviews.form.checkFields", label: "Check fields", area: true },
+    { key: "reviews.form.requiresLogin", label: "Needs sign-in", area: true },
+    { key: "reviews.form.verifyFailed", label: "Could not verify", area: true },
+    { key: "reviews.form.productNotReady", label: "Product not ready", area: true },
+    { key: "reviews.form.rateLimited", label: "Too many reviews", area: true },
+    { key: "reviews.form.publishFailed", label: "Could not publish", area: true },
+    { key: "reviews.form.success", label: "Published", area: true },
+    { key: "reviews.form.field.rating", label: "Rating error" },
+    { key: "reviews.form.field.title", label: "Title error" },
+    { key: "reviews.form.field.body", label: "Review error", area: true },
+  ],
+};
+
 export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   HEADER_CHROME_GROUP,
   FOOTER_BRAND_GROUP,
@@ -197,6 +235,7 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   SERVICE_CONTACT_GROUP,
   COOKIE_CONSENT_GROUP,
   COOKIE_SETTINGS_PAGE_GROUP,
+  REVIEW_FORM_GROUP,
 ];
 
 export const STOREFRONT_COPY_KEYS: string[] = STOREFRONT_COPY_GROUPS.flatMap(

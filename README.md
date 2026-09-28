@@ -152,7 +152,12 @@ Shopify connection and scopes, establishes the initial store binding, and regist
 `metaobjects/create`, `metaobjects/update`, and `metaobjects/delete` webhooks when `APP_URL` and
 `SHOPIFY_WEBHOOK_SECRET` are configured.
 The storefront uses Shopify's official **Verified by Shop** badge only when syndicated reviews are
-actually present.
+actually present. The signed-in account lists that customer's published reviews
+(`author` = the Shopify customer id) in a table; choosing the text opens the review as stored.
+Standard `product_review` fields are not admin-filterable, so the account reads the same cached
+metaobject list the product page uses and keeps the matching author. Review records are not copied
+into Synarava. The leave-a-review form is its own Shared section and syncs with the rest of
+`$app:storefront_copy`; the account table labels stay on Customer account and are not synced.
 
 Customer wishlists are stored in the Shopify Customer `synarava.wishlist` metafield and require the
 Admin API `read_customers` and `write_customers` scopes. Missing wishlist access degrades to an empty

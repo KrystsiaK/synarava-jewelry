@@ -38,7 +38,7 @@ describe("CreateCollectionForm", () => {
     const { container } = render(<CreateCollectionForm />);
 
     expect(screen.getByRole("heading", { name: "Create collection" })).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/^Name\*/), "Lava Heritage");
+    await user.type(screen.getByRole("textbox", { name: /^Name/ }), "Lava Heritage");
 
     expect(container.querySelector('input[name="slug"]')).toHaveValue("lava-heritage");
     expect(container.querySelector('input[name="code"]')).not.toHaveValue("");
@@ -54,7 +54,7 @@ describe("CreateCollectionForm", () => {
     const user = userEvent.setup();
     const { container } = render(<CreateCollectionForm onCreated={onCreated} />);
 
-    await user.type(screen.getByLabelText(/^Name\*/), "Lava Heritage");
+    await user.type(screen.getByRole("textbox", { name: /^Name/ }), "Lava Heritage");
     const heroImageInput = container.querySelector<HTMLInputElement>('input[name="heroImageFile"]');
     expect(heroImageInput).not.toBeNull();
     expect(heroImageInput).not.toBeRequired();

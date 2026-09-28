@@ -28,12 +28,14 @@ describe("CommerceCopyEditor", () => {
     );
 
     expect(screen.getByRole("status")).toHaveTextContent("SHOPIFY: LOCAL ONLY");
+    expect(document.querySelector("[data-component='AdminPanel']")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save cart & account" })).toBeTruthy();
     expect(document.getElementById("commerce-cart")).toBeTruthy();
     expect(document.getElementById("commerce-checkout")).toBeTruthy();
     expect(document.getElementById("commerce-login")).toBeTruthy();
     expect(screen.getByLabelText("Cart (EN)")).toHaveValue("Bag");
-    expect(screen.getByLabelText("Sign-in button (EN)")).toHaveValue("");
-    expect(screen.getByLabelText("Sign-in button (EN)")).toHaveAttribute(
+    expect(screen.getByLabelText("Sign-in button (EN)", { hidden: true })).toHaveValue("");
+    expect(screen.getByLabelText("Sign-in button (EN)", { hidden: true })).toHaveAttribute(
       "placeholder",
       "Sign in or create account",
     );

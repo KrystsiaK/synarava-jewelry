@@ -75,6 +75,8 @@ export type SavedCollectionPayload = {
   storyTitle: string | null;
   storyBody: string | null;
   searchSummary: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
   symbolismLabel: string | null;
   symbolismTitle: string | null;
   symbolismBody: string | null;
@@ -101,6 +103,8 @@ const savedCollectionSelect = {
   storyTitle: true,
   storyBody: true,
   searchSummary: true,
+  seoTitle: true,
+  seoDescription: true,
   symbolismLabel: true,
   symbolismTitle: true,
   symbolismBody: true,
@@ -171,6 +175,8 @@ const collectionFieldsSchema = z.object({
   storyTitle: z.string().trim().default(""),
   storyBody: z.string().trim().default(""),
   searchSummary: z.string().trim().default(""),
+  seoTitle: z.string().trim().default(""),
+  seoDescription: z.string().trim().default(""),
   symbolismLabel: z.string().trim().default(""),
   symbolismTitle: z.string().trim().default(""),
   symbolismBody: z.string().trim().default(""),
@@ -210,6 +216,7 @@ export async function saveCollectionAction(
   }
   const {
     collectionId, code, name, subtitle, description, manifesto, storyTitle, storyBody, searchSummary,
+    seoTitle, seoDescription,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, workflowState,
   } = parsed.data;
   const translationLocales = await getAdminTranslationLocales();
@@ -287,6 +294,8 @@ export async function saveCollectionAction(
     storyTitle: storyTitle || null,
     storyBody: storyBody || null,
     searchSummary: searchSummary || null,
+    seoTitle: seoTitle || null,
+    seoDescription: seoDescription || null,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,
     symbolismBody: symbolismBody || null,
@@ -507,6 +516,7 @@ export async function autosaveCollectionDraftAction(
   }
   const {
     collectionId, code, description, manifesto, storyTitle, storyBody, searchSummary,
+    seoTitle, seoDescription,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
   } = parsed.data;
   const slug = slugify(parsed.data.slug) || createDraftToken("draft-collection");
@@ -525,6 +535,8 @@ export async function autosaveCollectionDraftAction(
     storyTitle: storyTitle || null,
     storyBody: storyBody || null,
     searchSummary: searchSummary || null,
+    seoTitle: seoTitle || null,
+    seoDescription: seoDescription || null,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,
     symbolismBody: symbolismBody || null,

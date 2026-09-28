@@ -19,6 +19,7 @@ import {
   parseProductReviewMetaobject,
   productReviewAggregate,
   refreshShopifyProductReviewAggregates,
+  selectCustomerProductReviews,
 } from "../product-reviews";
 
 describe("Shopify standard product reviews", () => {
@@ -95,6 +96,40 @@ describe("Shopify standard product reviews", () => {
       ],
       capabilities: { publishable: { status: "ACTIVE" } },
     });
+  });
+
+  it("keeps only the signed-in customer's published reviews", () => {
+    const customerId = "gid://shopify/Customer/2";
+    const review = {
+      id: "gid://shopify/Metaobject/1",
+      handle: "review-1",
+      capabilities: { publishable: { status: "ACTIVE" } },
+      rating: { value: JSON.stringify({ scale_min: "1.0", scale_max: "5.0", value: "5.0" }) },
+      title: { value: "A lasting piece" },
+      body: { value: "Beautifully made." },
+      product: { value: "gid://shopify/Product/10" },
+      author: { value: customerId },
+      authorDisplayName: { value: "Ana" },
+      submittedAt: { value: "2026-09-10T12:00:00Z" },
+      appVerificationStatus: { value: "verified_buyer" },
+      merchantReply: { value: "" },
+      merchantRepliedAt: null,
+    };
+
+    expect(selectCustomerProductReviews([
+      review,
+      { ...review, id: "other", author: { value: "gid://shopify/Customer/9" } },
+      { ...review, id: "draft", capabilities: { publishable: { status: "DRAFT" } } },
+      { ...review, id: "anonymous", author: null },
+    ], customerId)).toEqual([
+      expect.objectContaining({
+        id: "gid://shopify/Metaobject/1",
+        productId: "gid://shopify/Product/10",
+        authorId: customerId,
+        title: "A lasting piece",
+        verificationStatus: "verified_buyer",
+      }),
+    ]);
   });
 
   it("calculates the aggregate Shopify metafield values", () => {

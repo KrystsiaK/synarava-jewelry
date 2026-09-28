@@ -142,6 +142,15 @@ const LOGIN_GROUP: StorefrontCopyGroup = {
   ],
 };
 
+export const COMMERCE_COPY_AREAS = [
+  { id: "entry", label: "Header", detail: "Cart and account in the menu" },
+  { id: "cart", label: "Cart", detail: "The cart page" },
+  { id: "checkout", label: "Checkout", detail: "Add to cart and confirmation" },
+  { id: "login", label: "Login", detail: "Before Shopify sign-in" },
+] as const;
+
+export type CommerceCopyAreaId = (typeof COMMERCE_COPY_AREAS)[number]["id"];
+
 export const COMMERCE_COPY_GROUPS: StorefrontCopyGroup[] = [
   ENTRY_GROUP,
   CART_GROUP,
@@ -152,6 +161,11 @@ export const COMMERCE_COPY_GROUPS: StorefrontCopyGroup[] = [
 export const COMMERCE_COPY_KEYS: string[] = COMMERCE_COPY_GROUPS.flatMap((group) =>
   group.fields.map((field) => field.key),
 );
+
+export function commerceAreaForHash(hash: string): CommerceCopyAreaId | null {
+  const id = hash.replace(/^#/, "").replace(/^commerce-/, "");
+  return COMMERCE_COPY_AREAS.some((area) => area.id === id) ? id as CommerceCopyAreaId : null;
+}
 
 export function overlayLegacyHeaderLabels(commerce: LocaleCopy, shared: LocaleCopy): LocaleCopy {
   const locales = new Set([...Object.keys(commerce), ...Object.keys(shared)]);

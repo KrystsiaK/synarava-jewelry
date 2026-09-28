@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   getWishlistIds: vi.fn(),
   listProducts: vi.fn(),
+  getReviews: vi.fn(),
+  listReviewProducts: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/customer-account/api", () => ({
@@ -24,13 +26,34 @@ vi.mock("@/lib/content/catalog", () => ({
   listShopProducts: mocks.listProducts,
 }));
 
+vi.mock("@/lib/content/product-reviews", () => ({
+  getCustomerProductReviews: mocks.getReviews,
+  listReviewProductLinks: mocks.listReviewProducts,
+}));
+
 vi.mock("@/lib/i18n/server", () => ({
   getRequestLocale: vi.fn(async () => "en"),
 }));
 
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  },
+}));
+
 vi.mock("@/components/profile/shopify-profile-shell", () => ({
-  ShopifyProfileShell: ({ wishlistProducts }: { wishlistProducts: unknown[] }) => (
-    <div data-testid="profile" data-wishlist-count={wishlistProducts.length} />
+  ShopifyProfileShell: ({
+    wishlistProducts,
+    reviews,
+  }: {
+    wishlistProducts: unknown[];
+    reviews: unknown[];
+  }) => (
+    <div
+      data-testid="profile"
+      data-wishlist-count={wishlistProducts.length}
+      data-review-count={reviews.length}
+    />
   ),
 }));
 
@@ -44,6 +67,8 @@ describe("ProfilePage", () => {
       new Error("Access denied: missing read_customers"),
     );
     mocks.listProducts.mockResolvedValue([]);
+    mocks.getReviews.mockResolvedValue([]);
+    mocks.listReviewProducts.mockResolvedValue([]);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -55,6 +80,15 @@ describe("ProfilePage", () => {
       "0",
     );
     expect(mocks.listProducts).not.toHaveBeenCalled();
+  });
+
+  it("sends a signed-out visitor to the login page instead of starting OAuth", async () => {
+    mocks.getSession.mockResolvedValue(null);
+
+    await expect(ProfilePage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
+      "NEXT_REDIRECT:/en/login?redirectTo=%2Fen%2Fprofile",
+    );
+    expect(mocks.getCustomerProfile).not.toHaveBeenCalled();
   });
 
   it("loads the profile with the already-resolved customer session", async () => {
@@ -69,5 +103,26 @@ describe("ProfilePage", () => {
     render(await ProfilePage({ searchParams: Promise.resolve({}) }));
 
     expect(mocks.getCustomerProfile).toHaveBeenCalledWith(session);
+  });
+
+  it("lists the customer's Shopify reviews even when a product name cannot be resolved", async () => {
+    mocks.getReviews.mockResolvedValue([{
+      id: "gid://shopify/Metaobject/1",
+      rating: 5,
+      title: "A lasting piece",
+      body: "Beautifully made.",
+      submittedAt: "2026-09-10T12:00:00.000Z",
+      verificationStatus: "verified_buyer",
+      merchantReply: "",
+      productId: "gid://shopify/Product/10",
+      authorId: "gid://shopify/Customer/1",
+      handle: "review-1",
+      merchantRepliedAt: null,
+    }]);
+    mocks.listReviewProducts.mockRejectedValue(new Error("database unavailable"));
+
+    render(await ProfilePage({ searchParams: Promise.resolve({ section: "reviews" }) }));
+
+    expect(screen.getByTestId("profile")).toHaveAttribute("data-review-count", "1");
   });
 });

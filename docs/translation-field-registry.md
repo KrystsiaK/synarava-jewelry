@@ -80,7 +80,7 @@ native resource a given page instance binds to).
 
 Derived programmatically from `STOREFRONT_COPY_KEYS`
 (`lib/content/storefront-copy-fields.ts`) so the two lists cannot drift.
-Keys target metaobject `storefront_copy.<key>` — chrome, footer, contact CTA, and cookie consent / settings copy.
+Keys target metaobject `storefront_copy.<key>` — chrome, footer, contact CTA, cookie consent / settings copy, and the leave-a-review form (`reviews.shareTitle`, `reviews.form.*`).
 Header cart and account labels, the cart page, the add-to-cart confirmation, and `/login`
 are **not** in this registry. They are local overrides in `SiteSetting` `commerce-copy-v1`
 (`lib/content/commerce-copy-fields.ts`). Shopify hosts checkout, payment, and the

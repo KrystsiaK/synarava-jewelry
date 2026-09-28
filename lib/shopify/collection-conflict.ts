@@ -101,15 +101,14 @@ export async function getCollectionCatalogConflict(collectionId: string): Promis
   const fields = differences
     .filter((difference) =>
       difference.rootEntityType === "COLLECTION"
-      && difference.rootEntityId === collectionId
-      && difference.kind === "CONFLICT",
+      && difference.rootEntityId === collectionId,
     )
     .map((difference) => translationField(difference, locales));
 
   return { collectionId, fields };
 }
 
-/** Collection IDs with translation CONFLICT and/or catalog-presence differences. */
+/** Collection IDs with any unresolved translation divergence and/or catalog-presence differences. */
 export async function listConflictedCollectionIds(): Promise<string[]> {
   const [differences, presenceDifferences] = await Promise.all([
     getLatestReconcileDifferences(),
@@ -117,7 +116,7 @@ export async function listConflictedCollectionIds(): Promise<string[]> {
   ]);
   const collectionIds = new Set<string>();
   for (const difference of differences) {
-    if (difference.rootEntityType === "COLLECTION" && difference.kind === "CONFLICT") {
+    if (difference.rootEntityType === "COLLECTION") {
       collectionIds.add(difference.rootEntityId);
     }
   }

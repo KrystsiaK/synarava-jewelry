@@ -21,6 +21,21 @@ export type ShopifyProductReview = {
   merchantRepliedAt: string | null;
 };
 
+/** One customer's published `product_review` entries. Shopify is the only store. */
+export type ShopifyCustomerReview = {
+  id: string;
+  handle: string;
+  rating: number;
+  title: string;
+  body: string;
+  submittedAt: string;
+  verificationStatus: ShopifyProductReview["verificationStatus"];
+  merchantReply: string;
+  merchantRepliedAt: string | null;
+  productId: string;
+  authorId: string;
+};
+
 export type ShopifyProductReviews = {
   reviews: ShopifyProductReview[];
   average: number | null;
@@ -40,6 +55,7 @@ export type ShopifyReviewMetaobject = {
   appVerificationStatus: FieldValue;
   merchantReply: FieldValue;
   merchantRepliedAt: FieldValue;
+  author?: FieldValue;
 };
 
 function field(value: string, key: string) {
@@ -86,6 +102,10 @@ export function buildProductReviewInput(input: {
   };
 }
 
+function verificationStatus(value: string | null | undefined): ShopifyProductReview["verificationStatus"] {
+  return value === "verified_buyer" || value === "verified_reviewer" ? value : "unverified";
+}
+
 function parseRating(value: string | null | undefined) {
   if (!value) return null;
   try {
@@ -105,8 +125,6 @@ export function parseProductReviewMetaobject(
   if (metaobject.product?.value !== productId) return null;
   const rating = parseRating(metaobject.rating?.value);
   if (rating == null || !metaobject.submittedAt?.value) return null;
-  const verification = metaobject.appVerificationStatus?.value;
-
   return {
     id: metaobject.id,
     handle: metaobject.handle,
@@ -115,12 +133,50 @@ export function parseProductReviewMetaobject(
     body: metaobject.body?.value ?? "",
     authorDisplayName: metaobject.authorDisplayName?.value ?? "Shopify customer",
     submittedAt: metaobject.submittedAt.value,
-    verificationStatus: verification === "verified_buyer" || verification === "verified_reviewer"
-      ? verification
-      : "unverified",
+    verificationStatus: verificationStatus(metaobject.appVerificationStatus?.value),
     merchantReply: metaobject.merchantReply?.value ?? "",
     merchantRepliedAt: metaobject.merchantRepliedAt?.value ?? null,
   };
+}
+
+/**
+ * A published review owned by one customer. Standard `product_review` fields
+ * are not admin-filterable, so callers load the cached metaobject list and
+ * filter `author` here instead of `metaobjects(query:)`.
+ * https://shopify.dev/docs/apps/build/metaobjects/standard-review-metaobject
+ */
+export function parseCustomerProductReview(metaobject: ShopifyReviewMetaobject): ShopifyCustomerReview | null {
+  if (metaobject.capabilities.publishable?.status !== "ACTIVE") return null;
+  const rating = parseRating(metaobject.rating?.value);
+  const productId = metaobject.product?.value;
+  const authorId = metaobject.author?.value;
+  if (rating == null || !metaobject.submittedAt?.value || !productId || !authorId) return null;
+
+  return {
+    id: metaobject.id,
+    handle: metaobject.handle,
+    rating,
+    title: metaobject.title?.value ?? "",
+    body: metaobject.body?.value ?? "",
+    submittedAt: metaobject.submittedAt.value,
+    verificationStatus: verificationStatus(metaobject.appVerificationStatus?.value),
+    merchantReply: metaobject.merchantReply?.value ?? "",
+    merchantRepliedAt: metaobject.merchantRepliedAt?.value ?? null,
+    productId,
+    authorId,
+  };
+}
+
+export function selectCustomerProductReviews(
+  metaobjects: ShopifyReviewMetaobject[],
+  customerId: string,
+): ShopifyCustomerReview[] {
+  return metaobjects
+    .flatMap((metaobject) => {
+      const review = parseCustomerProductReview(metaobject);
+      return review && review.authorId === customerId ? [review] : [];
+    })
+    .sort((left, right) => Date.parse(right.submittedAt) - Date.parse(left.submittedAt));
 }
 
 export function productReviewAggregate(reviews: Array<{ rating: number }>) {
@@ -162,6 +218,7 @@ async function fetchProductReviewMetaobjects() {
             body: field(key: "body") { value }
             product: field(key: "product") { value }
             authorDisplayName: field(key: "author_display_name") { value }
+            author: field(key: "author") { value }
             submittedAt: field(key: "submitted_at") { value }
             appVerificationStatus: field(key: "app_verification_status") { value }
             merchantReply: field(key: "merchant_reply") { value }
@@ -217,6 +274,11 @@ export async function getShopifyProductReviews(productId: string): Promise<Shopi
   const storedCount = Number(productData.product?.ratingCount?.value);
   const count = Number.isInteger(storedCount) && storedCount >= 0 ? storedCount : fallback.count;
   return { reviews, average, count };
+}
+
+export async function getShopifyCustomerProductReviews(customerId: string): Promise<ShopifyCustomerReview[]> {
+  const metaobjects = await fetchCachedProductReviewMetaobjects();
+  return selectCustomerProductReviews(metaobjects, customerId);
 }
 
 let standardDefinitionEnabled = false;

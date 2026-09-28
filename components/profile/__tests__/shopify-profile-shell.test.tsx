@@ -51,6 +51,7 @@ describe("ShopifyProfileShell security tab", () => {
         customer={customer}
         activeTab="security"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
@@ -64,6 +65,7 @@ describe("ShopifyProfileShell security tab", () => {
         customer={customer}
         activeTab="security"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
@@ -80,6 +82,7 @@ describe("ShopifyProfileShell security tab", () => {
         customer={customer}
         activeTab="security"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-09-25T00:00:00.000Z"
       />,
     );
@@ -94,6 +97,7 @@ describe("ShopifyProfileShell security tab", () => {
         customer={customer}
         activeTab="security"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
@@ -135,6 +139,7 @@ describe("ShopifyProfileShell orders tab pagination (REV-13)", () => {
         customer={customerWithMoreOrders}
         activeTab="orders"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
@@ -164,6 +169,7 @@ describe("ShopifyProfileShell orders tab pagination (REV-13)", () => {
         customer={customerWithMoreOrders}
         activeTab="orders"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
@@ -195,6 +201,7 @@ describe("ShopifyProfileShell orders tab pagination (REV-13)", () => {
         customer={customerWithTruncatedOrder}
         activeTab="orders"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
@@ -221,6 +228,7 @@ describe("ShopifyProfileShell total spent (REV-14)", () => {
         customer={customerWithMixedCurrencies}
         activeTab="overview"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
@@ -246,10 +254,43 @@ describe("ShopifyProfileShell total spent (REV-14)", () => {
         customer={customerWithRefund}
         activeTab="overview"
         wishlistProducts={[]}
+        reviews={[]}
         sessionExpiresAt="2026-10-15T00:00:00.000Z"
       />,
     );
 
     expect(screen.getByText("€60.00")).toBeInTheDocument();
+  });
+});
+
+describe("ShopifyProfileShell reviews", () => {
+  it("opens the Shopify review when its text is chosen", async () => {
+    const user = userEvent.setup();
+    render(
+      <ShopifyProfileShell
+        customer={customer}
+        activeTab="reviews"
+        wishlistProducts={[]}
+        reviews={[{
+          id: "review-1",
+          rating: 5,
+          title: "A lasting piece",
+          body: "Beautifully made and thoughtfully presented.",
+          submittedAt: "2026-09-10T12:00:00.000Z",
+          verificationStatus: "verified_buyer",
+          merchantReply: "Thank you.",
+          productTitle: "Lava ring",
+          productHref: "/en/products/lava-ring",
+        }]}
+        sessionExpiresAt="2026-10-15T00:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: /^reviews$/i })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("button", { name: "A lasting piece" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Beautifully made and thoughtfully presented.");
+    expect(dialog).toHaveTextContent("Thank you.");
+    expect(screen.getByRole("link", { name: "View product" })).toHaveAttribute("href", "/en/products/lava-ring");
   });
 });

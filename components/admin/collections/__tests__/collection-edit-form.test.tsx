@@ -36,6 +36,8 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     description: "A summer story.",
     manifesto: "Manifesto copy.",
     searchSummary: "Search helper text.",
+    seoTitle: null,
+    seoDescription: null,
     symbolismLabel: null,
     symbolismTitle: null,
     symbolismBody: null,
@@ -107,21 +109,24 @@ describe("EditCollectionForm", () => {
     render(<EditCollectionForm collection={makeCollection()} />);
 
     expect(screen.getByRole("heading", { name: "Wanderlust" })).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
+    expect(screen.getByRole("textbox", { name: /^Name/ })).toHaveValue("Wanderlust");
     expect(longTextPreview("Collection summary")).toHaveTextContent("A summer story.");
   });
 
-  it("keeps Site state with the collection fields and Delete help next to Delete", () => {
+  it("uses the site-state dropdown and header icon actions", () => {
     render(<EditCollectionForm collection={makeCollection()} />);
 
-    const siteState = document.querySelector("[data-component='WorkflowStateField']");
+    const siteState = document.querySelector("#field-workflowState");
     expect(siteState).not.toBeNull();
-    expect(siteState).toHaveAttribute("id", "field-workflowState");
-    expect(screen.getByRole("button", { name: /Draft\. Hidden from the site/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Published\. Visible on collection listings/i })).toBeInTheDocument();
+    expect(siteState).toHaveAttribute("data-validation-for", "workflowState");
+    expect(screen.getByRole("combobox", { name: /Site state/ })).toHaveValue("DRAFT");
+    expect(screen.getByRole("option", { name: "Draft — hidden" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Published — visible" })).toBeInTheDocument();
 
-    expect(screen.queryByRole("button", { name: /Publishing guidance/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Delete guidance/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Update collection" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete collection" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save collection" })).toBeInTheDocument();
   });
 
   it("surfaces open problems on the hero field and scrolls to the hash target", async () => {
@@ -158,14 +163,14 @@ describe("EditCollectionForm", () => {
       }],
     })} />);
 
-    expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
+    expect(screen.getByRole("textbox", { name: /^Name/ })).toHaveValue("Wanderlust");
     await user.click(screen.getByRole("tab", { name: "Português" }));
 
     // Same field, no longer required outside EN, now showing the PT value.
-    expect(screen.getByLabelText("Name")).toHaveValue("Rituais de Verão");
+    expect(screen.getByRole("textbox", { name: /^Name/ })).toHaveValue("Rituais de Verão");
 
     await user.click(screen.getByRole("tab", { name: "English" }));
-    expect(screen.getByLabelText(/^Name\*/)).toHaveValue("Wanderlust");
+    expect(screen.getByRole("textbox", { name: /^Name/ })).toHaveValue("Wanderlust");
 
     // Both locales' real values are always in the hidden fields the server reads.
     expect(container.querySelector<HTMLInputElement>('input[type="hidden"][name="name"]')?.value).toBe("Wanderlust");
@@ -180,11 +185,11 @@ describe("EditCollectionForm", () => {
       searchSummary: "",
     })} />);
 
-    await user.click(screen.getByRole("button", { name: "Update collection" }));
+    await user.click(screen.getByRole("button", { name: "Save collection" }));
 
     expect(screen.getByText("Manifesto is required.")).toBeInTheDocument();
     expect(screen.getByText("Search summary is required.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save collection" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(mocks.saveCollectionAction).not.toHaveBeenCalled();
     expect(reportValidity).not.toHaveBeenCalled();
 
@@ -194,8 +199,8 @@ describe("EditCollectionForm", () => {
     expect(screen.queryByText("Manifesto is required.")).not.toBeInTheDocument();
     expect(screen.queryByText("Search summary is required.")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Update collection" }));
-    expect(await screen.findByRole("button", { name: "Save collection" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save collection" }));
+    expect(await screen.findByRole("dialog", { name: /Save Wanderlust/ })).toBeInTheDocument();
     expect(screen.queryByText("Hero image is required.")).not.toBeInTheDocument();
   });
 
@@ -213,10 +218,10 @@ describe("EditCollectionForm", () => {
       new File(["image"], "hero.png", { type: "image/png" }),
     );
 
-    await user.click(screen.getByRole("button", { name: "Update collection" }));
+    await user.click(screen.getByRole("button", { name: "Save collection" }));
 
     expect(screen.queryByText("Hero image is required.")).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Save collection" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: /Save Wanderlust/ })).toBeInTheDocument();
     expect(reportValidity).not.toHaveBeenCalled();
   });
 
@@ -224,13 +229,13 @@ describe("EditCollectionForm", () => {
     const user = userEvent.setup();
     render(<EditCollectionForm collection={makeCollection({ heroImageUrl: null })} />);
 
-    await user.click(screen.getByRole("button", { name: "Update collection" }));
+    await user.click(screen.getByRole("button", { name: "Save collection" }));
 
     expect(screen.getByText("Hero image is required.")).toBeInTheDocument();
     expect(document.querySelector("[data-validation-for='heroImageFile']")).toContainElement(
       screen.getByText("Hero image is required."),
     );
-    expect(screen.queryByRole("button", { name: "Save collection" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("drops the selected-image preview when the form resets the file input", async () => {
@@ -260,8 +265,9 @@ describe("EditCollectionForm", () => {
     const user = userEvent.setup();
     render(<EditCollectionForm collection={makeCollection()} onUpdated={onUpdated} />);
 
-    await user.click(screen.getByRole("button", { name: "Update collection" }));
-    await user.click(await screen.findByRole("button", { name: "Save collection" }));
+    await user.click(screen.getByRole("button", { name: "Save collection" }));
+    const dialog = await screen.findByRole("dialog", { name: /Save Wanderlust/ });
+    await user.click(within(dialog).getByRole("button", { name: "Save collection" }));
 
     expect(mocks.saveCollectionAction).toHaveBeenCalledTimes(1);
     expect(onUpdated).toHaveBeenCalled();

@@ -73,18 +73,23 @@ describe("getCollectionCatalogConflict", () => {
     mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
   });
 
-  it("returns only COLLECTION CONFLICT translation fields for the collection", async () => {
+  it("returns every unresolved COLLECTION translation field, including one-sided changes", async () => {
     mocks.getLatestReconcileDifferences.mockResolvedValue([
       difference(),
       difference({ id: "diff-2", rootEntityType: "PRODUCT", rootEntityId: "collection-1" }),
-      difference({ id: "diff-3", kind: "LOCAL_ONLY" }),
+      difference({ id: "diff-3", kind: "LOCAL_ONLY", fieldKey: "seoTitle", fieldLabel: "SEO title" }),
       difference({ id: "diff-4", rootEntityId: "other" }),
       difference({ id: "diff-5", locale: "en", fieldKey: "description", fieldLabel: "Description" }),
     ]);
 
     const result = await getCollectionCatalogConflict("collection-1");
     expect(result.collectionId).toBe("collection-1");
-    expect(result.fields).toHaveLength(2);
+    expect(result.fields).toHaveLength(3);
+    expect(result.fields.map((field) => field.fieldKey)).toEqual([
+      "translation:pt-PT:title",
+      "translation:pt-PT:seoTitle",
+      "translation:en:description",
+    ]);
     expect(result.fields[0]).toMatchObject({
       fieldKey: "translation:pt-PT:title",
       label: "Title",
@@ -93,6 +98,11 @@ describe("getCollectionCatalogConflict", () => {
       sourceId: "diff-1",
     });
     expect(result.fields[1]).toMatchObject({
+      fieldKey: "translation:pt-PT:seoTitle",
+      label: "SEO title",
+      sourceId: "diff-3",
+    });
+    expect(result.fields[2]).toMatchObject({
       fieldKey: "translation:en:description",
       scope: { kind: "LOCALE", code: "en" },
     });
@@ -141,11 +151,11 @@ describe("listConflictedCollectionIds", () => {
     mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
   });
 
-  it("deduplicates collection ids with CONFLICT differences and presence", async () => {
+  it("deduplicates collection ids for every unresolved kind and presence", async () => {
     mocks.getLatestReconcileDifferences.mockResolvedValue([
       difference(),
       difference({ id: "diff-2", fieldKey: "description" }),
-      difference({ id: "diff-3", rootEntityId: "collection-2" }),
+      difference({ id: "diff-3", rootEntityId: "collection-2", kind: "SHOPIFY_ONLY" }),
       difference({ id: "diff-4", rootEntityType: "PRODUCT", rootEntityId: "product-1" }),
     ]);
     mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([

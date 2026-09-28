@@ -53,11 +53,11 @@ export function CatalogConflictStatus({
         onClick={onShow}
         className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-conflict)]"
         style={{ borderColor: conflictTone.border, background: conflictTone.fill }}
-        aria-label="Show conflict products"
+        aria-label={`Show conflict ${entityNoun.plural}`}
         title={statusText(signals, entityNoun)}
       >
         <GitCompareArrows className="size-4" style={{ color: conflictTone.ink }} aria-hidden="true" />
-        {plural(signals.totalCount!, "conflict product", "conflict products")}
+        {plural(signals.totalCount!, `conflict ${entityNoun.singular}`, `conflict ${entityNoun.plural}`)}
       </button>
     );
   }

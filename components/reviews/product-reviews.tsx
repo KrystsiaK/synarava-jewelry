@@ -1,31 +1,15 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { Star } from "lucide-react";
 
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
-import { localePath } from "@/lib/i18n/routing";
+import { ReviewForm } from "@/components/reviews/review-form";
+import { ReviewStars } from "@/components/reviews/review-stars";
 import type { Locale } from "@/lib/i18n/locales";
 import { useTranslations } from "@/lib/i18n/context";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
-import { ArtifactButton, DisplayHeading } from "@/components/ui";
-
-function Stars({ rating, label }: { rating: number; label: string }) {
-  return (
-    <span className="inline-flex gap-1 text-couture-red" role="img" aria-label={label}>
-      {Array.from({ length: 5 }, (_, index) => (
-        <Star
-          key={index}
-          className="size-4"
-          fill={index < Math.round(rating) ? "currentColor" : "none"}
-          aria-hidden="true"
-        />
-      ))}
-    </span>
-  );
-}
+import { DisplayHeading } from "@/components/ui";
 
 const initialState: ProductReviewActionState = {};
 
@@ -48,9 +32,6 @@ export function ProductReviews({
   const { t, plural } = useTranslations();
   const [state, formAction, pending] = useActionState(submitAction, initialState);
   const [selectedRating, setSelectedRating] = useState(0);
-  const signInHref = `${localePath(locale, "/login")}?redirectTo=${encodeURIComponent(
-    `${localePath(locale, `/products/${productSlug}`)}#reviews`,
-  )}`;
   const displayedAverage = state.average ?? data.average;
   const displayedCount = state.count ?? data.count;
   const displayedReviews = state.reviews ?? data.reviews;
@@ -71,7 +52,7 @@ export function ProductReviews({
               ) : (
                 <>
                   <span className="font-serif text-3xl tabular-nums">{displayedAverage.toFixed(1)}</span>
-                  <Stars rating={displayedAverage} label={`${displayedAverage.toFixed(1)} out of 5 stars`} />
+                  <ReviewStars rating={displayedAverage} label={plural("reviews.star", displayedAverage)} />
                   <span className="text-sm text-foreground/58">
                     {plural("reviews.count", displayedCount)}
                   </span>
@@ -90,91 +71,16 @@ export function ProductReviews({
             ) : null}
 
             <div className="mt-8 border-t border-foreground/12 pt-8">
-              <h3 className="font-serif text-2xl">{t("reviews.shareTitle")}</h3>
-              {isSignedIn ? (
-                <form action={formAction} className="mt-5 grid gap-5">
-                  <input type="hidden" name="productSlug" value={productSlug} />
-                  <input type="hidden" name="locale" value={locale} />
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/62">
-                      {t("reviews.ratingLabel")}
-                    </span>
-                    <div role="radiogroup" aria-label={t("reviews.ratingLabel")} className="mt-2 flex w-fit gap-1">
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <label key={value} className="group grid size-11 cursor-pointer place-items-center">
-                          <input
-                            className="sr-only"
-                            type="radio"
-                            name="rating"
-                            value={value}
-                            required
-                            checked={selectedRating === value}
-                            onChange={() => setSelectedRating(value)}
-                            aria-label={plural("reviews.star", value)}
-                          />
-                          <Star
-                            className={`size-6 transition-colors group-hover:text-couture-red group-focus-within:outline group-focus-within:outline-2 group-focus-within:outline-offset-4 group-focus-within:outline-couture-red ${
-                              value <= selectedRating
-                                ? "fill-current text-couture-red"
-                                : "text-foreground/28"
-                            }`}
-                            aria-hidden="true"
-                          />
-                        </label>
-                      ))}
-                    </div>
-                    {state.fieldErrors?.rating ? <p className="mt-1 text-sm text-couture-red">{state.fieldErrors.rating}</p> : null}
-                  </div>
-                  <label className="grid gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/62">{t("reviews.titleLabel")} <span className="normal-case tracking-normal text-foreground/40">({t("reviews.optional")})</span></span>
-                    <input
-                      className="border border-foreground/16 bg-background px-4 py-3 text-sm outline-none transition-colors placeholder:text-foreground/38 focus:border-couture-red"
-                      name="title"
-                      maxLength={120}
-                      placeholder={t("reviews.titlePlaceholder")}
-                      aria-invalid={Boolean(state.fieldErrors?.title)}
-                    />
-                    {state.fieldErrors?.title ? <span className="text-sm text-couture-red">{state.fieldErrors.title}</span> : null}
-                  </label>
-                  <label className="grid gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/62">{t("reviews.bodyLabel")} <span className="normal-case tracking-normal text-foreground/40">({t("reviews.optional")})</span></span>
-                    <textarea
-                      className="min-h-32 resize-y border border-foreground/16 bg-background px-4 py-3 text-sm leading-6 outline-none transition-colors placeholder:text-foreground/38 focus:border-couture-red"
-                      name="body"
-                      minLength={10}
-                      maxLength={2000}
-                      placeholder={t("reviews.bodyPlaceholder")}
-                      aria-invalid={Boolean(state.fieldErrors?.body)}
-                    />
-                    {state.fieldErrors?.body ? <span className="text-sm text-couture-red">{state.fieldErrors.body}</span> : null}
-                  </label>
-                  {state.error ? (
-                    <p role="alert" className="text-sm text-couture-red">
-                      {state.error}{" "}
-                      {state.requiresLogin ? <Link className="underline" href={signInHref}>{t("reviews.signInAgain")}</Link> : null}
-                    </p>
-                  ) : null}
-                  {state.success ? <p role="status" className="text-sm text-foreground/72">{state.success}</p> : null}
-                  <ArtifactButton type="submit" disabled={pending} size="md" className="w-fit">
-                    {pending ? t("reviews.publishing") : t("reviews.publish")}
-                  </ArtifactButton>
-                  <p className="max-w-[60ch] text-xs leading-5 text-foreground/45">
-                    {t("reviews.storedNotice")}
-                  </p>
-                </form>
-              ) : (
-                <div className="mt-5">
-                  <p className="max-w-md text-sm leading-6 text-foreground/62">
-                    {t("reviews.signInBody")}
-                  </p>
-                  <Link
-                    href={signInHref}
-                    className="label-caps mt-5 inline-flex border-b border-couture-red pb-1 text-couture-red"
-                  >
-                    {t("reviews.signInCta")}
-                  </Link>
-                </div>
-              )}
+              <ReviewForm
+                productSlug={productSlug}
+                locale={locale}
+                isSignedIn={isSignedIn}
+                state={state}
+                formAction={formAction}
+                pending={pending}
+                selectedRating={selectedRating}
+                onSelectRating={setSelectedRating}
+              />
             </div>
           </div>
 
@@ -189,7 +95,7 @@ export function ProductReviews({
             ) : displayedReviews.map((review) => (
               <article key={review.id} className="border-t border-foreground/14 py-6 first:pt-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Stars rating={review.rating} label={`${review.rating} out of 5 stars`} />
+                  <ReviewStars rating={review.rating} label={plural("reviews.star", review.rating)} />
                   <time className="text-xs tabular-nums text-foreground/42" dateTime={review.submittedAt}>
                     {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(review.submittedAt))}
                   </time>

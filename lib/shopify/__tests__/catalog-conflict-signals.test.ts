@@ -155,6 +155,27 @@ describe("buildCatalogConflictSignals", () => {
     expect(result.products["product-1"]).toBeUndefined();
   });
 
+  it("counts one-sided collection translation changes the sidebar already badges", () => {
+    const result = buildCatalogConflictSignals({
+      commerceProductIds: [],
+      differences: [
+        { ...difference("col-1", "ru", "title", "LOCAL_ONLY"), rootEntityType: "COLLECTION" },
+        { ...difference("col-2", "pt-PT", "description", "SHOPIFY_ONLY"), rootEntityType: "COLLECTION" },
+        difference("product-1", "en", "title", "LOCAL_ONLY"),
+      ],
+      locales,
+      run: { trigger: "MANUAL", status: "SUCCEEDED", completedAt: "2026-09-23T10:00:00.000Z" },
+      connected: true,
+      now: new Date("2026-09-23T10:01:00.000Z"),
+      rootEntityType: "COLLECTION",
+    });
+
+    expect(result.totalCount).toBe(2);
+    expect(result.products["col-1"]?.locales).toMatchObject([{ code: "ru", count: 1 }]);
+    expect(result.products["col-2"]?.locales).toMatchObject([{ code: "pt", count: 1 }]);
+    expect(result.products["product-1"]).toBeUndefined();
+  });
+
   it("allows deleting Synarava-only collections by choosing the Shopify side", () => {
     const result = buildCatalogConflictSignals({
       commerceProductIds: [],

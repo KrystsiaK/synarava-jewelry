@@ -23,7 +23,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminFieldShell` | Label + owner + help + absolute error/`issue` (`.adm-field-unit`) |
 | `AdminTextField` / `AdminTextControl` | Labeled text / embeddable control |
 | `AdminReadonlyField` | Label + value only (no input); synced or derived facts |
-| `AdminSelectField` / `AdminSelectControl` | Select / embeddable select |
+| `AdminSelectField` / `AdminSelectControl` | Select / embeddable select. `AdminSelectField` forwards `validationName` like `AdminTextField`. |
 | `AdminHrefField` / `AdminHrefControl` | Segmented storefront path combobox (routes / pages / collections / products) |
 | `AdminVideoField` / `AdminVideoControl` | Site video (MP4/WebM) upload + current/selected preview |
 | `AdminCheckboxField` / `AdminCheckboxControl` | Checkbox row (+ optional follow-on) / inline row |
@@ -98,7 +98,9 @@ Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-m
 
 **Rule:** never elevate `.adm-help` (or other in-flow field chrome) into the popover band — that made info icons paint over open combobox lists. New absolute admin menus must use `.adm-popover` (or `z-index: var(--adm-z-popover)`), not ad-hoc `z-20`.
 
-The help mark is a blue Playfair italic **i** (`--adm-info`), larger than the kicker (about `1.05rem` against `.adm-label` at `0.72rem`) and lifted a fraction above the caps, like an editorial note. The italic is the real Playfair cut, not a skewed roman, and it has no stroke. The trigger hugs the stem and stays inside the label row, so help does not move the input’s top edge — a field with help shares that edge with a field without it. Hover lays a soft blue disc behind the mark, without widening the row; press scales to 0.97 without dropping the lift (`translate` and `scale` are separate). Help tags (`.ui-tooltip`) are compact ink hints, not panels. The first one waits on the pointer; the next tag within a short window opens immediately, so a row of icon buttons can be scanned. Keyboard focus opens at once. A touch hold shows the tag and does not fire the button. `prefers-reduced-motion` fades opacity only.
+A string `help` is always that **i**, including when the field has an owner badge. It is never printed into the label row. The name itself is one line (`.adm-label__text`): if it does not fit, it ellipsizes and the full name shows in the shared tooltip. The required mark and the owner badge stay outside the clipped text.
+
+The help mark is a blue Playfair italic **i** (`--adm-info`), larger than the kicker (about `1.05rem` against `.adm-label` at `0.72rem`) and lifted a fraction above the caps, like an editorial note. Beside a label it stays a bare italic (hover disc only). Set `detached` when the mark sits between sections with no label: it becomes a 1.65rem circle button so it does not look like a fallen letter. The italic is the real Playfair cut, not a skewed roman, and it has no stroke. The trigger hugs the stem and stays inside the label row, so help does not move the input’s top edge — a field with help shares that edge with a field without it. Hover lays a soft blue disc behind the mark, without widening the row; press scales to 0.97 without dropping the lift (`translate` and `scale` are separate). Help tags (`.ui-tooltip`) are compact ink hints, not panels. The first one waits on the pointer; the next tag within a short window opens immediately, so a row of icon buttons can be scanned. Keyboard focus opens at once. A touch hold shows the tag and does not fire the button. `prefers-reduced-motion` fades opacity only.
 
 `AdminModal` is the admin dialog. It dims the page and centers a 14px sheet that settles in 400ms on `cubic-bezier(0.32, 0.72, 0, 1)` and leaves on the same path. Reduced motion is a 160ms fade. Storefront `.t-modal` timing is separate. `AdminConfirmModal` is that sheet with Cancel and a confirm action. Long text, rich text, and record details use the same shell.
 
@@ -300,7 +302,7 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 />
 ```
 
-- **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA and cookie copy), and Cart & account (cart, checkout handoff, login). Catalog stays a leaf.
+- **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA, cookie copy, and the leave-a-review form), Cart & account (cart, checkout handoff, login), and Customer account (the signed-in `/profile` page, including the reviews table). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
 - **Signals:** left marker shows issue (red) / sync-conflict (amber) / both (split red+amber dots); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
 - **Meaning:** red = open Problems; amber = unresolved Shopify field conflicts / divergences. When a node has both, the split marker keeps both visible.

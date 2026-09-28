@@ -180,5 +180,24 @@ describe("StorefrontCopyEditor", () => {
     expect(screen.getByText("Shared — contact CTA")).toBeVisible();
     expect(screen.queryByLabelText("Care Guide (EN)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Privacy Policy (EN)")).not.toBeInTheDocument();
+  }, 30_000);
+
+  it("keeps the leave-a-review form on its own Shared tab", async () => {
+    const user = userEvent.setup();
+    render(
+      <StorefrontCopyEditor
+        copy={{ en: {}, pt: {} }}
+        defaults={{ en: { "reviews.shareTitle": "Share your experience" }, pt: {} }}
+        headerNav={defaultHeaderNav}
+        footerLinks={defaultFooter}
+        contactEmails={["ops@synarava.com"]}
+        locales={EN_PT_LOCALES}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /^Reviews/ }));
+    expect(screen.getByText("Reviews — leave a review")).toBeVisible();
+    expect(screen.getByLabelText("Heading (EN)")).toHaveAttribute("placeholder", "Share your experience");
+    expect(screen.queryByText("Header — main links")).not.toBeVisible();
   });
 });
