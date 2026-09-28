@@ -47,6 +47,29 @@ describe("getPageBySlug localization", () => {
     });
   });
 
+  it("keeps an empty Shop translation on the locale dictionary instead of English admin copy", async () => {
+    mocks.getRequestLocale.mockResolvedValue("pt");
+    mocks.findUniquePage.mockResolvedValue({
+      slug: "shop",
+      title: "Shop",
+      excerpt: "English excerpt",
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      content: {
+        shopNewTitle: "New arrivals",
+        shopFiltersEyebrow: "Find the right product",
+        translations: { pt: { shopNewTitle: "Novidades", shopFiltersEyebrow: "" } },
+      },
+    });
+
+    await expect(getPageBySlug("shop")).resolves.toMatchObject({
+      content: {
+        shopNewTitle: "Novidades",
+        shopFiltersEyebrow: "",
+      },
+    });
+  });
+
   it("uses an explicit locale without reading request headers", async () => {
     mocks.getRequestLocale.mockClear();
     mocks.findUniquePage.mockResolvedValue({

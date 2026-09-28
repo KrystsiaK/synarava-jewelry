@@ -498,6 +498,77 @@ describe("PageEditor", () => {
     expect(hiddenFieldValue(container, "material2Image")).toBe("/oak.webp");
   });
 
+  it("keeps Shop section copy independent for each locale", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <PageEditor
+        page={makePage({
+          slug: "shop",
+          title: "Shop",
+          content: {
+            shopNewTitle: "New arrivals",
+            shopAvailableCountLabel: "products available",
+          },
+          translations: [
+            {
+              id: "pt-shop",
+              locale: "pt",
+              title: "Loja",
+              localizedHandle: null,
+              excerpt: null,
+              content: { shopNewTitle: "Novidades" },
+              seoTitle: null,
+              seoDescription: null,
+              reviewStatus: "REVIEWED",
+              syncStatus: "NOT_APPLICABLE",
+              syncError: null,
+            },
+            {
+              id: "ru-shop",
+              locale: "ru",
+              title: "Магазин",
+              localizedHandle: null,
+              excerpt: null,
+              content: { shopNewTitle: "Новые поступления" },
+              seoTitle: null,
+              seoDescription: null,
+              reviewStatus: "REVIEWED",
+              syncStatus: "NOT_APPLICABLE",
+              syncError: null,
+            },
+          ],
+        })}
+        translationLocales={[
+          { code: "pt", label: "Português" },
+          { code: "ru", label: "Русский" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "New arrivals" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "New arrivals heading" })).toHaveValue("New arrivals");
+    expect(screen.getByRole("textbox", { name: "Products available label" })).toHaveValue("products available");
+    expect(screen.getByRole("button", { name: "Edit Hero description" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Primary button label" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Collections callout heading" })).toBeInTheDocument();
+
+    await user.clear(screen.getByRole("textbox", { name: "New arrivals heading" }));
+    await user.type(screen.getByRole("textbox", { name: "New arrivals heading" }), "Just in");
+
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(screen.getByRole("textbox", { name: "New arrivals heading" })).toHaveValue("Novidades");
+    expect(screen.getByRole("textbox", { name: "Products available label" })).toHaveValue("");
+
+    await user.click(screen.getByRole("tab", { name: "Русский" }));
+    expect(screen.getByRole("textbox", { name: "New arrivals heading" })).toHaveValue("Новые поступления");
+
+    await user.click(screen.getByRole("tab", { name: "English" }));
+    expect(screen.getByRole("textbox", { name: "New arrivals heading" })).toHaveValue("Just in");
+    expect(hiddenFieldValue(container, "shopNewTitle")).toBe("Just in");
+    expect(hiddenFieldValue(container, "ptShopNewTitle")).toBe("Novidades");
+    expect(hiddenFieldValue(container, "ruShopNewTitle")).toBe("Новые поступления");
+  });
+
   it("keeps FAQ edits and offers reload when save hits a stale deployment", async () => {
     const user = userEvent.setup();
     const reload = vi.fn();

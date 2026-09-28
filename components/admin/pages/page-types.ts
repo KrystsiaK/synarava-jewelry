@@ -1,4 +1,5 @@
 import type { SavedPagePayload } from "@/app/admin/actions/pages";
+import type { ShopPageCopy } from "@/lib/content/shop-page-copy";
 
 export type PageRowAction = {
   page: SavedPagePayload;
@@ -58,7 +59,7 @@ export type EditablePageCopy = {
     | Record<string, { label?: string; title?: string; body?: string }>;
   serviceSections?: Array<{ id: string; label?: string; title?: string; body?: string }>
     | Record<string, { label?: string; title?: string; body?: string }>;
-};
+} & ShopPageCopy;
 
 export type EditablePageContent = EditablePageCopy & {
   heroImage?: string;

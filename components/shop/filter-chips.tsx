@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/context";
+import { shopComplianceOptions } from "./compliance-options";
+import type { ShopFilterLabels } from "@/lib/content/shop-page-copy";
 import type { FilterOption, ShopFilters } from "./types";
 
 type FilterChipsProps = {
@@ -15,6 +17,7 @@ type FilterChipsProps = {
   origins?: FilterOption[];
   onRemove: (key: keyof ShopFilters) => void;
   onClearAll: () => void;
+  labels?: Partial<ShopFilterLabels>;
 };
 
 const labelOf = (value: string, options: FilterOption[]) =>
@@ -31,13 +34,15 @@ export function FilterChips({
   origins = [],
   onRemove,
   onClearAll,
+  labels,
 }: FilterChipsProps) {
   const { t } = useTranslations();
+  const text = (value: string | undefined, key: string) => value?.trim() || t(key);
   const dimLabels: Record<keyof ShopFilters, string> = {
-    q: t("shop.filters.searchLabel"),
-    availability: t("shop.filters.availability"),
-    category: t("shop.filters.category"),
-    productType: t("shop.filters.productType"),
+    q: text(labels?.searchLabel, "shop.filters.searchLabel"),
+    availability: text(labels?.availability, "shop.filters.availability"),
+    category: text(labels?.category, "shop.filters.category"),
+    productType: text(labels?.productType, "shop.filters.productType"),
     collection: t("shop.filters.collection"),
     tag: t("shop.filters.tag"),
     material: t("shop.filters.material"),
@@ -57,7 +62,7 @@ export function FilterChips({
   if (filters.material)   chips.push({ key: "material",   value: labelOf(filters.material, materials) });
   if (filters.finish)     chips.push({ key: "finish",     value: labelOf(filters.finish, finishes) });
   if (filters.origin)     chips.push({ key: "origin",     value: labelOf(filters.origin, origins) });
-  if (filters.certified)  chips.push({ key: "certified",  value: labelOf(filters.certified, [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }]) });
+  if (filters.certified) chips.push({ key: "certified", value: labelOf(filters.certified, shopComplianceOptions(t)) });
 
   if (chips.length === 0) return null;
 

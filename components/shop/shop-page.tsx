@@ -16,6 +16,7 @@ import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { splitHeroTitleAccent } from "@/lib/content/service-page-defaults";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
+import type { ResolvedShopStorefrontCopy } from "@/lib/content/shop-page-copy";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -24,11 +25,13 @@ export function ShopHero({
   title,
   description,
   archiveCount,
+  availableCountLabel,
 }: {
   heroImage?: string;
   title: string;
   description: string;
   archiveCount: number;
+  availableCountLabel?: string;
 }) {
   const { t, plural } = useTranslations();
   const { lead, accent } = splitHeroTitleAccent(title);
@@ -67,7 +70,7 @@ export function ShopHero({
         />
 
         <div className="mt-7 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/20 pt-5 font-sans text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-foreground/65 md:mt-9">
-          <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong>{plural("shop.availableCount", archiveCount)}</span>
+          <span><strong className="mr-2 text-couture-red">{String(archiveCount).padStart(2, "0")}</strong>{availableCountLabel?.trim() || plural("shop.availableCount", archiveCount)}</span>
           <span>{t("shop.selectionPromise")}</span>
         </div>
       </div>
@@ -79,9 +82,11 @@ export function ShopHero({
 function FilterSection({
   filterProps,
   totalCount,
+  labels,
 }: {
-  filterProps: Omit<FilterBarProps, "totalCount">;
+  filterProps: Omit<FilterBarProps, "totalCount" | "labels">;
   totalCount: number;
+  labels?: FilterBarProps["labels"];
 }) {
   return (
     <motion.div
@@ -90,7 +95,7 @@ function FilterSection({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, ease, delay: 0.2 }}
     >
-      <FilterBar {...filterProps} totalCount={totalCount} />
+      <FilterBar {...filterProps} totalCount={totalCount} labels={labels} />
     </motion.div>
   );
 }
@@ -195,6 +200,7 @@ export type ShopPageProps = {
   collectionsCalloutTitle?: string;
   collectionsCalloutCtaLabel?: string;
   collectionsCalloutSecondaryLabel?: string;
+  copy?: ResolvedShopStorefrontCopy;
 };
 
 export function ShopPage({
@@ -212,6 +218,7 @@ export function ShopPage({
   collectionsCalloutTitle,
   collectionsCalloutCtaLabel,
   collectionsCalloutSecondaryLabel,
+  copy,
 }: ShopPageProps) {
   const { t, locale } = useTranslations();
   const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
@@ -228,7 +235,13 @@ export function ShopPage({
     <main data-component="ShopPage"
       className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
-      <ShopHero heroImage={heroImage} title={heroTitle} description={heroDescription} archiveCount={archiveCount} />
+      <ShopHero
+        heroImage={heroImage}
+        title={heroTitle}
+        description={heroDescription}
+        archiveCount={archiveCount}
+        availableCountLabel={copy?.availableCountLabel}
+      />
 
       <ShopDiscovery
         newestProducts={newestProducts}
@@ -236,6 +249,7 @@ export function ShopPage({
         showPopular={showPopular}
         productTypes={productTypeTiles}
         onSelectFilters={selectDiscoveryFilters}
+        copy={copy}
       />
 
       <div className="relative bg-background pb-16 pt-6 md:pb-24 md:pt-14">
@@ -256,6 +270,7 @@ export function ShopPage({
               onFiltersChange: setActiveFilters,
             }}
             totalCount={totalCount}
+            labels={copy?.filters}
           />
 
           <ShopCatalogClient

@@ -48,14 +48,24 @@ export function ShopDiscovery({
   showPopular = true,
   productTypes,
   onSelectFilters,
+  copy,
 }: {
   newestProducts: ShopListingProduct[];
   popularProducts: ShopListingProduct[];
   showPopular?: boolean;
   productTypes: ShopProductTypeTile[];
   onSelectFilters?: (filters: ShopFilters) => void;
+  copy?: {
+    newTitle?: string;
+    newDescription?: string;
+    viewAll?: string;
+    productTypeTitle?: string;
+    productTypeDescription?: string;
+  };
 }) {
   const { t, plural, locale } = useTranslations();
+  const text = (value: string | undefined, key: string) => value?.trim() || t(key);
+  const viewAll = text(copy?.viewAll, "shop.discovery.viewAll");
 
   const filterHref = (filters: ShopFilters) => {
     const query = buildSearchParams(filters);
@@ -70,8 +80,8 @@ export function ShopDiscovery({
   const sections = [
     {
       key: "new",
-      title: t("shop.discovery.newTitle"),
-      description: t("shop.discovery.newDescription"),
+      title: text(copy?.newTitle, "shop.discovery.newTitle"),
+      description: text(copy?.newDescription, "shop.discovery.newDescription"),
       products: newestProducts,
       filters: { sort: "newest" as const },
     },
@@ -104,10 +114,14 @@ export function ShopDiscovery({
               <Link
                 href={filterHref(section.filters)}
                 onClick={(event) => selectFilters(event, section.filters)}
-                aria-label={t("shop.discovery.viewAllLabel", { section: section.title })}
+                aria-label={
+                  copy?.viewAll?.trim()
+                    ? `${viewAll} ${section.title}`
+                    : t("shop.discovery.viewAllLabel", { section: section.title })
+                }
                 className="shrink-0 border-b border-foreground/25 pb-1 text-xs font-semibold uppercase tracking-[0.16em] transition-colors hover:border-couture-red hover:text-couture-red"
               >
-                {t("shop.discovery.viewAll")}
+                {viewAll}
               </Link>
             </div>
             <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:gap-6">
@@ -124,10 +138,10 @@ export function ShopDiscovery({
               id="shop-product-type-title"
               className="font-serif text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
             >
-              {t("shop.discovery.productTypeTitle")}
+              {text(copy?.productTypeTitle, "shop.discovery.productTypeTitle")}
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted md:text-base">
-              {t("shop.discovery.productTypeDescription")}
+              {text(copy?.productTypeDescription, "shop.discovery.productTypeDescription")}
             </p>
           </div>
           <div className="grid gap-px overflow-hidden border border-foreground/[0.1] bg-foreground/[0.1] sm:grid-cols-2 lg:grid-cols-4">

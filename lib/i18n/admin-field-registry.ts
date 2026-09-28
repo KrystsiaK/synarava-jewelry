@@ -1,4 +1,6 @@
 import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
+import { SHOP_PAGE_COPY_KEYS, SHOP_PAGE_COPY_LABELS } from "@/lib/content/shop-page-copy";
+import { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 
 // Typed inventory of every buyer-facing admin field: whether it is shared
 // (one value across every locale) or localized (an independent value per
@@ -151,6 +153,14 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "legalLastUpdatedLabel", label: "Legal — last updated label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("page_section_copy", "legal_last_updated_label") },
     { key: "legalSections", label: "Legal sections (ordered label/title/body)", mode: "localized", required: "optional", kind: "rich-text", shopifyTarget: metaobject("page_section_copy", "legal_sections") },
     { key: "serviceSections", label: "Service page sections (ordered label/title/body)", mode: "localized", required: "optional", kind: "rich-text", shopifyTarget: metaobject("page_section_copy", "service_sections") },
+    ...SHOP_PAGE_COPY_KEYS.map((key) => ({
+      key,
+      label: SHOP_PAGE_COPY_LABELS[key],
+      mode: "localized" as const,
+      required: "optional" as const,
+      kind: (key.endsWith("Description") ? "long-text" : "short-text") as "long-text" | "short-text",
+      shopifyTarget: metaobject("page_section_copy", metaobjectFieldKey(key)),
+    })),
     { key: "seoTitle", label: "SEO title", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("PAGE", "meta_title") },
     { key: "seoDescription", label: "SEO description", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("PAGE", "meta_description") },
 

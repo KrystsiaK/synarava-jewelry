@@ -1,4 +1,5 @@
 import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
+import type { ShopPageCopy } from "@/lib/content/shop-page-copy";
 import { db } from "@/lib/db";
 import {
   parseProductDetails,
@@ -219,7 +220,7 @@ export type PageContent = {
       excerpt?: string;
     };
   };
-};
+} & ShopPageCopy;
 
 function priceFromCents(priceCents: number, currency: string, locale: Locale) {
   return formatCurrency(priceCents / 100, currency, locale);

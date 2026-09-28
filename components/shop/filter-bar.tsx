@@ -8,6 +8,8 @@ import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { supportsComplianceFilters } from "@/lib/catalog/taxonomy";
+import type { ShopFilterLabels } from "@/lib/content/shop-page-copy";
+import { shopComplianceOptions } from "./compliance-options";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
 import {
@@ -40,6 +42,8 @@ export type FilterBarProps = {
    * Hidden from chips/dropdowns and omitted from the shareable query string.
    */
   pinnedFilters?: Pick<ShopFilters, "collection">;
+  /** Locale-owned Shop page labels. Empty values keep the dictionary string. */
+  labels?: Partial<ShopFilterLabels>;
 };
 
 const labelOf = (value: string, opts: FilterOption[]) =>
@@ -58,8 +62,11 @@ export function FilterBar({
   onFiltersChange,
   basePath = "/shop",
   pinnedFilters,
+  labels,
 }: FilterBarProps) {
   const { t, plural, locale } = useTranslations();
+  const text = (value: string | undefined, key: string) => value?.trim() || t(key);
+  const complianceOptions = shopComplianceOptions(t);
   const pinnedCollection = pinnedFilters?.collection;
   const showCollectionFilter = !pinnedCollection;
 
@@ -283,10 +290,10 @@ export function FilterBar({
         <div className="flex items-end justify-between gap-8 border-b border-foreground/[0.06] px-5 py-4 lg:px-6">
           <div>
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-couture-red">
-              {t("shop.filters.eyebrow")}
+              {text(labels?.eyebrow, "shop.filters.eyebrow")}
             </p>
             <p className="mt-1 max-w-xl text-sm leading-6 text-foreground/58">
-              {t("shop.filters.description")}
+              {text(labels?.description, "shop.filters.description")}
             </p>
           </div>
 
@@ -301,7 +308,7 @@ export function FilterBar({
             />
             <div className="text-right">
               <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-muted/55">
-                {t("shop.filters.showing")}
+                {text(labels?.showing, "shop.filters.showing")}
               </p>
               <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground" aria-live="polite" aria-atomic="true">
                 <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{plural("shop.filters.productCount", totalCount)}</span>
@@ -314,21 +321,21 @@ export function FilterBar({
         <div className="flex items-center justify-between gap-5 px-5 py-4 lg:px-6">
           <div className="flex min-w-0 flex-wrap items-center gap-2.5">
             <FilterDropdown
-              label={t("shop.filters.category")}
+              label={text(labels?.category, "shop.filters.category")}
               options={categories}
               value={filters.category ?? ""}
               onChange={(v) => setFilter("category", v)}
               allLabel={t("shop.filters.allCategories")}
             />
             <FilterDropdown
-              label={t("shop.filters.productType")}
+              label={text(labels?.productType, "shop.filters.productType")}
               options={productTypes}
               value={filters.productType ?? ""}
               onChange={(v) => setFilter("productType", v)}
               allLabel={t("shop.filters.allProductTypes")}
             />
             <FilterDropdown
-              label={t("shop.filters.availability")}
+              label={text(labels?.availability, "shop.filters.availability")}
               options={availabilityOptions}
               value={filters.availability ?? ""}
               onChange={(v) => setFilter("availability", v)}
@@ -340,7 +347,7 @@ export function FilterBar({
               onClick={() => setAdvancedOpen((open) => !open)}
               className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-foreground/10 bg-surface/45 px-3.5 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted transition-[background-color,border-color,color] hover:border-foreground/24 hover:bg-surface hover:text-foreground"
             >
-              {advancedOpen ? t("shop.filters.less") : t("shop.filters.more")}
+              {advancedOpen ? t("shop.filters.less") : text(labels?.more, "shop.filters.more")}
               <ChevronDown className={cn("size-3 transition-transform", advancedOpen && "rotate-180")} aria-hidden="true" />
             </button>
           </div>
@@ -352,8 +359,8 @@ export function FilterBar({
               type="search"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder={t("shop.filters.searchPlaceholder")}
-              aria-label={t("shop.filters.searchLabel")}
+              placeholder={text(labels?.searchPlaceholder, "shop.filters.searchPlaceholder")}
+              aria-label={text(labels?.searchLabel, "shop.filters.searchLabel")}
               className={cn(
                 "w-full bg-transparent py-2 pl-6 pr-6 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
                 "placeholder:text-muted/42 outline-none transition-[color,border-color] duration-200",
@@ -380,7 +387,7 @@ export function FilterBar({
             <FilterDropdown label={t("shop.filters.material")} options={materials} value={filters.material ?? ""} onChange={(v) => setFilter("material", v)} allLabel={t("shop.filters.allMaterials")} />
             {showFinish ? <FilterDropdown label={t("shop.filters.finish")} options={finishes} value={filters.finish ?? ""} onChange={(v) => setFilter("finish", v)} allLabel={t("shop.filters.allFinishes")} /> : null}
             <FilterDropdown label={t("shop.filters.origin")} options={origins} value={filters.origin ?? ""} onChange={(v) => setFilter("origin", v)} allLabel={t("shop.filters.allOrigins")} />
-            {showCompliance ? <FilterDropdown label={t("shop.filters.compliance")} options={[{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }]} value={filters.certified ?? ""} onChange={(v) => setFilter("certified", v)} allLabel={t("shop.filters.allCompliance")} /> : null}
+            {showCompliance ? <FilterDropdown label={t("shop.filters.compliance")} options={complianceOptions} value={filters.certified ?? ""} onChange={(v) => setFilter("certified", v)} allLabel={t("shop.filters.allCompliance")} /> : null}
           </div>
         ) : null}
       </div>
@@ -393,8 +400,8 @@ export function FilterBar({
             type="search"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder={t("shop.filters.searchPlaceholder")}
-            aria-label={t("shop.filters.searchLabel")}
+            placeholder={text(labels?.searchPlaceholder, "shop.filters.searchPlaceholder")}
+            aria-label={text(labels?.searchLabel, "shop.filters.searchLabel")}
             className="w-full bg-transparent py-3 pl-6 pr-6 text-[0.78rem] font-semibold uppercase tracking-[0.13em] placeholder:text-muted/42 outline-none"
           />
           {search && (
@@ -469,6 +476,7 @@ export function FilterBar({
             origins={origins}
             onRemove={removeFilter}
             onClearAll={clearAll}
+            labels={labels}
           />
         </div>
       )}
@@ -485,6 +493,7 @@ export function FilterBar({
         finishes={finishes}
         origins={origins}
         filters={filters}
+        labels={labels}
         hideCollection={!showCollectionFilter}
         onApply={(next) => {
           const applied = applyPinned(next);
@@ -510,6 +519,7 @@ type MobileFilterSheetProps = {
   finishes?: FilterOption[];
   origins?: FilterOption[];
   filters: ShopFilters;
+  labels?: Partial<ShopFilterLabels>;
   hideCollection?: boolean;
   onApply: (f: ShopFilters) => void;
   onClose: () => void;
@@ -525,11 +535,13 @@ function MobileFilterSheet({
   finishes = [],
   origins = [],
   filters,
+  labels,
   hideCollection = false,
   onApply,
   onClose,
 }: MobileFilterSheetProps) {
   const { t, plural } = useTranslations();
+  const text = (value: string | undefined, key: string) => value?.trim() || t(key);
   const [local, setLocal] = useState<ShopFilters>(filters);
 
   const localActiveCount = countActiveFilters(
@@ -537,9 +549,9 @@ function MobileFilterSheet({
   );
 
   const sections: { key: keyof ShopFilters; label: string; options: FilterOption[] }[] = [
-    { key: "category", label: t("shop.filters.category"), options: categories },
-    { key: "productType", label: t("shop.filters.productType"), options: productTypes },
-    { key: "availability", label: t("shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
+    { key: "category", label: text(labels?.category, "shop.filters.category"), options: categories },
+    { key: "productType", label: text(labels?.productType, "shop.filters.productType"), options: productTypes },
+    { key: "availability", label: text(labels?.availability, "shop.filters.availability"), options: [{ value: "in-stock", label: t("shop.filters.inStock") }] },
     ...(!hideCollection
       ? [{ key: "collection" as const, label: t("shop.filters.collection"), options: collections }]
       : []),
@@ -547,7 +559,7 @@ function MobileFilterSheet({
     { key: "material", label: t("shop.filters.material"), options: materials },
     { key: "finish", label: t("shop.filters.finish"), options: finishes },
     { key: "origin", label: t("shop.filters.origin"), options: origins },
-    { key: "certified", label: t("shop.filters.compliance"), options: [{ value: "reach_certified", label: "REACH" }, { value: "lead_free", label: "Lead free" }, { value: "cadmium_free", label: "Cadmium free" }, { value: "nickel_free", label: "Nickel-free" }] },
+    { key: "certified", label: t("shop.filters.compliance"), options: shopComplianceOptions(t) },
   ];
 
   return (

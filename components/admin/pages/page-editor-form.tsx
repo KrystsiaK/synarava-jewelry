@@ -38,6 +38,8 @@ import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locale
 import type { EditablePageContent, EditablePageCopy } from "@/components/admin/pages/page-types";
 import { HomePageEditorSections, type HomeArchiveCollectionOption, type HomeEditProductOption, type HomePageEditorSectionsProps, type MaterialDraft } from "@/components/admin/pages/home-page-editor-sections";
 import { CollectionsPageEditorSections } from "@/components/admin/pages/collections-page-editor-sections";
+import { ShopPageEditorSections } from "@/components/admin/pages/shop-page-editor-sections";
+import { SHOP_PAGE_COPY_KEYS, shopPageCopyFromRecord, type ShopPageCopyKey } from "@/lib/content/shop-page-copy";
 import {
   isLegalDocumentSlug,
   isServicePageSlug,
@@ -110,7 +112,7 @@ type PageLocaleDraft = {
   legalLastUpdatedLabel: string;
   legalSections: DocumentSectionDraft[];
   serviceSections: DocumentSectionDraft[];
-};
+} & Record<ShopPageCopyKey, string>;
 
 type DocumentSectionDraft = LegalSectionEntry & { panelOpen: boolean };
 
@@ -248,6 +250,7 @@ function draftFromCopy(
     legalLastUpdatedLabel: copy.legalLastUpdatedLabel ?? "",
     legalSections: documentSectionsFromCopy(copy.legalSections, options?.legalShipped ?? []),
     serviceSections: documentSectionsFromCopy(copy.serviceSections, options?.serviceShipped ?? []),
+    ...shopPageCopyFromRecord(copy),
   };
 }
 
@@ -313,6 +316,7 @@ function HiddenLocaleFields({
           ]),
           ...sectionFields("legal", draft.legalSections),
           ...sectionFields("service", draft.serviceSections),
+          ...SHOP_PAGE_COPY_KEYS.map((key) => field(key, draft[key])),
         ];
       })}
       {/* Structure (ids + order) is English-owned and shared across locales. */}
@@ -974,6 +978,10 @@ export function PageEditor({
             onChange={(value) => updateField("body", value)}
           />
         </div>
+        ) : null}
+
+        {isShopPage ? (
+          <ShopPageEditorSections draft={draft} updateField={updateField} />
         ) : null}
 
         {isServicePage ? (

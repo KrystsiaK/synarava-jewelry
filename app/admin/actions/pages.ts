@@ -14,6 +14,7 @@ import { savePageImageUpload } from "@/lib/media/local-upload";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { MAX_HOME_LEXICON_MATERIALS } from "@/lib/content/home-lexicon-section";
+import { SHOP_PAGE_COPY_KEYS, shopPageCopyFromRecord, type ShopPageCopyKey } from "@/lib/content/shop-page-copy";
 import type { LegalSectionEntry } from "@/lib/content/legal-sections";
 import { isValidOptionalEmail, OPTIONAL_EMAIL_ERROR } from "@/lib/admin/optional-email";
 import { hasLocaleField, readLocaleField } from "@/lib/i18n/admin-locale-fields";
@@ -135,6 +136,7 @@ const TRANSLATABLE_PAGE_FIELDS = [
   "manifestoSectionLabel", "manifestoSectionAttribution",
   "finalCtaLabel", "finalSecondaryCtaLabel", "finalSecondaryCtaHref",
   "finalFooterTitle", "finalContactLabel", "legalIntro", "legalLastUpdatedLabel",
+  ...SHOP_PAGE_COPY_KEYS,
 ] as const;
 
 type MaterialTextEntry = {
@@ -306,7 +308,11 @@ const pageContentFieldsSchema = z.object({
   legalIntro: z.string().trim().default(""),
   legalLastUpdated: z.string().trim().default(""),
   legalLastUpdatedLabel: z.string().trim().default(""),
-});
+}).extend(
+  Object.fromEntries(SHOP_PAGE_COPY_KEYS.map((key) => [key, z.string().trim().default("")])) as {
+    [K in ShopPageCopyKey]: z.ZodDefault<z.ZodString>;
+  },
+);
 
 const savePageSchema = pageContentFieldsSchema.extend({
   title: z.string().trim().min(1),
@@ -405,6 +411,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalLastUpdatedLabel, legalSections, serviceSections,
+    ...shopPageCopyFromRecord(parsed.data),
   };
   // Images/src stay shared with English (see materialImages above) and are
   // never re-uploaded per locale.
@@ -449,6 +456,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       legalLastUpdated,
       legalSections: readDynamicSectionFields(formData, code, "legal"),
       serviceSections: readDynamicSectionFields(formData, code, "service"),
+      ...shopPageCopyFromRecord(fields),
     };
     const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
     return { code, label, fields, localizedHandle, content };
@@ -510,6 +518,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       legalLastUpdatedLabel,
       legalSections,
       serviceSections,
+      ...shopPageCopyFromRecord(parsed.data),
       heroImage,
       // Legacy, Portuguese-only fallback from before the PageTranslation
       // table existed — no other locale ever had one, and the real
@@ -702,6 +711,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       legalLastUpdated,
       legalSections: readDynamicSectionFields(formData, code, "legal"),
       serviceSections: readDynamicSectionFields(formData, code, "service"),
+      ...shopPageCopyFromRecord(fields),
     };
     const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
     return { code, label, fields, localizedHandle, content };
@@ -765,6 +775,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       legalLastUpdatedLabel,
       legalSections,
       serviceSections,
+      ...shopPageCopyFromRecord(parsed.data),
       // Legacy, Portuguese-only fallback — see the identical comment in savePageAction.
       translations: {
         pt: {
@@ -809,6 +820,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalLastUpdatedLabel, legalSections, serviceSections,
+    ...shopPageCopyFromRecord(parsed.data),
   };
   await Promise.all([
     db.pageTranslation.upsert({

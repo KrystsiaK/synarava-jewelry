@@ -11,6 +11,7 @@ import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
+import { resolveShopStorefrontCopy } from "@/lib/content/shop-page-copy";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { locale, t } = await getServerTranslations();
@@ -79,7 +80,7 @@ export default async function Page({ searchParams }: Props) {
     availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
     sort: normalizeShopSort(rawFilters.sort),
   };
-  const { t, locale } = await getServerTranslations();
+  const { t, plural, locale } = await getServerTranslations();
   const [
     filterData,
     firstPage,
@@ -113,6 +114,11 @@ export default async function Page({ searchParams }: Props) {
       collectionsCalloutTitle={page?.content.secondaryTitle}
       collectionsCalloutCtaLabel={page?.content.ctaLabel}
       collectionsCalloutSecondaryLabel={page?.content.secondaryBody}
+      copy={resolveShopStorefrontCopy(
+        page?.content,
+        t,
+        plural("shop.availableCount", archiveCount),
+      )}
       filterProps={{
         categories: categories.map((c) => ({ value: c.slug, label: c.name })),
         productTypes: productTypes.map((type) => ({ value: type.slug, label: type.name })),

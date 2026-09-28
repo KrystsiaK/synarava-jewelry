@@ -3,6 +3,11 @@ import { z } from "zod";
 import type { Locale } from "@/lib/i18n/locales";
 import { hasContent } from "@/lib/i18n/localized-content";
 import { mergeLocalizedLegalSections } from "@/lib/content/legal-sections";
+import {
+  blankUntranslatedShopPageCopy,
+  SHOP_PAGE_COPY_KEYS,
+  type ShopPageCopyKey,
+} from "@/lib/content/shop-page-copy";
 
 const materialSchema = z.object({
   name: z.string().optional(),
@@ -64,7 +69,11 @@ export const pageTranslationContentSchema = z.object({
     z.array(legalSectionSchema),
     z.record(z.string(), legalSectionSchema),
   ]).optional(),
-});
+}).extend(
+  Object.fromEntries(SHOP_PAGE_COPY_KEYS.map((key) => [key, z.string().optional()])) as {
+    [K in ShopPageCopyKey]: z.ZodOptional<z.ZodString>;
+  },
+);
 
 export type PageTranslationContent = z.infer<typeof pageTranslationContentSchema>;
 
@@ -225,6 +234,8 @@ export function resolvePageLocalizedCopy({
   if (!hasContent(translatedContent.legalLastUpdatedLabel) && hasContent(sourceLabel)) {
     content.legalLastUpdatedLabel = "";
   }
+  // Shop section labels fall back to the active locale's dictionary, not English admin copy.
+  blankUntranslatedShopPageCopy(content, translatedContent);
 
   return {
     title: hasContent(selected?.title) ? selected!.title : source.title,
