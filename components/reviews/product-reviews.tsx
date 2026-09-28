@@ -10,7 +10,7 @@ import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 import { useTranslations } from "@/lib/i18n/context";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
-import { ArtifactButton } from "@/components/ui";
+import { ArtifactButton, DisplayHeading } from "@/components/ui";
 
 function Stars({ rating, label }: { rating: number; label: string }) {
   return (
@@ -60,9 +60,11 @@ export function ProductReviews({
       <div className="site-shell">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:gap-16">
           <div>
-            <h2 className="font-serif text-[clamp(2.1rem,4vw,3.8rem)] leading-none">
-              {t("reviews.title")}
-            </h2>
+            <DisplayHeading
+              as="h2"
+              text={t("reviews.title")}
+              className="text-[clamp(2.1rem,4vw,3.8rem)] leading-none"
+            />
             <div className="mt-5 flex items-center gap-3">
               {displayedAverage == null ? (
                 <span className="text-sm text-foreground/58">{t("reviews.noRatings")}</span>

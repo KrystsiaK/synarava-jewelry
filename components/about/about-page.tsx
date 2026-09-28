@@ -6,7 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { RichText } from "@/components/content/rich-text";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
-import { PrimaryCtaButton } from "@/components/ui";
+import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { resolveHeroBackdrop } from "@/lib/media/hero-media";
@@ -39,7 +39,8 @@ function AboutHero({
   const backdrop = resolveHeroBackdrop({ videoSrc: heroVideoSrc, imageSrc: heroImage });
 
   return (
-    <header data-component="AboutHero" className="about-hero relative flex min-h-[100svh] items-end overflow-hidden bg-background text-foreground">
+    <header data-component="AboutHero" className="about-hero relative flex min-h-[100svh] items-end bg-background text-foreground">
+      <div className="absolute inset-0 overflow-hidden">
       <motion.div
         className="absolute inset-0"
         initial={false}
@@ -75,6 +76,7 @@ function AboutHero({
           />
         ) : null}
       </motion.div>
+      </div>
 
       {backdrop.mode === "video" ? (
         <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-28 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
@@ -95,9 +97,10 @@ function AboutHero({
             </p>
           ) : null}
           {title ? (
-            <h1 className="max-w-[12ch] font-serif text-[clamp(3.25rem,8.2vw,7.6rem)] leading-[0.84] tracking-[-0.04em]">
-              {title}
-            </h1>
+            <DisplayHeading
+              text={title}
+              className="max-w-[12ch] text-[clamp(3.25rem,8.2vw,7.6rem)] leading-[0.84] tracking-[-0.04em]"
+            />
           ) : null}
         </motion.div>
 
@@ -131,9 +134,11 @@ function AboutCopy({
     <section data-component="AboutCopy" className="bg-surface py-24 text-foreground md:py-40">
       <div className="site-shell grid gap-10 md:grid-cols-12">
         {title ? (
-          <h2 className="text-balance font-serif text-[clamp(3rem,7vw,6.5rem)] leading-[0.9] tracking-[-0.035em] md:col-span-7">
-            {title}
-          </h2>
+          <DisplayHeading
+            as="h2"
+            text={title}
+            className="text-balance text-[clamp(3rem,7vw,6.5rem)] leading-[0.9] tracking-[-0.035em] md:col-span-7"
+          />
         ) : null}
         {body ? (
           <RichText
@@ -180,9 +185,11 @@ function MovementStory({
       <div className="about-movement-overlay absolute inset-0" />
       <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-4 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
       <div className="site-shell relative z-10 flex min-h-[100svh] items-end py-28 md:py-36">
-        <h2 className="max-w-4xl font-serif text-[clamp(3rem,7vw,7rem)] leading-[0.88] tracking-[-0.04em]">
-          {plainTextFromRichText(title)}
-        </h2>
+        <DisplayHeading
+          as="h2"
+          text={plainTextFromRichText(title)}
+          className="max-w-4xl text-[clamp(3rem,7vw,7rem)] leading-[0.88] tracking-[-0.04em]"
+        />
       </div>
     </section>
   );

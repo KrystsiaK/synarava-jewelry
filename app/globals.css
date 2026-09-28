@@ -379,6 +379,40 @@ select {
   text-transform: uppercase;
 }
 
+/*
+ * Display serif (Playfair). Cyrillic У/у, р, д, ц, щ, ф and accents paint
+ * outside a line box tighter than 1. Padding keeps that ink inside the
+ * border box; negative margin keeps the tight leading. The reveal mask
+ * (.type-reveal) is the only overflow clip, and it is taller than the
+ * glyphs so the resting word is never sliced.
+ * Page shells use overflow-x: clip. overflow-x: hidden forces the other
+ * axis to auto and will cut this ink.
+ */
+.type-display {
+  min-width: 0;
+  max-width: 100%;
+  padding-top: 0.32em;
+  padding-bottom: 0.46em;
+  margin-top: -0.32em;
+  margin-bottom: -0.46em;
+  overflow-wrap: break-word;
+}
+
+.type-reveal {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  vertical-align: baseline;
+  padding: 0.32em 0.12em 0.46em;
+  margin-top: -0.32em;
+  margin-bottom: -0.46em;
+  overflow-wrap: anywhere;
+}
+
+.type-reveal-gap {
+  margin-right: 0.14em;
+}
+
 @utility panel {
   border: 1px solid var(--color-stroke);
   background: var(--color-glass);

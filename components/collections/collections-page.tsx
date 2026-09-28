@@ -12,7 +12,7 @@ import {
 } from "motion/react";
 
 import { ease } from "@/lib/animation";
-import { EditorialSplitFeature, PrimaryCtaButton } from "@/components/ui";
+import { DisplayHeading, EditorialSplitFeature, PrimaryCtaButton } from "@/components/ui";
 import { RichText } from "@/components/content/rich-text";
 import { isRichTextEmpty } from "@/lib/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
@@ -74,18 +74,6 @@ function resolveCopy(
     calloutCtaHref: content?.calloutCtaHref?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutCtaHref,
     cardCtaLabel: filled(content?.cardCtaLabel) || translate("collections.index.explore"),
   };
-}
-
-function HeadingWithAccent({ text }: { text: string }) {
-  const parts = text.trim().split(/\s+/);
-  if (parts.length < 2) return <>{text}</>;
-  const last = parts.pop()!;
-  return (
-    <>
-      {parts.join(" ")}{" "}
-      <em className="font-normal text-couture-red">{last}</em>
-    </>
-  );
 }
 
 export function CollectionsHero({
@@ -183,9 +171,11 @@ export function CollectionsHero({
             </p>
           </div>
 
-          <h1 className="max-w-[12ch] font-serif text-[clamp(3.65rem,8vw,8rem)] leading-[0.82] tracking-[-0.045em]">
-            <HeadingWithAccent text={heading} />
-          </h1>
+          <DisplayHeading
+            text={heading}
+            accentClassName="italic font-normal text-couture-red"
+            className="max-w-[12ch] text-[clamp(3.65rem,8vw,8rem)] leading-[0.82] tracking-[-0.045em]"
+          />
 
           <RichText
             content={introduction}
@@ -239,12 +229,12 @@ function CollectionRow({
       title={(
         <div>
           <p className="label-mono mb-4 text-couture-red">{collection.eyebrow}</p>
-          <h2
-            className="font-serif leading-[0.92] tracking-tight"
+          <DisplayHeading
+            as="h2"
+            text={collection.name}
+            className="leading-[0.92] tracking-tight"
             style={{ fontSize: "clamp(2rem,4.5vw,4rem)" }}
-          >
-            {collection.name}
-          </h2>
+          />
         </div>
       )}
       description={collection.summary}
@@ -342,15 +332,19 @@ function CollectionsFooter({
         >
           {eyebrow}
         </motion.p>
-        <motion.h2
-          className="max-w-2xl font-serif leading-[1.05]"
-          style={{ fontSize: "clamp(1.8rem,4vw,3.5rem)" }}
+        <motion.div
+          className="max-w-2xl"
           initial={{ opacity: 0, y: 24 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.9, ease, delay: 0.1 }}
         >
-          {heading}
-        </motion.h2>
+          <DisplayHeading
+            as="h2"
+            text={heading}
+            className="leading-[1.05]"
+            style={{ fontSize: "clamp(1.8rem,4vw,3.5rem)" }}
+          />
+        </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -378,7 +372,7 @@ export function CollectionsPage({
 
   return (
     <main data-component="CollectionsPage"
-      className="collections-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
+      className="collections-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
       <CollectionsHero
         collections={collections}

@@ -21,7 +21,7 @@ import { RichText } from "@/components/content/rich-text";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath, storefrontHref } from "@/lib/i18n/routing";
-import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
+import { ArtifactLink, DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
@@ -364,7 +364,7 @@ function HeroSection({
   return (
     <section data-component="HeroSection"
       ref={containerRef}
-      className="home-hero relative flex min-h-[108svh] w-full items-end overflow-hidden bg-transparent px-5 pb-40 pt-24 md:min-h-[112vh] md:px-[4vw]"
+      className="home-hero relative flex min-h-[108svh] w-full items-end overflow-x-clip bg-transparent px-5 pb-40 pt-24 md:min-h-[112vh] md:px-[4vw]"
     >
       <motion.div
         className="absolute -right-[9%] top-[4.5rem] z-0 h-[75svh] w-[96%] overflow-hidden transform-gpu [backface-visibility:hidden] md:-right-[2%] md:top-[5.5rem] md:h-[86vh] md:w-[72%]"
@@ -425,9 +425,10 @@ function HeroSection({
         </div>
 
         {title ? (
-          <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.4rem,9vw,6rem)] uppercase leading-[0.86] tracking-[-0.035em] text-linen">
-            {title}
-          </h1>
+          <DisplayHeading
+            text={title}
+            className="max-w-[9ch] text-balance text-[clamp(3.4rem,9vw,6rem)] uppercase leading-[0.86] tracking-[-0.035em] text-linen"
+          />
         ) : null}
 
         {excerpt ? (
@@ -502,15 +503,15 @@ function ArchiveRecord({
             </>
           )}
         </div>
-        <h2
+        <DisplayHeading
+          as="h2"
+          text={item.title}
           className={
             mirror
-              ? "font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter text-right"
-              : "font-serif text-5xl md:text-7xl text-linen mb-6 uppercase leading-[0.95] tracking-tighter"
+              ? "mb-6 text-5xl uppercase leading-[0.95] tracking-tighter text-right text-linen md:text-7xl"
+              : "mb-6 text-5xl uppercase leading-[0.95] tracking-tighter text-linen md:text-7xl"
           }
-        >
-          {item.title}
-        </h2>
+        />
         <p
           className={
             mirror
@@ -678,9 +679,12 @@ function EditShowcase({
             <p className="mb-4 font-sans text-[0.62rem] font-bold uppercase tracking-[0.28em] text-[#a51f32] md:mb-5">
               {eyebrow || defaults.eyebrow}
             </p>
-            <h2 id="edit-showcase-title" className="max-w-[8ch] text-balance font-serif text-[clamp(4rem,8vw,6rem)] font-medium uppercase leading-[0.82] tracking-[-0.04em] text-[#171513]">
-              {title || defaults.title}
-            </h2>
+            <DisplayHeading
+              as="h2"
+              id="edit-showcase-title"
+              text={title || defaults.title}
+              className="max-w-[8ch] text-balance text-[clamp(4rem,8vw,6rem)] font-medium uppercase leading-[0.82] tracking-[-0.04em] text-[#171513]"
+            />
           </div>
           <div className="flex items-end justify-between gap-6 md:col-span-4 md:pb-1">
             <p className="max-w-[24ch] text-balance font-sans text-[0.68rem] font-semibold uppercase leading-[1.65] tracking-[0.12em] text-[#615a52] md:ml-auto md:text-right">
@@ -865,9 +869,11 @@ function MaterialPlate({
             <p className="mb-2 font-sans text-[0.65rem] font-bold uppercase tracking-[0.24em] text-couture-red">
               Material {String(index + 1).padStart(2, "0")}
             </p>
-            <h3 className="max-w-[9ch] text-balance font-serif text-[clamp(2.8rem,6vw,5.8rem)] font-bold uppercase leading-[0.84] tracking-[-0.035em] text-linen">
-              {material.name}
-            </h3>
+            <DisplayHeading
+              as="h3"
+              text={material.name}
+              className="max-w-[9ch] text-balance text-[clamp(2.8rem,6vw,5.8rem)] font-bold uppercase leading-[0.84] tracking-[-0.035em] text-linen"
+            />
             <RichText
               content={material.description}
               className="mt-5 max-w-[64ch] text-pretty font-sans text-sm font-semibold leading-relaxed text-stone-beige/85 md:mt-7 md:text-base"
@@ -983,9 +989,12 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
               <p className="mb-1 font-sans text-[0.58rem] font-bold uppercase tracking-[0.28em] text-couture-red">
                 {eyebrow?.trim() || "Material glossary / scroll to turn"}
               </p>
-              <h2 id="lexicon-title" className="font-serif text-[clamp(2rem,4.5vw,4.5rem)] font-bold uppercase leading-none tracking-[-0.035em] text-linen">
-                {title?.trim() || "Lexicon"}
-              </h2>
+              <DisplayHeading
+                as="h2"
+                id="lexicon-title"
+                text={title?.trim() || "Lexicon"}
+                className="text-[clamp(2rem,4.5vw,4.5rem)] font-bold uppercase leading-none tracking-[-0.035em] text-linen"
+              />
             </div>
             <div className="hidden items-center gap-3 pt-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/60 sm:flex">
               <span>01</span>
@@ -1050,7 +1059,10 @@ function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?:
           06 / {resolvedLabel}
         </div>
 
-        <h2 className="relative max-w-5xl text-balance text-left font-serif text-[clamp(2.35rem,10.5vw,7rem)] font-light italic leading-[1.02] text-linen md:text-center">
+        <DisplayHeading
+          as="h2"
+          className="relative max-w-5xl text-balance text-left text-[clamp(2.35rem,10.5vw,7rem)] font-light italic leading-[1.02] text-linen md:text-center"
+        >
           <span className="absolute -left-12 -top-16 hidden select-none font-serif text-[15vw] leading-none text-stone-beige opacity-10 md:block">&ldquo;</span>
           {customQuote ? (
             <RichText content={customQuote} className="whitespace-pre-line" />
@@ -1067,7 +1079,7 @@ function ManifestoQuote({ quote, label, attribution }: { quote?: string; label?:
             </>
           )}
           <span className="absolute -bottom-24 -right-12 hidden select-none font-serif text-[15vw] leading-none text-stone-beige opacity-10 md:block">&rdquo;</span>
-        </h2>
+        </DisplayHeading>
 
         <div className="mt-10 flex items-center gap-4 md:mt-14">
           <div className="h-px w-10 bg-couture-red md:w-12" />
@@ -1169,9 +1181,11 @@ function CompactFinalCTA({
               content={resolvedBody}
               className="font-serif text-base italic leading-7 text-stone-beige"
             />
-            <h2 className="mt-5 max-w-[10ch] text-balance font-serif text-[clamp(3rem,14vw,4.5rem)] font-bold leading-[0.88] tracking-[-0.04em] text-linen">
-              {resolvedTitle}
-            </h2>
+            <DisplayHeading
+              as="h2"
+              text={resolvedTitle}
+              className="mt-5 max-w-[10ch] text-balance text-[clamp(3rem,14vw,4.5rem)] font-bold leading-[0.88] tracking-[-0.04em] text-linen"
+            />
             <div className="mt-8 flex flex-wrap items-center gap-6">
               <ArtifactLink
                 href={resolvedCtaHref}
@@ -1397,9 +1411,11 @@ function DesktopFinalCTA({
           <p className="mb-6 max-w-sm font-serif text-lg italic text-stone-beige md:mb-8 md:text-xl">
             {resolvedBody}
           </p>
-          <h2 className="max-w-[10ch] text-balance font-serif text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-linen">
-            {resolvedTitle}
-          </h2>
+          <DisplayHeading
+            as="h2"
+            text={resolvedTitle}
+            className="max-w-[10ch] text-balance text-[clamp(3.2rem,7.3vw,6rem)] font-bold leading-[0.88] tracking-[-0.035em] text-linen"
+          />
 
           <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
             <PrimaryCtaButton

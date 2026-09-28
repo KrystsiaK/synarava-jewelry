@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { ArtifactLink } from "@/components/ui";
+import { artifactButtonClasses, DisplayHeading } from "@/components/ui";
 import { safeCustomerReturnPath } from "@/lib/shopify/customer-account/config";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
@@ -51,18 +51,25 @@ export default async function LoginPage({ searchParams }: Props) {
       <div className="space-y-6">
         <div>
           <p className="label-caps text-couture-red">{t("loginPage.panelEyebrow")}</p>
-          <h2 className="mt-3 font-serif text-[2.4rem] leading-none">
-            {t("loginPage.panelTitle")}
-          </h2>
+          <DisplayHeading as="h2" text={t("loginPage.panelTitle")} className="mt-3 text-[2.4rem] leading-none" />
         </div>
         {params.error === "shopify" ? (
           <p role="alert" className="border border-couture-red/40 p-4 text-sm text-couture-red">
             {t("loginPage.error")}
           </p>
         ) : null}
-        <ArtifactLink href={shopifyAuthHref} className="w-full">
+        {/* Document navigation, not next/link. A client fetch of this Route
+            Handler follows the 307 to Shopify and is blocked by connect-src,
+            then the fallback starts a second PKCE transaction. Shopify's
+            hosted login (email code) only appears after this full navigation.
+            https://shopify.dev/docs/api/customer/2026-10 */}
+        <a
+          href={shopifyAuthHref}
+          data-component="CustomerSignInLink"
+          className={artifactButtonClasses({ className: "w-full" })}
+        >
           {t("loginPage.submit")}
-        </ArtifactLink>
+        </a>
         <p className="text-sm leading-6 text-foreground/45">
           {t("loginPage.note")}
         </p>

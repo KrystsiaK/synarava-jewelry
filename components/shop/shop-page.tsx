@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 
-import { PrimaryCtaButton } from "@/components/ui";
+import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { RichText } from "@/components/content/rich-text";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type ShopFilters } from "./types";
@@ -14,7 +14,6 @@ import { ShopCatalogClient, type InitialCatalogPage } from "./shop-catalog-clien
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { splitHeroTitleAccent } from "@/lib/content/service-page-defaults";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
 import type { ResolvedShopStorefrontCopy } from "@/lib/content/shop-page-copy";
 
@@ -34,11 +33,10 @@ export function ShopHero({
   availableCountLabel?: string;
 }) {
   const { t, plural } = useTranslations();
-  const { lead, accent } = splitHeroTitleAccent(title);
 
   return (
     <header data-component="ShopHero"
-      className="shop-hero relative flex min-h-[72svh] items-end overflow-hidden bg-background px-5 pb-10 pt-24 text-foreground md:min-h-[82svh] md:px-[8vw] md:pb-16 md:pt-32"
+      className="shop-hero relative flex min-h-[72svh] items-end bg-background px-5 pb-10 pt-24 text-foreground md:min-h-[82svh] md:px-[8vw] md:pb-16 md:pt-32"
     >
       {heroImage ? (
         <div
@@ -60,9 +58,11 @@ export function ShopHero({
       <div className="shop-hero-image-overlay pointer-events-none absolute inset-0" aria-hidden="true" />
 
       <div className="relative z-10 w-full max-w-[46rem]">
-        <h1 className="max-w-[9ch] text-balance font-serif text-[clamp(3.6rem,8vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-foreground">
-          {lead ? `${lead} ` : null}<span className="font-light italic text-couture-red">{accent}</span>
-        </h1>
+        <DisplayHeading
+          text={title}
+          accentClassName="font-light italic text-couture-red"
+          className="max-w-[9ch] text-balance text-[clamp(3.6rem,8vw,6rem)] uppercase leading-[0.84] tracking-[-0.035em] text-foreground"
+        />
 
         <RichText
           content={description}
@@ -152,15 +152,19 @@ function ShopFooter({
           {eyebrow || t("shop.footerCta.eyebrow")}
         </motion.p>
 
-        <motion.h2
-          className="max-w-xl font-serif leading-[1.05]"
-          style={{ fontSize: "clamp(1.8rem,4vw,3.2rem)" }}
+        <motion.div
+          className="max-w-xl"
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.18 }}
         >
-          {title || t("shop.footerCta.title")}
-        </motion.h2>
+          <DisplayHeading
+            as="h2"
+            text={title || t("shop.footerCta.title")}
+            className="leading-[1.05]"
+            style={{ fontSize: "clamp(1.8rem,4vw,3.2rem)" }}
+          />
+        </motion.div>
 
         <motion.div
           className="flex flex-col items-center gap-4 sm:flex-row sm:gap-5"
@@ -233,7 +237,7 @@ export function ShopPage({
   };
   return (
     <main data-component="ShopPage"
-      className="shop-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-couture-red selection:text-white"
+      className="shop-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground selection:bg-couture-red selection:text-white"
     >
       <ShopHero
         heroImage={heroImage}

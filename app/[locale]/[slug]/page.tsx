@@ -6,6 +6,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { ArtifactLink } from "@/components/ui/artifact-button";
+import { DisplayHeading } from "@/components/ui/display-heading";
 import { PageHeroImage } from "@/components/ui/page-hero-image";
 import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
 
@@ -70,16 +71,17 @@ export default async function StaticCmsPage({ params }: Props) {
 
   return (
     <main className="artifact-shell min-h-screen pb-20 md:pb-32">
-      <header className={heroImage ? "relative flex min-h-[68svh] items-end overflow-hidden border-b border-stroke pb-12 pt-24 md:min-h-[76svh] md:pb-16 md:pt-28" : "pt-24 md:pt-28"}>
+      <header className={heroImage ? "relative flex min-h-[68svh] items-end border-b border-stroke pb-12 pt-24 md:min-h-[76svh] md:pb-16 md:pt-28" : "pt-24 md:pt-28"}>
         <PageHeroImage src={heroImage} />
         <div className="site-shell relative z-10 w-full">
           <div className="mx-auto max-w-4xl">
             <p className={heroImage ? "label-caps text-white/75" : "label-caps text-accent"}>
               {content.eyebrow ?? `Page / ${slug}`}
             </p>
-            <h1 className={heroImage ? "mt-4 font-serif text-[2.7rem] leading-none text-white sm:text-[3.3rem] md:text-[4.4rem]" : "mt-4 font-serif text-[2.7rem] leading-none text-foreground sm:text-[3.3rem] md:text-[4.4rem]"}>
-              {page.title}
-            </h1>
+            <DisplayHeading
+              text={page.title}
+              className={heroImage ? "mt-4 text-[2.7rem] leading-none text-white sm:text-[3.3rem] md:text-[4.4rem]" : "mt-4 text-[2.7rem] leading-none text-foreground sm:text-[3.3rem] md:text-[4.4rem]"}
+            />
             {page.excerpt ? (
               <p className={heroImage ? "mt-6 max-w-2xl text-lg leading-8 text-white/75" : "mt-6 max-w-2xl text-lg leading-8 text-muted"}>
                 {page.excerpt}

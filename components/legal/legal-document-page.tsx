@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import Link from "next/link";
 
 import { RichText } from "@/components/content/rich-text";
-import { DividerOrnament, PageHeroImage } from "@/components/ui";
+import { DisplayHeading, DividerOrnament, PageHeroImage } from "@/components/ui";
 import { LegalSectionScroll } from "@/components/legal/legal-section-scroll";
 import { LegalSectionBody } from "@/components/legal/legal-section-body";
 import { cn } from "@/lib/ui";
@@ -40,13 +40,14 @@ export function LegalDocumentPage({
 }) {
   return (
     <main className="artifact-shell min-h-screen pb-20 md:pb-32">
-      <header className={cn("relative overflow-hidden border-b border-stroke", heroImage ? "flex min-h-[68svh] items-end py-12 pt-24 md:min-h-[76svh] md:py-16 md:pt-28" : "pt-24 md:pt-28")}>
+      <header className={cn("relative border-b border-stroke", heroImage ? "flex min-h-[68svh] items-end py-12 pt-24 md:min-h-[76svh] md:py-16 md:pt-28" : "pt-24 md:pt-28")}>
         <PageHeroImage src={heroImage} />
         <div className="site-shell relative z-10 w-full pb-10 md:pb-14">
           <p className={cn("label-mono mb-4", heroImage ? "text-white/75" : "text-accent")}>{eyebrowLabel}</p>
-          <h1 className={cn("font-serif text-[2.4rem] leading-tight sm:text-[3.2rem] md:text-[4.5rem]", heroImage && "text-white")}>
-            {title}
-          </h1>
+          <DisplayHeading
+            text={title}
+            className={cn("text-[2.4rem] leading-tight sm:text-[3.2rem] md:text-[4.5rem]", heroImage && "text-white")}
+          />
           {intro ? (
             <RichText
               content={intro}

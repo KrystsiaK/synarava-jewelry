@@ -3,6 +3,7 @@ export { AnimatedModal } from "./animated-modal";
 export { ArtifactPanel } from "./artifact-panel";
 export { BodyLead } from "./body-lead";
 export { CapsLabel } from "./caps-label";
+export { DisplayHeading } from "./display-heading";
 export { DividerOrnament } from "./divider-ornament";
 export { EditorialSplitFeature } from "./editorial-split-feature";
 export { EditorialHeading } from "./editorial-heading";

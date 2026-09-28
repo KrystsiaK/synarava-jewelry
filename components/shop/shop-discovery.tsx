@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { DisplayHeading } from "@/components/ui/display-heading";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -101,12 +102,12 @@ export function ShopDiscovery({
           <section key={section.key} aria-labelledby={`shop-${section.key}-title`}>
             <div className="mb-7 flex items-end justify-between gap-6 border-b border-foreground/[0.1] pb-5 md:mb-9">
               <div>
-                <h2
+                <DisplayHeading
+                  as="h2"
                   id={`shop-${section.key}-title`}
-                  className="font-serif text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
-                >
-                  {section.title}
-                </h2>
+                  text={section.title}
+                  className="text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
+                />
                 <p className="mt-3 max-w-xl text-sm leading-6 text-muted md:text-base">
                   {section.description}
                 </p>
@@ -134,12 +135,12 @@ export function ShopDiscovery({
 
         <section aria-labelledby="shop-product-type-title">
           <div className="mb-7 max-w-2xl md:mb-9">
-            <h2
+            <DisplayHeading
+              as="h2"
               id="shop-product-type-title"
-              className="font-serif text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
-            >
-              {text(copy?.productTypeTitle, "shop.discovery.productTypeTitle")}
-            </h2>
+              text={text(copy?.productTypeTitle, "shop.discovery.productTypeTitle")}
+              className="text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
+            />
             <p className="mt-3 text-sm leading-6 text-muted md:text-base">
               {text(copy?.productTypeDescription, "shop.discovery.productTypeDescription")}
             </p>
@@ -164,7 +165,11 @@ export function ShopDiscovery({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" aria-hidden="true" />
                   <div className="relative z-10 text-white">
-                    <h3 className="font-serif text-3xl leading-none">{productType.name}</h3>
+                    <DisplayHeading
+                      as="h3"
+                      text={productType.name}
+                      className="text-3xl leading-none text-white"
+                    />
                     <p className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/70">
                       {plural("shop.filters.productCount", productType.count)}
                     </p>

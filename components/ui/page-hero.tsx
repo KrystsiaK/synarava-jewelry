@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { ease, GRAIN_STYLE } from "@/lib/animation";
+import { DisplayHeading } from "@/components/ui/display-heading";
 
 interface PageHeroProps {
   eyebrow: string;
@@ -26,13 +27,12 @@ export function PageHero({
   const titleY = useTransform(scrollYProgress, [0, 1], ["0%", "24%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
-  const words = title.split(" ");
   const ghost = ghostText ?? title.toUpperCase();
 
   return (
     <motion.header
       ref={ref}
-      className="relative flex min-h-[52vh] items-end overflow-hidden bg-background pb-16 pt-28 md:min-h-[60vh] md:pb-20"
+      className="relative flex min-h-[52vh] items-end bg-background pb-16 pt-28 md:min-h-[60vh] md:pb-20"
     >
       {/* Grain */}
       <div
@@ -83,23 +83,12 @@ export function PageHero({
           {eyebrow}
         </motion.p>
 
-        <h1
-          className="font-serif leading-[0.88] tracking-tight"
+        <DisplayHeading
+          reveal
+          text={title}
+          className="leading-[0.88] tracking-tight"
           style={{ fontSize: "clamp(2.8rem,8vw,7.5rem)" }}
-        >
-          {words.map((word, i) => (
-            <span key={i} className="mr-[0.25em] inline-block overflow-hidden last:mr-0">
-              <motion.span
-                className="inline-block"
-                initial={{ y: "110%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 1, ease, delay: 0.1 + i * 0.1 }}
-              >
-                {word}
-              </motion.span>
-            </span>
-          ))}
-        </h1>
+        />
 
         {description && (
           <motion.p

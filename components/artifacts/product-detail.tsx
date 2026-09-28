@@ -18,7 +18,7 @@ import { ProductMediaGallery } from "@/components/artifacts/product-media-galler
 import { ProductHeroDescription } from "@/components/artifacts/product-hero-description";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { PerformanceVideo } from "@/components/media/performance-video";
-import { PrimaryCtaButton } from "@/components/ui";
+import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import {
   getProductBreadcrumbs,
   getProductPresentation,
@@ -81,7 +81,6 @@ function ProductHero({
   isSignedIn: boolean;
 }) {
   const { t, locale, plural } = useTranslations();
-  const words = product.title.split(" ");
   const heroDescription = product.shortDescription.trim() || truncateText(product.description.trim(), 220);
   const breadcrumbs = getProductBreadcrumbs(product, t);
 
@@ -124,27 +123,12 @@ function ProductHero({
               </ol>
             </motion.nav>
 
-            <h1
-              className="max-w-[12ch] text-balance font-serif text-[clamp(2.65rem,5.5vw,5.5rem)] leading-[0.93] tracking-[-0.035em]"
-            >
-              {words.map((word, i) => (
-                <span
-                  key={i}
-                  className={`mr-[0.16em] inline-block overflow-hidden pb-[0.28em] align-bottom last:mr-0 ${
-                    i === words.length - 1 ? "font-serif italic text-couture-red" : ""
-                  }`}
-                >
-                  <motion.span
-                    className="inline-block"
-                    initial={{ y: "110%", opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.95, ease, delay: 0.1 + i * 0.1 }}
-                  >
-                    {word}
-                  </motion.span>
-                </span>
-              ))}
-            </h1>
+            <DisplayHeading
+              reveal
+              text={product.title}
+              accentClassName="italic text-couture-red"
+              className="max-w-[12ch] text-balance text-[clamp(2.65rem,5.5vw,5.5rem)] leading-[0.93] tracking-[-0.035em]"
+            />
 
             {heroDescription ? (
               <motion.div
@@ -268,9 +252,11 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
   return (
     <section data-component="ProductSpecifications" className="border-t border-foreground/14 pt-6">
       <p className="label-mono text-couture-red">{t("product.specifications.eyebrow")}</p>
-      <h2 className="mt-3 font-serif text-[clamp(1.6rem,3vw,2.25rem)] leading-none text-foreground">
-        {t("product.specifications.title")}
-      </h2>
+      <DisplayHeading
+        as="h2"
+        text={t("product.specifications.title")}
+        className="mt-3 text-[clamp(1.6rem,3vw,2.25rem)] leading-none text-foreground"
+      />
       {product.categoryName ? (
         <p className="mt-3 text-sm text-foreground/70">{product.categoryName}</p>
       ) : null}
@@ -360,9 +346,11 @@ function MaterialsScrollSection({ product }: { product: ProductSummary }) {
         <div className="site-shell mb-8 flex items-end justify-between gap-6 md:mb-10">
           <div>
             <p className="label-mono mb-3 text-couture-red">{product.materialsEyebrow}</p>
-            <h2 className="text-balance font-serif text-[clamp(2rem,4vw,3.4rem)] leading-none">
-              {product.materialsTitle}
-            </h2>
+            <DisplayHeading
+              as="h2"
+              text={product.materialsTitle}
+              className="text-balance text-[clamp(2rem,4vw,3.4rem)] leading-none"
+            />
           </div>
           <p className="label-mono shrink-0 text-foreground/45">
             {String(activeMaterial + 1).padStart(2, "0")} / {String(product.materials.length).padStart(2, "0")}
@@ -456,9 +444,11 @@ function SymbolismScrollSection({
       <div className="site-shell">
         <header className="grid gap-8 border-b border-foreground/15 pb-9 md:grid-cols-12 md:items-end md:pb-12">
           <div className="md:col-span-9">
-            <h2 className="text-balance font-serif text-[clamp(3.6rem,9vw,6rem)] leading-[0.84] tracking-[-0.035em]">
-              {product.symbolismLabel}
-            </h2>
+            <DisplayHeading
+              as="h2"
+              text={product.symbolismLabel}
+              className="text-balance text-[clamp(3.6rem,9vw,6rem)] leading-[0.84] tracking-[-0.035em]"
+            />
           </div>
         </header>
 
@@ -510,10 +500,10 @@ function SymbolismScrollSection({
                 key={`${term}-display`}
                 className={
                   index === 0
-                    ? "font-serif text-[clamp(2.8rem,7vw,5.6rem)] leading-[0.9] tracking-[-0.035em]"
+                    ? "type-display font-serif text-[clamp(2.8rem,7vw,5.6rem)] leading-[0.9] tracking-[-0.035em]"
                     : index === 1
-                      ? "self-end font-serif text-[clamp(3.2rem,8vw,6rem)] italic leading-[0.86] tracking-[-0.035em] text-couture-red md:pr-[8vw]"
-                      : "max-w-full overflow-hidden text-[clamp(1.85rem,5vw,4.5rem)] font-light uppercase leading-none tracking-[0.08em] text-foreground/75"
+                      ? "type-display self-end font-serif text-[clamp(3.2rem,8vw,6rem)] italic leading-[0.86] tracking-[-0.035em] text-couture-red md:pr-[8vw]"
+                      : "type-display max-w-full text-[clamp(1.85rem,5vw,4.5rem)] font-light uppercase leading-[1.05] tracking-[0.08em] text-foreground/75"
                 }
               >
                 {term}
@@ -610,9 +600,11 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
             <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-couture-red">
               {product.process.eyebrow}
             </p>
-            <h2 className="text-balance font-serif text-[clamp(3.3rem,7.5vw,6rem)] leading-[0.9] tracking-[-0.035em]">
-              {product.process.title}
-            </h2>
+            <DisplayHeading
+              as="h2"
+              text={product.process.title}
+              className="text-balance text-[clamp(3.3rem,7.5vw,6rem)] leading-[0.9] tracking-[-0.035em]"
+            />
           </div>
           {product.shortDescription ? (
             <p className="max-w-sm text-pretty text-base leading-8 text-foreground/62 md:col-span-4 md:pb-1">
@@ -841,9 +833,11 @@ function RelatedProductsSection({ products }: { products: ProductSummary[] }) {
   return (
     <section data-component="RelatedProductsSection" className="border-t border-foreground/[0.06] bg-background py-20 md:py-28">
       <div className="site-shell">
-        <h2 className="mb-8 font-serif text-[clamp(2rem,4vw,3.5rem)] leading-none md:mb-10">
-          {t("product.relatedTitle")}
-        </h2>
+        <DisplayHeading
+          as="h2"
+          text={t("product.relatedTitle")}
+          className="mb-8 text-[clamp(2rem,4vw,3.5rem)] leading-none md:mb-10"
+        />
         <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:gap-6">
           {products.map((product) => (
             <RelatedProductCard key={product.slug} product={product} />

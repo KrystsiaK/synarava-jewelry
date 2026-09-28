@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 
-import { PrimaryCtaButton } from "@/components/ui";
+import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { CartItemRow } from "./cart-item-row";
 import { CartSummaryPanel } from "./cart-summary-panel";
 import { useTranslations } from "@/lib/i18n/context";
@@ -51,15 +51,20 @@ function EmptyCart() {
         transition={{ duration: 0.6, delay: 0.2 }}
       />
 
-      <motion.h2
-        className="mb-5 max-w-[12ch] text-balance font-serif leading-[0.98]"
-        style={{ fontSize: "clamp(2.4rem,5vw,4.8rem)" }}
+      <motion.div
+        className="mb-5 max-w-3xl"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease, delay: 0.3 }}
       >
-        {t("cart.emptyTitleLead")} <span className="italic text-couture-red">{t("cart.emptyTitleAccent")}</span>
-      </motion.h2>
+        <DisplayHeading
+          as="h2"
+          className="max-w-[12ch] text-balance leading-[0.98]"
+          style={{ fontSize: "clamp(2.4rem,5vw,4.8rem)" }}
+        >
+          {t("cart.emptyTitleLead")} <span className="italic text-couture-red">{t("cart.emptyTitleAccent")}</span>
+        </DisplayHeading>
+      </motion.div>
 
       <motion.p
         className="mb-8 max-w-xl text-pretty text-base leading-[1.8] text-foreground/65 md:text-lg"
@@ -92,7 +97,7 @@ export function CartShell({
   const { t, locale } = useTranslations();
   return (
     <main data-component="CartShell"
-      className="cart-experience artifact-shell min-h-screen overflow-x-hidden bg-background text-foreground"
+      className="cart-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
       <div className="relative z-10 pt-28">
         <div className="border-b border-foreground/10 pb-10 pt-8 md:pb-14 md:pt-12">
@@ -120,15 +125,18 @@ export function CartShell({
               >
                 {t("cart.eyebrow")}
               </motion.p>
-              <motion.h1
-                className="font-serif leading-[0.92] tracking-[-0.035em]"
-                style={{ fontSize: "clamp(2.4rem,5vw,5rem)" }}
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.9, ease, delay: 0.1 }}
               >
-                {t("cart.titleLead")} <span className="italic text-couture-red">{t("cart.titleAccent")}</span>
-              </motion.h1>
+                <DisplayHeading
+                  className="leading-[0.92] tracking-[-0.035em]"
+                  style={{ fontSize: "clamp(2.4rem,5vw,5rem)" }}
+                >
+                  {t("cart.titleLead")} <span className="italic text-couture-red">{t("cart.titleAccent")}</span>
+                </DisplayHeading>
+              </motion.div>
             </div>
             <motion.p
               className="max-w-xl text-pretty text-base leading-[1.8] text-foreground/62 md:col-span-5 md:pb-1"

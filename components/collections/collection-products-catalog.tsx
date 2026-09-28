@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 
+import { DisplayHeading } from "@/components/ui/display-heading";
 import { FilterBar, type FilterBarProps } from "@/components/shop/filter-bar";
 import { ShopCatalogClient, type InitialCatalogPage } from "@/components/shop/shop-catalog-client";
 import { buildSearchParams, type ShopFilters } from "@/components/shop/types";
@@ -60,9 +61,11 @@ export function CollectionProductsCatalog({
             transition={{ duration: 0.8, ease }}
           >
             <p className="label-mono mb-3 text-muted-ink">Catalogue / {collectionName}</p>
-            <h2 className="font-serif" style={{ fontSize: "clamp(2rem,4vw,3rem)" }}>
-              Products in this Collection
-            </h2>
+            <DisplayHeading
+              as="h2"
+              text="Products in this Collection"
+              style={{ fontSize: "clamp(2rem,4vw,3rem)" }}
+            />
           </motion.div>
         </div>
 

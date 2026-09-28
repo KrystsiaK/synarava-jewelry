@@ -2,7 +2,7 @@
 
 import { RichText } from "@/components/content/rich-text";
 import { ContactCta } from "@/components/shared/contact-cta";
-import { PageHeroImage } from "@/components/ui";
+import { DisplayHeading, PageHeroImage } from "@/components/ui";
 import { DEFAULT_FOOTER_CONTACT_EMAIL } from "@/lib/content/footer-contact-fields";
 import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/ui";
@@ -35,7 +35,7 @@ export function ServicePage({
     <main data-component="ServicePage" className="artifact-shell min-h-screen bg-background pb-24 text-foreground">
       <header
         className={cn(
-          "relative overflow-hidden border-b border-stroke",
+          "relative border-b border-stroke",
           heroImage ? "flex min-h-[68svh] items-end pb-12 pt-32 md:min-h-[76svh] md:pb-16" : "pb-12 pt-32 md:pb-16 md:pt-40",
         )}
       >
@@ -43,9 +43,10 @@ export function ServicePage({
         <div className="site-shell relative z-10 w-full">
           <div className="max-w-4xl">
             <p className={cn("label-caps", heroImage ? "text-white/75" : "text-accent")}>{eyebrow}</p>
-            <h1 className={cn("mt-5 text-balance font-serif text-[clamp(3.2rem,8vw,7rem)] leading-[0.9] tracking-[-0.04em]", heroImage && "text-white")}>
-              {title}
-            </h1>
+            <DisplayHeading
+              text={title}
+              className={cn("mt-5 text-balance text-[clamp(3.2rem,8vw,7rem)] leading-[0.9] tracking-[-0.04em]", heroImage && "text-white")}
+            />
             <RichText
               content={intro}
               className={cn("mt-7 max-w-2xl text-pretty text-base leading-8 md:text-lg", heroImage ? "text-white/75" : "text-muted")}

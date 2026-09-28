@@ -9,7 +9,7 @@ import {
   useInView,
 } from "motion/react";
 import Link from "next/link";
-import { PrimaryCtaButton } from "@/components/ui";
+import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import type { CollectionSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -57,25 +57,25 @@ function DetailHero({
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.7], [0.68, 0.86]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
-  const words = collection.name.split(" ");
-
   return (
     <motion.header
       ref={ref}
-      className="relative flex h-[94svh] min-h-[600px] w-full items-end overflow-hidden bg-background pb-14 pt-28 md:h-screen md:pb-[8vh] md:pt-32"
+      className="relative flex h-[94svh] min-h-[600px] w-full items-end bg-background pb-14 pt-28 md:h-screen md:pb-[8vh] md:pt-32"
     >
-      {/* Parallax image */}
-      <motion.div className="absolute inset-0 scale-110" style={{ y: imgY }}>
-        <Image
-          alt={collection.name}
-          src={collection.heroImage}
-          fill
-          preload
-          quality={90}
-          sizes="100vw"
-          className="collection-detail-hero-media object-cover"
-        />
-      </motion.div>
+      {/* Clip the scaled photo only. The title sits outside this box so glyphs are not sliced. */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <motion.div className="absolute inset-0 scale-110" style={{ y: imgY }}>
+          <Image
+            alt={collection.name}
+            src={collection.heroImage}
+            fill
+            preload
+            quality={90}
+            sizes="100vw"
+            className="collection-detail-hero-media object-cover"
+          />
+        </motion.div>
+      </div>
 
       {/* Gradient overlay — strong through the text block (bottom ~55%), not just the bottom edge */}
       <motion.div
@@ -126,23 +126,12 @@ function DetailHero({
           {collection.eyebrow}
         </motion.span>
 
-        <h1
-          className="max-w-3xl text-balance font-serif leading-[0.88] tracking-[-0.04em] text-foreground"
+        <DisplayHeading
+          reveal
+          text={collection.name}
+          className="max-w-3xl text-balance leading-[0.88] tracking-[-0.04em] text-foreground"
           style={{ fontSize: "clamp(3rem,8vw,6rem)" }}
-        >
-          {words.map((word, i) => (
-            <span key={i} className="mr-[0.2em] inline-block overflow-hidden last:mr-0">
-              <motion.span
-                className="inline-block"
-                initial={{ y: "110%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 1, ease, delay: 0.15 + i * 0.12 }}
-              >
-                {word}
-              </motion.span>
-            </span>
-          ))}
-        </h1>
+        />
 
         <motion.p
           className="mt-8 max-w-lg text-pretty text-base leading-[1.8] text-foreground/72 md:text-lg"
@@ -316,9 +305,12 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
                 <span>Collection Story</span>
                 <span className="h-px flex-1 bg-current/35" />
               </div>
-              <h2 className="max-w-[10.5ch] text-balance font-serif leading-[0.93] tracking-[-0.02em]" style={{ fontSize: "clamp(2.45rem,4.4vw,4.45rem)" }}>
-                A world with a clear visual logic
-              </h2>
+              <DisplayHeading
+                as="h2"
+                text="A world with a clear visual logic"
+                className="max-w-[10.5ch] text-balance leading-[0.93] tracking-[-0.02em]"
+                style={{ fontSize: "clamp(2.45rem,4.4vw,4.45rem)" }}
+              />
               <p className="mt-7 max-w-xl text-base leading-[1.85] text-foreground/68 md:text-[1.04rem]">
                 {collection.summary}
               </p>
@@ -383,15 +375,19 @@ function NextCollectionTeaser({
           >
             {labelOr(labels?.teaserEyebrow, t("collections.detail.exploreMore"))}
           </motion.p>
-          <motion.h2
-            className="mx-auto mb-10 max-w-2xl font-serif leading-[1.05]"
-            style={{ fontSize: "clamp(2rem,5vw,4.5rem)" }}
+          <motion.div
+            className="mx-auto mb-10 max-w-2xl"
             initial={{ opacity: 0, y: 28 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.9, ease, delay: 0.1 }}
           >
-            {labelOr(labels?.teaserHeading, t("collections.detail.browseAll"))}
-          </motion.h2>
+            <DisplayHeading
+              as="h2"
+              text={labelOr(labels?.teaserHeading, t("collections.detail.browseAll"))}
+              className="leading-[1.05]"
+              style={{ fontSize: "clamp(2rem,5vw,4.5rem)" }}
+            />
+          </motion.div>
           <motion.div
             className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-5"
             initial={{ opacity: 0, y: 16 }}
@@ -426,7 +422,7 @@ export function CollectionDetail({
 }) {
   return (
     <main data-component="CollectionDetail"
-      className="collection-detail-experience artifact-shell overflow-x-hidden bg-background text-foreground"
+      className="collection-detail-experience artifact-shell overflow-x-clip bg-background text-foreground"
     >
       <DetailHero collection={collection} labels={labels} />
       {collection.manifesto && <ManifestoStrip manifesto={collection.manifesto} />}
