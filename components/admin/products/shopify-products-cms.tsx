@@ -6,8 +6,8 @@ import { RefreshCw } from "lucide-react";
 
 import { updateShopifyProductsAction } from "@/app/admin/actions/sync";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import {
+  AdminAlert,
   AdminEntityList,
   AdminListWorkspace,
   AdminStatusBadge,
@@ -180,7 +180,7 @@ export function ShopifyProductsCms({ initialPage }: ShopifyProductsCmsProps) {
         </AdminListWorkspace.Header>
 
         <AdminListWorkspace.Body>
-          <AuthMessage error={listError ?? undefined} />
+          <AdminAlert message={listError ?? undefined} />
 
           <AdminEntityList.Root>
             <AdminEntityList.Header

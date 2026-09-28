@@ -9,11 +9,8 @@ import {
   type ProductActionState,
 } from "@/app/admin/actions/products";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import {
-  AdminFormAlert,
-  useAdminFormValidation,
-} from "@/components/admin/shared/admin-form-validation";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
+import { AdminAlert, AdminHelp } from "@/components/synarava-cms";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
@@ -160,7 +157,7 @@ export function CreateProductForm({
         </div>
 
         <ProgressBar pending={isPending} />
-        <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
+        <AdminAlert message={state.fieldErrors ? undefined : state.error} />
         <div>
           <AdminHelp label="Publishing guidance">
             Saving updates the database. Published products can immediately affect the public site.

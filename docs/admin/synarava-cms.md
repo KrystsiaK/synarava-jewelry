@@ -40,6 +40,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminSortChips` | Compact sort chip bar |
 | `AdminStatusBadge` | Workflow / sync status pill (`published`/`draft`/`archived`/`unlisted`/…; `error` only for real faults) |
 | `AdminOrderedList` | Ordered rows with up/down + remove (+ optional Add); same `onChange` API reserved for future DnD |
+| `AdminAlert` | Form-level error or success banner (transparent wash, theme-aware ink) |
 | `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
 | `fieldClass` / `useAdminFieldIds` | Shared helpers |
 
@@ -47,7 +48,7 @@ two visual variants remain. Agent skill encodes this contract.
 
 ### Shell
 
-- `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `issue`, optional `unitId`.
+- `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `issue`, optional `unitId`. Optional `validationName` sets `data-validation-for` so `useAdminFormValidation` scrolls to this unit instead of a hidden locale mirror.
 - Field-level errors are **absolute** inside the unit. Every `.adm-field-unit`
   **always** reserves a one-line error band (`padding-bottom`) so siblings never
   jump when validation appears. Long messages **ellipsis** in that band; full
@@ -63,6 +64,23 @@ two visual variants remain. Agent skill encodes this contract.
   chrome — it overshoots tall hero/media blocks.
 - `invalid` forces error chrome without copy (issue-linked fields).
 - `warning` — soft orange notice in the **same** absolute band as `error` (`.adm-field-warning` / `.adm-field-group--warning`). Error wins when both are set. Does not set `aria-invalid`.
+- Field error copy uses `--adm-danger-ink` (deep red in light, a clearer red in dark). Do not hardcode pale pink.
+
+### Form alert
+
+Save, load, and action failures use `AdminAlert`. It is not the field-level band.
+
+```tsx
+import { AdminAlert } from "@/components/synarava-cms";
+
+<AdminAlert message={error} />
+<AdminAlert tone="success" message="Saved." />
+```
+
+- One chrome: `.adm-alert`. Error is a transparent danger wash, a thin danger border, and `--adm-danger-ink` text, so the sentence stays red in light and dark.
+- Empty `message` renders nothing.
+- Do not use `AuthMessage` in admin. That login banner hardcodes `#ffd6db` for a dark page and disappears on the light theme.
+- `AdminFormAlert` is the same component. New call sites use `AdminAlert`.
 
 ### Stacking (`--adm-z-*`)
 

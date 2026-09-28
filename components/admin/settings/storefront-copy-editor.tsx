@@ -11,8 +11,7 @@ import { FooterLinkColumnEditor } from "@/components/admin/settings/footer-link-
 import { HeaderNavEditor } from "@/components/admin/settings/header-nav-editor";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminLongTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminLongTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
 import {
   DEFAULT_FOOTER_LEGAL_LABEL_KEYS,
   DEFAULT_FOOTER_SERVICE_LABEL_KEYS,
@@ -115,7 +114,7 @@ export function StorefrontCopyEditor({
 
   return (
     <form action={formAction}>
-      <AuthMessage error={state.error} />
+      <AdminAlert message={state.error} />
       <AdminPanel.Root>
         <AdminPanel.Header sticky stickyBand="locale" className="adm-panel__header--ruled">
           <AdminLocaleTabs

@@ -6,10 +6,9 @@ import { Trash2 } from "lucide-react";
 
 import { deletePageAction } from "@/app/admin/actions/pages";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
-import { AdminIconButton } from "@/components/synarava-cms";
+import { AdminAlert, AdminIconButton } from "@/components/synarava-cms";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 export function PageDeleteButton({
   slug,
@@ -67,11 +66,11 @@ export function PageDeleteButton({
           >
             {isPending ? "Deleting..." : "Delete page"}
           </button>
-          <AuthMessage error={state.error} />
+          <AdminAlert message={state.error} />
         </div>
       )}
 
-      {compact && state.error ? <AuthMessage error={state.error} /> : null}
+      {compact && state.error ? <AdminAlert message={state.error} /> : null}
 
       <AdminConfirmModal
         open={confirmOpen}

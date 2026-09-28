@@ -8,7 +8,7 @@ import {
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { AdminAlert } from "@/components/synarava-cms";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
@@ -128,7 +128,7 @@ export function CreateCollectionForm({
           </button>
         </div>
 
-        <AuthMessage error={state.error} />
+        <AdminAlert message={state.error} />
         <div>
           <AdminHelp label="Save guidance">
             Fields marked with * are required. Drafts stay in the form until a save succeeds.

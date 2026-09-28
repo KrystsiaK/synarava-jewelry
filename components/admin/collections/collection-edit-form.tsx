@@ -19,7 +19,7 @@ import {
   openConfirmIfFormValid,
   submitFormAfterConfirmClose,
 } from "@/components/admin/shared/submit-after-confirm";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { AdminAlert } from "@/components/synarava-cms";
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
@@ -86,7 +86,7 @@ function DeleteCollectionForm({
         >
           {submitLabel("Delete collection", isPending, "Deleting...")}
         </button>
-        <AuthMessage error={state.error} />
+        <AdminAlert message={state.error} />
       </div>
       <AdminConfirmModal
         open={confirmOpen}
@@ -252,7 +252,7 @@ export function EditCollectionForm({
             </Link>
           </div>
         </div>
-        <AuthMessage error={state.error} />
+        <AdminAlert message={state.error} />
         {visibleIssues.length > 0 ? (
           <AdminIssueInlineWarning issues={visibleIssues} onIssueActivate={activateIssue} />
         ) : null}

@@ -12,10 +12,10 @@ import { AdminErrorState } from "@/components/admin/shared/admin-error-state";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import {
+  AdminAlert,
   AdminCollapsiblePanel,
   AdminHelp,
   AdminHrefField,
@@ -815,7 +815,7 @@ export function PageEditor({
         </AdminListWorkspace.Header>
 
         <AdminListWorkspace.Body className="grid gap-5">
-        <AuthMessage error={state.error} />
+        <AdminAlert message={state.error} />
 
         {isHomePage ? (
           <>

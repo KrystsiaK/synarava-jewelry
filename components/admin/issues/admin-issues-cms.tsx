@@ -10,7 +10,7 @@ import {
 } from "@/app/admin/issues/actions";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
+import { AdminAlert } from "@/components/synarava-cms";
 
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en", {
@@ -156,7 +156,7 @@ export function AdminIssuesCms({ issues }: { issues: AdminIssueSummary[] }) {
         </button>
       </div>
 
-      <AuthMessage error={state.error} />
+      <AdminAlert message={state.error} />
 
       <div className="grid gap-2">
         {issues.length > 0 ? (

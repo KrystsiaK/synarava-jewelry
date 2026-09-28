@@ -7,9 +7,9 @@ import {
   updateAdminCredentialsAction,
   type AccountActionState,
 } from "@/app/admin/account/actions";
-import { AdminHelp } from "@/components/admin/shared/admin-help";
+import { AdminAlert, AdminHelp } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage, PasswordInput } from "@/components/auth/auth-form-primitives";
+import { PasswordInput } from "@/components/auth/auth-form-primitives";
 import { useTranslations } from "@/lib/i18n/context";
 
 const initialState: AccountActionState = {};
@@ -47,7 +47,7 @@ export function AdminCredentialsForm({ currentEmail }: { currentEmail: string })
         <h2 className="adm-title-sm">{t("auth.adminCredentials.title")}</h2>
       </div>
 
-      <AuthMessage error={state.error} />
+      <AdminAlert message={state.error} />
 
       <label className="grid gap-2">
         <span className="adm-label">{t("auth.adminCredentials.emailLogin")}</span>

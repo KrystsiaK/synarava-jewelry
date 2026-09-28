@@ -9,8 +9,8 @@ import {
   type RefObject,
 } from "react";
 
-import { cn } from "@/lib/ui";
 import { Tooltip } from "@/components/ui/tooltip";
+import { AdminAlert } from "@/components/admin/shared/admin-alert";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 
 export type AdminFieldErrors<FieldName extends string = string> = Partial<Record<FieldName, string>>;
@@ -172,17 +172,7 @@ export function AdminFieldWarning({ id, message }: { id?: string; message?: stri
   );
 }
 
+/** @deprecated Use `AdminAlert` from `@/components/synarava-cms`. */
 export function AdminFormAlert({ message, className }: { message?: string; className?: string }) {
-  if (!message) return null;
-  return (
-    <div data-component="AdminFormAlert"
-      role="alert"
-      className={cn(
-        "rounded-[12px] border border-[var(--adm-danger)] bg-[var(--adm-danger-soft)] px-adm-inset py-adm-band-y text-sm leading-5 text-[var(--adm-danger)] shadow-[var(--adm-shadow)]",
-        className,
-      )}
-    >
-      {message}
-    </div>
-  );
+  return <AdminAlert message={message} className={className} />;
 }

@@ -74,6 +74,12 @@ export {
 export { AdminHelp } from "@/components/admin/shared/admin-help";
 
 export {
+  AdminAlert,
+  type AdminAlertProps,
+  type AdminAlertTone,
+} from "@/components/admin/shared/admin-alert";
+
+export {
   AdminFieldError,
   AdminFieldWarning,
   AdminFormAlert,

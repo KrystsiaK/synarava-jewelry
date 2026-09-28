@@ -24,7 +24,6 @@ import {
 } from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { CatalogConflictStatus, CatalogConflictRowBadges } from "@/components/admin/products/catalog-conflict-signals";
 import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
@@ -36,6 +35,7 @@ import {
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionRowAction } from "@/components/admin/collections/collection-types";
 import {
+  AdminAlert,
   AdminEntityList,
   AdminHelp,
   AdminIconButton,
@@ -202,7 +202,7 @@ export function CollectionsCms({
           }
         />
         <AdminListWorkspace.Body>
-        <AuthMessage error={rowState.error} />
+        <AdminAlert message={rowState.error} />
 
         <AdminEntityList.Root>
           <AdminEntityList.Header

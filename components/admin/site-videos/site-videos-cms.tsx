@@ -3,9 +3,9 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
+  AdminAlert,
   AdminHelp,
   AdminPanelBody,
   AdminPanelHeader,
@@ -115,7 +115,7 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
       </AdminPanelHeader>
 
       <AdminPanelBody className="adm-inset-x grid gap-6 pb-6 pt-2">
-        <AuthMessage error={state.error} />
+        <AdminAlert message={state.error} />
 
         <form ref={formRef} action={submit} className="grid gap-0">
           {VIDEO_FIELDS.map(({ slot, label, description }, index) => (

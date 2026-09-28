@@ -32,12 +32,12 @@ import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerc
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
 import { collectionSelectOptionLabel } from "@/lib/admin/collection-select-options";
 import {
+  AdminAlert,
   AdminEntityList,
   AdminIconButton,
   AdminListWorkspace,
@@ -487,7 +487,7 @@ export function ProductsCms({
         </AdminListWorkspace.Header>
 
         <AdminListWorkspace.Body>
-        <AuthMessage error={rowActionState.error ?? listError ?? undefined} />
+        <AdminAlert message={rowActionState.error ?? listError ?? undefined} />
 
         {selectedCollection ? (
           <div

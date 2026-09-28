@@ -11,10 +11,9 @@ import {
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminHrefField, AdminListWorkspace, AdminLongTextField, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminHrefField, AdminListWorkspace, AdminLongTextField, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 
 const SOURCE_LOCALE = "en";
 const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", label: "Português" }];
@@ -88,7 +87,7 @@ export function CreatePageForm({
         </AdminListWorkspace.Header>
 
         <AdminListWorkspace.Body className="grid gap-5">
-      <AuthMessage error={state.error} />
+      <AdminAlert message={state.error} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div hidden={activeLocale !== SOURCE_LOCALE}>

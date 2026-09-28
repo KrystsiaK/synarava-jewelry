@@ -21,13 +21,13 @@ import {
 } from "@/app/admin/actions/sync";
 import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import { AdminFormAlert, useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
+import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminPanel } from "@/components/synarava-cms";
+import { AdminAlert, AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
@@ -614,7 +614,7 @@ export function EditProductForm({
           </div>
 
           <ProgressBar pending={isPending} />
-          <AdminFormAlert message={state.fieldErrors ? undefined : state.error} />
+          <AdminAlert message={state.fieldErrors ? undefined : state.error} />
 
           <AdminPanel.Root
             data-component="ProductLocaleWorkspace"

@@ -5,8 +5,7 @@ import { useState, useTransition } from "react";
 
 import { saveSiteSeoAction, type SiteSeoActionState } from "@/app/admin/actions/site-seo";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
 import {
   SITE_SEO_DEFAULTS,
   SITE_SEO_FIELD_DEFS,
@@ -71,7 +70,7 @@ export function SiteSeoEditor({
       </section>
 
       <form action={formAction} className="grid gap-8">
-        <AuthMessage error={state.error} />
+        <AdminAlert message={state.error} />
         <section className="adm-panel grid gap-4 p-5 md:p-6">
           <div>
             <p className="adm-section-tag">Site-wide defaults</p>

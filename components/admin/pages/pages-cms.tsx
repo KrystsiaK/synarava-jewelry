@@ -19,10 +19,10 @@ import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { PageDeleteButton } from "@/components/admin/pages/page-delete-button";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
 import { isProtectedPage, pageActionCopy, pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import type { PageRowAction } from "@/components/admin/pages/page-types";
 import {
+  AdminAlert,
   AdminEntityList,
   AdminHelp,
   AdminIconButton,
@@ -84,7 +84,7 @@ export function PagesCms({ pages: initialPages }: { pages: SavedPagePayload[] })
           }
         />
         <AdminListWorkspace.Body>
-        <AuthMessage error={rowState.error} />
+        <AdminAlert message={rowState.error} />
         <AdminEntityList.Root>
           <AdminEntityList.Header
             gridClassName={PAGE_GRID}

@@ -13,8 +13,7 @@ import {
   type AdminLocaleStatus,
   type AdminLocaleTab,
 } from "@/components/admin/shared/admin-locale-workspace";
-import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
 import { COMMERCE_COPY_GROUPS } from "@/lib/content/commerce-copy-fields";
 import type { LocaleCopy } from "@/lib/content/commerce-copy-fields";
 
@@ -51,7 +50,7 @@ export function CommerceCopyEditor({
         locales={locales}
         ptStatus={status}
       />
-      <AuthMessage error={state.error} />
+      <AdminAlert message={state.error} />
       <nav className="flex flex-wrap gap-2 text-xs" aria-label="Jump to section">
         {COMMERCE_COPY_GROUPS.map((group) => (
           <a
