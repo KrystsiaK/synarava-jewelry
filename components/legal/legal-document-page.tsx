@@ -40,7 +40,6 @@ export function LegalDocumentPage({
 }) {
   return (
     <main className="artifact-shell min-h-screen pb-20 md:pb-32">
-      <LegalSectionScroll />
       <header className={cn("relative overflow-hidden border-b border-stroke", heroImage ? "flex min-h-[68svh] items-end py-12 pt-24 md:min-h-[76svh] md:py-16 md:pt-28" : "pt-24 md:pt-28")}>
         <PageHeroImage src={heroImage} />
         <div className="site-shell relative z-10 w-full pb-10 md:pb-14">
@@ -59,18 +58,7 @@ export function LegalDocumentPage({
       </header>
 
       <div className="site-shell mt-10 grid gap-12 md:mt-14 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="hidden lg:block">
-          <div className="sticky top-28 space-y-1">
-            <p className="label-caps mb-4 text-muted">{contentsLabel}</p>
-            <nav className="flex flex-col gap-2">
-              {sections.map((s) => (
-                <a key={s.id} href={`#${s.id}`} className="label-mono text-muted transition-colors hover:text-foreground">
-                  {s.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-        </aside>
+        <LegalSectionScroll contentsLabel={contentsLabel} sections={sections} />
 
         <article className="space-y-12 md:space-y-14">
           {sections.map((s, index) => (
