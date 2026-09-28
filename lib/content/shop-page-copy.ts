@@ -81,10 +81,14 @@ export type ResolvedShopStorefrontCopy = {
 };
 
 export function shopPageCopyFromRecord(
-  source: Partial<Record<string, string | undefined>> | null | undefined,
+  source: object | null | undefined,
 ): Record<ShopPageCopyKey, string> {
+  const record = (source ?? null) as Partial<Record<string, unknown>> | null;
   return Object.fromEntries(
-    SHOP_PAGE_COPY_KEYS.map((key) => [key, String(source?.[key] ?? "").trim()]),
+    SHOP_PAGE_COPY_KEYS.map((key) => {
+      const value = record?.[key];
+      return [key, typeof value === "string" ? value.trim() : ""];
+    }),
   ) as Record<ShopPageCopyKey, string>;
 }
 
