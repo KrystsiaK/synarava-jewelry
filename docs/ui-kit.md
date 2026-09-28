@@ -26,14 +26,20 @@ These tokens live in CSS variables and should remain the only source of truth:
   - `--color-border-subtle`
   - `--color-border-soft`
 - type
-  - `--font-sans`
-  - `--font-serif`
+  - `--font-sans` — Hanken Grotesk variable (`latin`, `latin-ext`, `cyrillic-ext`), `display: swap`
+  - `--font-serif` — Playfair Display variable normal+italic (`latin`, `latin-ext`, `cyrillic`), `display: swap`
   - `--font-mono`
   - `--font-size-label-caps`
   - `--font-size-label-mono`
   - `--tracking-label-caps`
   - `--tracking-label-mono`
   - `--tracking-brand`
+
+Root layout (`app/layout.tsx`) owns `next/font` loading. Prefer the variable
+files over static weight lists so LCP does not pull one file per weight×style.
+Hanken has no basic `cyrillic` subset on Google Fonts — only `cyrillic-ext` —
+so Russian body copy may still fall back for some glyphs; Playfair covers
+display Cyrillic.
 - layout
   - `--spacing-page-x-mobile`
   - `--spacing-page-x-desktop`

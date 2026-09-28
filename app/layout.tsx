@@ -30,32 +30,28 @@ import { getSiteSeo } from "@/lib/content/site-seo";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
+import { buildOrganizationJsonLd } from "@/lib/seo/organization-json-ld";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
 import "./globals.css";
 
+// Variable files + explicit subsets: RU/IE need cyrillic & latin-ext; static
+// weight lists used to pull 8 Playfair files (4 weights × normal/italic).
+// https://nextjs.org/docs/app/api-reference/components/font
 const sans = Hanken_Grotesk({
   variable: "--font-hanken",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext", "cyrillic-ext"],
+  display: "swap",
 });
 
 const serif = Playfair_Display({
   variable: "--font-playfair",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  display: "swap",
   style: ["normal", "italic"],
 });
 
 const siteUrl = getPublicSiteUrl();
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Synarava",
-  url: siteUrl,
-  description:
-    "Handcrafted couture jewelry rooted in folk symbolism and contemporary design.",
-  sameAs: [],
-};
 
 const TWITTER_DESCRIPTION_FALLBACK =
   "Selected, useful, and thoughtfully made goods for everyday life and creativity.";
@@ -162,6 +158,7 @@ export default async function RootLayout({
     filterLiveHeaderNav(headerNavRaw),
     filterLiveFooterLinks(footerLinksRaw),
   ]);
+  const organizationJsonLd = buildOrganizationJsonLd(footerLinks.socials.items);
 
   return (
     <html
