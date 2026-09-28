@@ -14,7 +14,7 @@ export function OwnershipLabel({
 }) {
   return (
     <span data-component="OwnershipLabel" className="adm-label flex min-h-6 items-center justify-between gap-2">
-      <span className="inline-flex min-w-0 items-center gap-1.5">
+      <span className="inline-flex min-w-0 items-center gap-[0.2rem]">
         <span>{children}</span>
         {help}
       </span>

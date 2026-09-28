@@ -3336,7 +3336,8 @@ select.adm-field option {
 .adm-label-row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  /* Tight to the kicker. The mark is cap-sized, so a wide gap reads as a hole. */
+  gap: 0.2rem;
 }
 
 .adm-help {
@@ -3356,58 +3357,57 @@ select.adm-field option {
 }
 
 .adm-help__trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* Same band as FieldLabel / OwnershipLabel min-h-6, so help cannot drop the input. */
-  width: 1.5rem;
-  height: 1.5rem;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  /* Label metrics so 1cap matches .adm-label. The box stays under min-h-6. */
+  font-family: var(--font-sans), sans-serif;
+  font-size: var(--adm-label-size, 0.72rem);
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+  width: 1cap;
+  height: 1cap;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: transparent;
   color: var(--adm-info);
   cursor: help;
   flex: 0 0 auto;
-  line-height: 1;
+  /*
+   * The upright i already sits high in its em. Nudge it down onto the cap center.
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/cap
+   */
+  transform: translateY(0.03em);
   transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1), color 160ms cubic-bezier(0.23, 1, 0.32, 1), transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* Label metrics only — 1cap must match .adm-label, not the serif glyph. */
+/* Hit target only — does not widen the gap beside the word. */
+.adm-help__trigger::before {
+  content: "";
+  position: absolute;
+  inset: -0.4rem;
+}
+
 .adm-help__mark {
-  position: relative;
-  display: block;
-  width: 1em;
-  height: 1em;
-  font-family: var(--font-sans), sans-serif;
-  font-size: var(--adm-label-size, 0.72rem);
-  font-weight: 700;
-  font-style: normal;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: none;
-  /*
-   * Cap center is above the em center by half the descender space.
-   * https://developer.mozilla.org/en-US/docs/Web/CSS/cap
-   */
-  transform: translateY(calc(-0.5 * (1em - 1cap)));
+  display: contents;
 }
 
 .adm-help__glyph {
-  position: absolute;
-  top: 50%;
-  left: 50%;
   font-family: var(--font-playfair, "Iowan Old Style"), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
-  font-style: italic;
-  font-weight: 600;
-  font-size: 1.125rem;
+  font-style: normal;
+  font-weight: 700;
+  /* Parent cap is the kicker. Em matches that cap; the upright i reads smaller, the stroke stays heavy. */
+  font-size: 1cap;
   font-optical-sizing: auto;
   letter-spacing: 0;
   line-height: 1;
-  transform: translate(-50%, -50%);
+  text-transform: none;
 }
 
 .adm-help__trigger:active {
-  transform: scale(0.97);
+  transform: translateY(0.03em) scale(0.97);
 }
 
 .adm-help__trigger:hover,
@@ -5424,7 +5424,6 @@ html[data-theme="light"] .adm-locale-tab:hover:not([data-active="true"]) {
   .adm-btn-secondary:active,
   .adm-btn-danger:active,
   .adm-icon-btn:active,
-  .adm-help__trigger:active,
   .adm-locale-tab:active,
   .adm-check__input:active,
   .adm-collapse__toggle:active,
@@ -5432,6 +5431,10 @@ html[data-theme="light"] .adm-locale-tab:hover:not([data-active="true"]) {
   .adm-sort-chip:active,
   [data-component="AdminSignalChip"] :is(button, a):active {
     transform: none;
+  }
+
+  .adm-help__trigger:active {
+    transform: translateY(0.03em);
   }
 }
 
