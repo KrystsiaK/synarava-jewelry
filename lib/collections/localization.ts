@@ -16,6 +16,8 @@ export type CollectionTranslationRecord = {
   name: string;
   description?: string | null;
   manifesto?: string | null;
+  storyTitle?: string | null;
+  storyBody?: string | null;
   symbolismLabel?: string | null;
   symbolismTitle?: string | null;
   symbolismBody?: string | null;
@@ -33,6 +35,8 @@ export type LocalizableCollection = {
   name: string;
   description: string | null;
   manifesto: string | null;
+  storyTitle?: string | null;
+  storyBody?: string | null;
   symbolismLabel: string | null;
   symbolismTitle: string | null;
   symbolismBody: string | null;
@@ -47,6 +51,8 @@ export type CollectionLocalizedCopy = {
   name: string;
   description: string;
   manifesto: string;
+  storyTitle: string;
+  storyBody: string;
   symbolismLabel: string;
   symbolismTitle: string;
   symbolismBody: string;
@@ -61,6 +67,8 @@ function sourceCopy(collection: LocalizableCollection): CollectionLocalizedCopy 
     name: collection.name,
     description: collection.description ?? "",
     manifesto: collection.manifesto ?? "",
+    storyTitle: collection.storyTitle ?? "",
+    storyBody: collection.storyBody ?? "",
     symbolismLabel: collection.symbolismLabel ?? "",
     symbolismTitle: collection.symbolismTitle ?? "",
     symbolismBody: collection.symbolismBody ?? "",
@@ -76,6 +84,8 @@ function translatedCopy(translation: CollectionTranslationRecord): CollectionLoc
     name: translation.name,
     description: translation.description ?? "",
     manifesto: translation.manifesto ?? "",
+    storyTitle: translation.storyTitle ?? "",
+    storyBody: translation.storyBody ?? "",
     symbolismLabel: translation.symbolismLabel ?? "",
     symbolismTitle: translation.symbolismTitle ?? "",
     symbolismBody: translation.symbolismBody ?? "",

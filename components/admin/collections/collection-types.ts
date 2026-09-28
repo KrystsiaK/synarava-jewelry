@@ -9,6 +9,8 @@ export type CollectionLocaleDraft = {
   description: string;
   manifesto: string;
   searchSummary: string;
+  storyTitle: string;
+  storyBody: string;
   symbolismLabel: string;
   symbolismTitle: string;
   symbolismBody: string;
@@ -26,6 +28,8 @@ export type CollectionDraft = {
   description: string;
   manifesto: string;
   searchSummary: string;
+  storyTitle: string;
+  storyBody: string;
   symbolismLabel: string;
   symbolismTitle: string;
   symbolismBody: string;

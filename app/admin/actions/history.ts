@@ -127,6 +127,8 @@ export async function restoreAdminRecordVersionAction(input: {
           subtitle: snapshotNullableString(snapshot, "subtitle"),
           description: snapshotNullableString(snapshot, "description"),
           manifesto: snapshotNullableString(snapshot, "manifesto"),
+          storyTitle: snapshotNullableString(snapshot, "storyTitle"),
+          storyBody: snapshotNullableString(snapshot, "storyBody"),
           searchSummary: snapshotNullableString(snapshot, "searchSummary"),
           symbolismLabel: snapshotNullableString(snapshot, "symbolismLabel"),
           symbolismTitle: snapshotNullableString(snapshot, "symbolismTitle"),

@@ -85,6 +85,8 @@ export const COLLECTION_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "subtitle", label: "Subtitle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "subtitle") },
     { key: "description", label: "Description", mode: "localized", required: "when-published", kind: "long-text", shopifyTarget: native("COLLECTION", "body_html") },
     { key: "manifesto", label: "Manifesto", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "manifesto") },
+    { key: "storyTitle", label: "Story heading", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "story_title") },
+    { key: "storyBody", label: "Story paragraph", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "story_body") },
     { key: "symbolismLabel", label: "Symbolism — eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_label") },
     { key: "symbolismTitle", label: "Symbolism — title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_title") },
     { key: "symbolismBody", label: "Symbolism — body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_body") },

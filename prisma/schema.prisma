@@ -54,6 +54,10 @@ model Collection {
   subtitle              String?
   description           String?
   manifesto             String?
+  /// First story-block heading. Empty storefront falls back to the English default.
+  storyTitle            String?
+  /// Paragraph under the story heading. Never copied from the header summary.
+  storyBody             String?
   symbolismLabel        String?
   symbolismTitle        String?
   symbolismBody         String?
@@ -99,6 +103,8 @@ model CollectionTranslation {
   subtitle        String?
   description     String?
   manifesto       String?
+  storyTitle      String?
+  storyBody       String?
   symbolismLabel  String?
   symbolismTitle  String?
   symbolismBody   String?

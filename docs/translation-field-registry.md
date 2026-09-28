@@ -45,6 +45,8 @@ future case that needs it, but nothing constructs one right now.
 | subtitle | localized | optional | metaobject `collection_section_copy.subtitle` |
 | description | localized | when-published | native `COLLECTION.body_html` |
 | manifesto | localized | optional | metaobject `collection_section_copy.manifesto` |
+| storyTitle | localized | optional | metaobject `collection_section_copy.story_title` |
+| storyBody | localized | optional | metaobject `collection_section_copy.story_body` |
 | symbolismLabel/Title/Body/Body2 | localized | optional | metaobject `collection_section_copy.symbolism_*` |
 | searchSummary | localized | optional | metaobject `collection_section_copy.search_summary` |
 | seoTitle/seoDescription | localized | when-published | native `COLLECTION.meta_title`/`meta_description` |

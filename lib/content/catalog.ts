@@ -606,6 +606,8 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
     heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
     accent: collection.code ?? "",
     manifesto: copy.manifesto,
+    storyTitle: copy.storyTitle,
+    storyBody: copy.storyBody,
     symbolismLabel: copy.symbolismLabel,
     symbolismTitle: copy.symbolismTitle,
     symbolismBody: copy.symbolismBody,

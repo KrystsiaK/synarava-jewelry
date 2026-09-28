@@ -3,6 +3,7 @@ import type { AdminCollection, CollectionDraft, CollectionLocaleDraft, Collectio
 function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
   return {
     localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
+    storyTitle: "", storyBody: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
     reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
   };
@@ -12,7 +13,7 @@ function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
 export function emptyCollectionDraft(translationLocales: string[] = ["pt"]): CollectionDraft {
   return {
     name: "", subtitle: "", slug: "", code: "", description: "",
-    manifesto: "", searchSummary: "", symbolismLabel: "", symbolismTitle: "",
+    manifesto: "", searchSummary: "", storyTitle: "", storyBody: "", symbolismLabel: "", symbolismTitle: "",
     symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT",
     translations: Object.fromEntries(translationLocales.map((locale) => [locale, emptyCollectionLocaleDraft()])),
   };
@@ -114,6 +115,8 @@ export function collectionToDraft(collection: AdminCollection, translationLocale
     description: collection.description ?? "",
     manifesto: collection.manifesto ?? "",
     searchSummary: collection.searchSummary ?? "",
+    storyTitle: collection.storyTitle ?? "",
+    storyBody: collection.storyBody ?? "",
     symbolismLabel: collection.symbolismLabel ?? "",
     symbolismTitle: collection.symbolismTitle ?? "",
     symbolismBody: collection.symbolismBody ?? "",
@@ -128,6 +131,8 @@ export function collectionToDraft(collection: AdminCollection, translationLocale
         description: row?.description ?? "",
         manifesto: row?.manifesto ?? "",
         searchSummary: row?.searchSummary ?? "",
+        storyTitle: row?.storyTitle ?? "",
+        storyBody: row?.storyBody ?? "",
         symbolismLabel: row?.symbolismLabel ?? "",
         symbolismTitle: row?.symbolismTitle ?? "",
         symbolismBody: row?.symbolismBody ?? "",

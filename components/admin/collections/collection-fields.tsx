@@ -13,6 +13,7 @@ import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import { fieldClass } from "@/components/admin/collections/collection-helpers";
 import type { CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
+import { DEFAULT_COLLECTION_STORY_TITLE } from "@/lib/collections/story-copy";
 import {
   AdminCheckboxControl,
   AdminHelp,
@@ -28,6 +29,7 @@ const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", lab
 
 const EMPTY_TRANSLATION: CollectionLocaleDraft = {
   localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
+  storyTitle: "", storyBody: "",
   symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
   reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
 };
@@ -114,6 +116,7 @@ export function WorkflowStateField({
 function HiddenLocaleFields({ draft, translationLocales }: { draft: CollectionDraft; translationLocales: AdminTranslationLocale[] }) {
   const keys: Array<keyof CollectionLocaleDraft & keyof CollectionDraft> = [
     "name", "subtitle", "description", "manifesto", "searchSummary",
+    "storyTitle", "storyBody",
     "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
   ];
   return (
@@ -402,6 +405,36 @@ export function CollectionFields({
         placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}
       />
 
+      <div
+        className="grid gap-4 pt-4"
+        style={{ borderTop: "1px solid var(--adm-border)" }}
+      >
+        <div>
+          <p className="adm-label-row">
+            <span className="adm-section-tag">[ STORY BLOCK ]</span>
+            <AdminHelp>
+              First text block beside the collection image. The heading and paragraph are edited here and are not copied from the header summary.
+              {isEn ? "" : ` Optional — leave blank to show the English text to ${activeLabel} visitors.`}
+            </AdminHelp>
+          </p>
+        </div>
+        <AdminTextField
+          label="Story heading"
+          owner="Synarava"
+          value={isEn ? draft.storyTitle : active!.storyTitle}
+          onChange={(e) => (isEn ? onChange("storyTitle", e.target.value) : updateActiveTranslation("storyTitle", e.target.value))}
+          placeholder={isEn ? DEFAULT_COLLECTION_STORY_TITLE : "Optional — shows the English heading until filled in."}
+        />
+        <AdminLongTextField
+          label="Story paragraph"
+          owner="Synarava"
+          value={isEn ? draft.storyBody : active!.storyBody}
+          onChange={(value) => (isEn ? onChange("storyBody", value) : updateActiveTranslation("storyBody", value))}
+          rows={4}
+          placeholder={isEn ? "Paragraph under the story heading. Leave empty to hide it." : "Optional — shows the English paragraph until filled in."}
+        />
+      </div>
+
       {/* Default symbolism — shared layout, value switches with the locale tab */}
       <div
         className="grid gap-4 pt-4"
@@ -411,6 +444,7 @@ export function CollectionFields({
           <p className="adm-label-row">
             <span className="adm-section-tag">[ DEFAULT PRODUCT SYMBOLISM ]</span>
             <AdminHelp>
+              Second text block on the collection page: eyebrow, title, and the two paragraphs.
               Products in this collection inherit these values when their own symbolism override is empty.
               {isEn ? "" : ` Optional — leave blank to show the English text to ${activeLabel} visitors.`}
             </AdminHelp>

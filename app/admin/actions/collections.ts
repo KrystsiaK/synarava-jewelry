@@ -50,6 +50,8 @@ export type SavedCollectionTranslationPayload = {
   subtitle: string | null;
   description: string | null;
   manifesto: string | null;
+  storyTitle: string | null;
+  storyBody: string | null;
   symbolismLabel: string | null;
   symbolismTitle: string | null;
   symbolismBody: string | null;
@@ -70,6 +72,8 @@ export type SavedCollectionPayload = {
   subtitle: string | null;
   description: string | null;
   manifesto: string | null;
+  storyTitle: string | null;
+  storyBody: string | null;
   searchSummary: string | null;
   symbolismLabel: string | null;
   symbolismTitle: string | null;
@@ -94,6 +98,8 @@ const savedCollectionSelect = {
   subtitle: true,
   description: true,
   manifesto: true,
+  storyTitle: true,
+  storyBody: true,
   searchSummary: true,
   symbolismLabel: true,
   symbolismTitle: true,
@@ -108,6 +114,7 @@ const savedCollectionSelect = {
   translations: {
     select: {
       id: true, locale: true, name: true, localizedHandle: true, subtitle: true, description: true, manifesto: true,
+      storyTitle: true, storyBody: true,
       symbolismLabel: true, symbolismTitle: true, symbolismBody: true, symbolismBody2: true,
       searchSummary: true, reviewStatus: true, syncStatus: true, syncError: true,
     },
@@ -161,6 +168,8 @@ const collectionFieldsSchema = z.object({
   subtitle: z.string().trim().default(""),
   description: z.string().trim().default(""),
   manifesto: z.string().trim().default(""),
+  storyTitle: z.string().trim().default(""),
+  storyBody: z.string().trim().default(""),
   searchSummary: z.string().trim().default(""),
   symbolismLabel: z.string().trim().default(""),
   symbolismTitle: z.string().trim().default(""),
@@ -173,6 +182,7 @@ const collectionFieldsSchema = z.object({
 
 const TRANSLATABLE_COLLECTION_FIELDS = [
   "name", "subtitle", "description", "manifesto", "searchSummary",
+  "storyTitle", "storyBody",
   "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
 ] as const;
 
@@ -199,7 +209,7 @@ export async function saveCollectionAction(
     return { error: "Please fix the required fields and try again." };
   }
   const {
-    collectionId, code, name, subtitle, description, manifesto, searchSummary,
+    collectionId, code, name, subtitle, description, manifesto, storyTitle, storyBody, searchSummary,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2, workflowState,
   } = parsed.data;
   const translationLocales = await getAdminTranslationLocales();
@@ -274,6 +284,8 @@ export async function saveCollectionAction(
     subtitle: subtitle || null,
     description: description || null,
     manifesto: manifesto || null,
+    storyTitle: storyTitle || null,
+    storyBody: storyBody || null,
     searchSummary: searchSummary || null,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,
@@ -318,6 +330,8 @@ export async function saveCollectionAction(
       subtitle: fields.subtitle || null,
       description: fields.description || null,
       manifesto: fields.manifesto || null,
+      storyTitle: fields.storyTitle || null,
+      storyBody: fields.storyBody || null,
       searchSummary: fields.searchSummary || null,
       symbolismLabel: fields.symbolismLabel || null,
       symbolismTitle: fields.symbolismTitle || null,
@@ -337,6 +351,7 @@ export async function saveCollectionAction(
       where: { collectionId_locale: { collectionId: savedCollection.id, locale: "en" } },
       update: {
         name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
+        storyTitle: storyTitle || null, storyBody: storyBody || null,
         symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
         symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
         searchSummary: searchSummary || null,
@@ -345,6 +360,7 @@ export async function saveCollectionAction(
       create: {
         collectionId: savedCollection.id, locale: "en",
         name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
+        storyTitle: storyTitle || null, storyBody: storyBody || null,
         symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
         symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
         searchSummary: searchSummary || null,
@@ -490,7 +506,7 @@ export async function autosaveCollectionDraftAction(
     return {};
   }
   const {
-    collectionId, code, description, manifesto, searchSummary,
+    collectionId, code, description, manifesto, storyTitle, storyBody, searchSummary,
     symbolismLabel, symbolismTitle, symbolismBody, symbolismBody2,
   } = parsed.data;
   const slug = slugify(parsed.data.slug) || createDraftToken("draft-collection");
@@ -506,6 +522,8 @@ export async function autosaveCollectionDraftAction(
     subtitle: subtitle || null,
     description: description || null,
     manifesto: manifesto || null,
+    storyTitle: storyTitle || null,
+    storyBody: storyBody || null,
     searchSummary: searchSummary || null,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,

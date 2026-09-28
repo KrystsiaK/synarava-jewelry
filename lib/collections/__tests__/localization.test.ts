@@ -44,6 +44,27 @@ describe("collection localization", () => {
     expect(resolved.name).toBe("Rituais da Terra");
     expect(resolved.description).toBe("Peças fundamentadas.");
     expect(resolved.manifesto).toBe("We work with what the earth gives us.");
+    expect(resolved.storyBody).toBe("");
+    expect(resolved.storyBody).not.toBe(resolved.description);
+  });
+
+  it("keeps the story paragraph independent of the header summary", () => {
+    const resolved = resolveCollectionCopy(collection({
+      description: "Header summary",
+      storyTitle: "A private heading",
+      storyBody: "A paragraph written for the story block.",
+      translations: [{
+        locale: "pt",
+        name: "Rituais da Terra",
+        description: "Resumo do cabeçalho",
+        storyTitle: null,
+        storyBody: null,
+      }],
+    }), "pt");
+
+    expect(resolved.description).toBe("Resumo do cabeçalho");
+    expect(resolved.storyTitle).toBe("A private heading");
+    expect(resolved.storyBody).toBe("A paragraph written for the story block.");
   });
 
   it("reports missing Portuguese publish fields and review state", () => {
@@ -73,7 +94,7 @@ describe("collection localization", () => {
   });
 
   it("lets an already-public legacy collection save while translations are completed", () => {
-    const empty = { name: "", description: "", manifesto: "", symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "", searchSummary: "", seoTitle: "", seoDescription: "" };
+    const empty = { name: "", description: "", manifesto: "", storyTitle: "", storyBody: "", symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "", searchSummary: "", seoTitle: "", seoDescription: "" };
     expect(validateCollectionPublication({
       isAlreadyPublic: true,
       english: empty,

@@ -17,6 +17,7 @@ import {
   CollectionProductsCatalog,
   type CollectionProductsCatalogProps,
 } from "@/components/collections/collection-products-catalog";
+import { DEFAULT_COLLECTION_STORY_TITLE } from "@/lib/collections/story-copy";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -35,6 +36,8 @@ function labelOr(value: string | undefined, fallback: string) {
 
 type CollectionDetail = CollectionSummary & {
   manifesto: string;
+  storyTitle: string;
+  storyBody: string;
   symbolismLabel: string;
   symbolismTitle: string;
   symbolismBody: string;
@@ -307,13 +310,15 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
               </div>
               <DisplayHeading
                 as="h2"
-                text="A world with a clear visual logic"
+                text={collection.storyTitle.trim() || DEFAULT_COLLECTION_STORY_TITLE}
                 className="max-w-[10.5ch] text-balance leading-[0.93] tracking-[-0.02em]"
                 style={{ fontSize: "clamp(2.45rem,4.4vw,4.45rem)" }}
               />
-              <p className="mt-7 max-w-xl text-base leading-[1.85] text-foreground/68 md:text-[1.04rem]">
-                {collection.summary}
-              </p>
+              {collection.storyBody.trim() ? (
+                <p className="mt-7 max-w-xl text-base leading-[1.85] text-foreground/68 md:text-[1.04rem]">
+                  {collection.storyBody}
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-7 border-t border-foreground/14 pt-6 lg:mt-9 lg:pt-8">

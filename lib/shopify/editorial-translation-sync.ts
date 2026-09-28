@@ -292,6 +292,8 @@ export async function syncCollectionEditorialTranslation(
   const source = {
     subtitle: en?.subtitle ?? collection.subtitle,
     manifesto: en?.manifesto ?? collection.manifesto,
+    storyTitle: en?.storyTitle ?? collection.storyTitle,
+    storyBody: en?.storyBody ?? collection.storyBody,
     symbolismLabel: en?.symbolismLabel ?? collection.symbolismLabel,
     symbolismTitle: en?.symbolismTitle ?? collection.symbolismTitle,
     symbolismBody: en?.symbolismBody ?? collection.symbolismBody,
@@ -301,6 +303,8 @@ export async function syncCollectionEditorialTranslation(
   const translated = {
     subtitle: translation.subtitle,
     manifesto: translation.manifesto,
+    storyTitle: translation.storyTitle,
+    storyBody: translation.storyBody,
     symbolismLabel: translation.symbolismLabel,
     symbolismTitle: translation.symbolismTitle,
     symbolismBody: translation.symbolismBody,

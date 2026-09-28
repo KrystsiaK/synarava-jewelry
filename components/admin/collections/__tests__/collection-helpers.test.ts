@@ -47,6 +47,7 @@ describe("emptyCollectionDraft", () => {
   it("gives the PT locale draft blank fields and NOT_APPLICABLE sync status", () => {
     expect(emptyCollectionDraft(["pt"]).translations.pt).toEqual({
       localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
+      storyTitle: "", storyBody: "",
       symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
       reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
     });
