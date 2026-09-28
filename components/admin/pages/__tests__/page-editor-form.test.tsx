@@ -132,7 +132,8 @@ describe("PageEditor", () => {
     expect(root).not.toBeNull();
     expect(header).toHaveAttribute("data-sticky", "true");
     expect(header).toHaveClass("adm-panel__header--ruled");
-    expect(header?.querySelector(".adm-btn-primary")).toHaveTextContent("Save page");
+    expect(screen.getByRole("button", { name: "Save page" })).toBeInTheDocument();
+    expect(header?.querySelector('[data-component="AdminIconButton"]')).not.toBeNull();
     expect(header?.querySelector(".adm-locale-workspace-header--embedded")).not.toBeNull();
   });
 

@@ -14,11 +14,14 @@ import { useAdminFormValidation } from "@/components/admin/shared/admin-form-val
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { pageStatusLabel } from "@/components/admin/pages/page-helpers";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
+import { HardDriveUpload, RefreshCw } from "lucide-react";
+
 import {
   AdminAlert,
   AdminCollapsiblePanel,
   AdminHelp,
   AdminHrefField,
+  AdminIconButton,
   AdminListWorkspace,
   AdminLongTextField,
   AdminOrderedList,
@@ -806,14 +809,22 @@ export function PageEditor({
           title={page.title}
           meta={`/${page.slug}`}
           actions={
-            <button
-              type="button"
-              className="adm-btn-primary"
+            <AdminIconButton
+              label={isPending ? "Saving page" : "Save page"}
+              tooltip={
+                isPending
+                  ? "Saving page…"
+                  : "Save page copy and publishing state. Published pages may update the site immediately."
+              }
               disabled={isPending}
               onClick={requestSave}
             >
-              {isPending ? "Saving..." : "Save page"}
-            </button>
+              {isPending ? (
+                <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+              )}
+            </AdminIconButton>
           }
         >
           <AdminLocaleTabs
@@ -1187,17 +1198,6 @@ export function PageEditor({
           <option value="DRAFT">Draft - hidden</option>
           <option value="PUBLISHED">Published - visible</option>
         </AdminSelectField>
-
-        <div className="flex justify-end pt-4" style={{ borderTop: "1px solid var(--adm-border)" }}>
-          <button
-            type="button"
-            className="adm-btn-primary"
-            disabled={isPending}
-            onClick={requestSave}
-          >
-            {isPending ? "Saving..." : "Save page"}
-          </button>
-        </div>
         </AdminListWorkspace.Body>
       </AdminListWorkspace.Root>
 

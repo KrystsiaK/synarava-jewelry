@@ -239,12 +239,12 @@ function CollectionRow({
       )}
       description={collection.summary}
       action={(
-        <div className="flex items-center gap-4">
-          <span className="label-caps border-b border-foreground/20 pb-1.5 transition-colors duration-300 group-hover:border-couture-red group-hover:text-couture-red">
+        <div className="flex items-center gap-4 text-couture-red">
+          <span className="label-caps border-b border-couture-red pb-1.5">
             {cardCtaLabel}
           </span>
           <svg
-            className="h-4 w-4 text-couture-red transition-transform duration-300 group-hover:translate-x-2"
+            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-2"
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"

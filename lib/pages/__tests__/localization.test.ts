@@ -12,6 +12,7 @@ describe("page localization", () => {
   it("overlays locale-specific Collections callout fields", () => {
     expect(resolvePageLocalizedCopy({
       locale: "pt",
+      pageSlug: "collections",
       source: {
         title: "Collections",
         excerpt: "",
@@ -51,6 +52,48 @@ describe("page localization", () => {
       ctaLabel: "Ver todos os produtos",
       detailShopLabel: "Ver produtos",
       secondaryBody: "Explorar coleção",
+    });
+  });
+
+  it("clears untranslated Collections card CTA so the locale dictionary can fill it", () => {
+    expect(resolvePageLocalizedCopy({
+      locale: "ru",
+      pageSlug: "collections",
+      source: {
+        title: "Collections",
+        excerpt: "",
+        content: {
+          secondaryBody: "Explore collection",
+          heroOpeningLabel: "Opening world",
+          detailShopLabel: "Shop products",
+        },
+      },
+      translation: {
+        title: "Коллекции",
+        content: {},
+      },
+    }).content).toMatchObject({
+      secondaryBody: "",
+      heroOpeningLabel: "",
+      detailShopLabel: "",
+    });
+  });
+
+  it("keeps English secondaryBody on Home when the locale leaves it empty", () => {
+    expect(resolvePageLocalizedCopy({
+      locale: "pt",
+      pageSlug: "home",
+      source: {
+        title: "Home",
+        excerpt: "",
+        content: { secondaryBody: "English follow-up." },
+      },
+      translation: {
+        title: "Início",
+        content: {},
+      },
+    }).content).toMatchObject({
+      secondaryBody: "English follow-up.",
     });
   });
 

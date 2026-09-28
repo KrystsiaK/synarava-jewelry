@@ -192,11 +192,35 @@ export function ownedLocalizedPageFields({
 
 const CATALOG_HEADING_KEYS = ["detailCatalogEyebrow", "detailCatalogHeading"] as const;
 
+/** Collections index/detail labels that fall back to `messages/*.json`, not English admin copy. */
+const COLLECTIONS_DICTIONARY_FALLBACK_KEYS = [
+  // /collections card CTA under each description (admin: Collection card link label)
+  "secondaryBody",
+  "heroOpeningLabel",
+  "heroCountLabel",
+  "heroQualifier",
+  "detailShopLabel",
+  "detailCollectionsLabel",
+  "detailTeaserEyebrow",
+  "detailTeaserHeading",
+  "detailTeaserShopLabel",
+  ...CATALOG_HEADING_KEYS,
+] as const;
+
 function blankUntranslatedCatalogHeading(
   content: Record<string, unknown>,
   translation: PageTranslationContent,
 ) {
   for (const key of CATALOG_HEADING_KEYS) {
+    if (!hasContent(translation[key])) content[key] = "";
+  }
+}
+
+function blankUntranslatedCollectionsCopy(
+  content: Record<string, unknown>,
+  translation: PageTranslationContent,
+) {
+  for (const key of COLLECTIONS_DICTIONARY_FALLBACK_KEYS) {
     if (!hasContent(translation[key])) content[key] = "";
   }
 }
@@ -225,11 +249,14 @@ export function resolvePageLocalizedCopy({
   source,
   translation,
   legacyTranslation,
+  pageSlug,
 }: {
   locale: Locale;
   source: PageSource;
   translation?: PageTranslationRow | null;
   legacyTranslation?: Record<string, unknown> | null;
+  /** When `collections`, empty locale labels clear English so the storefront dictionary can fill them. */
+  pageSlug?: string;
 }) {
   const sourceContent = source.content ?? {};
   if (locale === "en") {
@@ -249,8 +276,13 @@ export function resolvePageLocalizedCopy({
   }
   // Shop section labels fall back to the active locale's dictionary, not English admin copy.
   blankUntranslatedShopPageCopy(content, translatedContent);
-  // Collection catalog heading does the same: an empty locale uses messages, not the English admin string.
+  // Collection catalog heading does the same on every page slug (keys are collections-only).
   blankUntranslatedCatalogHeading(content, translatedContent);
+  // Collections index/detail chrome: blank only for the collections page so
+  // shared keys like secondaryBody still inherit English on Home/About/Shop.
+  if (pageSlug === "collections") {
+    blankUntranslatedCollectionsCopy(content, translatedContent);
+  }
 
   return {
     title: hasContent(selected?.title) ? selected!.title : source.title,

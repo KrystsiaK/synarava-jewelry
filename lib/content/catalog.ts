@@ -849,6 +849,7 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
     source,
     translation: normalizedTranslation,
     legacyTranslation,
+    pageSlug: page.slug,
   });
   const owned = ownedLocalizedPageFields({
     locale,

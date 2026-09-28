@@ -31,7 +31,7 @@ const meta = {
       "Geometric folk codes, white ceramic, linen rhythm, and sculptural forms rooted in Belarusian symbolic language.",
     action: (
       <div className="flex items-center gap-4">
-        <span className="label-caps border-b border-foreground/20 pb-1.5 transition-colors duration-300 group-hover:border-couture-red group-hover:text-couture-red">
+        <span className="label-caps border-b border-couture-red pb-1.5 text-couture-red">
           Explore collection
         </span>
         <svg

@@ -51,9 +51,13 @@ its models were removed once Shopify covered the same ground.
   - the Collections index (`collections`) uses Title/Excerpt/Hero for SEO and media, plus editable
     page-header copy, an ordered collection allowlist (same AdminOrderedList pattern as Home
     Featured collections; a saved selection renders only those collections in that order, and an
-    empty selection keeps every published collection in catalog order), a bottom callout
-    (eyebrow, heading, button label/href), the card link under each description, and the
-    collection-detail buttons under the description — independently per locale
+    empty selection keeps every published collection in catalog order), a shared collection-card
+    CTA label (per locale; each card keeps its own href), a bottom callout
+    (eyebrow, heading, button label/href), and the
+    collection-detail buttons under the description — independently per locale.
+    Empty locale values for dictionary-backed labels (card CTA, hero chrome, detail buttons,
+    catalog heading) do not inherit English admin copy — the storefront uses that locale’s
+    `messages` defaults instead.
   - Collection detail (`/collections/[slug]`) reuses the shop catalog client for products:
     server-filtered pages, infinite scroll, and Featured sort = admin collection product order
   - Material lexicon structure (specimen count, order, images) is shared; locale rows only

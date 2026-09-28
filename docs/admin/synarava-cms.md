@@ -431,6 +431,8 @@ import {
 - Applied on products, pages, and collections list screens.
 - Page edit / create editors use the same `AdminListWorkspace` shell (sticky title +
   Save, full-width ruled edge, embedded locale tabs in the header).
+- Page **Save** matches products/collections: `AdminIconButton` + `HardDriveUpload`
+  (icon + tooltip), not a primary text button. Confirm stays in `AdminConfirmModal`.
 
 Products list loads via `listAdminProductsPage` + `GET /admin/api/products` (cursor, filters, sort including problems/conflicts). Do not load the full catalog into the client for browsing.
 

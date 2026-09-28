@@ -104,88 +104,94 @@ export function CollectionsPageEditorSections({
       </AdminCollapsiblePanel>
 
       <AdminCollapsiblePanel title="02 / Collections on this page" defaultOpen>
-        <AdminOrderedList
-          label="Collections"
-          help={
-            <AdminHelp>
-              Collections shown on /collections, in this order. Add any number, reorder
-              with the arrows, or remove a row to hide that collection from the page
-              without deleting it. Leave every row empty to show all published collections
-              in catalog order.
-            </AdminHelp>
-          }
-          items={archiveCollectionIds}
-          onChange={setArchiveCollectionIds}
-          getKey={(_, index) => `collections-index-${index}`}
-          minItems={0}
-          createItem={() => ""}
-          addLabel="Add collection"
-          renderItem={(collectionId, { index }) => (
-            <AdminSelectField
-              label={`Collection ${index + 1}`}
-              name="archiveCollectionIds"
-              value={collectionId}
-              onChange={(event) =>
-                setArchiveCollectionIds((current) =>
-                  current.map((id, slot) => (slot === index ? event.target.value : id)),
-                )
-              }
-            >
-              <option value="">Select a collection</option>
-              {collectionOptions.map((collection) => (
-                <option
-                  key={collection.id}
-                  value={collection.id}
-                  disabled={collection.id !== collectionId && archiveCollectionIds.includes(collection.id)}
-                >
-                  {collection.title} · /{collection.slug}
-                </option>
-              ))}
-            </AdminSelectField>
-          )}
-        />
-      </AdminCollapsiblePanel>
-
-      <AdminCollapsiblePanel title="03 / Bottom callout" defaultOpen>
         <div className="grid gap-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <AdminTextField
-              label="Callout eyebrow"
-              value={draft.calloutEyebrow}
-              onChange={(event) => updateField("calloutEyebrow", event.target.value)}
-              placeholder="Not sure where to start?"
-            />
-            <AdminTextField
-              label="Callout heading"
-              value={draft.calloutHeading}
-              onChange={(event) => updateField("calloutHeading", event.target.value)}
-              placeholder="Browse everything in the shop"
-            />
-            <AdminTextField
-              label="Button label"
-              value={draft.ctaLabel}
-              onChange={(event) => updateField("ctaLabel", event.target.value)}
-              placeholder="Shop all products"
-            />
-            <AdminHrefField
-              label="Button href"
-              help={
-                <AdminHelp>
-                  Locale-specific path without the language prefix (for example /shop). Empty falls back to /shop.
-                </AdminHelp>
-              }
-              name="_uiCalloutCtaHref"
-              value={draft.calloutCtaHref}
-              onValueChange={(href) => updateField("calloutCtaHref", href)}
-              placeholder="/shop"
-            />
-          </div>
+          <AdminOrderedList
+            label="Collections"
+            help={
+              <AdminHelp>
+                Collections shown on /collections, in this order. Add any number, reorder
+                with the arrows, or remove a row to hide that collection from the page
+                without deleting it. Leave every row empty to show all published collections
+                in catalog order.
+              </AdminHelp>
+            }
+            items={archiveCollectionIds}
+            onChange={setArchiveCollectionIds}
+            getKey={(_, index) => `collections-index-${index}`}
+            minItems={0}
+            createItem={() => ""}
+            addLabel="Add collection"
+            renderItem={(collectionId, { index }) => (
+              <AdminSelectField
+                label={`Collection ${index + 1}`}
+                name="archiveCollectionIds"
+                value={collectionId}
+                onChange={(event) =>
+                  setArchiveCollectionIds((current) =>
+                    current.map((id, slot) => (slot === index ? event.target.value : id)),
+                  )
+                }
+              >
+                <option value="">Select a collection</option>
+                {collectionOptions.map((collection) => (
+                  <option
+                    key={collection.id}
+                    value={collection.id}
+                    disabled={collection.id !== collectionId && archiveCollectionIds.includes(collection.id)}
+                  >
+                    {collection.title} · /{collection.slug}
+                  </option>
+                ))}
+              </AdminSelectField>
+            )}
+          />
           <AdminTextField
             label="Collection card link label"
-            help={<AdminHelp>Link under each collection description on /collections (default: Explore collection).</AdminHelp>}
+            help={
+              <AdminHelp>
+                Shared label on every collection card CTA on /collections (default: Explore
+                collection). Each card keeps its own link; only the text is shared. Translate
+                per language tab — empty uses that language’s storefront default.
+              </AdminHelp>
+            }
             value={draft.secondaryBody}
             onChange={(event) => updateField("secondaryBody", event.target.value)}
             placeholder="Explore collection"
+          />
+        </div>
+      </AdminCollapsiblePanel>
+
+      <AdminCollapsiblePanel title="03 / Bottom callout" defaultOpen>
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminTextField
+            label="Callout eyebrow"
+            value={draft.calloutEyebrow}
+            onChange={(event) => updateField("calloutEyebrow", event.target.value)}
+            placeholder="Not sure where to start?"
+          />
+          <AdminTextField
+            label="Callout heading"
+            value={draft.calloutHeading}
+            onChange={(event) => updateField("calloutHeading", event.target.value)}
+            placeholder="Browse everything in the shop"
+          />
+          <AdminTextField
+            label="Button label"
+            value={draft.ctaLabel}
+            onChange={(event) => updateField("ctaLabel", event.target.value)}
+            placeholder="Shop all products"
+          />
+          <AdminHrefField
+            label="Button href"
+            help={
+              <AdminHelp>
+                Locale-specific path without the language prefix (for example /shop). Empty falls back to /shop.
+              </AdminHelp>
+            }
+            name="_uiCalloutCtaHref"
+            value={draft.calloutCtaHref}
+            onValueChange={(href) => updateField("calloutCtaHref", href)}
+            placeholder="/shop"
           />
         </div>
       </AdminCollapsiblePanel>
