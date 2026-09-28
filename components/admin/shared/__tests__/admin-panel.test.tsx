@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { AdminPanel } from "@/components/synarava-cms";
@@ -28,5 +28,20 @@ describe("AdminPanel", () => {
     expect(header).toHaveClass("adm-band");
     expect(header).toHaveClass("adm-band--sticky-radius");
     expect(screen.getByText("Body content")).toBeInTheDocument();
+  });
+
+  it("does not reserve a product workspace gap when nothing sticky sits above the panel", async () => {
+    render(
+      <AdminPanel.Root>
+        <AdminPanel.Header sticky stickyBand="locale">
+          Locale band
+        </AdminPanel.Header>
+      </AdminPanel.Root>,
+    );
+
+    const root = screen.getByText("Locale band").closest(".adm-panel");
+    await waitFor(() => {
+      expect(root).toHaveStyle({ "--adm-product-workspace-sticky-height": "0px" });
+    });
   });
 });

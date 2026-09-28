@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
 
 import { cn } from "@/lib/ui";
 
@@ -32,6 +32,50 @@ export type AdminPanelRootProps = {
  * Sticky headers use the synarava-cms band rhythm (`.adm-band`) and, when
  * sticky, `.adm-band--sticky-radius` so optical pad-y survives `top − radius`.
  */
+/**
+ * Embedded section tabs stick with the product offset
+ * (workspace header + locale band). A panel that has no workspace header
+ * above it must publish `0px` for that header, or the tabs freeze too low
+ * and the first field shows in the gap.
+ */
+function usePanelStickyBands(rootRef: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    function sync() {
+      const node = rootRef.current;
+      if (!node) return;
+      const workspace = node.parentElement?.querySelector(
+        ":scope > .adm-editor-workspace-header, :scope > .adm-product-workspace-header",
+      );
+      if (!workspace) {
+        node.style.setProperty("--adm-product-workspace-sticky-height", "0px");
+      }
+      const locale = node.querySelector<HTMLElement>('[data-sticky-band="locale"]');
+      const localeHeight = locale ? Math.ceil(locale.getBoundingClientRect().height) : 0;
+      if (localeHeight > 0) {
+        node.style.setProperty("--adm-locale-workspace-sticky-height", `${localeHeight}px`);
+      }
+      const tabs = node.querySelector<HTMLElement>(".adm-product-section-tabs");
+      const tabsHeight = tabs ? Math.ceil(tabs.getBoundingClientRect().height) : 0;
+      if (tabsHeight > 0) {
+        node.style.setProperty("--adm-product-section-tabs-sticky-height", `${tabsHeight}px`);
+      }
+    }
+
+    sync();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(sync);
+    observer.observe(root);
+    const locale = root.querySelector('[data-sticky-band="locale"]');
+    if (locale) observer.observe(locale);
+    const tabs = root.querySelector(".adm-product-section-tabs");
+    if (tabs) observer.observe(tabs);
+    return () => observer.disconnect();
+  }, [rootRef]);
+}
+
 export function AdminPanelRoot({
   children,
   className,
@@ -42,8 +86,12 @@ export function AdminPanelRoot({
   "data-component": dataComponent = "AdminPanel",
   "data-locale": dataLocale,
 }: AdminPanelRootProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  usePanelStickyBands(rootRef);
+
   return (
     <div
+      ref={rootRef}
       id={id}
       data-component={dataComponent}
       data-locale={dataLocale}

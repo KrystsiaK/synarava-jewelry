@@ -350,6 +350,8 @@ Product editor uses this via `ProductEditorTabs` (always grouped). Story: `synar
 
 Locale editors (product, Shared) share one shell. `AdminPanel.Header` with `adm-panel__header--ruled` holds `AdminLocaleTabs` `embedded`. `AdminPanel.Body` holds `AdminSectionTabs` `embedded`. Field inset is `adm-inset-x`. Standalone `AdminSectionTabs` (its own border and top radius) is only for a tab strip that *is* the card. Nested inside a locale frame it climbs out of the 3px border.
 
+Embedded section tabs stick under the locale band. The product offset includes a workspace header (`--adm-product-workspace-sticky-height`, fallback `5.5rem`). `AdminPanel` sets that variable to `0px` when no workspace header sits above the panel, and measures the locale band, so the first field does not show in a gap above the tabs.
+
 Switching a product section settles the title, intro copy, and section mark on a critically damped spring (no overshoot, about 0.4s). Copy and the mark shift a few pixels from the direction of the tab; the form body only fades, so fields do not slide. `prefers-reduced-motion` keeps a short opacity cross-fade and skips the shift.
 
 ### Entity list (tables)
