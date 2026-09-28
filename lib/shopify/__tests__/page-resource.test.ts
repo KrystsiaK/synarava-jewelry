@@ -34,4 +34,29 @@ describe("Shopify page resource", () => {
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[0]).toContain("pageUpdate");
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[1]).toMatchObject({ id: "gid://shopify/Page/1" });
   });
+
+  it("includes SEO title and description on create when provided", async () => {
+    mocks.shopifyAdminRequest.mockResolvedValue({
+      pageCreate: { page: { id: "gid://shopify/Page/2", handle: "care" }, userErrors: [] },
+    });
+
+    await upsertShopifyPage({
+      title: "Care",
+      body: "<p>Care</p>",
+      handle: "care",
+      isPublished: true,
+      seoTitle: "Care guide SEO",
+      seoDescription: "How to care for Synarava pieces.",
+    });
+
+    expect(mocks.shopifyAdminRequest.mock.calls[0]?.[1]).toMatchObject({
+      page: {
+        title: "Care",
+        seo: {
+          title: "Care guide SEO",
+          description: "How to care for Synarava pieces.",
+        },
+      },
+    });
+  });
 });

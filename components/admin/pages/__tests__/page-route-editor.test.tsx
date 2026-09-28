@@ -31,6 +31,8 @@ function makePage(overrides: Partial<SavedPagePayload> = {}): SavedPagePayload {
     slug: "home",
     title: "Home",
     excerpt: null,
+    seoTitle: null,
+    seoDescription: null,
     content: {},
     status: "PUBLISHED",
     visibility: "PUBLIC",

@@ -1,6 +1,8 @@
 type PageMetadataSource = {
   title?: string | null;
   excerpt?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
 } | null | undefined;
 
 function nonEmpty(value: string | null | undefined) {
@@ -19,7 +21,7 @@ export function localizedPageMetadataCopy({
   fallbackDescription: string;
 }) {
   return {
-    title: nonEmpty(page?.title) ?? fallbackTitle,
-    description: nonEmpty(page?.excerpt) ?? fallbackDescription,
+    title: nonEmpty(page?.seoTitle) ?? nonEmpty(page?.title) ?? fallbackTitle,
+    description: nonEmpty(page?.seoDescription) ?? nonEmpty(page?.excerpt) ?? fallbackDescription,
   };
 }

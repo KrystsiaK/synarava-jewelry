@@ -43,6 +43,8 @@ export type SavedPagePayload = {
   slug: string;
   title: string;
   excerpt: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
   content: unknown;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PRIVATE" | "UNLISTED" | "PUBLIC";
@@ -70,6 +72,8 @@ const savedPageSelect = {
   slug: true,
   title: true,
   excerpt: true,
+  seoTitle: true,
+  seoDescription: true,
   content: true,
   status: true,
   visibility: true,
@@ -172,6 +176,8 @@ function readPageTranslationFields(formData: FormData, locale: string) {
     title: readLocaleField(formData, locale, "title"),
     handle: readLocaleField(formData, locale, "handle"),
     excerpt: readLocaleField(formData, locale, "excerpt"),
+    seoTitle: readLocaleField(formData, locale, "seoTitle"),
+    seoDescription: readLocaleField(formData, locale, "seoDescription"),
     materials: readMaterialTextEntries(formData, locale),
   };
 }
@@ -256,6 +262,8 @@ const pageContentFieldsSchema = z.object({
   slug: z.string().trim().default(""),
   title: z.string().trim().default(""),
   excerpt: z.string().trim().default(""),
+  seoTitle: z.string().trim().default(""),
+  seoDescription: z.string().trim().default(""),
   eyebrow: z.string().trim().default(""),
   body: z.string().trim().default(""),
   ctaLabel: z.string().trim().default(""),
@@ -330,7 +338,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     return { error: "Page slug and title are required." };
   }
   const {
-    pageId, workflowState, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
+    pageId, workflowState, title, excerpt, seoTitle, seoDescription, eyebrow, body, ctaLabel, ctaHref, quote,
     secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionViewAllLabel,
@@ -473,6 +481,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     slug,
     title,
     excerpt,
+    seoTitle: seoTitle || null,
+    seoDescription: seoDescription || null,
     content: {
       eyebrow,
       body,
@@ -537,6 +547,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
         pt: {
           title: ptTranslation?.fields.title ?? "",
           excerpt: ptTranslation?.fields.excerpt ?? "",
+          seoTitle: ptTranslation?.fields.seoTitle ?? "",
+          seoDescription: ptTranslation?.fields.seoDescription ?? "",
           ctaHref,
           finalCtaHref,
           finalContactEmail,
@@ -577,7 +589,14 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
 
   const translationUpserts = translationsData.map(({ code, fields, localizedHandle, content }) => {
     const contentHash = createHash("sha256")
-      .update(JSON.stringify({ title: fields.title, localizedHandle, excerpt: fields.excerpt, ...content }))
+      .update(JSON.stringify({
+        title: fields.title,
+        localizedHandle,
+        excerpt: fields.excerpt,
+        seoTitle: fields.seoTitle,
+        seoDescription: fields.seoDescription,
+        ...content,
+      }))
       .digest("hex");
     return {
       code,
@@ -586,13 +605,25 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       upsert: db.pageTranslation.upsert({
         where: { pageId_locale: { pageId: page.id, locale: code } },
         update: {
-          title: fields.title || title, localizedHandle, excerpt: fields.excerpt || null, content,
+          title: fields.title || title,
+          localizedHandle,
+          excerpt: fields.excerpt || null,
+          seoTitle: fields.seoTitle || null,
+          seoDescription: fields.seoDescription || null,
+          content,
           contentHash,
           syncStatus: page.shopifyPageId ? "PENDING" as const : "NOT_APPLICABLE" as const,
         },
         create: {
-          pageId: page.id, locale: code, title: fields.title || title, localizedHandle, excerpt: fields.excerpt || null,
-          content, contentHash,
+          pageId: page.id,
+          locale: code,
+          title: fields.title || title,
+          localizedHandle,
+          excerpt: fields.excerpt || null,
+          seoTitle: fields.seoTitle || null,
+          seoDescription: fields.seoDescription || null,
+          content,
+          contentHash,
           syncStatus: page.shopifyPageId ? "PENDING" as const : "NOT_APPLICABLE" as const,
         },
       }),
@@ -602,12 +633,24 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "en" } },
       update: {
-        title, excerpt: excerpt || null, content: englishTranslationContent,
-        reviewStatus: "REVIEWED", reviewedAt: new Date(),
+        title,
+        excerpt: excerpt || null,
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        content: englishTranslationContent,
+        reviewStatus: "REVIEWED",
+        reviewedAt: new Date(),
       },
       create: {
-        pageId: page.id, locale: "en", title, excerpt: excerpt || null,
-        content: englishTranslationContent, reviewStatus: "REVIEWED", reviewedAt: new Date(),
+        pageId: page.id,
+        locale: "en",
+        title,
+        excerpt: excerpt || null,
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        content: englishTranslationContent,
+        reviewStatus: "REVIEWED",
+        reviewedAt: new Date(),
       },
     }),
     ...translationUpserts.map(({ upsert }) => upsert),
@@ -653,7 +696,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     return {};
   }
   const {
-    pageId, title, excerpt, eyebrow, body, ctaLabel, ctaHref, quote,
+    pageId, title, excerpt, seoTitle, seoDescription, eyebrow, body, ctaLabel, ctaHref, quote,
     secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionViewAllLabel,
@@ -734,6 +777,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     slug,
     title: title || "Untitled page",
     excerpt: excerpt || null,
+    seoTitle: seoTitle || null,
+    seoDescription: seoDescription || null,
     searchSummary: excerpt || title || "Untitled page",
     content: {
       eyebrow,
@@ -795,6 +840,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
         pt: {
           title: ptTranslation?.fields.title ?? "",
           excerpt: ptTranslation?.fields.excerpt ?? "",
+          seoTitle: ptTranslation?.fields.seoTitle ?? "",
+          seoDescription: ptTranslation?.fields.seoDescription ?? "",
           ctaHref,
           finalCtaHref,
           finalContactEmail,
@@ -840,13 +887,43 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   await Promise.all([
     db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: "en" } },
-      update: { title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
-      create: { pageId: page.id, locale: "en", title: pageData.title, excerpt: pageData.excerpt, content: englishTranslationContent },
+      update: {
+        title: pageData.title,
+        excerpt: pageData.excerpt,
+        seoTitle: pageData.seoTitle,
+        seoDescription: pageData.seoDescription,
+        content: englishTranslationContent,
+      },
+      create: {
+        pageId: page.id,
+        locale: "en",
+        title: pageData.title,
+        excerpt: pageData.excerpt,
+        seoTitle: pageData.seoTitle,
+        seoDescription: pageData.seoDescription,
+        content: englishTranslationContent,
+      },
     }),
     ...translationsData.map(({ code, fields, localizedHandle, content }) => db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: code } },
-      update: { title: fields.title || pageData.title, localizedHandle, excerpt: fields.excerpt || null, content },
-      create: { pageId: page.id, locale: code, title: fields.title || pageData.title, localizedHandle, excerpt: fields.excerpt || null, content },
+      update: {
+        title: fields.title || pageData.title,
+        localizedHandle,
+        excerpt: fields.excerpt || null,
+        seoTitle: fields.seoTitle || null,
+        seoDescription: fields.seoDescription || null,
+        content,
+      },
+      create: {
+        pageId: page.id,
+        locale: code,
+        title: fields.title || pageData.title,
+        localizedHandle,
+        excerpt: fields.excerpt || null,
+        seoTitle: fields.seoTitle || null,
+        seoDescription: fields.seoDescription || null,
+        content,
+      },
     })),
   ]);
 

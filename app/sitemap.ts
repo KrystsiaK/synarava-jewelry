@@ -1,7 +1,15 @@
 import type { MetadataRoute } from "next";
 import { listCollections, listShopProducts } from "@/lib/content/catalog";
+import { BUILT_IN_PAGE_DEFINITIONS, RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
+import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
+
+const BUILT_IN_SITEMAP_SLUGS = new Set<string>([
+  "home",
+  ...BUILT_IN_PAGE_DEFINITIONS.map((page) => page.slug),
+  ...RETIRED_PAGE_SLUGS,
+]);
 
 type RouteEntry = {
   path: string;
@@ -55,9 +63,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let dynamicEntries: RouteEntry[] = [];
 
   try {
-    const [collections, products] = await Promise.all([
+    const [collections, products, cmsPages] = await Promise.all([
       listCollections(),
       listShopProducts(),
+      db.page.findMany({
+        where: {
+          status: "PUBLISHED",
+          visibility: "PUBLIC",
+          slug: { notIn: [...BUILT_IN_SITEMAP_SLUGS] },
+        },
+        select: { slug: true, updatedAt: true },
+        orderBy: { slug: "asc" },
+      }),
     ]);
 
     dynamicEntries = [
@@ -72,6 +89,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: p.updatedAt,
         changeFrequency: "weekly" as const,
         priority: 0.9,
+      })),
+      ...cmsPages.map((page) => ({
+        path: `/${page.slug}`,
+        lastModified: page.updatedAt,
+        changeFrequency: "monthly" as const,
+        priority: 0.5,
       })),
     ];
   } catch {

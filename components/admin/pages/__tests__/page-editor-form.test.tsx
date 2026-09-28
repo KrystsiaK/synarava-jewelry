@@ -26,9 +26,14 @@ function makePage(overrides: Partial<SavedPagePayload> = {}): SavedPagePayload {
     slug: "journal",
     title: "Journal",
     excerpt: "A short excerpt.",
+    seoTitle: null,
+    seoDescription: null,
     content: { body: "Body copy." },
     status: "DRAFT",
     visibility: "PRIVATE",
+    shopifyPageId: null,
+    shopifyHandle: null,
+    translations: [],
     ...overrides,
   };
 }

@@ -117,6 +117,8 @@ export async function syncPageEditorialTranslation(pageId: string, locale: SyncT
     body: enContent.body ?? "",
     handle: page.shopifyHandle ?? page.slug,
     isPublished: page.status === "PUBLISHED" && page.visibility === "PUBLIC",
+    seoTitle: en?.seoTitle ?? page.seoTitle,
+    seoDescription: en?.seoDescription ?? page.seoDescription,
   });
   if (page.shopifyPageId !== shopifyPage.id || page.shopifyHandle !== shopifyPage.handle) {
     await db.page.update({

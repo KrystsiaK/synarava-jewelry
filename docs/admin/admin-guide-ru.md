@@ -525,8 +525,12 @@ This copy is not synced to Shopify.
 - Глобальные SEO-дефолты сайта: default title, title template, description,
   Open Graph title/description. Хранятся в `SiteSetting` (`site-seo-v1`),
   пустое поле возвращает shipped default.
-- SEO отдельных страниц — в редакторе **Pages**; SEO товаров — в **Catalog**
-  (синхрон с Shopify). Раздел не является редактором Shopify metafields.
+- SEO отдельных страниц — в редакторе **Pages** (поля **SEO title** /
+  **SEO description**; пустые значения падают на Title / Excerpt). SEO
+  коллекций и товаров — в **Collections** / **Catalog** и уходит в Shopify
+  `meta_title` / `meta_description`. На витрине collection/page metadata
+  читает эти SEO-поля с тем же fallback. Раздел Meta не является редактором
+  Shopify metafields.
 - Хаб-ссылки на Pages, Catalog и Localization помогают не искать SEO в
   неверном месте.
 

@@ -88,12 +88,16 @@ type PageTranslationRow = {
   title: string;
   localizedHandle?: string | null;
   excerpt?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
   content?: unknown;
 };
 
 type PageSource = {
   title: string;
   excerpt?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
   content?: Record<string, unknown> | null;
 };
 
@@ -260,7 +264,13 @@ export function resolvePageLocalizedCopy({
 }) {
   const sourceContent = source.content ?? {};
   if (locale === "en") {
-    return { title: source.title, excerpt: source.excerpt ?? "", content: overlayContent(sourceContent, {}) };
+    return {
+      title: source.title,
+      excerpt: source.excerpt ?? "",
+      seoTitle: source.seoTitle ?? "",
+      seoDescription: source.seoDescription ?? "",
+      content: overlayContent(sourceContent, {}),
+    };
   }
 
   const selected = selectedPageTranslation(translation, legacyTranslation);
@@ -287,6 +297,8 @@ export function resolvePageLocalizedCopy({
   return {
     title: hasContent(selected?.title) ? selected!.title : source.title,
     excerpt: hasContent(selected?.excerpt) ? selected!.excerpt! : source.excerpt ?? "",
+    seoTitle: hasContent(selected?.seoTitle) ? selected!.seoTitle! : source.seoTitle ?? "",
+    seoDescription: hasContent(selected?.seoDescription) ? selected!.seoDescription! : source.seoDescription ?? "",
     content,
   };
 }

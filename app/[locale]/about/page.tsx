@@ -5,23 +5,31 @@ import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { AboutPage } from "@/components/about/about-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const page = await getPageBySlug("about", locale);
   const content = page?.content ?? {};
+  const { title, description } = localizedPageMetadataCopy({
+    page,
+    fallbackTitle: "About",
+    fallbackDescription: "",
+  });
 
   return {
-    title: page?.title || "About",
-    description: page?.excerpt || undefined,
+    title,
+    description: description || undefined,
     alternates: await buildAlternates(locale, "/about"),
     openGraph: {
+      title,
+      description: description || undefined,
       url: localePath(locale, "/about"),
       images: [
         content.heroImage
-          ? { url: content.heroImage, width: 1200, height: 630, alt: page?.title || "About" }
-          : { url: "/og-default.jpg", width: 1200, height: 630, alt: page?.title || "About" },
+          ? { url: content.heroImage, width: 1200, height: 630, alt: title }
+          : { url: "/og-default.jpg", width: 1200, height: 630, alt: title },
       ],
     },
   };

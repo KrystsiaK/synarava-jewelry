@@ -5,6 +5,7 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { ArtifactLink } from "@/components/ui/artifact-button";
 import { DisplayHeading } from "@/components/ui/display-heading";
 import { PageHeroImage } from "@/components/ui/page-hero-image";
@@ -40,15 +41,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {};
   }
 
+  const { title, description } = localizedPageMetadataCopy({
+    page,
+    fallbackTitle: page.title,
+    fallbackDescription: page.excerpt || page.title,
+  });
+
   return {
-    title: page.title,
-    description: page.excerpt || page.title,
+    title,
+    description,
     alternates: await buildAlternates(locale, `/${page.slug}`, { en: `/${page.sourceSlug}`, pt: `/${page.slug}` }),
     openGraph: {
       url: localePath(locale, `/${slug}`),
-      title: page.title,
-      description: page.excerpt || page.title,
-      images: [{ url: page.content.heroImage ?? "/og-default.jpg", width: 1200, height: 630, alt: page.title }],
+      title,
+      description,
+      images: [{ url: page.content.heroImage ?? "/og-default.jpg", width: 1200, height: 630, alt: title }],
     },
   };
 }

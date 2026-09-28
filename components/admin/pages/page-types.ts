@@ -9,6 +9,8 @@ export type PageRowAction = {
 export type EditablePageCopy = {
   title?: string;
   excerpt?: string;
+  seoTitle?: string;
+  seoDescription?: string;
   eyebrow?: string;
   body?: string;
   ctaLabel?: string;

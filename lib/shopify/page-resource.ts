@@ -7,6 +7,8 @@ type ShopifyPageInput = {
   body: string;
   handle: string;
   isPublished: boolean;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
 };
 
 type UserError = { field?: string[] | null; message: string };
@@ -22,10 +24,31 @@ function assertPageResult(
   return payload.page;
 }
 
+function toShopifyPagePayload(page: ShopifyPageInput) {
+  const seoTitle = page.seoTitle?.trim();
+  const seoDescription = page.seoDescription?.trim();
+  return {
+    title: page.title,
+    body: page.body,
+    handle: page.handle,
+    isPublished: page.isPublished,
+    ...(seoTitle || seoDescription
+      ? {
+          seo: {
+            ...(seoTitle ? { title: seoTitle } : {}),
+            ...(seoDescription ? { description: seoDescription } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export async function upsertShopifyPage({
   resourceId,
   ...page
 }: ShopifyPageInput & { resourceId?: string | null }) {
+  const payload = toShopifyPagePayload(page);
+
   if (resourceId) {
     const result = await shopifyAdminRequest<{
       pageUpdate: { page: { id: string; handle: string } | null; userErrors: UserError[] };
@@ -36,7 +59,7 @@ export async function upsertShopifyPage({
           userErrors { field message }
         }
       }`,
-      { id: resourceId, page },
+      { id: resourceId, page: payload },
     );
     return assertPageResult("Unable to update Shopify page", result.pageUpdate);
   }
@@ -50,7 +73,7 @@ export async function upsertShopifyPage({
         userErrors { field message }
       }
     }`,
-    { page },
+    { page: payload },
   );
   return assertPageResult("Unable to create Shopify page", result.pageCreate);
 }

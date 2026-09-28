@@ -79,6 +79,8 @@ type PageLocaleDraft = {
   title: string;
   eyebrow: string;
   excerpt: string;
+  seoTitle: string;
+  seoDescription: string;
   body: string;
   ctaLabel: string;
   calloutEyebrow: string;
@@ -219,6 +221,8 @@ function draftFromCopy(
     title: copy.title ?? "",
     eyebrow: copy.eyebrow ?? "",
     excerpt: copy.excerpt ?? "",
+    seoTitle: copy.seoTitle ?? "",
+    seoDescription: copy.seoDescription ?? "",
     body: copy.body ?? "",
     ctaLabel: copy.ctaLabel ?? "",
     calloutEyebrow: copy.calloutEyebrow ?? "",
@@ -282,6 +286,8 @@ function HiddenLocaleFields({
           field("title", draft.title),
           field("eyebrow", draft.eyebrow),
           field("excerpt", draft.excerpt),
+          field("seoTitle", draft.seoTitle),
+          field("seoDescription", draft.seoDescription),
           field("body", draft.body),
           field("ctaLabel", draft.ctaLabel),
           field("calloutEyebrow", draft.calloutEyebrow),
@@ -364,7 +370,13 @@ export function PageEditor({
   function translationCopyFor(code: string): EditablePageCopy {
     const row = page.translations?.find((translation) => translation.locale === code);
     if (row) {
-      return { ...(row.content as EditablePageCopy ?? {}), title: row.title, excerpt: row.excerpt ?? "" };
+      return {
+        ...(row.content as EditablePageCopy ?? {}),
+        title: row.title,
+        excerpt: row.excerpt ?? "",
+        seoTitle: row.seoTitle ?? "",
+        seoDescription: row.seoDescription ?? "",
+      };
     }
     // The pre-PageTranslation-table content.translations.pt blob is a
     // Portuguese-only legacy fallback — no other locale ever had one.
@@ -411,7 +423,13 @@ export function PageEditor({
   const [activeLocale, selectLocale] = useAdminActiveLocale(`page:${page.slug}`, tabs);
   const [draftByLocale, setDraftByLocale] = useState<Record<string, PageLocaleDraft>>(() => {
     const english = draftFromCopy(
-      { ...content, title: page.title, excerpt: page.excerpt ?? "" },
+      {
+        ...content,
+        title: page.title,
+        excerpt: page.excerpt ?? "",
+        seoTitle: page.seoTitle ?? "",
+        seoDescription: page.seoDescription ?? "",
+      },
       undefined,
       {
         legalShipped: legalShippedByLocale[SOURCE_LOCALE],
@@ -840,11 +858,24 @@ export function PageEditor({
 
         {isHomePage ? (
           <>
+          <AdminTextField
+            label="SEO title"
+            help={<AdminHelp>Optional search-engine result title. Blank uses the page title.</AdminHelp>}
+            value={draft.seoTitle}
+            onChange={(event) => updateField("seoTitle", event.target.value)}
+          />
           <AdminLongTextField
             label="Search summary"
-            help={<AdminHelp>Search-engine result description (meta description). Not shown in the hero.</AdminHelp>}
+            help={<AdminHelp>Fallback search description when SEO description is blank. Not shown in the hero.</AdminHelp>}
             value={draft.excerpt}
             onChange={(value) => updateField("excerpt", value)}
+            rows={3}
+          />
+          <AdminLongTextField
+            label="SEO description"
+            help={<AdminHelp>Optional search-engine result description. Blank uses the search summary.</AdminHelp>}
+            value={draft.seoDescription}
+            onChange={(value) => updateField("seoDescription", value)}
             rows={3}
           />
             <HomePageEditorSections
@@ -934,19 +965,40 @@ export function PageEditor({
         ) : null}
 
         {!isHomePage ? (
+        <>
         <AdminLongTextField
           label="Excerpt"
           help={
             isTermsPage ? (
               <AdminHelp>Paragraph under the title on /terms-and-conditions. A value saved for this language replaces the default.</AdminHelp>
             ) : hideDeadCopyFields ? (
-              <AdminHelp>Search-engine result description (meta description). Not shown on the page itself.</AdminHelp>
+              <AdminHelp>Fallback search description when SEO description is blank. Not shown on the page itself.</AdminHelp>
             ) : undefined
           }
           value={draft.excerpt}
           onChange={(value) => updateField("excerpt", value)}
           rows={3}
         />
+        <AdminTextField
+          label="SEO title"
+          help={
+            titleIsMetaOnly ? (
+              <AdminHelp>Optional override for the search-engine result title. Blank uses Title above.</AdminHelp>
+            ) : (
+              <AdminHelp>Optional search-engine result title. Blank uses the page title.</AdminHelp>
+            )
+          }
+          value={draft.seoTitle}
+          onChange={(event) => updateField("seoTitle", event.target.value)}
+        />
+        <AdminLongTextField
+          label="SEO description"
+          help={<AdminHelp>Optional search-engine result description. Blank uses Excerpt.</AdminHelp>}
+          value={draft.seoDescription}
+          onChange={(value) => updateField("seoDescription", value)}
+          rows={3}
+        />
+        </>
         ) : null}
 
         {!isHomePage ? (

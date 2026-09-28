@@ -30,6 +30,19 @@ describe("localizedPageMetadataCopy", () => {
       fallbackDescription: "Explore as coleções.",
     })).toEqual({ title: "Coleções", description: "Explore as coleções." });
   });
+
+  it("prefers dedicated SEO fields over title and excerpt", () => {
+    expect(localizedPageMetadataCopy({
+      page: {
+        title: "H1 title",
+        excerpt: "On-page excerpt",
+        seoTitle: "SERP title",
+        seoDescription: "SERP description",
+      },
+      fallbackTitle: "Fallback",
+      fallbackDescription: "Fallback description",
+    })).toEqual({ title: "SERP title", description: "SERP description" });
+  });
 });
 
 describe("localized handle alternates", () => {

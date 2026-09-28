@@ -36,14 +36,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Collection" };
   }
 
+  const title = collection.seoTitle || collection.name;
+  const description = collection.seoDescription || collection.summary;
+
   return {
-    title: collection.name,
-    description: collection.summary,
+    title,
+    description,
     alternates: await buildAlternates(locale, `/collections/${collection.slug}`, {
       en: `/collections/${collection.sourceSlug}`,
       pt: `/collections/${collection.slug}`,
     }),
     openGraph: {
+      title,
+      description,
       url: localePath(locale, `/collections/${slug}`),
       images: [
         {

@@ -55,6 +55,8 @@ export type CollectionSummary = {
   name: string;
   eyebrow: string;
   summary: string;
+  seoTitle: string;
+  seoDescription: string;
   heroImage: string;
   accent: string;
   updatedAt: Date;
@@ -570,6 +572,8 @@ export async function listCollections(locale: Locale = "en") {
       name: copy.name,
       eyebrow: formatCollectionEyebrow(collection.sortOrder),
       summary: copy.description,
+      seoTitle: copy.seoTitle,
+      seoDescription: copy.seoDescription,
       heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
       accent: collection.code ?? "",
       updatedAt: collection.updatedAt,
@@ -603,6 +607,8 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
     name: copy.name,
     eyebrow: formatCollectionEyebrow(collection.sortOrder),
     summary: copy.description,
+    seoTitle: copy.seoTitle,
+    seoDescription: copy.seoDescription,
     heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
     accent: collection.code ?? "",
     manifesto: copy.manifesto,
@@ -842,7 +848,13 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
 
   const content = (page.content ?? {}) as PageContent;
   const normalizedTranslation = page.translations?.[0] ?? null;
-  const source = { title: page.title, excerpt: page.excerpt, content: content as Record<string, unknown> };
+  const source = {
+    title: page.title,
+    excerpt: page.excerpt,
+    seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription,
+    content: content as Record<string, unknown>,
+  };
   const legacyTranslation = (content.translations as Record<string, Record<string, unknown>> | undefined)?.[locale];
   const resolved = resolvePageLocalizedCopy({
     locale,
@@ -863,6 +875,8 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
     sourceSlug: page.slug,
     title: resolved.title,
     excerpt: resolved.excerpt,
+    seoTitle: resolved.seoTitle,
+    seoDescription: resolved.seoDescription,
     ownedEyebrow: owned.eyebrow,
     ownedExcerpt: owned.excerpt,
     content: resolved.content as PageContent,

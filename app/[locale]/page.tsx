@@ -10,23 +10,31 @@ import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { HomePage } from "@/components/home/home-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const page = await getPageBySlug("home", locale);
   const content = page?.content ?? {};
+  const { title, description } = localizedPageMetadataCopy({
+    page,
+    fallbackTitle: "Synarava — Curated Goods with Character",
+    fallbackDescription: "",
+  });
 
   return {
-    title: { absolute: page?.title || "Synarava — Curated Goods with Character" },
-    description: page?.excerpt || undefined,
+    title: { absolute: title },
+    description: description || undefined,
     alternates: await buildAlternates(locale, "/"),
     openGraph: {
+      title,
+      description: description || undefined,
       url: localePath(locale, "/"),
       images: [
         content.heroImage
-          ? { url: content.heroImage, width: 1200, height: 630, alt: page?.title || "Synarava" }
-          : { url: "/og-default.jpg", width: 1200, height: 630, alt: "Synarava — Curated Goods with Character" },
+          ? { url: content.heroImage, width: 1200, height: 630, alt: title }
+          : { url: "/og-default.jpg", width: 1200, height: 630, alt: title },
       ],
     },
   };

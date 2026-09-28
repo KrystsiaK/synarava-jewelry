@@ -33,6 +33,8 @@ const collections = [{
   name: "Automatic first collection",
   eyebrow: "Collection 01",
   summary: "A summary",
+  seoTitle: "",
+  seoDescription: "",
   heroImage: "/automatic-collection.jpg",
   accent: "AX",
   updatedAt: new Date("2026-01-01"),

@@ -334,6 +334,8 @@ the same transaction ID and no PII in analytics.
 - [ ] Build the weekly funnel/product/channel report.
 - [ ] Audit mobile product-to-checkout journey and top failure states.
 - [x] Complete Product JSON-LD and sitemap timestamp fixes.
+- [x] Wire collection/page SEO fields into storefront metadata and page Shopify upsert.
+- [x] Include published custom CMS pages in the dynamic sitemap.
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.
