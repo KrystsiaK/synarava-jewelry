@@ -584,6 +584,22 @@
       "nextLabel": "Termos e Condições →"
     }
   },
+  "collections": {
+    "index": {
+      "explore": "Explorar coleção",
+      "openingWorld": "Mundo de abertura",
+      "countLabel": "coleções",
+      "qualifier": "Material / forma / caráter"
+    },
+    "detail": {
+      "shopProducts": "Ver produtos",
+      "allCollections": "Todas as coleções",
+      "exploreMore": "Explorar mais",
+      "browseAll": "Ver todas as coleções",
+      "shopAll": "Ver todos os produtos",
+      "scroll": "Deslizar"
+    }
+  },
   "home": {
     "editShowcase": {
       "eyebrow": "Algumas peças para começar",

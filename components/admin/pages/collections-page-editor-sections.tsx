@@ -17,11 +17,19 @@ export type CollectionsPageDraftFields = {
   eyebrow: string;
   secondaryTitle: string;
   body: string;
+  heroOpeningLabel: string;
+  heroCountLabel: string;
+  heroQualifier: string;
   calloutEyebrow: string;
   calloutHeading: string;
   ctaLabel: string;
   calloutCtaHref: string;
   secondaryBody: string;
+  detailShopLabel: string;
+  detailCollectionsLabel: string;
+  detailTeaserEyebrow: string;
+  detailTeaserHeading: string;
+  detailTeaserShopLabel: string;
 };
 
 type Props = {
@@ -67,6 +75,29 @@ export function CollectionsPageEditorSections({
             onChange={(value) => updateField("body", value)}
             placeholder="Explore Synarava through collections shaped by material, form and character."
           />
+          <div className="grid gap-4 md:grid-cols-2">
+            <AdminTextField
+              label="Opening label"
+              help={<AdminHelp>Small line on the hero image (default: Opening world).</AdminHelp>}
+              value={draft.heroOpeningLabel}
+              onChange={(event) => updateField("heroOpeningLabel", event.target.value)}
+              placeholder="Opening world"
+            />
+            <AdminTextField
+              label="Count label"
+              help={<AdminHelp>Word after the collection count (default: collections).</AdminHelp>}
+              value={draft.heroCountLabel}
+              onChange={(event) => updateField("heroCountLabel", event.target.value)}
+              placeholder="collections"
+            />
+            <AdminTextField
+              label="Qualifier"
+              help={<AdminHelp>Second line under the introduction (default: Material / form / character).</AdminHelp>}
+              value={draft.heroQualifier}
+              onChange={(event) => updateField("heroQualifier", event.target.value)}
+              placeholder="Material / form / character"
+            />
+          </div>
         </div>
       </AdminCollapsiblePanel>
 
@@ -75,16 +106,16 @@ export function CollectionsPageEditorSections({
           label="Collections"
           help={
             <AdminHelp>
-              Sets the default display order on /collections. Every published collection
-              still appears — selected rows come first in this order, then any remaining
-              collections in catalog order. Reorder with the arrows. Leave empty to keep
-              catalog order for all.
+              Collections shown on /collections, in this order. Add any number, reorder
+              with the arrows, or remove a row to hide that collection from the page
+              without deleting it. Leave every row empty to show all published collections
+              in catalog order.
             </AdminHelp>
           }
           items={archiveCollectionIds}
           onChange={setArchiveCollectionIds}
           getKey={(_, index) => `collections-index-${index}`}
-          minItems={1}
+          minItems={0}
           createItem={() => ""}
           addLabel="Add collection"
           renderItem={(collectionId, { index }) => (
@@ -149,10 +180,49 @@ export function CollectionsPageEditorSections({
           </div>
           <AdminTextField
             label="Collection card link label"
-            help={<AdminHelp>Link text on each collection row (default: Explore collection).</AdminHelp>}
+            help={<AdminHelp>Link under each collection description on /collections (default: Explore collection).</AdminHelp>}
             value={draft.secondaryBody}
             onChange={(event) => updateField("secondaryBody", event.target.value)}
             placeholder="Explore collection"
+          />
+        </div>
+      </AdminCollapsiblePanel>
+
+      <AdminCollapsiblePanel title="04 / Collection page buttons" defaultOpen>
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminTextField
+            label="Shop button"
+            help={<AdminHelp>Button under the description on a collection page (default: Shop products).</AdminHelp>}
+            value={draft.detailShopLabel}
+            onChange={(event) => updateField("detailShopLabel", event.target.value)}
+            placeholder="Shop products"
+          />
+          <AdminTextField
+            label="All collections link"
+            help={<AdminHelp>Text link under the description, and again in the closing teaser (default: All collections).</AdminHelp>}
+            value={draft.detailCollectionsLabel}
+            onChange={(event) => updateField("detailCollectionsLabel", event.target.value)}
+            placeholder="All collections"
+          />
+          <AdminTextField
+            label="Teaser eyebrow"
+            help={<AdminHelp>Small label above the closing heading (default: Explore more).</AdminHelp>}
+            value={draft.detailTeaserEyebrow}
+            onChange={(event) => updateField("detailTeaserEyebrow", event.target.value)}
+            placeholder="Explore more"
+          />
+          <AdminTextField
+            label="Teaser heading"
+            value={draft.detailTeaserHeading}
+            onChange={(event) => updateField("detailTeaserHeading", event.target.value)}
+            placeholder="Browse all collections"
+          />
+          <AdminTextField
+            label="Teaser shop button"
+            help={<AdminHelp>Primary button in the closing teaser (default: Shop all products).</AdminHelp>}
+            value={draft.detailTeaserShopLabel}
+            onChange={(event) => updateField("detailTeaserShopLabel", event.target.value)}
+            placeholder="Shop all products"
           />
         </div>
       </AdminCollapsiblePanel>

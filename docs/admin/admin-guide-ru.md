@@ -351,13 +351,16 @@ legacy cover, пока не загружены изображения галер
   (например «Hero headline» вместо «Title», «About introduction» вместо
   «Body» и т.д.), хотя структура данных общая.
 - Страница `collections` сохраняет Title / Excerpt / Hero image (SEO и
-  медиа). Ниже — секции **Page header** (eyebrow, main heading, introduction),
-  **Collections on this page** (`AdminOrderedList` + select: задаёт порядок
-  на `/collections`; публикуются все опубликованные коллекции — выбранные
-  строки идут первыми в этом порядке, остальные дописываются в порядке
-  каталога), и **Bottom callout** (eyebrow, heading, button label/href,
-  подпись ссылки на карточке). Копирайт локализуется по EN / PT / RU;
-  список коллекций общий для языков.
+  медиа). Ниже — секции **Page header** (eyebrow, main heading, introduction,
+  opening label, count label, qualifier), **Collections on this page**
+  (`AdminOrderedList` + select: какие коллекции видны на `/collections` и в
+  каком порядке; выбранные строки — это весь список, снятие строки прячет
+  коллекцию со страницы и не удаляет запись; пустой список оставляет все
+  опубликованные коллекции в порядке каталога), **Bottom callout** (eyebrow,
+  heading, button label/href, подпись ссылки под описанием карточки) и
+  **Collection page buttons** (кнопки под описанием на странице коллекции и
+  в нижнем тизере). Копирайт локализуется по EN / PT / RU; список коллекций
+  общий для языков. Пустая подпись на витрине берёт словарь языка.
 - Страница коллекции `/collections/[slug]` показывает товары этой коллекции
   тем же каталогом, что и `/shop`: фильтры, сортировка (по умолчанию Featured
   = порядок товаров в админке коллекции) и ленивая подгрузка.

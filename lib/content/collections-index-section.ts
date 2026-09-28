@@ -1,7 +1,7 @@
 /**
- * Collections index (`/collections`): every published collection, ordered by
- * admin-selected IDs first (configured order), then any remaining collections
- * in catalog order. Empty admin selection keeps catalog order for all.
+ * Collections index (`/collections`): the admin list is an allowlist.
+ * A non-empty selection renders only those published collections, in that
+ * order. An empty selection is unconfigured and keeps catalog order for all.
  */
 
 export type CollectionsIndexCollection = {
@@ -18,8 +18,5 @@ export function resolveCollectionsIndexCollections<T extends CollectionsIndexCol
     .filter((collection): collection is T => Boolean(collection));
 
   if (uniqueSelected.length === 0) return collections;
-
-  const selectedIdSet = new Set(uniqueSelected.map((collection) => collection.id));
-  const remainder = collections.filter((collection) => !selectedIdSet.has(collection.id));
-  return [...uniqueSelected, ...remainder];
+  return uniqueSelected;
 }

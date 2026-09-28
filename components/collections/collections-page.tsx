@@ -34,13 +34,15 @@ export const COLLECTIONS_PAGE_DEFAULTS = {
   calloutHeading: "Browse everything in the shop",
   calloutCtaLabel: "Shop all products",
   calloutCtaHref: "/shop",
-  cardCtaLabel: "Explore collection",
 } as const;
 
 export type CollectionsPageCopy = {
   eyebrow?: string;
   heading?: string;
   introduction?: string;
+  heroOpeningLabel?: string;
+  heroCountLabel?: string;
+  heroQualifier?: string;
   calloutEyebrow?: string;
   calloutHeading?: string;
   calloutCtaLabel?: string;
@@ -48,18 +50,29 @@ export type CollectionsPageCopy = {
   cardCtaLabel?: string;
 };
 
-function resolveCopy(content?: CollectionsPageCopy) {
+function filled(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function resolveCopy(
+  content: CollectionsPageCopy | undefined,
+  translate: (key: string) => string,
+) {
   return {
     eyebrow: content?.eyebrow?.trim() || COLLECTIONS_PAGE_DEFAULTS.eyebrow,
     heading: content?.heading?.trim() || COLLECTIONS_PAGE_DEFAULTS.heading,
     introduction: !isRichTextEmpty(content?.introduction ?? "")
       ? content!.introduction!.trim()
       : COLLECTIONS_PAGE_DEFAULTS.introduction,
+    heroOpeningLabel: filled(content?.heroOpeningLabel) || translate("collections.index.openingWorld"),
+    heroCountLabel: filled(content?.heroCountLabel) || translate("collections.index.countLabel"),
+    heroQualifier: filled(content?.heroQualifier) || translate("collections.index.qualifier"),
     calloutEyebrow: content?.calloutEyebrow?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutEyebrow,
     calloutHeading: content?.calloutHeading?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutHeading,
     calloutCtaLabel: content?.calloutCtaLabel?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutCtaLabel,
     calloutCtaHref: content?.calloutCtaHref?.trim() || COLLECTIONS_PAGE_DEFAULTS.calloutCtaHref,
-    cardCtaLabel: content?.cardCtaLabel?.trim() || COLLECTIONS_PAGE_DEFAULTS.cardCtaLabel,
+    cardCtaLabel: filled(content?.cardCtaLabel) || translate("collections.index.explore"),
   };
 }
 
@@ -81,12 +94,18 @@ export function CollectionsHero({
   eyebrow,
   heading,
   introduction,
+  openingLabel,
+  countLabel,
+  qualifier,
 }: {
   collections: CollectionSummary[];
   heroImage?: string;
   eyebrow: string;
   heading: string;
   introduction: string;
+  openingLabel: string;
+  countLabel: string;
+  qualifier: string;
 }) {
   const heroRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
@@ -135,7 +154,7 @@ export function CollectionsHero({
           <div className="absolute inset-[6%] border border-white/15" />
           {leadCollection ? (
             <span className="absolute bottom-[11%] left-[9%] hidden text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-white/65 md:block">
-              Opening world / {leadCollection.name}
+              {openingLabel} / {leadCollection.name}
             </span>
           ) : null}
         </motion.div>
@@ -174,8 +193,8 @@ export function CollectionsHero({
           />
 
           <div className="mt-9 flex flex-wrap gap-x-10 gap-y-3 border-t border-foreground/15 pt-5 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted-ink">
-            <span>{String(collections.length).padStart(2, "0")} collections</span>
-            <span>Material / form / character</span>
+            <span>{String(collections.length).padStart(2, "0")} {countLabel}</span>
+            <span>{qualifier}</span>
           </div>
         </div>
       </motion.div>
@@ -354,7 +373,8 @@ export function CollectionsPage({
   heroImage?: string;
   content?: CollectionsPageCopy;
 }) {
-  const copy = resolveCopy(content);
+  const { t } = useTranslations();
+  const copy = resolveCopy(content, t);
 
   return (
     <main data-component="CollectionsPage"
@@ -366,6 +386,9 @@ export function CollectionsPage({
         eyebrow={copy.eyebrow}
         heading={copy.heading}
         introduction={copy.introduction}
+        openingLabel={copy.heroOpeningLabel}
+        countLabel={copy.heroCountLabel}
+        qualifier={copy.heroQualifier}
       />
       <div className="relative bg-background py-4 md:py-12">
         <div

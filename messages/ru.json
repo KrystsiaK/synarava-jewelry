@@ -205,6 +205,22 @@
       "nextLabel": "Условия и положения →"
     }
   },
+  "collections": {
+    "index": {
+      "explore": "Смотреть коллекцию",
+      "openingWorld": "Открывающий мир",
+      "countLabel": "коллекций",
+      "qualifier": "Материал / форма / характер"
+    },
+    "detail": {
+      "shopProducts": "Смотреть изделия",
+      "allCollections": "Все коллекции",
+      "exploreMore": "Смотреть ещё",
+      "browseAll": "Все коллекции",
+      "shopAll": "Все изделия",
+      "scroll": "Листать"
+    }
+  },
   "loginPage": {
     "metaTitle": "Вход | Synarava",
     "metaDescription": "Войдите, чтобы открыть аккаунт Synarava.",

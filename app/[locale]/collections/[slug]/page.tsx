@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { getCollectionBySlug, getShopFilterData } from "@/lib/content/catalog";
+import { getCollectionBySlug, getPageBySlug, getShopFilterData } from "@/lib/content/catalog";
 import { listShopCatalogPage } from "@/lib/content/shop-listing";
 import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
@@ -88,9 +88,10 @@ export default async function Page({ params, searchParams }: Props) {
     sort: normalizeShopSort(rawFilters.sort),
   };
 
-  const [filterData, firstPage] = await Promise.all([
+  const [filterData, firstPage, collectionsPage] = await Promise.all([
     getShopFilterData(locale),
     listShopCatalogPage({ filters, locale, limit: 24 }),
+    getPageBySlug("collections", locale),
   ]);
   const { categories, productTypes, tags, collections, materials, finishes, origins } = filterData;
   const collectionPath = `/collections/${collection.slug}`;
@@ -114,6 +115,13 @@ export default async function Page({ params, searchParams }: Props) {
       />
       <CollectionDetail
         collection={collection}
+        labels={{
+          shopLabel: collectionsPage?.content.detailShopLabel,
+          collectionsLabel: collectionsPage?.content.detailCollectionsLabel,
+          teaserEyebrow: collectionsPage?.content.detailTeaserEyebrow,
+          teaserHeading: collectionsPage?.content.detailTeaserHeading,
+          teaserShopLabel: collectionsPage?.content.detailTeaserShopLabel,
+        }}
         catalog={{
           collectionName: collection.name,
           collectionPath,

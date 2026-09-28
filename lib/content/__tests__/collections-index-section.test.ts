@@ -9,11 +9,10 @@ const collections = [
 ];
 
 describe("resolveCollectionsIndexCollections", () => {
-  it("returns all collections with selected ids first in configured order", () => {
+  it("returns only the selected collections in the configured order", () => {
     expect(resolveCollectionsIndexCollections(collections, ["c", "missing", "a"]).map((c) => c.id)).toEqual([
       "c",
       "a",
-      "b",
     ]);
   });
 
@@ -23,11 +22,10 @@ describe("resolveCollectionsIndexCollections", () => {
     expect(resolveCollectionsIndexCollections(collections, ["", "  "]).map((c) => c.id)).toEqual(["a", "b", "c"]);
   });
 
-  it("dedupes selected ids and still appends the rest", () => {
+  it("dedupes selected ids and drops collections that were not chosen", () => {
     expect(resolveCollectionsIndexCollections(collections, ["b", "b", "a"]).map((c) => c.id)).toEqual([
       "b",
       "a",
-      "c",
     ]);
   });
 });

@@ -147,6 +147,14 @@ export type PageContent = {
   calloutEyebrow?: string;
   calloutHeading?: string;
   calloutCtaHref?: string;
+  heroOpeningLabel?: string;
+  heroCountLabel?: string;
+  heroQualifier?: string;
+  detailShopLabel?: string;
+  detailCollectionsLabel?: string;
+  detailTeaserEyebrow?: string;
+  detailTeaserHeading?: string;
+  detailTeaserShopLabel?: string;
   quote?: string;
   secondaryTitle?: string;
   secondaryBody?: string;

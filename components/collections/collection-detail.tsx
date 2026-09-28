@@ -20,6 +20,19 @@ import {
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+export type CollectionDetailLabels = {
+  shopLabel?: string;
+  collectionsLabel?: string;
+  teaserEyebrow?: string;
+  teaserHeading?: string;
+  teaserShopLabel?: string;
+};
+
+function labelOr(value: string | undefined, fallback: string) {
+  const trimmed = value?.trim();
+  return trimmed || fallback;
+}
+
 type CollectionDetail = CollectionSummary & {
   manifesto: string;
   symbolismLabel: string;
@@ -29,8 +42,14 @@ type CollectionDetail = CollectionSummary & {
 };
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
-function DetailHero({ collection }: { collection: CollectionDetail }) {
-  const { locale } = useTranslations();
+function DetailHero({
+  collection,
+  labels,
+}: {
+  collection: CollectionDetail;
+  labels?: CollectionDetailLabels;
+}) {
+  const { locale, t } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const imgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
@@ -86,9 +105,9 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
         transition={{ duration: 0.7, ease, delay: 0.3 }}
       >
         <div className="flex items-center gap-2 font-sans text-[0.68rem] uppercase tracking-[0.18em] text-white/50">
-          <Link href={localePath(locale, "/")} className="transition-colors hover:text-white/80">Home</Link>
+          <Link href={localePath(locale, "/")} className="transition-colors hover:text-white/80">{t("nav.home")}</Link>
           <span>/</span>
-          <Link href={localePath(locale, "/collections")} className="transition-colors hover:text-white/80">Collections</Link>
+          <Link href={localePath(locale, "/collections")} className="transition-colors hover:text-white/80">{t("nav.collections")}</Link>
           <span>/</span>
           <span className="text-white/80">{collection.name}</span>
         </div>
@@ -141,12 +160,14 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.85, ease }}
         >
-          <PrimaryCtaButton href={localePath(locale, "/shop")}>Shop products</PrimaryCtaButton>
+          <PrimaryCtaButton href={localePath(locale, "/shop")}>
+            {labelOr(labels?.shopLabel, t("collections.detail.shopProducts"))}
+          </PrimaryCtaButton>
           <Link
             href={localePath(locale, "/collections")}
             className="label-mono border-b border-foreground/30 pb-1 text-foreground/60 transition-colors hover:border-foreground/60 hover:text-foreground"
           >
-            All collections
+            {labelOr(labels?.collectionsLabel, t("collections.detail.allCollections"))}
           </Link>
         </motion.div>
       </motion.div>
@@ -165,7 +186,7 @@ function DetailHero({ collection }: { collection: CollectionDetail }) {
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
           />
         </div>
-        <span className="label-mono text-[0.62rem] text-foreground/35 [writing-mode:vertical-rl]">Scroll</span>
+        <span className="label-mono text-[0.62rem] text-foreground/35 [writing-mode:vertical-rl]">{t("collections.detail.scroll")}</span>
       </motion.div>
     </motion.header>
   );
@@ -325,8 +346,14 @@ function CollectionStory({ collection }: { collection: CollectionDetail }) {
 }
 
 /* ─── Next Collection Teaser ─────────────────────────────────────── */
-function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) {
-  const { locale } = useTranslations();
+function NextCollectionTeaser({
+  collection,
+  labels,
+}: {
+  collection: CollectionDetail;
+  labels?: CollectionDetailLabels;
+}) {
+  const { locale, t } = useTranslations();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -354,7 +381,7 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.7, ease }}
           >
-            Explore more
+            {labelOr(labels?.teaserEyebrow, t("collections.detail.exploreMore"))}
           </motion.p>
           <motion.h2
             className="mx-auto mb-10 max-w-2xl font-serif leading-[1.05]"
@@ -363,7 +390,7 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.9, ease, delay: 0.1 }}
           >
-            Browse all collections
+            {labelOr(labels?.teaserHeading, t("collections.detail.browseAll"))}
           </motion.h2>
           <motion.div
             className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-5"
@@ -375,9 +402,11 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
               href={localePath(locale, "/collections")}
               className="label-mono border-b border-foreground/30 pb-1 text-foreground/65 transition-colors hover:border-foreground/60 hover:text-foreground"
             >
-              All collections
+              {labelOr(labels?.collectionsLabel, t("collections.detail.allCollections"))}
             </Link>
-            <PrimaryCtaButton href={localePath(locale, "/shop")}>Shop all products</PrimaryCtaButton>
+            <PrimaryCtaButton href={localePath(locale, "/shop")}>
+              {labelOr(labels?.teaserShopLabel, t("collections.detail.shopAll"))}
+            </PrimaryCtaButton>
           </motion.div>
         </div>
       </div>
@@ -389,19 +418,21 @@ function NextCollectionTeaser({ collection }: { collection: CollectionDetail }) 
 export function CollectionDetail({
   collection,
   catalog,
+  labels,
 }: {
   collection: CollectionDetail;
   catalog: CollectionProductsCatalogProps;
+  labels?: CollectionDetailLabels;
 }) {
   return (
     <main data-component="CollectionDetail"
       className="collection-detail-experience artifact-shell overflow-x-hidden bg-background text-foreground"
     >
-      <DetailHero collection={collection} />
+      <DetailHero collection={collection} labels={labels} />
       {collection.manifesto && <ManifestoStrip manifesto={collection.manifesto} />}
       <CollectionStory collection={collection} />
       <CollectionProductsCatalog {...catalog} />
-      <NextCollectionTeaser collection={collection} />
+      <NextCollectionTeaser collection={collection} labels={labels} />
     </main>
   );
 }

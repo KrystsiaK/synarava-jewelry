@@ -79,6 +79,14 @@ type PageLocaleDraft = {
   calloutEyebrow: string;
   calloutHeading: string;
   calloutCtaHref: string;
+  heroOpeningLabel: string;
+  heroCountLabel: string;
+  heroQualifier: string;
+  detailShopLabel: string;
+  detailCollectionsLabel: string;
+  detailTeaserEyebrow: string;
+  detailTeaserHeading: string;
+  detailTeaserShopLabel: string;
   quote: string;
   secondaryTitle: string;
   secondaryBody: string;
@@ -209,6 +217,14 @@ function draftFromCopy(
     calloutEyebrow: copy.calloutEyebrow ?? "",
     calloutHeading: copy.calloutHeading ?? "",
     calloutCtaHref: copy.calloutCtaHref ?? "",
+    heroOpeningLabel: copy.heroOpeningLabel ?? "",
+    heroCountLabel: copy.heroCountLabel ?? "",
+    heroQualifier: copy.heroQualifier ?? "",
+    detailShopLabel: copy.detailShopLabel ?? "",
+    detailCollectionsLabel: copy.detailCollectionsLabel ?? "",
+    detailTeaserEyebrow: copy.detailTeaserEyebrow ?? "",
+    detailTeaserHeading: copy.detailTeaserHeading ?? "",
+    detailTeaserShopLabel: copy.detailTeaserShopLabel ?? "",
     quote: copy.quote ?? "",
     secondaryTitle: copy.secondaryTitle ?? "",
     secondaryBody: copy.secondaryBody ?? "",
@@ -261,6 +277,14 @@ function HiddenLocaleFields({
           field("calloutEyebrow", draft.calloutEyebrow),
           field("calloutHeading", draft.calloutHeading),
           field("calloutCtaHref", draft.calloutCtaHref),
+          field("heroOpeningLabel", draft.heroOpeningLabel),
+          field("heroCountLabel", draft.heroCountLabel),
+          field("heroQualifier", draft.heroQualifier),
+          field("detailShopLabel", draft.detailShopLabel),
+          field("detailCollectionsLabel", draft.detailCollectionsLabel),
+          field("detailTeaserEyebrow", draft.detailTeaserEyebrow),
+          field("detailTeaserHeading", draft.detailTeaserHeading),
+          field("detailTeaserShopLabel", draft.detailTeaserShopLabel),
           field("quote", draft.quote),
           field("secondaryTitle", draft.secondaryTitle),
           field("secondaryBody", draft.secondaryBody),

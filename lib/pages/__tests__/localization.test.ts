@@ -23,6 +23,8 @@ describe("page localization", () => {
           calloutHeading: "Browse everything in the shop",
           calloutCtaHref: "/shop",
           ctaLabel: "Shop all products",
+          detailShopLabel: "Shop products",
+          secondaryBody: "Explore collection",
         },
       },
       translation: {
@@ -35,6 +37,8 @@ describe("page localization", () => {
           calloutHeading: "Ver tudo na loja",
           calloutCtaHref: "/shop",
           ctaLabel: "Ver todos os produtos",
+          detailShopLabel: "Ver produtos",
+          secondaryBody: "Explorar coleção",
         },
       },
     }).content).toMatchObject({
@@ -45,6 +49,8 @@ describe("page localization", () => {
       calloutHeading: "Ver tudo na loja",
       calloutCtaHref: "/shop",
       ctaLabel: "Ver todos os produtos",
+      detailShopLabel: "Ver produtos",
+      secondaryBody: "Explorar coleção",
     });
   });
 

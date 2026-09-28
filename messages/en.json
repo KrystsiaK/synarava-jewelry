@@ -584,6 +584,22 @@
       "nextLabel": "Terms & Conditions →"
     }
   },
+  "collections": {
+    "index": {
+      "explore": "Explore collection",
+      "openingWorld": "Opening world",
+      "countLabel": "collections",
+      "qualifier": "Material / form / character"
+    },
+    "detail": {
+      "shopProducts": "Shop products",
+      "allCollections": "All collections",
+      "exploreMore": "Explore more",
+      "browseAll": "Browse all collections",
+      "shopAll": "Shop all products",
+      "scroll": "Scroll"
+    }
+  },
   "home": {
     "editShowcase": {
       "eyebrow": "A few to start with",

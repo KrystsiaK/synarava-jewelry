@@ -47,6 +47,9 @@ describe("CollectionsHero", () => {
         eyebrow="Synarava collections"
         heading="Browse by collection"
         introduction="Explore Synarava."
+        openingLabel="Opening world"
+        countLabel="collections"
+        qualifier="Material / form / character"
       />,
     );
 
@@ -63,6 +66,9 @@ describe("CollectionsHero", () => {
         eyebrow="Synarava collections"
         heading="Browse by collection"
         introduction="Explore Synarava."
+        openingLabel="Opening world"
+        countLabel="collections"
+        qualifier="Material / form / character"
       />,
     );
 

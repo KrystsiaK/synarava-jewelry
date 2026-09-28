@@ -253,7 +253,15 @@ describe("PageEditor", () => {
             calloutHeading: "Browse everything in the shop",
             ctaLabel: "Shop all products",
             calloutCtaHref: "/shop",
+            secondaryBody: "Explore collection",
             archiveCollectionIds: ["col-a"],
+            translations: {
+              pt: {
+                title: "Coleções",
+                secondaryBody: "Explorar coleção",
+                detailShopLabel: "Ver produtos",
+              },
+            },
           },
         })}
         collectionOptions={[
@@ -278,12 +286,18 @@ describe("PageEditor", () => {
     expect(screen.getByRole("combobox", { name: "Collection 1" })).toHaveValue("col-a");
     expect(screen.getByRole("button", { name: "Add collection" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Button label" })).toHaveValue("Shop all products");
+    expect(screen.getByRole("textbox", { name: "Collection card link label" })).toHaveValue("Explore collection");
+    expect(screen.getByRole("textbox", { name: "Shop button" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Button href" })).toBeInTheDocument();
     expect(hiddenFieldValue(container, "calloutCtaHref")).toBe("/shop");
     expect(screen.getByRole("tab", { name: "Русский" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "Português" }));
     expect(screen.getByRole("textbox", { name: "Main heading" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Collection card link label" })).toHaveValue("Explorar coleção");
+    expect(screen.getByRole("textbox", { name: "Shop button" })).toHaveValue("Ver produtos");
+    expect(hiddenFieldValue(container, "ptSecondaryBody")).toBe("Explorar coleção");
+    expect(hiddenFieldValue(container, "ptDetailShopLabel")).toBe("Ver produtos");
   });
 
   it("submits bilingual edit-section copy for the home page", async () => {
