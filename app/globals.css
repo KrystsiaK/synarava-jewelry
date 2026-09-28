@@ -3336,8 +3336,8 @@ select.adm-field option {
 .adm-label-row {
   display: flex;
   align-items: center;
-  /* Tight beside the kicker. The mark matches the label size, so the gap stays short. */
-  gap: 0.2rem;
+  /* Close to the kicker. The button is only as wide as the italic, so the gap stays short. */
+  gap: 0.18rem;
 }
 
 .adm-help {
@@ -3360,27 +3360,33 @@ select.adm-field option {
   position: relative;
   display: inline-grid;
   place-items: center;
-  /* Same em as .adm-label. 1em stays inside the min-h-6 row, so the input top does not move. */
+  /*
+   * Larger than the kicker (0.72rem) so the italic reads as a mark.
+   * The row is min-h-6, so the lift stays inside the label band.
+   */
   font-family: var(--font-sans), sans-serif;
-  font-size: var(--adm-label-size, 0.72rem);
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 500;
   font-style: normal;
   line-height: 1;
-  width: 1em;
-  height: 1em;
+  /* Hug the italic. A full em square left a gap beside the narrow stem. */
+  width: auto;
+  height: auto;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: 0;
   background: transparent;
   color: var(--adm-info);
   cursor: help;
   flex: 0 0 auto;
+  isolation: isolate;
   /*
-   * Share the label baseline. A downward nudge drops the stem below the caps.
-   * https://developer.mozilla.org/en-US/docs/Web/CSS/cap
+   * Sit just above the uppercase kicker, like an editorial note.
+   * translate stays put when scale handles the press.
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/translate
    */
-  transform: none;
-  transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1), color 160ms cubic-bezier(0.23, 1, 0.32, 1), transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+  translate: 0 -0.22em;
+  transition: color 160ms cubic-bezier(0.23, 1, 0.32, 1), scale 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* Hit target only — does not widen the gap beside the word. */
@@ -3390,41 +3396,56 @@ select.adm-field option {
   inset: -0.4rem;
 }
 
+/* Soft disc on hover, shifted toward the italic's lean so it clears the kicker. */
+.adm-help__trigger::after {
+  content: "";
+  position: absolute;
+  left: 78%;
+  top: 50%;
+  z-index: -1;
+  width: 1.15em;
+  height: 1.15em;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 .adm-help__mark {
   display: contents;
 }
 
 .adm-help__glyph {
   font-family: var(--font-playfair, "Iowan Old Style"), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
-  font-style: normal;
-  font-weight: 700;
   /*
-   * Same size as .adm-label (about 0.72rem), not the cap and not 1.125rem.
-   * Optical sizing would thin this small mark; keep the full 700 stem.
+   * Drawn italic, not a skewed roman. Playfair italic has its own cut and dot.
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/font-style
+   */
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1em;
+  /*
+   * At this size the italic contrast is the style. Optical sizing keeps the dot.
    * https://developer.mozilla.org/en-US/docs/Web/CSS/font-optical-sizing
    */
-  font-size: 1em;
-  font-optical-sizing: none;
+  font-optical-sizing: auto;
   letter-spacing: 0;
   line-height: 1;
   text-transform: none;
-  /*
-   * Heavier than the Hanken 700 kicker. Stroke, not a larger box.
-   * Half the stroke sits outside the outline.
-   * https://developer.mozilla.org/en-US/docs/Web/CSS/text-stroke
-   */
-  -webkit-text-stroke: 0.45px currentColor;
-  paint-order: stroke fill;
 }
 
 .adm-help__trigger:active {
-  transform: scale(0.97);
+  scale: 0.97;
 }
 
 .adm-help__trigger:hover,
 .adm-help__trigger:focus-visible {
-  background: var(--adm-info-soft);
   color: var(--adm-info);
+}
+
+.adm-help__trigger:hover::after,
+.adm-help__trigger:focus-visible::after {
+  background: var(--adm-info-soft);
 }
 
 .adm-help__trigger:focus-visible {
@@ -5445,7 +5466,7 @@ html[data-theme="light"] .adm-locale-tab:hover:not([data-active="true"]) {
   }
 
   .adm-help__trigger:active {
-    transform: none;
+    scale: none;
   }
 }
 
