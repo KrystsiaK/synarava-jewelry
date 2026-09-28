@@ -141,6 +141,17 @@ describe("StorefrontCopyEditor", () => {
 
     expect(screen.getByText("Footer — service links")).toBeInTheDocument();
     expect(screen.getByText("Footer — legal links")).toBeInTheDocument();
+    const legal = JSON.parse(
+      (document.querySelector('input[name="footerLegalLinks"]') as HTMLInputElement).value,
+    ) as { items: Array<{ id: string; href: string }> };
+    expect(legal.items.map((item) => item.id)).toEqual([
+      "terms",
+      "privacy",
+      "cookies",
+      "livro",
+      "dispute",
+    ]);
+    expect(legal.items.map((item) => item.href)).not.toContain("/legal-notice");
     expect(screen.getByText("Footer — social links")).toBeInTheDocument();
     expect(screen.getByText("Footer — contact emails")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Email (primary)" })).toHaveValue("ops@synarava.com");
