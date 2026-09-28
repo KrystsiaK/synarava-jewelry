@@ -237,7 +237,7 @@ function CollectionRow({
           />
         </div>
       )}
-      description={collection.summary}
+      description={<RichText content={collection.summary} />}
       action={(
         <div className="flex items-center gap-4 text-couture-red">
           <span className="label-caps border-b border-couture-red pb-1.5">

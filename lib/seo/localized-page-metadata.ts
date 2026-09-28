@@ -1,3 +1,5 @@
+import { plainTextFromRichText } from "@/lib/content/rich-text";
+
 type PageMetadataSource = {
   title?: string | null;
   excerpt?: string | null;
@@ -8,6 +10,11 @@ type PageMetadataSource = {
 function nonEmpty(value: string | null | undefined) {
   const normalized = value?.trim();
   return normalized || null;
+}
+
+function plainMeta(value: string | null | undefined) {
+  const plain = plainTextFromRichText(value ?? "");
+  return plain || null;
 }
 
 /** Applies the same field-level fallback policy used by storefront content. */
@@ -22,6 +29,9 @@ export function localizedPageMetadataCopy({
 }) {
   return {
     title: nonEmpty(page?.seoTitle) ?? nonEmpty(page?.title) ?? fallbackTitle,
-    description: nonEmpty(page?.seoDescription) ?? nonEmpty(page?.excerpt) ?? fallbackDescription,
+    description:
+      plainMeta(page?.seoDescription) ??
+      plainMeta(page?.excerpt) ??
+      fallbackDescription,
   };
 }

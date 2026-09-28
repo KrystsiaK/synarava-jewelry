@@ -13,7 +13,7 @@ import {
   type AdminLocaleStatus,
   type AdminLocaleTab,
 } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminAlert, AdminLongTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminRichTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
 import {
   COMMERCE_COPY_AREAS,
   COMMERCE_COPY_GROUPS,
@@ -152,13 +152,12 @@ function CopyGroup({
               if (field.area) {
                 return (
                   <div key={locale.code} hidden={hidden} className="md:col-span-2">
-                    <AdminLongTextField
+                    <AdminRichTextField
                       label={label}
                       help={field.hint}
                       name={name}
                       defaultValue={defaultValue}
                       placeholder={placeholder}
-                      rows={3}
                     />
                   </div>
                 );

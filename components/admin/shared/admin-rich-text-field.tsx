@@ -44,6 +44,7 @@ export type AdminRichTextFieldProps = {
   disabled?: boolean;
   className?: string;
   unitId?: string;
+  validationName?: string;
   id?: string;
 };
 
@@ -287,6 +288,7 @@ export function AdminRichTextField({
   disabled = false,
   className,
   unitId,
+  validationName,
   id,
 }: AdminRichTextFieldProps) {
   const isControlled = controlledValue !== undefined;
@@ -359,6 +361,7 @@ export function AdminRichTextField({
       disabled={disabled}
       className={cn("w-full min-w-0", className)}
       controlId={controlId}
+      validationName={validationName}
     >
       {name ? (
         <textarea

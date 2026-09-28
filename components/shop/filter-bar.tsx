@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpDown, ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { AnimatedModal, ArtifactButton } from "@/components/ui";
+import { RichText } from "@/components/content/rich-text";
 import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -292,9 +293,10 @@ export function FilterBar({
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-couture-red">
               {text(labels?.eyebrow, "shop.filters.eyebrow")}
             </p>
-            <p className="mt-1 max-w-xl text-sm leading-6 text-foreground/58">
-              {text(labels?.description, "shop.filters.description")}
-            </p>
+            <RichText
+              content={text(labels?.description, "shop.filters.description")}
+              className="mt-1 max-w-xl text-sm leading-6 text-foreground/58"
+            />
           </div>
 
           <div className="flex shrink-0 items-end gap-5">

@@ -18,7 +18,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyn
 
 import { ease } from "@/lib/animation";
 import { RichText } from "@/components/content/rich-text";
-import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import { ArtifactLink, DisplayHeading, PrimaryCtaButton } from "@/components/ui";
@@ -512,7 +511,7 @@ function ArchiveRecord({
               : "mb-6 text-5xl uppercase leading-[0.95] tracking-tighter text-linen md:text-7xl"
           }
         />
-        <p
+        <div
           className={
             mirror
               ? "font-sans text-[10px] text-stone-beige/70 leading-relaxed mb-8 text-justify uppercase font-bold"
@@ -520,8 +519,8 @@ function ArchiveRecord({
           }
         >
           [COLLECTION NOTE]<br />
-          {item.description}
-        </p>
+          <RichText content={item.description} />
+        </div>
         {mirror ? (
           <table className="w-full font-sans text-[10px] text-left border-collapse font-bold">
             <tbody>
@@ -687,9 +686,9 @@ function EditShowcase({
             />
           </div>
           <div className="flex items-end justify-between gap-6 md:col-span-4 md:pb-1">
-            <p className="max-w-[24ch] text-balance font-sans text-[0.68rem] font-semibold uppercase leading-[1.65] tracking-[0.12em] text-[#615a52] md:ml-auto md:text-right">
-              {plainTextFromRichText(body || defaults.body)}
-            </p>
+            <div className="max-w-[24ch] text-balance font-sans text-[0.68rem] font-semibold uppercase leading-[1.65] tracking-[0.12em] text-[#615a52] md:ml-auto md:text-right">
+              <RichText content={body || defaults.body} />
+            </div>
           </div>
         </header>
 

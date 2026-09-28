@@ -16,6 +16,7 @@ import Link from "next/link";
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { ProductMediaGallery } from "@/components/artifacts/product-media-gallery";
 import { ProductHeroDescription } from "@/components/artifacts/product-hero-description";
+import { RichText } from "@/components/content/rich-text";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
@@ -24,6 +25,7 @@ import {
   getProductPresentation,
 } from "@/lib/catalog/product-presentation";
 import type { ProductSummary } from "@/lib/content/catalog";
+import { looksLikeHtml, plainTextFromRichText } from "@/lib/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
@@ -81,7 +83,9 @@ function ProductHero({
   isSignedIn: boolean;
 }) {
   const { t, locale, plural } = useTranslations();
-  const heroDescription = product.shortDescription.trim() || truncateText(product.description.trim(), 220);
+  const heroDescription =
+    product.shortDescription.trim() ||
+    truncateText(plainTextFromRichText(product.description), 220);
   const breadcrumbs = getProductBreadcrumbs(product, t);
 
   return (
@@ -396,9 +400,10 @@ function MaterialsScrollSection({ product }: { product: ProductSummary }) {
               <div className="flex items-start justify-between gap-8 border-t border-foreground/10 px-6 py-6 md:px-8">
                 <div>
                   <h3 className="label-caps text-foreground">{item.title}</h3>
-                  <p className="mt-3 max-w-md text-base leading-[1.75] text-foreground/65">
-                    {item.body}
-                  </p>
+                  <RichText
+                    content={item.body}
+                    className="mt-3 max-w-md text-base leading-[1.75] text-foreground/65"
+                  />
                 </div>
                 <span className="mt-1 h-2 w-2 shrink-0 rotate-45 border border-couture-red" />
               </div>
@@ -436,8 +441,10 @@ function SymbolismScrollSection({
   const reduceMotion = useReducedMotion() ?? false;
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const imgScale = useTransform(scrollYProgress, [0, 1], [1.035, 0.995]);
-  const bodyLead = product.symbolismBody.charAt(0);
-  const bodyRemainder = product.symbolismBody.slice(1);
+  const symbolismPlain = plainTextFromRichText(product.symbolismBody);
+  const symbolismIsHtml = looksLikeHtml(product.symbolismBody);
+  const bodyLead = symbolismIsHtml ? "" : symbolismPlain.charAt(0);
+  const bodyRemainder = symbolismIsHtml ? "" : symbolismPlain.slice(1);
 
   return (
     <section data-component="SymbolismScrollSection" ref={ref} className="overflow-clip border-y border-foreground/10 bg-surface py-24 md:py-36">
@@ -515,19 +522,27 @@ function SymbolismScrollSection({
 
         <div className="grid gap-12 pt-12 md:grid-cols-12 md:gap-8 md:pt-16">
           <div className="md:col-span-5">
-            <p className="max-w-md text-pretty font-serif text-[clamp(1.75rem,3.5vw,3rem)] italic leading-[1.18] text-foreground/92">
-              {product.symbolismBody2}
-            </p>
+            <RichText
+              content={product.symbolismBody2}
+              className="max-w-md text-pretty font-serif text-[clamp(1.75rem,3.5vw,3rem)] italic leading-[1.18] text-foreground/92"
+            />
           </div>
           <div className="md:col-span-6 md:col-start-7">
-            <p className="max-w-2xl text-pretty text-base leading-[1.85] text-foreground/68 md:text-lg">
-              {bodyLead && (
-                <span className="float-left mr-3 mt-1 font-serif text-6xl leading-[0.72] text-couture-red">
-                  {bodyLead}
-                </span>
-              )}
-              {bodyRemainder}
-            </p>
+            {symbolismIsHtml ? (
+              <RichText
+                content={product.symbolismBody}
+                className="max-w-2xl text-pretty text-base leading-[1.85] text-foreground/68 md:text-lg"
+              />
+            ) : (
+              <p className="max-w-2xl text-pretty text-base leading-[1.85] text-foreground/68 md:text-lg">
+                {bodyLead ? (
+                  <span className="float-left mr-3 mt-1 font-serif text-6xl leading-[0.72] text-couture-red">
+                    {bodyLead}
+                  </span>
+                ) : null}
+                {bodyRemainder}
+              </p>
+            )}
             <div className="mt-10 flex items-center gap-4" aria-hidden="true">
               <span className="h-px w-14 bg-foreground/20" />
               <span className="h-2 w-2 rotate-45 border border-couture-red" />
@@ -607,9 +622,10 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
             />
           </div>
           {product.shortDescription ? (
-            <p className="max-w-sm text-pretty text-base leading-8 text-foreground/62 md:col-span-4 md:pb-1">
-              {product.shortDescription}
-            </p>
+            <RichText
+              content={product.shortDescription}
+              className="max-w-sm text-pretty text-base leading-8 text-foreground/62 md:col-span-4 md:pb-1"
+            />
           ) : null}
         </header>
 
@@ -676,9 +692,10 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
 
         <div className="grid gap-8 pt-10 md:grid-cols-12 md:items-center md:pt-14">
           <div className="md:col-span-7">
-            <p className="max-w-2xl text-pretty text-base leading-8 text-foreground/65">
-              {product.shortDescription}
-            </p>
+            <RichText
+              content={product.shortDescription}
+              className="max-w-2xl text-pretty text-base leading-8 text-foreground/65"
+            />
           </div>
           <div className="md:col-span-5 md:justify-self-end">
             <ProductPurchasePanel product={product} compact />

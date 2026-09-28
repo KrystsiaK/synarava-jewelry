@@ -27,8 +27,8 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminHrefField` / `AdminHrefControl` | Segmented storefront path combobox (routes / pages / collections / products) |
 | `AdminVideoField` / `AdminVideoControl` | Site video (MP4/WebM) upload + current/selected preview |
 | `AdminCheckboxField` / `AdminCheckboxControl` | Checkbox row (+ optional follow-on) / inline row |
-| `AdminLongTextField` | Full-width text preview + Edit modal (+ error chrome) |
-| `AdminRichTextField` | Link-capable rich text (same preview chrome; TipTap modal) |
+| `AdminLongTextField` | Legacy plain preview + Edit modal — prefer `AdminRichTextField` |
+| `AdminRichTextField` | Default long copy (TipTap: paragraphs, bold/italic, lists, links) |
 | `AdminCollapsiblePanel` | Titled collapsible panel (chevron; header/body divider) |
 | `AdminPanel` | Rounded shell (`Root` / `Header` / `Body`); sticky header lifts by −radius |
 | `AdminNavTree` / `buildAdminNavItems` | Config-driven admin sidebar tree (expand, show-more, router sync) |
@@ -490,31 +490,21 @@ import { AdminOrderedList, AdminSelectField } from "@/components/synarava-cms";
   `renderItem`, min 2 / max 3, `showItemControls={false}` + `trailing` actions).
   Incomplete specimens use `tone="warning"` + caption (“won't appear on the site”).
 
-### Long text
+### Long text (legacy)
 
-`AdminLongTextField` — full-width **text** preview + Edit opens a modal
-(not a raw `textarea.adm-field` on the form). Modal editor is a plain textarea.
-For clickable links, use `AdminRichTextField` instead.
+`AdminLongTextField` — plain-text preview + Edit modal (textarea). Kept for
+Storybook / rare plain-only cases. **New and existing long copy use
+`AdminRichTextField` instead** (products, collections, pages, storefront copy,
+SEO fields).
 
-```tsx
-import { AdminLongTextField } from "@/components/synarava-cms";
+### Rich text (default long copy)
 
-<AdminLongTextField label="Fit notes" name="fit_notes" error={…} />
-<AdminLongTextField label="Description" owner="Shopify" value={…} onChange={…} />
-```
-
-- Always `w-full` (use `className="col-span-full"` inside multi-column grids).
-- Error / invalid → `.adm-long-text-preview--error` + absolute shell error.
-- Applied across product, collections, pages, storefront copy, and site SEO
-  (no raw `textarea.adm-field` for long copy in admin forms).
-- Story: `synarava-cms/AdminLongTextField`.
-
-### Rich text (links)
-
-`AdminRichTextField` — same preview + Edit chrome as long text, with a minimal
-TipTap modal (Link / Unlink). Stored value is sanitized HTML (`p`, `br`,
-`strong`/`em`, `a[href]`). Plain text still loads (converted for the editor)
-and remains valid until the operator saves rich markup.
+`AdminRichTextField` — same preview + Edit chrome, with a TipTap modal
+(Bold / Italic / List / Numbered / Link). Stored value is sanitized HTML
+(`p`, `br`, `strong`/`em`, `ul`/`ol`/`li`, `a[href]`). Multiple paragraphs
+are kept as HTML so storefront spacing survives. Plain text still loads
+(converted for the editor) and single plain paragraphs may still save as
+plain text until the operator adds structure.
 
 **Links (internal + remote):** the Link tool opens a panel that reuses
 `AdminHrefControl` — search/pick storefront paths (`/shop`, `/products/…`) or
@@ -529,17 +519,14 @@ import { AdminRichTextField } from "@/components/synarava-cms";
 <AdminRichTextField label="Body" value={…} onChange={…} />
 ```
 
-- Preview reuses `.adm-long-text-preview` so the outer chrome matches long text.
-- Links are clickable in the preview and on the storefront (`RichText` in
-  `components/content/rich-text.tsx` + `lib/content/rich-text.ts` sanitizer).
-- Applied on **Pages** long-copy Edit fields (home, collections, about, shop,
-  service intro + section bodies, legal intro + section bodies, create-page
-  body/quote/secondary). Toolbar: Bold / Italic / List / Numbered / Link.
-  **Not** product fields (Shopify-owned). **Not** SEO excerpts / Search summary
-  (plain `AdminLongTextField`). Legacy legal Markdown still renders on the
-  storefront until a section is re-saved as rich HTML. For cookie preferences
-  in WYSIWYG, link to `/cookie-settings` (ordinary in-app path) — do not invent
-  hash or `action:` schemes for new copy.
+- Preview reuses `.adm-long-text-preview` so the outer chrome matches.
+- Storefront renders via `RichText` (`components/content/rich-text.tsx` +
+  `lib/content/rich-text.ts`). Meta / JSON-LD / Shopify SEO fields strip to
+  plain text with `plainTextFromRichText`.
+- Applied on **all** admin long-copy Edit fields (products, collections,
+  pages, storefront copy, account copy, site SEO). Legacy legal Markdown
+  still renders until a section is re-saved as rich HTML. For cookie
+  preferences in WYSIWYG, link to `/cookie-settings`.
 - Story: `synarava-cms/AdminRichTextField`.
 
 ### Tall / composite fields

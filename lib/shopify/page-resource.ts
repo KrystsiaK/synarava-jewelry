@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 
 type ShopifyPageInput = {
   title: string;
@@ -26,7 +27,7 @@ function assertPageResult(
 
 function toShopifyPagePayload(page: ShopifyPageInput) {
   const seoTitle = page.seoTitle?.trim();
-  const seoDescription = page.seoDescription?.trim();
+  const seoDescription = plainTextFromRichText(page.seoDescription ?? "") || undefined;
   return {
     title: page.title,
     body: page.body,

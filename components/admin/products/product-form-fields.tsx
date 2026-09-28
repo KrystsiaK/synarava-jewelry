@@ -13,7 +13,7 @@ import {
   AdminCheckboxControl,
   AdminFieldShell,
   AdminHelp,
-  AdminLongTextField,
+  AdminRichTextField,
   AdminSelectField,
   AdminTextField,
 } from "@/components/synarava-cms";
@@ -325,13 +325,12 @@ export function ProductDetailFields({
                 onChange={(event) => updateMaterial(index, "title", event.target.value)}
                 placeholder="Lava Stone"
               />
-              <AdminLongTextField
+              <AdminRichTextField
                 label="Story"
                 dialogLabel={`Material ${index + 1} story`}
                 value={draft.materials[index].body}
                 onChange={(value) => updateMaterial(index, "body", value)}
                 placeholder="Describe the material story."
-                rows={4}
               />
               {/* Image is shared across locales and always visible. */}
               <input
@@ -794,7 +793,7 @@ export function ProductFormFields({
           onClear={() => updateTaxonomySatisfaction({ hasTags: false })}
         />
 
-        <AdminLongTextField
+        <AdminRichTextField
           label="Description"
           owner="Shopify"
           dialogLabel="Description"
@@ -807,25 +806,23 @@ export function ProductFormFields({
           value={coreDraft.seoTitle}
           onChange={(event) => updateCore("seoTitle", event.target.value)}
         />
-        <AdminLongTextField
+        <AdminRichTextField
           label="SEO description"
           owner="Shopify"
           dialogLabel="SEO description"
           value={coreDraft.seoDescription}
           onChange={(value) => updateCore("seoDescription", value)}
-          rows={7}
         />
       </div>
 
       {/* Synarava Product page — editorial copy (not Shopify description). */}
       <div className="grid gap-y-6" hidden={activeSection !== "details"}>
-        <AdminLongTextField
+        <AdminRichTextField
           label="Short description"
           owner="Synarava"
           dialogLabel="Short description"
           value={coreDraft.shortDescription}
           onChange={(value) => updateCore("shortDescription", value)}
-          rows={8}
         />
         <AdminTextField
           label="Material line"
@@ -851,8 +848,8 @@ export function ProductFormFields({
             placeholder="Wood, Lava, Embroidery"
           />
         </div>
-        <AdminLongTextField label="Symbolism body" dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
-        <AdminLongTextField label="Symbolism continuation" dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} rows={8} />
+        <AdminRichTextField label="Symbolism body" dialogLabel="Symbolism body" value={coreDraft.symbolismBody} onChange={(value) => updateCore("symbolismBody", value)} />
+        <AdminRichTextField label="Symbolism continuation" dialogLabel="Symbolism continuation" value={coreDraft.symbolismBody2} onChange={(value) => updateCore("symbolismBody2", value)} />
       </div>
 
       {/* Cover is managed in Product gallery (Media). Keep form mirrors for save. */}

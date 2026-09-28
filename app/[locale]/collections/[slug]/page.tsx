@@ -9,6 +9,7 @@ import { localePath } from "@/lib/i18n/routing";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { CollectionDetail } from "@/components/collections/collection-detail";
 import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
@@ -38,7 +39,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const title = collection.seoTitle || collection.name;
-  const description = collection.seoDescription || collection.summary;
+  const description =
+    plainTextFromRichText(collection.seoDescription) ||
+    plainTextFromRichText(collection.summary);
 
   const openGraphLocales = await buildOpenGraphLocales(locale);
 

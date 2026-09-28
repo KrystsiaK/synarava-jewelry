@@ -4,6 +4,8 @@ import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
+import { RichText } from "@/components/content/rich-text";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -21,10 +23,11 @@ export function ProductHeroDescription({
   const descriptionId = useId();
   const summaryText = summary.trim();
   const completeText = description.trim() || summaryText;
-  const canExpand = completeText !== summaryText;
+  const canExpand =
+    plainTextFromRichText(completeText) !== plainTextFromRichText(summaryText);
   const visibleText = expanded ? completeText : summaryText;
 
-  if (!visibleText) return null;
+  if (!plainTextFromRichText(visibleText)) return null;
 
   return (
     <motion.div
@@ -33,7 +36,7 @@ export function ProductHeroDescription({
       transition={{ layout: { duration: 0.38, ease } }}
     >
       <AnimatePresence initial={false} mode="popLayout">
-        <motion.p
+        <motion.div
           key={expanded ? "complete" : "summary"}
           id={descriptionId}
           layout={reduceMotion ? false : "position"}
@@ -43,8 +46,8 @@ export function ProductHeroDescription({
           exit={reduceMotion ? undefined : { opacity: 0, filter: "blur(2px)", y: -3 }}
           transition={{ duration: reduceMotion ? 0 : 0.2, ease }}
         >
-          {visibleText}
-        </motion.p>
+          <RichText content={visibleText} />
+        </motion.div>
       </AnimatePresence>
 
       {canExpand ? (

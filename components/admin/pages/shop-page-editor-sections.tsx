@@ -3,7 +3,7 @@
 import {
   AdminCollapsiblePanel,
   AdminHelp,
-  AdminLongTextField,
+  AdminRichTextField,
   AdminTextField,
 } from "@/components/synarava-cms";
 import type { ShopPageCopyKey } from "@/lib/content/shop-page-copy";
@@ -27,13 +27,12 @@ export function ShopPageEditorSections({ draft, updateField }: Props) {
             onChange={(event) => updateField("shopNewTitle", event.target.value)}
             placeholder="New arrivals"
           />
-          <AdminLongTextField
+          <AdminRichTextField
             label="New arrivals description"
             help={<AdminHelp>Sentence under the New arrivals heading.</AdminHelp>}
             value={draft.shopNewDescription}
             onChange={(value) => updateField("shopNewDescription", value)}
             placeholder="The latest pieces to enter the Synarava selection."
-            rows={3}
           />
           <AdminTextField
             label="View all label"
@@ -54,13 +53,12 @@ export function ShopPageEditorSections({ draft, updateField }: Props) {
             onChange={(event) => updateField("shopProductTypeTitle", event.target.value)}
             placeholder="Shop by product type"
           />
-          <AdminLongTextField
+          <AdminRichTextField
             label="Product type description"
             help={<AdminHelp>Sentence under the product-type heading.</AdminHelp>}
             value={draft.shopProductTypeDescription}
             onChange={(value) => updateField("shopProductTypeDescription", value)}
             placeholder="Find what you’re looking for, from jewellery to everyday accessories"
-            rows={3}
           />
         </div>
       </AdminCollapsiblePanel>
@@ -81,14 +79,13 @@ export function ShopPageEditorSections({ draft, updateField }: Props) {
             onChange={(event) => updateField("shopFiltersShowingLabel", event.target.value)}
             placeholder="Showing"
           />
-          <AdminLongTextField
+          <AdminRichTextField
             className="md:col-span-2"
             label="Filter description"
             help={<AdminHelp>Sentence under the filter eyebrow.</AdminHelp>}
             value={draft.shopFiltersDescription}
             onChange={(value) => updateField("shopFiltersDescription", value)}
             placeholder="Filter by category, product type or availability to narrow your selection."
-            rows={3}
           />
           <AdminTextField
             label="Category label"

@@ -2,6 +2,7 @@ import type { ProductSummary } from "@/lib/content/catalog";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 
 export function buildProductJsonLd(
   product: ProductSummary,
@@ -15,6 +16,9 @@ export function buildProductJsonLd(
     product.image,
     ...product.commerceMedia.map((media) => media.src),
   ].filter(Boolean)));
+  const description =
+    plainTextFromRichText(product.shortDescription) ||
+    plainTextFromRichText(product.description);
 
   return {
     "@context": "https://schema.org",
@@ -22,7 +26,7 @@ export function buildProductJsonLd(
     "@id": `${productUrl}#product`,
     url: productUrl,
     name: product.title,
-    description: product.shortDescription || product.description,
+    description,
     ...(images.length > 0 ? { image: images } : {}),
     ...(product.sku ? { sku: product.sku } : {}),
     ...(product.shopifyCategoryName ? { category: product.shopifyCategoryName } : {}),

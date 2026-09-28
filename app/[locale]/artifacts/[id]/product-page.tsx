@@ -15,6 +15,7 @@ import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { buildProductJsonLd } from "@/lib/seo/product-json-ld";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { getProductReviewsBySlug } from "@/lib/content/product-reviews";
 import { submitProductReviewAction } from "@/app/actions/product-reviews";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
@@ -35,7 +36,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: product.seoTitle || product.title,
-    description: product.seoDescription || product.shortDescription || product.description,
+    description:
+      plainTextFromRichText(product.seoDescription) ||
+      plainTextFromRichText(product.shortDescription) ||
+      plainTextFromRichText(product.description),
     alternates: await buildAlternates(locale, `/products/${product.slug}`, {
       en: `/products/${product.sourceSlug}`,
       pt: `/products/${product.slug}`,

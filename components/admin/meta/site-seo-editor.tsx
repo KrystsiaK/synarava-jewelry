@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 
 import { saveSiteSeoAction, type SiteSeoActionState } from "@/app/admin/actions/site-seo";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminAlert, AdminLongTextField, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminRichTextField, AdminTextField } from "@/components/synarava-cms";
 import {
   SITE_SEO_DEFAULTS,
   SITE_SEO_FIELD_DEFS,
@@ -82,14 +82,13 @@ export function SiteSeoEditor({
             {SITE_SEO_FIELD_DEFS.map((field) => {
               if (field.area) {
                 return (
-                  <AdminLongTextField
+                  <AdminRichTextField
                     key={field.key}
                     label={field.label}
                     help={field.hint}
                     name={field.key}
                     defaultValue={overrides[field.key] ?? ""}
                     placeholder={SITE_SEO_DEFAULTS[field.key]}
-                    rows={3}
                   />
                 );
               }

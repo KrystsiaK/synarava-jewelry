@@ -11,7 +11,7 @@ import {
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminAlert, AdminHrefField, AdminListWorkspace, AdminLongTextField, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminHrefField, AdminListWorkspace, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
@@ -122,7 +122,7 @@ export function CreatePageForm({
               <AdminTextField label={`URL handle (${code.toUpperCase()}, optional)`} name={fieldName("handle")} placeholder="diario" />
               <AdminTextField label={`Eyebrow (${code.toUpperCase()})`} name={fieldName("eyebrow")} />
             </div>
-            <AdminLongTextField label={`Excerpt (${code.toUpperCase()})`} name={fieldName("excerpt")} rows={3} />
+            <AdminRichTextField label={`Excerpt (${code.toUpperCase()})`} name={fieldName("excerpt")} />
             <AdminRichTextField label={`Body (${code.toUpperCase()})`} name={fieldName("body")} />
             <div className="grid gap-4">
               <AdminTextField label={`CTA label (${code.toUpperCase()})`} name={fieldName("ctaLabel")} />
@@ -135,10 +135,9 @@ export function CreatePageForm({
       })}
 
       <div hidden={activeLocale !== SOURCE_LOCALE}>
-        <AdminLongTextField
+        <AdminRichTextField
           label="Excerpt"
           name="excerpt"
-          rows={3}
           placeholder="Short summary for the page intro and metadata."
         />
       </div>

@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
+import { RichText } from "@/components/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { discountPercent } from "@/lib/shopify/money";
@@ -139,9 +140,10 @@ export function ProductCard({
               {product.title}
             </h3>
             {isFeatured && product.shortDescription && (
-              <p className="mt-2 hidden max-w-md text-sm leading-[1.85] text-foreground/60 md:block md:text-base">
-                {product.shortDescription}
-              </p>
+              <RichText
+                content={product.shortDescription}
+                className="mt-2 hidden max-w-md text-sm leading-[1.85] text-foreground/60 md:block md:text-base"
+              />
             )}
           </div>
           <span className="flex shrink-0 flex-col items-end pt-0.5">

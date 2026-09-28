@@ -87,4 +87,10 @@ describe("rich-text helpers", () => {
     ).toContain('<a href="/shop"');
     expect(normalizeRichTextForStorage("<ul><li><p>One</p></li></ul>")).toContain("<ul>");
   });
+
+  it("stores multi-paragraph copy as HTML so storefront spacing survives", () => {
+    expect(
+      normalizeRichTextForStorage("<p>First paragraph.</p><p>Second paragraph.</p>"),
+    ).toBe("<p>First paragraph.</p><p>Second paragraph.</p>");
+  });
 });

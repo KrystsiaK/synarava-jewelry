@@ -23,7 +23,6 @@ import {
   AdminHrefField,
   AdminIconButton,
   AdminListWorkspace,
-  AdminLongTextField,
   AdminOrderedList,
   AdminOrderedListItemActions,
   AdminRichTextField,
@@ -879,19 +878,17 @@ export function PageEditor({
             value={draft.seoTitle}
             onChange={(event) => updateField("seoTitle", event.target.value)}
           />
-          <AdminLongTextField
+          <AdminRichTextField
             label="Search summary"
             help={<AdminHelp>Fallback search description when SEO description is blank. Not shown in the hero.</AdminHelp>}
             value={draft.excerpt}
             onChange={(value) => updateField("excerpt", value)}
-            rows={3}
           />
-          <AdminLongTextField
+          <AdminRichTextField
             label="SEO description"
             help={<AdminHelp>Optional search-engine result description. Blank uses the search summary.</AdminHelp>}
             value={draft.seoDescription}
             onChange={(value) => updateField("seoDescription", value)}
-            rows={3}
           />
             <HomePageEditorSections
               key={new Date(page.updatedAt).toISOString()}
@@ -981,7 +978,7 @@ export function PageEditor({
 
         {!isHomePage ? (
         <>
-        <AdminLongTextField
+        <AdminRichTextField
           label="Excerpt"
           help={
             isTermsPage ? (
@@ -992,7 +989,6 @@ export function PageEditor({
           }
           value={draft.excerpt}
           onChange={(value) => updateField("excerpt", value)}
-          rows={3}
         />
         <AdminTextField
           label="SEO title"
@@ -1006,12 +1002,11 @@ export function PageEditor({
           value={draft.seoTitle}
           onChange={(event) => updateField("seoTitle", event.target.value)}
         />
-        <AdminLongTextField
+        <AdminRichTextField
           label="SEO description"
           help={<AdminHelp>Optional search-engine result description. Blank uses Excerpt.</AdminHelp>}
           value={draft.seoDescription}
           onChange={(value) => updateField("seoDescription", value)}
-          rows={3}
         />
         </>
         ) : null}

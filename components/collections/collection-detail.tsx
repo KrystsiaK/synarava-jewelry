@@ -10,6 +10,7 @@ import {
 } from "motion/react";
 import Link from "next/link";
 import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
+import { RichText } from "@/components/content/rich-text";
 import type { CollectionSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -18,6 +19,7 @@ import {
   type CollectionProductsCatalogProps,
 } from "@/components/collections/collection-products-catalog";
 import { DEFAULT_COLLECTION_STORY_TITLE } from "@/lib/collections/story-copy";
+import { isRichTextEmpty } from "@/lib/content/rich-text";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -141,14 +143,14 @@ function DetailHero({
           style={{ fontSize: "clamp(3rem,8vw,6rem)" }}
         />
 
-        <motion.p
+        <motion.div
           className="mt-8 max-w-lg text-pretty text-base leading-[1.8] text-foreground/72 md:text-lg"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, delay: 0.6, ease }}
         >
-          {collection.summary}
-        </motion.p>
+          <RichText content={collection.summary} />
+        </motion.div>
 
         {/* CTA */}
         <motion.div
@@ -239,7 +241,7 @@ function ManifestoStrip({
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.15 }}
         >
-          {manifesto}
+          <RichText content={manifesto} />
         </motion.blockquote>
 
         {/* Fixed design ornament — not CMS copy */}
@@ -340,10 +342,11 @@ function CollectionStory({
                 className="max-w-[10.5ch] text-balance leading-[0.93] tracking-[-0.02em]"
                 style={{ fontSize: "clamp(2.45rem,4.4vw,4.45rem)" }}
               />
-              {collection.storyBody.trim() ? (
-                <p className="mt-7 max-w-xl text-base leading-[1.85] text-foreground/68 md:text-[1.04rem]">
-                  {collection.storyBody}
-                </p>
+              {!isRichTextEmpty(collection.storyBody) ? (
+                <RichText
+                  content={collection.storyBody}
+                  className="mt-7 max-w-xl text-base leading-[1.85] text-foreground/68 md:text-[1.04rem]"
+                />
               ) : null}
             </div>
 
@@ -352,13 +355,15 @@ function CollectionStory({
               <p className="mb-4 max-w-[18rem] font-serif leading-tight tracking-[-0.015em]" style={{ fontSize: "clamp(1.35rem,2.1vw,1.85rem)" }}>
                 {collection.symbolismTitle}
               </p>
-              <p className="max-w-md text-sm leading-[1.85] text-foreground/62 md:text-[0.98rem]">
-                {collection.symbolismBody}
-              </p>
-              {collection.symbolismBody2 ? (
-                <p className="mt-4 max-w-md text-sm leading-[1.85] text-foreground/52 md:text-[0.98rem]">
-                  {collection.symbolismBody2}
-                </p>
+              <RichText
+                content={collection.symbolismBody}
+                className="max-w-md text-sm leading-[1.85] text-foreground/62 md:text-[0.98rem]"
+              />
+              {!isRichTextEmpty(collection.symbolismBody2) ? (
+                <RichText
+                  content={collection.symbolismBody2}
+                  className="mt-4 max-w-md text-sm leading-[1.85] text-foreground/52 md:text-[0.98rem]"
+                />
               ) : null}
             </div>
           </motion.div>

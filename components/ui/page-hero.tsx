@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { ease, GRAIN_STYLE } from "@/lib/animation";
 import { DisplayHeading } from "@/components/ui/display-heading";
+import { RichText } from "@/components/content/rich-text";
 
 interface PageHeroProps {
   eyebrow: string;
@@ -91,14 +92,14 @@ export function PageHero({
         />
 
         {description && (
-          <motion.p
+          <motion.div
             className="mt-7 max-w-2xl text-base leading-[1.85] text-muted-ink md:text-lg"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.55, ease }}
           >
-            {description}
-          </motion.p>
+            <RichText content={description} />
+          </motion.div>
         )}
       </motion.div>
 

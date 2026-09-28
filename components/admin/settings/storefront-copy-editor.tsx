@@ -11,7 +11,7 @@ import { FooterLinkColumnEditor } from "@/components/admin/settings/footer-link-
 import { HeaderNavEditor } from "@/components/admin/settings/header-nav-editor";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminAlert, AdminLongTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
+import { AdminAlert, AdminRichTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
 import {
   DEFAULT_FOOTER_LEGAL_LABEL_KEYS,
   DEFAULT_FOOTER_SERVICE_LABEL_KEYS,
@@ -322,13 +322,12 @@ function CopyGroup({
               if (field.area) {
                 return (
                   <div key={locale.code} hidden={hidden} className={field.area ? "md:col-span-2" : undefined}>
-                    <AdminLongTextField
+                    <AdminRichTextField
                       label={localeLabel}
                       help={field.hint}
                       name={name}
                       defaultValue={defaultValue}
                       placeholder={placeholder}
-                      rows={3}
                     />
                   </div>
                 );

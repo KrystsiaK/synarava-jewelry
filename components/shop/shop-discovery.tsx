@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { DisplayHeading } from "@/components/ui/display-heading";
+import { RichText } from "@/components/content/rich-text";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
@@ -108,9 +109,10 @@ export function ShopDiscovery({
                   text={section.title}
                   className="text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
                 />
-                <p className="mt-3 max-w-xl text-sm leading-6 text-muted md:text-base">
-                  {section.description}
-                </p>
+                <RichText
+                  content={section.description}
+                  className="mt-3 max-w-xl text-sm leading-6 text-muted md:text-base"
+                />
               </div>
               <Link
                 href={filterHref(section.filters)}
@@ -141,9 +143,10 @@ export function ShopDiscovery({
               text={text(copy?.productTypeTitle, "shop.discovery.productTypeTitle")}
               className="text-[clamp(2.2rem,5vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
             />
-            <p className="mt-3 text-sm leading-6 text-muted md:text-base">
-              {text(copy?.productTypeDescription, "shop.discovery.productTypeDescription")}
-            </p>
+            <RichText
+              content={text(copy?.productTypeDescription, "shop.discovery.productTypeDescription")}
+              className="mt-3 text-sm leading-6 text-muted md:text-base"
+            />
           </div>
           <div className="grid gap-px overflow-hidden border border-foreground/[0.1] bg-foreground/[0.1] sm:grid-cols-2 lg:grid-cols-4">
             {productTypes.map((productType) => {

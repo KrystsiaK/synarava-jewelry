@@ -6,7 +6,7 @@ import {
   createProductMetafieldDefinitionAction,
   listCustomProductMetafieldDefinitionsAction,
 } from "@/app/admin/actions/sync";
-import { AdminHelp, AdminLongTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import { AdminHelp, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
   customMetafieldTypeFieldName,
@@ -151,11 +151,10 @@ export function ProductMetafieldsPanel({
               <option key={type} value={type}>{type}</option>
             ))}
           </AdminSelectField>
-          <AdminLongTextField
+          <AdminRichTextField
             label="Description"
             value={newDescription}
             onChange={setNewDescription}
-            rows={4}
           />
           <div className="flex flex-wrap gap-2">
             <button
@@ -217,7 +216,7 @@ export function ProductMetafieldsPanel({
               <div key={definition.id} className="grid gap-1">
                 <input type="hidden" name={typeName} value={definition.type} readOnly />
                 {definition.type.includes("multi_line") ? (
-                  <AdminLongTextField
+                  <AdminRichTextField
                     label={definition.name}
                     help={help}
                     name={valueName}

@@ -172,7 +172,7 @@ legacy cover, пока не загружены изображения галер
 локальный редакторский слой, который Shopify-синхронизация не трогает.
 Поля форм собираются **только** через библиотеку **synarava-cms**
 (`@/components/synarava-cms`: `AdminTextField` / `AdminSelectField` /
-`AdminHrefField` / `AdminCheckboxField` / `AdminLongTextField` и shell). Контракт —
+`AdminHrefField` / `AdminCheckboxField` / `AdminRichTextField` и shell). Контракт —
 в [`synarava-cms.md`](./synarava-cms.md); агентам — skill `synarava-cms`.
 
 - Серия (`seriesLabel`), краткое и полное описание.
@@ -409,7 +409,7 @@ legacy cover, пока не загружены изображения галер
   тексты — по локали. Сохранённый список на витрине авторитетен (пустые поля
   остаются пустыми). Пока документ не создан, витрина показывает shipped
   defaults из кода. На `/terms-and-conditions` шапка читает поля **Eyebrow**
-  и **Excerpt** той же вкладки локали (`AdminTextField` / `AdminLongTextField`).
+  и **Excerpt** той же вкладки локали (`AdminTextField` / `AdminRichTextField`).
   Пустое поле заменяется языковым дефолтом (RU eyebrow
   `ЮРИДИЧЕСКАЯ ИНФОРМАЦИЯ`, RU excerpt — абзац об условиях продажи; PT eyebrow
   `INFORMAÇÃO LEGAL`; EN — текущие английские строки). Сохранённое значение

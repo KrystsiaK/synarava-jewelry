@@ -4,7 +4,7 @@ import {
   AdminCheckboxField,
   AdminCollapsiblePanel,
   AdminHelp,
-  AdminLongTextField,
+  AdminRichTextField,
   AdminReadonlyField,
   AdminTextField,
 } from "@/components/synarava-cms";
@@ -170,11 +170,10 @@ export function ProductPassportFields({
                     <div key={definition.key} className={showOverlay ? "contents" : undefined}>
                       <div hidden={showOverlay}>
                         {"multiline" in definition && definition.multiline ? (
-                          <AdminLongTextField
+                          <AdminRichTextField
                             name={enName}
                             label={enLabel}
                             defaultValue={String(current.value)}
-                            rows={3}
                             className="col-span-full"
                           />
                         ) : (
@@ -188,11 +187,10 @@ export function ProductPassportFields({
                       </div>
                       {showOverlay ? (
                         "multiline" in definition && definition.multiline ? (
-                          <AdminLongTextField
+                          <AdminRichTextField
                             label={label}
                             value={overlayValue}
                             onChange={(value) => onTextOverlayChange?.(definition.key, value)}
-                            rows={3}
                             className="col-span-full"
                             placeholder={String(current.value) || undefined}
                           />

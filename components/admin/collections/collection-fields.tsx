@@ -17,7 +17,7 @@ import { DEFAULT_COLLECTION_STORY_TITLE } from "@/lib/collections/story-copy";
 import {
   AdminCheckboxControl,
   AdminHelp,
-  AdminLongTextField,
+  AdminRichTextField,
   AdminSelectField,
   AdminTextField,
   FieldLabel,
@@ -365,7 +365,7 @@ export function CollectionFields({
         </section>
       </div>
 
-      <AdminLongTextField
+      <AdminRichTextField
         label="Collection summary"
         owner="Shopify"
         required={isEn}
@@ -381,7 +381,6 @@ export function CollectionFields({
           }
         }}
         error={isEn ? fieldErrors?.description : undefined}
-        rows={3}
         placeholder={isEn ? "This text appears on the collection card and collection hero." : "Optional — shows the English summary until filled in."}
       />
 
@@ -393,17 +392,16 @@ export function CollectionFields({
           onChange={(event) => onChange("seoTitle", event.target.value)}
           placeholder="Search result title"
         />
-        <AdminLongTextField
+        <AdminRichTextField
           label="SEO description"
           owner="Shopify"
           value={draft.seoDescription}
           onChange={(value) => onChange("seoDescription", value)}
-          rows={2}
           placeholder="Search result description"
         />
       </div>
 
-      <AdminLongTextField
+      <AdminRichTextField
         label="Manifesto"
         owner="Synarava"
         required={isEn}
@@ -419,11 +417,10 @@ export function CollectionFields({
           }
         }}
         error={isEn ? fieldErrors?.manifesto : undefined}
-        rows={4}
         placeholder={isEn ? "This text powers the manifesto strip on the collection page." : "Optional — shows the English manifesto until filled in."}
       />
 
-      <AdminLongTextField
+      <AdminRichTextField
         label="Search summary"
         owner="Synarava"
         required={isEn}
@@ -439,7 +436,6 @@ export function CollectionFields({
           }
         }}
         error={isEn ? fieldErrors?.searchSummary : undefined}
-        rows={2}
         placeholder={isEn ? "Short search/discovery helper text." : "Optional — shows the English summary until filled in."}
       />
 
@@ -464,12 +460,11 @@ export function CollectionFields({
           onChange={(e) => (isEn ? onChange("storyTitle", e.target.value) : updateActiveTranslation("storyTitle", e.target.value))}
           placeholder={isEn ? DEFAULT_COLLECTION_STORY_TITLE : "Optional — shows the English heading until filled in."}
         />
-        <AdminLongTextField
+        <AdminRichTextField
           label="Story paragraph"
           owner="Synarava"
           value={isEn ? draft.storyBody : active!.storyBody}
           onChange={(value) => (isEn ? onChange("storyBody", value) : updateActiveTranslation("storyBody", value))}
-          rows={4}
           placeholder={isEn ? "Paragraph under the story heading. Leave empty to hide it." : "Optional — shows the English paragraph until filled in."}
         />
       </div>
@@ -505,18 +500,16 @@ export function CollectionFields({
           />
         </div>
 
-        <AdminLongTextField
+        <AdminRichTextField
           label="Symbolism body"
           value={isEn ? draft.symbolismBody : active!.symbolismBody}
           onChange={(value) => (isEn ? onChange("symbolismBody", value) : updateActiveTranslation("symbolismBody", value))}
-          rows={4}
         />
 
-        <AdminLongTextField
+        <AdminRichTextField
           label="Symbolism secondary body"
           value={isEn ? draft.symbolismBody2 : active!.symbolismBody2}
           onChange={(value) => (isEn ? onChange("symbolismBody2", value) : updateActiveTranslation("symbolismBody2", value))}
-          rows={3}
         />
       </div>
 

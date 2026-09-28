@@ -90,9 +90,20 @@ beforeEach(() => {
 async function applyLongText(user: ReturnType<typeof userEvent.setup>, label: string, value: string) {
   await user.click(screen.getByRole("button", { name: `Edit ${label}` }));
   const dialog = await screen.findByRole("dialog");
-  const editor = within(dialog).getByRole("textbox", { name: label });
-  await user.clear(editor);
-  await user.type(editor, value);
+  const editor = await waitFor(() => {
+    const rich = dialog.querySelector<HTMLElement>(".adm-rich-text-editor__surface");
+    if (rich) return rich;
+    const area = dialog.querySelector<HTMLTextAreaElement>("textarea");
+    if (area) return area;
+    throw new Error(`Editor for ${label} not ready`);
+  });
+  editor.focus();
+  if (editor instanceof HTMLTextAreaElement) {
+    await user.clear(editor);
+    await user.type(editor, value);
+  } else {
+    await user.paste(value);
+  }
   await user.click(within(dialog).getByRole("button", { name: "Apply changes" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 }
@@ -101,7 +112,7 @@ function longTextPreview(label: string | RegExp) {
   const button = screen.getByRole("button", {
     name: typeof label === "string" ? `Edit ${label}` : new RegExp(`Edit ${label.source}`, label.flags),
   });
-  return button.closest("[data-component='AdminLongTextField']")?.querySelector(".adm-long-text-preview__copy");
+  return button.closest("[data-component='AdminRichTextField']")?.querySelector(".adm-long-text-preview__copy");
 }
 
 describe("EditCollectionForm", () => {
