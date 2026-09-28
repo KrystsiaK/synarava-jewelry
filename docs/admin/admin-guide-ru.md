@@ -427,6 +427,11 @@ legacy cover, пока не загружены изображения галер
 
 ## 7a. Shared (`/admin/settings`)
 
+Четыре вкладки: **Header**, **Footer**, **Cookies**, **Contact**. Язык — полоса
+LOCALE над ними. Одна кнопка **Save Shared** пишет все вкладки сразу. Боковое
+меню ведёт на ту же вкладку (`#shared-header`, `#shared-footer`,
+`#shared-cookies`, `#shared-contact`).
+
 - **Header — main links:** ordered list of name + path (storefront path autocomplete).
   Add/remove/reorder like other CMS lists. Path is shared across locales; name is
   per locale. Empty name falls back to the shipped default for Home / Shop /

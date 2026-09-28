@@ -1,5 +1,4 @@
 import { COMMERCE_COPY_GROUPS } from "@/lib/content/commerce-copy-fields";
-import { STOREFRONT_COPY_GROUPS } from "@/lib/content/storefront-copy-fields";
 
 /** Attention signal for a nav node (open problems and/or Shopify sync conflicts). */
 export type AdminNavSignal = "issue" | "sync" | "both";
@@ -193,36 +192,10 @@ export function buildCommerceCopyNavChildren(): AdminNavChildConfig[] {
 
 export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
   return [
-    {
-      id: "settings-header-main",
-      href: "/admin/settings#copy-header-main",
-      label: "Header — main links",
-    },
-    {
-      id: "settings-footer-service",
-      href: "/admin/settings#copy-footer-service",
-      label: "Footer — service links",
-    },
-    {
-      id: "settings-footer-emails",
-      href: "/admin/settings#copy-footer-emails",
-      label: "Footer — contact emails",
-    },
-    {
-      id: "settings-footer-legal",
-      href: "/admin/settings#copy-footer-legal",
-      label: "Footer — legal links",
-    },
-    {
-      id: "settings-footer-socials",
-      href: "/admin/settings#copy-footer-socials",
-      label: "Footer — social links",
-    },
-    ...STOREFRONT_COPY_GROUPS.map((group) => ({
-      id: `settings-${group.id}`,
-      href: `/admin/settings#copy-${group.id}`,
-      label: group.title,
-    })),
+    { id: "settings-header", href: "/admin/settings#shared-header", label: "Header" },
+    { id: "settings-footer", href: "/admin/settings#shared-footer", label: "Footer" },
+    { id: "settings-cookies", href: "/admin/settings#shared-cookies", label: "Cookies" },
+    { id: "settings-contact", href: "/admin/settings#shared-contact", label: "Contact" },
   ];
 }
 
@@ -273,7 +246,7 @@ export function buildAdminNavItems({
       label: "Shared",
       code: "SHR",
       children: buildStorefrontCopyNavChildren(),
-      childPreviewLimit: 12,
+      childPreviewLimit: 4,
       badge: syncBadge(sync.settings),
     },
     {

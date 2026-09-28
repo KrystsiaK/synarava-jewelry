@@ -25,7 +25,10 @@ const EN_PT_LOCALES = [
 const defaultHeaderNav = { items: DEFAULT_HEADER_NAV_ITEMS, labels: {} };
 const defaultFooter = defaultFooterLinks();
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  window.history.replaceState(null, "", "/admin/settings");
+});
 
 describe("StorefrontCopyEditor", () => {
   it("switches to the Portuguese panel, hiding EN fields and showing independent PT values", async () => {
@@ -41,6 +44,7 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
+    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
     expect(screen.getByLabelText("Tagline (under the logo) (EN)")).toBeVisible();
     expect(screen.getByLabelText("Tagline (under the logo) (PT)")).not.toBeVisible();
 
@@ -65,6 +69,7 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
+    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
     await user.type(screen.getByLabelText("Tagline (under the logo) (EN)"), "Bag");
     await user.click(screen.getByRole("tab", { name: "Português" }));
     await user.type(screen.getByLabelText("Tagline (under the logo) (PT)"), "Saco");
@@ -98,6 +103,7 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
+    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
     await user.click(screen.getByRole("tab", { name: "Русский" }));
     expect(screen.getByLabelText("Tagline (under the logo) (RU)")).toBeVisible();
     expect(screen.getByLabelText("Tagline (under the logo) (RU)")).toHaveValue("Слоган");
@@ -127,7 +133,8 @@ describe("StorefrontCopyEditor", () => {
     expect(within(headerSection).getByRole("list", { name: "Main links" }).querySelectorAll("[data-component='AdminHrefField']")).toHaveLength(5);
   });
 
-  it("exposes footer link editors and contact emails instead of label-only service/legal rows", () => {
+  it("exposes header, footer, cookies, and contact as separate areas", async () => {
+    const user = userEvent.setup();
     render(
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {} }}
@@ -139,8 +146,12 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    expect(screen.getByText("Footer — service links")).toBeInTheDocument();
-    expect(screen.getByText("Footer — legal links")).toBeInTheDocument();
+    expect(screen.getByText("Header — main links")).toBeVisible();
+    expect(screen.queryByText("Legal line")).not.toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
+    expect(screen.getByText("Service column")).toBeVisible();
+    expect(screen.getByText("Legal line")).toBeVisible();
     const legal = JSON.parse(
       (document.querySelector('input[name="footerLegalLinks"]') as HTMLInputElement).value,
     ) as { items: Array<{ id: string; href: string }> };
@@ -152,16 +163,18 @@ describe("StorefrontCopyEditor", () => {
       "dispute",
     ]);
     expect(legal.items.map((item) => item.href)).not.toContain("/legal-notice");
-    expect(screen.getByText("Footer — social links")).toBeInTheDocument();
-    expect(screen.getByText("Footer — contact emails")).toBeInTheDocument();
+    expect(screen.getByText("Social column")).toBeVisible();
+    expect(screen.getByText("Footer — contact emails")).toBeVisible();
     expect(screen.getByRole("textbox", { name: "Email (primary)" })).toHaveValue("ops@synarava.com");
-    expect(screen.getByText("Shared — contact CTA")).toBeInTheDocument();
-    expect(screen.getByText("Cookies — banner & preferences")).toBeInTheDocument();
-    expect(screen.getByText("Cookies — settings page")).toBeInTheDocument();
-    expect(screen.getByLabelText("Banner title (EN)")).toBeInTheDocument();
-    expect(screen.getByLabelText("SEO title (EN)")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("tab", { name: /^Cookies/ }));
+    expect(screen.getByText("Cookies — banner & preferences")).toBeVisible();
+    expect(screen.getByText("Cookies — settings page")).toBeVisible();
+    expect(screen.getByLabelText("Banner title (EN)")).toBeVisible();
+    expect(screen.getByLabelText("SEO title (EN)")).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: /^Contact/ }));
+    expect(screen.getByText("Shared — contact CTA")).toBeVisible();
     expect(screen.queryByLabelText("Care Guide (EN)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Privacy Policy (EN)")).not.toBeInTheDocument();
-    expect(screen.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);
   });
 });

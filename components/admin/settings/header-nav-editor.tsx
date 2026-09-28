@@ -22,6 +22,8 @@ type HeaderNavEditorProps = {
   /** Shipped message fallbacks for placeholders (flattened `nav.*` keys). */
   labelPlaceholders: Record<string, string>;
   locales: Array<{ code: string }>;
+  /** Inside a tab well — no second card around the fields. */
+  embedded?: boolean;
 };
 
 /**
@@ -33,6 +35,7 @@ export function HeaderNavEditor({
   activeLocale,
   labelPlaceholders,
   locales,
+  embedded = false,
 }: HeaderNavEditorProps) {
   const [items, setItems] = useState<HeaderNavItem[]>(() => initial.items.map((item) => ({ ...item })));
   const [labels, setLabels] = useState<Record<string, Record<string, string>>>(() => {
@@ -68,7 +71,7 @@ export function HeaderNavEditor({
   }
 
   return (
-    <section id="copy-header-main" className="adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24">
+    <section id="copy-header-main" className={embedded ? "grid gap-4 scroll-mt-24" : "adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24"}>
       <div>
         <p className="adm-section-tag">Header — main links</p>
         <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>

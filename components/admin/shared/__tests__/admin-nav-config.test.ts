@@ -65,9 +65,12 @@ describe("admin-nav-config", () => {
     expect(pages?.children).toHaveLength(2);
     expect(pages?.children?.[0]).toMatchObject({ href: "/admin/pages/home", label: "Home" });
     expect(pages?.badge).toEqual({ kind: "sync", count: 2 });
-    expect(settings?.children?.some((child) => child.href.includes("#copy-header-main"))).toBe(
-      true,
-    );
+    expect(settings?.children?.map((child) => child.label)).toEqual([
+      "Header",
+      "Footer",
+      "Cookies",
+      "Contact",
+    ]);
     expect(settings?.badge).toEqual({ kind: "sync", count: 1 });
     expect(commerce).toMatchObject({ href: "/admin/commerce", label: "Cart & account", code: "BAG" });
     expect(commerce?.children?.some((child) => child.href.includes("#commerce-cart"))).toBe(true);

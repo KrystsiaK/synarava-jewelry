@@ -17,6 +17,8 @@ type EmailRow = { id: string; email: string };
 
 type FooterEmailsEditorProps = {
   initialEmails: string[];
+  /** Inside a tab well — no second card around the fields. */
+  embedded?: boolean;
 };
 
 function createRowId(): string {
@@ -29,14 +31,14 @@ function createRowId(): string {
 /**
  * Ordered contact emails for the footer (and primary CTA = first row).
  */
-export function FooterEmailsEditor({ initialEmails }: FooterEmailsEditorProps) {
+export function FooterEmailsEditor({ initialEmails, embedded = false }: FooterEmailsEditorProps) {
   const [rows, setRows] = useState<EmailRow[]>(() => {
     const source = initialEmails.length > 0 ? initialEmails : [DEFAULT_FOOTER_CONTACT_EMAIL];
     return source.map((email) => ({ id: createRowId(), email }));
   });
 
   return (
-    <section id="copy-footer-emails" className="adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24">
+    <section id="copy-footer-emails" className={embedded ? "grid gap-4 scroll-mt-24" : "adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24"}>
       <div>
         <p className="adm-section-tag">Footer — contact emails</p>
         <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>

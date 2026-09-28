@@ -1315,22 +1315,23 @@ html[data-theme="dark"] .final-sigil__edge {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  column-gap: 0.7rem;
-  row-gap: 0.35rem;
+  gap: 0.35rem 0;
   border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
-  padding-top: 1.15rem;
+  padding-top: 1.35rem;
+  padding-bottom: 0.35rem;
   text-align: center;
 }
 
 .artifact-footer__legal-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
 }
 
 .artifact-footer__legal-sep {
-  color: color-mix(in srgb, var(--color-muted) 38%, transparent);
-  font-size: 0.62rem;
+  /* rhythm owned by the separator so the middot never sits flush against the words */
+  margin-inline: 0.75rem;
+  color: color-mix(in srgb, var(--color-muted) 55%, transparent);
+  font-size: 0.68rem;
   line-height: 1;
 }
 

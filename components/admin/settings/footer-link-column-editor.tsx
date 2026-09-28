@@ -30,6 +30,8 @@ type FooterLinkColumnEditorProps = {
   minItems?: number;
   hrefPlaceholder?: string;
   allowExternalHint?: boolean;
+  /** Inside a tab well — no second card around the fields. */
+  embedded?: boolean;
 };
 
 /**
@@ -49,6 +51,7 @@ export function FooterLinkColumnEditor({
   minItems = 0,
   hrefPlaceholder = "/care",
   allowExternalHint = false,
+  embedded = false,
 }: FooterLinkColumnEditorProps) {
   const [items, setItems] = useState<FooterLinkItem[]>(() => initial.items.map((item) => ({ ...item })));
   const [labels, setLabels] = useState<Record<string, Record<string, string>>>(() => {
@@ -83,7 +86,7 @@ export function FooterLinkColumnEditor({
   }
 
   return (
-    <section id={`copy-footer-${columnId}`} className="adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24">
+    <section id={`copy-footer-${columnId}`} className={embedded ? "grid gap-4 scroll-mt-24" : "adm-panel grid gap-4 p-5 md:p-6 scroll-mt-24"}>
       <div>
         <p className="adm-section-tag">{title}</p>
         <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
