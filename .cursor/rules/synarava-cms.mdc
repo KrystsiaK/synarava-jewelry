@@ -1,0 +1,13 @@
+---
+description: Admin UI must use synarava-cms. Missing pieces are added to the library, not invented beside it.
+alwaysApply: true
+---
+
+# synarava-cms
+
+Admin UI (`components/admin/`, `app/admin/`) uses `@/components/synarava-cms`. Do not invent a parallel header, tab row, field, or card.
+
+- Locale + section editors use the product shell: `AdminPanel.Header` with `adm-panel__header--ruled` and `AdminLocaleTabs` `embedded`, then `AdminSectionTabs` `embedded` in `AdminPanel.Body`. Inset fields with `adm-inset-x`.
+- Standalone `AdminSectionTabs` draws its own border and top radius. Inside a locale frame that strip climbs out of the 3px border.
+- If the control does not exist, add it under `components/admin/shared`, re-export it from `@/components/synarava-cms`, and use that. One control, one chrome.
+- Contract: `docs/admin/synarava-cms.md`. Skill: `synarava-cms`.

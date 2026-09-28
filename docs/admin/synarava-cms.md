@@ -348,6 +348,8 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
 Tokens: `--adm-cool`, `--adm-cool-soft`, `--adm-tab-well`, `--adm-conflict-soft`.  
 Product editor uses this via `ProductEditorTabs` (always grouped). Story: `synarava-cms/AdminSectionTabs`.
 
+Locale editors (product, Shared) share one shell. `AdminPanel.Header` with `adm-panel__header--ruled` holds `AdminLocaleTabs` `embedded`. `AdminPanel.Body` holds `AdminSectionTabs` `embedded`. Field inset is `adm-inset-x`. Standalone `AdminSectionTabs` (its own border and top radius) is only for a tab strip that *is* the card. Nested inside a locale frame it climbs out of the 3px border.
+
 Switching a product section settles the title, intro copy, and section mark on a critically damped spring (no overshoot, about 0.4s). Copy and the mark shift a few pixels from the direction of the tab; the form body only fades, so fields do not slide. `prefers-reduced-motion` keeps a short opacity cross-fade and skips the shift.
 
 ### Entity list (tables)

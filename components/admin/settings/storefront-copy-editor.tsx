@@ -12,7 +12,7 @@ import { HeaderNavEditor } from "@/components/admin/settings/header-nav-editor";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { AuthMessage } from "@/components/auth/auth-form-primitives";
-import { AdminLongTextField, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
+import { AdminLongTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
 import {
   DEFAULT_FOOTER_LEGAL_LABEL_KEYS,
   DEFAULT_FOOTER_SERVICE_LABEL_KEYS,
@@ -114,22 +114,27 @@ export function StorefrontCopyEditor({
   }
 
   return (
-    <form action={formAction} className="adm-panel">
-      <AdminLocaleTabs
-        active={activeLocale}
-        onSelect={selectLocale}
-        locales={locales}
-        ptStatus={ptStatus}
-      />
-      <div className="grid gap-5 px-adm-inset pt-5 pb-6">
-        <AuthMessage error={state.error} />
+    <form action={formAction}>
+      <AuthMessage error={state.error} />
+      <AdminPanel.Root>
+        <AdminPanel.Header sticky stickyBand="locale" className="adm-panel__header--ruled">
+          <AdminLocaleTabs
+            embedded
+            active={activeLocale}
+            onSelect={selectLocale}
+            locales={locales}
+            ptStatus={ptStatus}
+          />
+        </AdminPanel.Header>
+        <AdminPanel.Body>
         <AdminSectionTabs
+          embedded
           aria-label="Shared areas"
           active={area}
           onChange={selectArea}
           items={SHARED_AREAS.map((item) => ({ id: item.id, label: item.label, detail: item.detail }))}
         >
-          <div className="grid gap-8 px-5 py-6 md:px-6">
+          <div className="adm-inset-x grid gap-8 py-5">
             <div id="shared-header" hidden={area !== "header"} className="grid gap-10">
               <HeaderNavEditor
                 embedded
@@ -251,7 +256,7 @@ export function StorefrontCopyEditor({
           </div>
         </AdminSectionTabs>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>
+        <div className="adm-inset-x flex flex-wrap items-center justify-between gap-3 border-t py-4" style={{ borderColor: "var(--adm-border)" }}>
           <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
             Save writes header, footer, cookies, and contact together.
           </p>
@@ -259,7 +264,8 @@ export function StorefrontCopyEditor({
             {isPending ? "Saving..." : "Save Shared"}
           </button>
         </div>
-      </div>
+        </AdminPanel.Body>
+      </AdminPanel.Root>
     </form>
   );
 }

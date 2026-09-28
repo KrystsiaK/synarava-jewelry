@@ -49,6 +49,8 @@ Rules:
 ## synarava-cms
 
 - Admin UI under `components/admin/` must reuse **synarava-cms** (`AdminTextField`, `AdminReadonlyField`, `AdminSelectField`, `AdminHrefField` / `AdminHrefControl`, `AdminCheckboxField` / `AdminCheckboxControl`, `AdminLongTextField`, `AdminRichTextField`, `AdminCollapsiblePanel`, `AdminPanel`, `AdminNavTree`, `AdminSectionTabs`, `AdminEntityList`, `AdminListWorkspace`, `AdminOrderedList`, `AdminIconButton`, `AdminSignalChip`, `AdminSortChips`, `AdminStatusBadge`, `AdminFieldShell`). Prefer imports from `@/components/synarava-cms`. Do not invent parallel raw field markup.
+- Locale + section editors use the product shell: `AdminPanel.Header` (`adm-panel__header--ruled`) with `AdminLocaleTabs embedded`, then `AdminSectionTabs embedded` in `AdminPanel.Body`, content inset via `adm-inset-x`. Never a standalone tab strip or a second bordered card inside the locale frame — that strip draws its own border and climbs out of the frame.
+- If the control does not exist in synarava-cms, add it there and use it. Do not ship a one-off header, tab row, or field.
 - Sticky chrome uses shared rhythm (`.adm-band`, `--adm-inset-x` / Tailwind `px-adm-inset`, `.adm-band--sticky-radius`) — one horizontal gutter inside panels; no ad-hoc `px-*` / `py-*` on headers.
 - Contract: [`docs/admin/synarava-cms.md`](docs/admin/synarava-cms.md). Skill: `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`).
 

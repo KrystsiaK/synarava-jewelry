@@ -46,6 +46,8 @@ When the user says **общий компонент**, **shared control**, or **l
 6. **Help** is a blue Playfair italic `i` beside the label (`AdminHelp` / `help` prop, `--adm-info`): larger than the kicker (about `1.05rem`), lifted just above the caps, real italic with no stroke. The trigger hugs the stem (gap `0.18rem`) and stays inside the label row so help does not shift the control. Hover lays a soft disc behind the mark. Tags are ink hints: first one waits, the next in a short window opens immediately, touch-hold shows the tag without clicking. Buttons, chips, help, and checkboxes share a 0.97 press; `.adm-btn-secondary` matches `.adm-btn-ghost`.
 7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
 8. After contract changes, update `docs/admin/synarava-cms.md` and this skill (keep `.agents` + `.claude` copies in sync); run `graphify update .`.
+9. **Missing control → library.** If synarava-cms has no piece for the job, add it under `components/admin/shared`, re-export it, and use that. Do not ship a one-off header, tab row, or field.
+10. **Locale shell.** Editors with a language strip and section tabs use the product shell: `AdminPanel.Header` (`adm-panel__header--ruled`) + `AdminLocaleTabs embedded`, then `AdminSectionTabs embedded` in `AdminPanel.Body`. Content inset is `adm-inset-x`. Standalone `AdminSectionTabs` draws its own border and climbs out of the locale frame.
 
 ## Product admin model
 

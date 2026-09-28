@@ -148,6 +148,10 @@ describe("StorefrontCopyEditor", () => {
 
     expect(screen.getByText("Header — main links")).toBeVisible();
     expect(screen.queryByText("Legal line")).not.toBeVisible();
+    expect(document.querySelector("[data-component='AdminPanel']")).toBeTruthy();
+    expect(document.querySelector(".adm-section-tabs")).toHaveAttribute("data-embedded", "true");
+    expect(document.querySelector(".adm-locale-workspace-header--embedded")).toBeTruthy();
+    expect(document.querySelector(".adm-section-tabs__list--standalone")).toBeNull();
 
     await user.click(screen.getByRole("tab", { name: /^Footer/ }));
     expect(screen.getByText("Service column")).toBeVisible();
