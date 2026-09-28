@@ -538,7 +538,11 @@ fields. Soft meters only (60 / 160); not a Yoast-style score. Pair with
 the SEO fields’ `warning` prop.
 
 ```tsx
-import { AdminSerpPreview, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminRichTextField,
+  AdminSerpPreview,
+  AdminTextField,
+} from "@/components/synarava-cms";
 import {
   resolveSerpTitle,
   resolveSerpDescription,
@@ -553,7 +557,7 @@ import { localePath } from "@/lib/i18n/routing";
   warning={seoTitleWarning(seoTitle)}
   onChange={…}
 />
-<AdminLongTextField
+<AdminRichTextField
   label="SEO description"
   value={seoDescription}
   warning={seoDescriptionWarning(seoDescription)}
@@ -566,6 +570,7 @@ import { localePath } from "@/lib/i18n/routing";
 />
 ```
 
+- Preview + soft meters count **plain** text (`plainTextFromRichText`).
 - Applied on product, collection, and page SEO clusters.
 - URL host defaults from `NEXT_PUBLIC_SITE_URL` / `APP_URL`, else `synarava.com`.
 

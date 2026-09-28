@@ -18,7 +18,6 @@ import {
   AdminSerpPreview,
   AdminTextField,
 } from "@/components/synarava-cms";
-import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { localePath } from "@/lib/i18n/routing";
 import {
   resolveSerpDescription,
@@ -833,7 +832,7 @@ export function ProductFormFields({
           description={resolveSerpDescription(
             coreDraft.seoDescription,
             coreDraft.shortDescription,
-            plainTextFromRichText(coreDraft.description),
+            coreDraft.description,
           )}
           path={localePath(
             activeLocale,

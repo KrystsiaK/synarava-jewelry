@@ -19,8 +19,11 @@ describe("resolveSerpTitle", () => {
 });
 
 describe("resolveSerpDescription", () => {
-  it("prefers seo description then fallbacks", () => {
+  it("prefers seo description then fallbacks, stripping rich text", () => {
     expect(resolveSerpDescription("Seo desc", "Excerpt")).toBe("Seo desc");
+    expect(resolveSerpDescription("<p>Seo <strong>desc</strong></p>", "Excerpt")).toBe(
+      "Seo desc",
+    );
     expect(resolveSerpDescription("", "Excerpt")).toBe("Excerpt");
     expect(resolveSerpDescription(null)).toBe("");
   });
@@ -39,12 +42,15 @@ describe("serpDisplayUrl", () => {
 });
 
 describe("seo length warnings", () => {
-  it("warns only past soft limits", () => {
+  it("warns only past soft limits, counting plain text", () => {
     expect(seoTitleWarning("a".repeat(SEO_TITLE_SOFT_MAX))).toBeUndefined();
     expect(seoTitleWarning("a".repeat(SEO_TITLE_SOFT_MAX + 1))).toMatch(/soft limit 60/);
     expect(seoDescriptionWarning("a".repeat(SEO_DESCRIPTION_SOFT_MAX))).toBeUndefined();
     expect(seoDescriptionWarning("a".repeat(SEO_DESCRIPTION_SOFT_MAX + 1))).toMatch(
       /soft limit 160/,
     );
+    expect(
+      seoDescriptionWarning(`<p>${"a".repeat(SEO_DESCRIPTION_SOFT_MAX)}</p>`),
+    ).toBeUndefined();
   });
 });
