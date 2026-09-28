@@ -19,9 +19,17 @@ import {
   AdminHelp,
   AdminRichTextField,
   AdminSelectField,
+  AdminSerpPreview,
   AdminTextField,
   FieldLabel,
 } from "@/components/synarava-cms";
+import { localePath } from "@/lib/i18n/routing";
+import {
+  resolveSerpDescription,
+  resolveSerpTitle,
+  seoDescriptionWarning,
+  seoTitleWarning,
+} from "@/lib/seo/serp-preview";
 
 export { FieldLabel } from "@/components/synarava-cms";
 
@@ -389,6 +397,7 @@ export function CollectionFields({
           label="SEO title"
           owner="Shopify"
           value={draft.seoTitle}
+          warning={seoTitleWarning(draft.seoTitle)}
           onChange={(event) => onChange("seoTitle", event.target.value)}
           placeholder="Search result title"
         />
@@ -396,8 +405,20 @@ export function CollectionFields({
           label="SEO description"
           owner="Shopify"
           value={draft.seoDescription}
+          warning={seoDescriptionWarning(draft.seoDescription)}
           onChange={(value) => onChange("seoDescription", value)}
           placeholder="Search result description"
+        />
+      </div>
+      <div hidden={!isEn}>
+        <AdminSerpPreview
+          title={resolveSerpTitle(draft.seoTitle, draft.name)}
+          description={resolveSerpDescription(
+            draft.seoDescription,
+            draft.searchSummary,
+            draft.description,
+          )}
+          path={localePath("en", `/collections/${draft.slug.trim() || "slug"}`)}
         />
       </div>
 

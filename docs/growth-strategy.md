@@ -341,6 +341,8 @@ the same transaction ID and no PII in analytics.
   `sameAs` from footer socials.
 - [x] Open Graph `locale` / `alternateLocale` from published storefront locales
   (`en_IE` / `pt_PT` / `ru_RU`).
+- [x] Admin SERP preview + soft 60/160 char warnings on product/collection/page
+  SEO fields.
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.

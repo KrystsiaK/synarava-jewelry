@@ -533,8 +533,9 @@ This copy is not synced to Shopify.
   **SEO description**; пустые значения падают на Title / Excerpt). SEO
   коллекций и товаров — в **Collections** / **Catalog** и уходит в Shopify
   `meta_title` / `meta_description`. На витрине collection/page metadata
-  читает эти SEO-поля с тем же fallback. Раздел Meta не является редактором
-  Shopify metafields.
+  читает эти SEO-поля с тем же fallback. Рядом с SEO-полями — **Search
+  preview** (как в выдаче) и мягкие лимиты 60 / 160 символов (предупреждение,
+  не блокер публикации). Раздел Meta не является редактором Shopify metafields.
 - Хаб-ссылки на Pages, Catalog и Localization помогают не искать SEO в
   неверном месте.
 

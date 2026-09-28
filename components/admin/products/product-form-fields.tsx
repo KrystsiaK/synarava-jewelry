@@ -15,8 +15,17 @@ import {
   AdminHelp,
   AdminRichTextField,
   AdminSelectField,
+  AdminSerpPreview,
   AdminTextField,
 } from "@/components/synarava-cms";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
+import { localePath } from "@/lib/i18n/routing";
+import {
+  resolveSerpDescription,
+  resolveSerpTitle,
+  seoDescriptionWarning,
+  seoTitleWarning,
+} from "@/lib/seo/serp-preview";
 import { slugify } from "@/lib/text/slug";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
@@ -804,6 +813,7 @@ export function ProductFormFields({
           label="SEO title"
           owner="Shopify"
           value={coreDraft.seoTitle}
+          warning={seoTitleWarning(coreDraft.seoTitle)}
           onChange={(event) => updateCore("seoTitle", event.target.value)}
         />
         <AdminRichTextField
@@ -811,7 +821,24 @@ export function ProductFormFields({
           owner="Shopify"
           dialogLabel="SEO description"
           value={coreDraft.seoDescription}
+          warning={seoDescriptionWarning(coreDraft.seoDescription)}
           onChange={(value) => updateCore("seoDescription", value)}
+        />
+        <AdminSerpPreview
+          title={resolveSerpTitle(
+            coreDraft.seoTitle,
+            isEn ? nameValue : titleByLocale[activeLocale],
+            nameValue,
+          )}
+          description={resolveSerpDescription(
+            coreDraft.seoDescription,
+            coreDraft.shortDescription,
+            plainTextFromRichText(coreDraft.description),
+          )}
+          path={localePath(
+            activeLocale,
+            `/products/${(isEn ? slugValue : handleByLocale[activeLocale] || slugValue).trim() || "slug"}`,
+          )}
         />
       </div>
 

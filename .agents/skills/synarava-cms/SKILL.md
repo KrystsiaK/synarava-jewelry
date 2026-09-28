@@ -73,6 +73,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Status / workflow pill | `AdminStatusBadge` |
 | Ordered rows (up/down; DnD later) | `AdminOrderedList` |
 | Form-level error / success banner | `AdminAlert` — transparent wash, `--adm-danger-ink`. Not `AuthMessage` |
+| SEO search listing preview | `AdminSerpPreview` + `lib/seo/serp-preview` soft 60/160 warnings on SEO fields |
 | Admin dialog / confirm | `AdminModal` / `AdminConfirmModal` — 14px sheet, dimmed page, no bounce. Not storefront `.t-modal` |
 | Sticky band padding / vertical rhythm | `.adm-band` + `--adm-inset-x` (Tailwind `px-adm-inset`); `--sticky-radius` when first sticky under panel |
 | Custom labeled block | `AdminFieldShell` + control |

@@ -41,6 +41,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminStatusBadge` | Workflow / sync status pill (`published`/`draft`/`archived`/`unlisted`/…; `error` only for real faults) |
 | `AdminOrderedList` | Ordered rows with up/down + remove (+ optional Add); same `onChange` API reserved for future DnD |
 | `AdminAlert` | Form-level error or success banner (transparent wash, theme-aware ink) |
+| `AdminSerpPreview` | Google-style search listing preview + soft 60/160 char meters for SEO title/description |
 | `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
 | `fieldClass` / `useAdminFieldIds` | Shared helpers |
 
@@ -528,6 +529,45 @@ import { AdminRichTextField } from "@/components/synarava-cms";
   still renders until a section is re-saved as rich HTML. For cookie
   preferences in WYSIWYG, link to `/cookie-settings`.
 - Story: `synarava-cms/AdminRichTextField`.
+
+### Search preview (SERP)
+
+`AdminSerpPreview` — live title · URL · description chrome for Shopify SEO
+fields. Soft meters only (60 / 160); not a Yoast-style score. Pair with
+`seoTitleWarning` / `seoDescriptionWarning` from `lib/seo/serp-preview.ts` on
+the SEO fields’ `warning` prop.
+
+```tsx
+import { AdminSerpPreview, AdminTextField } from "@/components/synarava-cms";
+import {
+  resolveSerpTitle,
+  resolveSerpDescription,
+  seoTitleWarning,
+  seoDescriptionWarning,
+} from "@/lib/seo/serp-preview";
+import { localePath } from "@/lib/i18n/routing";
+
+<AdminTextField
+  label="SEO title"
+  value={seoTitle}
+  warning={seoTitleWarning(seoTitle)}
+  onChange={…}
+/>
+<AdminLongTextField
+  label="SEO description"
+  value={seoDescription}
+  warning={seoDescriptionWarning(seoDescription)}
+  onChange={…}
+/>
+<AdminSerpPreview
+  title={resolveSerpTitle(seoTitle, pageTitle)}
+  description={resolveSerpDescription(seoDescription, excerpt)}
+  path={localePath(locale, `/products/${slug}`)}
+/>
+```
+
+- Applied on product, collection, and page SEO clusters.
+- URL host defaults from `NEXT_PUBLIC_SITE_URL` / `APP_URL`, else `synarava.com`.
 
 ### Tall / composite fields
 

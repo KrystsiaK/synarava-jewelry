@@ -27,8 +27,16 @@ import {
   AdminOrderedListItemActions,
   AdminRichTextField,
   AdminSelectField,
+  AdminSerpPreview,
   AdminTextField,
 } from "@/components/synarava-cms";
+import { localePath } from "@/lib/i18n/routing";
+import {
+  resolveSerpDescription,
+  resolveSerpTitle,
+  seoDescriptionWarning,
+  seoTitleWarning,
+} from "@/lib/seo/serp-preview";
 import { isValidOptionalEmail, OPTIONAL_EMAIL_ERROR } from "@/lib/admin/optional-email";
 import {
   takePageEditorDraftSnapshot,
@@ -876,6 +884,7 @@ export function PageEditor({
             label="SEO title"
             help={<AdminHelp>Optional search-engine result title. Blank uses the page title.</AdminHelp>}
             value={draft.seoTitle}
+            warning={seoTitleWarning(draft.seoTitle)}
             onChange={(event) => updateField("seoTitle", event.target.value)}
           />
           <AdminRichTextField
@@ -888,7 +897,13 @@ export function PageEditor({
             label="SEO description"
             help={<AdminHelp>Optional search-engine result description. Blank uses the search summary.</AdminHelp>}
             value={draft.seoDescription}
+            warning={seoDescriptionWarning(draft.seoDescription)}
             onChange={(value) => updateField("seoDescription", value)}
+          />
+          <AdminSerpPreview
+            title={resolveSerpTitle(draft.seoTitle, draft.title)}
+            description={resolveSerpDescription(draft.seoDescription, draft.excerpt)}
+            path={localePath(activeLocale, "/")}
           />
             <HomePageEditorSections
               key={new Date(page.updatedAt).toISOString()}
@@ -1000,13 +1015,23 @@ export function PageEditor({
             )
           }
           value={draft.seoTitle}
+          warning={seoTitleWarning(draft.seoTitle)}
           onChange={(event) => updateField("seoTitle", event.target.value)}
         />
         <AdminRichTextField
           label="SEO description"
           help={<AdminHelp>Optional search-engine result description. Blank uses Excerpt.</AdminHelp>}
           value={draft.seoDescription}
+          warning={seoDescriptionWarning(draft.seoDescription)}
           onChange={(value) => updateField("seoDescription", value)}
+        />
+        <AdminSerpPreview
+          title={resolveSerpTitle(draft.seoTitle, draft.title)}
+          description={resolveSerpDescription(draft.seoDescription, draft.excerpt)}
+          path={localePath(
+            activeLocale,
+            `/${(isEn ? page.slug : handleByLocale[activeLocale] || page.slug).trim() || page.slug}`,
+          )}
         />
         </>
         ) : null}
