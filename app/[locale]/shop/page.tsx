@@ -10,6 +10,7 @@ import { normalizeShopSort } from "@/lib/catalog/shop-sort";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { resolveShopStorefrontCopy } from "@/lib/content/shop-page-copy";
 
@@ -22,11 +23,14 @@ export async function generateMetadata(): Promise<Metadata> {
     fallbackTitle: t("nav.shop"),
     fallbackDescription: t("shop.heroDescription"),
   });
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
     alternates: await buildAlternates(locale, "/shop"),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, "/shop"),
       images: [{ url: heroImage || "/og-default.jpg", width: 1200, height: 630, alt: `Synarava — ${title}` }],
     },

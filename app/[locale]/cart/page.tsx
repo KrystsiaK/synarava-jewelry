@@ -6,16 +6,20 @@ import { CartShell } from "@/components/commerce/cart-shell";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
   const title = t("cart.metaTitle");
   const description = t("cart.metaDescription");
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
     alternates: await buildAlternates(locale, "/cart"),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, "/cart"),
       title,
       description,

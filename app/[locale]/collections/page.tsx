@@ -6,6 +6,7 @@ import { CollectionsPage } from "@/components/collections/collections-page";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,11 +18,14 @@ export async function generateMetadata(): Promise<Metadata> {
     fallbackTitle: t("nav.collections"),
     fallbackDescription: t("shop.discovery.categoryDescription"),
   });
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
     alternates: await buildAlternates(locale, "/collections"),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, "/collections"),
       images: [{ url: heroImage || "/og-default.jpg", width: 1200, height: 630, alt: `Synarava — ${title}` }],
     },

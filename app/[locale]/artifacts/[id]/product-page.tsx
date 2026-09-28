@@ -8,6 +8,7 @@ import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
@@ -30,6 +31,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!product) return { title: "Product" };
 
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title: product.seoTitle || product.title,
     description: product.seoDescription || product.shortDescription || product.description,
@@ -38,6 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       pt: `/products/${product.slug}`,
     }),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, `/products/${product.slug}`),
       images: [
         product.image

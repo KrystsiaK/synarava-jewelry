@@ -5,6 +5,7 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { ArtifactLink } from "@/components/ui/artifact-button";
 import { DisplayHeading } from "@/components/ui/display-heading";
@@ -47,11 +48,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     fallbackDescription: page.excerpt || page.title,
   });
 
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
     alternates: await buildAlternates(locale, `/${page.slug}`, { en: `/${page.sourceSlug}`, pt: `/${page.slug}` }),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, `/${slug}`),
       title,
       description,

@@ -5,6 +5,7 @@ import { getPageBySlug } from "@/lib/content/catalog";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { resolveServiceDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedServiceEntries } from "@/lib/content/document-section-defaults";
@@ -21,11 +22,14 @@ export async function generateMetadata(): Promise<Metadata> {
     fallbackTitle: t("service.returns.metaTitle"),
     fallbackDescription: t("service.returns.metaDescription"),
   });
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
     alternates: await buildAlternates(locale, "/returns"),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, "/returns"),
       title,
       description,

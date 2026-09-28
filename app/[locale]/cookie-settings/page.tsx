@@ -6,16 +6,20 @@ import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
   const title = t("cookieSettings.metaTitle");
   const description = t("cookieSettings.metaDescription");
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
     alternates: await buildAlternates(locale, "/cookie-settings"),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, "/cookie-settings"),
       title,
       description,

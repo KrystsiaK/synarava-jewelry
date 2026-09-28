@@ -339,6 +339,8 @@ the same transaction ID and no PII in analytics.
 - [x] Nonced JSON-LD helper + FAQPage structured data from visible FAQ sections.
 - [x] Storefront font subsets for RU/latin-ext + variable Playfair; Organization
   `sameAs` from footer socials.
+- [x] Open Graph `locale` / `alternateLocale` from published storefront locales
+  (`en_IE` / `pt_PT` / `ru_RU`).
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.

@@ -8,6 +8,7 @@ import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { CollectionDetail } from "@/components/collections/collection-detail";
 import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
@@ -39,6 +40,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = collection.seoTitle || collection.name;
   const description = collection.seoDescription || collection.summary;
 
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
@@ -47,6 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       pt: `/collections/${collection.slug}`,
     }),
     openGraph: {
+      ...openGraphLocales,
       title,
       description,
       url: localePath(locale, `/collections/${slug}`),

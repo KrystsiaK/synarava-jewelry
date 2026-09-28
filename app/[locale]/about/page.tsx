@@ -5,6 +5,7 @@ import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { AboutPage } from "@/components/about/about-page";
 
@@ -18,11 +19,14 @@ export async function generateMetadata(): Promise<Metadata> {
     fallbackDescription: "",
   });
 
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description: description || undefined,
     alternates: await buildAlternates(locale, "/about"),
     openGraph: {
+      ...openGraphLocales,
       title,
       description: description || undefined,
       url: localePath(locale, "/about"),

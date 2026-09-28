@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
-import { getServerTranslations } from "@/lib/i18n/server";
+import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
@@ -30,6 +30,7 @@ import { getSiteSeo } from "@/lib/content/site-seo";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { isThemePreference } from "@/lib/theme/shared";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { buildOrganizationJsonLd } from "@/lib/seo/organization-json-ld";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
@@ -57,7 +58,8 @@ const TWITTER_DESCRIPTION_FALLBACK =
   "Selected, useful, and thoughtfully made goods for everyday life and creativity.";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const seo = await getSiteSeo();
+  const [seo, locale] = await Promise.all([getSiteSeo(), getRequestLocale()]);
+  const openGraphLocales = await buildOpenGraphLocales(locale);
   return {
     metadataBase: new URL(siteUrl),
     title: {
@@ -84,7 +86,7 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: "Synarava",
     openGraph: {
       type: "website",
-      locale: "en_IE",
+      ...openGraphLocales,
       siteName: "Synarava",
       title: seo.ogTitle,
       description: seo.ogDescription,

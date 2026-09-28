@@ -6,6 +6,7 @@ import { resolveLegalLastUpdatedLabel, resolveSharedLegalDate } from "@/lib/cont
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
 import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
@@ -23,11 +24,14 @@ export async function generateMetadata(): Promise<Metadata> {
     fallbackTitle: t("legal.terms.metaTitle"),
     fallbackDescription: t("legal.terms.metaDescription"),
   });
+  const openGraphLocales = await buildOpenGraphLocales(locale);
+
   return {
     title,
     description,
     alternates: await buildAlternates(locale, "/terms-and-conditions"),
     openGraph: {
+      ...openGraphLocales,
       url: localePath(locale, "/terms-and-conditions"),
       title,
       description,
