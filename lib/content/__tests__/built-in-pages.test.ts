@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BUILT_IN_PAGE_DEFINITIONS, isBuiltInPage } from "@/lib/content/built-in-pages";
+import { BUILT_IN_PAGE_DEFINITIONS, isBuiltInPage, isRetiredPageSlug } from "@/lib/content/built-in-pages";
 
 describe("built-in page definitions", () => {
   it("registers every admin-managed editorial and index route", () => {
@@ -17,7 +17,6 @@ describe("built-in page definitions", () => {
       "terms-and-conditions",
       "privacy",
       "dispute-resolution",
-      "legal-notice",
     ]);
   });
 
@@ -25,5 +24,7 @@ describe("built-in page definitions", () => {
     expect(isBuiltInPage("shop")).toBe(true);
     expect(isBuiltInPage("privacy")).toBe(true);
     expect(isBuiltInPage("studio-notes")).toBe(false);
+    expect(isBuiltInPage("legal-notice")).toBe(false);
+    expect(isRetiredPageSlug("legal-notice")).toBe(true);
   });
 });

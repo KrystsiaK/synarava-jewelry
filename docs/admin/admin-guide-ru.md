@@ -390,8 +390,8 @@ legacy cover, пока не загружены изображения галер
 - Публикация/черновик/архив работают так же, как у товаров и коллекций.
 - Hero-изображение можно загрузить и позже удалить отдельным флагом «убрать
   изображение», не трогая остальной контент.
-- **Legal documents** (`privacy`, `terms-and-conditions`, `offer`,
-  `legal-notice`) и **service pages** (`care`, `faq`, `shipping`, `returns`,
+- **Legal documents** (`privacy`, `terms-and-conditions`, `offer`) и
+  **service pages** (`care`, `faq`, `shipping`, `returns`,
   `dispute-resolution`): секции — упорядоченный список (`AdminOrderedList`).
   Можно добавлять, удалять и менять порядок; у каждой секции редактируются
   **имя** (TOC / eyebrow), **заголовок** и **тело**. Порядок общий для языков;
@@ -403,7 +403,7 @@ legacy cover, пока не загружены изображения галер
   `ЮРИДИЧЕСКАЯ ИНФОРМАЦИЯ`, RU excerpt — абзац об условиях продажи; PT eyebrow
   `INFORMAÇÃO LEGAL`; EN — текущие английские строки). Сохранённое значение
   локали важнее дефолта. Пустой португальский Excerpt оставляет текущий intro.
-  Privacy, offer и legal notice этот путь не меняет.
+  Privacy и offer этот путь не меняет. Отдельной страницы Legal Notice в админке нет.
 
 ## 7. Видео (`/admin/videos`)
 
@@ -435,9 +435,12 @@ legacy cover, пока не загружены изображения галер
   (home `/` is omitted in the footer). Links to deleted pages stay visible in
   admin with an error (“leads nowhere”) and are **hidden on the storefront**.
 - **Footer — service / legal / social links:** same model as header main links
-  (`footer-links-v1`). Service and legal ship with the historical defaults;
-  socials start empty. External `https://` URLs are allowed (e.g. Livro de
-  Reclamações, Instagram).
+  (`footer-links-v1`). Service ships with Care, Shipping, Returns, FAQ.
+  Legal ships as the quiet bottom line: Terms & Conditions, Privacy Policy,
+  Cookie settings, Livro de Reclamações, Consumer Dispute Resolution.
+  Saved rows still drop Legal Notice, Shipping Policy, and Return & Refund
+  Policy. Socials start empty. External `https://` URLs are allowed (e.g. Livro de
+  Reclamações, Instagram). Legal Notice is not a page in Pages.
 - **Footer — contact emails:** ordered list of mailto addresses
   (`footer-contact-v1`). The first email is the primary shared contact CTA
   target. Shared across languages.

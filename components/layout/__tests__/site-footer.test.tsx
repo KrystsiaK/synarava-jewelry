@@ -132,4 +132,20 @@ describe("SiteFooter", () => {
       "/en/cookie-settings",
     );
   });
+
+  it("renders a quiet legal line without Legal Notice or the retired policy links", () => {
+    renderFooter();
+    for (const name of [
+      "Terms & Conditions",
+      "Privacy Policy",
+      "Cookie settings",
+      "Livro de Reclamações",
+      "Consumer Dispute Resolution",
+    ]) {
+      expect(screen.getByRole("link", { name })).toHaveClass("artifact-footer__legal-link");
+    }
+    expect(screen.queryByRole("link", { name: "Legal Notice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Shipping Policy" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Return & Refund Policy" })).not.toBeInTheDocument();
+  });
 });

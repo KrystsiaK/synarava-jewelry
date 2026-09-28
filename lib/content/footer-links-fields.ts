@@ -46,14 +46,11 @@ export const DEFAULT_FOOTER_SERVICE_LABEL_KEYS: Record<string, string> = {
   faq: "footer.faq",
 };
 
-/** Shipped legal row — matches historical hard-coded footer. */
+/** Shipped legal row — quiet line under the footer columns. */
 export const DEFAULT_FOOTER_LEGAL_ITEMS: FooterLinkItem[] = [
   { id: "terms", href: "/terms-and-conditions" },
   { id: "privacy", href: "/privacy" },
   { id: "cookies", href: "/cookie-settings" },
-  { id: "shipping-policy", href: "/shipping" },
-  { id: "return-policy", href: "/returns" },
-  { id: "legal-notice", href: "/legal-notice" },
   { id: "livro", href: "https://www.livroreclamacoes.pt/" },
   { id: "dispute", href: "/dispute-resolution" },
 ];
@@ -62,12 +59,12 @@ export const DEFAULT_FOOTER_LEGAL_LABEL_KEYS: Record<string, string> = {
   terms: "footer.termsConditions",
   privacy: "footer.privacyPolicy",
   cookies: "footer.cookieSettings",
-  "shipping-policy": "footer.shippingPolicy",
-  "return-policy": "footer.returnPolicy",
-  "legal-notice": "footer.legalNotice",
   livro: "footer.livroReclamacoes",
   dispute: "footer.disputeResolution",
 };
+
+/** Dropped from the legal line. Ids are stripped from saved footer-links-v1. */
+const RETIRED_FOOTER_LEGAL_IDS = new Set(["legal-notice", "shipping-policy", "return-policy"]);
 
 /** Former storefront-copy keys owned by footer-links-v1 once migrated. */
 export const LEGACY_FOOTER_SERVICE_COPY_KEYS = [
@@ -165,6 +162,24 @@ export function parseFooterLinksData(value: unknown): FooterLinksData | null {
   const socials = parseColumn(record.socials, MAX_FOOTER_LINK_ITEMS, MIN_FOOTER_SOCIAL_ITEMS);
   if (!service || !legal || !socials) return null;
   return { service, legal, socials };
+}
+
+export function withoutRetiredLegalLinks(column: FooterLinkColumn): FooterLinkColumn {
+  const items = column.items.filter(
+    (item) => !RETIRED_FOOTER_LEGAL_IDS.has(item.id) && item.href !== "/legal-notice",
+  );
+  if (items.length === column.items.length) return column;
+
+  const validIds = new Set(items.map((item) => item.id));
+  const labels: Record<string, Record<string, string>> = {};
+  for (const [locale, localeLabels] of Object.entries(column.labels)) {
+    const next: Record<string, string> = {};
+    for (const [itemId, label] of Object.entries(localeLabels)) {
+      if (validIds.has(itemId)) next[itemId] = label;
+    }
+    if (Object.keys(next).length > 0) labels[locale] = next;
+  }
+  return { items, labels };
 }
 
 export function emptyFooterLinkColumn(items: FooterLinkItem[] = []): FooterLinkColumn {

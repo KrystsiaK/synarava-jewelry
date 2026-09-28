@@ -1,5 +1,6 @@
 import "server-only";
 
+import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
 import { db } from "@/lib/db";
 import {
   STOREFRONT_HREF_SEGMENT_LIMIT,
@@ -53,6 +54,7 @@ export async function searchStorefrontHrefs(query: string): Promise<StorefrontHr
     ? db.page.findMany({
         where: {
           status: { not: "ARCHIVED" },
+          slug: { notIn: [...RETIRED_PAGE_SLUGS] },
           OR: [{ title: containsFilter(parsed.term) }, { slug: containsFilter(parsed.term) }],
         },
         select: { id: true, slug: true, title: true, status: true },

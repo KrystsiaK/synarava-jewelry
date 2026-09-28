@@ -1,3 +1,4 @@
+import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
 import { db } from "@/lib/db";
 import {
   parseProductDetails,
@@ -857,6 +858,7 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
 export async function getAdminCatalogData() {
   const [pages, rawProducts, categoryRows, tags, collections, issues] = await Promise.all([
     db.page.findMany({
+      where: { slug: { notIn: [...RETIRED_PAGE_SLUGS] } },
       include: { translations: { orderBy: { locale: "asc" } } },
       orderBy: { slug: "asc" },
     }),

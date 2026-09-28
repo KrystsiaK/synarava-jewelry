@@ -4,7 +4,7 @@ import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 // (/offer) as the store's customer-facing contractual terms. /offer is left
 // in place (still admin-editable, still reachable directly) but is no longer
 // linked from navigation; see PRODUCT.md history for context. Single-language
-// (EN) content, same as /offer and /legal-notice — PT goes through the
+// (EN) content, same as /offer — PT goes through the
 // existing page-translation/sync workflow rather than a hardcoded PT export.
 //
 // Anchor ids are derived from the numbered label (e.g. "2. Subject of

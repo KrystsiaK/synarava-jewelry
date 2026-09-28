@@ -123,7 +123,7 @@ export function StorefrontCopyEditor({
       <FooterLinkColumnEditor
         columnId="legal"
         title="Footer — legal links"
-        description="Bottom legal row. Supports storefront paths and external https:// URLs (e.g. Livro de Reclamações)."
+        description="Quiet line under the footer columns. Name is per locale; path is shared. Add, remove, and reorder. External https:// URLs are allowed (Livro de Reclamações)."
         listLabel="Legal links"
         initial={footerLinks.legal}
         activeLocale={activeLocale}

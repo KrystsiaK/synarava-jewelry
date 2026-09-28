@@ -11,8 +11,14 @@ export const BUILT_IN_PAGE_DEFINITIONS = [
   { slug: "terms-and-conditions", title: "Terms & Conditions", template: "STATIC_PAGE" },
   { slug: "privacy", title: "Privacy Policy", template: "STATIC_PAGE" },
   { slug: "dispute-resolution", title: "Consumer Dispute Resolution", template: "STATIC_PAGE" },
-  { slug: "legal-notice", title: "Legal Notice", template: "STATIC_PAGE" },
 ] as const;
+
+/** Pages removed from admin and the storefront. Existing rows stay hidden. */
+export const RETIRED_PAGE_SLUGS = ["legal-notice"] as const;
+
+export function isRetiredPageSlug(slug: string) {
+  return (RETIRED_PAGE_SLUGS as readonly string[]).includes(slug);
+}
 
 const BUILT_IN_PAGE_SLUGS = new Set<string>(
   BUILT_IN_PAGE_DEFINITIONS.map((page) => page.slug),

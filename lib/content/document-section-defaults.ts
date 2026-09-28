@@ -4,10 +4,6 @@ import {
   type LegalSectionEntry,
 } from "@/lib/content/legal-sections";
 import {
-  LEGAL_NOTICE_SECTIONS,
-  LEGAL_NOTICE_SECTION_DEFAULTS,
-} from "@/lib/content/legal-notice-defaults";
-import {
   OFFER_SECTIONS,
   OFFER_SECTION_DEFAULTS,
 } from "@/lib/content/offer-defaults";
@@ -29,7 +25,6 @@ export const LEGAL_DOCUMENT_SLUGS = [
   "privacy",
   "offer",
   "terms-and-conditions",
-  "legal-notice",
 ] as const;
 
 export type LegalDocumentSlug = (typeof LEGAL_DOCUMENT_SLUGS)[number];
@@ -54,9 +49,6 @@ export function shippedLegalEntries(
   }
   if (slug === "terms-and-conditions") {
     return buildLegalSectionEntries(TERMS_SECTIONS, TERMS_SECTION_DEFAULTS);
-  }
-  if (slug === "legal-notice") {
-    return buildLegalSectionEntries(LEGAL_NOTICE_SECTIONS, LEGAL_NOTICE_SECTION_DEFAULTS);
   }
   return buildLegalSectionEntries(OFFER_SECTIONS, OFFER_SECTION_DEFAULTS);
 }

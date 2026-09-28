@@ -17,6 +17,7 @@ import {
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
+import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
 import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
 
 export default async function AdminLayout({
@@ -36,6 +37,7 @@ export default async function AdminLayout({
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
     db.page.findMany({
+      where: { slug: { notIn: [...RETIRED_PAGE_SLUGS] } },
       select: { id: true, slug: true, title: true },
       orderBy: { slug: "asc" },
     }),

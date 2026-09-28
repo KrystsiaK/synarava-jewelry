@@ -27,7 +27,6 @@ function translate(locale: keyof typeof dictionaries) {
 const LEGAL_PAGES = [
   "app/[locale]/privacy/page.tsx",
   "app/[locale]/terms-and-conditions/page.tsx",
-  "app/[locale]/legal-notice/page.tsx",
   "app/[locale]/offer/page.tsx",
 ] as const;
 

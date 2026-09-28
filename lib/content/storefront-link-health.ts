@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
+import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
 import { db } from "@/lib/db";
 import {
   hrefForCollection,
@@ -38,7 +39,7 @@ const loadCatalogIndex = cache(async (): Promise<CatalogIndex> => {
 
   const [pages, products, collections] = await Promise.all([
     db.page.findMany({
-      where: { status: { not: "ARCHIVED" } },
+      where: { status: { not: "ARCHIVED" }, slug: { notIn: [...RETIRED_PAGE_SLUGS] } },
       select: { slug: true, status: true },
     }),
     db.product.findMany({

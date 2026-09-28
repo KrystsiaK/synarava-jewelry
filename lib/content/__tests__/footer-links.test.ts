@@ -44,6 +44,37 @@ describe("footer links", () => {
     expect(result.service.labels.pt?.care).toBe("Care PT");
   });
 
+  it("drops retired legal links from a saved row", async () => {
+    mocks.findUnique.mockResolvedValue({
+      value: {
+        service: { items: [{ id: "care", href: "/care" }], labels: {} },
+        legal: {
+          items: [
+            { id: "terms", href: "/terms-and-conditions" },
+            { id: "shipping-policy", href: "/shipping" },
+            { id: "return-policy", href: "/returns" },
+            { id: "legal-notice", href: "/legal-notice" },
+            { id: "custom-legal", href: "/legal-notice" },
+            { id: "privacy", href: "/privacy" },
+          ],
+          labels: {
+            en: {
+              terms: "Terms",
+              "legal-notice": "Notice",
+              "shipping-policy": "Ship",
+              privacy: "Privacy",
+            },
+          },
+        },
+        socials: { items: [], labels: {} },
+      },
+    });
+
+    const result = await getFooterLinks();
+    expect(result.legal.items.map((item) => item.id)).toEqual(["terms", "privacy"]);
+    expect(result.legal.labels).toEqual({ en: { terms: "Terms", privacy: "Privacy" } });
+  });
+
   it("returns persisted footer links when present", async () => {
     mocks.findUnique.mockResolvedValue({
       value: {

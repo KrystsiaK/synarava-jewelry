@@ -1310,6 +1310,45 @@ html[data-theme="dark"] .final-sigil__edge {
   color: var(--color-accent);
 }
 
+.artifact-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 0.7rem;
+  row-gap: 0.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  padding-top: 1.15rem;
+  text-align: center;
+}
+
+.artifact-footer__legal-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.artifact-footer__legal-sep {
+  color: color-mix(in srgb, var(--color-muted) 38%, transparent);
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.artifact-footer__legal-link {
+  color: color-mix(in srgb, var(--color-muted) 72%, transparent);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+
+.artifact-footer__legal-link:hover {
+  color: var(--color-foreground);
+}
+
 .artifact-footer__newsletter {
   position: relative;
   padding-right: 2rem;
@@ -1551,6 +1590,11 @@ html[data-theme="dark"] .etched-glass {
     left: var(--spacing-page-x-desktop);
     bottom: 1.15rem;
     font-size: clamp(5.3rem, 8vw, 8.5rem);
+  }
+
+  .artifact-footer__legal {
+    justify-content: flex-start;
+    text-align: left;
   }
 }
 

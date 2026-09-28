@@ -19,7 +19,6 @@ vi.mock("@/lib/i18n/server", () => ({
 }));
 
 import OfferPage from "../../offer/page";
-import LegalNoticePage from "../../legal-notice/page";
 import PrivacyPage from "../page";
 import TermsPage from "../../terms-and-conditions/page";
 
@@ -41,7 +40,6 @@ describe("legal pages last-updated line", () => {
     ["privacy", PrivacyPage],
     ["offer", OfferPage],
     ["terms-and-conditions", TermsPage],
-    ["legal-notice", LegalNoticePage],
   ] as const)("uses the Russian admin label and a dictionary date on %s", async (slug, Page) => {
     mocks.getPageBySlug.mockResolvedValue({
       title: "Title",

@@ -220,28 +220,22 @@ export function SiteFooter({ headerNav, footerLinks, contactEmails }: SiteFooter
         </>
       ) : null}
 
-      <FooterOrnamentDivider />
-
-      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-stroke pt-6 text-center md:col-span-4 md:justify-start md:border-t md:pt-6 md:text-left">
+      <nav className="artifact-footer__legal md:col-span-4">
         {legalItems.map((item, index) => (
-          <span key={item.id} className="contents">
+          <span key={item.id} className="artifact-footer__legal-item">
             {index > 0 ? (
-              <span className="hidden text-stroke md:inline" aria-hidden="true">
+              <span className="artifact-footer__legal-sep" aria-hidden="true">
                 ·
               </span>
             ) : null}
             <FooterTextLink
               item={item}
               locale={locale}
-              className={
-                item.href === "/cookie-settings"
-                  ? "label-mono py-1 text-muted underline decoration-transparent underline-offset-4 transition-colors hover:text-foreground hover:decoration-current"
-                  : "label-mono py-1 text-muted transition-colors hover:text-foreground"
-              }
+              className="artifact-footer__legal-link"
             />
           </span>
         ))}
-      </div>
+      </nav>
     </footer>
   );
 }

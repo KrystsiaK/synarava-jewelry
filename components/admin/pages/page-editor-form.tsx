@@ -337,7 +337,6 @@ export function PageEditor({
   const isAboutPage = page.slug === "about";
   const isOfferPage = page.slug === "offer";
   const isTermsPage = page.slug === "terms-and-conditions";
-  const isLegalNoticePage = page.slug === "legal-notice";
   const isShopPage = page.slug === "shop";
   const isCollectionsPage = page.slug === "collections";
   const isServicePage = SERVICE_PAGE_SLUGS.includes(page.slug as ServicePageSlug);
@@ -1041,7 +1040,7 @@ export function PageEditor({
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {isOfferPage || isTermsPage || isLegalNoticePage ? (
+              {isOfferPage || isTermsPage ? (
                 <AdminRichTextField
                   className="md:col-span-2"
                   label="Intro paragraph"

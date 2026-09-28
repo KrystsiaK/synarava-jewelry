@@ -5,6 +5,7 @@ import {
   findEnglishSourceViolation,
   listStorefrontLocales,
 } from "@/lib/i18n/storefront-locale-registry";
+import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
 import { db } from "@/lib/db";
 import {
   getLatestReconcileDifferences,
@@ -20,7 +21,10 @@ export default async function AdminTranslationsPage({ searchParams }: PageProps)
   const [run, differences, pages, locales] = await Promise.all([
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
-    db.page.findMany({ select: { id: true, slug: true } }),
+    db.page.findMany({
+      where: { slug: { notIn: [...RETIRED_PAGE_SLUGS] } },
+      select: { id: true, slug: true },
+    }),
     listStorefrontLocales(),
   ]);
   const pageSlugs = new Map(pages.map((page) => [page.id, page.slug]));

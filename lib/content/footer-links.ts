@@ -13,6 +13,7 @@ import {
   cleanFooterLinkColumn,
   defaultFooterLinks,
   parseFooterLinksData,
+  withoutRetiredLegalLinks,
   type FooterLinkColumn,
   type FooterLinksData,
 } from "@/lib/content/footer-links-fields";
@@ -25,6 +26,7 @@ export {
   DEFAULT_FOOTER_LEGAL_LABEL_KEYS,
   MAX_FOOTER_LINK_ITEMS,
   resolveFooterLinkColumn,
+  withoutRetiredLegalLinks,
   isExternalHref,
   type FooterLinksData,
   type FooterLinkColumn,
@@ -55,7 +57,7 @@ function labelsFromLegacyCopy(
 export const getFooterLinks = cache(async (): Promise<FooterLinksData> => {
   const setting = await db.siteSetting.findUnique({ where: { key: FOOTER_LINKS_KEY } });
   const parsed = parseFooterLinksData(setting?.value);
-  if (parsed) return parsed;
+  if (parsed) return { ...parsed, legal: withoutRetiredLegalLinks(parsed.legal) };
 
   const copy = await getStorefrontCopy();
   return defaultFooterLinks({
@@ -67,7 +69,7 @@ export const getFooterLinks = cache(async (): Promise<FooterLinksData> => {
 export async function setFooterLinks(next: FooterLinksData): Promise<FooterLinksData> {
   const value: FooterLinksData = {
     service: cleanFooterLinkColumn(next.service),
-    legal: cleanFooterLinkColumn(next.legal),
+    legal: withoutRetiredLegalLinks(cleanFooterLinkColumn(next.legal)),
     socials: cleanFooterLinkColumn(next.socials),
   };
 
