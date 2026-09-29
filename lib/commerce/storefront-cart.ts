@@ -7,6 +7,7 @@ import "server-only";
 // code.
 import { db } from "@/lib/db";
 import {
+  addShopifyMerchandiseLinesToCart,
   addShopifyProductToCart,
   getShopifyCartCount,
   getShopifyCartLineQuantity,
@@ -15,6 +16,17 @@ import {
   removeShopifyCartItem,
   updateShopifyCartItemQuantity,
 } from "@/lib/shopify/cart";
+import {
+  variantGidFromNumericId,
+  type CartPermalinkLine,
+} from "@/lib/shopify/cart-permalink";
+
+export type MerchandiseImportResult = {
+  added: number;
+  skipped: number;
+  adjusted: boolean;
+  warnings: string[];
+};
 
 export async function getStorefrontCartViewModel() {
   return getShopifyCartViewModel();
@@ -77,4 +89,69 @@ export async function removeStorefrontCartItem(itemId: string) {
 
 export async function getStorefrontCheckoutUrl() {
   return getShopifyCheckoutUrl();
+}
+
+/**
+ * Import Shopify cart-permalink lines after local visibility filtering.
+ * Hidden/archived merchandise is skipped (not authorized by a numeric URL alone).
+ */
+export async function addStorefrontMerchandiseLinesToCart(
+  lines: CartPermalinkLine[],
+): Promise<MerchandiseImportResult> {
+  if (lines.length === 0) {
+    return { added: 0, skipped: 0, adjusted: false, warnings: [] };
+  }
+
+  const requestedGids = lines.map((line) => variantGidFromNumericId(line.variantId));
+  const visible = await db.productVariant.findMany({
+    where: {
+      shopifyVariantId: { in: requestedGids },
+      status: { in: ["ACTIVE", "UNLISTED"] },
+      product: {
+        OR: [
+          { status: "ACTIVE", visibility: "PUBLIC" },
+          { status: "UNLISTED", visibility: "UNLISTED" },
+        ],
+      },
+    },
+    select: { shopifyVariantId: true },
+  });
+
+  const visibleSet = new Set(
+    visible
+      .map((row) => row.shopifyVariantId)
+      .filter((id): id is string => typeof id === "string"),
+  );
+
+  const eligible = lines.filter((line) =>
+    visibleSet.has(variantGidFromNumericId(line.variantId)),
+  );
+  const skipped = lines.length - eligible.length;
+
+  if (eligible.length === 0) {
+    return { added: 0, skipped, adjusted: false, warnings: [] };
+  }
+
+  const mutation = await addShopifyMerchandiseLinesToCart(
+    eligible.map((line) => ({
+      merchandiseId: variantGidFromNumericId(line.variantId),
+      quantity: line.quantity,
+    })),
+  );
+
+  const cartLines = mutation.cart.lines.nodes;
+  let adjusted = mutation.warnings.length > 0;
+  for (const line of eligible) {
+    const gid = variantGidFromNumericId(line.variantId);
+    if (!cartLines.some((node) => node.merchandise.id === gid)) {
+      adjusted = true;
+    }
+  }
+
+  return {
+    added: eligible.reduce((sum, line) => sum + line.quantity, 0),
+    skipped,
+    adjusted,
+    warnings: mutation.warnings,
+  };
 }

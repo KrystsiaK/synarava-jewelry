@@ -285,7 +285,18 @@
       "one": "{count} produto",
       "other": "{count} produtos"
     },
-    "subtotal": "Subtotal"
+    "subtotal": "Subtotal",
+    "buyAgain": {
+      "completed": {
+        "one": "Adicionámos {count} artigo da sua encomenda anterior.",
+        "other": "Adicionámos {count} artigos da sua encomenda anterior."
+      },
+      "partial": "Adicionámos {added} artigo(s); {skipped} indisponível(eis) foram ignorados.",
+      "adjusted": "Algumas quantidades foram ajustadas ao stock disponível. Reveja o carrinho antes do checkout.",
+      "replayed": "Esses artigos já tinham sido adicionados. O carrinho está pronto.",
+      "rejected": "Não foi possível importar esse link de recompra. Explore a loja ou abra a encomenda na conta segura.",
+      "failed": "O carrinho Shopify está temporariamente indisponível. O carrinho atual foi mantido — tente novamente em breve."
+    }
   },
   "checkout": {
     "progress": "Progresso do checkout",
@@ -465,7 +476,9 @@
       "trackPackage": "Seguir encomenda →",
       "estimatedDelivery": "Entrega estimada: {date}",
       "returnableTruncated": "Apenas os primeiros {count} artigos devolvíveis estão listados acima — consulte os detalhes da encomenda para os restantes.",
-      "orderDetails": "Detalhes da encomenda →",
+      "orderDetails": "Gerir encomenda na conta segura →",
+      "manageOrder": "Gerir encomenda na conta segura →",
+      "manageOrderHint": "Cancelar itens, devoluções, reembolsos e Comprar novamente são tratados na conta segura Shopify. Um cancelamento é um pedido até a equipa o aprovar.",
       "loading": "A carregar…",
       "loadMore": "Carregar mais encomendas",
       "loadMoreFailed": "Não foi possível carregar mais encomendas.",

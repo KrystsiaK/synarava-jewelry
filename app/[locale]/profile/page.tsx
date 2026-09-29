@@ -12,6 +12,10 @@ import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { toAccountReviewRows } from "@/lib/profile/account-reviews";
 
+/** Orders/fulfillment/refunds must reflect Shopify after returning from account. */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getServerTranslations();
   return {

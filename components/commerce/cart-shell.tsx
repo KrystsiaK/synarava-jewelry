@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
 
@@ -33,6 +34,7 @@ type CartShellProps = {
   subtotal: string;
   currency: string;
   isSignedIn: boolean;
+  notice?: ReactNode;
 };
 
 function EmptyCart() {
@@ -93,6 +95,7 @@ export function CartShell({
   subtotal,
   currency,
   isSignedIn,
+  notice,
 }: CartShellProps) {
   const { t, locale } = useTranslations();
   return (
@@ -150,6 +153,7 @@ export function CartShell({
         </div>
 
         <div className="site-shell py-10 md:py-14">
+          {notice}
           {items.length === 0 ? (
             <section>
               <EmptyCart />

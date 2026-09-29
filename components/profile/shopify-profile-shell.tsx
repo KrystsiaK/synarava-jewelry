@@ -15,7 +15,6 @@ import { localeTag } from "@/lib/i18n/format";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 import { AccountReviews } from "@/components/profile/account-reviews";
-import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 import { ArtifactLink } from "@/components/ui";
 import type { AccountReviewRow } from "@/lib/profile/account-reviews";
 
@@ -372,17 +371,15 @@ export function ShopifyProfileShell({
                           {t("profile.orders.shipmentsTruncated")}
                         </p>
                       ) : null}
-                      <ReturnRequestPanel
-                        orderId={order.id}
-                        returnableLineItems={order.returnInformation.returnableLineItems.nodes}
-                      />
-                      {order.returnInformation.returnableLineItems.pageInfo.hasNextPage ? (
-                        <p className="mt-2 text-sm text-foreground/45">
-                          {t("profile.orders.returnableTruncated", { count: order.returnInformation.returnableLineItems.nodes.length })}
-                        </p>
-                      ) : null}
-                      <a href={order.statusPageUrl} className="label-caps mt-6 inline-block text-couture-red">
-                        {t("profile.orders.orderDetails")}
+                      <p className="mt-5 max-w-xl text-sm leading-relaxed text-foreground/55">
+                        {t("profile.orders.manageOrderHint")}
+                      </p>
+                      <a
+                        href={order.statusPageUrl}
+                        className="label-caps mt-4 inline-block text-couture-red"
+                        rel="noopener noreferrer"
+                      >
+                        {t("profile.orders.manageOrder")}
                       </a>
                     </article>
                   ))

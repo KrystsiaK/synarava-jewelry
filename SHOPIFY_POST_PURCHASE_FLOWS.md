@@ -1,6 +1,6 @@
 # Shopify post-purchase flows
 
-- Status: **proposed implementation specification**
+- Status: **phase 1 eng shipped; ops phases open**
 - Last updated: **2026-09-29**
 - Storefront: <https://shop.synarava.com>
 - Shopify checkout: <https://checkout.shop.synarava.com>
@@ -60,31 +60,20 @@ headless Synarava storefront.
 
 ### What is missing or inconsistent
 
-1. Shopify's built-in **Buy again** button creates an Online Store cart
-   permalink such as:
+1. ~~Cart permalink bridge~~ — shipped: `/{locale}/cart/[permalink]` imports
+   Shopify `variant:qty` lists into the Storefront API cart with replay
+   protection and cart notices.
 
-   ```text
-   /pt/cart/70881412:1,70881382:2
-   ```
+2. Online Store → headless redirect theme is still **unpublished**. Publish only
+   after production BA checks; keep Buy again hidden until then.
 
-   Shopify documents this as a list of numeric variant IDs and quantities.
-   Synarava currently exposes only `/{locale}/cart`; it has no route that can
-   parse and import a Shopify permalink.
+3. Headless profile now routes order management to Shopify (`statusPageUrl`) and
+   no longer surfaces the custom return form. Confirm native return/cancel in
+   Shopify Admin before re-enabling Buy again.
 
-2. The existing cart API accepts `productSlug` and an optional Shopify GID. It
-   does not accept the numeric variant-ID list emitted by a cart permalink.
-
-3. A blanket Shopify Online Store redirect would currently turn the Buy again
-   destination into a Synarava 404. The redirect must not be published before
-   the permalink bridge is deployed.
-
-4. The account page offers Shopify-native cancellation while the headless
-   profile offers a custom return form. This creates two different management
-   surfaces and must be made explicit in the UX.
-
-5. The order-status page can still expose product, collection, home, and cart
-   links owned by the Shopify Online Store theme. Those links need a deliberate
-   route policy, not ad-hoc edits to individual emails.
+4. The order-status page can still expose product, collection, home, and cart
+   links owned by the Shopify Online Store theme until the redirect theme is
+   published with the exclusions in the routing policy.
 
 ## Product decisions
 
@@ -338,7 +327,7 @@ failure by itself.
 
 ### Phase 0 — Contain the broken path
 
-- [ ] Hide Shopify's Buy again button.
+- [ ] Hide Shopify's Buy again button (Shopify Admin — until BA matrix passes).
 - [ ] Keep Cancel items enabled if policy and staff workflow are ready.
 - [ ] Train staff that a cancellation request is not an automatic cancellation.
 - [ ] Confirm notification recipients and Order permissions for the staff who
@@ -346,17 +335,18 @@ failure by itself.
 
 ### Phase 1 — Build the cart-permalink bridge
 
-- [ ] Implement and unit-test the pure permalink parser.
-- [ ] Implement multi-line cart addition through the commerce boundary.
-- [ ] Add localized route, replay protection, rate limiting, and redirect.
-- [ ] Add localized cart success/partial/error notices.
-- [ ] Add safe structured logs and metrics.
-- [ ] Test against current Next.js guidance in this repository before shipping.
+- [x] Implement and unit-test the pure permalink parser (`lib/shopify/cart-permalink.ts`).
+- [x] Implement multi-line cart addition through the commerce boundary.
+- [x] Add localized route, replay protection, rate limiting, and redirect
+  (`app/[locale]/cart/[permalink]/route.ts`).
+- [x] Add localized cart success/partial/error notices.
+- [x] Add safe structured logs (`shopify.buy_again.*`).
+- [x] Test against current Next.js redirect guidance before shipping.
 
 ### Phase 2 — Route the Online Store back to headless
 
 - [ ] Audit the proposed redirect theme/code and exclusions.
-- [ ] Deploy the route bridge first.
+- [x] Deploy the route bridge first (app on `main`).
 - [ ] Preview the redirect behavior without publishing it.
 - [ ] Test product, collection, home, cart permalink, checkout, challenge, and
   locale paths.
@@ -366,11 +356,12 @@ failure by itself.
 ### Phase 3 — Consolidate order management
 
 - [ ] Verify self-serve cancellation and return rules in Shopify.
-- [ ] Update profile/policy copy and branded account entry points.
-- [ ] Test Shopify-native return flow against the custom return panel.
-- [ ] Select one canonical return request surface and remove the duplicate.
-- [ ] Add outcome observability for refunds/cancellations/returns after verifying
-  current webhook contracts.
+- [x] Update profile copy: “Manage order in secure account” + hint (Shopify canonical).
+- [x] Hide headless `ReturnRequestPanel` (Shopify account is phase-1 return UX).
+- [x] Profile orders use `force-dynamic` / no-store so totals refresh after Shopify.
+- [x] Ops webhooks: `ORDERS_CANCELLED`, `REFUNDS_CREATE`, `RETURNS_REQUEST`
+  (HMAC + dedupe + structured log; registered on reconcile).
+- [ ] End-to-end parity test of native return vs retired custom panel in production.
 
 ### Phase 4 — Production readiness
 
@@ -378,8 +369,7 @@ failure by itself.
 - [ ] Run controlled low-value live checks for behaviors unavailable in test
   mode.
 - [ ] Update `docs/payment-checkout-test-matrix.md` with evidence and defects.
-- [ ] Add an operations runbook for daily review of customer requests and failed
-  webhook deliveries.
+- [x] Add an operations runbook: `docs/post-purchase-ops-runbook.md`.
 
 ## Acceptance test matrix
 

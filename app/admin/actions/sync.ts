@@ -30,6 +30,7 @@ import {
 } from "@/lib/shopify/store-binding";
 import { ensureProductWebhookSubscriptions, inspectProductSyncState, pullShopifyProduct, pushProductToShopify } from "@/lib/shopify/product-sync";
 import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-reviews";
+import { ensureOrderLifecycleWebhookSubscriptions } from "@/lib/shopify/order-lifecycle-webhooks";
 import { ensureOrdersPaidWebhookSubscription } from "@/lib/shopify/orders-paid-webhook";
 import { env } from "@/lib/env";
 import { revalidateStorefront } from "./shared";
@@ -175,6 +176,13 @@ export async function checkCatalogConflictsAction() {
         await ensureOrdersPaidWebhookSubscription(env.APP_URL);
       } catch (error) {
         notices.push(`Orders paid webhook could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`);
+      }
+      try {
+        await ensureOrderLifecycleWebhookSubscriptions(env.APP_URL);
+      } catch (error) {
+        notices.push(
+          `Order lifecycle webhooks (cancel/refund/return) could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`,
+        );
       }
     } else {
       notices.push("Automatic product updates are unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.");

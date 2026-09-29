@@ -52,6 +52,10 @@ Shopify recommends placing a test order after changing payment settings.
 | `ORDERS_PAID` deduplication | Duplicate claim returns `{ ok, duplicate }` | same |
 | Receipt and subscription | Ops summary, delivery claim, subscription setup | `lib/shopify/__tests__/orders-paid-webhook.test.ts` |
 | Shared webhook verification | HMAC verification primitive | `lib/shopify/__tests__/webhooks.test.ts` |
+| Cart permalink parser | Syntax, merge, limits, GID mapping | `lib/shopify/__tests__/cart-permalink.test.ts` |
+| Buy again notice / replay hash | Cookie codec + hash stability | `lib/commerce/__tests__/buy-again-notice.test.ts` |
+| Merchandise import visibility | Skip hidden variants; add visible | `lib/commerce/__tests__/merchandise-import.test.ts` |
+| Lifecycle webhook subscribe | cancel / refund / return-request | `lib/shopify/__tests__/order-lifecycle-webhooks.test.ts` |
 
 These tests do not exercise live Shopify Payments, issuer-driven 3DS, or local
 payment methods.
@@ -276,8 +280,11 @@ ID. They are confirmation and operational evidence, not a second Order store.
 
 ## Next action
 
-Send a Shopify test email and run one new successful signed-in test checkout to
-verify the two branded domains and PAY-004 link targets. Then add and test
-headless cart-permalink compatibility before publishing Shopify's redirect
-theme. After that, verify the PT-001 webhook receipt and run PT-002 with the
-generic-decline card.
+1. Hide Buy again in Shopify Checkout settings until production BA checks pass.
+2. Send a Shopify test email + signed-in test checkout for branded domains and
+   PAY-004 link targets.
+3. Hit production `/{locale}/cart/{variant}:{qty}` (Buy again bridge) before
+   publishing the Online Store redirect theme — see
+   [`SHOPIFY_POST_PURCHASE_FLOWS.md`](../SHOPIFY_POST_PURCHASE_FLOWS.md).
+4. Verify PT-001 `shopify.orders_paid` receipt; run PT-002 decline card.
+5. Staff: follow [`post-purchase-ops-runbook.md`](./post-purchase-ops-runbook.md).

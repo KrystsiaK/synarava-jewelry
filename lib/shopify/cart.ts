@@ -265,32 +265,6 @@ async function resolveMerchandiseId(productHandle: string, buyerIp: string | nul
   return variant.id;
 }
 
-async function createShopifyCart(
-  merchandiseId: string,
-  quantity: number,
-  buyerIp: string | null,
-  locale: Locale,
-) {
-  const language = shopifyLanguage(locale);
-  const data = await shopifyStorefrontRequest<{ cartCreate: CartMutationPayload }>(
-    `#graphql
-      ${CART_FRAGMENT}
-      mutation SynaravaCartCreate($input: CartInput!, $language: LanguageCode!) @inContext(language: $language) {
-        cartCreate(input: $input) {
-          cart { ...SynaravaCart }
-          userErrors { field message code }
-          warnings { message }
-        }
-      }
-    `,
-    { input: { lines: [{ merchandiseId, quantity }] }, language },
-    { buyerIp },
-  );
-  const result = assertCartMutation(data.cartCreate);
-  await rememberCart(result.cart.id);
-  return result;
-}
-
 export async function getShopifyCartViewModel() {
   const locale = await getRequestLocale();
   const cartId = await getCartId();
@@ -368,13 +342,46 @@ export async function addShopifyProductToCart(
   const locale = await getRequestLocale();
   const resolvedMerchandiseId =
     merchandiseId || (await resolveMerchandiseId(productHandle, buyerIp, locale));
+  return addShopifyMerchandiseLinesToCart([
+    { merchandiseId: resolvedMerchandiseId, quantity },
+  ]);
+}
+
+/**
+ * Add one or more merchandise lines (Shopify GIDs) to the Storefront API cart.
+ * Used by Buy again permalink import and single-product add.
+ */
+export async function addShopifyMerchandiseLinesToCart(
+  lines: Array<{ merchandiseId: string; quantity: number }>,
+) {
+  if (lines.length === 0) {
+    throw new Error("No merchandise lines to add.");
+  }
+
+  const buyerIp = await getShopifyBuyerIp();
+  const locale = await getRequestLocale();
+  const language = shopifyLanguage(locale);
   const cartId = await getCartId();
 
   if (!cartId || !(await loadShopifyCart(cartId, buyerIp, locale))) {
-    return createShopifyCart(resolvedMerchandiseId, quantity, buyerIp, locale);
+    const data = await shopifyStorefrontRequest<{ cartCreate: CartMutationPayload }>(
+      `#graphql
+        ${CART_FRAGMENT}
+        mutation SynaravaCartCreateLines($input: CartInput!, $language: LanguageCode!) @inContext(language: $language) {
+          cartCreate(input: $input) {
+            cart { ...SynaravaCart }
+            userErrors { field message code }
+            warnings { message }
+          }
+        }
+      `,
+      { input: { lines }, language },
+      { buyerIp },
+    );
+    const result = assertCartMutation(data.cartCreate);
+    await rememberCart(result.cart.id);
+    return result;
   }
-
-  const language = shopifyLanguage(locale);
 
   const data = await shopifyStorefrontRequest<{ cartLinesAdd: CartMutationPayload }>(
     `#graphql
@@ -387,7 +394,7 @@ export async function addShopifyProductToCart(
         }
       }
     `,
-    { cartId, lines: [{ merchandiseId: resolvedMerchandiseId, quantity }], language },
+    { cartId, lines, language },
     { buyerIp },
   );
   return assertCartMutation(data.cartLinesAdd);

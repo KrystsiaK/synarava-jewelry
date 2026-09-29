@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 
+import { CartBuyAgainNotice } from "@/components/commerce/cart-buy-again-notice";
+import { CartShell } from "@/components/commerce/cart-shell";
+import { consumeBuyAgainNotice } from "@/lib/commerce/buy-again-notice";
 import { getStorefrontCartViewModel } from "@/lib/commerce/storefront-cart";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
-import { CartShell } from "@/components/commerce/cart-shell";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
@@ -28,9 +32,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CartPage() {
-  const [cart, isSignedIn] = await Promise.all([
+  const [cart, isSignedIn, buyAgainNotice] = await Promise.all([
     getStorefrontCartViewModel(),
     hasShopifyCustomerSession(),
+    consumeBuyAgainNotice(),
   ]);
 
   return (
@@ -41,6 +46,7 @@ export default async function CartPage() {
       subtotal={cart.subtotal}
       currency={cart.currency}
       isSignedIn={isSignedIn}
+      notice={<CartBuyAgainNotice notice={buyAgainNotice} />}
     />
   );
 }

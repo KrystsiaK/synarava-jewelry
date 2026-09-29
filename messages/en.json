@@ -285,7 +285,18 @@
       "one": "{count} product",
       "other": "{count} products"
     },
-    "subtotal": "Subtotal"
+    "subtotal": "Subtotal",
+    "buyAgain": {
+      "completed": {
+        "one": "Added {count} item from your previous order.",
+        "other": "Added {count} items from your previous order."
+      },
+      "partial": "Added {added} item(s); {skipped} unavailable item(s) were skipped.",
+      "adjusted": "Some quantities were adjusted to what is available. Review your cart before checkout.",
+      "replayed": "Those items were already added. Your cart is ready.",
+      "rejected": "We could not import that reorder link. Browse the shop or open your order in the secure account.",
+      "failed": "Shopify cart is temporarily unavailable. Your existing cart was kept — try again shortly."
+    }
   },
   "checkout": {
     "progress": "Checkout progress",
@@ -465,7 +476,9 @@
       "trackPackage": "Track package →",
       "estimatedDelivery": "Estimated delivery: {date}",
       "returnableTruncated": "Only the first {count} returnable items are listed above — see order details for the rest.",
-      "orderDetails": "Order details →",
+      "orderDetails": "Manage order in secure account →",
+      "manageOrder": "Manage order in secure account →",
+      "manageOrderHint": "Cancel items, returns, refunds, and Buy again are handled in your secure Shopify account. A cancellation is a request until staff approve it.",
       "loading": "Loading…",
       "loadMore": "Load more orders",
       "loadMoreFailed": "Couldn’t load more orders.",
