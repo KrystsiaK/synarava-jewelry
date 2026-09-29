@@ -4,12 +4,16 @@ const mocks = vi.hoisted(() => ({
   checkRateLimit: vi.fn(),
   getTrustedClientIp: vi.fn(),
   requestShopifyOrderReturn: vi.fn(),
+  getShopifyCustomerSession: vi.fn(),
   getServerTranslations: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/rate-limit", () => ({ checkRateLimit: mocks.checkRateLimit }));
 vi.mock("@/lib/security/request-ip", () => ({ getTrustedClientIp: mocks.getTrustedClientIp }));
 vi.mock("@/lib/shopify/customer-account/api", () => ({ requestShopifyOrderReturn: mocks.requestShopifyOrderReturn }));
+vi.mock("@/lib/shopify/customer-account/session", () => ({
+  getShopifyCustomerSession: mocks.getShopifyCustomerSession,
+}));
 vi.mock("@/lib/i18n/server", () => ({ getServerTranslations: mocks.getServerTranslations }));
 
 import { POST } from "../route";
@@ -26,13 +30,25 @@ describe("orders return API route (REV-23)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.checkRateLimit.mockResolvedValue({ ok: true });
+    mocks.getShopifyCustomerSession.mockResolvedValue({ id: "session-1" });
     mocks.getServerTranslations.mockResolvedValue({
       t: (key: string) => ({
         "profile.returns.selectAtLeastOne": "Select at least one item to return.",
         "profile.returns.rateLimited": "Too many return requests. Please try again shortly.",
         "profile.returns.genericFailed": "Could not submit the return request.",
+        "profile.orders.requiresLogin": "Sign in to continue.",
       })[key] ?? key,
     });
+  });
+
+  it("returns 401 when there is no customer session", async () => {
+    mocks.getShopifyCustomerSession.mockResolvedValue(null);
+
+    const response = await POST(request({ orderId: "order-1", lineItems: [{ lineItemId: "li-1", quantity: 1 }] }));
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ ok: false, error: "Sign in to continue." });
+    expect(mocks.requestShopifyOrderReturn).not.toHaveBeenCalled();
   });
 
   it("returns the translated validation message for an empty selection", async () => {
@@ -58,5 +74,14 @@ describe("orders return API route (REV-23)", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ ok: false, error: "This item is not eligible for return." });
+  });
+
+  it("hides internal infrastructure errors behind the generic message", async () => {
+    mocks.requestShopifyOrderReturn.mockRejectedValue(new Error("Shopify Customer Account API failed (500)."));
+
+    const response = await POST(request({ orderId: "order-1", lineItems: [{ lineItemId: "li-1", quantity: 1 }] }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ ok: false, error: "Could not submit the return request." });
   });
 });

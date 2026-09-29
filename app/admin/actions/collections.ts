@@ -15,6 +15,7 @@ import { db } from "@/lib/db";
 import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
+import { normalizeRichTextFields } from "@/lib/content/rich-text";
 import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
@@ -284,22 +285,43 @@ export async function saveCollectionAction(
   const isPublished = workflowState === "PUBLISHED";
   const before = collectionId ? await getSavedCollectionPayload(collectionId).catch(() => null) : null;
 
+  const rich = normalizeRichTextFields(
+    {
+      description,
+      manifesto,
+      storyBody,
+      searchSummary,
+      seoDescription,
+      symbolismBody,
+      symbolismBody2,
+    },
+    [
+      "description",
+      "manifesto",
+      "storyBody",
+      "searchSummary",
+      "seoDescription",
+      "symbolismBody",
+      "symbolismBody2",
+    ],
+  );
+
   const baseData = {
     slug,
     code: code || null,
     name,
     subtitle: subtitle || null,
-    description: description || null,
-    manifesto: manifesto || null,
+    description: rich.description || null,
+    manifesto: rich.manifesto || null,
     storyTitle: storyTitle || null,
-    storyBody: storyBody || null,
-    searchSummary: searchSummary || null,
+    storyBody: rich.storyBody || null,
+    searchSummary: rich.searchSummary || null,
     seoTitle: seoTitle || null,
-    seoDescription: seoDescription || null,
+    seoDescription: rich.seoDescription || null,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,
-    symbolismBody: symbolismBody || null,
-    symbolismBody2: symbolismBody2 || null,
+    symbolismBody: rich.symbolismBody || null,
+    symbolismBody2: rich.symbolismBody2 || null,
     heroImageUrl,
     ...(uploadedAssetId ? { heroAssetId: uploadedAssetId } : {}),
     status: (isPublished ? "ACTIVE" : "DRAFT") as "DRAFT" | "ACTIVE",
@@ -333,19 +355,37 @@ export async function saveCollectionAction(
 
   const translationUpserts = translationLocales.map(({ code: locale }) => {
     const fields = readCollectionTranslationFields(formData, locale);
+    const richTranslation = normalizeRichTextFields(
+      {
+        description: fields.description,
+        manifesto: fields.manifesto,
+        storyBody: fields.storyBody,
+        searchSummary: fields.searchSummary,
+        symbolismBody: fields.symbolismBody,
+        symbolismBody2: fields.symbolismBody2,
+      },
+      [
+        "description",
+        "manifesto",
+        "storyBody",
+        "searchSummary",
+        "symbolismBody",
+        "symbolismBody2",
+      ],
+    );
     const copy = {
       localizedHandle: slugify(fields.localizedHandle) || null,
       name: fields.name || name,
       subtitle: fields.subtitle || null,
-      description: fields.description || null,
-      manifesto: fields.manifesto || null,
+      description: richTranslation.description || null,
+      manifesto: richTranslation.manifesto || null,
       storyTitle: fields.storyTitle || null,
-      storyBody: fields.storyBody || null,
-      searchSummary: fields.searchSummary || null,
+      storyBody: richTranslation.storyBody || null,
+      searchSummary: richTranslation.searchSummary || null,
       symbolismLabel: fields.symbolismLabel || null,
       symbolismTitle: fields.symbolismTitle || null,
-      symbolismBody: fields.symbolismBody || null,
-      symbolismBody2: fields.symbolismBody2 || null,
+      symbolismBody: richTranslation.symbolismBody || null,
+      symbolismBody2: richTranslation.symbolismBody2 || null,
     };
     const contentHash = createHash("sha256").update(JSON.stringify(copy)).digest("hex");
     const reviewed = fields.reviewedFlag === "on" && Boolean(fields.name);
@@ -525,22 +565,42 @@ export async function autosaveCollectionDraftAction(
   const removeHeroImage = parsed.data.removeHeroImage === "1";
   const existingHeroImageUrl = removeHeroImage ? "" : parsed.data.existingHeroImageUrl;
 
+  const richDraft = normalizeRichTextFields(
+    {
+      description,
+      manifesto,
+      storyBody,
+      searchSummary,
+      seoDescription,
+      symbolismBody,
+      symbolismBody2,
+    },
+    [
+      "description",
+      "manifesto",
+      "storyBody",
+      "searchSummary",
+      "seoDescription",
+      "symbolismBody",
+      "symbolismBody2",
+    ],
+  );
   const collectionData = {
     slug,
     code: code || null,
     name,
     subtitle: subtitle || null,
-    description: description || null,
-    manifesto: manifesto || null,
+    description: richDraft.description || null,
+    manifesto: richDraft.manifesto || null,
     storyTitle: storyTitle || null,
-    storyBody: storyBody || null,
-    searchSummary: searchSummary || null,
+    storyBody: richDraft.storyBody || null,
+    searchSummary: richDraft.searchSummary || null,
     seoTitle: seoTitle || null,
-    seoDescription: seoDescription || null,
+    seoDescription: richDraft.seoDescription || null,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,
-    symbolismBody: symbolismBody || null,
-    symbolismBody2: symbolismBody2 || null,
+    symbolismBody: richDraft.symbolismBody || null,
+    symbolismBody2: richDraft.symbolismBody2 || null,
     heroImageUrl: existingHeroImageUrl || null,
     status: "DRAFT" as const,
     visibility: "PRIVATE" as const,

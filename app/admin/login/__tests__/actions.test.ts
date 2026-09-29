@@ -129,8 +129,28 @@ describe("admin login actions", () => {
 
     expect(createAdminSessionMock).toHaveBeenCalledOnce();
     expect(clearRateLimitMock).toHaveBeenCalledWith("admin-login-ip", "127.0.0.1");
+    expect(clearRateLimitMock).toHaveBeenCalledWith("admin-login-user", "studio");
     expect(redirectMock).toHaveBeenCalledWith("/admin/products");
     expect(error.url).toBe("/admin/products");
+  });
+
+  it("rate-limits by username as well as IP", async () => {
+    checkRateLimitMock
+      .mockReturnValueOnce({ ok: true })
+      .mockReturnValueOnce({
+        ok: false,
+        error: "Too many attempts. Try again in 12s.",
+        retryAfterSeconds: 12,
+      });
+
+    const result = await adminLoginAction({}, makeFormData({ username: "Studio" }));
+
+    expect(result).toEqual({
+      error: "Too many attempts. Try again in 12s.",
+      retryAfterSeconds: 12,
+    });
+    expect(checkRateLimitMock).toHaveBeenCalledWith("admin-login-user", "studio", expect.any(Object));
+    expect(createAdminSessionMock).not.toHaveBeenCalled();
   });
 
   it("falls back to the remembered return-to cookie when form redirectTo is empty", async () => {

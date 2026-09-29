@@ -229,6 +229,13 @@ export const ACCOUNT_PAGE_KEYS: string[] = ACCOUNT_PAGE_GROUPS.flatMap((group) =
   group.fields.map((field) => field.key),
 );
 
+/** Keys edited with AdminRichTextField — sanitize on server persist. */
+export const ACCOUNT_PAGE_RICH_TEXT_KEYS: ReadonlySet<string> = new Set(
+  ACCOUNT_PAGE_GROUPS.flatMap((group) =>
+    group.fields.filter((field) => field.area).map((field) => field.key),
+  ),
+);
+
 export function accountPageAreaForHash(hash: string): AccountPageAreaId | null {
   const id = hash.replace(/^#/, "").replace(/^account-/, "");
   return ACCOUNT_PAGE_AREAS.some((area) => area.id === id) ? id as AccountPageAreaId : null;

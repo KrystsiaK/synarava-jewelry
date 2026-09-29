@@ -17,6 +17,7 @@ import {
 } from "@/lib/products/product-form-validation";
 import { slugify } from "@/lib/text/slug";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
+import { normalizeRichTextFields, normalizeRichTextForStorage } from "@/lib/content/rich-text";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import {
@@ -666,7 +667,7 @@ function readProductTranslationFields(formData: FormData, locale: string) {
 function readProductTranslationDetails(formData: FormData, locale: string) {
   const materials = [1, 2, 3].map((index) => ({
     title: readLocaleField(formData, locale, `materialTitle${index}`),
-    body: readLocaleField(formData, locale, `materialBody${index}`),
+    body: normalizeRichTextForStorage(readLocaleField(formData, locale, `materialBody${index}`)),
   }));
   const stats = [1, 2, 3, 4]
     .map((index) => ({
@@ -850,7 +851,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
       return {
         title: formValue(formData, `materialTitle${index}`),
-        body: formValue(formData, `materialBody${index}`),
+        body: normalizeRichTextForStorage(formValue(formData, `materialBody${index}`)),
         image,
       };
     }),
@@ -937,6 +938,16 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const publishWarning = publishGapsNotice({ missingTranslations, missingImage });
 
   const wasCreate = !productId;
+  const rich = normalizeRichTextFields(
+    {
+      shortDescription,
+      description,
+      seoDescription,
+      symbolismBody,
+      symbolismBody2,
+    },
+    ["shortDescription", "description", "seoDescription", "symbolismBody", "symbolismBody2"],
+  );
   const productData = {
     slug,
     sku,
@@ -944,15 +955,15 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     vendor: vendor || null,
     productType: productType || null,
     seriesLabel,
-    shortDescription,
-    description,
+    shortDescription: rich.shortDescription,
+    description: rich.description,
     seoTitle: seoTitle || null,
-    seoDescription: seoDescription || null,
+    seoDescription: rich.seoDescription || null,
     materialLine,
     symbolismLabel: symbolismLabel || null,
     symbolismTitle: symbolismTitle || null,
-    symbolismBody: symbolismBody || null,
-    symbolismBody2: symbolismBody2 || null,
+    symbolismBody: rich.symbolismBody || null,
+    symbolismBody2: rich.symbolismBody2 || null,
     details,
     imageUrl,
     ...(uploadedAssetId ? { primaryAssetId: uploadedAssetId } : removeImage ? { primaryAssetId: null } : {}),
@@ -966,7 +977,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     visibility: isPublished ? "PUBLIC" as const : isUnlisted ? "UNLISTED" as const : "PRIVATE" as const,
     publishedAt: isPublished || isUnlisted ? new Date() : null,
     searchDocument: buildProductSearchDocument({
-      name, sku, slug, description, shortDescription, materialLine,
+      name, sku, slug, description: rich.description, shortDescription: rich.shortDescription, materialLine,
       tags: tagSlugs, characteristics,
     }),
   };
@@ -993,23 +1004,33 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   const sourceTranslationChanged = !before
     || before.name !== name
-    || before.description !== description
+    || before.description !== rich.description
     || before.seoTitle !== (seoTitle || null)
-    || before.seoDescription !== (seoDescription || null);
+    || before.seoDescription !== (rich.seoDescription || null);
   const translationUpserts = translationFields.map(({ code: locale, fields }) => {
     const translationDetails = readProductTranslationDetails(formData, locale);
+    const richTranslation = normalizeRichTextFields(
+      {
+        shortDescription: fields.shortDescription,
+        description: fields.description,
+        symbolismBody: fields.symbolismBody,
+        symbolismBody2: fields.symbolismBody2,
+        seoDescription: fields.seoDescription,
+      },
+      ["shortDescription", "description", "symbolismBody", "symbolismBody2", "seoDescription"],
+    );
     const copy = {
       localizedHandle: slugify(fields.localizedHandle) || null,
       title: fields.title,
-      shortDescription: fields.shortDescription || null,
-      description: fields.description || null,
+      shortDescription: richTranslation.shortDescription || null,
+      description: richTranslation.description || null,
       materialLine: fields.materialLine || null,
       symbolismLabel: fields.symbolismLabel || null,
       symbolismTitle: fields.symbolismTitle || null,
-      symbolismBody: fields.symbolismBody || null,
-      symbolismBody2: fields.symbolismBody2 || null,
+      symbolismBody: richTranslation.symbolismBody || null,
+      symbolismBody2: richTranslation.symbolismBody2 || null,
       seoTitle: fields.seoTitle || null,
-      seoDescription: fields.seoDescription || null,
+      seoDescription: richTranslation.seoDescription || null,
       details: translationDetails as Prisma.InputJsonValue,
     };
     const contentHash = createHash("sha256").update(JSON.stringify(copy)).digest("hex");
@@ -1358,15 +1379,19 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     attributes,
   } as Prisma.InputJsonValue;
 
+  const richDraft = normalizeRichTextFields(
+    { shortDescription, description, seoDescription },
+    ["shortDescription", "description", "seoDescription"],
+  );
   const productData = {
     slug,
     sku,
     name,
     seriesLabel: seriesLabel || null,
-    shortDescription: shortDescription || null,
-    description: description || null,
+    shortDescription: richDraft.shortDescription || null,
+    description: richDraft.description || null,
     seoTitle: seoTitle || null,
-    seoDescription: seoDescription || null,
+    seoDescription: richDraft.seoDescription || null,
     materialLine: materialLine || null,
     ...(hasShopifyCategorySelection ? {
       shopifyCategoryId: shopifyCategory?.id ?? null,
@@ -1408,12 +1433,12 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
       where: { productId_locale: { productId: product.id, locale: "en" } },
       update: {
         title: name,
-        shortDescription: shortDescription || null,
-        description: description || null,
+        shortDescription: richDraft.shortDescription || null,
+        description: richDraft.description || null,
         materialLine: materialLine || null,
         details: draftDetails,
         seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
+        seoDescription: richDraft.seoDescription || null,
         reviewStatus: "REVIEWED",
         reviewedAt: new Date(),
       },
@@ -1421,40 +1446,50 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
         productId: product.id,
         locale: "en",
         title: name,
-        shortDescription: shortDescription || null,
-        description: description || null,
+        shortDescription: richDraft.shortDescription || null,
+        description: richDraft.description || null,
         materialLine: materialLine || null,
         details: draftDetails,
         seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
+        seoDescription: richDraft.seoDescription || null,
         reviewStatus: "REVIEWED",
         reviewedAt: new Date(),
       },
     }),
-    ...translationFields.map(({ code: locale, fields }) => db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale } },
-      update: {
-        title: fields.title,
-        shortDescription: fields.shortDescription || null,
-        description: fields.description || null,
-        materialLine: fields.materialLine || null,
-        seoTitle: fields.seoTitle || null,
-        seoDescription: fields.seoDescription || null,
-        reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
-        syncStatus: "NOT_APPLICABLE",
-      },
-      create: {
-        productId: product.id,
-        locale,
-        title: fields.title,
-        shortDescription: fields.shortDescription || null,
-        description: fields.description || null,
-        materialLine: fields.materialLine || null,
-        seoTitle: fields.seoTitle || null,
-        seoDescription: fields.seoDescription || null,
-        reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
-      },
-    })),
+    ...translationFields.map(({ code: locale, fields }) => {
+      const richTranslation = normalizeRichTextFields(
+        {
+          shortDescription: fields.shortDescription,
+          description: fields.description,
+          seoDescription: fields.seoDescription,
+        },
+        ["shortDescription", "description", "seoDescription"],
+      );
+      return db.productTranslation.upsert({
+        where: { productId_locale: { productId: product.id, locale } },
+        update: {
+          title: fields.title,
+          shortDescription: richTranslation.shortDescription || null,
+          description: richTranslation.description || null,
+          materialLine: fields.materialLine || null,
+          seoTitle: fields.seoTitle || null,
+          seoDescription: richTranslation.seoDescription || null,
+          reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
+          syncStatus: "NOT_APPLICABLE",
+        },
+        create: {
+          productId: product.id,
+          locale,
+          title: fields.title,
+          shortDescription: richTranslation.shortDescription || null,
+          description: richTranslation.description || null,
+          materialLine: fields.materialLine || null,
+          seoTitle: fields.seoTitle || null,
+          seoDescription: richTranslation.seoDescription || null,
+          reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
+        },
+      });
+    }),
   ]);
 
   revalidatePath("/admin/products");

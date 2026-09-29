@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, it } from "vitest";
+
 import { getTrustedClientIp } from "@/lib/security/request-ip";
 
 function headers(values: Record<string, string>) {
@@ -5,6 +7,10 @@ function headers(values: Record<string, string>) {
 }
 
 describe("getTrustedClientIp", () => {
+  afterEach(() => {
+    delete process.env.TRUSTED_PROXY_HOPS;
+  });
+
   it("does not trust the attacker-controlled leftmost forwarded address", () => {
     expect(getTrustedClientIp(headers({ "x-forwarded-for": "198.51.100.5, 203.0.113.10" })))
       .toBe("203.0.113.10");
@@ -19,5 +25,14 @@ describe("getTrustedClientIp", () => {
 
   it("rejects malformed header values", () => {
     expect(getTrustedClientIp(headers({ "x-forwarded-for": "not-an-ip" }))).toBe("unknown");
+  });
+
+  it("honors TRUSTED_PROXY_HOPS when a CDN sits in front", () => {
+    process.env.TRUSTED_PROXY_HOPS = "2";
+    expect(
+      getTrustedClientIp(headers({
+        "x-forwarded-for": "198.51.100.5, 203.0.113.10, 192.0.2.1",
+      })),
+    ).toBe("203.0.113.10");
   });
 });

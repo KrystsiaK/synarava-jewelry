@@ -51,6 +51,16 @@ describe("rich-text helpers", () => {
     expect(clean).toContain(">ok</a>");
   });
 
+  it("escapes orphan angles so split-tag smuggling cannot reassemble markup", () => {
+    expect(sanitizeRichTextHtml("<p>ok</p><<div>script>alert(1)<</div>/script>")).toBe(
+      "<p>ok</p>&lt;script&gt;alert(1)&lt;/script&gt;",
+    );
+    expect(sanitizeRichTextHtml("<<span>img src=x onerror=alert(1)>")).toBe(
+      "&lt;img src=x onerror=alert(1)&gt;",
+    );
+    expect(sanitizeRichTextHtml("<p>a < b & c > d</p>")).toBe("<p>a &lt; b & c &gt; d</p>");
+  });
+
   it("keeps internal paths same-tab and accepts them for TipTap", () => {
     const clean = sanitizeRichTextHtml(
       '<p><a href="/shipping">Shipping</a> <a href="#returns">Returns</a></p>',

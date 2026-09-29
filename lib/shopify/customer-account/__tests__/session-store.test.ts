@@ -12,9 +12,12 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+import { createHash } from "node:crypto";
+
 import {
   cleanupExpiredCustomerSessions,
   createStoredCustomerSession,
+  hashCustomerSessionId,
 } from "../session-store";
 
 describe("Shopify customer session store cleanup", () => {
@@ -35,7 +38,7 @@ describe("Shopify customer session store cleanup", () => {
     expect(mocks.executeRaw).toHaveBeenCalledTimes(2);
   });
 
-  it("cleans up abandoned sessions before inserting a new one", async () => {
+  it("stores sha256(sessionId) and cleans up before insert", async () => {
     await createStoredCustomerSession({
       id: "session-1",
       accessToken: "enc-access",
@@ -47,8 +50,12 @@ describe("Shopify customer session store cleanup", () => {
 
     expect(mocks.executeRaw).toHaveBeenCalledTimes(2);
     const [cleanupSql] = mocks.executeRaw.mock.calls[0] as [TemplateStringsArray];
-    const [insertSql] = mocks.executeRaw.mock.calls[1] as [TemplateStringsArray];
-    expect(cleanupSql.join("")).toContain("DELETE FROM");
-    expect(insertSql.join("")).toContain("INSERT INTO");
+    const [insertSql, ...insertValues] = mocks.executeRaw.mock.calls[1] as unknown[];
+    expect((cleanupSql as TemplateStringsArray).join("")).toContain("DELETE FROM");
+    expect((insertSql as TemplateStringsArray).join("")).toContain("INSERT INTO");
+    const expectedHash = createHash("sha256").update("session-1", "utf8").digest("hex");
+    expect(hashCustomerSessionId("session-1")).toBe(expectedHash);
+    expect(insertValues).toContain(expectedHash);
+    expect(insertValues).not.toContain("session-1");
   });
 });

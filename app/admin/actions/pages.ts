@@ -14,6 +14,7 @@ import { savePageImageUpload } from "@/lib/media/local-upload";
 import { isBuiltInPage } from "@/lib/content/built-in-pages";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { MAX_HOME_LEXICON_MATERIALS } from "@/lib/content/home-lexicon-section";
+import { normalizeRichTextForStorage } from "@/lib/content/rich-text";
 import { SHOP_PAGE_COPY_KEYS, shopPageCopyFromRecord, type ShopPageCopyKey } from "@/lib/content/shop-page-copy";
 import type { LegalSectionEntry } from "@/lib/content/legal-sections";
 import { isValidOptionalEmail, OPTIONAL_EMAIL_ERROR } from "@/lib/admin/optional-email";
@@ -126,8 +127,46 @@ function readDynamicSectionFields(
     id,
     label: readLocaleField(formData, locale, `${kind}:${id}:label`),
     title: readLocaleField(formData, locale, `${kind}:${id}:title`),
-    body: readLocaleField(formData, locale, `${kind}:${id}:body`),
+    body: normalizeRichTextForStorage(
+      readLocaleField(formData, locale, `${kind}:${id}:body`),
+    ),
   }));
+}
+
+const PAGE_RICH_TEXT_CONTENT_KEYS = [
+  "body",
+  "quote",
+  "secondaryBody",
+  "editSectionBody",
+  "legalIntro",
+  "shopNewDescription",
+  "shopProductTypeDescription",
+  "shopFilterDescription",
+] as const;
+
+/** Sanitize rich-text fields inside page content JSON before persist. */
+function normalizePageContentRichText<T extends Record<string, unknown>>(content: T): T {
+  const next: Record<string, unknown> = { ...content };
+  for (const key of PAGE_RICH_TEXT_CONTENT_KEYS) {
+    const value = next[key];
+    if (typeof value === "string") {
+      next[key] = normalizeRichTextForStorage(value);
+    }
+  }
+  if (Array.isArray(next.materialLexicon)) {
+    next.materialLexicon = next.materialLexicon.map((entry) => {
+      if (!entry || typeof entry !== "object") return entry;
+      const row = entry as Record<string, unknown>;
+      return {
+        ...row,
+        description:
+          typeof row.description === "string"
+            ? normalizeRichTextForStorage(row.description)
+            : row.description,
+      };
+    });
+  }
+  return next as T;
 }
 
 const TRANSLATABLE_PAGE_FIELDS = [
@@ -161,7 +200,9 @@ function readMaterialTextEntries(formData: FormData, locale: string): MaterialTe
     entries.push({
       name: readLocaleField(formData, locale, `material${index}Name`),
       category: readLocaleField(formData, locale, `material${index}Category`),
-      description: readLocaleField(formData, locale, `material${index}Description`),
+      description: normalizeRichTextForStorage(
+        readLocaleField(formData, locale, `material${index}Description`),
+      ),
       properties: readLocaleField(formData, locale, `material${index}Properties`),
     });
   }
@@ -421,7 +462,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     uploadedByUsername: currentUser?.username,
   });
   const materialLexicon = buildMaterialLexiconEntries(materialEntries, materialImages);
-  const englishTranslationContent = {
+  const englishTranslationContent = normalizePageContentRichText({
     eyebrow, body, ctaLabel, calloutEyebrow, calloutHeading, calloutCtaHref,
     heroOpeningLabel, heroCountLabel, heroQualifier,
     detailShopLabel, detailCollectionsLabel, detailScrollLabel,
@@ -436,12 +477,14 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     finalSecondaryCtaLabel, finalSecondaryCtaHref,
     finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalLastUpdatedLabel, legalSections, serviceSections,
     ...shopPageCopyFromRecord(parsed.data),
-  };
+  });
+  const safeExcerpt = normalizeRichTextForStorage(excerpt);
+  const safeSeoDescription = normalizeRichTextForStorage(seoDescription);
   // Images/src stay shared with English (see materialImages above) and are
   // never re-uploaded per locale.
   const translationsData = translationLocales.map(({ code, label }) => {
     const fields = readPageTranslationFields(formData, code);
-    const content = {
+    const content = normalizePageContentRichText({
       eyebrow: fields.eyebrow,
       body: fields.body,
       ctaLabel: fields.ctaLabel,
@@ -488,18 +531,28 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       legalSections: readDynamicSectionFields(formData, code, "legal"),
       serviceSections: readDynamicSectionFields(formData, code, "service"),
       ...shopPageCopyFromRecord(fields),
-    };
+    });
     const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
-    return { code, label, fields, localizedHandle, content };
+    return {
+      code,
+      label,
+      fields: {
+        ...fields,
+        excerpt: normalizeRichTextForStorage(fields.excerpt),
+        seoDescription: normalizeRichTextForStorage(fields.seoDescription),
+      },
+      localizedHandle,
+      content,
+    };
   });
   const ptTranslation = translationsData.find((translation) => translation.code === "pt");
   const pageData = {
     slug,
     title,
-    excerpt,
+    excerpt: safeExcerpt,
     seoTitle: seoTitle || null,
-    seoDescription: seoDescription || null,
-    content: {
+    seoDescription: safeSeoDescription || null,
+    content: normalizePageContentRichText({
       eyebrow,
       body,
       ctaLabel,
@@ -577,7 +630,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
           ...(ptTranslation?.content ?? {}),
         },
       },
-    },
+    }),
     status: isPublished ? PageStatus.PUBLISHED : PageStatus.DRAFT,
     visibility: isPublished ? ContentVisibility.PUBLIC : ContentVisibility.PRIVATE,
     publishedAt: isPublished ? new Date() : null,
@@ -602,7 +655,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
           create: {
             ...pageData,
             template: existing?.template ?? PageTemplate.STATIC_PAGE,
-            searchSummary: excerpt || title,
+            searchSummary: safeExcerpt || title,
           },
           select: savedPageSelect,
         });
@@ -655,9 +708,9 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       where: { pageId_locale: { pageId: page.id, locale: "en" } },
       update: {
         title,
-        excerpt: excerpt || null,
+        excerpt: safeExcerpt || null,
         seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
+        seoDescription: safeSeoDescription || null,
         content: englishTranslationContent,
         reviewStatus: "REVIEWED",
         reviewedAt: new Date(),
@@ -666,9 +719,9 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
         pageId: page.id,
         locale: "en",
         title,
-        excerpt: excerpt || null,
+        excerpt: safeExcerpt || null,
         seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
+        seoDescription: safeSeoDescription || null,
         content: englishTranslationContent,
         reviewStatus: "REVIEWED",
         reviewedAt: new Date(),
@@ -746,9 +799,11 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
   )];
   const contactEnabled = finalContactEnabled === "1";
   const draftMaterialLexicon = buildMaterialLexiconEntries(readMaterialTextEntries(formData, "en"));
+  const safeExcerpt = normalizeRichTextForStorage(excerpt);
+  const safeSeoDescription = normalizeRichTextForStorage(seoDescription);
   const translationsData = translationLocales.map(({ code, label }) => {
     const fields = readPageTranslationFields(formData, code);
-    const content = {
+    const content = normalizePageContentRichText({
       eyebrow: fields.eyebrow,
       body: fields.body,
       ctaLabel: fields.ctaLabel,
@@ -795,20 +850,30 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       legalSections: readDynamicSectionFields(formData, code, "legal"),
       serviceSections: readDynamicSectionFields(formData, code, "service"),
       ...shopPageCopyFromRecord(fields),
-    };
+    });
     const localizedHandle = isBuiltInPage(slug) ? null : (slugify(fields.handle) || null);
-    return { code, label, fields, localizedHandle, content };
+    return {
+      code,
+      label,
+      fields: {
+        ...fields,
+        excerpt: normalizeRichTextForStorage(fields.excerpt),
+        seoDescription: normalizeRichTextForStorage(fields.seoDescription),
+      },
+      localizedHandle,
+      content,
+    };
   });
   const ptTranslation = translationsData.find((translation) => translation.code === "pt");
 
   const pageData = {
     slug,
     title: title || "Untitled page",
-    excerpt: excerpt || null,
+    excerpt: safeExcerpt || null,
     seoTitle: seoTitle || null,
-    seoDescription: seoDescription || null,
-    searchSummary: excerpt || title || "Untitled page",
-    content: {
+    seoDescription: safeSeoDescription || null,
+    searchSummary: safeExcerpt || title || "Untitled page",
+    content: normalizePageContentRichText({
       eyebrow,
       body,
       ctaLabel,
@@ -882,7 +947,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
           ...(ptTranslation?.content ?? {}),
         },
       },
-    },
+    }),
     status: "DRAFT" as const,
     visibility: "PRIVATE" as const,
     publishedAt: null,

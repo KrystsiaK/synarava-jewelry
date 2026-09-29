@@ -212,36 +212,84 @@ export function normalizeRichTextForStorage(html: string): string {
   return sanitized;
 }
 
-export function sanitizeRichTextHtml(input: string): string {
-  return input.replace(TAG_RE, (match, rawTag: string) => {
-    const tag = rawTag.toLowerCase();
-    const closing = match.startsWith("</");
+/** Escape angle brackets in text nodes only — do not touch `&` (avoids double-encoding entities). */
+function escapeOrphanAngles(text: string): string {
+  return text.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
 
-    if (tag === "br") return closing ? "" : "<br>";
-    if (
-      tag === "p" ||
-      tag === "strong" ||
-      tag === "em" ||
-      tag === "b" ||
-      tag === "i" ||
-      tag === "ul" ||
-      tag === "ol" ||
-      tag === "li"
-    ) {
-      return closing ? `</${tag}>` : `<${tag}>`;
+function rewriteAllowedTag(match: string, rawTag: string): string {
+  const tag = rawTag.toLowerCase();
+  const closing = match.startsWith("</");
+
+  if (tag === "br") return closing ? "" : "<br>";
+  if (
+    tag === "p" ||
+    tag === "strong" ||
+    tag === "em" ||
+    tag === "b" ||
+    tag === "i" ||
+    tag === "ul" ||
+    tag === "ol" ||
+    tag === "li"
+  ) {
+    return closing ? `</${tag}>` : `<${tag}>`;
+  }
+  if (tag === "a") {
+    if (closing) return "</a>";
+    const hrefMatch = match.match(HREF_RE);
+    const rawHref = hrefMatch?.[1] ?? hrefMatch?.[2] ?? hrefMatch?.[3] ?? "";
+    const href = sanitizeHref(rawHref);
+    if (!href) return "";
+    const external = isExternalHttpHref(href);
+    const target = external ? ' target="_blank"' : "";
+    const rel = external ? ' rel="noopener noreferrer"' : "";
+    return `<a href="${escapeAttr(href)}"${target}${rel}>`;
+  }
+  // Drop unknown tags; keep inner text.
+  return "";
+}
+
+/**
+ * Allowlisted tags only. Orphan `<`/`>` between matches are escaped so split-tag
+ * smuggling (`<<div>script>…`) cannot reassemble executable markup on render.
+ */
+export function sanitizeRichTextHtml(input: string): string {
+  let result = "";
+  let lastIndex = 0;
+  TAG_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = TAG_RE.exec(input)) !== null) {
+    result += escapeOrphanAngles(input.slice(lastIndex, match.index));
+    result += rewriteAllowedTag(match[0], match[1] ?? "");
+    lastIndex = match.index + match[0].length;
+  }
+  result += escapeOrphanAngles(input.slice(lastIndex));
+  return result;
+}
+
+/** Normalize known rich-text string fields before DB persist (server-side). */
+export function normalizeRichTextFields<T extends Record<string, unknown>>(
+  record: T,
+  keys: readonly (keyof T & string)[],
+): T {
+  const next = { ...record };
+  for (const key of keys) {
+    const value = next[key];
+    if (typeof value === "string") {
+      (next as Record<string, unknown>)[key] = normalizeRichTextForStorage(value);
     }
-    if (tag === "a") {
-      if (closing) return "</a>";
-      const hrefMatch = match.match(HREF_RE);
-      const rawHref = hrefMatch?.[1] ?? hrefMatch?.[2] ?? hrefMatch?.[3] ?? "";
-      const href = sanitizeHref(rawHref);
-      if (!href) return "";
-      const external = isExternalHttpHref(href);
-      const target = external ? ' target="_blank"' : "";
-      const rel = external ? ' rel="noopener noreferrer"' : "";
-      return `<a href="${escapeAttr(href)}"${target}${rel}>`;
-    }
-    // Drop unknown tags; keep inner text.
-    return "";
-  });
+  }
+  return next;
+}
+
+/** Normalize selected keys in a flat copy map (admin locale bags). */
+export function normalizeRichTextCopyMap(
+  fields: Record<string, string>,
+  richKeys: ReadonlySet<string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    out[key] = richKeys.has(key) ? normalizeRichTextForStorage(value) : value;
+  }
+  return out;
 }

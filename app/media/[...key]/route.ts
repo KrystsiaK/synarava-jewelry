@@ -2,16 +2,13 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { getS3, getS3Bucket } from "@/lib/s3";
+import { isSafeUploadKey } from "@/lib/uploads/safe-upload-key";
 
 export const runtime = "nodejs";
 
 type Props = {
   params: Promise<{ key: string[] }>;
 };
-
-function isSafeUploadKey(parts: string[]) {
-  return parts[0] === "uploads" && parts.every((part) => part.length > 0 && part !== "." && part !== "..");
-}
 
 function isVideoKey(key: string) {
   return /\.(?:mp4|webm)$/i.test(key);

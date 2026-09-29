@@ -91,14 +91,18 @@ audiences, each with its own auth mechanism:
   credentials, not a database row. `AdminSession` (opaque token, HMAC-verified in `proxy.ts`)
   tracks the logged-in session. Every admin action guards on `requireAdminSession()` — there is a
   single admin role, not a permission matrix, because there is a single kind of admin operator.
+  Password hashes use Node `scrypt` defaults today; raising cost parameters is a planned
+  follow-up (requires dual-verify + rehash because existing `ADMIN_PASSWORD_HASH` values
+  would otherwise stop verifying).
 - **Storefront customers** authenticate via Shopify Customer Account OAuth
   (`lib/shopify/customer-account/`). The sign-in control is a full document
   navigation to `/api/auth/shopify`, which redirects to Shopify's hosted login.
   The email code is entered there. Shopify owns the customer identity, session,
-  and OTP flow; this app only stores the resulting session token. A signed-out
-  visit to `/profile` opens `/login` first, so OAuth is not started by a
-  client-side fetch. A localhost start is sent to the public `APP_URL` before
-  any cookie is set, because Shopify returns the browser to that callback host.
+  and OTP flow; this app stores only `sha256(cookieSessionId)` plus encrypted
+  tokens — never the raw cookie id. A signed-out visit to `/profile` opens
+  `/login` first, so OAuth is not started by a client-side fetch. A localhost
+  start is sent to the public `APP_URL` before any cookie is set, because
+  Shopify returns the browser to that callback host.
 
 An earlier local email/password customer auth system plus an RBAC layer (`User`, `Role`,
 `Permission`, `UserRole`, `RolePermission`, `UserSession`, `AuthAccount`, `VerificationToken`)

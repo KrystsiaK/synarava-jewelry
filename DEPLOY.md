@@ -16,7 +16,10 @@ Translation rollout and recovery are documented in `docs/translation-operations.
 | `DATABASE_URL` | PostgreSQL connection string |
 | `ADMIN_USERNAME` | Логин для отдельного входа в `/admin/login` |
 | `ADMIN_PASSWORD_HASH` | Хеш пароля админки. Генерить локально: `pnpm auth:hash` |
-| `ADMIN_SESSION_SECRET` | Отдельный секрет для подписи admin-cookie. Минимум 32 случайных символа. Генерить: `openssl rand -hex 32` |
+| `ADMIN_SESSION_SECRET` | Отдельный секрет для подписи admin-cookie. Минимум 32 случайных символа (валидируется при старте). Генерить: `openssl rand -hex 32` |
+| `SHOPIFY_CUSTOMER_SESSION_SECRET` | AES ключ для customer-session / OAuth transaction cookies. Минимум 32 символа. |
+| `SHOPIFY_WEBHOOK_SECRET` | HMAC вебхуков Shopify. Минимум 32 символа. |
+| `TRUSTED_PROXY_HOPS` | Опционально. Сколько прокси справа в `X-Forwarded-For` считать своими (по умолчанию `1`). На Railway обычно хватает `x-real-ip`; если перед приложением стоит CDN, поставьте `2`. |
 
 ### Обязательные для коммерции
 

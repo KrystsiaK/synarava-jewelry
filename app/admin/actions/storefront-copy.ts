@@ -23,7 +23,11 @@ import {
   type HeaderNavData,
 } from "@/lib/content/header-nav-fields";
 import { setStorefrontCopy, type StorefrontCopy } from "@/lib/content/storefront-copy";
-import { STOREFRONT_COPY_KEYS } from "@/lib/content/storefront-copy-fields";
+import {
+  STOREFRONT_COPY_KEYS,
+  STOREFRONT_COPY_RICH_TEXT_KEYS,
+} from "@/lib/content/storefront-copy-fields";
+import { normalizeRichTextCopyMap } from "@/lib/content/rich-text";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 export type StorefrontCopyActionState = {
@@ -159,7 +163,7 @@ export async function saveStorefrontCopyAction(formData: FormData): Promise<Stor
     for (const key of LEGACY_FOOTER_LEGAL_COPY_KEYS) {
       fields[key] = "";
     }
-    updates[locale.code] = fields;
+    updates[locale.code] = normalizeRichTextCopyMap(fields, STOREFRONT_COPY_RICH_TEXT_KEYS);
   }
 
   try {

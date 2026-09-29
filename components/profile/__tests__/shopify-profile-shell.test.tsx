@@ -104,6 +104,7 @@ describe("ShopifyProfileShell security tab", () => {
 
     const form = screen.getByRole("button", { name: /sign out on this device/i }).closest("form");
     expect(form).toHaveAttribute("action", "/api/auth/shopify/logout");
+    expect(form).toHaveAttribute("method", "post");
   });
 });
 

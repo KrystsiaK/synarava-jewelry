@@ -242,6 +242,13 @@ export const STOREFRONT_COPY_KEYS: string[] = STOREFRONT_COPY_GROUPS.flatMap(
   (group) => group.fields.map((field) => field.key),
 );
 
+/** Keys edited with AdminRichTextField — sanitize on server persist. */
+export const STOREFRONT_COPY_RICH_TEXT_KEYS: ReadonlySet<string> = new Set(
+  STOREFRONT_COPY_GROUPS.flatMap((group) =>
+    group.fields.filter((field) => field.area).map((field) => field.key),
+  ),
+);
+
 /** Keep a locale map down to the keys this screen actually syncs. */
 export function pickStorefrontCopyFields(
   copy: Record<string, string> | null | undefined,

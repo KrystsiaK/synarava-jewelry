@@ -9,10 +9,12 @@ import { parseProductDetails } from "@/lib/content/product-details";
 import { db } from "@/lib/db";
 import { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
 import { getS3, getS3Bucket } from "@/lib/s3";
+import { isPublicHttpUrl } from "@/lib/security/is-public-http-url";
 import {
   countWeakGalleryAlts,
   productGalleryAltsForChecklist,
 } from "@/lib/seo/image-alt-checklist";
+import { isSafeUploadKey } from "@/lib/uploads/safe-upload-key";
 
 export { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
 
@@ -52,11 +54,9 @@ function publicFilePath(url: string) {
 function mediaProxyKey(url: string) {
   if (!url.startsWith("/media/")) return null;
   const raw = decodeURIComponent(url.slice("/media/".length).split("?")[0] ?? "");
-  const parts = raw.split("/").filter(Boolean);
-  if (parts[0] !== "uploads" || parts.some((part) => part === "." || part === "..")) {
-    return null;
-  }
-  return parts.join("/");
+  const key = raw.split("/").filter(Boolean).join("/");
+  if (!isSafeUploadKey(key)) return null;
+  return key;
 }
 
 async function s3ImageExists(url: string) {
@@ -87,16 +87,31 @@ async function localImageExists(url: string) {
   }
 }
 
-async function remoteImageExists(url: string) {
+async function remoteImageExists(url: string, redirectsLeft = 3): Promise<boolean> {
+  // Blind boolean SSRF oracle — never follow redirects to private networks.
+  if (redirectsLeft < 0 || !isPublicHttpUrl(url)) return false;
+
+  const followRedirect = (location: string | null) => {
+    if (!location) return Promise.resolve(false);
+    try {
+      return remoteImageExists(new URL(location, url).href, redirectsLeft - 1);
+    } catch {
+      return Promise.resolve(false);
+    }
+  };
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
 
   try {
     const head = await fetch(url, {
       method: "HEAD",
-      redirect: "follow",
+      redirect: "manual",
       signal: controller.signal,
     });
+    if (head.status >= 300 && head.status < 400) {
+      return followRedirect(head.headers.get("location"));
+    }
     if (head.ok) return true;
     if (head.status !== 405 && head.status !== 403) return false;
   } catch {
@@ -112,9 +127,12 @@ async function remoteImageExists(url: string) {
     const response = await fetch(url, {
       method: "GET",
       headers: { Range: "bytes=0-0" },
-      redirect: "follow",
+      redirect: "manual",
       signal: getController.signal,
     });
+    if (response.status >= 300 && response.status < 400) {
+      return followRedirect(response.headers.get("location"));
+    }
     return response.ok;
   } catch {
     return false;

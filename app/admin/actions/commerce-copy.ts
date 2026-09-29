@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import {
   COMMERCE_COPY_KEYS,
+  COMMERCE_COPY_RICH_TEXT_KEYS,
   MOVED_HEADER_ACCOUNT_KEYS,
   type LocaleCopy,
 } from "@/lib/content/commerce-copy-fields";
 import { setCommerceCopy } from "@/lib/content/commerce-copy";
+import { normalizeRichTextCopyMap } from "@/lib/content/rich-text";
 import { setStorefrontCopy } from "@/lib/content/storefront-copy";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
@@ -28,7 +30,7 @@ export async function saveCommerceCopyAction(formData: FormData): Promise<Commer
     for (const key of COMMERCE_COPY_KEYS) {
       fields[key] = String(formData.get(`${locale.code}:${key}`) ?? "");
     }
-    updates[locale.code] = fields;
+    updates[locale.code] = normalizeRichTextCopyMap(fields, COMMERCE_COPY_RICH_TEXT_KEYS);
     legacyClear[locale.code] = Object.fromEntries(MOVED_HEADER_ACCOUNT_KEYS.map((key) => [key, ""]));
   }
 

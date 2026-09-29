@@ -105,8 +105,11 @@ async function validAdminCookie(value: string | undefined) {
   if (rest.length || !sessionId || !token || !signature) return false;
   if (!/^[0-9a-f]{64}$/i.test(token) || !/^[0-9a-f]{64}$/i.test(signature)) return false;
 
-  const secret = process.env.ADMIN_SESSION_SECRET ||
-    (process.env.NODE_ENV === "production" ? "" : "synarava-dev-admin-secret-do-not-use-in-production");
+  const secret =
+    process.env.ADMIN_SESSION_SECRET ||
+    (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
+      ? "synarava-dev-admin-secret-do-not-use-in-production"
+      : "");
   if (!secret) return false;
   const key = await crypto.subtle.importKey(
     "raw",

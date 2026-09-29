@@ -5,6 +5,12 @@ const optionalString = z.preprocess(
   z.string().min(1).optional(),
 );
 
+/** High-entropy secrets — reject short values that would silently weaken auth. */
+const optionalSecret32 = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().min(32).optional(),
+);
+
 const optionalUrl = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().url().optional(),
@@ -26,7 +32,7 @@ const envSchema = z.object({
   ADMIN_EMAIL: optionalString,
   ADMIN_PASSWORD: optionalString,
   ADMIN_PASSWORD_HASH: optionalString,
-  ADMIN_SESSION_SECRET: optionalString,
+  ADMIN_SESSION_SECRET: optionalSecret32,
   NEXTAUTH_URL: optionalUrl,
   APP_URL: optionalUrl,
   SHOPIFY_STORE_DOMAIN: optionalShopDomain,
@@ -44,9 +50,9 @@ const envSchema = z.object({
     .optional(),
   SHOPIFY_PUBLICATION_ID: optionalString,
   SHOPIFY_LOCATION_ID: optionalString,
-  SHOPIFY_WEBHOOK_SECRET: optionalString,
+  SHOPIFY_WEBHOOK_SECRET: optionalSecret32,
   SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: optionalString,
-  SHOPIFY_CUSTOMER_SESSION_SECRET: optionalString,
+  SHOPIFY_CUSTOMER_SESSION_SECRET: optionalSecret32,
   S3_REGION: optionalString,
   S3_BUCKET: optionalString,
   S3_ACCESS_KEY_ID: optionalString,

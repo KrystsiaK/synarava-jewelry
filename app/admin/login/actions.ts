@@ -56,11 +56,21 @@ export async function adminLoginAction(
   }
 
   const ip = await getClientIp();
-  const byIp = await checkRateLimit("admin-login-ip", ip, { max: 10, windowMs: 15 * 60 * 1000 });
+  const usernameKey = username.trim().toLowerCase();
+  const window = { max: 10, windowMs: 15 * 60 * 1000 } as const;
+  const byIp = await checkRateLimit("admin-login-ip", ip, window);
   if (!byIp.ok) {
     return {
       error: byIp.error,
       retryAfterSeconds: byIp.retryAfterSeconds,
+    };
+  }
+  // Second bucket: distributed guessing of one known login is not limited by IP alone.
+  const byUser = await checkRateLimit("admin-login-user", usernameKey, window);
+  if (!byUser.ok) {
+    return {
+      error: byUser.error,
+      retryAfterSeconds: byUser.retryAfterSeconds,
     };
   }
 
@@ -68,7 +78,10 @@ export async function adminLoginAction(
     return { error: "Incorrect admin credentials." };
   }
 
-  await clearRateLimit("admin-login-ip", ip);
+  await Promise.all([
+    clearRateLimit("admin-login-ip", ip),
+    clearRateLimit("admin-login-user", usernameKey),
+  ]);
   const h = await headers();
   await createAdminSession({ ipAddress: ip, userAgent: h.get("user-agent") ?? undefined });
   await clearAdminReturnPath();

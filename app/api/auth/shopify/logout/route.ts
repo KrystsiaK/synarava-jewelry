@@ -11,7 +11,12 @@ import { SHOPIFY_CART_COOKIE } from "@/lib/shopify/cart";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+/**
+ * Logout must be POST. SameSite=Lax cookies are sent on top-level GET
+ * navigations from other sites, which would let a third-party page force
+ * sign-out and clear the cart. Cross-site POST does not include Lax cookies.
+ */
+export async function POST() {
   const [session, config, discovery] = await Promise.all([
     getShopifyCustomerSession(),
     Promise.resolve(getShopifyCustomerAccountConfig()),
@@ -30,8 +35,15 @@ export async function GET() {
     logoutUrl.searchParams.set("post_logout_redirect_uri", `${config.appOrigin}/`);
   }
 
-  const response = NextResponse.redirect(logoutUrl);
+  const response = NextResponse.redirect(logoutUrl, 303);
   response.cookies.delete(SHOPIFY_CUSTOMER_SESSION_COOKIE);
   response.cookies.delete(SHOPIFY_CART_COOKIE);
   return response;
+}
+
+export async function GET() {
+  return new NextResponse("Method Not Allowed", {
+    status: 405,
+    headers: { Allow: "POST" },
+  });
 }

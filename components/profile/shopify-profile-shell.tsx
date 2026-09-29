@@ -317,7 +317,7 @@ export function ShopifyProfileShell({
               </h1>
               <p className="mt-2 truncate text-sm text-foreground/50">{email}</p>
             </div>
-            <form action="/api/auth/shopify/logout" method="get" className="self-start md:self-center">
+            <form action="/api/auth/shopify/logout" method="post" className="self-start md:self-center">
               <button
                 type="submit"
                 className="label-caps border border-stroke px-5 py-3 transition-colors hover:border-couture-red hover:text-couture-red"
@@ -574,7 +574,7 @@ export function ShopifyProfileShell({
                 <p className="mt-3 max-w-2xl leading-7 text-foreground/55">
                   {sessionExpiryLabel(sessionExpiresAt, t)}
                 </p>
-                <form action="/api/auth/shopify/logout" method="get">
+                <form action="/api/auth/shopify/logout" method="post">
                   <button type="submit" className="label-caps mt-7 inline-block border border-stroke px-6 py-4 hover:border-couture-red hover:text-couture-red">
                     {t("profile.security.signOutDevice")}
                   </button>

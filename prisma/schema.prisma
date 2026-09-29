@@ -32,6 +32,7 @@ model RateLimitBucket {
 }
 
 model ShopifyCustomerSession {
+  /// SHA-256 hex of the cookie session id — the raw cookie value is never stored.
   id                   String   @id
   accessToken          String
   refreshToken         String

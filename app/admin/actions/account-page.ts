@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
-import { ACCOUNT_PAGE_KEYS } from "@/lib/content/account-page-fields";
+import { ACCOUNT_PAGE_KEYS, ACCOUNT_PAGE_RICH_TEXT_KEYS } from "@/lib/content/account-page-fields";
 import { setCommerceCopy } from "@/lib/content/commerce-copy";
 import type { LocaleCopy } from "@/lib/content/commerce-copy-fields";
+import { normalizeRichTextCopyMap } from "@/lib/content/rich-text";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 export type AccountPageActionState = {
@@ -23,7 +24,7 @@ export async function saveAccountPageAction(formData: FormData): Promise<Account
     for (const key of ACCOUNT_PAGE_KEYS) {
       fields[key] = String(formData.get(`${locale.code}:${key}`) ?? "");
     }
-    updates[locale.code] = fields;
+    updates[locale.code] = normalizeRichTextCopyMap(fields, ACCOUNT_PAGE_RICH_TEXT_KEYS);
   }
 
   // Merges into commerce-copy-v1. Only these keys are written, so a cart save

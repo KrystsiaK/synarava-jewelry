@@ -30,13 +30,17 @@ export type AdminSession = {
 
 function getAdminSessionSecret(): string {
   const secret = env.ADMIN_SESSION_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("ADMIN_SESSION_SECRET must be set in production.");
-    }
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("ADMIN_SESSION_SECRET must be set in production.");
+  }
+  // Local/test only — never for staging/preview with a non-production NODE_ENV.
+  if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
     return "synarava-dev-admin-secret-do-not-use-in-production";
   }
-  return secret;
+  throw new Error(
+    "ADMIN_SESSION_SECRET is not set. Generate one (openssl rand -hex 32) or use NODE_ENV=development for the local fallback.",
+  );
 }
 
 function digest(value: string) {

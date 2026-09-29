@@ -162,6 +162,13 @@ export const COMMERCE_COPY_KEYS: string[] = COMMERCE_COPY_GROUPS.flatMap((group)
   group.fields.map((field) => field.key),
 );
 
+/** Keys edited with AdminRichTextField — sanitize on server persist. */
+export const COMMERCE_COPY_RICH_TEXT_KEYS: ReadonlySet<string> = new Set(
+  COMMERCE_COPY_GROUPS.flatMap((group) =>
+    group.fields.filter((field) => field.area).map((field) => field.key),
+  ),
+);
+
 export function commerceAreaForHash(hash: string): CommerceCopyAreaId | null {
   const id = hash.replace(/^#/, "").replace(/^commerce-/, "");
   return COMMERCE_COPY_AREAS.some((area) => area.id === id) ? id as CommerceCopyAreaId : null;

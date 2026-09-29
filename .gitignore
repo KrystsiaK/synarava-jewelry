@@ -72,3 +72,6 @@ next-env.d.ts
 # Local audit dumps (may contain bucket names)
 scripts/audit/infrastructure-audit-results.json
 scripts/audit/infrastructure-cleanup-results.json
+
+# Codex scratch (theme zips, screenshots) — do not commit
+.codex-work/
