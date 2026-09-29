@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -139,7 +139,10 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     await user.click(screen.getByRole("tab", { name: /Inventory/ }));
-    expect(screen.getByLabelText(/^SKU/)).toBeVisible();
+    // Section body enters via motion opacity; wait until the reveal finishes in jsdom.
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^SKU/)).toBeVisible();
+    });
     expect(screen.getByRole("spinbutton", { name: /Available quantity/ })).toBeVisible();
     expect(screen.getAllByText("Shop location").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("button", { name: "Shipping" })).toBeInTheDocument();
@@ -244,13 +247,16 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     await user.click(screen.getByRole("tab", { name: /Product page/i }));
-    expect(screen.getByText("A refined piece.")).toBeInTheDocument();
+    // SERP preview keeps a hidden copy of shortDescription on Essentials — scope to the field.
+    const shortDescriptionField = () =>
+      screen.getByLabelText("Edit Short description").closest("[data-component='AdminRichTextField']")!;
+    expect(within(shortDescriptionField()).getByText("A refined piece.")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Português" }));
-    expect(screen.getByText("Uma peça refinada.")).toBeInTheDocument();
-    expect(screen.queryByText("A refined piece.")).not.toBeInTheDocument();
+    expect(within(shortDescriptionField()).getByText("Uma peça refinada.")).toBeInTheDocument();
+    expect(within(shortDescriptionField()).queryByText("A refined piece.")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "English" }));
-    expect(screen.getByText("A refined piece.")).toBeInTheDocument();
+    expect(within(shortDescriptionField()).getByText("A refined piece.")).toBeInTheDocument();
   });
 
   it("keeps locale tabs above section tabs and always visible", async () => {
@@ -286,7 +292,8 @@ describe("EditProductForm", () => {
     await act(async () => {});
 
     await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), " Updated");
-    expect(screen.getByLabelText("Product has unsaved edits")).toBeInTheDocument();
+    // Dirty is signaled on section/locale tabs (accessible name includes "unsaved edits").
+    expect(screen.getByRole("tab", { name: /Product Title & organization, unsaved edits/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save this branch" })).not.toBeInTheDocument();
   });
 
