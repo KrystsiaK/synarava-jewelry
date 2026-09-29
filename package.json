@@ -24,6 +24,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:admin": "playwright test e2e/admin-",
+    "test:a11y:prod-soft": "playwright test -c playwright.prod-soft.config.ts",
+    "lhci:soft": "lhci autorun --config=lighthouserc.cjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "prisma:generate": "prisma generate",
@@ -63,6 +65,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.60.0",
     "@storybook/addon-essentials": "^8.6.18",
     "@storybook/blocks": "^8.6.18",

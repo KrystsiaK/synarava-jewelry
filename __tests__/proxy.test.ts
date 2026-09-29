@@ -71,6 +71,17 @@ describe("storefront Content Security Policy", () => {
     expect(mediaDirective).toContain("blob:");
     expect(mediaDirective).toContain("'self'");
   });
+
+  it("advertises CSP reporting endpoints without breaking the policy", async () => {
+    const response = await proxy(new NextRequest("https://shop.synarava.test/en/"));
+    const csp = response.headers.get("Content-Security-Policy") ?? "";
+
+    expect(csp).toContain("report-uri /api/csp-report");
+    expect(csp).toContain("report-to csp-endpoint");
+    expect(response.headers.get("Reporting-Endpoints")).toBe(
+      'csp-endpoint="/api/csp-report"',
+    );
+  });
 });
 
 describe("admin session proxy", () => {

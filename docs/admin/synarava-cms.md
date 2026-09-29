@@ -572,7 +572,7 @@ import { localePath } from "@/lib/i18n/routing";
 
 - Preview + soft meters count **plain** text (`plainTextFromRichText`).
 - Applied on product, collection, and page SEO clusters.
-- URL host defaults from `NEXT_PUBLIC_SITE_URL` / `APP_URL`, else `synarava.com`.
+- URL host defaults from `NEXT_PUBLIC_SITE_URL` / `APP_URL`, else `shop.synarava.com`.
 
 ### Tall / composite fields
 

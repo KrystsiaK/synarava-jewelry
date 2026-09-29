@@ -24,7 +24,7 @@ Translation rollout and recovery are documented in `docs/translation-operations.
 |-----------|----------|
 | `SHOPIFY_STORE_DOMAIN` | Постоянный домен `your-store.myshopify.com` |
 | `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` | Private Storefront API token (только server-side) |
-| `APP_URL` | Полный URL приложения (`https://synarava.com`). Нужен для Shopify OAuth callback |
+| `APP_URL` | Полный URL витрины (`https://shop.synarava.com`). Канон для sitemap/canonical/OAuth |
 
 Без этих трёх переменных корзина и чекаут падают с явной ошибкой конфигурации — Shopify единственный commerce backend, локального фолбэка нет.
 

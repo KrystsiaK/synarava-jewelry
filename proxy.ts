@@ -54,6 +54,10 @@ function storageOrigins() {
   return [...values];
 }
 
+/** Reporting API group + path for CSP violation reports (`/api/csp-report`). */
+const CSP_REPORT_GROUP = "csp-endpoint";
+const CSP_REPORT_PATH = "/api/csp-report";
+
 function cspFor(nonce: string) {
   const storage = storageOrigins();
   const checkoutOrigin = secureOrigin(
@@ -87,6 +91,10 @@ function cspFor(nonce: string) {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    // report-uri for older agents; report-to + Reporting-Endpoints for modern browsers.
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
+    `report-uri ${CSP_REPORT_PATH}`,
+    `report-to ${CSP_REPORT_GROUP}`,
     ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 }
@@ -201,6 +209,11 @@ export async function proxy(request: NextRequest) {
   }
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+  // Pair with CSP report-to so browsers know where to POST violations.
+  response.headers.set(
+    "Reporting-Endpoints",
+    `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"`,
+  );
   return response;
 }
 

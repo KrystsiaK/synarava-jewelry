@@ -350,6 +350,8 @@ the same transaction ID and no PII in analytics.
   local LocalizedHandleRedirect samples; Shopify remains SoT).
 - [x] Product gallery image alt publish checklist (Media editor + Issues +
   Meta Health coverage).
+- [x] Soft Lighthouse CI + axe against `https://shop.synarava.com` (warn-only
+  workflow; CSP `report-to` → `/api/csp-report`).
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.

@@ -1,0 +1,107 @@
+# Soft lab Lighthouse + axe against the live storefront.
+# Does not block merges: continue-on-error + warn-level LHCI assertions.
+# Canonical origin: https://shop.synarava.com (APP_URL).
+
+name: Lighthouse soft (production)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 06:00 UTC — baseline without PR noise.
+    - cron: "0 6 * * 1"
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/seo/**"
+      - "proxy.ts"
+      - "lighthouserc.cjs"
+      - "playwright.prod-soft.config.ts"
+      - "e2e/a11y-prod-soft.spec.ts"
+      - ".github/workflows/lighthouse-soft.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+concurrency:
+  group: lighthouse-soft-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  STOREFRONT_URL: https://shop.synarava.com
+  CI: true
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  lighthouse:
+    name: LHCI soft (mobile lab)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Lighthouse CI (soft)
+        run: pnpm lhci:soft
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-soft-${{ github.run_id }}
+          path: .lighthouseci
+          if-no-files-found: warn
+          retention-days: 14
+
+  axe:
+    name: axe soft (production templates)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run axe soft against production
+        run: pnpm test:a11y:prod-soft
+
+      - name: Upload axe report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: axe-prod-soft-${{ github.run_id }}
+          path: playwright-report-prod-soft
+          if-no-files-found: warn
+          retention-days: 14
