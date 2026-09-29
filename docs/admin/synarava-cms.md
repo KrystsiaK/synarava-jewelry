@@ -535,7 +535,9 @@ import { AdminRichTextField } from "@/components/synarava-cms";
 `AdminSerpPreview` — live title · URL · description chrome for Shopify SEO
 fields. Soft meters only (60 / 160); not a Yoast-style score. Pair with
 `seoTitleWarning` / `seoDescriptionWarning` from `lib/seo/serp-preview.ts` on
-the SEO fields’ `warning` prop.
+the SEO fields’ `warning` prop. The preview title is composed with
+`composeDocumentTitle` (`lib/seo/document-title.ts`) so the site brand suffix
+appears once even when the Shopify SEO title already ends with `| Synarava`.
 
 ```tsx
 import {
@@ -570,9 +572,11 @@ import { localePath } from "@/lib/i18n/routing";
 />
 ```
 
-- Preview + soft meters count **plain** text (`plainTextFromRichText`).
+- Preview + soft meters count **plain** composed document title / description text.
 - Applied on product, collection, and page SEO clusters.
 - URL host defaults from `NEXT_PUBLIC_SITE_URL` / `APP_URL`, else `shop.synarava.com`.
+- Product `generateMetadata` uses `metadataDocumentTitle` (absolute) so the root
+  layout `title.template` does not append a second `| Synarava`.
 
 ### Tall / composite fields
 

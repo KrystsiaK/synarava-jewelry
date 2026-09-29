@@ -8,6 +8,7 @@ import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
+import { metadataDocumentTitle } from "@/lib/seo/document-title";
 import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { ProductDetail } from "@/components/artifacts/product-detail";
 import { getProductBreadcrumbs } from "@/lib/catalog/product-presentation";
@@ -30,12 +31,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const key = resolved.slug ?? resolved.id ?? "";
   const product = await getProductBySlug(key, locale);
 
-  if (!product) return { title: "Product" };
+  if (!product) return { title: metadataDocumentTitle("Product") };
 
   const openGraphLocales = await buildOpenGraphLocales(locale);
+  const title = metadataDocumentTitle(product.seoTitle || product.title);
 
   return {
-    title: product.seoTitle || product.title,
+    title,
     description:
       plainTextFromRichText(product.seoDescription) ||
       plainTextFromRichText(product.shortDescription) ||
@@ -46,6 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }),
     openGraph: {
       ...openGraphLocales,
+      title: title.absolute,
       url: localePath(locale, `/products/${product.slug}`),
       images: [
         product.image

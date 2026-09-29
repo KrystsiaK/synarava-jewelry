@@ -16,10 +16,24 @@ describe("AdminSerpPreview", () => {
 
     expect(screen.getByText("Search preview")).toBeInTheDocument();
     expect(screen.getByText("synarava.com › en › products › lava-ring")).toBeInTheDocument();
-    expect(screen.getByText("Lava ring")).toBeInTheDocument();
+    expect(screen.getByText("Lava ring | Synarava")).toBeInTheDocument();
     expect(screen.getByText("Handcrafted couture.")).toBeInTheDocument();
     expect(screen.getByLabelText("Character counts")).toHaveTextContent("Title");
-    expect(screen.getByLabelText("Character counts")).toHaveTextContent("9/60");
+    expect(screen.getByLabelText("Character counts")).toHaveTextContent("20/60");
+  });
+
+  it("does not double the brand when the SEO title already ends with Synarava", () => {
+    render(
+      <AdminSerpPreview
+        title="Golden Bird Brooch | Synarava"
+        description="Brooch."
+        path="/en/products/golden-bird-brooch"
+        siteHost="synarava.com"
+      />,
+    );
+
+    expect(screen.getByText("Golden Bird Brooch | Synarava")).toBeInTheDocument();
+    expect(screen.queryByText(/Synarava \| Synarava/)).not.toBeInTheDocument();
   });
 
   it("marks meters over soft limits", () => {

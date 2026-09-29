@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { FieldLabel } from "@/components/admin/shared/field-label";
+import { SITE_SEO_DEFAULTS } from "@/lib/content/site-seo-fields";
+import { composeDocumentTitle } from "@/lib/seo/document-title";
 import {
   defaultSerpHost,
   SEO_DESCRIPTION_SOFT_MAX,
@@ -13,7 +15,7 @@ import {
 import { cn } from "@/lib/ui";
 
 export type AdminSerpPreviewProps = {
-  /** Resolved title already applying seo/fallback rules. */
+  /** Resolved title already applying seo/fallback rules (brand composed for preview). */
   title: string;
   /** Resolved description (may be empty). */
   description: string;
@@ -21,6 +23,8 @@ export type AdminSerpPreviewProps = {
   path: string;
   /** Public host for the green URL line. Defaults from NEXT_PUBLIC_SITE_URL / APP_URL. */
   siteHost?: string;
+  /** Site title template; defaults to shipped `%s | Synarava`. */
+  titleTemplate?: string;
   help?: ReactNode;
   className?: string;
 };
@@ -58,12 +62,14 @@ export function AdminSerpPreview({
   description,
   path,
   siteHost,
+  titleTemplate = SITE_SEO_DEFAULTS.titleTemplate,
   help,
   className,
 }: AdminSerpPreviewProps) {
   const host = siteHost?.trim() || defaultSerpHost();
   const url = serpDisplayUrl(host, path);
-  const titleLength = title.trim().length;
+  const displayTitle = composeDocumentTitle(title.trim() || "Untitled", titleTemplate);
+  const titleLength = displayTitle.length;
   const descriptionLength = description.trim().length;
   const descriptionText = description.trim() || "Add an SEO description to control this line.";
 
@@ -79,6 +85,8 @@ export function AdminSerpPreview({
               <AdminHelp>
                 Approximate search result. Soft limits are 60 / 160 characters — overage may
                 truncate in Google. Blank SEO fields fall back to the page title and summary.
+                Brand is applied once via the site title template (already-branded SEO titles
+                are not doubled).
               </AdminHelp>
             )
           }
@@ -92,7 +100,7 @@ export function AdminSerpPreview({
       </div>
       <div className="adm-serp__result">
         <p className="adm-serp__url">{url}</p>
-        <p className="adm-serp__title">{title.trim() || "Untitled"}</p>
+        <p className="adm-serp__title">{displayTitle}</p>
         <p
           className="adm-serp__description"
           data-empty={description.trim() ? "false" : "true"}
