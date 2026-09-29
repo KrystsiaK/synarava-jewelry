@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -185,6 +186,40 @@ describe("EphemeralToastProvider", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Saved.");
     expect(document.querySelector("[data-ephemeral-toast-root][data-surface='admin']")).toBeTruthy();
+  });
+
+  it("keeps toast when only the nested admin adapter remounts (production Save path)", () => {
+    function Harness() {
+      const [tick, setTick] = useState(0);
+      return (
+        <EphemeralToastProvider>
+          <EphemeralToastProvider key={tick} surface="admin" host={false}>
+            <SaveRefreshProbe onRemount={() => setTick((value) => value + 1)} />
+          </EphemeralToastProvider>
+        </EphemeralToastProvider>
+      );
+    }
+
+    function SaveRefreshProbe({ onRemount }: { onRemount: () => void }) {
+      const { pushToast } = useEphemeralToast();
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            pushToast({ message: "Page updated.", tone: "success" });
+            onRemount();
+          }}
+        >
+          Simulate Save → refresh
+        </button>
+      );
+    }
+
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "Simulate Save → refresh" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Page updated.");
+    expect(document.querySelectorAll("[data-ephemeral-toast-root]")).toHaveLength(1);
+    expect(document.querySelector("[data-surface='admin']")).toBeTruthy();
   });
 
   it("uses the root host when nested admin adapter has host=false", () => {

@@ -86,31 +86,57 @@ export const AdminSurface: Story = {
   ),
 };
 
-/** Mimics Save → pushToast → remount (router.refresh) without losing the card. */
+/**
+ * Production Save path: root host stays mounted; nested admin adapter
+ * (host=false) remounts on router.refresh — same as AdminToastProvider under
+ * the async RSC layout. Module store must keep the toast visible.
+ */
 export const SurvivesRemount: Story = {
   args: {
     children: <ToastDemo />,
   },
   render: function SurvivesRemountStory() {
-    const [tick, setTick] = useState(0);
+    const [adminTick, setAdminTick] = useState(0);
     return (
       <div className="admin-terminal min-h-screen bg-[var(--adm-bg,#090807)] p-6 text-[var(--adm-ink,#f4efe7)]">
         <p className="mb-4 text-sm text-[var(--adm-muted,#b8aea1)]">
-          Push success, then Remount tree — toast must stay (module store).
+          Mimics Save → pushToast → refreshPreservingScroll: root host stays;
+          only the nested admin adapter remounts. Toast must stay visible.
         </p>
-        <button
-          type="button"
-          className="mb-4 rounded-full border border-foreground/20 px-4 py-2 text-sm"
-          onClick={() => setTick((value) => value + 1)}
-        >
-          Remount tree
-        </button>
-        <EphemeralToastProvider key={`root-${tick}`} surface="storefront">
-          <EphemeralToastProvider key={`admin-${tick}`} surface="admin" host={false}>
-            <ToastDemo />
+        <EphemeralToastProvider surface="storefront">
+          <EphemeralToastProvider key={`admin-${adminTick}`} surface="admin" host={false}>
+            <SaveThenRefreshProbe onRemountAdmin={() => setAdminTick((value) => value + 1)} />
           </EphemeralToastProvider>
         </EphemeralToastProvider>
       </div>
     );
   },
 };
+
+/** Same wiring as product/page Save: toast first, then remount admin adapter. */
+function SaveThenRefreshProbe({ onRemountAdmin }: { onRemountAdmin: () => void }) {
+  const { pushToast } = useEphemeralToast();
+  return (
+    <div className="flex flex-wrap gap-3 p-8">
+      <button
+        type="button"
+        data-testid="simulate-save-refresh"
+        className="rounded-full border border-foreground/20 px-4 py-2 text-sm"
+        onClick={() => {
+          pushToast({ message: "Page updated.", tone: "success" });
+          // Soft refresh remounts AdminToastProvider after pushToast — same turn.
+          onRemountAdmin();
+        }}
+      >
+        Simulate Save → refresh
+      </button>
+      <button
+        type="button"
+        className="rounded-full border border-foreground/20 px-4 py-2 text-sm"
+        onClick={() => onRemountAdmin()}
+      >
+        Remount admin adapter only
+      </button>
+    </div>
+  );
+}
