@@ -21,7 +21,12 @@
 ## Buy again containment (until bridge verified in production)
 
 1. **Settings → Checkout → Configurations → Customize → Settings → Buy again button** — keep **hidden**. Do not re-enable until BA-* / RT-BA-* matrix passes on production domains **after** the Synarava redirect theme draft is validated (cart_link_id → headless permalink) and the cart-notice clear path is verified live (POST `/api/cart/buy-again-notice` via `fetch`, not a Server Action).
-2. After the redirect theme is **published** and BA checks pass, re-enable Buy again and run BA-001…BA-012.
+2. **Admin → Customer account → Orders — buyer actions → Buy again on Orders tab** — keep **off** (SiteSetting `account-orders-settings-v1`). Same freeze as Checkout BA.
+3. After the redirect theme is **published** and BA checks pass, re-enable Buy again (Checkout + optional Orders tab toggle) and run BA-001…BA-012.
+
+## Account Orders status fidelity
+
+Headless `/profile?section=orders` reads **live** Customer Account API (no local Order store). Status chips + action labels are admin-editable under **Customer account** copy (`profile.orders.status.*`, `profile.orders.actions.*`). Owner still confirms Customer Account scopes and a manual matrix: cancel, refund, partial refund, Multibanco pending→paid, returns when `read_returns` is granted.
 
 ## Online Store → headless redirect (Phase 2 ops)
 

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { ShopifyProfileShell } from "@/components/profile/shopify-profile-shell";
+import { getAccountOrdersSettings } from "@/lib/content/account-orders-settings";
 import { getShopifyCustomerProfile } from "@/lib/shopify/customer-account/api";
 import { getShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { getShopifyCustomerWishlistIds } from "@/lib/shopify/wishlist";
@@ -52,7 +53,7 @@ export default async function ProfilePage({ searchParams }: Props) {
   const customer = await getShopifyCustomerProfile(session);
   if (!customer) redirect(loginHref);
 
-  const [wishlistIds, customerReviews] = await Promise.all([
+  const [wishlistIds, customerReviews, ordersSettings] = await Promise.all([
     getShopifyCustomerWishlistIds(customer.id).catch((error): string[] => {
       console.error(
         "[shopify-customer-wishlist] Wishlist unavailable:",
@@ -61,6 +62,7 @@ export default async function ProfilePage({ searchParams }: Props) {
       return [];
     }),
     getCustomerProductReviews(customer.id),
+    getAccountOrdersSettings(),
   ]);
   const productIds = [...new Set(customerReviews.map((review) => review.productId))];
   const [wishlistProducts, reviewProducts] = await Promise.all([
@@ -83,6 +85,7 @@ export default async function ProfilePage({ searchParams }: Props) {
       wishlistProducts={wishlistProducts}
       reviews={toAccountReviewRows(customerReviews, reviewProducts, (slug) => localePath(locale, `/products/${slug}`))}
       sessionExpiresAt={session.sessionExpiresAt.toISOString()}
+      ordersSettings={ordersSettings}
     />
   );
 }

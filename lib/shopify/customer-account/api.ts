@@ -51,10 +51,18 @@ const pageInfoSchema = z.object({ hasNextPage: z.boolean(), endCursor: z.string(
 
 // Shared between the initial profile fetch and getShopifyCustomerOrdersPage()
 // (REV-13's "load more orders") so both read the exact same order shape.
+const returnNodeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: z.string(),
+});
+
 const orderSchema = z.object({
   id: z.string(),
   name: z.string(),
   processedAt: z.string(),
+  cancelledAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
   financialStatus: z.string().nullable(),
   fulfillmentStatus: z.string(),
   statusPageUrl: z.string(),
@@ -63,7 +71,14 @@ const orderSchema = z.object({
   // manual/non-return refund — totalRefunded lets "Total spent" subtract those
   // too (REV-14) without mixing currencies together.
   totalRefunded: moneySchema,
+  paymentInformation: z
+    .object({
+      paymentCollectionUrl: z.string().nullable(),
+      paymentStatus: z.string().nullable(),
+    })
+    .nullable(),
   fulfillments: z.object({ nodes: z.array(fulfillmentSchema), pageInfo: pageInfoSchema }),
+  returns: z.object({ nodes: z.array(returnNodeSchema), pageInfo: pageInfoSchema }),
   returnInformation: z.object({
     returnableLineItems: z.object({ nodes: z.array(returnableLineItemSchema), pageInfo: pageInfoSchema }),
   }),
@@ -73,6 +88,7 @@ const orderSchema = z.object({
         id: z.string(),
         name: z.string(),
         productId: z.string().nullable(),
+        variantId: z.string().nullable(),
         quantity: z.number().int(),
         image: z
           .object({ altText: z.string().nullable(), url: z.string() })
@@ -88,11 +104,17 @@ const ORDER_FIELDS = `#graphql
   id
   name
   processedAt
+  cancelledAt
+  cancelReason
   financialStatus
   fulfillmentStatus
   statusPageUrl
   totalPrice { amount currencyCode }
   totalRefunded { amount currencyCode }
+  paymentInformation {
+    paymentCollectionUrl
+    paymentStatus
+  }
   fulfillments(first: 5) {
     pageInfo { hasNextPage endCursor }
     nodes {
@@ -101,6 +123,10 @@ const ORDER_FIELDS = `#graphql
       estimatedDeliveryAt
       trackingInformation { company number url }
     }
+  }
+  returns(first: 5) {
+    pageInfo { hasNextPage endCursor }
+    nodes { id name status }
   }
   returnInformation {
     returnableLineItems(first: 20) {
@@ -114,7 +140,7 @@ const ORDER_FIELDS = `#graphql
   lineItems(first: 20) {
     pageInfo { hasNextPage endCursor }
     nodes {
-      id productId
+      id productId variantId
       name
       quantity
       image { altText url }
@@ -122,7 +148,6 @@ const ORDER_FIELDS = `#graphql
     }
   }
 `;
-
 const profileSchema = z.object({
   customer: z.object({
     id: z.string(),

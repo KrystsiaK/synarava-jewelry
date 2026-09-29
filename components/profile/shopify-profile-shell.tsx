@@ -8,15 +8,26 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
 
-import type { ShopifyCustomerProfile } from "@/lib/shopify/customer-account/api";
+import type {
+  ShopifyCustomerOrder,
+  ShopifyCustomerProfile,
+} from "@/lib/shopify/customer-account/api";
 import type { ProductSummary } from "@/lib/content/catalog";
+import type { AccountOrdersSettings } from "@/lib/content/account-orders-settings-fields";
 import { useTranslations } from "@/lib/i18n/context";
 import { localeTag } from "@/lib/i18n/format";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 import { AccountReviews } from "@/components/profile/account-reviews";
+import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 import { ArtifactLink } from "@/components/ui";
 import type { AccountReviewRow } from "@/lib/profile/account-reviews";
+import {
+  resolveOrderStatusView,
+  type OrderBuyerAction,
+  type OrderStatusChip,
+  type OrderStatusTone,
+} from "@/lib/shopify/customer-account/order-status";
 
 const tabs = ["overview", "wishlist", "orders", "reviews", "addresses", "security"] as const;
 type Tab = (typeof tabs)[number];
@@ -62,18 +73,137 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+const CHIP_TONE_CLASS: Record<OrderStatusTone, string> = {
+  neutral: "border-stroke text-foreground/45",
+  success: "border-foreground/25 text-foreground",
+  warning: "border-foreground/35 text-foreground/70",
+  danger: "border-couture-red/40 text-couture-red",
+  info: "border-stroke text-foreground/55",
+};
+
+function orderStatusInput(order: ShopifyCustomerOrder) {
+  return {
+    financialStatus: order.financialStatus,
+    fulfillmentStatus: order.fulfillmentStatus,
+    cancelledAt: order.cancelledAt,
+    cancelReason: order.cancelReason,
+    statusPageUrl: order.statusPageUrl,
+    totalRefundedAmount: Number(order.totalRefunded.amount),
+    paymentCollectionUrl: order.paymentInformation?.paymentCollectionUrl ?? null,
+    fulfillments: order.fulfillments.nodes.map((fulfillment) => ({
+      latestShipmentStatus: fulfillment.latestShipmentStatus,
+      trackingUrl: fulfillment.trackingInformation.find((tracking) => tracking.url)?.url ?? null,
+    })),
+    returns: order.returns.nodes.map((ret) => ({ status: ret.status })),
+    hasReturnableItems: order.returnInformation.returnableLineItems.nodes.length > 0,
+    buyAgainLines: order.lineItems.nodes.flatMap((item) =>
+      item.variantId ? [{ variantId: item.variantId, quantity: item.quantity }] : [],
+    ),
+  };
+}
+
+function OrderStatusChips({
+  chips,
+  t,
+}: {
+  chips: OrderStatusChip[];
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  if (chips.length === 0) return null;
+  return (
+    <ul className="flex flex-wrap gap-2" aria-label={t("profile.orders.title")}>
+      {chips.map((chip) => (
+        <li key={`${chip.kind}-${chip.labelKey}-${chip.detailKey ?? ""}`}>
+          <span className={`label-caps inline-block border px-2.5 py-1 ${CHIP_TONE_CLASS[chip.tone]}`}>
+            {t(chip.labelKey)}
+            {chip.detailKey ? ` · ${t(chip.detailKey)}` : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function orderActionHref(action: OrderBuyerAction, locale: Locale): string | null {
+  if (action.type === "buyAgain") {
+    if (!action.available) return null;
+    return localePath(locale, `/cart/${action.href}`);
+  }
+  return action.href;
+}
+
+function OrderBuyerActions({
+  actions,
+  t,
+  locale,
+}: {
+  actions: OrderBuyerAction[];
+  t: (key: string, values?: Record<string, string | number>) => string;
+  locale: Locale;
+}) {
+  const primary = actions.filter((action) => action.type !== "manage" && action.type !== "buyAgain");
+  const buyAgain = actions.find((action) => action.type === "buyAgain");
+  const manage = actions.find((action) => action.type === "manage");
+
+  return (
+    <div className="mt-5 space-y-3">
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {primary.map((action) => {
+          const href = orderActionHref(action, locale);
+          if (!href) return null;
+          return (
+            <a
+              key={action.type}
+              href={href}
+              className="label-caps text-couture-red"
+              rel="noopener noreferrer"
+              target={action.type === "track" ? "_blank" : undefined}
+            >
+              {t(action.labelKey)}
+            </a>
+          );
+        })}
+        {buyAgain?.available ? (
+          <Link href={orderActionHref(buyAgain, locale)!} className="label-caps text-couture-red">
+            {t(buyAgain.labelKey)}
+          </Link>
+        ) : buyAgain ? (
+          <span className="label-caps text-foreground/35">{t(buyAgain.labelKey)}</span>
+        ) : null}
+      </div>
+      {buyAgain && !buyAgain.available ? (
+        <p className="max-w-xl text-sm leading-relaxed text-foreground/45">{t(buyAgain.hintKey)}</p>
+      ) : null}
+      {actions.some((action) => action.type === "cancelRequest") ? (
+        <p className="max-w-xl text-sm leading-relaxed text-foreground/45">{t("profile.orders.cancelRequestHint")}</p>
+      ) : null}
+      {actions.some((action) => action.type === "payNow") ? (
+        <p className="max-w-xl text-sm leading-relaxed text-foreground/45">{t("profile.orders.payNowHint")}</p>
+      ) : null}
+      <p className="max-w-xl text-sm leading-relaxed text-foreground/55">{t("profile.orders.manageOrderHint")}</p>
+      {manage ? (
+        <a href={manage.href} className="label-caps inline-block text-couture-red" rel="noopener noreferrer">
+          {t(manage.labelKey)}
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 export function ShopifyProfileShell({
   customer,
   activeTab,
   wishlistProducts,
   reviews,
   sessionExpiresAt,
+  ordersSettings = { buyAgainOnOrdersEnabled: false, headlessReturnEnabled: false },
 }: {
   customer: ShopifyCustomerProfile;
   activeTab: Tab;
   wishlistProducts: ProductSummary[];
   reviews: AccountReviewRow[];
   sessionExpiresAt: string;
+  ordersSettings?: AccountOrdersSettings;
 }) {
   const router = useRouter();
   const { t, plural, locale } = useTranslations();
@@ -312,15 +442,19 @@ export function ShopifyProfileShell({
                     <Link href={localePath(locale, "/shop")} className="label-caps mt-5 inline-block text-couture-red">{t("profile.wishlist.exploreShop")}</Link>
                   </div>
                 ) : (
-                  orders.map((order) => (
+                  orders.map((order) => {
+                    const statusView = resolveOrderStatusView(orderStatusInput(order), {
+                      buyAgainOnOrdersEnabled: ordersSettings.buyAgainOnOrdersEnabled,
+                    });
+                    return (
                     <article key={order.id} className="border border-stroke p-5 md:p-7">
-                      <div className="flex flex-col gap-4 border-b border-stroke pb-5 md:flex-row md:items-center md:justify-between">
+                      <div className="flex flex-col gap-4 border-b border-stroke pb-5 md:flex-row md:items-start md:justify-between">
                         <div>
                           <p className="font-serif text-xl">{order.name}</p>
                           <p className="mt-1 text-sm text-foreground/45">{date(order.processedAt, locale)}</p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="label-caps text-foreground/45">{order.fulfillmentStatus.replaceAll("_", " ")}</span>
+                        <div className="flex flex-col items-start gap-3 md:items-end">
+                          <OrderStatusChips chips={statusView.chips} t={t} />
                           <strong className="font-serif text-lg">{money(order.totalPrice.amount, order.totalPrice.currencyCode, locale)}</strong>
                         </div>
                       </div>
@@ -347,9 +481,6 @@ export function ShopifyProfileShell({
                         if (!tracking && !fulfillment.estimatedDeliveryAt) return null;
                         return (
                           <div key={index} className="mt-4 border-t border-stroke pt-4 text-sm text-foreground/60">
-                            {fulfillment.latestShipmentStatus ? (
-                              <p className="label-caps text-foreground/45">{fulfillment.latestShipmentStatus.replaceAll("_", " ")}</p>
-                            ) : null}
                             {tracking?.company || tracking?.number ? (
                               <p className="mt-1">
                                 {[tracking.company, tracking.number].filter(Boolean).join(" · ")}
@@ -371,18 +502,23 @@ export function ShopifyProfileShell({
                           {t("profile.orders.shipmentsTruncated")}
                         </p>
                       ) : null}
-                      <p className="mt-5 max-w-xl text-sm leading-relaxed text-foreground/55">
-                        {t("profile.orders.manageOrderHint")}
-                      </p>
-                      <a
-                        href={order.statusPageUrl}
-                        className="label-caps mt-4 inline-block text-couture-red"
-                        rel="noopener noreferrer"
-                      >
-                        {t("profile.orders.manageOrder")}
-                      </a>
+                      {order.returnInformation.returnableLineItems.pageInfo.hasNextPage ? (
+                        <p className="mt-3 text-sm text-foreground/45">
+                          {t("profile.orders.returnableTruncated", {
+                            count: order.returnInformation.returnableLineItems.nodes.length,
+                          })}
+                        </p>
+                      ) : null}
+                      {ordersSettings.headlessReturnEnabled ? (
+                        <ReturnRequestPanel
+                          orderId={order.id}
+                          returnableLineItems={order.returnInformation.returnableLineItems.nodes}
+                        />
+                      ) : null}
+                      <OrderBuyerActions actions={statusView.actions} t={t} locale={locale} />
                     </article>
-                  ))
+                    );
+                  })
                 )}
                 {ordersPageInfo.hasNextPage ? (
                   <div className="flex flex-col items-start gap-2">

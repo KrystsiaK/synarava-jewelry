@@ -112,12 +112,16 @@ function buildOrder(id: string) {
     id,
     name: `#${id}`,
     processedAt: "2026-01-01T00:00:00.000Z",
+    cancelledAt: null,
+    cancelReason: null,
     financialStatus: "PAID",
     fulfillmentStatus: "FULFILLED",
     statusPageUrl: `https://shop.example/orders/${id}`,
     totalPrice: { amount: "10.00", currencyCode: "EUR" },
     totalRefunded: { amount: "0.00", currencyCode: "EUR" },
+    paymentInformation: null,
     fulfillments: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+    returns: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
     returnInformation: { returnableLineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } },
     lineItems: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
   };
@@ -188,7 +192,7 @@ describe("ShopifyProfileShell orders tab pagination (REV-13)", () => {
         nodes: [{
           ...buildOrder("1"),
           lineItems: {
-            nodes: [{ id: "li-1", name: "Ring", productId: null, quantity: 1, image: null, totalPrice: null }],
+            nodes: [{ id: "li-1", name: "Ring", productId: null, variantId: null, quantity: 1, image: null, totalPrice: null }],
             pageInfo: { hasNextPage: true, endCursor: "cursor-1" },
           },
         }],
@@ -207,6 +211,70 @@ describe("ShopifyProfileShell orders tab pagination (REV-13)", () => {
     );
 
     expect(screen.getByText(/Showing the first 1 items/)).toBeInTheDocument();
+  });
+
+  it("shows localized payment and fulfillment status chips instead of raw Shopify enums", () => {
+    const customerWithStatuses = {
+      ...customer,
+      orders: {
+        nodes: [{
+          ...buildOrder("1"),
+          financialStatus: "PENDING",
+          fulfillmentStatus: "UNFULFILLED",
+          paymentInformation: {
+            paymentCollectionUrl: "https://pay.example/1",
+            paymentStatus: "PENDING",
+          },
+        }],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    } as unknown as ShopifyCustomerProfile;
+
+    render(
+      <ShopifyProfileShell
+        customer={customerWithStatuses}
+        activeTab="orders"
+        wishlistProducts={[]}
+        reviews={[]}
+        sessionExpiresAt="2026-10-15T00:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText("Payment pending")).toBeInTheDocument();
+    expect(screen.getByText("Unfulfilled")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Pay now →" })).toHaveAttribute("href", "https://pay.example/1");
+    expect(screen.getByRole("link", { name: "Request cancellation →" })).toBeInTheDocument();
+    expect(screen.getByText("Buy again unavailable")).toBeInTheDocument();
+  });
+
+  it("shows cancelled + cancel reason chips from Customer Account fields", () => {
+    const customerWithCancel = {
+      ...customer,
+      orders: {
+        nodes: [{
+          ...buildOrder("1"),
+          cancelledAt: "2026-01-02T00:00:00.000Z",
+          cancelReason: "CUSTOMER",
+          financialStatus: "VOIDED",
+          fulfillmentStatus: "UNFULFILLED",
+        }],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    } as unknown as ShopifyCustomerProfile;
+
+    render(
+      <ShopifyProfileShell
+        customer={customerWithCancel}
+        activeTab="orders"
+        wishlistProducts={[]}
+        reviews={[]}
+        sessionExpiresAt="2026-10-15T00:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText(/Cancelled · Cancelled by customer request/)).toBeInTheDocument();
+    expect(screen.getByText("Voided")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Request cancellation →" })).not.toBeInTheDocument();
   });
 });
 

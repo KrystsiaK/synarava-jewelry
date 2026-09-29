@@ -288,20 +288,29 @@ personalized-goods exemptions reviewed by qualified counsel.
 
 1. **Implemented** — headless profile links use “Manage order in secure
    account” (and locale equivalents) via Shopify `statusPageUrl`.
-2. **Pending production validation** — confirm cancellation/returns entry
+2. **Implemented** — Orders tab maps live Customer Account fields into status
+   chips (payment, fulfillment, cancel + reason, refund, returns, shipment) and
+   buyer actions (pay now via `paymentCollectionUrl`, cancel/return deep-links,
+   track). Copy + toggles go through Customer account обменка
+   (`commerce-copy-v1` + `account-orders-settings-v1`).
+3. **Pending production validation** — confirm cancellation/returns entry
    points in storefront policy + profile match the live Shopify account UX.
-3. **Implemented (phase 1 UX)** — Shopify account is canonical for returns and
-   cancellations; headless `ReturnRequestPanel` is hidden. **Pending
-   production validation** of native flow, historical requests, translations,
-   and notifications before retiring the custom panel permanently.
-4. **Implemented** — profile orders use `force-dynamic` / no-store so totals
+4. **Implemented (phase 1 UX)** — Shopify account is canonical for returns and
+   cancellations; headless `ReturnRequestPanel` stays behind
+   `headlessReturnEnabled` (default off). **Pending production validation** of
+   native flow, historical requests, translations, and notifications before
+   enabling the custom panel.
+5. **Implemented** — profile orders use `force-dynamic` / no-store so totals
    refresh after returning from Shopify.
-5. **Implemented (eng)** — ops webhooks `ORDERS_CANCELLED`, `REFUNDS_CREATE`,
+6. **Implemented (eng)** — ops webhooks `ORDERS_CANCELLED`, `REFUNDS_CREATE`,
    `RETURNS_REQUEST` reuse HMAC + dedupe + receipt logging; Order ids normalize
    to `gid://shopify/Order/…` (including refund `order_id` fallback);
    `RETURNS_REQUEST` soft-gated on `read_returns`. **Pending production
    validation** — not ready observability until live receipts confirm Order
    GID correlation.
+7. **Buy again on Orders** — default off (`buyAgainOnOrdersEnabled`). Respects
+   the same ops freeze as Checkout Buy again until BA/RT matrix + redirect theme
+   pass.
 
 ## Routing policy
 

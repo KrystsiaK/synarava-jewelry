@@ -521,6 +521,19 @@ Copy for the page a signed-in customer sees: the frame (eyebrow, sign out, tab
 names, browser title), then one section per storefront tab — Overview, Wishlist,
 Orders, Reviews, Addresses, Sign-in & security — and the return request on an order.
 
+**Orders** also exposes status-chip labels (payment, fulfillment, cancel, refund,
+return, shipment), action labels (cancel request, pay now, buy again), and empty/error
+hints. These ride the same `commerce-copy-v1` / `profile.*` обменка as the rest of
+the account page.
+
+Above the copy editor: **Orders — buyer actions** toggles stored in SiteSetting
+`account-orders-settings-v1` (not localized):
+
+- **Buy again on Orders tab** — default off (ops freeze). When on, eligible orders
+  link into the headless cart-permalink bridge.
+- **Headless return form on Orders** — default off; Shopify secure account remains
+  the canonical return/cancel surface until production validation.
+
 Name, email, order rows, amounts, dates, address lines, and the review text come
 from Shopify and are not fields here. The form for leaving a review is **Shared → Reviews**. Empty fields fall back to `messages/*.json`. Overrides
 are stored in `SiteSetting` `commerce-copy-v1` with the cart copy, but this

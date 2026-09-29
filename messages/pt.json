@@ -478,11 +478,76 @@
       "returnableTruncated": "Apenas os primeiros {count} artigos devolvíveis estão listados acima — consulte os detalhes da encomenda para os restantes.",
       "orderDetails": "Gerir encomenda na conta segura →",
       "manageOrder": "Gerir encomenda na conta segura →",
-      "manageOrderHint": "Cancelar itens, devoluções, reembolsos e Comprar novamente são tratados na conta segura Shopify. Um cancelamento é um pedido até a equipa o aprovar.",
+      "manageOrderHint": "Pedidos de cancelamento, devoluções, reembolsos e pagamentos pendentes são concluídos na conta segura Shopify quando necessário. Um cancelamento é um pedido até a equipa o aprovar.",
+      "cancelRequestHint": "Abre a conta segura Shopify para pedir o cancelamento. A equipa tem de aprovar antes de a encomenda ser cancelada.",
+      "payNowHint": "Conclua o pagamento em falta desta encomenda.",
+      "buyAgainFrozenHint": "Comprar novamente está temporariamente indisponível nesta loja até a validação pós-compra terminar. Pode continuar a gerir a encomenda na conta segura.",
+      "actions": {
+        "cancelRequest": "Pedir cancelamento →",
+        "payNow": "Pagar agora →",
+        "buyAgain": "Comprar novamente",
+        "buyAgainUnavailable": "Comprar novamente indisponível"
+      },
       "loading": "A carregar…",
       "loadMore": "Carregar mais encomendas",
       "loadMoreFailed": "Não foi possível carregar mais encomendas.",
-      "requiresLogin": "A sua sessão expirou — inicie sessão novamente para ver mais encomendas."
+      "requiresLogin": "A sua sessão expirou — inicie sessão novamente para ver mais encomendas.",
+      "status": {
+        "cancelled": "Cancelada",
+        "refundedAmount": "Reembolso registado",
+        "payment": {
+          "AUTHORIZED": "Autorizado",
+          "EXPIRED": "Pagamento expirado",
+          "PAID": "Pago",
+          "PARTIALLY_PAID": "Parcialmente pago",
+          "PARTIALLY_REFUNDED": "Parcialmente reembolsado",
+          "PENDING": "Pagamento pendente",
+          "REFUNDED": "Reembolsado",
+          "VOIDED": "Anulado",
+          "UNKNOWN": "Estado de pagamento desconhecido"
+        },
+        "fulfillment": {
+          "FULFILLED": "Enviada",
+          "IN_PROGRESS": "Preparação em curso",
+          "ON_HOLD": "Em espera",
+          "OPEN": "Aberta",
+          "PARTIALLY_FULFILLED": "Parcialmente enviada",
+          "PENDING_FULFILLMENT": "Aguarda preparação",
+          "RESTOCKED": "Reposta em stock",
+          "SCHEDULED": "Agendada",
+          "UNFULFILLED": "Por enviar",
+          "UNKNOWN": "Estado de envio desconhecido"
+        },
+        "return": {
+          "REQUESTED": "Devolução pedida",
+          "OPEN": "Devolução em curso",
+          "CLOSED": "Devolução concluída",
+          "DECLINED": "Devolução recusada",
+          "CANCELED": "Devolução cancelada",
+          "UNKNOWN": "Estado de devolução desconhecido"
+        },
+        "shipment": {
+          "ATTEMPTED_DELIVERY": "Tentativa de entrega",
+          "CONFIRMED": "Envio confirmado",
+          "DELIVERED": "Entregue",
+          "FAILURE": "Falha na entrega",
+          "IN_TRANSIT": "Em trânsito",
+          "LABEL_PRINTED": "Etiqueta impressa",
+          "LABEL_PURCHASED": "Etiqueta comprada",
+          "OUT_FOR_DELIVERY": "Em distribuição",
+          "READY_FOR_PICKUP": "Pronto para levantamento",
+          "SUBMITTED": "Envio submetido",
+          "UNKNOWN": "Estado de envio desconhecido"
+        }
+      },
+      "cancelReason": {
+        "CUSTOMER": "Cancelada a pedido do cliente",
+        "DECLINED": "Cancelada — pagamento recusado",
+        "FRAUD": "Cancelada — análise de fraude",
+        "INVENTORY": "Cancelada — stock",
+        "OTHER": "Cancelada",
+        "STAFF": "Cancelada pela equipa"
+      }
     },
     "reviews": {
       "title": "As minhas avaliações",

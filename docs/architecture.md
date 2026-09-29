@@ -76,7 +76,7 @@ not a second Order store — see [`payment-checkout-test-matrix.md`](./payment-c
     label + path), footer link columns (`footer-links-v1`: service / legal /
     socials), footer contact emails (`footer-contact-v1`), Shared screen
     chrome/footer/contact-CTA/cookie-consent label overrides (`storefront-copy-v1`),
-    cart / checkout-handoff / login overrides (`commerce-copy-v1`, local only — not synced), and site-wide SEO defaults
+    cart / checkout-handoff / login / Customer account page overrides (`commerce-copy-v1`, local only — not synced), account Orders buyer-action toggles (`account-orders-settings-v1`), and site-wide SEO defaults
     (`site-seo-v1`)
   - storefront rendering filters header/footer paths that no longer resolve
     (deleted page/product/collection); admin keeps the row and surfaces an error- `MediaAsset`
