@@ -151,7 +151,7 @@ export function AdminHrefControl({
     });
   });
 
-  const inspectHref = useEffectEvent((target: string) => {
+  function inspectHrefTarget(target: string) {
     if (!target) {
       publishDetectedIssue({ href: "", hasExactHit: false });
       return;
@@ -165,6 +165,11 @@ export function AdminHrefControl({
         exactHitStatus: hit?.status,
       });
     });
+  }
+
+  // Effect Event for the href effect; event handlers call inspectHrefTarget directly.
+  const inspectHref = useEffectEvent((target: string) => {
+    inspectHrefTarget(target);
   });
 
   const closeWithoutCommit = useEffectEvent(() => {
@@ -174,7 +179,7 @@ export function AdminHrefControl({
     setActiveIndex(-1);
     if (looksLikePath(trimmed) && trimmed !== href) {
       commitHref(trimmed);
-      inspectHref(trimmed);
+      inspectHrefTarget(trimmed);
       return;
     }
     setQuery(href);
@@ -213,7 +218,7 @@ export function AdminHrefControl({
   function choose(hit: StorefrontHrefHit) {
     const known = hit.segment !== "custom";
     commitHref(hit.href, { knownHit: known, status: hit.status });
-    if (!known) inspectHref(hit.href);
+    if (!known) inspectHrefTarget(hit.href);
   }
 
   function clear() {

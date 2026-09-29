@@ -135,13 +135,18 @@ export function EditCollectionForm({
   const visibleIssues = openIssues(issues);
   const collectionConflict = conflictSignals.products[collection.id];
 
-  useEffect(() => {
+  // Props → local state: adjust during render when the server payload / id changes.
+  const [signalsSource, setSignalsSource] = useState(initialConflictSignals);
+  if (initialConflictSignals !== signalsSource) {
+    setSignalsSource(initialConflictSignals);
     setConflictSignals(initialConflictSignals);
-  }, [initialConflictSignals]);
+  }
 
-  useEffect(() => {
+  const [scopedCollectionId, setScopedCollectionId] = useState(collection.id);
+  if (collection.id !== scopedCollectionId) {
+    setScopedCollectionId(collection.id);
     setConflictViewScope({ kind: "collection", collectionId: collection.id });
-  }, [collection.id]);
+  }
 
   useEffect(() => {
     function openFieldForHash() {

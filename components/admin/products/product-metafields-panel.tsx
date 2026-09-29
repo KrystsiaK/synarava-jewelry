@@ -48,7 +48,7 @@ export function ProductMetafieldsPanel({
 }) {
   const { pushToast } = useAdminToast();
   const [definitions, setDefinitions] = useState<ProductMetafieldDefinition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(shopifyProductId));
   const [pending, startTransition] = useTransition();
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -57,6 +57,14 @@ export function ProductMetafieldsPanel({
   const [newType, setNewType] = useState<string>("single_line_text_field");
   const [newDescription, setNewDescription] = useState("");
   const snapshotFields = metafieldsArrayFromSnapshot(workingSnapshot ?? shopifySnapshot);
+
+  // When the Shopify link disappears, clear loading/definitions during render.
+  const [trackedShopifyId, setTrackedShopifyId] = useState(shopifyProductId);
+  if (shopifyProductId !== trackedShopifyId) {
+    setTrackedShopifyId(shopifyProductId);
+    setLoading(Boolean(shopifyProductId));
+    if (!shopifyProductId) setDefinitions([]);
+  }
 
   function refreshDefinitions() {
     setLoading(true);
@@ -72,11 +80,24 @@ export function ProductMetafieldsPanel({
   }
 
   useEffect(() => {
-    if (!shopifyProductId) {
-      setLoading(false);
-      return;
-    }
-    refreshDefinitions();
+    if (!shopifyProductId) return;
+    let cancelled = false;
+    // Loading flag is set during render when shopifyProductId changes; only async updates here.
+    void listCustomProductMetafieldDefinitionsAction()
+      .then((result) => {
+        if (cancelled) return;
+        if (result.error) {
+          pushToast({ message: result.error, tone: "error" });
+          return;
+        }
+        setDefinitions(result.definitions ?? []);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopifyProductId, productId]);
 

@@ -70,6 +70,10 @@ function isWarm() {
   return Date.now() < warmUntil;
 }
 
+function isFocusSuppressedAfterToast() {
+  return Date.now() < suppressFocusUntil;
+}
+
 export function resetTooltipWarmth() {
   warmUntil = 0;
   suppressFocusUntil = 0;
@@ -272,7 +276,8 @@ export function Tooltip({
       trigger.props.onFocus?.(event);
       // Confirm-modal focus return onto Save must not open the instructional
       // tooltip as if it were the save result — toast owns that moment.
-      if (Date.now() < suppressFocusUntil) return;
+      // Event-handler clock gate (not render); module timestamp set on toast close.
+      if (isFocusSuppressedAfterToast()) return;
       show(true);
     },
     onKeyDown: (event) => {

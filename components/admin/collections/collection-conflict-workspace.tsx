@@ -368,9 +368,12 @@ export function CollectionConflictWorkspace({
   const actionable = detailFields.filter((field) => !field.blockedReason && field.allowedDirections.length > 0);
   const hasClears = Boolean(preview?.entries.some((entry) => entry.willClearNonEmptyValue));
 
-  useEffect(() => {
+  // Reset ack when the preview payload changes (adjust state during render).
+  const [ackPreview, setAckPreview] = useState(preview);
+  if (preview !== ackPreview) {
+    setAckPreview(preview);
     setAcknowledgeClears(false);
-  }, [preview]);
+  }
 
   return (
     <>
