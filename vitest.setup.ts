@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { vi, afterEach } from "vitest";
 import React from "react";
 
+import { cancelPreserveScrollTimers } from "./lib/admin/preserve-scroll";
+
 // ── Next.js ─────────────────────────────────────────────────────────────────
 vi.mock("next/link", () => ({
   default: ({
@@ -85,5 +87,7 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 afterEach(() => {
+  // Soft-refresh schedules delayed restores; clear before jsdom tears down.
+  cancelPreserveScrollTimers();
   vi.clearAllMocks();
 });

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ADMIN_SCROLL_ROOT_SELECTOR,
+  cancelPreserveScrollTimers,
   captureAdminScroll,
   refreshPreservingScroll,
   restoreAdminScroll,
@@ -17,9 +18,11 @@ describe("preserve-scroll", () => {
       cb(0);
       return 1;
     });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
   afterEach(() => {
+    cancelPreserveScrollTimers();
     vi.unstubAllGlobals();
     vi.useRealTimers();
     document.body.innerHTML = "";
@@ -52,5 +55,33 @@ describe("preserve-scroll", () => {
     root.scrollTop = 0;
     vi.runAllTimers();
     expect(root.scrollTop).toBe(900);
+  });
+
+  it("clears pending timeouts so restore does not run after cancel", () => {
+    vi.useFakeTimers();
+    const root = document.querySelector<HTMLElement>(ADMIN_SCROLL_ROOT_SELECTOR)!;
+    root.scrollTop = 400;
+    const router = { refresh: vi.fn() };
+
+    const cancel = refreshPreservingScroll(router);
+    root.scrollTop = 0;
+    cancel();
+    vi.runAllTimers();
+    expect(root.scrollTop).toBe(0);
+  });
+
+  it("no-ops capture/restore when window is unavailable", () => {
+    document.body.innerHTML = "";
+    vi.stubGlobal("window", undefined);
+    expect(captureAdminScroll()).toEqual({ top: 0, left: 0 });
+    expect(() => restoreAdminScroll({ top: 10, left: 2 })).not.toThrow();
+  });
+
+  it("refresh without window still refreshes and returns a no-op cancel", () => {
+    vi.stubGlobal("window", undefined);
+    const router = { refresh: vi.fn() };
+    const cancel = refreshPreservingScroll(router);
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    expect(() => cancel()).not.toThrow();
   });
 });
