@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { clearBuyAgainNotice } from "@/lib/commerce/buy-again-notice";
 import {
   addStorefrontProductToCart,
   getStorefrontCartLineQuantity,
@@ -15,11 +14,6 @@ import { parseFormData } from "@/lib/forms/parse-form-data";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { safeRedirectPath } from "@/lib/security/safe-redirect";
-
-/** Clear Buy again flash cookie (not allowed from Server Components). */
-export async function clearBuyAgainNoticeAction() {
-  await clearBuyAgainNotice();
-}
 
 const addToCartSchema = z.object({
   productSlug: z.string().trim().min(1),

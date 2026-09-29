@@ -3,7 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
+import { shopifyAdminRequest, ShopifyAdminError, shopifyGid } from "@/lib/shopify/admin";
 
 type UserError = { field?: string[]; message: string };
 
@@ -34,8 +34,19 @@ function isShopifyOrderGid(value: string): boolean {
   return value.startsWith("gid://shopify/Order/");
 }
 
-function asOrderGid(value: string | undefined): string | null {
-  return typeof value === "string" && isShopifyOrderGid(value) ? value : null;
+/**
+ * Normalize Shopify order references to `gid://shopify/Order/<id>` so
+ * refunds/create (`order_id`) matches orders/paid and orders/cancelled.
+ * Rejects non-Order GIDs (Return, Refund, …).
+ */
+export function normalizeShopifyOrderId(value: string | number | null | undefined): string | null {
+  if (value == null) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  if (isShopifyOrderGid(raw)) return raw;
+  if (raw.startsWith("gid://")) return null;
+  if (!/^\d+$/.test(raw)) return null;
+  return shopifyGid("Order", raw);
 }
 
 /**
@@ -48,22 +59,22 @@ function asOrderGid(value: string | undefined): string | null {
  *
  * Order id precedence: nested `order.admin_graphql_api_id` (Order GID), then
  * top-level `admin_graphql_api_id` only when it is an Order GID (cancelled),
- * then `order_id` / `order.id`. Never treat Return/Refund GIDs or their
- * numeric `id` as the order.
+ * then numeric `order_id` / `order.id` normalized to an Order GID. Never treat
+ * Return/Refund GIDs or their numeric `id` as the order.
  */
 export function summarizeOrderLifecyclePayload(payload: LifecyclePayload): OrderLifecycleSignal {
   const topLevelGid =
     typeof payload.admin_graphql_api_id === "string" ? payload.admin_graphql_api_id : null;
-  const nestedOrderGid = asOrderGid(payload.order?.admin_graphql_api_id);
-  const topLevelOrderGid = asOrderGid(topLevelGid ?? undefined);
+  const nestedOrderGid = normalizeShopifyOrderId(payload.order?.admin_graphql_api_id);
+  const topLevelOrderGid = normalizeShopifyOrderId(topLevelGid);
   const rootLooksLikeOrder = !topLevelGid || isShopifyOrderGid(topLevelGid);
 
   const shopifyOrderId =
     nestedOrderGid ||
     topLevelOrderGid ||
-    (payload.order_id != null ? String(payload.order_id) : null) ||
-    (payload.order?.id != null ? String(payload.order.id) : null) ||
-    (rootLooksLikeOrder && payload.id != null ? String(payload.id) : null);
+    normalizeShopifyOrderId(payload.order_id) ||
+    normalizeShopifyOrderId(payload.order?.id) ||
+    (rootLooksLikeOrder ? normalizeShopifyOrderId(payload.id) : null);
 
   return {
     shopifyOrderId,

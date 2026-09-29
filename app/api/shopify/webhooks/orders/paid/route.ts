@@ -9,6 +9,7 @@ import {
   summarizeOrdersPaidPayload,
   type OrdersPaidWebhookPayload,
 } from "@/lib/shopify/orders-paid-webhook";
+import { parseShopifyWebhookJson } from "@/lib/shopify/webhook-json";
 import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 
 export const runtime = "nodejs";
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
 
   let payload: OrdersPaidWebhookPayload;
   try {
-    payload = JSON.parse(rawBody) as OrdersPaidWebhookPayload;
+    payload = parseShopifyWebhookJson(rawBody) as OrdersPaidWebhookPayload;
   } catch {
     return NextResponse.json({ error: "Invalid webhook payload." }, { status: 400 });
   }

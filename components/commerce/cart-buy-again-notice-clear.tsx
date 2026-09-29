@@ -2,16 +2,20 @@
 
 import { useEffect } from "react";
 
-import { clearBuyAgainNoticeAction } from "@/app/[locale]/cart/actions";
-
 /**
  * Clears the Buy again flash cookie after the cart notice has rendered.
- * RSC cannot call cookies().set — only Server Actions / Route Handlers may.
- * @see https://nextjs.org/docs/app/api-reference/functions/cookies
+ * Uses a POST Route Handler (not a Server Action): cookie mutation via Server
+ * Action automatically re-renders the current RSC page and would remove the
+ * notice almost immediately.
+ * @see https://nextjs.org/docs/app/guides/server-actions
  */
 export function CartBuyAgainNoticeClear() {
   useEffect(() => {
-    void clearBuyAgainNoticeAction();
+    void fetch("/api/cart/buy-again-notice", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+    });
   }, []);
 
   return null;

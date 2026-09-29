@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/shopify/admin", () => ({
   shopifyAdminRequest: mocks.shopifyAdminRequest,
   ShopifyAdminError: class ShopifyAdminError extends Error {},
+  shopifyGid: (resource: string, id: string | number) =>
+    String(id).startsWith("gid://") ? String(id) : `gid://shopify/${resource}/${id}`,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -41,28 +43,24 @@ describe("summarizeOrderLifecyclePayload", () => {
     });
   });
 
-  it("prefers nested Order GID over Refund admin_graphql_api_id", () => {
-    // Shape mirrors Shopify refunds/create sample payloads.
+  it("normalizes refunds/create order_id to an Order GID (official sample shape)", () => {
+    // Official Shopify refunds/create sample: Refund GID + numeric order_id,
+    // no nested `order` object. order_id arrives as a string after
+    // parseShopifyWebhookJson (64-bit ids exceed Number.MAX_SAFE_INTEGER).
     expect(
       summarizeOrderLifecyclePayload({
         id: 8902709387223,
         admin_graphql_api_id: "gid://shopify/Refund/8902709387223",
-        order_id: 820982911946154508,
-        order: {
-          id: 820982911946154508,
-          admin_graphql_api_id: "gid://shopify/Order/820982911946154508",
-          name: "#1002",
-        },
+        order_id: "820982911946154508",
       }),
     ).toEqual({
       shopifyOrderId: "gid://shopify/Order/820982911946154508",
-      orderName: "#1002",
+      orderName: null,
       financialStatus: null,
     });
   });
 
   it("prefers nested Order GID over Return admin_graphql_api_id", () => {
-    // Shape mirrors Shopify returns/request sample payloads.
     expect(
       summarizeOrderLifecyclePayload({
         id: 1234567890,
@@ -80,16 +78,15 @@ describe("summarizeOrderLifecyclePayload", () => {
     });
   });
 
-  it("falls back to order_id when nested Order GID is absent", () => {
+  it("normalizes numeric order.id fallback to an Order GID", () => {
     expect(
       summarizeOrderLifecyclePayload({
         id: 9,
         admin_graphql_api_id: "gid://shopify/Refund/9",
-        order_id: 55,
         order: { id: 55, name: "#1002" },
       }),
     ).toEqual({
-      shopifyOrderId: "55",
+      shopifyOrderId: "gid://shopify/Order/55",
       orderName: "#1002",
       financialStatus: null,
     });

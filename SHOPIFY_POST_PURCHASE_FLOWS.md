@@ -60,23 +60,26 @@ headless Synarava storefront.
 
 ### What is missing or inconsistent
 
-1. ~~Cart permalink bridge~~ — shipped: `/{locale}/cart/[permalink]` imports
-   Shopify `variant:qty` lists into the Storefront API cart with replay
-   protection and cart notices. Notice cookie is read in the cart RSC and
-   cleared via a Server Action (RSC cannot `cookies().set`).
+1. ~~Cart permalink bridge~~ — **implemented** on `main`:
+   `/{locale}/cart/[permalink]` imports Shopify `variant:qty` lists into the
+   Storefront API cart with replay protection and cart notices. The cart RSC
+   reads the flash cookie; a POST Route Handler
+   (`/api/cart/buy-again-notice`) clears it via `fetch` so the notice is not
+   wiped by an RSC re-render. **Pending production validation** (BA matrix).
 
-2. Online Store → headless redirect theme is still **unpublished**. Publish only
-   after production BA checks; keep Buy again hidden until then. Do not treat
-   lifecycle webhook receipts as ready observability until Order-id parsing and
-   `read_returns` scope gating are verified in production.
+2. Online Store → headless redirect theme is still **unpublished** (**pending
+   production validation**). Publish only after production BA checks; keep Buy
+   again hidden until then. Lifecycle webhook receipts remain ops scaffolding
+   until Order GID normalization and `read_returns` gating are verified live.
 
-3. Headless profile now routes order management to Shopify (`statusPageUrl`) and
-   no longer surfaces the custom return form. Confirm native return/cancel in
-   Shopify Admin before re-enabling Buy again.
+3. Headless profile routes order management to Shopify (`statusPageUrl`) and no
+   longer surfaces the custom return form. **Pending production validation** of
+   native return/cancel in Shopify Admin before re-enabling Buy again.
 
 4. The order-status page can still expose product, collection, home, and cart
    links owned by the Shopify Online Store theme until the redirect theme is
-   published with the exclusions in the routing policy.
+   published with the exclusions in the routing policy (**pending production
+   validation**).
 
 ## Product decisions
 
@@ -113,74 +116,64 @@ headless Synarava storefront.
 8. Checkout continues through the existing Shopify checkout URL and preserves
    the existing `sso=silent` behavior for an authenticated buyer.
 
-### Immediate containment before implementation
+### Immediate containment (ops — keep until production BA)
 
-Temporarily hide **Buy again** in Shopify until this bridge is deployed. Shopify
-exposes the toggle in **Settings -> Checkout -> Configurations -> Customize ->
-Settings -> Buy again button**. Leaving a known-broken action visible is worse
-than temporarily removing it.
+Keep **Buy again** hidden in Shopify until the bridge is validated on
+production domains. Shopify exposes the toggle in **Settings -> Checkout ->
+Configurations -> Customize -> Settings -> Buy again button**. Leaving a
+known-broken action visible is worse than temporarily removing it.
 
 Re-enable the button only after the production-domain tests below pass.
 
-### Required application changes
+### Application changes
 
-The exact filenames can change during implementation, but the boundaries
-should remain explicit.
+Status key: **implemented** (on `main`) · **pending production validation** ·
+**pending ops**.
 
-1. Add a pure parser, for example `lib/shopify/cart-permalink.ts`.
+1. **Implemented** — pure parser `lib/shopify/cart-permalink.ts`.
 
-   - Accept the Shopify contract `<variant_id>:<quantity>` separated by commas.
-   - Accept only ASCII digits for IDs and positive base-10 integer quantities.
-   - Apply explicit limits for URL length, line count, per-line quantity, and
+   - Accepts the Shopify contract `<variant_id>:<quantity>` separated by commas.
+   - Accepts only ASCII digits for IDs and positive base-10 integer quantities.
+   - Applies explicit limits for URL length, line count, per-line quantity, and
      total quantity.
-   - Reject empty segments, unknown syntax, overflow, negative/zero quantities,
+   - Rejects empty segments, unknown syntax, overflow, negative/zero quantities,
      fragments, and line-item property payloads until deliberately supported.
-   - Combine duplicate variant IDs deterministically before calling Shopify.
-   - Return typed error codes; never expose raw Shopify/network errors to the
+   - Combines duplicate variant IDs deterministically before calling Shopify.
+   - Returns typed error codes; never exposes raw Shopify/network errors to the
      customer.
 
-2. Add a localized landing route for Shopify's path shape, for example:
+2. **Implemented** — localized landing route:
 
    ```text
    app/[locale]/cart/[permalink]/route.ts
    ```
 
-   This route is a mutating `GET` only because Shopify owns the link contract.
-   It must therefore include replay protection, rate limiting, `no-store`
-   behavior, and an immediate redirect to the canonical cart URL.
+   Mutating `GET` (Shopify owns the link contract) with replay protection, rate
+   limiting, `no-store`, and redirect to the canonical cart URL.
 
-3. Add a commerce-domain operation such as
-   `addStorefrontMerchandiseLinesToCart(lines)`.
+3. **Implemented** — `addStorefrontMerchandiseLinesToCart(lines)`.
 
-   - Keep `lib/commerce/storefront-cart.ts` as the app-facing boundary.
-   - Extend `lib/shopify/cart.ts` with a multi-line Shopify cart mutation.
-   - Continue using the Storefront API cart cookie rather than creating a
-     second cart model.
-   - Preserve Shopify warnings and user errors as structured results.
-   - Validate merchandise against Shopify and the local visible-product
-     projection. A numeric ID in a URL is not authorization to add hidden,
-     archived, or unavailable merchandise.
+   - `lib/commerce/storefront-cart.ts` remains the app-facing boundary.
+   - `lib/shopify/cart.ts` performs the multi-line Storefront API mutation.
+   - Continues using the Storefront API cart cookie (no second cart model).
+   - Preserves Shopify warnings/user errors as structured results.
+   - Validates merchandise against Shopify and the local visible-product
+     projection.
 
-4. Add a server-controlled cart notice.
+4. **Implemented** — server-controlled cart notice.
 
-   - Prefer a short-lived HttpOnly flash cookie containing only a result code
-     and safe counts, then clear it after display.
-   - Translate all messages in every supported storefront locale.
-   - Do not put raw product titles, GraphQL errors, tokens, or customer data in
-     query parameters.
-   - Display the notice in or directly above the cart, with `role="status"` for
-     success and `role="alert"` for failures.
+   - Short-lived HttpOnly flash cookie (result code + safe counts).
+   - Cart RSC reads the cookie; POST `/api/cart/buy-again-notice` clears it via
+     `fetch` (not a Server Action — cookie writes in actions re-render the RSC
+     tree and would wipe the notice).
+   - Localized messages; `role="status"` / `role="alert"`.
+   - **Pending production validation** via BA matrix + browser notice spec.
 
-5. Add replay protection.
+5. **Implemented** — replay protection (hash of locale + canonical lines in a
+   short-lived cookie; replay shows “already added” without re-adding).
 
-   - Hash the canonical locale plus normalized line list.
-   - Store only the hash and a short expiration in a secure, SameSite cookie.
-   - If the same permalink is replayed during the window, redirect without
-     adding it again and show an "already added" message.
-   - Treat the receipt as UX safety, not as a security boundary. Shopify cart
-     mutations and availability remain authoritative.
-
-6. Route Shopify Online Store traffic only after the bridge exists.
+6. **Pending ops / pending production validation** — Online Store → headless
+   redirect theme.
 
    - Review Shopify's Hydrogen redirect theme as the official reference for
      preserving checkout and bot-protection behavior.
@@ -283,34 +276,24 @@ The EU settings above are an engineering/configuration baseline derived from
 Shopify guidance, not legal advice. Have the final Portuguese/EU policy and any
 personalized-goods exemptions reviewed by qualified counsel.
 
-### Required application changes
+### Application changes (cancel / return)
 
-1. Rename the headless profile link from a generic "Order details" concept to
-   a clear localized action such as "Manage order in secure account". It should
-   continue to use Shopify's `statusPageUrl`.
-2. Add a visible cancellation/returns entry point to the storefront policy and
-   profile orders section.
-3. Decide the single canonical return UX after an end-to-end parity check:
-
-   - **Recommended phase 1:** Shopify account is canonical for both returns and
-     cancellations. Keep the headless order list as a summary and route order
-     management to Shopify.
-   - Remove or hide the existing `ReturnRequestPanel` only after confirming the
-     native flow, historical requests, translations, and notifications. Do not
-     leave two forms that appear to create different kinds of return.
-   - A future custom cancellation UI is acceptable only if a current stable
-     Customer Account API contract exposes the full eligibility and request
-     workflow. Do not substitute the irreversible Admin API `orderCancel`
-     mutation in a customer-facing route.
-
-4. Add state refresh behavior after returning from Shopify so the headless
-   profile does not show stale totals/statuses. Prefer `no-store` customer order
-   reads or explicit revalidation; Shopify remains authoritative.
-5. Extend operational observation for cancellation/refund outcomes without
-   storing a second order. Before implementation, verify the exact current
-   Admin webhook topics and scopes for cancellation, refund, fulfillment, and
-   return lifecycle events. Reuse the existing HMAC verification,
-   deduplication, receipt, and structured-log pattern used by `orders/paid`.
+1. **Implemented** — headless profile links use “Manage order in secure
+   account” (and locale equivalents) via Shopify `statusPageUrl`.
+2. **Pending production validation** — confirm cancellation/returns entry
+   points in storefront policy + profile match the live Shopify account UX.
+3. **Implemented (phase 1 UX)** — Shopify account is canonical for returns and
+   cancellations; headless `ReturnRequestPanel` is hidden. **Pending
+   production validation** of native flow, historical requests, translations,
+   and notifications before retiring the custom panel permanently.
+4. **Implemented** — profile orders use `force-dynamic` / no-store so totals
+   refresh after returning from Shopify.
+5. **Implemented (eng)** — ops webhooks `ORDERS_CANCELLED`, `REFUNDS_CREATE`,
+   `RETURNS_REQUEST` reuse HMAC + dedupe + receipt logging; Order ids normalize
+   to `gid://shopify/Order/…` (including refund `order_id` fallback);
+   `RETURNS_REQUEST` soft-gated on `read_returns`. **Pending production
+   validation** — not ready observability until live receipts confirm Order
+   GID correlation.
 
 ## Routing policy
 

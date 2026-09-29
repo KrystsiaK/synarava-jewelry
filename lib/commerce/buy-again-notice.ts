@@ -75,15 +75,19 @@ export async function setBuyAgainNotice(notice: BuyAgainNotice) {
 /**
  * Read-only peek for Server Components.
  * Cookie mutation is not allowed during RSC render — clear via
- * {@link clearBuyAgainNotice} from a Server Action or Route Handler.
+ * {@link clearBuyAgainNotice} from the POST Route Handler at
+ * `/api/cart/buy-again-notice` (plain fetch). Do not clear from a Server
+ * Action: cookie writes there re-render the current RSC tree and would wipe
+ * the already-shown notice.
  * @see https://nextjs.org/docs/app/api-reference/functions/cookies
+ * @see https://nextjs.org/docs/app/guides/server-actions
  */
 export async function readBuyAgainNotice(): Promise<BuyAgainNotice | null> {
   const store = await cookies();
   return decodeBuyAgainNotice(store.get(BUY_AGAIN_NOTICE_COOKIE)?.value);
 }
 
-/** Clear the flash notice. Call only from a Server Action or Route Handler. */
+/** Clear the flash notice. Call only from a Route Handler (not a Server Action). */
 export async function clearBuyAgainNotice() {
   const store = await cookies();
   if (!store.get(BUY_AGAIN_NOTICE_COOKIE)) return;

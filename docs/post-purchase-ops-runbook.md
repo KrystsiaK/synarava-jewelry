@@ -19,7 +19,7 @@
 
 ## Buy again containment (until bridge verified in production)
 
-1. **Settings → Checkout → Configurations → Customize → Settings → Buy again button** — keep **hidden**. Do not re-enable until BA-* matrix passes on production domains **after** the cart-notice cookie clear path is verified live.
+1. **Settings → Checkout → Configurations → Customize → Settings → Buy again button** — keep **hidden**. Do not re-enable until BA-* matrix passes on production domains **after** the cart-notice clear path is verified live (POST `/api/cart/buy-again-notice` via `fetch`, not a Server Action).
 2. After bridge + Online Store redirect theme are live, re-enable and run BA-001…BA-012.
 
 ## Online Store → headless redirect (Phase 2 ops)

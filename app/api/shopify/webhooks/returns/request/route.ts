@@ -8,6 +8,7 @@ import {
   markOrderLifecycleDeliverySucceeded,
   summarizeOrderLifecyclePayload,
 } from "@/lib/shopify/order-lifecycle-webhooks";
+import { parseShopifyWebhookJson } from "@/lib/shopify/webhook-json";
 import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
 
   let payload: unknown;
   try {
-    payload = JSON.parse(rawBody);
+    payload = parseShopifyWebhookJson(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid webhook payload." }, { status: 400 });
   }
