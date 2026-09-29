@@ -52,9 +52,8 @@ test.describe("Buy again cart notice", () => {
 
     // Cookie clear via Route Handler must not wipe the already-shown notice.
     await expect(notice).toBeVisible();
-    await expect
-      .poll(async () => notice.isVisible(), { timeout: 2_000 })
-      .toBe(true);
+    await page.waitForTimeout(2_000);
+    await expect(notice).toBeVisible();
 
     await page.reload();
     await expect(

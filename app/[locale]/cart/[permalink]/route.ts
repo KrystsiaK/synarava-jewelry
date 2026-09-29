@@ -16,6 +16,7 @@ import {
 } from "@/lib/i18n/storefront-locale-cache";
 import { localePath } from "@/lib/i18n/routing";
 import { getTrustedClientIp } from "@/lib/security/request-ip";
+import { getTrustedRequestOrigin } from "@/lib/security/request-origin";
 import { parseCartPermalink } from "@/lib/shopify/cart-permalink";
 
 export const runtime = "nodejs";
@@ -25,23 +26,12 @@ type RouteContext = {
   params: Promise<{ locale: string; permalink: string }>;
 };
 
-function requestOrigin(request: Request): string {
-  // Prefer the browser-facing Host so Set-Cookie + Location stay on the same
-  // origin (dev often sees request.url as localhost while Playwright uses 127.0.0.1).
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (host) {
-    const proto = request.headers.get("x-forwarded-proto") ?? "http";
-    return `${proto}://${host}`;
-  }
-  return new URL(request.url).origin;
-}
-
 function cartRedirect(
   locale: string,
   request: Request,
   options?: { notice?: BuyAgainNotice; replayHash?: string },
 ) {
-  const target = new URL(localePath(locale, "/cart"), requestOrigin(request));
+  const target = new URL(localePath(locale, "/cart"), getTrustedRequestOrigin(request));
   // Set cookies on the redirect response itself — cookies().set() is not
   // reliably merged onto a returned NextResponse.redirect() body.
   const response = NextResponse.redirect(target, {
