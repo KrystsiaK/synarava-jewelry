@@ -141,7 +141,10 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
    конфликтов → Apply по полям. **Галерея (Media):** бейдж конфликта значит,
    что в Shopify и Synarava разные commerce-снимки `media`. Вкладка Media
    читает **OUR** дерево (`workingSnapshot.media`); локальные `ProductMedia`
-   — staging для upload/reorder (write-through в то же дерево). В Field
+   — staging для upload/reorder (write-through в то же дерево). У каждого
+   кадра — поле **Alt text** (Shopify `MEDIA_IMAGE.alt`): blur сохраняет;
+   пустой / `Image N` / filename-like alt — мягкое предупреждение и пункт
+   publish checklist (Issues `MISSING_IMAGE_ALT` + Meta Health). В Field
    Decisions галерею можно взять/отправить тем же контрактом (Pull = adopt
    `media`, Push = push pipeline) или целым Pull/Push, если поле ещё без
    scoped write (Status, tags). JSON/`originalSource` в диалоге не
@@ -528,6 +531,7 @@ This copy is not synced to Shopify.
 
 - **Health** — чеклист без новых настроек: публичный URL, `robots.txt`,
   `sitemap.xml`, покрытие SEO title у published products/collections/pages,
+  покрытие descriptive **image alt** у published products с галереей,
   sample-ссылки Google Rich Results Test. Дыры правятся в Pages / Catalog /
   Collections (Shopify SoT), не здесь.
 - **Redirects** — read-only зеркало: Shopify URL Redirects (Admin GraphQL
@@ -560,6 +564,9 @@ This copy is not synced to Shopify.
   Taxonomy** категории (`shopifyCategoryId`), отсутствие тегов, отсутствие
   маркетинговой коллекции (membership только в Featured / storefront-default
   не считается) — `WARNING`-уровень «Missing taxonomy».
+- Для **ACTIVE + PUBLIC** товаров с галереей: blank / placeholder (`Image N`) /
+  filename-like alt на кадрах — `WARNING` `MISSING_IMAGE_ALT` (правятся на
+  вкладке Media; после нормальных alt Scan/save закрывает issue).
 - **Битые изображения** (`ERROR`-уровень «Broken media») — для основного
   изображения товара, изображений материалов, изображения процесса, всех
   изображений lookbook, а также hero-изображения каждой коллекции. Пути

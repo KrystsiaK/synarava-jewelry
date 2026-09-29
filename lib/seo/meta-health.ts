@@ -7,6 +7,12 @@ import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { localePath } from "@/lib/i18n/routing";
 import {
+  countWeakGalleryAlts,
+  imageAltCoverageTone,
+  productGalleryAltsForChecklist,
+  type ImageAltCoverageCounts,
+} from "@/lib/seo/image-alt-checklist";
+import {
   richResultsTestUrl,
   seoCoverageTone,
   type MetaHealthTone,
@@ -15,6 +21,7 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
 export type { MetaHealthTone };
 export { seoCoverageTone, richResultsTestUrl } from "@/lib/seo/meta-health-shared";
+export { imageAltCoverageTone } from "@/lib/seo/image-alt-checklist";
 
 export type MetaHealthCheck = {
   id: string;
@@ -48,6 +55,10 @@ export type RichResultsSample = {
   testUrl: string;
 };
 
+export type ImageAltCoverage = ImageAltCoverageCounts & {
+  samplesMissing: SeoCoverageMissingSample[];
+};
+
 export type MetaHealthReport = {
   siteUrl: string;
   siteUrlConfigured: boolean;
@@ -55,6 +66,7 @@ export type MetaHealthReport = {
   sitemapUrl: string;
   checks: MetaHealthCheck[];
   coverage: SeoCoverageBucket[];
+  imageAltCoverage: ImageAltCoverage;
   richResultsSamples: RichResultsSample[];
 };
 
@@ -85,7 +97,17 @@ export const getMetaHealthReport = cache(async (): Promise<MetaHealthReport> => 
     getPublishedStorefrontLocales(),
     db.product.findMany({
       where: { status: "ACTIVE", visibility: "PUBLIC" },
-      select: { id: true, name: true, slug: true, seoTitle: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        seoTitle: true,
+        workingSnapshot: true,
+        media: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          select: { alt: true, asset: { select: { filename: true } } },
+        },
+      },
       orderBy: { updatedAt: "desc" },
     }),
     db.collection.findMany({
@@ -156,6 +178,26 @@ export const getMetaHealthReport = cache(async (): Promise<MetaHealthReport> => 
 
   const coverage = [productCoverage, collectionCoverage, pageCoverage];
 
+  const productsWithMedia = products
+    .map((row) => {
+      const alts = productGalleryAltsForChecklist(row);
+      return { row, alts, weak: countWeakGalleryAlts(alts) };
+    })
+    .filter((item) => item.alts.length > 0);
+
+  const imageAltCoverage: ImageAltCoverage = {
+    publishedWithMedia: productsWithMedia.length,
+    withGoodAlt: productsWithMedia.filter((item) => item.weak === 0).length,
+    samplesMissing: productsWithMedia
+      .filter((item) => item.weak > 0)
+      .slice(0, SAMPLE_LIMIT)
+      .map((item) => ({
+        id: item.row.id,
+        label: item.row.name,
+        adminHref: `/admin/products/${item.row.id}#field-imageUrl`,
+      })),
+  };
+
   const checks: MetaHealthCheck[] = [
     {
       id: "site-url",
@@ -203,6 +245,16 @@ export const getMetaHealthReport = cache(async (): Promise<MetaHealthReport> => 
           : `${bucket.withSeoTitle}/${bucket.published} published have an explicit SEO title (blank falls back to name/title).`,
       href: bucket.adminListHref,
     })),
+    {
+      id: "coverage-image-alt",
+      label: "Product image alt coverage",
+      tone: imageAltCoverageTone(imageAltCoverage),
+      detail:
+        imageAltCoverage.publishedWithMedia === 0
+          ? "No published products with gallery media yet."
+          : `${imageAltCoverage.withGoodAlt}/${imageAltCoverage.publishedWithMedia} published products have descriptive alt on every gallery image (not blank, placeholder, or filename-like).`,
+      href: "/admin/products",
+    },
   ];
 
   const richResultsSamples: RichResultsSample[] =
@@ -224,6 +276,7 @@ export const getMetaHealthReport = cache(async (): Promise<MetaHealthReport> => 
     sitemapUrl,
     checks,
     coverage,
+    imageAltCoverage,
     richResultsSamples,
   };
 });

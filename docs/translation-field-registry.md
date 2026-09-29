@@ -25,7 +25,7 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | details (materials/process/lookbook stories) | localized | optional | metaobject `product_detail_copy.details` |
 | seoTitle/seoDescription | localized | when-published | native `PRODUCT.meta_title`/`meta_description` |
 | optionName / optionValueLabel | localized | when-published | native `PRODUCT_OPTION` / `PRODUCT_OPTION_VALUE` |
-| mediaAlt | localized | optional | native `MEDIA_IMAGE.alt` |
+| mediaAlt | localized | optional (EN publish checklist via Issues / Meta Health) | native `MEDIA_IMAGE.alt` |
 | mediaCaption | localized | optional | metaobject `product_detail_copy.media_caption` |
 | sku, price, compareAt, currency, status, visibility, category, collections, tags, media, variants | shared | — | — |
 

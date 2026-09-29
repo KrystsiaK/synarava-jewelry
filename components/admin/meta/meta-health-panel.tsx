@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check, CircleAlert, CircleDashed, ExternalLink, Minus } from "lucide-react";
 
 import type {
+  ImageAltCoverage,
   MetaHealthCheck,
   MetaHealthReport,
   MetaHealthTone,
@@ -120,6 +121,52 @@ function CoverageCard({ bucket }: { bucket: SeoCoverageBucket }) {
   );
 }
 
+function ImageAltCoverageCard({ coverage }: { coverage: ImageAltCoverage }) {
+  const pct =
+    coverage.publishedWithMedia === 0
+      ? null
+      : Math.round((coverage.withGoodAlt / coverage.publishedWithMedia) * 100);
+
+  return (
+    <div className="adm-meta-health__coverage">
+      <div className="flex items-baseline justify-between gap-3">
+        <Link href="/admin/products" className="adm-label hover:underline">
+          Image alt
+        </Link>
+        <p className="text-sm font-semibold tabular-nums" style={{ color: "var(--adm-ink)" }}>
+          {coverage.publishedWithMedia === 0
+            ? "—"
+            : `${coverage.withGoodAlt}/${coverage.publishedWithMedia}`}
+          {pct != null ? (
+            <span className="ml-1.5 text-xs font-medium" style={{ color: "var(--adm-subtle)" }}>
+              {pct}%
+            </span>
+          ) : null}
+        </p>
+      </div>
+      <p className="mt-1 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+        Published products where every gallery image has descriptive alt (not blank, Image N, or
+        filename-like). Fix on Media; Scan now also raises Issues.
+      </p>
+      {coverage.samplesMissing.length > 0 ? (
+        <ul className="mt-2 grid gap-1">
+          {coverage.samplesMissing.map((sample) => (
+            <li key={sample.id}>
+              <Link
+                href={sample.adminHref}
+                className="text-xs underline-offset-2 hover:underline"
+                style={{ color: "var(--adm-ink)" }}
+              >
+                {sample.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 /** Read-only SEO health for /admin/meta — robots, sitemap, coverage, Rich Results samples. */
 export function MetaHealthPanel({ report }: { report: MetaHealthReport }) {
   return (
@@ -138,10 +185,11 @@ export function MetaHealthPanel({ report }: { report: MetaHealthReport }) {
         ))}
       </ul>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {report.coverage.map((bucket) => (
           <CoverageCard key={bucket.kind} bucket={bucket} />
         ))}
+        <ImageAltCoverageCard coverage={report.imageAltCoverage} />
       </div>
 
       {report.richResultsSamples.length > 0 ? (

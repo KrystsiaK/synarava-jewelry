@@ -60,6 +60,7 @@ export const PRODUCT_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "seoDescription", label: "SEO description", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("PRODUCT", "meta_description") },
     { key: "optionName", label: "Option name (e.g. \"Color\")", mode: "localized", required: "when-published", kind: "short-text", shopifyTarget: native("PRODUCT_OPTION", "name") },
     { key: "optionValueLabel", label: "Option value label", mode: "localized", required: "when-published", kind: "short-text", shopifyTarget: native("PRODUCT_OPTION_VALUE", "name") },
+    // EN alt is a publish checklist (Issues + Meta Health); PT localization UI still optional.
     { key: "mediaAlt", label: "Image alt text", mode: "localized", required: "optional", kind: "alt", shopifyTarget: native("MEDIA_IMAGE", "alt") },
     { key: "mediaCaption", label: "Image caption", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "media_caption") },
 

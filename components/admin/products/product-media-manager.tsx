@@ -7,6 +7,8 @@ import {
   moveProductMediaAction,
   removeProductMediaAction,
   setPrimaryProductMediaAction,
+  updateProductMediaAltAction,
+  updateWorkingSnapshotMediaAltAction,
   type ProductMediaActionState,
 } from "@/app/admin/actions/products";
 import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
@@ -14,6 +16,8 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { issuesForField } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
+import { AdminTextField } from "@/components/synarava-cms";
+import { imageAltSoftWarning } from "@/lib/seo/image-alt-checklist";
 import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 
 export function ProductMediaManager({
@@ -72,6 +76,15 @@ export function ProductMediaManager({
     startTransition(async () => apply(await action()));
   }
 
+  function saveLocalAlt(mediaId: string, alt: string) {
+    mutate(() => updateProductMediaAltAction(mediaId, alt));
+  }
+
+  function saveTreeAlt(index: number, alt: string) {
+    if (!product) return;
+    mutate(() => updateWorkingSnapshotMediaAltAction(product.id, index, alt));
+  }
+
   return (
     <section
       id="field-imageUrl"
@@ -91,7 +104,8 @@ export function ProductMediaManager({
           <p className="adm-label">Product gallery</p>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
             Upload up to 250 images. Position 1 is the catalog cover. Gallery lives in the OUR commerce tree
-            (`workingSnapshot.media`); uploads write through there for conflict detect.
+            (`workingSnapshot.media`); uploads write through there for conflict detect. Descriptive alt text is
+            part of the publish checklist (Shopify <code className="text-[0.7rem]">MEDIA_IMAGE.alt</code>).
           </p>
           <AdminFieldIssue issues={coverIssues} />
         </div>
@@ -104,13 +118,27 @@ export function ProductMediaManager({
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {localMedia.map((item, index) => {
             const primary = product!.primaryAssetId === item.assetId;
+            const altValue = item.alt ?? "";
             return (
               <article key={item.id} className="grid gap-3 border border-[var(--adm-border)] p-3">
                 <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
-                  <Image src={item.url} alt={item.alt || product!.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
+                  <Image src={item.url} alt={altValue || product!.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
                   <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">{primary ? "01 · Cover" : String(index + 1).padStart(2, "0")}</span>
                 </div>
-                <p className="truncate text-xs text-[var(--adm-muted)]">{item.alt || `Image ${index + 1}`}</p>
+                <AdminTextField
+                  key={`${item.id}:${altValue}`}
+                  label="Alt text"
+                  name={`media-alt-${item.id}`}
+                  defaultValue={altValue}
+                  disabled={pending}
+                  owner="Shopify"
+                  help="Short description of what the image shows. Avoid filenames."
+                  warning={imageAltSoftWarning(altValue) ?? undefined}
+                  onBlur={(event) => {
+                    if (event.currentTarget.value.trim() === altValue.trim()) return;
+                    saveLocalAlt(item.id, event.currentTarget.value);
+                  }}
+                />
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</button>
                   <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === localMedia.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</button>
@@ -131,7 +159,20 @@ export function ProductMediaManager({
                   {index === 0 ? "01 · Cover" : String(index + 1).padStart(2, "0")}
                 </span>
               </div>
-              <p className="truncate text-xs text-[var(--adm-muted)]">{frame.alt}</p>
+              <AdminTextField
+                key={`tree-${index}:${frame.alt}`}
+                label="Alt text"
+                name={`media-alt-tree-${index}`}
+                defaultValue={frame.alt}
+                disabled={pending}
+                owner="Shopify"
+                help="Edits OUR commerce tree until Push. Prefer a product description over Image N."
+                warning={imageAltSoftWarning(frame.alt) ?? undefined}
+                onBlur={(event) => {
+                  if (event.currentTarget.value.trim() === frame.alt.trim()) return;
+                  saveTreeAlt(index, event.currentTarget.value);
+                }}
+              />
             </article>
           ))}
         </div>
@@ -142,7 +183,7 @@ export function ProductMediaManager({
             <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">01 · Cover</span>
           </div>
           <p className="text-xs text-[var(--adm-muted)]">
-            Legacy cover image. Upload to the gallery to manage ordering, or keep this cover until the next gallery upload replaces it.
+            Legacy cover image. Upload to the gallery to manage ordering and alt text, or keep this cover until the next gallery upload replaces it.
           </p>
         </article>
       ) : (

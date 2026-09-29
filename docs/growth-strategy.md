@@ -257,7 +257,8 @@ P1:
 - generate internal links among material, symbolism, collection, care, and
   related-product pages;
 - add FAQ structured data only for visible, page-specific FAQs;
-- make image alt text and filenames part of the CMS publishing checklist;
+- ~~make image alt text and filenames part of the CMS publishing checklist~~
+  (Media alt editor + Issues `MISSING_IMAGE_ALT` + Meta Health coverage);
 - add collection copy that serves an actual search intent without flattening the
   editorial voice.
 
@@ -347,6 +348,8 @@ the same transaction ID and no PII in analytics.
   Rich Results samples) — no parallel Shopify settings.
 - [x] `/admin/meta` Redirects visibility (Shopify URL Redirects mirror +
   local LocalizedHandleRedirect samples; Shopify remains SoT).
+- [x] Product gallery image alt publish checklist (Media editor + Issues +
+  Meta Health coverage).
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.

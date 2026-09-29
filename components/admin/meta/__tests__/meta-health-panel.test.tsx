@@ -55,6 +55,13 @@ const report: MetaHealthReport = {
       samplesMissing: [],
     },
   ],
+  imageAltCoverage: {
+    publishedWithMedia: 2,
+    withGoodAlt: 1,
+    samplesMissing: [
+      { id: "p2", label: "Pearl necklace", adminHref: "/admin/products/p2#field-imageUrl" },
+    ],
+  },
   richResultsSamples: [
     {
       label: "Lava ring",
@@ -81,6 +88,11 @@ describe("MetaHealthPanel", () => {
       "href",
       report.richResultsSamples[0].testUrl,
     );
-    expect(screen.getByText("1/2")).toBeInTheDocument();
+    expect(screen.getAllByText("1/2").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("link", { name: "Image alt" })).toHaveAttribute("href", "/admin/products");
+    expect(screen.getByRole("link", { name: "Pearl necklace" })).toHaveAttribute(
+      "href",
+      "/admin/products/p2#field-imageUrl",
+    );
   });
 });

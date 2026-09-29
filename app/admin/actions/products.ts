@@ -451,6 +451,117 @@ export async function removeProductMediaAction(mediaId: string): Promise<Product
   return finishProductMediaMutation(media.productId, "Image removed from this product. The source asset was retained safely.");
 }
 
+/** Update gallery alt on a local ProductMedia row (writes through OUR commerce tree). */
+export async function updateProductMediaAltAction(
+  mediaId: string,
+  alt: string,
+): Promise<ProductMediaActionState> {
+  await requireAdminSession("/admin/products");
+  const media = await db.productMedia.findUnique({
+    where: { id: mediaId },
+    select: { id: true, productId: true, assetId: true },
+  });
+  if (!media) return { error: "Gallery image not found." };
+  const nextAlt = alt.trim() || null;
+  await db.$transaction([
+    db.productMedia.update({ where: { id: media.id }, data: { alt: nextAlt } }),
+    db.mediaAsset.update({ where: { id: media.assetId }, data: { alt: nextAlt } }),
+  ]);
+  const result = await finishProductMediaMutation(media.productId, "Image alt text updated.");
+  const { countWeakGalleryAlts, productGalleryAltsForChecklist } = await import(
+    "@/lib/seo/image-alt-checklist"
+  );
+  const { resolveSatisfiedImageAltIssues } = await import("@/lib/admin/issues");
+  const product = await db.product.findUnique({
+    where: { id: media.productId },
+    select: {
+      workingSnapshot: true,
+      media: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { alt: true, asset: { select: { filename: true } } },
+      },
+    },
+  });
+  if (product && countWeakGalleryAlts(productGalleryAltsForChecklist(product)) === 0) {
+    await resolveSatisfiedImageAltIssues(media.productId);
+  }
+  return result;
+}
+
+/**
+ * Update alt on OUR workingSnapshot.media when local ProductMedia rows are empty
+ * (typical after Pull). Index matches Media tab order.
+ */
+export async function updateWorkingSnapshotMediaAltAction(
+  productId: string,
+  mediaIndex: number,
+  alt: string,
+): Promise<ProductMediaActionState> {
+  await requireAdminSession("/admin/products");
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    select: { id: true, shopifyProductId: true, workingSnapshot: true, shopifySnapshot: true },
+  });
+  if (!product) return { error: "Product not found." };
+
+  const base =
+    product.workingSnapshot && typeof product.workingSnapshot === "object"
+      ? structuredClone(product.workingSnapshot) as Record<string, unknown>
+      : product.shopifySnapshot && typeof product.shopifySnapshot === "object"
+        ? structuredClone(product.shopifySnapshot) as Record<string, unknown>
+        : {};
+  const media = Array.isArray(base.media) ? [...base.media] : [];
+  if (mediaIndex < 0 || mediaIndex >= media.length) {
+    return { error: "Gallery image not found in the commerce tree." };
+  }
+  const node = media[mediaIndex];
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return { error: "Gallery image not found in the commerce tree." };
+  }
+  media[mediaIndex] = { ...node, alt: alt.trim() };
+  const nextWorking = writeThroughLocalCommerceToProjection(base, { media });
+
+  await db.product.update({
+    where: { id: productId },
+    data: {
+      ...(product.shopifyProductId
+        ? { syncStatus: "PENDING" as const, syncError: null }
+        : {}),
+      workingSnapshot: nextWorking as Prisma.InputJsonValue,
+    },
+  });
+  if (product.shopifyProductId) {
+    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
+    await patchOurProductWindow({
+      shopifyProductId: product.shopifyProductId,
+      localProductId: productId,
+      window: nextWorking,
+    });
+  }
+
+  const { countWeakGalleryAlts, productGalleryAltsForChecklist } = await import(
+    "@/lib/seo/image-alt-checklist"
+  );
+  const { resolveSatisfiedImageAltIssues } = await import("@/lib/admin/issues");
+  const refreshed = await db.product.findUnique({
+    where: { id: productId },
+    select: {
+      workingSnapshot: true,
+      media: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { alt: true, asset: { select: { filename: true } } },
+      },
+    },
+  });
+  if (refreshed && countWeakGalleryAlts(productGalleryAltsForChecklist(refreshed)) === 0) {
+    await resolveSatisfiedImageAltIssues(productId);
+  }
+
+  revalidatePath("/admin/products");
+  revalidateStorefront();
+  return { success: "Image alt text updated.", product: await getSavedProductPayload(productId) };
+}
+
 async function uploadOptionalProductAsset(input: {
   formData: FormData;
   fieldName: string;

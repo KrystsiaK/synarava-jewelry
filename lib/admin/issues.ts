@@ -9,6 +9,10 @@ import { parseProductDetails } from "@/lib/content/product-details";
 import { db } from "@/lib/db";
 import { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
 import { getS3, getS3Bucket } from "@/lib/s3";
+import {
+  countWeakGalleryAlts,
+  productGalleryAltsForChecklist,
+} from "@/lib/seo/image-alt-checklist";
 
 export { productTaxonomyGaps } from "@/lib/admin/product-taxonomy-gaps";
 
@@ -169,6 +173,43 @@ function missingTaxonomyIssue(input: {
   };
 }
 
+function missingImageAltIssue(input: {
+  productId: string;
+  productName: string;
+  weakCount: number;
+  totalCount: number;
+}): IssueDraft {
+  return {
+    entityType: "PRODUCT",
+    entityId: input.productId,
+    entityLabel: input.productName,
+    fieldPath: "field-imageUrl",
+    issueType: "MISSING_IMAGE_ALT",
+    severity: "WARNING",
+    title: `Image alt needs work: ${input.productName}`,
+    description:
+      `${input.weakCount} of ${input.totalCount} gallery image${input.totalCount === 1 ? "" : "s"} ` +
+      "still has blank, placeholder, or filename-like alt text. Describe the product view before publishing — Shopify MEDIA_IMAGE.alt is the source of truth after Push.",
+    targetHref: `/admin/products/${input.productId}#field-imageUrl`,
+    metadata: { weakCount: input.weakCount, totalCount: input.totalCount },
+  };
+}
+
+export async function resolveSatisfiedImageAltIssues(productId: string) {
+  await db.adminIssue.updateMany({
+    where: {
+      status: "OPEN",
+      entityType: "PRODUCT",
+      entityId: productId,
+      issueType: "MISSING_IMAGE_ALT",
+    },
+    data: {
+      status: "RESOLVED",
+      resolvedAt: new Date(),
+    },
+  });
+}
+
 async function sendIssueEmail(issues: IssueDraft[]) {
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.ADMIN_ISSUE_EMAIL_TO ?? process.env.ADMIN_EMAIL;
@@ -243,10 +284,19 @@ export async function scanAdminIssues() {
         id: true,
         name: true,
         status: true,
+        visibility: true,
         imageUrl: true,
         details: true,
+        workingSnapshot: true,
         shopifyCategoryId: true,
         tags: { select: { id: true } },
+        media: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          select: {
+            alt: true,
+            asset: { select: { filename: true } },
+          },
+        },
         collections: {
           select: {
             collection: {
@@ -325,6 +375,24 @@ export async function scanAdminIssues() {
             "This product is Published or Unlisted, but its marketing collection is still Draft (or archived). Common after a Shopify pull restores product status while the local collection stays draft. Publish the collection, move the product to a live collection, or draft the product again.",
           targetHref: `/admin/products/${product.id}#field-taxonomy-collection`,
         });
+      }
+
+      // Publish checklist: descriptive gallery alts on live catalog products.
+      if (product.status === "ACTIVE" && product.visibility === "PUBLIC") {
+        const galleryAlts = productGalleryAltsForChecklist(product);
+        if (galleryAlts.length > 0) {
+          const weakCount = countWeakGalleryAlts(galleryAlts);
+          if (weakCount > 0) {
+            issues.push(
+              missingImageAltIssue({
+                productId: product.id,
+                productName: product.name,
+                weakCount,
+                totalCount: galleryAlts.length,
+              }),
+            );
+          }
+        }
       }
     }
 
