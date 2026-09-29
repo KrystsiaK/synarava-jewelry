@@ -191,6 +191,9 @@ const REVIEW_SCOPES = [
 /** Needed to read and write the `synarava.wishlist` Customer metafield. */
 const WISHLIST_SCOPES = ["read_customers", "write_customers"] as const;
 
+/** Needed to subscribe to RETURNS_REQUEST lifecycle webhooks. */
+const RETURNS_SCOPES = ["read_returns"] as const;
+
 export async function fetchShopifyShopIdentity() {
   const data = await shopifyAdminRequest<{
     shop: { name: string; myshopifyDomain: string };
@@ -246,6 +249,9 @@ export async function testShopifyAdminConnection() {
   const missingWishlistScopes: string[] = WISHLIST_SCOPES.filter(
     (scope) => !grantedScopes.includes(scope),
   );
+  const missingReturnsScopes: string[] = RETURNS_SCOPES.filter(
+    (scope) => !grantedScopes.includes(scope),
+  );
   const missingEditorialScopes: string[] = EDITORIAL_METAOBJECT_SCOPES.filter(
     (scope) => !grantedScopes.includes(scope),
   );
@@ -272,6 +278,7 @@ export async function testShopifyAdminConnection() {
     missingTranslationScopes,
     missingReviewScopes,
     missingWishlistScopes,
+    missingReturnsScopes,
     missingEditorialScopes,
     locales,
     unpublishedLocales,

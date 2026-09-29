@@ -1,3 +1,4 @@
+import { CartBuyAgainNoticeClear } from "@/components/commerce/cart-buy-again-notice-clear";
 import type { BuyAgainNotice } from "@/lib/commerce/buy-again-notice";
 import { getServerTranslations } from "@/lib/i18n/server";
 
@@ -36,15 +37,18 @@ export async function CartBuyAgainNotice({ notice }: { notice: BuyAgainNotice | 
   }
 
   return (
-    <div
-      role={role}
-      className={
-        isError
-          ? "mb-6 border border-couture-red/40 bg-couture-red/5 px-4 py-3 text-sm text-foreground"
-          : "mb-6 border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm text-foreground/80"
-      }
-    >
-      {message}
-    </div>
+    <>
+      <div
+        role={role}
+        className={
+          isError
+            ? "mb-6 border border-couture-red/40 bg-couture-red/5 px-4 py-3 text-sm text-foreground"
+            : "mb-6 border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm text-foreground/80"
+        }
+      >
+        {message}
+      </div>
+      <CartBuyAgainNoticeClear />
+    </>
   );
 }

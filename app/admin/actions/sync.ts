@@ -178,7 +178,9 @@ export async function checkCatalogConflictsAction() {
         notices.push(`Orders paid webhook could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`);
       }
       try {
-        await ensureOrderLifecycleWebhookSubscriptions(env.APP_URL);
+        await ensureOrderLifecycleWebhookSubscriptions(env.APP_URL, {
+          includeReturns: connection.missingReturnsScopes.length === 0,
+        });
       } catch (error) {
         notices.push(
           `Order lifecycle webhooks (cancel/refund/return) could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`,
@@ -186,6 +188,11 @@ export async function checkCatalogConflictsAction() {
       }
     } else {
       notices.push("Automatic product updates are unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.");
+    }
+    if (connection.missingReturnsScopes.length > 0) {
+      notices.push(
+        `Return-request webhook (RETURNS_REQUEST) is unavailable: missing ${connection.missingReturnsScopes.join(", ")}.`,
+      );
     }
     if (connection.missingReviewScopes.length > 0) {
       notices.push(`Product review publishing is unavailable: missing ${connection.missingReviewScopes.join(", ")}.`);

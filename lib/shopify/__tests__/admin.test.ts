@@ -139,7 +139,7 @@ describe("Shopify Admin authentication", () => {
           currentAppInstallation: { accessScopes: [
             "write_products", "write_inventory", "write_publications", "read_translations", "write_translations", "read_locales",
             "write_product_reviews", "read_metaobjects", "write_metaobjects", "read_metaobject_definitions", "write_metaobject_definitions",
-            "read_customers", "read_orders", "read_products", "write_customers",
+            "read_customers", "read_orders", "read_products", "write_customers", "read_returns",
           ].map((handle) => ({ handle })) },
         } }), { status: 200, headers: { "Content-Type": "application/json" } }),
       )
@@ -160,6 +160,7 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingEditorialScopes).toEqual([]);
     expect(connection.missingReviewScopes).toEqual([]);
     expect(connection.missingWishlistScopes).toEqual([]);
+    expect(connection.missingReturnsScopes).toEqual([]);
     expect(connection.unpublishedLocales).toEqual([]);
   });
 
@@ -193,6 +194,7 @@ describe("Shopify Admin authentication", () => {
       "write_product_reviews", "read_metaobjects", "read_customers", "read_orders", "read_products",
     ]);
     expect(connection.missingWishlistScopes).toEqual(["read_customers", "write_customers"]);
+    expect(connection.missingReturnsScopes).toEqual(["read_returns"]);
     expect(connection.unpublishedLocales).toEqual([{ code: "pt", name: "Portuguese", shopifyLocale: "pt-PT" }]);
   });
 

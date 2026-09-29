@@ -19,13 +19,12 @@
 
 ## Buy again containment (until bridge verified in production)
 
-1. **Settings → Checkout → Configurations → Customize → Settings → Buy again button** — keep hidden until BA-* matrix passes on production domains.
+1. **Settings → Checkout → Configurations → Customize → Settings → Buy again button** — keep **hidden**. Do not re-enable until BA-* matrix passes on production domains **after** the cart-notice cookie clear path is verified live.
 2. After bridge + Online Store redirect theme are live, re-enable and run BA-001…BA-012.
 
 ## Online Store → headless redirect (Phase 2 ops)
 
-Do **not** publish a blanket Online Store redirect until
-`/{locale}/cart/{variant}:{qty}` is live on `shop.synarava.com` (already shipped in app).
+Do **not** publish the Online Store redirect theme yet. Keep Buy again hidden and the redirect unpublished until production BA checks pass.
 
 When publishing Shopify’s redirect theme / Hydrogen-style redirect:
 
@@ -36,6 +35,10 @@ When publishing Shopify’s redirect theme / Hydrogen-style redirect:
 
 ## Webhook observability
 
+Treat cancel/refund/return lifecycle receipts as **ops scaffolding**, not ready
+observability, until production confirms Order GIDs land correctly and
+`read_returns` is granted for `RETURNS_REQUEST`.
+
 | Topic | Route | Log event |
 | --- | --- | --- |
 | `orders/paid` | `/api/shopify/webhooks/orders/paid` | `shopify.orders_paid` |
@@ -45,7 +48,10 @@ When publishing Shopify’s redirect theme / Hydrogen-style redirect:
 
 Receipts: `ShopifyWebhookDelivery` (dedupe by Shopify webhook id). Not a second Order store.
 
-Reconcile / admin sync registers these when `APP_URL` + `SHOPIFY_WEBHOOK_SECRET` are set. Scopes: `read_orders` (paid/cancel/refund); `read_returns` for `RETURNS_REQUEST`.
+Order id on receipts must be an Order GID / order id — never the top-level
+Return or Refund `admin_graphql_api_id`.
+
+Reconcile / admin sync registers these when `APP_URL` + `SHOPIFY_WEBHOOK_SECRET` are set. Scopes: `read_orders` (paid/cancel/refund); `read_returns` for `RETURNS_REQUEST` (soft-gated via `missingReturnsScopes` — subscription skipped until granted).
 
 ## Failed webhook deliveries
 

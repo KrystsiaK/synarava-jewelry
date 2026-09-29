@@ -30,6 +30,14 @@ type LifecyclePayload = {
   order?: { admin_graphql_api_id?: string; id?: string | number; name?: string };
 };
 
+function isShopifyOrderGid(value: string): boolean {
+  return value.startsWith("gid://shopify/Order/");
+}
+
+function asOrderGid(value: string | undefined): string | null {
+  return typeof value === "string" && isShopifyOrderGid(value) ? value : null;
+}
+
 /**
  * Ops-only summary for cancellation / refund / return request webhooks.
  * Never mirrors a local Order — Shopify remains authoritative.
@@ -37,21 +45,32 @@ type LifecyclePayload = {
  * Topics verified against Admin GraphQL WebhookSubscriptionTopic:
  * ORDERS_CANCELLED, REFUNDS_CREATE, RETURNS_REQUEST.
  * @see https://shopify.dev/docs/api/admin-graphql/latest/enums/WebhookSubscriptionTopic
+ *
+ * Order id precedence: nested `order.admin_graphql_api_id` (Order GID), then
+ * top-level `admin_graphql_api_id` only when it is an Order GID (cancelled),
+ * then `order_id` / `order.id`. Never treat Return/Refund GIDs or their
+ * numeric `id` as the order.
  */
 export function summarizeOrderLifecyclePayload(payload: LifecyclePayload): OrderLifecycleSignal {
+  const topLevelGid =
+    typeof payload.admin_graphql_api_id === "string" ? payload.admin_graphql_api_id : null;
+  const nestedOrderGid = asOrderGid(payload.order?.admin_graphql_api_id);
+  const topLevelOrderGid = asOrderGid(topLevelGid ?? undefined);
+  const rootLooksLikeOrder = !topLevelGid || isShopifyOrderGid(topLevelGid);
+
   const shopifyOrderId =
-    (typeof payload.admin_graphql_api_id === "string" && payload.admin_graphql_api_id) ||
-    (typeof payload.order?.admin_graphql_api_id === "string" && payload.order.admin_graphql_api_id) ||
+    nestedOrderGid ||
+    topLevelOrderGid ||
     (payload.order_id != null ? String(payload.order_id) : null) ||
     (payload.order?.id != null ? String(payload.order.id) : null) ||
-    (payload.id != null ? String(payload.id) : null);
+    (rootLooksLikeOrder && payload.id != null ? String(payload.id) : null);
 
   return {
     shopifyOrderId,
     orderName:
-      (typeof payload.name === "string" && payload.name) ||
-      (typeof payload.order_name === "string" && payload.order_name) ||
       (typeof payload.order?.name === "string" && payload.order.name) ||
+      (typeof payload.order_name === "string" && payload.order_name) ||
+      (rootLooksLikeOrder && typeof payload.name === "string" && payload.name) ||
       null,
     financialStatus:
       typeof payload.financial_status === "string" ? payload.financial_status : null,
@@ -159,8 +178,17 @@ const LIFECYCLE_SUBSCRIPTIONS = [
   },
 ];
 
+type EnsureLifecycleOptions = {
+  /** Requires `read_returns`. Defaults to true. */
+  includeReturns?: boolean;
+};
+
 /** Subscribe cancellation / refund / return-request ops signals (not a local Order store). */
-export async function ensureOrderLifecycleWebhookSubscriptions(callbackBaseUrl: string) {
+export async function ensureOrderLifecycleWebhookSubscriptions(
+  callbackBaseUrl: string,
+  options: EnsureLifecycleOptions = {},
+) {
+  const includeReturns = options.includeReturns !== false;
   const base = callbackBaseUrl.replace(/\/$/, "");
   const results: Array<{
     topic: (typeof LIFECYCLE_SUBSCRIPTIONS)[number]["topic"];
@@ -168,7 +196,11 @@ export async function ensureOrderLifecycleWebhookSubscriptions(callbackBaseUrl: 
     alreadyExists: boolean;
   }> = [];
 
-  for (const entry of LIFECYCLE_SUBSCRIPTIONS) {
+  const subscriptions = LIFECYCLE_SUBSCRIPTIONS.filter(
+    (entry) => includeReturns || entry.topic !== "RETURNS_REQUEST",
+  );
+
+  for (const entry of subscriptions) {
     const data = await shopifyAdminRequest<{
       webhookSubscriptionCreate: {
         webhookSubscription: { id: string } | null;

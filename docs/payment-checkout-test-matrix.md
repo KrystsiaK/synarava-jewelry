@@ -53,7 +53,8 @@ Shopify recommends placing a test order after changing payment settings.
 | Receipt and subscription | Ops summary, delivery claim, subscription setup | `lib/shopify/__tests__/orders-paid-webhook.test.ts` |
 | Shared webhook verification | HMAC verification primitive | `lib/shopify/__tests__/webhooks.test.ts` |
 | Cart permalink parser | Syntax, merge, limits, GID mapping | `lib/shopify/__tests__/cart-permalink.test.ts` |
-| Buy again notice / replay hash | Cookie codec + hash stability | `lib/commerce/__tests__/buy-again-notice.test.ts` |
+| Buy again notice / replay hash | Cookie codec + hash stability (RSC reads only; clear via Server Action) | `lib/commerce/__tests__/buy-again-notice.test.ts` |
+| Lifecycle webhook Order id | Prefer nested Order GID; ignore Return/Refund top-level GID | `lib/shopify/__tests__/order-lifecycle-webhooks.test.ts` |
 | Merchandise import visibility | Skip hidden variants; add visible | `lib/commerce/__tests__/merchandise-import.test.ts` |
 | Lifecycle webhook subscribe | cancel / refund / return-request | `lib/shopify/__tests__/order-lifecycle-webhooks.test.ts` |
 

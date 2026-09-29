@@ -62,10 +62,13 @@ headless Synarava storefront.
 
 1. ~~Cart permalink bridge~~ — shipped: `/{locale}/cart/[permalink]` imports
    Shopify `variant:qty` lists into the Storefront API cart with replay
-   protection and cart notices.
+   protection and cart notices. Notice cookie is read in the cart RSC and
+   cleared via a Server Action (RSC cannot `cookies().set`).
 
 2. Online Store → headless redirect theme is still **unpublished**. Publish only
-   after production BA checks; keep Buy again hidden until then.
+   after production BA checks; keep Buy again hidden until then. Do not treat
+   lifecycle webhook receipts as ready observability until Order-id parsing and
+   `read_returns` scope gating are verified in production.
 
 3. Headless profile now routes order management to Shopify (`statusPageUrl`) and
    no longer surfaces the custom return form. Confirm native return/cancel in

@@ -72,13 +72,22 @@ export async function setBuyAgainNotice(notice: BuyAgainNotice) {
   store.set(BUY_AGAIN_NOTICE_COOKIE, encodeBuyAgainNotice(notice), cookieOptions(BUY_AGAIN_NOTICE_MAX_AGE_SECONDS));
 }
 
-export async function consumeBuyAgainNotice(): Promise<BuyAgainNotice | null> {
+/**
+ * Read-only peek for Server Components.
+ * Cookie mutation is not allowed during RSC render — clear via
+ * {@link clearBuyAgainNotice} from a Server Action or Route Handler.
+ * @see https://nextjs.org/docs/app/api-reference/functions/cookies
+ */
+export async function readBuyAgainNotice(): Promise<BuyAgainNotice | null> {
   const store = await cookies();
-  const notice = decodeBuyAgainNotice(store.get(BUY_AGAIN_NOTICE_COOKIE)?.value);
-  if (store.get(BUY_AGAIN_NOTICE_COOKIE)) {
-    store.set(BUY_AGAIN_NOTICE_COOKIE, "", { ...cookieOptions(0), maxAge: 0 });
-  }
-  return notice;
+  return decodeBuyAgainNotice(store.get(BUY_AGAIN_NOTICE_COOKIE)?.value);
+}
+
+/** Clear the flash notice. Call only from a Server Action or Route Handler. */
+export async function clearBuyAgainNotice() {
+  const store = await cookies();
+  if (!store.get(BUY_AGAIN_NOTICE_COOKIE)) return;
+  store.set(BUY_AGAIN_NOTICE_COOKIE, "", { ...cookieOptions(0), maxAge: 0 });
 }
 
 export function hashBuyAgainReplay(locale: string, canonical: string) {

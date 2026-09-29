@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { CartBuyAgainNotice } from "@/components/commerce/cart-buy-again-notice";
 import { CartShell } from "@/components/commerce/cart-shell";
-import { consumeBuyAgainNotice } from "@/lib/commerce/buy-again-notice";
+import { readBuyAgainNotice } from "@/lib/commerce/buy-again-notice";
 import { getStorefrontCartViewModel } from "@/lib/commerce/storefront-cart";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { getServerTranslations } from "@/lib/i18n/server";
@@ -35,7 +35,7 @@ export default async function CartPage() {
   const [cart, isSignedIn, buyAgainNotice] = await Promise.all([
     getStorefrontCartViewModel(),
     hasShopifyCustomerSession(),
-    consumeBuyAgainNotice(),
+    readBuyAgainNotice(),
   ]);
 
   return (
