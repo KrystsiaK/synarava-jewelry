@@ -50,7 +50,8 @@ const envSchema = z.object({
     .optional(),
   SHOPIFY_PUBLICATION_ID: optionalString,
   SHOPIFY_LOCATION_ID: optionalString,
-  SHOPIFY_WEBHOOK_SECRET: optionalSecret32,
+  // Shopify issues this value — do not enforce length (cannot "stretch" it).
+  SHOPIFY_WEBHOOK_SECRET: optionalString,
   SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: optionalString,
   SHOPIFY_CUSTOMER_SESSION_SECRET: optionalSecret32,
   S3_REGION: optionalString,

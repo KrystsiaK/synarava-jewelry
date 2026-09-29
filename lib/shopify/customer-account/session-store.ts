@@ -26,20 +26,45 @@ export function hashCustomerSessionId(sessionId: string): string {
   return createHash("sha256").update(sessionId, "utf8").digest("hex");
 }
 
-export async function findStoredCustomerSession(id: string) {
-  const idHash = hashCustomerSessionId(id);
+async function selectSessionByPk(pk: string) {
   const rows = await db.$queryRaw<StoredShopifyCustomerSessionRow[]>`
     SELECT "id", "accessToken", "refreshToken", "idToken",
            "accessTokenExpiresAt", "sessionExpiresAt", "lastSeenAt", "createdAt", "updatedAt"
     FROM "ShopifyCustomerSession"
-    WHERE "id" = ${idHash}
+    WHERE "id" = ${pk}
     LIMIT 1
   `;
-  const row = rows[0];
-  if (!row) return null;
-  // Rewrite id to the cookie value so callers keep passing the raw id into
-  // update/delete/touch (which hash again at the store boundary).
-  return { ...row, id };
+  return rows[0] ?? null;
+}
+
+/**
+ * Promote a legacy plaintext primary key to sha256(cookieId).
+ * Best-effort: concurrent promotes / already-hashed rows are ignored.
+ */
+async function promotePlaintextSessionId(cookieId: string, idHash: string) {
+  if (cookieId === idHash) return;
+  try {
+    await db.$executeRaw`
+      UPDATE "ShopifyCustomerSession"
+      SET "id" = ${idHash}, "updatedAt" = NOW()
+      WHERE "id" = ${cookieId}
+    `;
+  } catch {
+    // Unique conflict or race — a hashed row may already exist.
+  }
+}
+
+export async function findStoredCustomerSession(id: string) {
+  const idHash = hashCustomerSessionId(id);
+  const byHash = await selectSessionByPk(idHash);
+  if (byHash) return { ...byHash, id };
+
+  // Pre-hash deploy: row pk was the raw cookie. Dual-read so code can ship
+  // before (or without) a batch SQL rewrite, then promote lazily.
+  const byPlain = await selectSessionByPk(id);
+  if (!byPlain) return null;
+  await promotePlaintextSessionId(id, idHash);
+  return { ...byPlain, id };
 }
 
 /** Idempotent: deletes only rows whose absolute session TTL has elapsed. Safe to call repeatedly. */
@@ -87,14 +112,16 @@ export async function updateStoredCustomerSessionTokens(
       "accessTokenExpiresAt" = ${input.accessTokenExpiresAt},
       "lastSeenAt" = NOW(),
       "updatedAt" = NOW()
-    WHERE "id" = ${idHash}
+    WHERE "id" = ${idHash} OR "id" = ${id}
   `;
 }
 
 export async function touchStoredCustomerSession(id: string) {
   const idHash = hashCustomerSessionId(id);
   await db.$executeRaw`
-    UPDATE "ShopifyCustomerSession" SET "lastSeenAt" = NOW() WHERE "id" = ${idHash}
+    UPDATE "ShopifyCustomerSession"
+    SET "lastSeenAt" = NOW()
+    WHERE "id" = ${idHash} OR "id" = ${id}
   `;
 }
 
@@ -102,6 +129,6 @@ export async function deleteStoredCustomerSession(id: string) {
   const idHash = hashCustomerSessionId(id);
   await db.$executeRaw`
     DELETE FROM "ShopifyCustomerSession"
-    WHERE "id" = ${idHash}
+    WHERE "id" = ${idHash} OR "id" = ${id}
   `;
 }

@@ -17,6 +17,7 @@ import { createHash } from "node:crypto";
 import {
   cleanupExpiredCustomerSessions,
   createStoredCustomerSession,
+  findStoredCustomerSession,
   hashCustomerSessionId,
 } from "../session-store";
 
@@ -57,5 +58,33 @@ describe("Shopify customer session store cleanup", () => {
     expect(hashCustomerSessionId("session-1")).toBe(expectedHash);
     expect(insertValues).toContain(expectedHash);
     expect(insertValues).not.toContain("session-1");
+  });
+
+  it("dual-reads legacy plaintext ids and promotes them to the hash", async () => {
+    const cookieId = "legacy-cookie";
+    const idHash = hashCustomerSessionId(cookieId);
+    const legacyRow = {
+      id: cookieId,
+      accessToken: "enc-a",
+      refreshToken: "enc-r",
+      idToken: "enc-i",
+      accessTokenExpiresAt: new Date(),
+      sessionExpiresAt: new Date(),
+      lastSeenAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    mocks.queryRaw
+      .mockResolvedValueOnce([]) // hash miss
+      .mockResolvedValueOnce([legacyRow]); // plaintext hit
+
+    const found = await findStoredCustomerSession(cookieId);
+
+    expect(found?.id).toBe(cookieId);
+    expect(mocks.executeRaw).toHaveBeenCalledTimes(1);
+    const [promoteSql, ...promoteValues] = mocks.executeRaw.mock.calls[0] as unknown[];
+    expect((promoteSql as TemplateStringsArray).join("")).toContain("UPDATE");
+    expect(promoteValues).toContain(idHash);
+    expect(promoteValues).toContain(cookieId);
   });
 });
