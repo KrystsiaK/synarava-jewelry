@@ -26,6 +26,25 @@ export function hashCustomerSessionId(sessionId: string): string {
   return createHash("sha256").update(sessionId, "utf8").digest("hex");
 }
 
+/**
+ * Shape of a stored primary key. A real cookie is `randomBytes(32)` in
+ * base64url (43 chars), so it can never take this shape — a supplied value
+ * that does is a replayed primary key, not a legacy plaintext cookie. Without
+ * this gate the legacy dual-read below matches a row by its own stored hash,
+ * which would hand a database reader a working session cookie and undo the
+ * reason the id is hashed at all.
+ */
+const STORED_PK_SHAPE = /^[0-9a-f]{64}$/;
+
+/**
+ * The value the legacy (pre-hash) plaintext primary key may be looked up by.
+ * Collapses to `idHash` for a hash-shaped input so the legacy `OR` clause can
+ * never widen a statement beyond the row the cookie legitimately owns.
+ */
+function legacyPkCandidate(id: string, idHash: string) {
+  return STORED_PK_SHAPE.test(id) ? idHash : id;
+}
+
 async function selectSessionByPk(pk: string) {
   const rows = await db.$queryRaw<StoredShopifyCustomerSessionRow[]>`
     SELECT "id", "accessToken", "refreshToken", "idToken",
@@ -61,6 +80,7 @@ export async function findStoredCustomerSession(id: string) {
 
   // Pre-hash deploy: row pk was the raw cookie. Dual-read so code can ship
   // before (or without) a batch SQL rewrite, then promote lazily.
+  if (STORED_PK_SHAPE.test(id)) return null;
   const byPlain = await selectSessionByPk(id);
   if (!byPlain) return null;
   await promotePlaintextSessionId(id, idHash);
@@ -112,7 +132,7 @@ export async function updateStoredCustomerSessionTokens(
       "accessTokenExpiresAt" = ${input.accessTokenExpiresAt},
       "lastSeenAt" = NOW(),
       "updatedAt" = NOW()
-    WHERE "id" = ${idHash} OR "id" = ${id}
+    WHERE "id" = ${idHash} OR "id" = ${legacyPkCandidate(id, idHash)}
   `;
 }
 
@@ -121,7 +141,7 @@ export async function touchStoredCustomerSession(id: string) {
   await db.$executeRaw`
     UPDATE "ShopifyCustomerSession"
     SET "lastSeenAt" = NOW()
-    WHERE "id" = ${idHash} OR "id" = ${id}
+    WHERE "id" = ${idHash} OR "id" = ${legacyPkCandidate(id, idHash)}
   `;
 }
 
@@ -129,6 +149,6 @@ export async function deleteStoredCustomerSession(id: string) {
   const idHash = hashCustomerSessionId(id);
   await db.$executeRaw`
     DELETE FROM "ShopifyCustomerSession"
-    WHERE "id" = ${idHash} OR "id" = ${id}
+    WHERE "id" = ${idHash} OR "id" = ${legacyPkCandidate(id, idHash)}
   `;
 }
