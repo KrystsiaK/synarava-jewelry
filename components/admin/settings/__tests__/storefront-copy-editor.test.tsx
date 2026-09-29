@@ -25,6 +25,11 @@ const EN_PT_LOCALES = [
 const defaultHeaderNav = { items: DEFAULT_HEADER_NAV_ITEMS, labels: {} };
 const defaultFooter = defaultFooterLinks();
 
+/** Full Shared editor DOM is heavy in jsdom — skip per-keystroke delay. */
+function setupUser() {
+  return userEvent.setup({ delay: null });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   window.history.replaceState(null, "", "/admin/settings");
@@ -32,7 +37,7 @@ beforeEach(() => {
 
 describe("StorefrontCopyEditor", () => {
   it("switches to the Portuguese panel, hiding EN fields and showing independent PT values", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <StorefrontCopyEditor
         copy={{ en: { "footer.tagline": "Tag" }, pt: { "footer.tagline": "Lema" } }}
@@ -53,11 +58,11 @@ describe("StorefrontCopyEditor", () => {
     expect(screen.getByLabelText("Tagline (under the logo) (EN)")).not.toBeVisible();
     expect(screen.getByLabelText("Tagline (under the logo) (PT)")).toBeVisible();
     expect(screen.getByLabelText("Tagline (under the logo) (PT)")).toHaveValue("Lema");
-  });
+  }, 30_000);
 
   it("submits header nav, footer links, and emails in one save", async () => {
     mocks.saveStorefrontCopyAction.mockResolvedValue({ success: "Shared saved." });
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {} }}
@@ -88,10 +93,10 @@ describe("StorefrontCopyEditor", () => {
     expect(service.items.length).toBeGreaterThan(0);
     expect(JSON.parse(String(formData.get("footerLegalLinks"))).items.length).toBeGreaterThan(0);
     expect(JSON.parse(String(formData.get("footerSocialLinks"))).items).toEqual([]);
-  });
+  }, 30_000);
 
   it("renders and submits a third registered locale (Russian) the same way as EN/PT", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {}, ru: { "footer.tagline": "Слоган" } }}
@@ -111,10 +116,10 @@ describe("StorefrontCopyEditor", () => {
     await user.click(screen.getByRole("button", { name: "Save Shared" }));
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
     expect(formData.get("ru:footer.tagline")).toBe("Слоган");
-  });
+  }, 30_000);
 
   it("lets the operator add a main link row with name and path fields", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {} }}
@@ -131,10 +136,10 @@ describe("StorefrontCopyEditor", () => {
     expect(within(headerSection).getByRole("list", { name: "Main links" }).querySelectorAll("[data-component='AdminHrefField']")).toHaveLength(4);
     await user.click(within(headerSection).getByRole("button", { name: "Add link" }));
     expect(within(headerSection).getByRole("list", { name: "Main links" }).querySelectorAll("[data-component='AdminHrefField']")).toHaveLength(5);
-  });
+  }, 30_000);
 
   it("exposes header, footer, cookies, and contact as separate areas", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {} }}
@@ -183,7 +188,7 @@ describe("StorefrontCopyEditor", () => {
   }, 30_000);
 
   it("keeps the leave-a-review form on its own Shared tab", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <StorefrontCopyEditor
         copy={{ en: {}, pt: {} }}
@@ -199,5 +204,5 @@ describe("StorefrontCopyEditor", () => {
     expect(screen.getByText("Reviews — leave a review")).toBeVisible();
     expect(screen.getByLabelText("Heading (EN)")).toHaveAttribute("placeholder", "Share your experience");
     expect(screen.queryByText("Header — main links")).not.toBeVisible();
-  });
+  }, 30_000);
 });

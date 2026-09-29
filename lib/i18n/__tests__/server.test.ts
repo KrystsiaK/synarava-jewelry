@@ -25,6 +25,7 @@ describe("server translations", () => {
   it("uses an English fallback for keys missing from the partial Russian dictionary", async () => {
     const { t } = await getServerTranslations();
 
-    expect(t("shop.allProducts")).toBe("All products");
+    // shop.allProducts is translated in ru.json; pick a key still EN-only.
+    expect(t("footer.returns")).toBe("Returns");
   });
 });

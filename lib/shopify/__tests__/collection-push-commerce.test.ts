@@ -13,6 +13,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: mocks.findUnique,
       update: mocks.update,
     },
+    collectionTranslation: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     shopifyTranslationBinding: { deleteMany: vi.fn() },
     $transaction: vi.fn(async (ops: unknown) => ops),
   },

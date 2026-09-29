@@ -475,12 +475,13 @@ export function ProductEditorTabs({
           </motion.div>
         </motion.section>
 
-        <motion.div
-          key={`${activeTab.id}-body`}
-          initial={travel.opened ? { opacity: 0 } : false}
-          animate={{ opacity: 1 }}
-          transition={reduceMotion ? TAB_FADE : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-        >
+        {/*
+          Do not key this wrapper by section. ProductFormFields (and siblings)
+          must stay mounted across tab changes so controlled create/edit drafts
+          survive — a section key remounts children and wipes unsaved values
+          (and flashes opacity:0 over the whole panel in tests).
+        */}
+        <div>
           {hasSectionIssues ? (
             <div
               className="adm-inset-x py-[var(--adm-band-pad-y)]"
@@ -495,7 +496,7 @@ export function ProductEditorTabs({
           ) : null}
 
           {children}
-        </motion.div>
+        </div>
       </AdminSectionTabs>
     </div>
   );

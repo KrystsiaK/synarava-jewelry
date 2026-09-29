@@ -65,6 +65,9 @@ describe("CreateProductForm", () => {
     expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toBeInTheDocument();
     expect(screen.getByLabelText(/Slug/)).toBeInTheDocument();
     expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
+    // Collection lives on the Product (essentials) tab — Catalog was removed.
+    expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Featured" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     expect(screen.getByRole("spinbutton", { name: /Price/ })).toBeInTheDocument();
     expect(screen.getByText("Compare-at price")).toBeInTheDocument();
@@ -74,14 +77,10 @@ describe("CreateProductForm", () => {
     expect(screen.getByRole("checkbox", { name: /Charge tax on this product/ })).toBeInTheDocument();
     expect(screen.queryByRole("spinbutton", { name: /^Cost/ })).not.toBeInTheDocument();
     expect(screen.getByText("Product gallery")).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /Catalog/ }));
-    expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: "Featured" })).not.toBeInTheDocument();
     await act(async () => {});
   });
 
   it("keeps draft collections in the Collection select with a Draft label", async () => {
-    const user = userEvent.setup();
     render(
       <CreateProductForm
         collections={[
@@ -99,7 +98,6 @@ describe("CreateProductForm", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /Catalog/ }));
     expect(screen.getByRole("option", { name: "Obsidian (Draft)" })).toBeInTheDocument();
     await act(async () => {});
   });

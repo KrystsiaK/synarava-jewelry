@@ -49,7 +49,7 @@ describe("AdminNavTree", () => {
     ).not.toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Expand Shared" }));
-    expect(screen.getByRole("link", { name: /Header — main links/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Header$/ })).toBeInTheDocument();
   });
 
   it("reveals a deep-linked child past the Show more fold", async () => {
@@ -66,7 +66,7 @@ describe("AdminNavTree", () => {
 
   it("opens Shared section from hash deep links", async () => {
     pathnameState.value = "/admin/settings";
-    window.history.replaceState(null, "", "/admin/settings#copy-footer-brand");
+    window.history.replaceState(null, "", "/admin/settings#shared-footer");
 
     render(<AdminNavTree items={buildAdminNavItems({ pages: [] })} />);
 
@@ -75,7 +75,7 @@ describe("AdminNavTree", () => {
       "true",
     );
     await waitFor(() => {
-      expect(screen.getByRole("link", { name: /Footer — brand/ })).toHaveAttribute(
+      expect(screen.getByRole("link", { name: /^Footer$/ })).toHaveAttribute(
         "data-active",
         "true",
       );
