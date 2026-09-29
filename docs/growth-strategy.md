@@ -345,6 +345,8 @@ the same transaction ID and no PII in analytics.
   SEO fields.
 - [x] `/admin/meta` Health checklist (robots, sitemap, SEO title coverage,
   Rich Results samples) — no parallel Shopify settings.
+- [x] `/admin/meta` Redirects visibility (Shopify URL Redirects mirror +
+  local LocalizedHandleRedirect samples; Shopify remains SoT).
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.

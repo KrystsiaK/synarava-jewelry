@@ -1,12 +1,15 @@
 import { MetaHealthPanel } from "@/components/admin/meta/meta-health-panel";
+import { RedirectsVisibilityPanel } from "@/components/admin/meta/redirects-visibility-panel";
 import { SiteSeoEditor } from "@/components/admin/meta/site-seo-editor";
 import { getSiteSeoOverrides } from "@/lib/content/site-seo";
 import { getMetaHealthReport } from "@/lib/seo/meta-health";
+import { getRedirectsVisibilityReport } from "@/lib/seo/redirects-visibility";
 
 export default async function AdminMetaPage() {
-  const [overrides, health] = await Promise.all([
+  const [overrides, health, redirects] = await Promise.all([
     getSiteSeoOverrides(),
     getMetaHealthReport(),
+    getRedirectsVisibilityReport(),
   ]);
 
   return (
@@ -19,6 +22,7 @@ export default async function AdminMetaPage() {
         </p>
       </div>
       <MetaHealthPanel report={health} />
+      <RedirectsVisibilityPanel report={redirects} />
       <SiteSeoEditor overrides={overrides} />
     </div>
   );

@@ -5485,6 +5485,43 @@ html[data-theme="light"] .adm-locale-tab:hover:not([data-active="true"]) {
   background: color-mix(in srgb, var(--adm-cool) 5%, transparent);
 }
 
+/* /admin/meta Redirects visibility */
+.adm-redirects__bucket {
+  min-width: 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--adm-cool) 20%, var(--adm-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--adm-cool) 5%, transparent);
+}
+
+.adm-redirects__table {
+  border-collapse: collapse;
+}
+
+.adm-redirects__table th,
+.adm-redirects__table td {
+  padding: 0.4rem 0.55rem 0.4rem 0;
+  vertical-align: top;
+  border-bottom: 1px solid color-mix(in srgb, var(--adm-cool) 18%, var(--adm-border));
+}
+
+.adm-redirects__table th {
+  font-weight: 600;
+  color: var(--adm-subtle);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+.adm-redirects__table td {
+  color: var(--adm-ink);
+}
+
+.adm-redirects__table code {
+  font-size: 0.72rem;
+  word-break: break-all;
+}
+
 .adm-field-warning {
   font-family: var(--font-sans), sans-serif;
   font-size: 0.78rem;

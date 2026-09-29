@@ -530,6 +530,12 @@ This copy is not synced to Shopify.
   `sitemap.xml`, покрытие SEO title у published products/collections/pages,
   sample-ссылки Google Rich Results Test. Дыры правятся в Pages / Catalog /
   Collections (Shopify SoT), не здесь.
+- **Redirects** — read-only зеркало: Shopify URL Redirects (Admin GraphQL
+  `urlRedirects`, scope `read_online_store_navigation`) + локальные
+  `LocalizedHandleRedirect` на headless-домене. Редактирование — в Shopify
+  Admin (`/content/redirects`) или сменой localized handle в редакторе;
+  второго редактора редиректов здесь нет. Shopify-редиректы действуют на
+  Online Store host и **не** наследуются автоматически нашим доменом.
 - Глобальные SEO-дефолты сайта: default title, title template, description,
   Open Graph title/description. Хранятся в `SiteSetting` (`site-seo-v1`),
   пустое поле возвращает shipped default.
