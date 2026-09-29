@@ -343,6 +343,8 @@ the same transaction ID and no PII in analytics.
   (`en_IE` / `pt_PT` / `ru_RU`).
 - [x] Admin SERP preview + soft 60/160 char warnings on product/collection/page
   SEO fields.
+- [x] `/admin/meta` Health checklist (robots, sitemap, SEO title coverage,
+  Rich Results samples) — no parallel Shopify settings.
 - [ ] Validate catalog, availability, price, and image consistency in Merchant
   Center.
 - [ ] Add first-touch/latest-touch attribution to the Shopify cart and order.

@@ -526,6 +526,10 @@ This copy is not synced to Shopify.
 
 ## 7b. Meta (`/admin/meta`)
 
+- **Health** — чеклист без новых настроек: публичный URL, `robots.txt`,
+  `sitemap.xml`, покрытие SEO title у published products/collections/pages,
+  sample-ссылки Google Rich Results Test. Дыры правятся в Pages / Catalog /
+  Collections (Shopify SoT), не здесь.
 - Глобальные SEO-дефолты сайта: default title, title template, description,
   Open Graph title/description. Хранятся в `SiteSetting` (`site-seo-v1`),
   пустое поле возвращает shipped default.
@@ -536,8 +540,8 @@ This copy is not synced to Shopify.
   читает эти SEO-поля с тем же fallback. Рядом с SEO-полями — **Search
   preview** (как в выдаче) и мягкие лимиты 60 / 160 символов (предупреждение,
   не блокер публикации). Раздел Meta не является редактором Shopify metafields.
-- Хаб-ссылки на Pages, Catalog и Localization помогают не искать SEO в
-  неверном месте.
+- Хаб-ссылки на Pages, Catalog, Collections и Localization помогают не искать
+  SEO в неверном месте.
 
 ## 8. Проблемы / QA (`/admin/issues`)
 

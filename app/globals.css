@@ -5407,6 +5407,78 @@ html[data-theme="light"] .adm-locale-tab:hover:not([data-active="true"]) {
   color: color-mix(in srgb, var(--adm-ink) 78%, transparent);
 }
 
+/* /admin/meta Health checklist */
+.adm-meta-health__row {
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+}
+
+.adm-meta-health__link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.55rem 0.35rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 120ms ease;
+}
+
+.adm-meta-health__row:not(:has(.adm-meta-health__link)) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.55rem 0.35rem;
+}
+
+.adm-meta-health__link:hover {
+  background: color-mix(in srgb, var(--adm-cool) 10%, transparent);
+}
+
+.adm-meta-health__mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  margin-top: 0.1rem;
+  border: 1px solid var(--adm-border);
+  border-radius: 999px;
+}
+
+.adm-meta-health__tone--ok {
+  color: var(--adm-success);
+  border-color: color-mix(in srgb, var(--adm-success) 40%, var(--adm-border));
+  background: color-mix(in srgb, var(--adm-success) 12%, transparent);
+}
+
+.adm-meta-health__tone--partial {
+  color: var(--adm-violet);
+  border-color: color-mix(in srgb, var(--adm-violet) 40%, var(--adm-border));
+  background: var(--adm-violet-soft);
+}
+
+.adm-meta-health__tone--warn {
+  color: var(--adm-warning);
+  border-color: color-mix(in srgb, var(--adm-warning) 40%, var(--adm-border));
+  background: color-mix(in srgb, var(--adm-warning) 10%, transparent);
+}
+
+.adm-meta-health__tone--empty {
+  color: var(--adm-cool);
+  border-color: color-mix(in srgb, var(--adm-cool) 38%, var(--adm-border));
+  background: var(--adm-cool-soft);
+}
+
+.adm-meta-health__coverage {
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--adm-cool) 20%, var(--adm-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--adm-cool) 5%, transparent);
+}
+
 .adm-field-warning {
   font-family: var(--font-sans), sans-serif;
   font-size: 0.78rem;

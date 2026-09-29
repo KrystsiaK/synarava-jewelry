@@ -13,13 +13,14 @@ import { SiteSeoEditor } from "@/components/admin/meta/site-seo-editor";
 beforeEach(() => vi.clearAllMocks());
 
 describe("SiteSeoEditor", () => {
-  it("submits SEO fields and hub links to Pages / Catalog / Localization", async () => {
+  it("submits SEO fields and hub links to Pages / Catalog / Collections / Localization", async () => {
     mocks.saveSiteSeoAction.mockResolvedValue({ success: "Site SEO saved." });
     const user = userEvent.setup();
     render(<SiteSeoEditor overrides={{ defaultTitle: "Custom" }} />);
 
     expect(screen.getByRole("link", { name: /^Pages\b/i })).toHaveAttribute("href", "/admin/pages");
     expect(screen.getByRole("link", { name: /^Catalog\b/i })).toHaveAttribute("href", "/admin/products");
+    expect(screen.getByRole("link", { name: /^Collections\b/i })).toHaveAttribute("href", "/admin/collections");
     expect(screen.getByRole("link", { name: /^Localization\b/i })).toHaveAttribute("href", "/admin/translations");
 
     const defaultTitle = document.querySelector('input[name="defaultTitle"]') as HTMLInputElement;

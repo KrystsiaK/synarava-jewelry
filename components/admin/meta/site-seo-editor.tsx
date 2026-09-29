@@ -24,6 +24,11 @@ const HUB_LINKS = [
     body: "Product SEO title and description sync with Shopify from the product editor.",
   },
   {
+    href: "/admin/collections",
+    title: "Collections",
+    body: "Collection SEO title and description sync with Shopify from the collection editor.",
+  },
+  {
     href: "/admin/translations",
     title: "Localization",
     body: "Review Shopify translation conflicts for catalog and site chrome.",
@@ -57,7 +62,7 @@ export function SiteSeoEditor({
             These defaults apply site-wide. Page and product SEO stay on their own editors — not here, and not as a free-form Shopify metafield browser.
           </p>
         </div>
-        <ul className="grid gap-3 md:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {HUB_LINKS.map((item) => (
             <li key={item.href}>
               <Link href={item.href} className="block rounded border p-3 transition-colors hover:border-[var(--adm-fg)]" style={{ borderColor: "var(--adm-border)" }}>
@@ -71,7 +76,7 @@ export function SiteSeoEditor({
 
       <form action={formAction} className="grid gap-8">
         <AdminAlert message={state.error} />
-        <section className="adm-panel grid gap-4 p-5 md:p-6">
+        <section id="site-seo-defaults" className="adm-panel grid gap-4 p-5 md:p-6">
           <div>
             <p className="adm-section-tag">Site-wide defaults</p>
             <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
