@@ -5,6 +5,7 @@
 - Customer account: <https://account.shop.synarava.com>
 - Spec: [`SHOPIFY_POST_PURCHASE_FLOWS.md`](../SHOPIFY_POST_PURCHASE_FLOWS.md)
 - Payment matrix: [`payment-checkout-test-matrix.md`](./payment-checkout-test-matrix.md)
+- Redirect theme: [`shopify/themes/synarava-redirect/README.md`](../shopify/themes/synarava-redirect/README.md)
 
 ## Daily staff checklist
 
@@ -19,19 +20,51 @@
 
 ## Buy again containment (until bridge verified in production)
 
-1. **Settings → Checkout → Configurations → Customize → Settings → Buy again button** — keep **hidden**. Do not re-enable until BA-* matrix passes on production domains **after** the cart-notice clear path is verified live (POST `/api/cart/buy-again-notice` via `fetch`, not a Server Action).
-2. After bridge + Online Store redirect theme are live, re-enable and run BA-001…BA-012.
+1. **Settings → Checkout → Configurations → Customize → Settings → Buy again button** — keep **hidden**. Do not re-enable until BA-* / RT-BA-* matrix passes on production domains **after** the Synarava redirect theme draft is validated (cart_link_id → headless permalink) and the cart-notice clear path is verified live (POST `/api/cart/buy-again-notice` via `fetch`, not a Server Action).
+2. After the redirect theme is **published** and BA checks pass, re-enable Buy again and run BA-001…BA-012.
 
 ## Online Store → headless redirect (Phase 2 ops)
 
-Do **not** publish the Online Store redirect theme yet. Keep Buy again hidden and the redirect unpublished until production BA checks pass.
+Theme sources are versioned at
+[`shopify/themes/synarava-redirect/`](../shopify/themes/synarava-redirect/).
+Do **not** publish until draft preview + validation matrix pass and there is an
+**explicit publish confirmation**.
 
-When publishing Shopify’s redirect theme / Hydrogen-style redirect:
+### Pack + upload draft
 
-- Catalogue / product / collection / home / cart → `shop.synarava.com`
-- Exclude: checkout, account, order status, payment, challenge/checkpoint
-- Preserve locale + query string
-- Never use Admin URL redirects for `/cart` (Shopify reserves it)
+```bash
+node scripts/pack-synarava-redirect-theme.mjs
+# → shopify/themes/synarava-redirect/dist/synarava-redirect-theme.zip
+```
+
+1. Admin → **Online Store → Themes → Add theme → Upload zip**.
+2. Customize unpublished theme → **Theme settings → Storefront**:
+   - Hostname: `shop.synarava.com`
+   - Custom redirects include `/[locale]/collections/all` → `/[locale]/shop`
+3. **Preview** only — do not publish yet.
+
+### Buy again behaviour (why the fork exists)
+
+Shopify turns Buy again
+`/pt/cart/66048797442397:1` into `/pt/cart?cart_link_id=…` before the theme
+runs. The Synarava theme rebuilds `{variant}:{qty}` from Liquid `cart.items`
+and redirects to
+`https://shop.synarava.com/pt/cart/66048797442397:1?country=PT` so the Next.js
+bridge runs. Ordinary `/cart` without `cart_link_id` does **not** import.
+
+### Rollback to Horizon
+
+1. Admin → Themes → previous **Horizon** (or last good theme) → **Publish**.
+2. Hide Buy again again if it was enabled for the test window.
+3. Keep the Synarava Redirect Theme as an unpublished draft for the next attempt.
+
+### Validation (draft / controlled window)
+
+See the RT-* matrix in the [theme README](../shopify/themes/synarava-redirect/README.md)
+and BA-* rows in [`payment-checkout-test-matrix.md`](./payment-checkout-test-matrix.md).
+Minimum: Buy again adds once, merge with existing headless cart, replay safe,
+notice flash, PT/EN, `/collections/all` → shop, checkout + account +
+challenge/checkpoint unchanged.
 
 ## Webhook observability
 

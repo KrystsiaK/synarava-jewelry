@@ -1,0 +1,10 @@
+{
+  "name": "synarava-redirect-theme",
+  "description": "Synarava Online Store redirect theme (fork of Shopify hydrogen-redirect-theme) with Buy again cart_link_id → headless cart permalink bridging.",
+  "version": "1.1.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "pack": "node ../../../scripts/pack-synarava-redirect-theme.mjs"
+  }
+}

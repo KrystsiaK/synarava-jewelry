@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
+    <meta name="robots" content="noindex">
+    <title>
+      {{ page_title }}
+    </title>
+
+    {{ content_for_header }}
+
+    {% comment %}
+      Synarava fork of Shopify hydrogen-redirect-theme.
+      Upstream SHA: see UPSTREAM_SHA.txt
+      Docs: shopify/themes/synarava-redirect/README.md
+    {% endcomment %}
+
+    {% comment %}
+      Should redirect if the template is defined (will be undefined for app proxies like /apps|a|community|tools/*)
+    {% endcomment %}
+    {%- assign should_redirect = template != blank -%}
+
+    {%- comment -%}
+      Buy again: Shopify resolves /cart/{variant}:{qty} into /cart?cart_link_id=…
+      and materializes lines on the Online Store cart. Rebuild the permalink from
+      cart.items so the headless bridge at /{locale}/cart/{permalink} can run.
+    {%- endcomment -%}
+    {%- capture synarava_cart_permalink -%}
+      {%- if cart.item_count > 0 -%}
+        {%- for item in cart.items -%}
+          {%- unless forloop.first -%},{%- endunless -%}
+          {{- item.variant_id -}}:{{- item.quantity -}}
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endcapture -%}
+    {%- assign synarava_cart_permalink = synarava_cart_permalink | strip -%}
+    {%- assign synarava_locale_root = request.locale.root_url | default: '/' -%}
+
+    {%- if settings.storefront_hostname != blank and should_redirect -%}
+      <link rel="canonical" href="https://{{ settings.storefront_hostname }}{{ request.path }}">
+    {% else %}
+      <link rel="canonical" href="{{ canonical_url }}">
+    {% endif %}
+
+    {%- if settings.storefront_hostname != blank and should_redirect -%}
+      <script>
+        function getCookie(name) {
+          name = name + '=';
+          var decodedCookie = decodeURIComponent(document.cookie);
+          var cookies = decodedCookie.split(';');
+          for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.indexOf(name) == 0) {
+              return cookie.substring(name.length, cookie.length);
+            }
+          }
+        }
+
+        function deleteCookie(name) {
+          document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+
+        function synaravaShouldSkipRedirect(pathname) {
+          if (window.Shopify.designMode) return true;
+          if (
+            pathname === '/checkpoint' ||
+            pathname === '/throttle/queue' ||
+            pathname === '/challenge'
+          ) {
+            return true;
+          }
+          // Keep Shopify system surfaces on the Online Store hostname.
+          return /^\/(checkouts?|orders|account|payments?|wallets|services)\b/i.test(pathname);
+        }
+
+        function synaravaIsCartPath(pathname) {
+          return /\/cart\/?$/.test(pathname);
+        }
+
+        function synaravaLocalePrefix(localeRoot) {
+          if (!localeRoot || localeRoot === '/') return '';
+          return localeRoot.replace(/\/$/, '');
+        }
+
+        function synaravaApplyCollectionsAllRedirect(pathname) {
+          var match = pathname.replace(/\/$/, '').match(/^(\/[a-z]{2}(?:-[A-Za-z]{2})?)?\/collections\/all$/i);
+          if (!match) return null;
+          var localePart = match[1] || '';
+          return localePart + '/shop';
+        }
+
+        function synaravaApplyCustomRedirects(pathname, customRedirectsStr) {
+          if (!customRedirectsStr) return pathname;
+          var customRedirects = customRedirectsStr.split('<br/>');
+          for (var cri = 0; cri < customRedirects.length; cri += 1) {
+            var redirect = customRedirects[cri].split('>');
+            var fromPath = (redirect[0] || '').trim();
+            var toPath = (redirect[1] || '').trim();
+            if (!fromPath || !toPath) continue;
+            if (pathname === fromPath || pathname.indexOf(fromPath + '/') === 0 || pathname.indexOf(fromPath + '?') === 0) {
+              return toPath + pathname.slice(fromPath.length);
+            }
+            if (pathname.replace(/\/$/, '') === fromPath.replace(/\/$/, '')) {
+              return toPath;
+            }
+          }
+          return pathname;
+        }
+
+        function synaravaCopySafeQueryParams(fromParams, toUrl) {
+          // Allowlist for Buy again → headless cart. Drop cart_link_id / sso / storefront noise.
+          var allow = ['country', 'discount'];
+          for (var i = 0; i < allow.length; i += 1) {
+            var key = allow[i];
+            if (fromParams.has(key) && !toUrl.searchParams.has(key)) {
+              toUrl.searchParams.set(key, fromParams.get(key));
+            }
+          }
+        }
+
+        if (!synaravaShouldSkipRedirect(window.location.pathname)) {
+          var currentHostname = window.location.hostname;
+          var storefrontHostname = {{ settings.storefront_hostname | json }};
+          var buyAgainPermalink = {{ synarava_cart_permalink | json }};
+          var localeRoot = {{ synarava_locale_root | json }};
+          var currentParams = new URLSearchParams(window.location.search);
+
+          if (currentHostname !== storefrontHostname) {
+            var redirectUrl;
+
+            {% comment %}
+              Buy again only: cart_link_id means Shopify already expanded the
+              cart permalink into cart.items. Rebuild /{locale}/cart/{v:q,…}.
+              Do not treat every Online Store /cart visit as Buy again.
+            {% endcomment %}
+            if (
+              synaravaIsCartPath(window.location.pathname) &&
+              currentParams.has('cart_link_id') &&
+              buyAgainPermalink
+            ) {
+              var localePrefix = synaravaLocalePrefix(localeRoot);
+              redirectUrl = new URL(
+                'https://' + storefrontHostname + localePrefix + '/cart/' + buyAgainPermalink
+              );
+              synaravaCopySafeQueryParams(currentParams, redirectUrl);
+            } else {
+              var pathname = window.location.pathname;
+              var customRedirectsStr = {{ settings.custom_redirects | newline_to_br | strip_newlines | replace: ' ', '' | json }};
+              pathname = synaravaApplyCustomRedirects(pathname, customRedirectsStr);
+              var collectionsAllTarget = synaravaApplyCollectionsAllRedirect(pathname);
+              if (collectionsAllTarget) pathname = collectionsAllTarget;
+
+              redirectUrl = new URL('https://' + storefrontHostname + pathname + window.location.search + window.location.hash);
+            }
+
+            {%- if settings.integrate_with_customer_accounts and customer != null -%}
+              redirectUrl.searchParams.append('logged_in', 'true');
+
+              {%- if customer.current_location != null -%}
+                redirectUrl.searchParams.append('company_location_id', '{{ customer.current_location.id }}');
+              {%- endif -%}
+            {%- endif -%}
+
+            {% comment %}
+              Handle discount code logic (e.g. xxx.myshopify.com/discount/freeshipping?redirect=/products)
+              - Add discount code to as param to the redirect URL if the `discount_code` cookie exists
+              - Cookie is deleted after to prevent it from being automatically added to other routes
+            {% endcomment %}
+            var discountCode = getCookie('discount_code');
+            if (discountCode) {
+              redirectUrl.searchParams.append("discount", discountCode);
+              deleteCookie("discount_code");
+            }
+            window.storefrontRedirectUrl = redirectUrl;
+            window.location.replace(redirectUrl);
+          }
+        }
+      </script>
+    {%- endif -%}
+
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui;
+        box-sizing: border-box;
+        padding: clamp(1em, 5vw, 5em);
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        line-height: 1.5;
+      }
+      h1 {
+        color: inherit;
+        font-size: 1em;
+      }
+      h1 > a {
+        text-decoration: none;
+        color: inherit;
+      }
+      p {
+        max-width: 65ch;
+      }
+      footer {
+        opacity: 0.55;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          color: #a1b8c1;
+          background: rgb(33, 33, 33);
+        }
+        a {
+          color: #81a9fe;
+        }
+        a:visited {
+          color: #c691e8;
+        }
+        h1 > a,
+        h1 > a:visited {
+          color: #a1b8c1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {%- if should_redirect -%}
+      <div class="redirect">
+        {%- if settings.storefront_hostname != blank -%}
+          <h1>Redirecting...</h1>
+          <p>
+            <a id="redirect-link" href="https://{{ settings.storefront_hostname }}/">Click here</a>
+            if you are not automatically redirected.
+          </p>
+          <script>
+            if (!window.Shopify.designMode) {
+              var redirectLink = document.getElementById('redirect-link');
+              if (window.storefrontRedirectUrl) {
+                redirectLink.href = window.storefrontRedirectUrl;
+              }
+            }
+          </script>
+        {%- else -%}
+          <h1>Redirect URL not set</h1>
+          <p>Configure the redirects in "Theme settings > Storefront".</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+    {{ content_for_layout }}
+  </body>
+</html>

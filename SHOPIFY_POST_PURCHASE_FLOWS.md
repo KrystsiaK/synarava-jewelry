@@ -67,10 +67,16 @@ headless Synarava storefront.
    (`/api/cart/buy-again-notice`) clears it via `fetch` so the notice is not
    wiped by an RSC re-render. **Pending production validation** (BA matrix).
 
-2. Online Store → headless redirect theme is still **unpublished** (**pending
-   production validation**). Publish only after production BA checks; keep Buy
-   again hidden until then. Lifecycle webhook receipts remain ops scaffolding
-   until Order GID normalization and `read_returns` gating are verified live.
+2. Online Store → headless redirect theme sources live in
+   [`shopify/themes/synarava-redirect/`](shopify/themes/synarava-redirect/)
+   (**implemented** eng; **pending production validation** / publish). Shopify
+   rewrites Buy again `/cart/{variant}:{qty}` into `/cart?cart_link_id=…` before
+   the theme runs; the Synarava theme rebuilds the permalink from Liquid
+   `cart.items` and sends browsers to
+   `shop.synarava.com/{locale}/cart/{permalink}`. Do **not** publish until the
+   draft-theme BA matrix passes; keep Buy again hidden until then. Lifecycle
+   webhook receipts remain ops scaffolding until live Order GID /
+   `read_returns` validation.
 
 3. Headless profile routes order management to Shopify (`statusPageUrl`) and no
    longer surfaces the custom return form. **Pending production validation** of
@@ -172,21 +178,23 @@ Status key: **implemented** (on `main`) · **pending production validation** ·
 5. **Implemented** — replay protection (hash of locale + canonical lines in a
    short-lived cookie; replay shows “already added” without re-adding).
 
-6. **Pending ops / pending production validation** — Online Store → headless
-   redirect theme.
+6. **Implemented (theme sources) / pending draft preview + production
+   validation** — Online Store → headless redirect theme.
 
-   - Review Shopify's Hydrogen redirect theme as the official reference for
-     preserving checkout and bot-protection behavior.
-   - Because Synarava is a Next.js/Vercel storefront rather than an Oxygen
-     Hydrogen environment, review the theme code and Shopify support boundary
-     before publishing it; do not assume the domain-target workflow for a
-     Hydrogen environment applies unchanged.
-   - Configure ordinary Online Store catalogue paths to return to
-     `shop.synarava.com` while excluding checkout, account, order status,
-     payment, challenge/checkpoint, and other Shopify system paths.
-   - Verify locale and query-string preservation.
-   - Never use Shopify URL redirects for this cart route: Shopify reserves
-     `/cart` and `/carts`, so ordinary admin URL redirects cannot solve it.
+   - Versioned fork: `shopify/themes/synarava-redirect/` (upstream
+     hydrogen-redirect-theme + Buy again `cart_link_id` rewrite +
+     `/collections/all` → `/shop`).
+   - Pack ZIP: `node scripts/pack-synarava-redirect-theme.mjs`.
+   - Hostname setting: `shop.synarava.com`.
+   - Trigger Buy again rewrite only when path ends in `/cart`, query has
+     `cart_link_id`, and Liquid cart is non-empty.
+   - Preserve `country` / `discount`; drop `cart_link_id` and `sso` on the
+     headless cart URL; leave Next.js replay protection unchanged.
+   - Exclusions: challenge, checkpoint, throttle/queue, checkout, payment,
+     account/order-status prefixes.
+   - **Do not publish** until explicit go-ahead after draft preview + BA
+     matrix. Rollback: republish Horizon (see theme README).
+   - Never use Admin URL redirects for `/cart` (Shopify reserves it).
 
 ### Buy-again failure policy
 
@@ -331,12 +339,15 @@ failure by itself.
 
 ### Phase 2 — Route the Online Store back to headless
 
-- [ ] Audit the proposed redirect theme/code and exclusions.
+- [x] Version Synarava redirect theme under `shopify/themes/synarava-redirect/`
+  (Buy again `cart_link_id` → `/{locale}/cart/{permalink}`, collections/all →
+  shop, system-path exclusions).
 - [x] Deploy the route bridge first (app on `main`).
-- [ ] Preview the redirect behavior without publishing it.
-- [ ] Test product, collection, home, cart permalink, checkout, challenge, and
-  locale paths.
-- [ ] Publish only after checkout and account paths remain intact.
+- [ ] Upload ZIP as an **unpublished** draft; preview without publishing.
+- [ ] Test product, collection, home, Buy again cart permalink, checkout,
+  challenge, locale paths, and `/collections/all` (matrix in theme README).
+- [ ] Publish only after explicit confirmation and checkout/account paths stay
+  intact.
 - [ ] Re-enable Buy again.
 
 ### Phase 3 — Consolidate order management

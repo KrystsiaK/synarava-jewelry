@@ -1,0 +1,7 @@
+{
+  "current": {
+    "storefront_hostname": "shop.synarava.com",
+    "custom_redirects": "/collections/all > /shop\n/en/collections/all > /en/shop\n/pt/collections/all > /pt/shop\n/ru/collections/all > /ru/shop",
+    "integrate_with_customer_accounts": false
+  }
+}

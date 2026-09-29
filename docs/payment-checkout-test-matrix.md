@@ -55,7 +55,9 @@ Shopify recommends placing a test order after changing payment settings.
 | Cart permalink parser | Syntax, merge, limits, GID mapping | `lib/shopify/__tests__/cart-permalink.test.ts` |
 | Buy again notice / replay hash | Cookie codec + hash stability (RSC reads; clear via POST Route Handler) | `lib/commerce/__tests__/buy-again-notice.test.ts` |
 | Buy again notice browser | Notice survives hydration; gone after reload; replay does not re-add | `e2e/buy-again-notice.spec.ts` |
+| Redirect theme path rules | cart path, collections/all→shop, system exclusions, Buy again URL shape | `lib/shopify/__tests__/synarava-redirect-theme-rules.test.ts` |
 | Lifecycle webhook Order id | Prefer Order GID; normalize numeric `order_id`; ignore Return/Refund GID | `lib/shopify/__tests__/order-lifecycle-webhooks.test.ts` |
+| Redirect theme draft (manual) | RT-BA / RT-CAT / RT-SYS matrix after ZIP upload | `shopify/themes/synarava-redirect/README.md` |
 | Merchandise import visibility | Skip hidden variants; add visible | `lib/commerce/__tests__/merchandise-import.test.ts` |
 | Lifecycle webhook subscribe | cancel / refund / return-request | `lib/shopify/__tests__/order-lifecycle-webhooks.test.ts` |
 
@@ -252,11 +254,17 @@ not change the Vercel storefront or transfer ownership of `synarava.com`.
 This fixes the exposed `.myshopify.com` / `shopify.com` hosts, but it does not by
 itself make Shopify product and cart paths headless-aware. The order-status page
 can still produce Online Store links such as product pages and `Buy again` cart
-permalinks. Shopify's redirect theme is the supported bridge back to the
-headless storefront, but a blanket redirect must not be published until the
-Next.js storefront can accept Shopify cart permalink paths such as
-`/{locale}/cart/{variant_id}:{quantity}`. Otherwise `Buy again` can redirect to
-a headless 404.
+permalinks.
+
+**Buy again rewrite quirk:** Shopify turns
+`/pt/cart/{variant}:{qty}` into `/pt/cart?cart_link_id=…` before theme JS runs.
+The stock Hydrogen redirect theme then lands on headless `/pt/cart?cart_link_id=…`
+and **skips** Synarava’s `/{locale}/cart/[permalink]` bridge. The Synarava
+redirect theme (`shopify/themes/synarava-redirect/`) rebuilds the permalink from
+Liquid `cart.items` and sends
+`https://shop.synarava.com/pt/cart/{variant}:{qty}?country=PT`.
+
+Do **not** publish that theme until the draft RT-*/BA-* matrix passes.
 
 Acceptance criteria:
 
@@ -265,7 +273,9 @@ Acceptance criteria:
   `account.shop.synarava.com`;
 - checkout SSO remains silent for a logged-in buyer;
 - product/store links return to `shop.synarava.com`;
-- `Buy again` recreates the expected cart in the headless storefront;
+- `Buy again` / Comprar novamente recreates the expected cart in the headless
+  storefront (qty once, merge, replay-safe, notice flash);
+- `/[locale]/collections/all` lands on `/[locale]/shop` (not a 404);
 - no customer-facing navigation exposes the development `.myshopify.com`
   domain.
 
@@ -282,11 +292,13 @@ ID. They are confirmation and operational evidence, not a second Order store.
 
 ## Next action
 
-1. Hide Buy again in Shopify Checkout settings until production BA checks pass.
-2. Send a Shopify test email + signed-in test checkout for branded domains and
+1. Keep Buy again hidden until draft Synarava redirect theme + BA/RT matrix pass.
+2. Pack + upload unpublished theme ZIP
+   (`node scripts/pack-synarava-redirect-theme.mjs`) — see
+   [`shopify/themes/synarava-redirect/README.md`](../shopify/themes/synarava-redirect/README.md).
+3. Preview draft: Buy again → headless permalink, `/collections/all` → shop,
+   checkout/account/challenge intact. **Publish only after explicit confirmation.**
+4. Send a Shopify test email + signed-in test checkout for branded domains and
    PAY-004 link targets.
-3. Hit production `/{locale}/cart/{variant}:{qty}` (Buy again bridge) before
-   publishing the Online Store redirect theme — see
-   [`SHOPIFY_POST_PURCHASE_FLOWS.md`](../SHOPIFY_POST_PURCHASE_FLOWS.md).
-4. Verify PT-001 `shopify.orders_paid` receipt; run PT-002 decline card.
-5. Staff: follow [`post-purchase-ops-runbook.md`](./post-purchase-ops-runbook.md).
+5. Verify PT-001 `shopify.orders_paid` receipt; run PT-002 decline card.
+6. Staff: follow [`post-purchase-ops-runbook.md`](./post-purchase-ops-runbook.md).

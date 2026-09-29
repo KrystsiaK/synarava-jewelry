@@ -1,0 +1,40 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Synarava Redirect Theme",
+    "theme_author": "Synarava (fork of Shopify hydrogen-redirect-theme)",
+    "theme_version": "1.1.0",
+    "theme_documentation_url": "https://github.com/KrystsiaK/synarava-jewelry/tree/main/shopify/themes/synarava-redirect",
+    "theme_support_url": "https://github.com/KrystsiaK/synarava-jewelry/issues"
+  },
+  {
+    "name": "Storefront",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Settings"
+      },
+      {
+        "type": "text",
+        "id": "storefront_hostname",
+        "label": "Hostname",
+        "default": "shop.synarava.com",
+        "info": "Without protocol, e.g. shop.synarava.com"
+      },
+      {
+        "type": "textarea",
+        "id": "custom_redirects",
+        "label": "Custom redirects",
+        "default": "/collections/all > /shop\n/en/collections/all > /en/shop\n/pt/collections/all > /pt/shop\n/ru/collections/all > /ru/shop",
+        "info": "Shopify path > Storefront path. Buy again cart_link_id rewriting is built into theme.liquid and does not need a rule here."
+      },
+      {
+        "type": "checkbox",
+        "id": "integrate_with_customer_accounts",
+        "label": "Integrate with customer accounts",
+        "default": false,
+        "info": "Adds logged_in / company_location_id query params. Synarava headless auth uses Shopify Customer Account on account.shop.synarava.com — leave off unless intentionally wiring SSO hints."
+      }
+    ]
+  }
+]
