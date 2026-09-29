@@ -15,6 +15,8 @@ street addresses, full payment details, or screenshots containing those data.
 - [Webhook topic `ORDERS_PAID`](https://shopify.dev/docs/api/admin-graphql/latest/enums/WebhookSubscriptionTopic)
 - [Testing Shopify Payments](https://help.shopify.com/en/manual/payments/shopify-payments/testing-shopify-payments)
 - [Processing a test order](https://help.shopify.com/en/manual/checkout-settings/test-orders/processing-test-order)
+- [Redirect headless traffic and assign a checkout subdomain](https://shopify.dev/docs/storefronts/headless/hydrogen/migrate/redirect-traffic)
+- [Connect a customer-account subdomain](https://help.shopify.com/en/manual/domains/add-a-domain/connecting-domains/connect-domain-customer-account)
 - [MB WAY](https://help.shopify.com/en/manual/payments/shopify-payments/local-payment-methods/mb-way)
 - [Multibanco](https://help.shopify.com/en/manual/payments/shopify-payments/local-payment-methods/multibanco)
 
@@ -167,6 +169,7 @@ test mode.
 
 - Severity: **Required before production launch**
 - Observed in: buyer order-confirmation email for PT-001
+- Remediation: **Applied in Shopify Admin on 2026-09-29; test email pending**
 
 The `Visite a nossa loja` link resolves through Shopify's `shop.url` and opens
 the Shopify-hosted storefront instead of `https://shop.synarava.com`. In the
@@ -208,6 +211,54 @@ Acceptance criteria:
 - other customer notification templates contain no unintended `shop.url`
   storefront links.
 
+Applied evidence:
+
+- the template defines `synarava_storefront_url` as
+  `https://shop.synarava.com`;
+- five storefront `shop.url` destinations were changed to the shared variable;
+- four `order_status_url` references were left unchanged;
+- the edited template remained present after a full Shopify Admin reload;
+- Shopify rendered the email preview without a Liquid error.
+
+The preview is structural evidence only. Keep PAY-004 open until a received test
+email and a new test order confirm the actual link destinations.
+
+### PAY-005 — Brand Shopify-hosted checkout and customer-account surfaces
+
+- Severity: **Required before production launch**
+- Remediation: **Configured on 2026-09-29; end-to-end verification pending**
+
+The headless storefront remains at `https://shop.synarava.com`. Shopify-hosted
+commerce surfaces now use dedicated branded subdomains:
+
+- `https://checkout.shop.synarava.com` targets Online Store and is its primary
+  Shopify domain;
+- `https://account.shop.synarava.com` is the primary customer-account domain;
+- both domains have DNS pointing to Shopify and provisioned TLS certificates.
+
+`Primary` in this setup is scoped to the corresponding Shopify surface. It does
+not change the Vercel storefront or transfer ownership of `synarava.com`.
+
+This fixes the exposed `.myshopify.com` / `shopify.com` hosts, but it does not by
+itself make Shopify product and cart paths headless-aware. The order-status page
+can still produce Online Store links such as product pages and `Buy again` cart
+permalinks. Shopify's redirect theme is the supported bridge back to the
+headless storefront, but a blanket redirect must not be published until the
+Next.js storefront can accept Shopify cart permalink paths such as
+`/{locale}/cart/{variant_id}:{quantity}`. Otherwise `Buy again` can redirect to
+a headless 404.
+
+Acceptance criteria:
+
+- a fresh signed-in checkout uses `checkout.shop.synarava.com`;
+- the order-status and customer-account flow uses
+  `account.shop.synarava.com`;
+- checkout SSO remains silent for a logged-in buyer;
+- product/store links return to `shop.synarava.com`;
+- `Buy again` recreates the expected cart in the headless storefront;
+- no customer-facing navigation exposes the development `.myshopify.com`
+  domain.
+
 ## Paid webhook evidence
 
 Successful deliveries should emit a structured log equivalent to:
@@ -221,5 +272,8 @@ ID. They are confirmation and operational evidence, not a second Order store.
 
 ## Next action
 
-Verify PT-001 webhook receipt and storefront post-checkout state, then run
-PT-002 with the generic-decline card.
+Send a Shopify test email and run one new successful signed-in test checkout to
+verify the two branded domains and PAY-004 link targets. Then add and test
+headless cart-permalink compatibility before publishing Shopify's redirect
+theme. After that, verify the PT-001 webhook receipt and run PT-002 with the
+generic-decline card.
