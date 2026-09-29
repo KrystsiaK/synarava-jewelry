@@ -340,7 +340,10 @@
     "paymentFailed": "Payment failed. Please try again.",
     "processing": "Processing…",
     "payNow": "Pay now",
-    "loadingPayment": "Loading payment…"
+    "loadingPayment": "Loading payment…",
+    "unavailableTitle": "Checkout is unavailable",
+    "unavailableBody": "We could not open Shopify checkout for this cart. Return to the cart and try again, or contact support if this continues.",
+    "unavailableBackToCart": "Back to cart"
   },
   "product": {
     "stock": {

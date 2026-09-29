@@ -340,7 +340,10 @@
     "paymentFailed": "O pagamento falhou. Tente novamente.",
     "processing": "A processar…",
     "payNow": "Pagar agora",
-    "loadingPayment": "A carregar pagamento…"
+    "loadingPayment": "A carregar pagamento…",
+    "unavailableTitle": "O checkout não está disponível",
+    "unavailableBody": "Não foi possível abrir o checkout da Shopify para este carrinho. Volte ao carrinho e tente novamente, ou contacte o suporte se o problema continuar.",
+    "unavailableBackToCart": "Voltar ao carrinho"
   },
   "product": {
     "stock": {

@@ -420,6 +420,27 @@ model ProductSyncEvent {
   @@index([shopifyProductId])
 }
 
+/// Idempotent Shopify webhook receipt for non-catalog topics (e.g. ORDERS_PAID).
+/// Ops/confirmation signal only — not a local commerce Order store.
+model ShopifyWebhookDelivery {
+  id               String          @id @default(cuid())
+  shopifyWebhookId String?         @unique
+  topic            String
+  shopifyOrderId   String?
+  orderName         String?
+  financialStatus  String?
+  status           SyncEventStatus @default(PENDING)
+  error            String?
+  attemptCount     Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  completedAt      DateTime?
+
+  @@index([topic, createdAt])
+  @@index([shopifyOrderId])
+  @@index([status, createdAt])
+}
+
 model ProductVariantOptionValue {
   id            String             @id @default(cuid())
   variantId     String

@@ -63,7 +63,7 @@ Fill in local/production variables as needed:
 - `SHOPIFY_ADMIN_API_VERSION` — optional, defaults to `2026-07`
 - `SHOPIFY_PUBLICATION_ID` — optional Online Store publication GID; auto-detected by name when omitted
 - `SHOPIFY_LOCATION_ID` — optional inventory location GID; the first active location is used when omitted
-- `SHOPIFY_WEBHOOK_SECRET` — secret used to verify product, inventory, and product-review webhooks
+- `SHOPIFY_WEBHOOK_SECRET` — secret used to verify product, inventory, product-review, and `orders/paid` webhooks
 - `S3_REGION`
 - `S3_BUCKET`
 - `S3_ACCESS_KEY_ID`
@@ -115,9 +115,16 @@ product type, status, price, SKU, primary image, inventory, tags, and
 also shows the pulled variants, metafields, and stored Shopify snapshot; **Pull from Shopify**
 refreshes those values. Shopify
 `products/create`, `products/update`, `products/delete`, and `inventory_levels/update` webhooks pull commerce changes back into
-the local database. The **Reconcile** action registers those webhook subscriptions (when
+the local database. Catalog conflict check / reconcile also registers `ORDERS_PAID` →
+`/api/shopify/webhooks/orders/paid` (HMAC + idempotent delivery receipt + structured log) as a
+paid-order ops signal — not a local Order store. The **Reconcile** action registers those webhook subscriptions (when
 `APP_URL` is set) and imports the full Shopify catalog, matching by Shopify product ID,
 then SKU, then handle. Ambiguous identities are recorded as conflicts instead of being overwritten.
+
+Logged-in Customer Account sessions append Shopify’s `sso=silent` to the Cart API checkout URL
+before redirect ([checkout authentication](https://shopify.dev/docs/storefronts/headless/building-with-the-customer-account-api/checkout-authentication)).
+If checkout cannot be opened, `/checkout` shows an error instead of silently returning to the cart.
+Payment / checkout verification matrix: [`docs/payment-checkout-test-matrix.md`](docs/payment-checkout-test-matrix.md).
 
 The Admin API token needs
 `read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`, and

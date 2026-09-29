@@ -2,6 +2,8 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
+import { withCheckoutSsoSilent } from "@/lib/shopify/checkout-url";
+import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { getShopifyBuyerIp } from "@/lib/shopify/request-context";
 import { shopifyStorefrontRequest } from "@/lib/shopify/storefront";
 import { formatCurrency, shopifyLanguage } from "@/lib/i18n/format";
@@ -457,5 +459,13 @@ export async function getShopifyCheckoutUrl() {
     { cartId, language },
     { buyerIp: await getShopifyBuyerIp() },
   );
-  return data.cart?.checkoutUrl ?? null;
+  const checkoutUrl = data.cart?.checkoutUrl ?? null;
+  if (!checkoutUrl) return null;
+
+  // Logged-in buyers: silent SSO into Checkout via Customer Accounts session.
+  // https://shopify.dev/docs/storefronts/headless/building-with-the-customer-account-api/checkout-authentication
+  if (await hasShopifyCustomerSession()) {
+    return withCheckoutSsoSilent(checkoutUrl);
+  }
+  return checkoutUrl;
 }

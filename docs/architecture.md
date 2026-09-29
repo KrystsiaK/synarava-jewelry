@@ -39,7 +39,9 @@ tab group.
 There is no local `Order`/`OrderItem` model. Cart, checkout, and order history are entirely
 Shopify's — Shopify is the only commerce backend (see
 [`SHOPIFY_DECISION.md`](../SHOPIFY_DECISION.md)). An earlier local cart/checkout/Stripe path and
-its models were removed once Shopify covered the same ground.
+its models were removed once Shopify covered the same ground. Production `ORDERS_PAID` is handled
+as an HMAC-verified, idempotent ops signal (`ShopifyWebhookDelivery` receipt + structured log),
+not a second Order store — see [`payment-checkout-test-matrix.md`](./payment-checkout-test-matrix.md).
 
 ### CMS
 

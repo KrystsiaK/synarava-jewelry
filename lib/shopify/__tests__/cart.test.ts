@@ -3,6 +3,7 @@ const mocks = vi.hoisted(() => ({
   getShopifyBuyerIp: vi.fn(),
   getRequestLocale: vi.fn(),
   shopifyStorefrontRequest: vi.fn(),
+  hasShopifyCustomerSession: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
@@ -21,7 +22,16 @@ vi.mock("@/lib/i18n/server", () => ({
   getRequestLocale: mocks.getRequestLocale,
 }));
 
-import { addShopifyProductToCart, getShopifyCartLineQuantity, getShopifyCartViewModel } from "@/lib/shopify/cart";
+vi.mock("@/lib/shopify/customer-account/session", () => ({
+  hasShopifyCustomerSession: mocks.hasShopifyCustomerSession,
+}));
+
+import {
+  addShopifyProductToCart,
+  getShopifyCartLineQuantity,
+  getShopifyCartViewModel,
+  getShopifyCheckoutUrl,
+} from "@/lib/shopify/cart";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -30,6 +40,7 @@ beforeEach(() => {
   });
   mocks.getShopifyBuyerIp.mockResolvedValue("203.0.113.4");
   mocks.getRequestLocale.mockResolvedValue("en");
+  mocks.hasShopifyCustomerSession.mockResolvedValue(false);
 });
 
 describe("getShopifyCartLineQuantity", () => {
@@ -178,5 +189,31 @@ describe("addShopifyProductToCart", () => {
     );
 
     expect(result.warnings).toEqual([]);
+  });
+});
+
+describe("getShopifyCheckoutUrl", () => {
+  it("returns null when there is no cart cookie", async () => {
+    mocks.cookies.mockResolvedValue({ get: vi.fn(() => undefined) });
+    await expect(getShopifyCheckoutUrl()).resolves.toBeNull();
+    expect(mocks.shopifyStorefrontRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns the raw checkout URL for guests", async () => {
+    mocks.shopifyStorefrontRequest.mockResolvedValue({
+      cart: { checkoutUrl: "https://checkout.example/c/1?key=abc" },
+    });
+    await expect(getShopifyCheckoutUrl()).resolves.toBe("https://checkout.example/c/1?key=abc");
+    expect(mocks.hasShopifyCustomerSession).toHaveBeenCalled();
+  });
+
+  it("appends sso=silent for logged-in Customer Account sessions", async () => {
+    mocks.hasShopifyCustomerSession.mockResolvedValue(true);
+    mocks.shopifyStorefrontRequest.mockResolvedValue({
+      cart: { checkoutUrl: "https://checkout.example/c/1?key=abc" },
+    });
+    await expect(getShopifyCheckoutUrl()).resolves.toBe(
+      "https://checkout.example/c/1?key=abc&sso=silent",
+    );
   });
 });
