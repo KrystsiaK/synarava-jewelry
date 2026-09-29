@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +10,26 @@ vi.mock("@/app/admin/actions/storefront-copy", () => ({
 
 vi.mock("@/app/admin/actions/storefront-href", () => ({
   searchStorefrontHrefsAction: vi.fn(async () => ({ segments: [] })),
+}));
+
+/** TipTap × every locale × every long field dominates jsdom time — keep a11y labels. */
+vi.mock("@/components/admin/shared/admin-rich-text-field", () => ({
+  AdminRichTextField: ({
+    label,
+    name,
+    defaultValue,
+    placeholder,
+  }: {
+    label?: string;
+    name?: string;
+    defaultValue?: string | null;
+    placeholder?: string;
+  }) => (
+    <label data-component="AdminRichTextField">
+      {label ?? "Rich text"}
+      <textarea name={name} defaultValue={defaultValue ?? ""} placeholder={placeholder} />
+    </label>
+  ),
 }));
 
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
@@ -28,6 +48,27 @@ const defaultFooter = defaultFooterLinks();
 /** Full Shared editor DOM is heavy in jsdom — skip per-keystroke delay. */
 function setupUser() {
   return userEvent.setup({ delay: null });
+}
+
+/** Scope label queries to one area — document-wide getByLabelText walks ~2k nodes. */
+function area(id: "shared-header" | "shared-footer" | "shared-cookies" | "shared-contact" | "shared-reviews") {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`Missing area #${id}`);
+  return within(node);
+}
+
+function sharedAreaTab(name: RegExp | string) {
+  const list = screen.getByRole("tablist", { name: "Shared areas" });
+  return within(list).getByRole("tab", { name });
+}
+
+function localeTab(name: string) {
+  const list = document.querySelector(".adm-locale-workspace-header") ?? document.body;
+  return within(list as HTMLElement).getByRole("tab", { name });
+}
+
+function setLabeledValue(scope: ReturnType<typeof within>, label: string, value: string) {
+  fireEvent.change(scope.getByLabelText(label), { target: { value } });
 }
 
 beforeEach(() => {
@@ -49,15 +90,16 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
-    expect(screen.getByLabelText("Tagline (under the logo) (EN)")).toBeVisible();
-    expect(screen.getByLabelText("Tagline (under the logo) (PT)")).not.toBeVisible();
+    await user.click(sharedAreaTab(/^Footer/));
+    const footer = area("shared-footer");
+    expect(footer.getByLabelText("Tagline (under the logo) (EN)")).toBeVisible();
+    expect(footer.getByLabelText("Tagline (under the logo) (PT)")).not.toBeVisible();
 
-    await user.click(screen.getByRole("tab", { name: "Português" }));
+    await user.click(localeTab("Português"));
 
-    expect(screen.getByLabelText("Tagline (under the logo) (EN)")).not.toBeVisible();
-    expect(screen.getByLabelText("Tagline (under the logo) (PT)")).toBeVisible();
-    expect(screen.getByLabelText("Tagline (under the logo) (PT)")).toHaveValue("Lema");
+    expect(footer.getByLabelText("Tagline (under the logo) (EN)")).not.toBeVisible();
+    expect(footer.getByLabelText("Tagline (under the logo) (PT)")).toBeVisible();
+    expect(footer.getByLabelText("Tagline (under the logo) (PT)")).toHaveValue("Lema");
   }, 30_000);
 
   it("submits header nav, footer links, and emails in one save", async () => {
@@ -74,10 +116,11 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
-    await user.type(screen.getByLabelText("Tagline (under the logo) (EN)"), "Bag");
-    await user.click(screen.getByRole("tab", { name: "Português" }));
-    await user.type(screen.getByLabelText("Tagline (under the logo) (PT)"), "Saco");
+    await user.click(sharedAreaTab(/^Footer/));
+    const footer = area("shared-footer");
+    setLabeledValue(footer, "Tagline (under the logo) (EN)", "Bag");
+    await user.click(localeTab("Português"));
+    setLabeledValue(footer, "Tagline (under the logo) (PT)", "Saco");
     await user.click(screen.getByRole("button", { name: "Save Shared" }));
 
     expect(mocks.saveStorefrontCopyAction).toHaveBeenCalledTimes(1);
@@ -108,10 +151,11 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
-    await user.click(screen.getByRole("tab", { name: "Русский" }));
-    expect(screen.getByLabelText("Tagline (under the logo) (RU)")).toBeVisible();
-    expect(screen.getByLabelText("Tagline (under the logo) (RU)")).toHaveValue("Слоган");
+    await user.click(sharedAreaTab(/^Footer/));
+    await user.click(localeTab("Русский"));
+    const footer = area("shared-footer");
+    expect(footer.getByLabelText("Tagline (under the logo) (RU)")).toBeVisible();
+    expect(footer.getByLabelText("Tagline (under the logo) (RU)")).toHaveValue("Слоган");
 
     await user.click(screen.getByRole("button", { name: "Save Shared" }));
     const formData = mocks.saveStorefrontCopyAction.mock.calls[0][0] as FormData;
@@ -158,9 +202,10 @@ describe("StorefrontCopyEditor", () => {
     expect(document.querySelector(".adm-locale-workspace-header--embedded")).toBeTruthy();
     expect(document.querySelector(".adm-section-tabs__list--standalone")).toBeNull();
 
-    await user.click(screen.getByRole("tab", { name: /^Footer/ }));
-    expect(screen.getByText("Service column")).toBeVisible();
-    expect(screen.getByText("Legal line")).toBeVisible();
+    await user.click(sharedAreaTab(/^Footer/));
+    const footer = area("shared-footer");
+    expect(footer.getByText("Service column")).toBeVisible();
+    expect(footer.getByText("Legal line")).toBeVisible();
     const legal = JSON.parse(
       (document.querySelector('input[name="footerLegalLinks"]') as HTMLInputElement).value,
     ) as { items: Array<{ id: string; href: string }> };
@@ -172,17 +217,21 @@ describe("StorefrontCopyEditor", () => {
       "dispute",
     ]);
     expect(legal.items.map((item) => item.href)).not.toContain("/legal-notice");
-    expect(screen.getByText("Social column")).toBeVisible();
-    expect(screen.getByText("Footer — contact emails")).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Email (primary)" })).toHaveValue("ops@synarava.com");
-    expect(screen.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);
-    await user.click(screen.getByRole("tab", { name: /^Cookies/ }));
-    expect(screen.getByText("Cookies — banner & preferences")).toBeVisible();
-    expect(screen.getByText("Cookies — settings page")).toBeVisible();
-    expect(screen.getByLabelText("Banner title (EN)")).toBeVisible();
-    expect(screen.getByLabelText("SEO title (EN)")).toBeVisible();
-    await user.click(screen.getByRole("tab", { name: /^Contact/ }));
-    expect(screen.getByText("Shared — contact CTA")).toBeVisible();
+    expect(footer.getByText("Social column")).toBeVisible();
+    expect(footer.getByText("Footer — contact emails")).toBeVisible();
+    expect(footer.getByRole("textbox", { name: "Email (primary)" })).toHaveValue("ops@synarava.com");
+    expect(footer.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);
+
+    await user.click(sharedAreaTab(/^Cookies/));
+    const cookies = area("shared-cookies");
+    expect(cookies.getByText("Cookies — banner & preferences")).toBeVisible();
+    expect(cookies.getByText("Cookies — settings page")).toBeVisible();
+    expect(cookies.getByLabelText("Banner title (EN)")).toBeVisible();
+    expect(cookies.getByLabelText("SEO title (EN)")).toBeVisible();
+
+    await user.click(sharedAreaTab(/^Contact/));
+    const contact = area("shared-contact");
+    expect(contact.getByText("Shared — contact CTA")).toBeVisible();
     expect(screen.queryByLabelText("Care Guide (EN)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Privacy Policy (EN)")).not.toBeInTheDocument();
   }, 30_000);
@@ -200,9 +249,10 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /^Reviews/ }));
-    expect(screen.getByText("Reviews — leave a review")).toBeVisible();
-    expect(screen.getByLabelText("Heading (EN)")).toHaveAttribute("placeholder", "Share your experience");
+    await user.click(sharedAreaTab(/^Reviews/));
+    const reviews = area("shared-reviews");
+    expect(reviews.getByText("Reviews — leave a review")).toBeVisible();
+    expect(reviews.getByLabelText("Heading (EN)")).toHaveAttribute("placeholder", "Share your experience");
     expect(screen.queryByText("Header — main links")).not.toBeVisible();
   }, 30_000);
 });
