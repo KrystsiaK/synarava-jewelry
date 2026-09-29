@@ -1,5 +1,6 @@
 "use client";
 
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 
 import {
@@ -11,7 +12,15 @@ import {
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminAlert, AdminHrefField, AdminListWorkspace, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminAlert,
+  AdminHrefField,
+  AdminIconButton,
+  AdminListWorkspace,
+  AdminRichTextField,
+  AdminSelectField,
+  AdminTextField,
+} from "@/components/synarava-cms";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 
@@ -73,9 +82,22 @@ export function CreatePageForm({
             </>
           }
           actions={
-            <button type="submit" disabled={isPending} className="adm-btn-primary">
-              {isPending ? "Creating..." : "Create page"}
-            </button>
+            <AdminIconButton
+              type="submit"
+              label={isPending ? "Creating page" : "Create page"}
+              tooltip={
+                isPending
+                  ? "Creating page…"
+                  : "Create the page with the current title, slug, and copy."
+              }
+              disabled={isPending}
+            >
+              {isPending ? (
+                <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+              )}
+            </AdminIconButton>
           }
         >
           <AdminLocaleTabs

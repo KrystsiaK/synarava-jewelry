@@ -153,7 +153,7 @@ export function CreateProductForm({
               Build the product one area at a time
             </h2>
           </div>
-          <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
+          <SaveButtons iconOnly onOpenConfirm={requestSave} pending={isPending} />
         </div>
 
         <ProgressBar pending={isPending} />
@@ -214,14 +214,6 @@ export function CreateProductForm({
             />
           </div>
         </ProductEditorTabs>
-
-        <div
-          className="flex flex-wrap items-center justify-end gap-3 pt-4"
-          style={{ borderTop: "1px solid var(--adm-border)" }}
-          hidden={activeSection === "media"}
-        >
-          <SaveButtons onOpenConfirm={requestSave} pending={isPending} />
-        </div>
       </form>
 
       <AdminConfirmModal

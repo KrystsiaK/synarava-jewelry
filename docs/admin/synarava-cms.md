@@ -440,6 +440,11 @@ import {
   Save, full-width ruled edge, embedded locale tabs in the header).
 - Page **Save** matches products/collections: `AdminIconButton` + `HardDriveUpload`
   (icon + tooltip), not a primary text button. Confirm stays in `AdminConfirmModal`.
+- Locale-panel copy editors (Account, Shared/storefront, Cart & account, Site SEO,
+  Site video, Account orders settings) put the same `AdminIconButton` +
+  `HardDriveUpload` in the sticky header — either `AdminLocaleTabs` `trailing` or
+  the panel header actions row. Do **not** put a bottom-of-form primary Save button
+  on editor surfaces.
 
 Products list loads via `listAdminProductsPage` + `GET /admin/api/products` (cursor, filters, sort including problems/conflicts). Do not load the full catalog into the client for browsing.
 

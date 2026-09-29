@@ -1,5 +1,6 @@
 "use client";
 
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import {
@@ -13,7 +14,14 @@ import {
   type AdminLocaleStatus,
   type AdminLocaleTab,
 } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminAlert, AdminRichTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminAlert,
+  AdminIconButton,
+  AdminRichTextField,
+  AdminPanel,
+  AdminSectionTabs,
+  AdminTextField,
+} from "@/components/synarava-cms";
 import {
   ACCOUNT_PAGE_AREAS,
   ACCOUNT_PAGE_GROUPS,
@@ -81,6 +89,24 @@ export function AccountPageEditor({
             onSelect={selectLocale}
             locales={locales}
             ptStatus={status}
+            trailing={
+              <AdminIconButton
+                type="submit"
+                label={isPending ? "Saving customer account" : "Save customer account"}
+                tooltip={
+                  isPending
+                    ? "Saving customer account…"
+                    : "Save customer account copy. Empty fields keep the shipped defaults. Orders, addresses, reviews, and email come from Shopify."
+                }
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+                )}
+              </AdminIconButton>
+            }
           />
         </AdminPanel.Header>
         <AdminPanel.Body>
@@ -106,14 +132,6 @@ export function AccountPageEditor({
               ))}
             </div>
           </AdminSectionTabs>
-          <div className="adm-inset-x flex flex-wrap items-center justify-between gap-3 border-t py-4" style={{ borderColor: "var(--adm-border)" }}>
-            <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-              Empty fields keep the shipped copy. Orders, addresses, reviews, and the email come from Shopify.
-            </p>
-            <button type="submit" className="adm-btn-primary" disabled={isPending}>
-              {isPending ? "Saving..." : "Save customer account"}
-            </button>
-          </div>
         </AdminPanel.Body>
       </AdminPanel.Root>
     </form>

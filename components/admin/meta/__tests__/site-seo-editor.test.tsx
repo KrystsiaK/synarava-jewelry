@@ -27,7 +27,10 @@ describe("SiteSeoEditor", () => {
     expect(defaultTitle).toBeTruthy();
     await user.clear(defaultTitle);
     await user.type(defaultTitle, "New title");
-    await user.click(screen.getByRole("button", { name: "Save site SEO" }));
+    const save = screen.getByRole("button", { name: "Save site SEO" });
+    expect(save.closest("[data-component='AdminIconButton']")).not.toBeNull();
+    expect(document.querySelector(".adm-panel__header--sticky")?.contains(save)).toBe(true);
+    await user.click(save);
 
     expect(mocks.saveSiteSeoAction).toHaveBeenCalledTimes(1);
     const formData = mocks.saveSiteSeoAction.mock.calls[0][0] as FormData;

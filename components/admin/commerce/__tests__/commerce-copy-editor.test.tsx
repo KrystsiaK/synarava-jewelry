@@ -60,7 +60,9 @@ describe("CommerceCopyEditor", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("SHOPIFY: LOCAL ONLY");
     expect(document.querySelector("[data-component='AdminPanel']")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Save cart & account" })).toBeTruthy();
+    const save = screen.getByRole("button", { name: "Save cart & account" });
+    expect(save.closest("[data-component='AdminIconButton']")).not.toBeNull();
+    expect(document.querySelector(".adm-panel__header--sticky")?.contains(save)).toBe(true);
     expect(document.getElementById("commerce-cart")).toBeTruthy();
     expect(document.getElementById("commerce-checkout")).toBeTruthy();
     expect(document.getElementById("commerce-login")).toBeTruthy();

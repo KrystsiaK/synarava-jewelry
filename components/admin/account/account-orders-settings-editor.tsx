@@ -1,5 +1,6 @@
 "use client";
 
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import {
@@ -7,7 +8,12 @@ import {
   type AccountOrdersSettingsActionState,
 } from "@/app/admin/actions/account-orders-settings";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminAlert, AdminCheckboxField, AdminPanel } from "@/components/synarava-cms";
+import {
+  AdminAlert,
+  AdminCheckboxField,
+  AdminIconButton,
+  AdminPanel,
+} from "@/components/synarava-cms";
 import {
   ACCOUNT_ORDERS_SETTINGS_FIELD_DEFS,
   type AccountOrdersSettings,
@@ -32,17 +38,35 @@ export function AccountOrdersSettingsEditor({
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction}>
       <AdminAlert message={state.error} />
       <AdminPanel.Root>
-        <AdminPanel.Header className="adm-panel__header--ruled">
-          <div className="adm-inset-x py-4">
-            <p className="label-caps text-foreground/45">Orders — buyer actions</p>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-foreground/55">
-              Toggles for the signed-in Orders tab. Status chip and button labels are edited in the
-              copy sections below (обменка). Defaults keep Buy again and the headless return form off
-              until post-purchase validation passes.
-            </p>
+        <AdminPanel.Header sticky className="adm-panel__header--ruled">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="adm-section-tag">Orders — buyer actions</p>
+              <p className="mt-1 max-w-2xl text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
+                Toggles for the signed-in Orders tab. Status chip and button labels are edited in the
+                copy sections below. Defaults keep Buy again and the headless return form off until
+                post-purchase validation passes.
+              </p>
+            </div>
+            <AdminIconButton
+              type="submit"
+              label={isPending ? "Saving order action settings" : "Save order action settings"}
+              tooltip={
+                isPending
+                  ? "Saving order action settings…"
+                  : "Save Orders tab buyer-action toggles."
+              }
+              disabled={isPending}
+            >
+              {isPending ? (
+                <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+              )}
+            </AdminIconButton>
           </div>
         </AdminPanel.Header>
         <AdminPanel.Body>
@@ -55,16 +79,9 @@ export function AccountOrdersSettingsEditor({
                 defaultChecked={settings[field.key]}
                 value="true"
               >
-                <p className="text-sm text-foreground/50">{field.hint}</p>
+                <p className="text-sm" style={{ color: "var(--adm-muted)" }}>{field.hint}</p>
               </AdminCheckboxField>
             ))}
-            <button
-              type="submit"
-              disabled={isPending}
-              className="label-caps w-fit border border-stroke px-5 py-3 transition-colors hover:border-foreground/50 disabled:opacity-50"
-            >
-              {isPending ? "Saving…" : "Save order action settings"}
-            </button>
           </div>
         </AdminPanel.Body>
       </AdminPanel.Root>

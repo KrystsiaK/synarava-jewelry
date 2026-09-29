@@ -1,5 +1,6 @@
 "use client";
 
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -7,6 +8,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
   AdminAlert,
   AdminHelp,
+  AdminIconButton,
   AdminPanelBody,
   AdminPanelHeader,
   AdminPanelRoot,
@@ -103,46 +105,60 @@ export function SiteVideosCms({ videos }: { videos: SiteVideos }) {
   }
 
   return (
-    <AdminPanelRoot data-component="SiteVideosCms">
-      <AdminPanelHeader sticky={false} className="adm-band--lg">
-        <div className="grid gap-3">
-          <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
-          <h2 className="adm-title-sm">Site video</h2>
-          <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
-            Upload or remove MP4 / WebM (up to 100 MB each). Files go through the app into Railway Bucket, and removing or replacing a slot deletes that object. When a slot is set, it replaces the matching static hero image on the storefront after cache revalidation.
-          </p>
-        </div>
-      </AdminPanelHeader>
-
-      <AdminPanelBody className="adm-inset-x grid gap-6 pb-6 pt-2">
-        <AdminAlert message={state.error} />
-
-        <form ref={formRef} action={submit} className="grid gap-0">
-          {VIDEO_FIELDS.map(({ slot, label, description }, index) => (
-            <div
-              key={slot}
-              className="grid gap-4 border-t py-6 first:border-t-0 first:pt-2 last:pb-2"
-              style={{ borderColor: "var(--adm-border)" }}
-              data-slot-index={index}
-            >
-              <AdminVideoField
-                name={slot}
-                label={label}
-                help={<AdminHelp>{description}</AdminHelp>}
-                currentVideoUrl={videos[slot] || null}
-                removeFieldName={removeFieldName(slot)}
-                disabled={isPending}
-              />
+    <form ref={formRef} action={submit}>
+      <AdminPanelRoot data-component="SiteVideosCms">
+        <AdminPanelHeader sticky className="adm-panel__header--ruled">
+          <div className="flex items-start justify-between gap-3">
+            <div className="grid min-w-0 gap-1">
+              <p className="adm-section-tag">[ S3 MEDIA LIBRARY ]</p>
+              <h2 className="adm-title-sm">Site video</h2>
+              <p className="max-w-2xl text-sm leading-6" style={{ color: "var(--adm-muted)" }}>
+                Upload or remove MP4 / WebM (up to 100 MB each). Files go through the app into Railway Bucket, and removing or replacing a slot deletes that object. When a slot is set, it replaces the matching static hero image on the storefront after cache revalidation.
+              </p>
             </div>
-          ))}
-
-          <div className="flex justify-end border-t pt-5" style={{ borderColor: "var(--adm-border)" }}>
-            <button type="submit" className="adm-btn-primary" disabled={isPending}>
-              {isPending ? "Saving…" : "Save video changes"}
-            </button>
+            <AdminIconButton
+              type="submit"
+              label={isPending ? "Saving video changes" : "Save video changes"}
+              tooltip={
+                isPending
+                  ? "Saving video changes…"
+                  : "Upload chosen files and apply removals for marked slots."
+              }
+              disabled={isPending}
+            >
+              {isPending ? (
+                <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+              )}
+            </AdminIconButton>
           </div>
-        </form>
-      </AdminPanelBody>
-    </AdminPanelRoot>
+        </AdminPanelHeader>
+
+        <AdminPanelBody className="adm-inset-x grid gap-6 pb-6 pt-2">
+          <AdminAlert message={state.error} />
+
+          <div className="grid gap-0">
+            {VIDEO_FIELDS.map(({ slot, label, description }, index) => (
+              <div
+                key={slot}
+                className="grid gap-4 border-t py-6 first:border-t-0 first:pt-2 last:pb-2"
+                style={{ borderColor: "var(--adm-border)" }}
+                data-slot-index={index}
+              >
+                <AdminVideoField
+                  name={slot}
+                  label={label}
+                  help={<AdminHelp>{description}</AdminHelp>}
+                  currentVideoUrl={videos[slot] || null}
+                  removeFieldName={removeFieldName(slot)}
+                  disabled={isPending}
+                />
+              </div>
+            ))}
+          </div>
+        </AdminPanelBody>
+      </AdminPanelRoot>
+    </form>
   );
 }

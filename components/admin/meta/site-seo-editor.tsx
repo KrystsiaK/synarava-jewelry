@@ -1,11 +1,18 @@
 "use client";
 
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { saveSiteSeoAction, type SiteSeoActionState } from "@/app/admin/actions/site-seo";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminAlert, AdminRichTextField, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminAlert,
+  AdminIconButton,
+  AdminPanel,
+  AdminRichTextField,
+  AdminTextField,
+} from "@/components/synarava-cms";
 import {
   SITE_SEO_DEFAULTS,
   SITE_SEO_FIELD_DEFS,
@@ -74,20 +81,52 @@ export function SiteSeoEditor({
         </ul>
       </section>
 
-      <form action={formAction} className="grid gap-8">
+      <form action={formAction} id="site-seo-defaults">
         <AdminAlert message={state.error} />
-        <section id="site-seo-defaults" className="adm-panel grid gap-4 p-5 md:p-6">
-          <div>
-            <p className="adm-section-tag">Site-wide defaults</p>
-            <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
-              Leave a field empty to fall back to the shipped default (placeholder). English source for the whole storefront.
-            </p>
-          </div>
-          <div className="grid gap-4">
-            {SITE_SEO_FIELD_DEFS.map((field) => {
-              if (field.area) {
+        <AdminPanel.Root>
+          <AdminPanel.Header sticky className="adm-panel__header--ruled">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="adm-section-tag">Site-wide defaults</p>
+                <p className="mt-1 text-xs" style={{ color: "var(--adm-muted)" }}>
+                  Leave a field empty to fall back to the shipped default. English source for the whole storefront.
+                </p>
+              </div>
+              <AdminIconButton
+                type="submit"
+                label={isPending ? "Saving site SEO" : "Save site SEO"}
+                tooltip={
+                  isPending
+                    ? "Saving site SEO…"
+                    : "Save site-wide SEO defaults. Empty fields keep the shipped fallback."
+                }
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+                )}
+              </AdminIconButton>
+            </div>
+          </AdminPanel.Header>
+          <AdminPanel.Body>
+            <div className="adm-inset-x grid gap-4 py-5">
+              {SITE_SEO_FIELD_DEFS.map((field) => {
+                if (field.area) {
+                  return (
+                    <AdminRichTextField
+                      key={field.key}
+                      label={field.label}
+                      help={field.hint}
+                      name={field.key}
+                      defaultValue={overrides[field.key] ?? ""}
+                      placeholder={SITE_SEO_DEFAULTS[field.key]}
+                    />
+                  );
+                }
                 return (
-                  <AdminRichTextField
+                  <AdminTextField
                     key={field.key}
                     label={field.label}
                     help={field.hint}
@@ -96,26 +135,10 @@ export function SiteSeoEditor({
                     placeholder={SITE_SEO_DEFAULTS[field.key]}
                   />
                 );
-              }
-              return (
-                <AdminTextField
-                  key={field.key}
-                  label={field.label}
-                  help={field.hint}
-                  name={field.key}
-                  defaultValue={overrides[field.key] ?? ""}
-                  placeholder={SITE_SEO_DEFAULTS[field.key]}
-                />
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="flex justify-end" style={{ borderTop: "1px solid var(--adm-border)", paddingTop: "1rem" }}>
-          <button type="submit" className="adm-btn-primary" disabled={isPending}>
-            {isPending ? "Saving..." : "Save site SEO"}
-          </button>
-        </div>
+              })}
+            </div>
+          </AdminPanel.Body>
+        </AdminPanel.Root>
       </form>
     </div>
   );

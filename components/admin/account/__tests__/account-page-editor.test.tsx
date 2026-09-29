@@ -78,7 +78,10 @@ describe("AccountPageEditor", () => {
     );
 
     setLabeledValue(area("frame"), "Sign out (EN)", "Exit");
-    await user.click(screen.getByRole("button", { name: "Save customer account" }));
+    const save = screen.getByRole("button", { name: "Save customer account" });
+    expect(save.closest("[data-component='AdminIconButton']")).not.toBeNull();
+    expect(document.querySelector(".adm-panel__header--sticky")?.contains(save)).toBe(true);
+    await user.click(save);
 
     const formData = mocks.saveAccountPageAction.mock.calls[0][0] as FormData;
     expect(formData.get("en:profile.signOut")).toBe("Exit");

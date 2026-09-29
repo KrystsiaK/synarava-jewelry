@@ -1,5 +1,6 @@
 "use client";
 
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import {
@@ -13,7 +14,14 @@ import {
   type AdminLocaleStatus,
   type AdminLocaleTab,
 } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminAlert, AdminRichTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminAlert,
+  AdminIconButton,
+  AdminRichTextField,
+  AdminPanel,
+  AdminSectionTabs,
+  AdminTextField,
+} from "@/components/synarava-cms";
 import {
   COMMERCE_COPY_AREAS,
   COMMERCE_COPY_GROUPS,
@@ -82,9 +90,22 @@ export function CommerceCopyEditor({
             locales={locales}
             ptStatus={status}
             trailing={
-              <button type="submit" className="adm-btn-primary" disabled={isPending}>
-                {isPending ? "Saving..." : "Save cart & account"}
-              </button>
+              <AdminIconButton
+                type="submit"
+                label={isPending ? "Saving cart & account" : "Save cart & account"}
+                tooltip={
+                  isPending
+                    ? "Saving cart & account…"
+                    : "Save cart, checkout, and account copy for every language in this form."
+                }
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+                )}
+              </AdminIconButton>
             }
           />
         </AdminPanel.Header>

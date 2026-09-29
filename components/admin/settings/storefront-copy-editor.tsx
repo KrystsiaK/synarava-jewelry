@@ -1,5 +1,6 @@
 "use client";
 
+import { HardDriveUpload, RefreshCw } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import {
@@ -11,7 +12,14 @@ import { FooterLinkColumnEditor } from "@/components/admin/settings/footer-link-
 import { HeaderNavEditor } from "@/components/admin/settings/header-nav-editor";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
-import { AdminAlert, AdminRichTextField, AdminPanel, AdminSectionTabs, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminAlert,
+  AdminIconButton,
+  AdminRichTextField,
+  AdminPanel,
+  AdminSectionTabs,
+  AdminTextField,
+} from "@/components/synarava-cms";
 import {
   DEFAULT_FOOTER_LEGAL_LABEL_KEYS,
   DEFAULT_FOOTER_SERVICE_LABEL_KEYS,
@@ -126,6 +134,24 @@ export function StorefrontCopyEditor({
             onSelect={selectLocale}
             locales={locales}
             ptStatus={ptStatus}
+            trailing={
+              <AdminIconButton
+                type="submit"
+                label={isPending ? "Saving Shared" : "Save Shared"}
+                tooltip={
+                  isPending
+                    ? "Saving Shared…"
+                    : "Save writes header, footer, cookies, and contact together."
+                }
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+                )}
+              </AdminIconButton>
+            }
           />
         </AdminPanel.Header>
         <AdminPanel.Body>
@@ -271,15 +297,6 @@ export function StorefrontCopyEditor({
             </div>
           </div>
         </AdminSectionTabs>
-
-        <div className="adm-inset-x flex flex-wrap items-center justify-between gap-3 border-t py-4" style={{ borderColor: "var(--adm-border)" }}>
-          <p className="text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
-            Save writes header, footer, cookies, and contact together.
-          </p>
-          <button type="submit" className="adm-btn-primary" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Shared"}
-          </button>
-        </div>
         </AdminPanel.Body>
       </AdminPanel.Root>
     </form>
