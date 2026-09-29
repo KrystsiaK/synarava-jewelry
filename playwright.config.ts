@@ -52,14 +52,20 @@ export default defineConfig({
   ],
   webServer: {
     // CI: production server after an explicit `pnpm build` step (see ci.yml).
-    // Local: `next dev` with reuse so an already-running app is fine.
+    // Local: bind the same host Playwright probes (127.0.0.1) so Next.js does
+    // not treat the browser as a blocked cross-origin for /_next assets.
     command: process.env.CI
       ? `pnpm exec next start --hostname ${E2E_HOST} --port ${E2E_PORT}`
-      : "pnpm dev",
+      : `pnpm exec next dev --hostname ${E2E_HOST} --port ${E2E_PORT}`,
     port: E2E_PORT,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     stdout: "pipe",
     stderr: "pipe",
+    env: {
+      ...process.env,
+      // Prefer an already-exported DATABASE_URL; fall back to the public proxy URL in cloud agents.
+      DATABASE_URL: process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL || "",
+    },
   },
 });

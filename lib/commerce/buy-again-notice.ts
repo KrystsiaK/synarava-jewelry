@@ -26,7 +26,7 @@ export type BuyAgainNotice = {
   rejectCode?: string;
 };
 
-function cookieOptions(maxAge: number) {
+export function buyAgainCookieOptions(maxAge: number) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
@@ -34,6 +34,34 @@ function cookieOptions(maxAge: number) {
     path: "/",
     maxAge,
   };
+}
+
+type CookieWriter = {
+  cookies: {
+    set: (
+      name: string,
+      value: string,
+      options?: ReturnType<typeof buyAgainCookieOptions>,
+    ) => unknown;
+  };
+};
+
+/** Attach flash notice to a Route Handler `NextResponse` (e.g. redirect). */
+export function appendBuyAgainNoticeCookie(response: CookieWriter, notice: BuyAgainNotice) {
+  response.cookies.set(
+    BUY_AGAIN_NOTICE_COOKIE,
+    encodeBuyAgainNotice(notice),
+    buyAgainCookieOptions(BUY_AGAIN_NOTICE_MAX_AGE_SECONDS),
+  );
+}
+
+/** Attach replay hash to a Route Handler `NextResponse`. */
+export function appendBuyAgainReplayCookie(response: CookieWriter, hash: string) {
+  response.cookies.set(
+    BUY_AGAIN_REPLAY_COOKIE,
+    hash,
+    buyAgainCookieOptions(BUY_AGAIN_REPLAY_MAX_AGE_SECONDS),
+  );
 }
 
 /** Compact cookie payload: outcome|added|skipped|rejectCode? */
@@ -69,7 +97,11 @@ export function decodeBuyAgainNotice(raw: string | undefined): BuyAgainNotice | 
 
 export async function setBuyAgainNotice(notice: BuyAgainNotice) {
   const store = await cookies();
-  store.set(BUY_AGAIN_NOTICE_COOKIE, encodeBuyAgainNotice(notice), cookieOptions(BUY_AGAIN_NOTICE_MAX_AGE_SECONDS));
+  store.set(
+    BUY_AGAIN_NOTICE_COOKIE,
+    encodeBuyAgainNotice(notice),
+    buyAgainCookieOptions(BUY_AGAIN_NOTICE_MAX_AGE_SECONDS),
+  );
 }
 
 /**
@@ -91,7 +123,7 @@ export async function readBuyAgainNotice(): Promise<BuyAgainNotice | null> {
 export async function clearBuyAgainNotice() {
   const store = await cookies();
   if (!store.get(BUY_AGAIN_NOTICE_COOKIE)) return;
-  store.set(BUY_AGAIN_NOTICE_COOKIE, "", { ...cookieOptions(0), maxAge: 0 });
+  store.set(BUY_AGAIN_NOTICE_COOKIE, "", { ...buyAgainCookieOptions(0), maxAge: 0 });
 }
 
 export function hashBuyAgainReplay(locale: string, canonical: string) {
@@ -104,5 +136,5 @@ export async function readBuyAgainReplayHash(): Promise<string | null> {
 
 export async function writeBuyAgainReplayHash(hash: string) {
   const store = await cookies();
-  store.set(BUY_AGAIN_REPLAY_COOKIE, hash, cookieOptions(BUY_AGAIN_REPLAY_MAX_AGE_SECONDS));
+  store.set(BUY_AGAIN_REPLAY_COOKIE, hash, buyAgainCookieOptions(BUY_AGAIN_REPLAY_MAX_AGE_SECONDS));
 }

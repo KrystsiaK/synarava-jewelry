@@ -13,26 +13,26 @@ test.describe("Buy again cart notice", () => {
   test("keeps the notice after hydration, clears on reload, and does not re-add on replay", async ({
     context,
     page,
+    baseURL,
   }) => {
-    await page.goto("/en/cart");
-    const cookieUrl = page.url();
+    const origin = new URL(baseURL ?? "http://127.0.0.1:3000");
 
     await context.addCookies([
       {
         name: NOTICE_COOKIE,
         value: "completed|2|0",
-        url: cookieUrl,
+        domain: origin.hostname,
+        path: "/",
         httpOnly: true,
         sameSite: "Lax",
-        path: "/",
       },
       {
         name: REPLAY_COOKIE,
         value: replayHash("en", "1:1"),
-        url: cookieUrl,
+        domain: origin.hostname,
+        path: "/",
         httpOnly: true,
         sameSite: "Lax",
-        path: "/",
       },
     ]);
 
