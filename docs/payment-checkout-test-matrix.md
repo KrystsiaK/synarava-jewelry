@@ -9,6 +9,10 @@ This is the living test plan and execution log for Synarava checkout and
 payments. Record results here without customer email addresses, phone numbers,
 street addresses, full payment details, or screenshots containing those data.
 
+The implementation plan for Shopify order-status links, **Buy again**, and
+**Cancel items** is maintained in
+[`SHOPIFY_POST_PURCHASE_FLOWS.md`](../SHOPIFY_POST_PURCHASE_FLOWS.md).
+
 ## Official references
 
 - [Authenticate buyers in checkout (`sso=silent`)](https://shopify.dev/docs/storefronts/headless/building-with-the-customer-account-api/checkout-authentication)
