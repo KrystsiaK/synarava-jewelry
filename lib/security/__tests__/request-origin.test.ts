@@ -40,6 +40,19 @@ describe("getTrustedRequestOrigin", () => {
     ).toBe("https://shop.synarava.com");
   });
 
+  it("uses the configured public forwarded host when a reverse proxy has an internal Host", () => {
+    process.env.APP_URL = "https://shop.synarava.com";
+    expect(
+      getTrustedRequestOrigin(
+        request("http://localhost:3000/api/auth/shopify", {
+          host: "localhost:3000",
+          "x-forwarded-host": "shop.synarava.com",
+          "x-forwarded-proto": "https",
+        }),
+      ),
+    ).toBe("https://shop.synarava.com");
+  });
+
   it("falls back to APP_URL when Host is not allowlisted", () => {
     process.env.APP_URL = "https://shop.synarava.com";
     expect(

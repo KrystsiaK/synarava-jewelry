@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { getTrustedRequestOrigin } from "@/lib/security/request-origin";
 import {
   getShopifyCustomerAccountConfig,
   safeCustomerReturnPath,
@@ -52,7 +53,8 @@ export async function GET(request: NextRequest) {
   // callback, so a localhost start would store state where the callback
   // never looks and the sign-in fails before the email screen.
   const callbackHost = new URL(config.appOrigin).hostname;
-  if (isLocalDevHost(request.nextUrl.hostname) && request.nextUrl.hostname !== callbackHost) {
+  const requestHost = new URL(getTrustedRequestOrigin(request)).hostname;
+  if (isLocalDevHost(requestHost) && requestHost !== callbackHost) {
     const target = new URL(request.nextUrl.pathname + request.nextUrl.search, config.appOrigin);
     const response = NextResponse.redirect(target);
     response.headers.set("cache-control", "no-store");

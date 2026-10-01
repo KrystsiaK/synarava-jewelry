@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getConfig: vi.fn(),
@@ -23,6 +23,10 @@ vi.mock("@/lib/shopify/customer-account/discovery", () => ({
 import { GET } from "../route";
 
 describe("Shopify customer account authorize", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getConfig.mockReturnValue({
@@ -79,6 +83,32 @@ describe("Shopify customer account authorize", () => {
     );
     expect(response.headers.get("set-cookie")).toBeNull();
     expect(mocks.discover).not.toHaveBeenCalled();
+  });
+
+  it("uses the trusted public proxy host instead of redirecting from Railway's internal localhost", async () => {
+    vi.stubEnv("APP_URL", "https://shop.synarava.com");
+    const request = new NextRequest(
+      "http://localhost:3000/api/auth/shopify?returnTo=%2Fen%2Fprofile",
+      {
+        headers: {
+          host: "localhost:3000",
+          "sec-fetch-dest": "document",
+          "sec-fetch-mode": "navigate",
+          "x-forwarded-host": "shop.synarava.com",
+          "x-forwarded-proto": "https",
+        },
+      },
+    );
+
+    const response = await GET(request);
+    const location = new URL(response.headers.get("location") ?? "");
+
+    expect(response.status).toBe(307);
+    expect(location.origin).toBe("https://shopify.com");
+    expect(response.headers.get("set-cookie")).toContain(
+      "synarava-shopify-customer-oauth=encrypted-transaction",
+    );
+    expect(mocks.discover).toHaveBeenCalledOnce();
   });
 
   it("does not mint a PKCE transaction for an RSC or prefetch fetch", async () => {

@@ -1,7 +1,8 @@
 /**
  * Resolve a trusted absolute origin for same-site redirects (e.g. Buy again).
- * Prefer the connection `Host` header; accept `x-forwarded-*` only when the
- * host is on an allowlist (APP_URL / loopback) and the protocol is http(s).
+ * Prefer an `x-forwarded-host` that exactly matches APP_URL (the public host
+ * behind a reverse proxy), then the connection `Host`. Every accepted host is
+ * allowlisted (APP_URL / loopback) and the protocol must be http(s).
  */
 
 function configuredAppOrigin(): string | null {
@@ -50,10 +51,14 @@ export function getTrustedRequestOrigin(request: Request): string {
   const host = firstHeaderValue(request.headers.get("host"));
   const forwardedHost = firstHeaderValue(request.headers.get("x-forwarded-host"));
   const forwardedProto = firstHeaderValue(request.headers.get("x-forwarded-proto"))?.toLowerCase() ?? null;
+  const appHost = appOrigin ? new URL(appOrigin).host : null;
+  const trustedForwardedHost =
+    forwardedHost && allowed.has(forwardedHost) ? forwardedHost : null;
 
   const trustedHost =
+    (trustedForwardedHost === appHost ? trustedForwardedHost : null) ??
     (host && allowed.has(host) ? host : null) ??
-    (forwardedHost && allowed.has(forwardedHost) ? forwardedHost : null);
+    trustedForwardedHost;
 
   if (trustedHost) {
     return `${trustedProto(forwardedProto, trustedHost, appOrigin)}://${trustedHost}`;
