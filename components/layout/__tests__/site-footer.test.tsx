@@ -6,7 +6,7 @@ import { SiteFooter } from "../site-footer";
 
 const defaultHeaderNav = { items: DEFAULT_HEADER_NAV_ITEMS, labels: {} };
 const defaultFooter = defaultFooterLinks();
-const defaultEmails = ["synarava.shop@gmail.com"];
+const defaultEmails = ["care@synarava.com"];
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <ThemeProvider initialPreference="light">{children}</ThemeProvider>;

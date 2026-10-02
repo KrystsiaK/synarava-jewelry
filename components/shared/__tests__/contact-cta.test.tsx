@@ -10,7 +10,7 @@ describe("ContactCta", () => {
         title="Need a specific answer?"
         body="Have a question that isn't covered here?"
         ctaLabel="Contact us"
-        href="mailto:synarava.shop@gmail.com"
+        href="mailto:care@synarava.com"
       />,
     );
 
@@ -18,7 +18,7 @@ describe("ContactCta", () => {
     expect(screen.getByText("Have a question that isn't covered here?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Contact us" })).toHaveAttribute(
       "href",
-      "mailto:synarava.shop@gmail.com",
+      "mailto:care@synarava.com",
     );
   });
 });

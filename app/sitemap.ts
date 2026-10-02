@@ -4,6 +4,7 @@ import { BUILT_IN_PAGE_DEFINITIONS, RETIRED_PAGE_SLUGS } from "@/lib/content/bui
 import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
+import { isProductionDeployment } from "@/lib/deployment-environment";
 
 const BUILT_IN_SITEMAP_SLUGS = new Set<string>([
   "home",
@@ -39,6 +40,8 @@ function withLocales(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  if (!isProductionDeployment()) return [];
+
   const baseUrl = getPublicSiteUrl();
   const locales = await getPublishedStorefrontLocales();
   const routeSegments = locales.map((locale) => locale.routeSegment);

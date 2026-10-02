@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/locales";
+import { CUSTOMER_CARE_EMAIL } from "@/lib/content/customer-care-email";
 import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
 
 // Verbatim extraction of the hardcoded copy that shipped on /care, /faq,
@@ -137,13 +138,13 @@ const serviceSectionDefaultsEn: Record<ServicePageSlug, Record<string, LegalSect
     },
     question: {
       title: "Can I ask about a product first?",
-      body: "Yes. Email synarava.shop@gmail.com with the product name or link. For fit, materials, compatibility, or safety questions, ask before ordering.",
+      body: `Yes. Email ${CUSTOMER_CARE_EMAIL} with the product name or link. For fit, materials, compatibility, or safety questions, ask before ordering.`,
     },
   },
   returns: {
     start: {
       title: "Start a request",
-      body: "Email synarava.shop@gmail.com with your order number, the product name, and the reason for the request. We will reply with the applicable return instructions.",
+      body: `Email ${CUSTOMER_CARE_EMAIL} with your order number, the product name, and the reason for the request. We will reply with the applicable return instructions.`,
     },
     condition: {
       title: "Condition",
@@ -222,13 +223,13 @@ const serviceSectionDefaultsPt: Record<ServicePageSlug, Record<string, LegalSect
     },
     question: {
       title: "Posso esclarecer dúvidas antes de comprar?",
-      body: "Sim. Envie um email para synarava.shop@gmail.com com o nome ou ligação do produto. Para questões de tamanho, materiais, compatibilidade ou segurança, contacte-nos antes de encomendar.",
+      body: `Sim. Envie um email para ${CUSTOMER_CARE_EMAIL} com o nome ou ligação do produto. Para questões de tamanho, materiais, compatibilidade ou segurança, contacte-nos antes de encomendar.`,
     },
   },
   returns: {
     start: {
       title: "Iniciar um pedido",
-      body: "Envie um email para synarava.shop@gmail.com com o número da encomenda, o nome do produto e o motivo. Responderemos com as instruções aplicáveis.",
+      body: `Envie um email para ${CUSTOMER_CARE_EMAIL} com o número da encomenda, o nome do produto e o motivo. Responderemos com as instruções aplicáveis.`,
     },
     condition: {
       title: "Estado do produto",

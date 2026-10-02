@@ -19,12 +19,20 @@ Set these public, non-secret deployment values:
 - `NEXT_PUBLIC_SITE_URL` — canonical HTTPS storefront URL.
 - `NEXT_PUBLIC_LEGAL_NAME` — full legal name of the controller.
 - `NEXT_PUBLIC_LEGAL_POSTAL_ADDRESS` — controller postal address shown in the notice.
-- `NEXT_PUBLIC_PRIVACY_EMAIL` — monitored privacy-rights address.
+- `NEXT_PUBLIC_PRIVACY_EMAIL` — monitored privacy-rights address. Set it to
+  `care@synarava.com` in both production and staging; the application also
+  upgrades the retired Gmail value at read time during the transition.
 
 Optional destinations:
 
 - `NEXT_PUBLIC_GTM_ID` — loaded only after analytics consent.
 - `NEXT_PUBLIC_META_PIXEL_ID` — loaded only after marketing consent.
+
+On Railway, optional destinations are disabled automatically in every
+environment whose `RAILWAY_ENVIRONMENT_NAME` is not `production`, even when
+production IDs were copied into it. Set the server-only
+`ENABLE_NON_PRODUCTION_ANALYTICS=true` only for a deliberate staging analytics
+test, then remove it again.
 
 Shopify consent synchronization is enabled only when all three existing public
 Shopify privacy values are present: storefront access token, checkout root domain,

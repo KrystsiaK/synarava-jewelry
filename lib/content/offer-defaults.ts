@@ -1,4 +1,5 @@
 import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
+import { CUSTOMER_CARE_EMAIL } from "@/lib/content/customer-care-email";
 
 // Verbatim extraction of the hardcoded copy that shipped on /offer before it
 // became admin-editable — these are the fallback values when a section has
@@ -109,7 +110,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       [
         "**Conditions for return**",
         "- The item is unused and in its original condition with all packaging.",
-        "- The return is initiated via email to synarava.shop@gmail.com within the 14-day window.",
+        `- The return is initiated via email to ${CUSTOMER_CARE_EMAIL} within the 14-day window.`,
         "- Custom or personalised pieces cannot be returned unless defective.",
       ].join("\n"),
       [
@@ -152,7 +153,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
   "dispute-resolution": {
     title: "How disputes are resolved",
     body: [
-      "In the event of a dispute, we encourage you to contact us first at [synarava.shop@gmail.com](mailto:synarava.shop@gmail.com). We aim to resolve all issues amicably within 10 business days.",
+      `In the event of a dispute, we encourage you to contact us first at [${CUSTOMER_CARE_EMAIL}](mailto:${CUSTOMER_CARE_EMAIL}). We aim to resolve all issues amicably within 10 business days.`,
       "If an amicable resolution cannot be reached, you may have access to alternative consumer dispute resolution services — see our Consumer Dispute Resolution page for the available channels.",
       "This Agreement is governed by the laws of the Republic of Lithuania (where Synarava's operations are registered). Disputes that cannot be resolved amicably shall be subject to the jurisdiction of the competent courts of Lithuania, without prejudice to mandatory consumer protection provisions in the Buyer's country of residence.",
     ].join("\n\n"),
@@ -163,7 +164,7 @@ export const OFFER_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       "This Agreement constitutes the entire agreement between the Seller and the Buyer with respect to the purchase of Products and supersedes all prior representations or understandings.",
       "If any provision of this Agreement is found to be unenforceable, the remaining provisions shall continue in full force and effect.",
       "Synarava reserves the right to modify this Agreement at any time. The version in effect at the time of Order placement governs that specific transaction. We recommend reviewing this page periodically.",
-      "**Questions about this Agreement?**\nContact us at [synarava.shop@gmail.com](mailto:synarava.shop@gmail.com) and we will respond within 2 business days.",
+      `**Questions about this Agreement?**\nContact us at [${CUSTOMER_CARE_EMAIL}](mailto:${CUSTOMER_CARE_EMAIL}) and we will respond within 2 business days.`,
     ].join("\n\n"),
   },
 };

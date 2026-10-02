@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { isProductionDeployment } from "./lib/deployment-environment";
 
 function hostnameFromUrl(value?: string) {
   if (!value) return null;
@@ -100,6 +101,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    const preventIndexing = !isProductionDeployment();
     return [
       {
         source: "/(.*)",
@@ -112,6 +114,9 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          ...(preventIndexing
+            ? [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]
+            : []),
         ],
       },
     ];

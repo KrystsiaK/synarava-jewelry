@@ -28,4 +28,27 @@ describe("Next.js deployment identity", () => {
     expect(config.experimental?.proxyClientMaxBodySize).toBe("12mb");
     expect(config.experimental?.serverActions?.bodySizeLimit).toBe("12mb");
   });
+
+  it("adds an X-Robots-Tag guard to Railway staging", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RAILWAY_ENVIRONMENT_NAME", "staging");
+    const { default: config } = await import("@/next.config");
+
+    const rules = await config.headers?.();
+    expect(rules?.[0]?.headers).toContainEqual({
+      key: "X-Robots-Tag",
+      value: "noindex, nofollow, noarchive",
+    });
+  });
+
+  it("does not send a noindex header from Railway production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RAILWAY_ENVIRONMENT_NAME", "production");
+    const { default: config } = await import("@/next.config");
+
+    const rules = await config.headers?.();
+    expect(rules?.[0]?.headers).not.toContainEqual(expect.objectContaining({
+      key: "X-Robots-Tag",
+    }));
+  });
 });

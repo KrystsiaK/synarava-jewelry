@@ -37,7 +37,7 @@ test.describe("Home page", () => {
     await expect(footer).toBeVisible();
     await expect(footer.getByRole("link", { name: "Shipping" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "Returns" })).toBeVisible();
-    await expect(footer.getByRole("link", { name: "Contact: synarava.shop@gmail.com" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Contact: care@synarava.com" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Shipping" })).toHaveCount(1);
   });
 
@@ -124,6 +124,15 @@ test.describe("Home page", () => {
     await expect(page.getByRole("link", { name: /Cart/ })).toBeVisible();
   });
 
+  for (const locale of ["en", "pt"] as const) {
+    test(`keeps the final shop CTA inside the ${locale.toUpperCase()} storefront`, async ({ page }) => {
+      await page.goto(`/${locale}`);
+      await expect(
+        page.locator(`.home-final-scene a[href="/${locale}/shop"]`),
+      ).toHaveCount(1);
+    });
+  }
+
   test("keeps all three Lexicon plates connected to mobile page scroll", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
@@ -165,7 +174,7 @@ test.describe("Home page", () => {
     await expect(finalScene.locator("[data-mobile-final-shard]")).toHaveCount(2);
     await expect(finalScene.locator("[data-mobile-final-shard]").first()).toBeVisible();
     await expect(finalScene.getByText("Objects shaped slowly,")).toBeVisible();
-    await expect(finalScene.getByRole("link", { name: "synarava.shop@gmail.com" })).toBeVisible();
+    await expect(finalScene.getByRole("link", { name: "care@synarava.com" })).toBeVisible();
     expect(await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     )).toBe(false);

@@ -39,6 +39,11 @@ describe("footer contact email", () => {
     await expect(getFooterContactEmail()).resolves.toBe("hello@synarava.com");
   });
 
+  it("upgrades the retired Gmail address in persisted settings", async () => {
+    mocks.findUnique.mockResolvedValue({ value: { emails: ["synarava.shop@gmail.com"] } });
+    await expect(getFooterContactEmails()).resolves.toEqual([DEFAULT_FOOTER_CONTACT_EMAIL]);
+  });
+
   it("returns multiple persisted emails", async () => {
     mocks.findUnique.mockResolvedValue({
       value: { emails: ["a@synarava.com", "b@synarava.com"] },

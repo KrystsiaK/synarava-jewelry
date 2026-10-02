@@ -1,4 +1,5 @@
 import type { LegalSectionDefault, LegalSectionMeta } from "./legal-sections";
+import { CUSTOMER_CARE_EMAIL } from "@/lib/content/customer-care-email";
 
 // The Terms & Conditions Legal Document — replaces "Public Offer Agreement"
 // (/offer) as the store's customer-facing contractual terms. /offer is left
@@ -185,7 +186,7 @@ export const TERMS_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
   "dispute-resolution": {
     title: "Consumer disputes",
     body: [
-      "If you have a question or complaint about an Order, please contact us first at synarava.shop@gmail.com so that we can try to resolve the matter directly.",
+      `If you have a question or complaint about an Order, please contact us first at ${CUSTOMER_CARE_EMAIL} so that we can try to resolve the matter directly.`,
       "Consumers may also have access to alternative consumer dispute resolution mechanisms in accordance with applicable law.",
       "Information about the relevant consumer dispute resolution entity and available procedures is provided on our [Consumer Dispute Resolution](/dispute-resolution) page.",
       "You can also access the official Portuguese electronic complaints book through the Livro de Reclamações link available in the website footer.",
@@ -199,7 +200,7 @@ export const TERMS_SECTION_DEFAULTS: Record<string, LegalSectionDefault> = {
       "If any provision of these Terms & Conditions is found to be invalid or unenforceable, the remaining provisions continue to apply to the extent permitted by law.",
       "We may update these Terms & Conditions from time to time to reflect changes to the Shop, our practices or applicable legal requirements. The version applicable to an Order is the version made available to you in connection with that purchase.",
       "Changes to these Terms & Conditions do not retroactively remove or reduce rights arising from an Order already placed.",
-      "If you have questions about these Terms & Conditions, contact us at synarava.shop@gmail.com.",
+      `If you have questions about these Terms & Conditions, contact us at ${CUSTOMER_CARE_EMAIL}.`,
     ].join("\n\n"),
   },
 };

@@ -11,6 +11,10 @@ import { resolveLegalLastUpdatedLabel, resolveSharedLegalDate } from "@/lib/cont
 import { isSavedLegalDocument, resolveDocumentSections, resolveLegalText } from "@/lib/content/legal-sections";
 import { shippedLegalEntries } from "@/lib/content/document-section-defaults";
 import { PRIVACY_LAST_UPDATED_DEFAULT } from "@/lib/content/privacy-defaults";
+import {
+  CUSTOMER_CARE_EMAIL,
+  replaceLegacyCustomerCareEmail,
+} from "@/lib/content/customer-care-email";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getServerTranslations();
@@ -39,7 +43,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PrivacyPage() {
   const legalName = process.env.NEXT_PUBLIC_LEGAL_NAME ?? "Synarava Jewelry";
   const postalAddress = process.env.NEXT_PUBLIC_LEGAL_POSTAL_ADDRESS;
-  const privacyEmail = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "synarava.shop@gmail.com";
+  const privacyEmail = replaceLegacyCustomerCareEmail(
+    process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? CUSTOMER_CARE_EMAIL,
+  );
   const { t, locale } = await getServerTranslations();
   const page = await getPageBySlug("privacy", locale);
   const heroImage = page?.content.heroImage;

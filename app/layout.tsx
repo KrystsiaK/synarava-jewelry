@@ -33,6 +33,10 @@ import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { buildOrganizationJsonLd } from "@/lib/seo/organization-json-ld";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
+import {
+  allowNonProductionAnalytics,
+  isProductionDeployment,
+} from "@/lib/deployment-environment";
 
 import "./globals.css";
 
@@ -60,6 +64,7 @@ const TWITTER_DESCRIPTION_FALLBACK =
 export async function generateMetadata(): Promise<Metadata> {
   const [seo, locale] = await Promise.all([getSiteSeo(), getRequestLocale()]);
   const openGraphLocales = await buildOpenGraphLocales(locale);
+  const indexable = isProductionDeployment();
   return {
     metadataBase: new URL(siteUrl),
     title: {
@@ -99,11 +104,12 @@ export async function generateMetadata(): Promise<Metadata> {
       images: ["/og-default.jpg"],
     },
     robots: {
-      index: true,
-      follow: true,
+      index: indexable,
+      follow: indexable,
+      noarchive: !indexable,
       googleBot: {
-        index: true,
-        follow: true,
+        index: indexable,
+        follow: indexable,
         "max-image-preview": "large",
         "max-snippet": -1,
       },
@@ -144,6 +150,7 @@ export default async function RootLayout({
     storefrontRootDomain: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ROOT_DOMAIN,
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
+  const optionalAnalyticsEnabled = allowNonProductionAnalytics();
   const [cartCount, isLoggedIn, storefrontCopy, commerceCopy, headerNavRaw, footerLinksRaw, contactEmails] =
     await Promise.all([
     // An unreachable/slow Shopify Storefront API must not block rendering of the
@@ -187,8 +194,8 @@ export default async function RootLayout({
               checkoutRootDomain: shopifyPrivacyConfig.checkoutRootDomain!,
               storefrontRootDomain: shopifyPrivacyConfig.storefrontRootDomain!,
             } : undefined}
-            gtmId={process.env.NEXT_PUBLIC_GTM_ID}
-            metaPixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID}
+            gtmId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_GTM_ID : undefined}
+            metaPixelId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_META_PIXEL_ID : undefined}
             nonce={nonce}
           />
           <WebVitalsReporter />

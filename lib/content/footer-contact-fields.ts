@@ -1,8 +1,13 @@
 /** Shared footer contact emails (not localized). Client-safe defaults. */
 
+import {
+  CUSTOMER_CARE_EMAIL,
+  replaceLegacyCustomerCareEmail,
+} from "@/lib/content/customer-care-email";
+
 export const FOOTER_CONTACT_KEY = "footer-contact-v1";
 
-export const DEFAULT_FOOTER_CONTACT_EMAIL = "synarava.shop@gmail.com";
+export const DEFAULT_FOOTER_CONTACT_EMAIL = CUSTOMER_CARE_EMAIL;
 
 export const MAX_FOOTER_CONTACT_EMAILS = 8;
 export const MIN_FOOTER_CONTACT_EMAILS = 1;
@@ -16,7 +21,7 @@ export type FooterContactData = {
 
 export function normalizeFooterContactEmail(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
-  const trimmed = raw.trim();
+  const trimmed = replaceLegacyCustomerCareEmail(raw.trim());
   if (!trimmed) return null;
   if (!EMAIL_RE.test(trimmed)) return null;
   return trimmed;

@@ -1147,7 +1147,7 @@ function CompactFinalCTA({
   const resolvedTitle = title?.trim() || t("home.finalCta.title");
   const resolvedBody = body?.trim() || t("home.finalCta.body");
   const resolvedCtaLabel = ctaLabel?.trim() || t("home.finalCta.ctaLabel");
-  const resolvedCtaHref = ctaHref?.trim() || "/shop";
+  const resolvedCtaHref = storefrontHref(locale, ctaHref?.trim() || "/shop");
   const resolvedSecondaryCtaLabel = secondaryCtaLabel?.trim() || t("home.finalCta.aboutLabel");
   const resolvedSecondaryCtaHref = storefrontHref(locale, secondaryCtaHref?.trim() || "/about");
 
@@ -1308,7 +1308,7 @@ function DesktopFinalCTA({
   const resolvedTitle = title?.trim() || t("home.finalCta.title");
   const resolvedBody = body?.trim() || t("home.finalCta.body");
   const resolvedCtaLabel = ctaLabel?.trim() || t("home.finalCta.ctaLabel");
-  const resolvedCtaHref = ctaHref?.trim() || "/shop";
+  const resolvedCtaHref = storefrontHref(locale, ctaHref?.trim() || "/shop");
   const resolvedSecondaryCtaLabel = secondaryCtaLabel?.trim() || t("home.finalCta.aboutLabel");
   const resolvedSecondaryCtaHref = storefrontHref(locale, secondaryCtaHref?.trim() || "/about");
 

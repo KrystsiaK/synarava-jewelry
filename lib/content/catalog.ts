@@ -35,6 +35,7 @@ import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/
 import { ownedLocalizedPageFields, resolvePageLocalizedCopy } from "@/lib/pages/localization";
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 import { findLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
+import { normalizeCustomerCareContent } from "@/lib/content/customer-care-email";
 
 // Shopify's Standard Product Taxonomy name is a " > "-delimited full path
 // (e.g. "Apparel & Accessories > Jewelry > Brooches & Lapel Pins >
@@ -884,12 +885,12 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
     seoDescription: resolved.seoDescription,
     ownedEyebrow: owned.eyebrow,
     ownedExcerpt: owned.excerpt,
-    content: resolved.content as PageContent,
+    content: normalizeCustomerCareContent(resolved.content) as PageContent,
   };
 }
 
 export async function getAdminCatalogData() {
-  const [pages, rawProducts, categoryRows, tags, collections, issues] = await Promise.all([
+  const [rawPages, rawProducts, categoryRows, tags, collections, issues] = await Promise.all([
     db.page.findMany({
       where: { slug: { notIn: [...RETIRED_PAGE_SLUGS] } },
       include: { translations: { orderBy: { locale: "asc" } } },
@@ -935,6 +936,15 @@ export async function getAdminCatalogData() {
       orderBy: { updatedAt: "desc" },
     }),
   ]);
+
+  const pages = rawPages.map((page) => ({
+    ...page,
+    content: normalizeCustomerCareContent(page.content),
+    translations: page.translations.map((translation) => ({
+      ...translation,
+      content: normalizeCustomerCareContent(translation.content),
+    })),
+  }));
 
   const products = rawProducts.map((product) => ({
     ...product,
