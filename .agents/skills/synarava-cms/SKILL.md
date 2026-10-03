@@ -57,7 +57,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Unit / affix inside one border | `endAdornment` / `startAdornment` |
 | Clear (× on focus, non-empty) | `clearable` (+ `onClear` if controlled) |
 | Select | `AdminSelectField` / `AdminSelectControl` |
-| Storefront path combobox | `AdminHrefField` / `AdminHrefControl` |
+| Storefront path combobox | `AdminHrefField` / `AdminHrefControl` (portaled `.adm-popover` listbox — escapes collapse overflow) |
 | Checkbox + optional follow-on | `AdminCheckboxField` |
 | Inline / ack / featured checkbox | `AdminCheckboxControl` |
 | Long copy (preview + Edit modal) | `AdminRichTextField` (default). `AdminLongTextField` is legacy plain-only. |

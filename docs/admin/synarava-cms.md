@@ -90,7 +90,7 @@ Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-m
 | Token | Default | Use |
 |-------|---------|-----|
 | `--adm-z-field` | `0` | Field chrome, **including** `.adm-help` triggers — stay flat |
-| `--adm-z-popover` | `40` | Absolute menus — class `.adm-popover` (`AdminHrefField`, Shopify category search, …) |
+| `--adm-z-popover` | `40` | Menus — class `.adm-popover` (`AdminHrefField` portaled listbox, Shopify category search, …) |
 | `--adm-z-sticky` | `90` | Sticky locale / workspace bands (`90`–`95`) |
 | `--adm-z-modal-backdrop` | `190` | Modal backdrops |
 | `--adm-z-modal` | `200` | Modals (`AdminModal`, `200`+) |
@@ -98,6 +98,8 @@ Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-m
 | `--adm-z-toast` | `600` | Shared ephemeral toast stack (admin surface; see [`docs/ui/ephemeral-toast.md`](../ui/ephemeral-toast.md)) |
 
 **Rule:** never elevate `.adm-help` (or other in-flow field chrome) into the popover band — that made info icons paint over open combobox lists. New absolute admin menus must use `.adm-popover` (or `z-index: var(--adm-z-popover)`), not ad-hoc `z-20`.
+
+**Overflow:** `AdminHrefControl` portals its listbox to `.admin-terminal` / `.admin-modal-root` (fixed, `.adm-popover`) so results are not clipped by `.adm-collapse` / `.adm-collapse__clip` (`overflow: clip|hidden`). Do not keep href menus `position: absolute` inside the field — that regresses inside collapsible sections.
 
 ### Ephemeral toast (not synarava-cms)
 
@@ -182,6 +184,7 @@ import { AdminHrefField } from "@/components/synarava-cms";
 
 - Same outer chrome as text (`AdminFieldShell` + `AdminTextControl`).
 - Search opens segmented results: **Routes** (built-in), **Pages**, **Collections**, **Products**, plus **Use custom path** when the query looks like a path and is not an exact match.
+- Result list is a **portaled** fixed `.adm-popover` (not an in-flow absolute child), so it stays visible inside `AdminCollapsiblePanel` / other overflow-clipped shells.
 - Type a product/collection **name**, or drill in with `/products/` / `/collections/` (and optional slug after the slash).
 - Selecting a **draft** or **unlisted** target keeps the value (not blocked) and shows a soft orange `warning` under the field.
 - Hidden input stores the committed href (locale-free: `/shop`, `/products/…`).

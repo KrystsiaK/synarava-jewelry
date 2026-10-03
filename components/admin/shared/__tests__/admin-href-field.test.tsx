@@ -112,7 +112,30 @@ describe("AdminHrefField", () => {
     await user.click(screen.getByRole("combobox", { name: /CTA href/i }));
     const listbox = await screen.findByRole("listbox");
     expect(listbox).toHaveClass("adm-popover");
+    expect(listbox).toHaveAttribute("data-slot", "href-popover");
     expect(listbox.className).not.toMatch(/\bz-20\b/);
+  });
+
+  it("portals the listbox outside overflow-clipped collapsible ancestors", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <div className="admin-terminal">
+        <div className="adm-collapse" data-open="true" style={{ overflow: "clip" }}>
+          <div className="adm-collapse__clip" style={{ overflow: "hidden" }}>
+            <AdminHrefField label="CTA href" name="ctaHref" defaultValue="" />
+          </div>
+        </div>
+      </div>,
+    );
+
+    await user.click(screen.getByRole("combobox", { name: /CTA href/i }));
+    const listbox = await screen.findByRole("listbox");
+
+    expect(listbox).toHaveClass("adm-popover");
+    expect(listbox.style.position).toBe("fixed");
+    expect(container.querySelector(".adm-collapse__clip")?.contains(listbox)).toBe(false);
+    expect(container.querySelector(".admin-terminal")?.contains(listbox)).toBe(true);
+    expect(await screen.findByRole("option", { name: /Shop/ })).toBeInTheDocument();
   });
 
   it("shows an orange warning when the selected target is draft", async () => {

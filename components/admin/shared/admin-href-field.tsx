@@ -4,12 +4,15 @@ import {
   useEffect,
   useEffectEvent,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   useTransition,
+  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { searchStorefrontHrefsAction } from "@/app/admin/actions/storefront-href";
 import {
@@ -30,6 +33,48 @@ import {
 import { cn } from "@/lib/ui";
 
 const EMPTY_RESULT: StorefrontHrefSearchResult = { segments: [] };
+const POPOVER_GAP_PX = 4;
+const POPOVER_MAX_HEIGHT_PX = 256;
+const POPOVER_VIEWPORT_PAD_PX = 8;
+
+type HrefPopoverPosition = {
+  left: number;
+  maxHeight: number;
+  top: number;
+  width: number;
+};
+
+function resolveHrefPopoverPortal(anchor: HTMLElement | null): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  return (
+    anchor?.closest<HTMLElement>(".admin-terminal, .admin-modal-root") ??
+    document.body
+  );
+}
+
+function measureHrefPopoverPosition(anchor: HTMLElement): HrefPopoverPosition {
+  const rect = anchor.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const spaceBelow = Math.max(
+    0,
+    viewportHeight - POPOVER_VIEWPORT_PAD_PX - rect.bottom - POPOVER_GAP_PX,
+  );
+  const spaceAbove = Math.max(0, rect.top - POPOVER_VIEWPORT_PAD_PX - POPOVER_GAP_PX);
+  const placeBelow =
+    spaceBelow >= Math.min(POPOVER_MAX_HEIGHT_PX, 160) || spaceBelow >= spaceAbove;
+  const available = placeBelow ? spaceBelow : spaceAbove;
+  const maxHeight = Math.min(POPOVER_MAX_HEIGHT_PX, available);
+  const top = placeBelow
+    ? rect.bottom + POPOVER_GAP_PX
+    : Math.max(POPOVER_VIEWPORT_PAD_PX, rect.top - POPOVER_GAP_PX - maxHeight);
+
+  return {
+    left: rect.left,
+    maxHeight: Math.max(0, maxHeight),
+    top,
+    width: rect.width,
+  };
+}
 
 export type DetectedHrefIssue = {
   tone: "warning" | "error";
@@ -87,8 +132,12 @@ export function AdminHrefControl({
 
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const positionFrameRef = useRef(0);
   const resultListId = useId();
   const searchErrorId = useId();
+  const [popoverPosition, setPopoverPosition] = useState<HrefPopoverPosition | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   const flatHits = flattenHrefHits(result);
 
@@ -204,16 +253,60 @@ export function AdminHrefControl({
     return () => window.clearTimeout(timeout);
   }, [open, query]);
 
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        closeWithoutCommit();
-      }
+  const syncPopoverPosition = useEffectEvent(() => {
+    const anchor = rootRef.current;
+    if (!anchor) return;
+    setPortalTarget(resolveHrefPopoverPortal(anchor));
+    setPopoverPosition(measureHrefPopoverPosition(anchor));
+  });
+
+  const schedulePopoverPosition = useEffectEvent(() => {
+    if (positionFrameRef.current) cancelAnimationFrame(positionFrameRef.current);
+    positionFrameRef.current = requestAnimationFrame(() => {
+      positionFrameRef.current = 0;
+      syncPopoverPosition();
+    });
+  });
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPopoverPosition(null);
+      setPortalTarget(null);
+      return;
     }
+    // Resolve portal before paint so the listbox escapes .adm-collapse overflow:clip.
+    syncPopoverPosition();
+  }, [open, pending, result, searchError]);
+
+  useEffect(() => {
+    if (!open || !portalTarget) return;
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+        return;
+      }
+      closeWithoutCommit();
+    }
+
     document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
+    window.addEventListener("resize", schedulePopoverPosition);
+    // Capture: ancestor scrolls (collapse/panel) move the anchor without window scroll.
+    window.addEventListener("scroll", schedulePopoverPosition, { passive: true, capture: true });
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedulePopoverPosition);
+    if (rootRef.current) resizeObserver?.observe(rootRef.current);
+    if (popoverRef.current) resizeObserver?.observe(popoverRef.current);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("resize", schedulePopoverPosition);
+      window.removeEventListener("scroll", schedulePopoverPosition, { capture: true });
+      resizeObserver?.disconnect();
+      if (positionFrameRef.current) cancelAnimationFrame(positionFrameRef.current);
+    };
+  }, [open, portalTarget]);
 
   function choose(hit: StorefrontHrefHit) {
     const known = hit.segment !== "custom";
@@ -271,6 +364,75 @@ export function AdminHrefControl({
     .filter(Boolean)
     .join(" ") || undefined;
 
+  const popoverStyle: CSSProperties = {
+    left: popoverPosition?.left ?? 0,
+    maxHeight: popoverPosition?.maxHeight ?? POPOVER_MAX_HEIGHT_PX,
+    position: "fixed",
+    top: popoverPosition?.top ?? 0,
+    visibility: popoverPosition ? "visible" : "hidden",
+    width: popoverPosition?.width,
+  };
+
+  const listbox =
+    open && portalTarget
+      ? createPortal(
+          <div
+            ref={popoverRef}
+            id={resultListId}
+            role="listbox"
+            data-slot="href-popover"
+            style={popoverStyle}
+            className={cn(
+              "adm-popover overflow-auto rounded-[8px] border border-[var(--adm-border-strong)] bg-[var(--adm-bg)]",
+            )}
+          >
+            {pending && !flatHits.length ? (
+              <p className="px-3 py-1.5 text-xs text-[var(--adm-muted)]" aria-live="polite">
+                Searching…
+              </p>
+            ) : null}
+            {searchError ? (
+              <p id={searchErrorId} className="px-3 py-1.5 text-xs text-[var(--adm-danger)]" role="alert">
+                {searchError}
+              </p>
+            ) : null}
+            {!pending && !searchError && !flatHits.length ? (
+              <p className="px-3 py-1.5 text-xs text-[var(--adm-muted)]">No matching paths.</p>
+            ) : null}
+            {indexedSegments.map((segment) => (
+              <div key={segment.id} role="group" aria-label={segment.label}>
+                <div className="sticky top-0 border-b border-[var(--adm-border)] bg-[var(--adm-bg-soft)] px-3 py-1 text-xs font-medium text-[var(--adm-muted)]">
+                  {segment.label}
+                </div>
+                {segment.hits.map(({ hit, index }) => {
+                  const active = index === activeIndex;
+                  return (
+                    <button
+                      key={hit.id}
+                      id={`${resultListId}-${hit.id}`}
+                      type="button"
+                      role="option"
+                      aria-selected={active || hit.href === href}
+                      className={cn(
+                        "flex w-full items-baseline justify-between gap-3 border-b border-[var(--adm-border)] px-3 py-2 text-left text-sm last:border-b-0",
+                        active ? "bg-[var(--adm-bg-soft)]" : "hover:bg-[var(--adm-bg-soft)]",
+                      )}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => choose(hit)}
+                    >
+                      <span className="min-w-0 font-medium text-[var(--adm-fg)]">{hit.label}</span>
+                      <span className="shrink-0 text-xs text-[var(--adm-muted)]">{hit.detail}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>,
+          portalTarget,
+        )
+      : null;
+
   return (
     <div ref={rootRef} data-slot="href-control" className="relative">
       <AdminTextControl
@@ -307,58 +469,7 @@ export function AdminHrefControl({
         name={name}
         value={href}
       />
-      {open ? (
-        <div
-          id={resultListId}
-          role="listbox"
-          className={cn(
-            "adm-popover absolute left-0 right-0 top-full mt-1 max-h-64 overflow-auto rounded-[8px] border border-[var(--adm-border-strong)] bg-[var(--adm-bg)]",
-          )}
-        >
-          {pending && !flatHits.length ? (
-            <p className="px-3 py-1.5 text-xs text-[var(--adm-muted)]" aria-live="polite">
-              Searching…
-            </p>
-          ) : null}
-          {searchError ? (
-            <p id={searchErrorId} className="px-3 py-1.5 text-xs text-[var(--adm-danger)]" role="alert">
-              {searchError}
-            </p>
-          ) : null}
-          {!pending && !searchError && !flatHits.length ? (
-            <p className="px-3 py-1.5 text-xs text-[var(--adm-muted)]">No matching paths.</p>
-          ) : null}
-          {indexedSegments.map((segment) => (
-            <div key={segment.id} role="group" aria-label={segment.label}>
-              <div className="sticky top-0 border-b border-[var(--adm-border)] bg-[var(--adm-bg-soft)] px-3 py-1 text-xs font-medium text-[var(--adm-muted)]">
-                {segment.label}
-              </div>
-              {segment.hits.map(({ hit, index }) => {
-                const active = index === activeIndex;
-                return (
-                  <button
-                    key={hit.id}
-                    id={`${resultListId}-${hit.id}`}
-                    type="button"
-                    role="option"
-                    aria-selected={active || hit.href === href}
-                    className={cn(
-                      "flex w-full items-baseline justify-between gap-3 border-b border-[var(--adm-border)] px-3 py-2 text-left text-sm last:border-b-0",
-                      active ? "bg-[var(--adm-bg-soft)]" : "hover:bg-[var(--adm-bg-soft)]",
-                    )}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => choose(hit)}
-                  >
-                    <span className="min-w-0 font-medium text-[var(--adm-fg)]">{hit.label}</span>
-                    <span className="shrink-0 text-xs text-[var(--adm-muted)]">{hit.detail}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {listbox}
     </div>
   );
 }
