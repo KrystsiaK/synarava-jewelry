@@ -253,6 +253,18 @@ export function AdminHrefControl({
     return () => window.clearTimeout(timeout);
   }, [open, query]);
 
+  function bindPortalTarget() {
+    const anchor = rootRef.current;
+    if (!anchor) return;
+    setPortalTarget(resolveHrefPopoverPortal(anchor));
+  }
+
+  function openMenu() {
+    bindPortalTarget();
+    setOpen(true);
+  }
+
+  // Measure in rAF (not sync setState-in-effect) so react-hooks/set-state-in-effect stays quiet.
   const syncPopoverPosition = useEffectEvent(() => {
     const anchor = rootRef.current;
     if (!anchor) return;
@@ -268,14 +280,21 @@ export function AdminHrefControl({
     });
   });
 
-  useLayoutEffect(() => {
+  // Clear portal/geometry on close — same render-time sync pattern as controlled `value`.
+  const [menuOpen, setMenuOpen] = useState(open);
+  if (open !== menuOpen) {
+    setMenuOpen(open);
     if (!open) {
-      setPopoverPosition(null);
       setPortalTarget(null);
-      return;
+      setPopoverPosition(null);
+    } else {
+      setPopoverPosition(null);
     }
-    // Resolve portal before paint so the listbox escapes .adm-collapse overflow:clip.
-    syncPopoverPosition();
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    schedulePopoverPosition();
   }, [open, pending, result, searchError]);
 
   useEffect(() => {
@@ -320,7 +339,7 @@ export function AdminHrefControl({
 
   function onQueryChange(next: string) {
     setQuery(next);
-    setOpen(true);
+    openMenu();
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -336,7 +355,7 @@ export function AdminHrefControl({
     if (event.key === "ArrowDown") {
       event.preventDefault();
       if (!open) {
-        setOpen(true);
+        openMenu();
         return;
       }
       if (!flatHits.length) return;
@@ -444,7 +463,7 @@ export function AdminHrefControl({
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
         onClear={clear}
-        onFocus={() => setOpen(true)}
+        onFocus={() => openMenu()}
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         aria-label={ariaLabel}
