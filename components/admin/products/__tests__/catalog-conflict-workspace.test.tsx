@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   apply: vi.fn(),
   load: vi.fn(),
+  loadSignals: vi.fn(),
   preview: vi.fn(),
   refresh: vi.fn(),
   push: vi.fn(),
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }) }));
 vi.mock("@/app/admin/actions/sync", () => ({
   applyCatalogConflictResolutionAction: mocks.apply,
+  loadCatalogConflictSignalsAction: mocks.loadSignals,
   loadProductCatalogConflictAction: mocks.load,
   previewCatalogConflictResolutionAction: mocks.preview,
   pullSingleProductFromShopifyAction: mocks.pullProduct,
@@ -88,6 +90,15 @@ describe("CatalogConflictWorkspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [field] } });
+    mocks.loadSignals.mockResolvedValue({
+      signals: {
+        state: "ready",
+        totalCount: 0,
+        checkedAt: "2026-09-23T10:05:00.000Z",
+        recentlyUpdatedProducts: { p1: { updatedAt: "2026-09-23T10:05:00.000Z" } },
+        products: {},
+      },
+    });
     mocks.preview.mockResolvedValue({
       preview: {
         entries: [{ productId: "p1", direction: "SHOPIFY_TO_SYNARAVA", field, willClearNonEmptyValue: false }],
@@ -221,16 +232,36 @@ describe("CatalogConflictWorkspace", () => {
     });
   });
 
-  it("applies a confirmed preview and marks a Shopify-to-Synarava product as updated", async () => {
+  it("applies a confirmed preview and refreshes conflict signals from the server", async () => {
     const { onSignalsChange, onToast } = renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirm changes" }));
     await waitFor(() => expect(mocks.apply).toHaveBeenCalled());
     expect(onToast).toHaveBeenCalledWith("1 change applied.", "success");
+    await waitFor(() => expect(mocks.loadSignals).toHaveBeenCalled());
     expect(onSignalsChange).toHaveBeenCalledWith(expect.objectContaining({
       totalCount: 0,
       recentlyUpdatedProducts: expect.objectContaining({ p1: expect.objectContaining({ updatedAt: expect.any(String) }) }),
     }));
+  });
+
+  it("blocks Resolve when the product form is dirty or saving", async () => {
+    const onToast = vi.fn();
+    render(
+      <CatalogConflictWorkspace
+        open
+        onClose={vi.fn()}
+        signals={signals}
+        onSignalsChange={vi.fn()}
+        products={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
+        focusedProductId={null}
+        formBlocked
+        onToast={onToast}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    expect(onToast).toHaveBeenCalledWith("Save your product changes before Resolve or Push.", "info");
+    expect(mocks.preview).not.toHaveBeenCalled();
   });
 
   it("closes product-scoped workspace and notifies onApplied after confirm", async () => {

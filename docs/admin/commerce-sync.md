@@ -138,6 +138,22 @@ Push merges custom values from `workingSnapshot`.
 
 ---
 
+## Product locale translations (sync protection)
+
+| Rule | Behavior |
+| --- | --- |
+| `reviewStatus` vs `syncStatus` | Reviewed = ready to Push. Drafts with Shopify-shared copy still get `PENDING` so pulls cannot wipe them. |
+| Shopify-shared fields | `title`, `handle`, `description`, `seoTitle`, `seoDescription` — any edit → `PENDING` regardless of Reviewed |
+| Pull decision | Local non-empty + Shopify empty → `KEEP_LOCAL` (never `APPLY_REMOTE`). Both dirty → `CONFLICT`. |
+| `products/*` webhooks | Commerce projection only — **no** translation pull (Shopify has no translation-update webhooks) |
+| Resolve / Push | Blocked while the product form is dirty or Save is in flight |
+| After apply | Refetch server conflict signals — no optimistic badge clear |
+
+Code: `decideProductTranslationPull` / `resolveProductTranslationSyncStatus` in `lib/shopify/translations.ts`,
+webhook `pullTranslations: false` in `app/api/shopify/webhooks/products/route.ts`.
+
+---
+
 ## Known gaps (next branches)
 
 - Full 3-way merge with explicit **base** (`B/L/R`) for ahead vs conflict.

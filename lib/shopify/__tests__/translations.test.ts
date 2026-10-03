@@ -14,6 +14,7 @@ import {
   fetchTranslatableResourceIndex,
   registerProductTranslation,
   registerTranslations,
+  resolveProductTranslationSyncStatus,
 } from "@/lib/shopify/translations";
 
 beforeEach(() => vi.clearAllMocks());
@@ -183,6 +184,63 @@ describe("Shopify translations", () => {
       localLastSyncedAt: null,
       remote: null,
     })).toBe("KEEP_LOCAL");
+  });
+
+  it("keeps non-empty local copy when Shopify translation is empty (never APPLY_REMOTE wipe)", () => {
+    expect(decideProductTranslationPull({
+      local: { title: "Кольцо лава", descriptionHtml: "Описание", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "NOT_APPLICABLE",
+      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
+      remote: null,
+    })).toBe("KEEP_LOCAL");
+    expect(decideProductTranslationPull({
+      local: { title: "Кольцо лава", descriptionHtml: "Описание", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "SYNCED",
+      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
+      remote: {
+        title: "", descriptionHtml: "", seoTitle: "", seoDescription: "",
+        updatedAt: "2026-09-10T11:00:00Z", outdated: false,
+      },
+    })).toBe("KEEP_LOCAL");
+  });
+
+  it("reports CONFLICT when both sides have divergent non-empty copy and local is dirty", () => {
+    expect(decideProductTranslationPull({
+      local: { title: "Локальный черновик", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "NOT_APPLICABLE",
+      localLastSyncedAt: new Date("2026-09-10T09:00:00Z"),
+      remote: {
+        title: "Shopify RU", descriptionHtml: "", seoTitle: "", seoDescription: "",
+        updatedAt: "2026-09-10T10:00:00Z", outdated: false,
+      },
+    })).toBe("CONFLICT");
+  });
+
+  it("marks Shopify-shared draft edits PENDING even when not Reviewed", () => {
+    expect(resolveProductTranslationSyncStatus({
+      hasShopifyLink: true,
+      previousSyncStatus: "NOT_APPLICABLE",
+      previousShared: null,
+      nextShared: { title: "Кольцо", descriptionHtml: "Текст", seoTitle: "", seoDescription: "" },
+    })).toBe("PENDING");
+    expect(resolveProductTranslationSyncStatus({
+      hasShopifyLink: true,
+      previousSyncStatus: "SYNCED",
+      previousShared: { title: "Old", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      nextShared: { title: "New", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+    })).toBe("PENDING");
+    expect(resolveProductTranslationSyncStatus({
+      hasShopifyLink: true,
+      previousSyncStatus: "SYNCED",
+      previousShared: { title: "Same", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      nextShared: { title: "Same", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+    })).toBe("SYNCED");
+    expect(resolveProductTranslationSyncStatus({
+      hasShopifyLink: false,
+      previousSyncStatus: null,
+      previousShared: null,
+      nextShared: { title: "Кольцо", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+    })).toBe("NOT_APPLICABLE");
   });
 
   it("indexes product translations in pages for reconciliation preview", async () => {

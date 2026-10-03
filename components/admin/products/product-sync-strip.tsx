@@ -308,8 +308,8 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
             </div>
             {syncState === "CONFLICT" ? (
               <div className="flex flex-wrap gap-2">
-                <button type="button" className="adm-btn-ghost" disabled={pending} onClick={() => onResolve("shopify")}>Use Shopify version</button>
-                <button type="button" className="adm-btn-secondary" disabled={pending} onClick={() => onResolve("synarava")}>Keep Synarava and push</button>
+                <button type="button" className="adm-btn-ghost" disabled={pending || dirty} onClick={() => onResolve("shopify")}>Use Shopify version</button>
+                <button type="button" className="adm-btn-secondary" disabled={pending || dirty} onClick={() => onResolve("synarava")}>Keep Synarava and push</button>
               </div>
             ) : null}
           </div>

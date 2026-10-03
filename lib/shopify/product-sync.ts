@@ -717,7 +717,17 @@ async function releaseReadyLocalProductMedia(productId: string, remote: ShopifyP
  * `force: true` (used by the admin's explicit "pull" action) always takes
  * the remote version regardless of local edits.
  */
-async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force = false) {
+type SavePulledProductOptions = {
+  force?: boolean;
+  /** When false, skip locale translation pull (product webhooks). Default true. */
+  pullTranslations?: boolean;
+};
+
+async function savePulledProduct(
+  remote: ShopifyProduct,
+  eventId?: string,
+  { force = false, pullTranslations = true }: SavePulledProductOptions = {},
+) {
   const firstVariant = remote.variants.nodes[0];
   // Shopify can return resourcePublicationsV2 nodes with publication: null.
   const onlineStorePublication = findOnlineStorePublication(remote.resourcePublicationsV2.nodes);
@@ -840,7 +850,10 @@ async function savePulledProduct(remote: ShopifyProduct, eventId?: string, force
   });
 
   try {
-    return await finishPulledProduct(product, remote, remoteSku, firstVariant, eventId, force);
+    return await finishPulledProduct(product, remote, remoteSku, firstVariant, eventId, {
+      force,
+      pullTranslations,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Shopify pull failed after the product row was written.";
     await db.product.update({
@@ -861,7 +874,7 @@ async function finishPulledProduct(
   remoteSku: string,
   firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
   eventId: string | undefined,
-  force: boolean,
+  { force = false, pullTranslations = true }: SavePulledProductOptions = {},
 ) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
@@ -870,7 +883,11 @@ async function finishPulledProduct(
   const TRANSLATION_STATUS_RANK = { SYNCED: 0, LOCAL_CHANGES: 1, CONFLICT: 2, UNAVAILABLE: 3 } as const;
   let translationStatus: keyof typeof TRANSLATION_STATUS_RANK = "SYNCED";
 
-  const translationLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
+  // Product webhooks update commerce only — Shopify has no translation-update
+  // webhooks; translations reconcile via explicit conflict check / manual pull.
+  const translationLocales = pullTranslations
+    ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
+    : [];
   for (const translationLocale of translationLocales) {
     const localTranslation = await db.productTranslation.findUnique({
       where: { productId_locale: { productId: product.id, locale: translationLocale.code } },
@@ -1189,10 +1206,18 @@ async function finishPulledProduct(
   return { productId: product.id, status: "SYNCED" as const, translationStatus };
 }
 
-export async function pullShopifyProduct(id: string, eventId?: string, force = false) {
+export async function pullShopifyProduct(
+  id: string,
+  eventId?: string,
+  force = false,
+  options: { pullTranslations?: boolean } = {},
+) {
   const remote = await fetchShopifyProduct(id);
   if (!remote) throw new ShopifyAdminError(`Shopify product ${id} was not found.`);
-  return savePulledProduct(remote, eventId, force);
+  return savePulledProduct(remote, eventId, {
+    force,
+    pullTranslations: options.pullTranslations,
+  });
 }
 
 export type ProductSyncDifference = {

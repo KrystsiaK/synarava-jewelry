@@ -6,6 +6,7 @@ import { ArrowDownToLine, ArrowUpFromLine, Columns2, GitCompareArrows, Languages
 
 import {
   applyCatalogConflictResolutionAction,
+  loadCatalogConflictSignalsAction,
   loadProductCatalogConflictAction,
   previewCatalogConflictResolutionAction,
   pullSingleProductFromShopifyAction,
@@ -433,6 +434,7 @@ export function CatalogConflictWorkspace({
   products,
   focusedProductId,
   viewScope = { kind: "catalog" },
+  formBlocked = false,
   onToast,
   onApplied,
 }: {
@@ -443,6 +445,8 @@ export function CatalogConflictWorkspace({
   products: ProductSummary[];
   focusedProductId: string | null;
   viewScope?: CatalogConflictViewScope;
+  /** Unsaved editor changes or in-flight Save — block Resolve/Push/Pull. */
+  formBlocked?: boolean;
   onToast: (message: string, tone: ToastTone) => void;
   /** Fired after a successful apply so the editor can reload product + markers. */
   onApplied?: (info: { productIds: string[]; appliedCount: number }) => void;
@@ -481,8 +485,14 @@ export function CatalogConflictWorkspace({
     onClose();
   }
 
+  function guardFormBlocked() {
+    if (!formBlocked) return false;
+    onToast("Save your product changes before Resolve or Push.", "info");
+    return true;
+  }
+
   function openPreview(scope: CatalogConflictApplyScope) {
-    if (applying) return;
+    if (applying || guardFormBlocked()) return;
     setResultMessage(null);
     setPreviewLoading(true);
     void previewCatalogConflictResolutionAction(scope)
@@ -508,7 +518,7 @@ export function CatalogConflictWorkspace({
   }
 
   function openDetails(productId: string) {
-    if (applying) return;
+    if (applying || guardFormBlocked()) return;
     setDetails(null);
     setSelections({});
     setDetailsLoading(true);
@@ -530,6 +540,7 @@ export function CatalogConflictWorkspace({
 
   /** Product-wide direction under a locale/section tab becomes MANUAL over only that scope's fields. */
   function openProductDirection(productId: string, direction: CatalogConflictDirection) {
+    if (guardFormBlocked()) return;
     if (!isLocaleOrSectionScoped(viewScope)) {
       openPreview({ kind: "PRODUCT", productId, direction });
       return;
@@ -610,7 +621,7 @@ export function CatalogConflictWorkspace({
   ]);
 
   function runWholeRecord(productId: string, direction: CatalogConflictDirection) {
-    if (applying) return;
+    if (applying || guardFormBlocked()) return;
     setApplying(true);
     void (async () => {
       try {
@@ -638,7 +649,7 @@ export function CatalogConflictWorkspace({
   }
 
   function confirm(acknowledgeClears: boolean) {
-    if (!preview || applying) return;
+    if (!preview || applying || guardFormBlocked()) return;
     const submittedPreview = preview;
     const submittedScope = activeScope;
     setPreview(null);
@@ -677,16 +688,6 @@ export function CatalogConflictWorkspace({
         } else if (result.success) onToast(result.success, result.outcome.failedCount ? "info" : "success");
         if (result.warning) onToast(result.warning, "info");
         const successfulProducts = new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.productId));
-        const incomingProducts = new Set(
-          result.outcome.results
-            .filter((item) => item.ok && submittedPreview.entries.some((entry) =>
-              entry.productId === item.productId
-              && entry.field.fieldKey === item.fieldKey
-              && entry.direction === "SHOPIFY_TO_SYNARAVA",
-            ))
-            .map((item) => item.localProductId ?? item.productId)
-            .filter((productId) => Boolean(productId) && !productId.startsWith("shopify:")),
-        );
         setSelections({});
         // Drop the blocker before editor reload / conflict re-check — those can take longer than the write.
         setApplying(false);
@@ -695,22 +696,11 @@ export function CatalogConflictWorkspace({
             productIds: [...successfulProducts],
             appliedCount: result.outcome.appliedCount,
           });
-        } else {
-          const fullyResolved = [...successfulProducts].filter((productId) =>
-            !result.outcome!.results.some((item) => item.productId === productId && !item.ok)
-            && !submittedPreview.excluded.some((item) => item.productId === productId),
-          );
-          if (fullyResolved.length > 0) {
-            const nextProducts = { ...signals.products };
-            fullyResolved.forEach((productId) => delete nextProducts[productId]);
-            const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
-            incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
-            onSignalsChange({ ...signals, products: nextProducts, recentlyUpdatedProducts, totalCount: Object.keys(nextProducts).length });
-          } else if (incomingProducts.size > 0) {
-            const recentlyUpdatedProducts = { ...signals.recentlyUpdatedProducts };
-            incomingProducts.forEach((productId) => { recentlyUpdatedProducts[productId] = { updatedAt: new Date().toISOString() }; });
-            onSignalsChange({ ...signals, recentlyUpdatedProducts });
-          }
+        } else if (result.outcome.appliedCount > 0) {
+          // Fresh server conflict state only — never clear badges optimistically.
+          const refreshed = await loadCatalogConflictSignalsAction();
+          if (refreshed.signals) onSignalsChange(refreshed.signals);
+          else if (refreshed.error) onToast(refreshed.error, "info");
         }
         refreshPreservingScroll(router);
       } catch (error) {

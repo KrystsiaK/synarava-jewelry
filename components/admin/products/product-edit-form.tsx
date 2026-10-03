@@ -376,6 +376,14 @@ export function EditProductForm({
   }
 
   function openConflicts(scope: CatalogConflictViewScope) {
+    if (isPending) {
+      pushToast({ message: "Wait for Save to finish before resolving conflicts.", tone: "info" });
+      return;
+    }
+    if (isDirty) {
+      pushToast({ message: "Save your product changes before Resolve or Push.", tone: "info" });
+      return;
+    }
     setConflictViewScope(scope);
     setConflictOpen(true);
   }
@@ -500,6 +508,10 @@ export function EditProductForm({
   }
 
   function handlePushToShopify(force = false) {
+    if (isDirty) {
+      pushToast({ message: "Save your product changes before Push.", tone: "info" });
+      return;
+    }
     setConflictResolution(null);
     startTransition(async () => {
       const result = await pushSingleProductToShopifyAction(currentProduct.id, force);
@@ -516,6 +528,10 @@ export function EditProductForm({
   }
 
   function handlePullFromShopify(force = false) {
+    if (isDirty) {
+      pushToast({ message: "Save your product changes before Pull.", tone: "info" });
+      return;
+    }
     setConflictResolution(null);
     startTransition(async () => {
       const result = await pullSingleProductFromShopifyAction(currentProduct.id, force);
@@ -855,6 +871,7 @@ export function EditProductForm({
         products={[{ id: currentProduct.id, name: currentProduct.name, sku: currentProduct.sku }]}
         focusedProductId={currentProduct.id}
         viewScope={conflictViewScope}
+        formBlocked={isDirty || isPending}
         onToast={(message, tone) => pushToast({ message, tone })}
         onApplied={(info) => { void handleConflictsApplied(info); }}
       />

@@ -56,7 +56,10 @@ export async function POST(request: Request) {
         data: { productId: product?.id, status: "SUCCEEDED", completedAt: new Date() },
       });
     } else {
-      await pullShopifyProduct(shopifyProductId!, event.id);
+      // Commerce projection only — never pull translations from products/*
+      // webhooks (Shopify has no translation-update topic; empty remote would
+      // wipe local locale drafts after our own Push).
+      await pullShopifyProduct(shopifyProductId!, event.id, false, { pullTranslations: false });
     }
     return NextResponse.json({ ok: true });
   } catch (error) {

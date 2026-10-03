@@ -31,6 +31,8 @@ export type ShopifyProductTranslationSnapshot = ShopifyProductTranslationCopy & 
 
 type ProductTranslationPullDecision = "APPLY_REMOTE" | "KEEP_LOCAL" | "CONFLICT" | "UNCHANGED";
 
+export type ProductTranslationSyncStatus = "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+
 function normalizedCopy(copy: ShopifyProductTranslationCopy | null) {
   if (!copy) return null;
   return {
@@ -47,6 +49,52 @@ function normalizedCopy(copy: ShopifyProductTranslationCopy | null) {
   };
 }
 
+/** True when any Shopify-shared translation field has non-empty copy. */
+export function hasShopifySharedTranslationCopy(copy: ShopifyProductTranslationCopy | null): boolean {
+  const normalized = normalizedCopy(copy);
+  if (!normalized) return false;
+  return Boolean(
+    normalized.title
+    || normalized.handle
+    || normalized.descriptionHtml
+    || normalized.seoTitle
+    || normalized.seoDescription,
+  );
+}
+
+/**
+ * reviewStatus (DRAFT/REVIEWED) is editorial readiness for Push.
+ * syncStatus protects local drafts from empty/stale remote pulls — any edit to
+ * Shopify-shared fields marks PENDING regardless of Reviewed.
+ */
+export function resolveProductTranslationSyncStatus({
+  hasShopifyLink,
+  previousSyncStatus,
+  previousShared,
+  nextShared,
+  sourceTranslationChanged = false,
+}: {
+  hasShopifyLink: boolean;
+  previousSyncStatus: ProductTranslationSyncStatus | null | undefined;
+  previousShared: ShopifyProductTranslationCopy | null;
+  nextShared: ShopifyProductTranslationCopy;
+  sourceTranslationChanged?: boolean;
+}): ProductTranslationSyncStatus {
+  if (!hasShopifyLink) return "NOT_APPLICABLE";
+
+  const previousNormalized = JSON.stringify(normalizedCopy(previousShared));
+  const nextNormalized = JSON.stringify(normalizedCopy(nextShared));
+  const sharedChanged = previousNormalized !== nextNormalized || sourceTranslationChanged;
+  const nextHasCopy = hasShopifySharedTranslationCopy(nextShared);
+  const previousDirty = previousSyncStatus === "PENDING"
+    || previousSyncStatus === "FAILED"
+    || previousSyncStatus === "CONFLICT";
+
+  if (!sharedChanged && previousSyncStatus === "SYNCED") return "SYNCED";
+  if (sharedChanged || nextHasCopy || previousDirty) return "PENDING";
+  return "NOT_APPLICABLE";
+}
+
 export function decideProductTranslationPull({
   local,
   localSyncStatus,
@@ -55,7 +103,7 @@ export function decideProductTranslationPull({
   force = false,
 }: {
   local: ShopifyProductTranslationCopy | null;
-  localSyncStatus: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
+  localSyncStatus: ProductTranslationSyncStatus;
   localLastSyncedAt: Date | null;
   remote: ShopifyProductTranslationSnapshot | null;
   force?: boolean;
@@ -66,7 +114,15 @@ export function decideProductTranslationPull({
     return "UNCHANGED";
   }
 
-  const localIsDirty = ["PENDING", "FAILED", "CONFLICT"].includes(localSyncStatus);
+  const localNonEmpty = hasShopifySharedTranslationCopy(local);
+  const remoteNonEmpty = hasShopifySharedTranslationCopy(remote);
+
+  // Never wipe local draft/content with an empty Shopify translation.
+  if (localNonEmpty && !remoteNonEmpty) return "KEEP_LOCAL";
+
+  // Drafts stored as NOT_APPLICABLE still own their non-empty copy.
+  const localIsDirty = ["PENDING", "FAILED", "CONFLICT"].includes(localSyncStatus)
+    || (localSyncStatus === "NOT_APPLICABLE" && localNonEmpty);
   if (!localIsDirty) return "APPLY_REMOTE";
 
   const remoteChangedSinceLastSync = remote
@@ -74,6 +130,9 @@ export function decideProductTranslationPull({
       || !remote.updatedAt
       || new Date(remote.updatedAt).getTime() > localLastSyncedAt.getTime()
     : Boolean(localLastSyncedAt);
+
+  // Both sides have divergent non-empty copy (or remote moved) → conflict.
+  if (localNonEmpty && remoteNonEmpty && remoteChangedSinceLastSync) return "CONFLICT";
   return remoteChangedSinceLastSync ? "CONFLICT" : "KEEP_LOCAL";
 }
 

@@ -28,6 +28,7 @@ import {
 import { parseCustomMetafieldsForm } from "@/lib/shopify/product-metafields-shared";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
+import { resolveProductTranslationSyncStatus } from "@/lib/shopify/translations";
 import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
 import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
@@ -1037,13 +1038,29 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     const reviewed = fields.reviewedFlag === "on"
       && Boolean(fields.title && fields.shortDescription && fields.description);
     const previousTranslation = before?.translations.find((translation) => translation.locale === locale);
-    const syncStatus = !before?.shopifyProductId || !reviewed
-      ? "NOT_APPLICABLE" as const
-      : previousTranslation?.contentHash === contentHash
-        && !sourceTranslationChanged
-        && previousTranslation.syncStatus === "SYNCED"
-        ? "SYNCED" as const
-        : "PENDING" as const;
+    // reviewStatus (DRAFT/REVIEWED) is separate from sync protection — drafts with
+    // Shopify-shared copy must stay PENDING so empty remote pulls cannot wipe them.
+    const syncStatus = resolveProductTranslationSyncStatus({
+      hasShopifyLink: Boolean(before?.shopifyProductId),
+      previousSyncStatus: previousTranslation?.syncStatus,
+      previousShared: previousTranslation
+        ? {
+          handle: previousTranslation.localizedHandle ?? "",
+          title: previousTranslation.title,
+          descriptionHtml: previousTranslation.description ?? "",
+          seoTitle: previousTranslation.seoTitle ?? "",
+          seoDescription: previousTranslation.seoDescription ?? "",
+        }
+        : null,
+      nextShared: {
+        handle: copy.localizedHandle ?? "",
+        title: copy.title,
+        descriptionHtml: copy.description ?? "",
+        seoTitle: copy.seoTitle ?? "",
+        seoDescription: copy.seoDescription ?? "",
+      },
+      sourceTranslationChanged,
+    });
     return { locale, copy, reviewed, syncStatus, contentHash, previousHandle: previousTranslation?.localizedHandle };
   });
   await db.$transaction([
