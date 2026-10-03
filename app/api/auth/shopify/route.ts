@@ -52,9 +52,20 @@ export async function GET(request: NextRequest) {
   // The OAuth cookie is host-only. Shopify sends the browser to APP_URL's
   // callback, so a localhost start would store state where the callback
   // never looks and the sign-in fails before the email screen.
+  // Use nextUrl for "did the browser open a loopback URL?" — trusted origin
+  // alone can fall back to APP_URL when Host is unset (CI / unit tests), and
+  // would false-bounce a public request when APP_URL is localhost.
+  // Railway sets x-forwarded-host=APP_URL; trusted origin then matches the
+  // callback host and we proceed to Shopify instead of bouncing.
+  // https://nextjs.org/docs/app/api-reference/functions/next-request
   const callbackHost = new URL(config.appOrigin).hostname;
-  const requestHost = new URL(getTrustedRequestOrigin(request)).hostname;
-  if (isLocalDevHost(requestHost) && requestHost !== callbackHost) {
+  const navigationHost = request.nextUrl.hostname;
+  const trustedHost = new URL(getTrustedRequestOrigin(request)).hostname;
+  if (
+    isLocalDevHost(navigationHost) &&
+    navigationHost !== callbackHost &&
+    trustedHost !== callbackHost
+  ) {
     const target = new URL(request.nextUrl.pathname + request.nextUrl.search, config.appOrigin);
     const response = NextResponse.redirect(target);
     response.headers.set("cache-control", "no-store");

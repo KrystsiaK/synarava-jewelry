@@ -29,6 +29,10 @@ describe("Shopify customer account authorize", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Isolate from CI's APP_URL=http://localhost:3000. NextRequest does not
+    // set Host from the URL, so getTrustedRequestOrigin would fall back to
+    // that loopback APP_URL and false-trigger the localhost bounce.
+    vi.stubEnv("APP_URL", "https://shop.synarava.com");
     mocks.getConfig.mockReturnValue({
       appOrigin: "https://shop.synarava.com",
       callbackUrl: "https://shop.synarava.com/api/auth/shopify/callback",
@@ -44,7 +48,13 @@ describe("Shopify customer account authorize", () => {
   it("redirects a document navigation to Shopify with PKCE and one transaction cookie", async () => {
     const request = new NextRequest(
       "https://shop.synarava.com/api/auth/shopify?returnTo=%2Fen%2Fprofile",
-      { headers: { "sec-fetch-dest": "document", "sec-fetch-mode": "navigate" } },
+      {
+        headers: {
+          host: "shop.synarava.com",
+          "sec-fetch-dest": "document",
+          "sec-fetch-mode": "navigate",
+        },
+      },
     );
 
     const response = await GET(request);
@@ -72,7 +82,13 @@ describe("Shopify customer account authorize", () => {
   it("sends a localhost start to the public callback host before setting a cookie", async () => {
     const request = new NextRequest(
       "http://127.0.0.1:3000/api/auth/shopify?returnTo=%2Fen%2Fprofile",
-      { headers: { "sec-fetch-dest": "document", "sec-fetch-mode": "navigate" } },
+      {
+        headers: {
+          host: "127.0.0.1:3000",
+          "sec-fetch-dest": "document",
+          "sec-fetch-mode": "navigate",
+        },
+      },
     );
 
     const response = await GET(request);
@@ -86,7 +102,6 @@ describe("Shopify customer account authorize", () => {
   });
 
   it("uses the trusted public proxy host instead of redirecting from Railway's internal localhost", async () => {
-    vi.stubEnv("APP_URL", "https://shop.synarava.com");
     const request = new NextRequest(
       "http://localhost:3000/api/auth/shopify?returnTo=%2Fen%2Fprofile",
       {
@@ -109,6 +124,27 @@ describe("Shopify customer account authorize", () => {
       "synarava-shopify-customer-oauth=encrypted-transaction",
     );
     expect(mocks.discover).toHaveBeenCalledOnce();
+  });
+
+  it("does not false-bounce a public navigation when CI APP_URL is localhost", async () => {
+    // Quality Gates sets APP_URL=http://localhost:3000. NextRequest omits Host
+    // unless the test sets it; trusted-origin then falls back to that APP_URL.
+    vi.stubEnv("APP_URL", "http://localhost:3000");
+    const request = new NextRequest(
+      "https://shop.synarava.com/api/auth/shopify?returnTo=%2Fen%2Fprofile",
+      { headers: { "sec-fetch-dest": "document", "sec-fetch-mode": "navigate" } },
+    );
+
+    const response = await GET(request);
+    const location = new URL(response.headers.get("location") ?? "");
+
+    expect(response.status).toBe(307);
+    expect(location.origin).toBe("https://shopify.com");
+    expect(location.pathname).toBe("/authentication/110141768029/oauth/authorize");
+    expect(mocks.discover).toHaveBeenCalledOnce();
+    expect(response.headers.get("set-cookie")).toContain(
+      "synarava-shopify-customer-oauth=encrypted-transaction",
+    );
   });
 
   it("does not mint a PKCE transaction for an RSC or prefetch fetch", async () => {
