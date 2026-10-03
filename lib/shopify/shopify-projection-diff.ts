@@ -236,6 +236,50 @@ function walkDiff(
   });
 }
 
+/**
+ * Copy category-metafield `resolvedValues` from Shopify onto matching OUR rows.
+ * Display enrichment is fetched only on live product reads; working windows often
+ * lack it after seed/write-through, which falsely diffs as empty-OUR conflicts
+ * (`White / gold`, etc.) even when metafield `value` GIDs already match.
+ * Does not add/remove metafields — Pull still adopts truly missing fields.
+ */
+export function alignMetafieldResolvedValues(
+  workingProjection: unknown,
+  shopifyProjection: unknown,
+): unknown {
+  if (!isPlainObject(workingProjection) || !isPlainObject(shopifyProjection)) {
+    return workingProjection;
+  }
+  const workingFields = workingProjection.metafields;
+  const shopifyFields = shopifyProjection.metafields;
+  if (!Array.isArray(workingFields) || !Array.isArray(shopifyFields)) {
+    return workingProjection;
+  }
+
+  const remoteById = new Map<string, Record<string, unknown>>();
+  for (const item of shopifyFields) {
+    if (!isPlainObject(item)) continue;
+    if (typeof item.namespace !== "string" || typeof item.key !== "string") continue;
+    remoteById.set(`${item.namespace}::${item.key}`, item);
+  }
+
+  let changed = false;
+  const nextFields = workingFields.map((item) => {
+    if (!isPlainObject(item)) return item;
+    if (typeof item.namespace !== "string" || typeof item.key !== "string") return item;
+    const remote = remoteById.get(`${item.namespace}::${item.key}`);
+    if (!remote || !Array.isArray(remote.resolvedValues) || remote.resolvedValues.length === 0) {
+      return item;
+    }
+    if (Array.isArray(item.resolvedValues) && item.resolvedValues.length > 0) return item;
+    changed = true;
+    return { ...item, resolvedValues: remote.resolvedValues };
+  });
+
+  if (!changed) return workingProjection;
+  return { ...workingProjection, metafields: nextFields };
+}
+
 /** Deep-diff two already-canonicalized (or raw — will canonicalize) projections. */
 export function diffShopifyProjections(
   localProjection: unknown,

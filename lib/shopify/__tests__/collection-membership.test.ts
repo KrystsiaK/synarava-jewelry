@@ -5,7 +5,9 @@ import {
   buildCollectionMembershipSourceCreateInput,
   buildCollectionMembershipUpdateInput,
   findManagedCollectionSourceId,
+  formatCollectionMembershipError,
   hasCollectionIdentityConflict,
+  isEmptyConditionSourceError,
   waitForShopifyJobCompletion,
 } from "@/lib/shopify/collection-membership";
 
@@ -95,5 +97,30 @@ describe("Shopify 2026-07 collection membership", () => {
       async () => undefined,
     )).resolves.toBeUndefined();
     expect(reads).toBe(2);
+  });
+
+  it("detects Shopify empty condition-source userErrors", () => {
+    expect(isEmptyConditionSourceError(
+      "A condition based source must have at least one product selection or condition",
+    )).toBe(true);
+    expect(isEmptyConditionSourceError("something else")).toBe(false);
+  });
+
+  it("names the collection and action in membership errors", () => {
+    expect(formatCollectionMembershipError({
+      action: "REMOVE",
+      collectionId: "gid://shopify/Collection/9",
+      cause: "A condition based source must have at least one product selection or condition",
+    })).toContain("gid://shopify/Collection/9");
+    expect(formatCollectionMembershipError({
+      action: "REMOVE",
+      collectionId: "gid://shopify/Collection/9",
+      cause: "A condition based source must have at least one product selection or condition",
+    })).toContain("collectionRemoveProducts");
+    expect(formatCollectionMembershipError({
+      action: "ADD",
+      collectionId: "gid://shopify/Collection/9",
+      cause: "timeout",
+    })).toBe("Collection membership ADD failed for gid://shopify/Collection/9: timeout.");
   });
 });

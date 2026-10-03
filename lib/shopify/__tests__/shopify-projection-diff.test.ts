@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  alignMetafieldResolvedValues,
   canonicalizeShopifyProjection,
   diffShopifyProjections,
   getProjectionPath,
@@ -113,6 +114,45 @@ describe("diffShopifyProjections", () => {
         shopify: "ChatGPTImage.png",
       },
     ]);
+  });
+
+  it("clears phantom empty-OUR conflicts after aligning category resolvedValues", () => {
+    const working = {
+      metafields: [{
+        namespace: "shopify",
+        key: "finish",
+        type: "list.product_taxonomy_value_reference",
+        value: "[\"gid://shopify/TaxonomyValue/1\"]",
+      }],
+    };
+    const shopify = {
+      metafields: [{
+        namespace: "shopify",
+        key: "finish",
+        type: "list.product_taxonomy_value_reference",
+        value: "[\"gid://shopify/TaxonomyValue/1\"]",
+        resolvedValues: ["18K Gold PVD"],
+      }],
+    };
+
+    expect(diffShopifyProjections(working, shopify).length).toBeGreaterThan(0);
+    const aligned = alignMetafieldResolvedValues(working, shopify);
+    expect(diffShopifyProjections(aligned, shopify)).toEqual([]);
+  });
+
+  it("does not invent missing metafields when aligning resolvedValues", () => {
+    const working = { metafields: [] };
+    const shopify = {
+      metafields: [{
+        namespace: "shopify",
+        key: "finish",
+        type: "list.product_taxonomy_value_reference",
+        value: "[\"gid://shopify/TaxonomyValue/1\"]",
+        resolvedValues: ["White / gold"],
+      }],
+    };
+    expect(alignMetafieldResolvedValues(working, shopify)).toEqual(working);
+    expect(diffShopifyProjections(working, shopify).length).toBeGreaterThan(0);
   });
 });
 

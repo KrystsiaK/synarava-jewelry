@@ -58,6 +58,7 @@ import {
   diffShopifyProjections,
   getProjectionPath,
   setProjectionPath,
+  alignMetafieldResolvedValues,
   writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
 
@@ -1312,6 +1313,13 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     });
     workingSnapshot = seeded as Prisma.JsonValue;
   }
+
+  // Align category display enrichment so missing resolvedValues do not look like
+  // empty-OUR commerce conflicts against a live Shopify fetch.
+  workingSnapshot = alignMetafieldResolvedValues(
+    workingSnapshot,
+    shopifySnapshot,
+  ) as Prisma.JsonValue;
 
   await db.product.update({
     where: { id: productId },

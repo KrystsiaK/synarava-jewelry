@@ -154,6 +154,21 @@ webhook `pullTranslations: false` in `app/api/shopify/webhooks/products/route.ts
 
 ---
 
+## Collection membership on Push (2026-07 sources)
+
+Product Push updates collection membership through Synarava-owned
+`CollectionConditionsSource` deltas (`selectionsToAdd` / `selectionsToRemove`).
+Shopify rejects emptying a condition source (last manual selection) with
+“A condition based source must have at least one product selection or condition”.
+Push then retries REMOVE via deprecated `collectionRemoveProducts` (Shopify’s
+documented stopgap for collection-scoped sources). Failures name the collection
+GID and action instead of surfacing the raw GraphQL line alone.
+
+Category metafield `resolvedValues` are display enrichment on live product
+fetches. Inspect backfills them onto matching OUR metafields before diff so
+missing enrichment is not counted as empty-OUR commerce conflicts. Truly missing
+metafields still need whole-record **Pull**.
+
 ## Known gaps (next branches)
 
 - Full 3-way merge with explicit **base** (`B/L/R`) for ahead vs conflict.

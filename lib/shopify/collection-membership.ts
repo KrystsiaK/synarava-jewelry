@@ -103,3 +103,28 @@ export function hasCollectionIdentityConflict(
     existingShopifyCollectionId !== remoteShopifyCollectionId,
   );
 }
+
+/**
+ * Shopify 2026-07 rejects `selectionsToRemove` / `sourcesToDelete` when a
+ * condition source would end with zero selections and zero conditions.
+ * @see https://community.shopify.dev/t/bug-not-possible-to-empty-a-non-empty-selection-based-collection-via-api/35897
+ */
+export function isEmptyConditionSourceError(message: string) {
+  return /condition based source must have at least one product selection or condition/i.test(
+    message,
+  );
+}
+
+/** Human-readable membership failure — always names the collection + action. */
+export function formatCollectionMembershipError(input: {
+  action: "ADD" | "REMOVE";
+  collectionId: string;
+  cause: string;
+}) {
+  const hint = input.action === "REMOVE" && isEmptyConditionSourceError(input.cause)
+    ? " Shopify rejected emptying a condition-based collection source (last manual product). Synarava retries via collectionRemoveProducts."
+    : input.action === "ADD" && isEmptyConditionSourceError(input.cause)
+      ? " Shopify rejected the condition-based source payload (needs at least one product selection or condition)."
+      : "";
+  return `Collection membership ${input.action} failed for ${input.collectionId}: ${input.cause}.${hint}`;
+}
