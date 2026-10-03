@@ -80,4 +80,25 @@ describe("product-metafields-shared", () => {
       { namespace: "custom", key: "warranty", type: "single_line_text_field", value: "2 years" },
     ]);
   });
+
+  it("reads custom metafields from identity-map workingSnapshot shape", () => {
+    expect(customMetafieldsFromWorkingSnapshot({
+      metafields: {
+        "custom::warranty": {
+          namespace: "custom",
+          key: "warranty",
+          type: "single_line_text_field",
+          value: "2 years",
+        },
+        "synarava::material": {
+          namespace: "synarava",
+          key: "material",
+          type: "single_line_text_field",
+          value: "Gold",
+        },
+      },
+    })).toEqual([
+      { namespace: "custom", key: "warranty", type: "single_line_text_field", value: "2 years" },
+    ]);
+  });
 });

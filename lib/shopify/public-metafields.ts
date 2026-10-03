@@ -1,5 +1,6 @@
 import { PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
 import { isShopifyCategoryMetafieldType } from "@/lib/shopify/category-attribute-values";
+import { coerceMetafieldRows } from "@/lib/shopify/product-metafields-shared";
 
 const SUPPORTED_TYPES = new Set([
   "single_line_text_field", "multi_line_text_field", "number_integer",
@@ -15,8 +16,7 @@ function record(value: unknown): Record<string, unknown> {
 
 /** Only Shopify definitions explicitly readable from Storefront may become product copy. */
 export function projectPublicProductMetafields(value: unknown): Array<{ label: string; value: string }> {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
+  return coerceMetafieldRows(value).flatMap((item) => {
     const field = record(item);
     const definition = record(field.definition);
     const label = typeof definition.name === "string" && definition.name.trim()

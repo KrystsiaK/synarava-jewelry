@@ -1756,6 +1756,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       userErrors(deleted.metafieldsDelete.userErrors);
     }
     const remoteVariant = remote.variants.nodes[0];
+    let pushedInventory: { variantId: string; quantity: number } | null = null;
     if (remoteVariant) {
       const variantData = await shopifyAdminRequest<{
         productVariantsBulkUpdate: { productVariants: ShopifyProduct["variants"]["nodes"]; userErrors: UserError[] };
@@ -1818,14 +1819,32 @@ export async function pushProductToShopify(productId: string, forceTranslation =
               }, idempotencyKey: randomUUID() },
             );
             userErrors(inventory.inventorySetQuantities.userErrors);
+            pushedInventory = { variantId: savedVariant.id, quantity: localVariant.stockOnHand };
           }
         }
       }
     }
     const mediaSettled = await waitForReadyProductMedia(remote, localAssets);
+    // Inventory SetQuantities can lag one fetch behind; wait so agreedProjectionWrite
+    // does not freeze a stale quantity into OUR/Shopify and force a second Push cycle.
+    const expectedInventory = pushedInventory;
     const settled = {
       ...mediaSettled,
-      product: await refreshShopifyProductAfterPush(mediaSettled.product, fetchShopifyProduct),
+      product: await refreshShopifyProductAfterPush(
+        mediaSettled.product,
+        fetchShopifyProduct,
+        expectedInventory
+          ? {
+              attempts: 6,
+              delayMs: 150,
+              isSettled: (fresh) => {
+                const variant = fresh.variants.nodes.find((item) => item.id === expectedInventory.variantId)
+                  ?? fresh.variants.nodes[0];
+                return (variant?.inventoryQuantity ?? 0) === expectedInventory.quantity;
+              },
+            }
+          : undefined,
+      ),
     };
     const remoteImageUrl = pickShopifyProductImageUrl({
       featuredImageUrl: settled.product.featuredMedia?.preview?.image?.url,

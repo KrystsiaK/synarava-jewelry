@@ -1,4 +1,5 @@
 import type { ProductCharacteristicKey } from "@/lib/products/characteristics";
+import { coerceMetafieldRows } from "@/lib/shopify/product-metafields-shared";
 
 export type ShopifyCategoryAttributeSelection = {
   key: string;
@@ -39,8 +40,7 @@ export function extractSelectedShopifyCategoryAttributes(
   snapshot: unknown,
 ): ShopifyCategoryAttributeSelection[] {
   if (snapshot == null || typeof snapshot !== "object" || Array.isArray(snapshot)) return [];
-  const metafields = (snapshot as { metafields?: unknown }).metafields;
-  if (!Array.isArray(metafields)) return [];
+  const metafields = coerceMetafieldRows((snapshot as { metafields?: unknown }).metafields);
 
   return metafields.flatMap((item) => {
     const field = item as SnapshotMetafield;

@@ -44,8 +44,26 @@ export function isSynaravaProductAccessible(
 export async function refreshShopifyProductAfterPush<T extends { id: string }>(
   product: T,
   fetchProduct: (id: string) => Promise<T | null>,
+  options?: {
+    /** Retry until this returns true (e.g. inventory quantity has settled). */
+    isSettled?: (fresh: T) => boolean;
+    attempts?: number;
+    delayMs?: number;
+  },
 ) {
-  return await fetchProduct(product.id) ?? product;
+  const attempts = Math.max(1, options?.attempts ?? 1);
+  const delayMs = Math.max(0, options?.delayMs ?? 150);
+  let latest = product;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const fresh = await fetchProduct(product.id);
+    if (!fresh) return latest;
+    latest = fresh;
+    if (!options?.isSettled || options.isSettled(fresh)) return latest;
+    if (attempt < attempts - 1 && delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
+    }
+  }
+  return latest;
 }
 
 export function pickShopifyProductImageUrl({

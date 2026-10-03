@@ -169,6 +169,16 @@ fetches. Inspect backfills them onto matching OUR metafields before diff so
 missing enrichment is not counted as empty-OUR commerce conflicts. Truly missing
 metafields still need whole-record **Pull**.
 
+### Metafield identity (normalize)
+
+`canonicalizeShopifyProjection` (save **and** compare) maps `metafields` by
+`namespace::key` — not array index. Reordered-but-equal sets produce **zero**
+conflicts; membership/value mismatches surface as identity paths
+(`metafields.synarava::neck_fit.value`), never cascading `metafields[n].key`
+phantoms. Inventory Save write-through updates `variants[].inventoryQuantity`
+and `totalInventory` together. After Push inventory, refresh retries until the
+live quantity settles so a second Push cycle is not required for lag alone.
+
 ## Known gaps (next branches)
 
 - Full 3-way merge with explicit **base** (`B/L/R`) for ahead vs conflict.

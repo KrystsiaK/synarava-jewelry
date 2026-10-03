@@ -82,13 +82,38 @@ export function parseCustomMetafieldsForm(formData: FormData): ProductMetafieldV
 
 type SnapshotMetafield = { namespace: string; key: string; type: string; value: string };
 
+/** Stable identity for metafield compare / map keys (`namespace::key`). */
+export function metafieldIdentityKey(namespace: string, key: string) {
+  return `${namespace}::${key}`;
+}
+
+/**
+ * Accept Shopify array shape or the canonical `namespace::key` map.
+ * Compare persist uses the map; readers must accept both.
+ */
+export function coerceMetafieldRows(metafields: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(metafields)) {
+    return metafields.flatMap((field) => {
+      if (!field || typeof field !== "object") return [];
+      return [field as Record<string, unknown>];
+    });
+  }
+  if (metafields && typeof metafields === "object") {
+    const record = metafields as Record<string, unknown>;
+    // GraphQL connection shape before flatten (`{ nodes, pageInfo }`).
+    if (Array.isArray(record.nodes)) return coerceMetafieldRows(record.nodes);
+    return Object.values(record).flatMap((field) => {
+      if (!field || typeof field !== "object" || Array.isArray(field)) return [];
+      return [field as Record<string, unknown>];
+    });
+  }
+  return [];
+}
+
 export function metafieldsArrayFromSnapshot(value: unknown): SnapshotMetafield[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
   const fields = (value as { metafields?: unknown }).metafields;
-  if (!Array.isArray(fields)) return [];
-  return fields.flatMap((field) => {
-    if (!field || typeof field !== "object") return [];
-    const row = field as Record<string, unknown>;
+  return coerceMetafieldRows(fields).flatMap((row) => {
     if (
       typeof row.namespace !== "string"
       || typeof row.key !== "string"
@@ -119,17 +144,12 @@ export function mergeCustomMetafieldsIntoList(
   existing: unknown,
   customValues: ReadonlyArray<ProductMetafieldValueInput>,
 ): Array<Record<string, unknown>> {
-  const current: Array<Record<string, unknown>> = Array.isArray(existing)
-    ? existing.flatMap((field) => {
-      if (!field || typeof field !== "object") return [];
-      const row = field as Record<string, unknown>;
-      if (typeof row.namespace !== "string" || typeof row.key !== "string") return [];
-      return [row];
-    })
-    : [];
+  const current = coerceMetafieldRows(existing).filter(
+    (row) => typeof row.namespace === "string" && typeof row.key === "string",
+  );
 
   const byId = new Map<string, Record<string, unknown>>(
-    current.map((item) => [`${String(item.namespace)}::${String(item.key)}`, { ...item }]),
+    current.map((item) => [metafieldIdentityKey(String(item.namespace), String(item.key)), { ...item }]),
   );
   for (const item of customValues) {
     if (isManagedProductMetafieldNamespace(item.namespace)) continue;

@@ -32,9 +32,43 @@ describe("canonicalizeShopifyProjection", () => {
           preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
         },
       ],
-      metafields: [{ key: "x", namespace: "custom", value: "1" }],
+      metafields: {
+        "custom::x": { key: "x", namespace: "custom", value: "1" },
+      },
       title: "Ring",
       variants: { nodes: [] },
+    });
+  });
+
+  it("maps metafields by namespace::key regardless of array order", () => {
+    const a = canonicalizeShopifyProjection({
+      metafields: [
+        { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+        { namespace: "synarava", key: "overall_length", type: "single_line_text_field", value: "18" },
+      ],
+    });
+    const b = canonicalizeShopifyProjection({
+      metafields: [
+        { namespace: "synarava", key: "overall_length", type: "single_line_text_field", value: "18" },
+        { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+      ],
+    });
+    expect(a).toEqual(b);
+    expect(a).toEqual({
+      metafields: {
+        "synarava::neck_fit": {
+          key: "neck_fit",
+          namespace: "synarava",
+          type: "single_line_text_field",
+          value: "16",
+        },
+        "synarava::overall_length": {
+          key: "overall_length",
+          namespace: "synarava",
+          type: "single_line_text_field",
+          value: "18",
+        },
+      },
     });
   });
 
@@ -153,6 +187,93 @@ describe("diffShopifyProjections", () => {
     };
     expect(alignMetafieldResolvedValues(working, shopify)).toEqual(working);
     expect(diffShopifyProjections(working, shopify).length).toBeGreaterThan(0);
+  });
+
+  it("same metafields different order → zero conflicts", () => {
+    const local = {
+      metafields: [
+        { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+        { namespace: "synarava", key: "overall_length", type: "single_line_text_field", value: "18" },
+        { namespace: "synarava", key: "wrist_fit", type: "single_line_text_field", value: "7" },
+      ],
+    };
+    const shopify = {
+      metafields: [
+        { namespace: "synarava", key: "wrist_fit", type: "single_line_text_field", value: "7" },
+        { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+        { namespace: "synarava", key: "overall_length", type: "single_line_text_field", value: "18" },
+      ],
+    };
+    expect(diffShopifyProjections(local, shopify)).toEqual([]);
+  });
+
+  it("real metafield value mismatch → one identity-keyed conflict", () => {
+    const diffs = diffShopifyProjections(
+      {
+        metafields: [
+          { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+          { namespace: "synarava", key: "overall_length", type: "single_line_text_field", value: "18" },
+        ],
+      },
+      {
+        metafields: [
+          { namespace: "synarava", key: "overall_length", type: "single_line_text_field", value: "20" },
+          { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+        ],
+      },
+    );
+    expect(diffs).toEqual([
+      {
+        path: "metafields.synarava::overall_length.value",
+        field: "Metafield synarava.overall_length.value",
+        local: "18",
+        shopify: "20",
+      },
+    ]);
+  });
+
+  it("inventory-only change does not invent metafield index paths", () => {
+    const sharedMetafields = [
+      { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+      { namespace: "synarava", key: "overall_length", type: "single_line_text_field", value: "18" },
+      { namespace: "shopify", key: "jewelry-material", type: "list.product_taxonomy_value_reference", value: "[]" },
+    ];
+    const diffs = diffShopifyProjections(
+      {
+        totalInventory: 4,
+        metafields: sharedMetafields,
+        variants: [{ id: "v1", inventoryQuantity: 4 }],
+      },
+      {
+        totalInventory: 1,
+        metafields: [...sharedMetafields].reverse(),
+        variants: [{ id: "v1", inventoryQuantity: 1 }],
+      },
+    );
+    expect(diffs.map((item) => item.path).toSorted()).toEqual([
+      "totalInventory",
+      "variants[0].inventoryQuantity",
+    ]);
+    expect(diffs.every((item) => !item.path.includes("metafields["))).toBe(true);
+  });
+
+  it("extra metafield on one side is a single identity path, not an index cascade", () => {
+    const diffs = diffShopifyProjections(
+      {
+        metafields: [
+          { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+          { namespace: "shopify", key: "jewelry-material", type: "list.product_taxonomy_value_reference", value: "[]" },
+        ],
+      },
+      {
+        metafields: [
+          { namespace: "synarava", key: "neck_fit", type: "single_line_text_field", value: "16" },
+        ],
+      },
+    );
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]?.path).toBe("metafields.shopify::jewelry-material");
+    expect(diffs.every((item) => !/^metafields\[\d+\]/.test(item.path))).toBe(true);
   });
 });
 

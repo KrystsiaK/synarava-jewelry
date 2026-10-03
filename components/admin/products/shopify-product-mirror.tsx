@@ -1,6 +1,7 @@
 import { AdminCollapsiblePanel } from "@/components/synarava-cms";
 import type { ProductRecord } from "@/components/admin/products/product-types";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
+import { coerceMetafieldRows } from "@/lib/shopify/product-metafields-shared";
 
 type Metafield = { namespace: string; key: string; type: string; value: string; resolvedValues?: string[] };
 
@@ -20,10 +21,7 @@ function string(value: unknown): string {
 
 function metafieldsFromSnapshot(value: unknown): Metafield[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-  const fields = (value as { metafields?: unknown }).metafields;
-  if (!Array.isArray(fields)) return [];
-  return fields.filter((field): field is Metafield =>
-    field != null && typeof field === "object" &&
+  return coerceMetafieldRows((value as { metafields?: unknown }).metafields).filter((field): field is Metafield =>
     typeof field.namespace === "string" && typeof field.key === "string" &&
     typeof field.type === "string" && typeof field.value === "string",
   );

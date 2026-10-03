@@ -3,6 +3,7 @@ import {
   extractSelectedShopifyCategoryAttributes,
   isShopifyCategoryMetafieldType,
 } from "@/lib/shopify/category-attribute-values";
+import { coerceMetafieldRows } from "@/lib/shopify/product-metafields-shared";
 
 export type ShopifyProductFact = {
   key: string;
@@ -83,7 +84,7 @@ export function extractShopifyProductFacts(input: {
   }
 
   const snapshot = record(input.snapshot);
-  const metafields = Array.isArray(snapshot.metafields) ? snapshot.metafields : [];
+  const metafields = coerceMetafieldRows(snapshot.metafields);
   for (const item of metafields) {
     const field = item as SnapshotMetafield;
     if (typeof field.namespace !== "string" || SKIP_METAFIELD_NAMESPACES.has(field.namespace)) continue;

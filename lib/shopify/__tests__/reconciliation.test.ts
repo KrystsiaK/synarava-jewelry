@@ -103,6 +103,26 @@ describe("Shopify storefront projection", () => {
     await expect(refreshShopifyProductAfterPush(initial, async () => null)).resolves.toBe(initial);
   });
 
+  it("retries refresh until isSettled reports inventory catch-up", async () => {
+    const stale = { id: "p1", qty: 1 };
+    const live = { id: "p1", qty: 4 };
+    let calls = 0;
+    const result = await refreshShopifyProductAfterPush(
+      stale,
+      async () => {
+        calls += 1;
+        return calls < 3 ? stale : live;
+      },
+      {
+        attempts: 5,
+        delayMs: 1,
+        isSettled: (fresh) => fresh.qty === 4,
+      },
+    );
+    expect(result).toEqual(live);
+    expect(calls).toBe(3);
+  });
+
   it("uses the first Shopify image media when no featured image is set", () => {
     expect(
       pickShopifyProductImageUrl({

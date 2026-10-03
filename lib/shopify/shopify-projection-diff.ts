@@ -1,5 +1,7 @@
 import {
+  coerceMetafieldRows,
   mergeCustomMetafieldsIntoList,
+  metafieldIdentityKey,
 } from "@/lib/shopify/product-metafields-shared";
 
 /**
@@ -43,6 +45,7 @@ const PATH_LABELS: Array<{ match: RegExp; label: string }> = [
   { match: /^variants\[\d+\]\.compareAtPrice$/, label: "Compare-at price" },
   { match: /^variants\[\d+\]\.taxable$/, label: "Charge tax" },
   { match: /^variants\[\d+\]\.inventoryQuantity$/, label: "Available quantity" },
+  { match: /^totalInventory$/, label: "Total inventory" },
   { match: /^variants\[\d+\]\.barcode$/, label: "Barcode" },
   { match: /^variants\[\d+\]\.inventoryPolicy$/, label: "Inventory policy" },
   { match: /^variants\[\d+\]\.inventoryItem\.unitCost/, label: "Cost" },
@@ -68,7 +71,13 @@ function shouldOmitKey(key: string, parentPath: string): boolean {
   // Ephemeral signed upload URL — not commerce identity; churns and dumps into conflict UI.
   // https://shopify.dev/docs/api/admin-graphql/latest/objects/mediaimage
   if (key === "originalSource" && /(^|\.)media(\[\d+\])?$/.test(parentPath)) return true;
-  if (key === "definition" && /(^|\.)metafields(\[\d+\])?$/.test(parentPath)) return true;
+  // Array index (`metafields[0]`) or identity map (`metafields.custom::warranty`).
+  if (
+    key === "definition"
+    && (/(^|\.)metafields(\[\d+\])?$/.test(parentPath) || /(^|\.)metafields\.[^.]+$/.test(parentPath))
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -77,10 +86,29 @@ function sortKeyForArrayItem(item: unknown): string {
   if (typeof item.id === "string") return `id:${item.id}`;
   if (typeof item.sku === "string" && item.sku.trim()) return `sku:${item.sku.trim()}`;
   if (typeof item.namespace === "string" && typeof item.key === "string") {
-    return `mf:${item.namespace}:${item.key}`;
+    return `mf:${metafieldIdentityKey(item.namespace, item.key)}`;
   }
   if (typeof item.handle === "string") return `handle:${item.handle}`;
   return JSON.stringify(item);
+}
+
+function isMetafieldListPath(path: string): boolean {
+  return path === "metafields"
+    || path.endsWith(".metafields")
+    || path.endsWith("metafields.nodes");
+}
+
+/** Array → stable map keyed by namespace::key so order/membership cannot cascade index phantoms. */
+function metafieldsToIdentityMap(items: unknown[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const item of items) {
+    if (!isPlainObject(item)) continue;
+    if (typeof item.namespace !== "string" || typeof item.key !== "string") continue;
+    out[metafieldIdentityKey(item.namespace, item.key)] = item;
+  }
+  return Object.fromEntries(
+    Object.keys(out).toSorted((a, b) => a.localeCompare(b)).map((key) => [key, out[key]]),
+  );
 }
 
 /**
@@ -94,6 +122,17 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
   }
   if (typeof value === "number" || typeof value === "boolean") return value;
   if (Array.isArray(value)) {
+    if (isMetafieldListPath(path)) {
+      const rows = coerceMetafieldRows(value)
+        .filter((item) => typeof item.namespace === "string" && typeof item.key === "string")
+        .map((item) =>
+          canonicalizeShopifyProjection(
+            item,
+            `${path}.${metafieldIdentityKey(String(item.namespace), String(item.key))}`,
+          ),
+        );
+      return metafieldsToIdentityMap(rows);
+    }
     const mapped = value.map((item, index) =>
       canonicalizeShopifyProjection(item, `${path}[${index}]`),
     );
@@ -103,7 +142,6 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
     }
     if (
       path.endsWith("variants")
-      || path.endsWith("metafields")
       || path.endsWith("collections")
       || path.endsWith("media")
       || path.endsWith("publications")
@@ -113,6 +151,19 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
     return mapped;
   }
   if (!isPlainObject(value)) return value;
+
+  // Already-canonical map or GraphQL `{ nodes }` connection at metafields path.
+  if (isMetafieldListPath(path)) {
+    const rows = coerceMetafieldRows(value)
+      .filter((item) => typeof item.namespace === "string" && typeof item.key === "string")
+      .map((item) =>
+        canonicalizeShopifyProjection(
+          item,
+          `${path}.${metafieldIdentityKey(String(item.namespace), String(item.key))}`,
+        ),
+      );
+    return metafieldsToIdentityMap(rows);
+  }
 
   const out: Record<string, unknown> = {};
   for (const key of Object.keys(value).toSorted()) {
@@ -195,6 +246,16 @@ export function labelForShopifyProjectionPath(path: string): string {
       }
     }
   }
+  const metafieldMatch = path.match(/^metafields\.([^.]+)(?:\.(.+))?$/);
+  if (metafieldMatch) {
+    const identity = metafieldMatch[1];
+    const rest = metafieldMatch[2];
+    const sep = identity.indexOf("::");
+    const label = sep >= 0
+      ? `${identity.slice(0, sep)}.${identity.slice(sep + 2)}`
+      : identity;
+    return rest ? `Metafield ${label}.${rest}` : `Metafield ${label}`;
+  }
   return path;
 }
 
@@ -250,24 +311,22 @@ export function alignMetafieldResolvedValues(
   if (!isPlainObject(workingProjection) || !isPlainObject(shopifyProjection)) {
     return workingProjection;
   }
-  const workingFields = workingProjection.metafields;
-  const shopifyFields = shopifyProjection.metafields;
-  if (!Array.isArray(workingFields) || !Array.isArray(shopifyFields)) {
+  const workingFields = coerceMetafieldRows(workingProjection.metafields);
+  const shopifyFields = coerceMetafieldRows(shopifyProjection.metafields);
+  if (workingFields.length === 0 || shopifyFields.length === 0) {
     return workingProjection;
   }
 
   const remoteById = new Map<string, Record<string, unknown>>();
   for (const item of shopifyFields) {
-    if (!isPlainObject(item)) continue;
     if (typeof item.namespace !== "string" || typeof item.key !== "string") continue;
-    remoteById.set(`${item.namespace}::${item.key}`, item);
+    remoteById.set(metafieldIdentityKey(item.namespace, item.key), item);
   }
 
   let changed = false;
   const nextFields = workingFields.map((item) => {
-    if (!isPlainObject(item)) return item;
     if (typeof item.namespace !== "string" || typeof item.key !== "string") return item;
-    const remote = remoteById.get(`${item.namespace}::${item.key}`);
+    const remote = remoteById.get(metafieldIdentityKey(item.namespace, item.key));
     if (!remote || !Array.isArray(remote.resolvedValues) || remote.resolvedValues.length === 0) {
       return item;
     }
@@ -277,7 +336,13 @@ export function alignMetafieldResolvedValues(
   });
 
   if (!changed) return workingProjection;
-  return { ...workingProjection, metafields: nextFields };
+  // Persist the same identity-map shape canonicalize uses for save + compare.
+  return {
+    ...workingProjection,
+    metafields: metafieldsToIdentityMap(
+      nextFields.map((item) => canonicalizeShopifyProjection(item)),
+    ),
+  };
 }
 
 /** Deep-diff two already-canonicalized (or raw — will canonicalize) projections. */
@@ -413,6 +478,18 @@ export function writeThroughLocalCommerceToProjection(
         `variants[${index}].inventoryQuantity`,
         patch.variant.inventoryQuantity,
       );
+      // Keep product-level totalInventory in the compare window. Inventory-only
+      // Save must not open a second totalInventory phantom against Shopify.
+      const variantsAfter = getProjectionPath(next, "variants");
+      if (Array.isArray(variantsAfter)) {
+        const total = variantsAfter.reduce((sum: number, item) => {
+          if (!isPlainObject(item) || typeof item.inventoryQuantity !== "number") return sum;
+          return sum + item.inventoryQuantity;
+        }, 0);
+        next = setProjectionPath(next, "totalInventory", total);
+      } else {
+        next = setProjectionPath(next, "totalInventory", patch.variant.inventoryQuantity);
+      }
     }
   }
 

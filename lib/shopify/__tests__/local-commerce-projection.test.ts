@@ -81,11 +81,37 @@ describe("localCommerceMatchesProjection", () => {
       },
     );
     expect(next).toMatchObject({ title: "Ring" });
-    const metafields = (next as { metafields: Array<{ namespace: string; key: string; value: string }> }).metafields;
-    expect(metafields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ namespace: "synarava", key: "material", value: "Gold" }),
-      expect.objectContaining({ namespace: "custom", key: "warranty", value: "2 years" }),
-    ]));
-    expect(metafields).toHaveLength(2);
+    const metafields = (next as {
+      metafields: Record<string, { namespace: string; key: string; value: string }>;
+    }).metafields;
+    expect(metafields["synarava::material"]).toMatchObject({
+      namespace: "synarava",
+      key: "material",
+      value: "Gold",
+    });
+    expect(metafields["custom::warranty"]).toMatchObject({
+      namespace: "custom",
+      key: "warranty",
+      value: "2 years",
+    });
+    expect(Object.keys(metafields)).toHaveLength(2);
+  });
+
+  it("inventory write-through updates inventoryQuantity and totalInventory together", () => {
+    const next = writeThroughLocalCommerceToProjection(
+      {
+        title: "Ring",
+        totalInventory: 1,
+        variants: [{ id: "v1", inventoryQuantity: 1 }],
+      },
+      {
+        variant: { shopifyVariantId: "v1", inventoryQuantity: 4 },
+      },
+    );
+    expect(next).toMatchObject({
+      title: "Ring",
+      totalInventory: 4,
+      variants: [{ id: "v1", inventoryQuantity: 4 }],
+    });
   });
 });
