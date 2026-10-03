@@ -153,6 +153,35 @@
     }
   },
   "product": {
+    "stock": {
+      "one": "{count} в наличии",
+      "few": "{count} в наличии",
+      "many": "{count} в наличии",
+      "other": "{count} в наличии"
+    },
+    "optionUnavailable": "Этот вариант недоступен",
+    "shopifyUnavailable": "Недоступно",
+    "selectOption": "Выберите вариант",
+    "currentlyUnavailable": "Сейчас недоступно",
+    "imageUnavailable": "Изображение недоступно",
+    "galleryLabel": "Изображения изделия",
+    "showImage": "Показать изображение {current} из {total}",
+    "enlargeImage": "Увеличить изображение {current} из {total}",
+    "viewLarger": "Открыть крупнее",
+    "expandedImage": "Увеличенное изображение изделия",
+    "closeExpandedImage": "Закрыть увеличенное изображение",
+    "close": "Закрыть",
+    "previousImage": "Предыдущее изображение",
+    "nextImage": "Следующее изображение",
+    "zoomIn": "Увеличить",
+    "zoomOut": "Уменьшить",
+    "purchaseInformation": "Информация о покупке",
+    "delivery": "Доставка",
+    "deliveryDetail": "Рассчитывается при оформлении",
+    "returns": "Возвраты",
+    "returnsDetail": "Смотрите срок возврата",
+    "care": "Уход и безопасность",
+    "careDetail": "Рекомендации по использованию и уходу",
     "adding": "Добавляем…",
     "add": "В корзину",
     "added": "Добавлено в корзину",
@@ -169,7 +198,48 @@
     },
     "viewCart": "Открыть корзину",
     "checkout": "Оформить",
-    "relatedTitle": "Вам также может понравиться"
+    "share": "Поделиться",
+    "linkCopied": "Ссылка скопирована",
+    "readFullStory": "Читать историю целиком",
+    "readMore": "Читать дальше",
+    "showLess": "Свернуть",
+    "save": "Сохранить",
+    "saved": "Сохранено",
+    "saving": "Сохраняем…",
+    "wishlistSaveFailed": "Не удалось сохранить изделие. Попробуйте ещё раз.",
+    "dismissWishlistError": "Закрыть ошибку избранного",
+    "addToWishlist": "Сохранить в избранное",
+    "removeFromWishlist": "Убрать из избранного",
+    "relatedTitle": "Вам также может понравиться",
+    "presentation": {
+      "jewelry": {
+        "descriptionLabel": "Заметки об изделии",
+        "descriptionTitle": "Об изделии полностью",
+        "buyingTitle": "Посадка и уход"
+      }
+    },
+    "hero": {
+      "category": "Категория",
+      "availability": "Наличие",
+      "variants": "Варианты",
+      "composition": "Состав"
+    },
+    "specifications": {
+      "eyebrow": "Информация об изделии",
+      "title": "Детали, которые важны",
+      "productDetails": "Детали изделия",
+      "materialsConstruction": "Материалы и конструкция",
+      "dimensionsFit": "Размеры и посадка",
+      "additionalDetails": "Дополнительные сведения",
+      "materialComposition": "Состав материала",
+      "brand": "Бренд",
+      "productType": "Тип изделия",
+      "sku": "Артикул",
+      "barcode": "Штрихкод",
+      "weight": "Вес",
+      "certificate": "Сертификат",
+      "yes": "✓ Да"
+    }
   },
   "reviews": {
     "title": "Отзывы покупателей",
