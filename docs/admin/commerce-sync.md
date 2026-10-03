@@ -123,18 +123,24 @@ Shopify-native custom product fields (not the `synarava.*` passport):
 
 | Step | Behavior |
 | --- | --- |
-| Edit values | Form fields → **Save** write-through into `workingSnapshot.metafields` |
-| Sync to Shopify | **Push** / conflict resolve (same dual-window model as Price) |
+| Edit EN values | Form fields → **Save** write-through into `workingSnapshot.metafields` |
+| Edit PT/RU text | Locale overlays → `workingSnapshot.metafieldTranslations` (stripped from commerce compare) |
+| Sync to Shopify | **Push**: EN via `metafieldsSet`; PT/RU text via `translationsRegister` on Metafield GID (`key: value`) |
 | List definitions | `metafieldDefinitions(ownerType: PRODUCT)` |
 | Add definition | `metafieldDefinitionCreate` (shop-wide schema only; not product sync) |
 
+Text types (`single_line_text_field`, `multi_line_text_field`, `rich_text_field`) are
+per-locale. Numbers, dates, booleans, URLs, and JSON stay shared (edit in English).
 Passport stays on **Synarava → Passport**. Category / collection / publish stay on
 **Product**. Managed namespaces (`synarava`, `shopify`, `global`) are excluded from
 the Metafields editor.
 
 Code: `lib/shopify/product-metafields-*.ts`,
+`lib/shopify/product-metafield-translations.ts`,
 `ProductMetafieldsPanel`, write-through in `shopify-projection-diff.ts`,
-Push merges custom values from `workingSnapshot`.
+Push merges custom values from `workingSnapshot` and registers Metafield translations.
+
+Docs: [Manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content).
 
 ---
 

@@ -19,4 +19,26 @@ describe("projectPublicProductMetafields", () => {
       { label: "Fabric", value: "Cotton" },
     ]);
   });
+
+  it("prefers locale overlays for public text metafields", () => {
+    expect(projectPublicProductMetafields(
+      [
+        {
+          namespace: "custom",
+          key: "care_instructions",
+          type: "multi_line_text_field",
+          value: "Keep dry.",
+          definition: { name: "Care instructions", access: { storefront: "PUBLIC_READ" } },
+        },
+      ],
+      {
+        locale: "pt",
+        snapshot: {
+          metafieldTranslations: {
+            pt: { "custom::care_instructions": "Manter seco." },
+          },
+        },
+      },
+    )).toEqual([{ label: "Care instructions", value: "Manter seco." }]);
+  });
 });

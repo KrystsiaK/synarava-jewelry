@@ -25,7 +25,11 @@ import {
   parseCharacteristicsForm,
   readCharacteristicTextOverlayFromForm,
 } from "@/lib/products/characteristics";
-import { parseCustomMetafieldsForm } from "@/lib/shopify/product-metafields-shared";
+import {
+  formDataHasMetafieldTranslationFields,
+  parseCustomMetafieldsForm,
+  parseCustomMetafieldTranslationsForm,
+} from "@/lib/shopify/product-metafields-shared";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { resolveProductTranslationSyncStatus } from "@/lib/shopify/translations";
@@ -752,6 +756,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const imageFile = formData.get("imageFile");
   const characteristics = parseCharacteristicsForm(formData);
   const customMetafields = parseCustomMetafieldsForm(formData);
+  const metafieldTranslations = formDataHasMetafieldTranslationFields(formData)
+    ? parseCustomMetafieldTranslationsForm(formData)
+    : undefined;
   const tagSlugs = parseTags(tagInput);
   const hasShopifyCategorySelection =
     formData.has("shopifyCategoryId") || formData.has("shopifyCategoryName");
@@ -1206,6 +1213,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         productType: linked.productType,
         tags: tagSlugs.map((slug) => slug.replace(/-/g, " ")),
         customMetafields: customMetafields.length > 0 ? customMetafields : undefined,
+        metafieldTranslations,
         variant: variant
           ? {
               shopifyVariantId: variant.shopifyVariantId,

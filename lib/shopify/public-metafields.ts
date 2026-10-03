@@ -1,6 +1,11 @@
 import { PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
 import { isShopifyCategoryMetafieldType } from "@/lib/shopify/category-attribute-values";
-import { coerceMetafieldRows } from "@/lib/shopify/product-metafields-shared";
+import {
+  coerceMetafieldRows,
+  isTranslatableMetafieldType,
+  metafieldIdentityKey,
+  metafieldTranslationsFromSnapshot,
+} from "@/lib/shopify/product-metafields-shared";
 
 const SUPPORTED_TYPES = new Set([
   "single_line_text_field", "multi_line_text_field", "number_integer",
@@ -15,7 +20,14 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 /** Only Shopify definitions explicitly readable from Storefront may become product copy. */
-export function projectPublicProductMetafields(value: unknown): Array<{ label: string; value: string }> {
+export function projectPublicProductMetafields(
+  value: unknown,
+  options?: { locale?: string; snapshot?: unknown },
+): Array<{ label: string; value: string }> {
+  const locale = options?.locale ?? "en";
+  const translations = metafieldTranslationsFromSnapshot(options?.snapshot ?? value);
+  const localeBucket = locale !== "en" ? translations[locale] ?? {} : {};
+
   return coerceMetafieldRows(value).flatMap((item) => {
     const field = record(item);
     const definition = record(field.definition);
@@ -36,7 +48,11 @@ export function projectPublicProductMetafields(value: unknown): Array<{ label: s
     if (typeof field.key !== "string" || typeof field.type !== "string" || typeof field.value !== "string") return [];
     if (!SUPPORTED_TYPES.has(field.type)) return [];
     if (field.namespace === "synarava" && MANAGED_KEYS.has(field.key)) return [];
-    const value = field.type === "boolean" ? field.value === "true" ? "Yes" : "No" : field.value.trim();
+    const sourceValue = field.type === "boolean" ? field.value === "true" ? "Yes" : "No" : field.value.trim();
+    const translated = typeof field.namespace === "string" && isTranslatableMetafieldType(field.type)
+      ? localeBucket[metafieldIdentityKey(field.namespace, field.key)]?.trim()
+      : "";
+    const value = translated || sourceValue;
     return value ? [{ label, value }] : [];
   });
 }

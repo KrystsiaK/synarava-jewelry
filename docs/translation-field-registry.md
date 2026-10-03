@@ -28,13 +28,14 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | mediaAlt | localized | optional (EN publish checklist via Issues / Meta Health) | native `MEDIA_IMAGE.alt` |
 | mediaCaption | localized | optional | metaobject `product_detail_copy.media_caption` |
 | sku, price, compareAt, currency, status, visibility, category, collections, tags, media, variants | shared | — | — |
+| merchant product metafield text (`custom.*` etc., Fields tab) | localized | optional | metafield `value` via Translations API on Metafield GID |
+| merchant product metafield non-text (number/boolean/date/url/json) | shared | optional | metafieldsSet (EN only) |
 
-No field targets a raw Shopify metafield today — every non-native localized
-field went to a translatable `$app:` metaobject once Task 16 built the real
-adapter, since Shopify metafield *translation* support is native-owner-only
-and narrower than the metaobject path this app actually implements. The
-`metafield` target kind still exists in `ShopifyFieldTarget`'s type for a
-future case that needs it, but nothing constructs one right now.
+Structured Synarava CMS copy still uses `$app:` metaobjects (Task 16). Merchant
+**Fields** tab text metafields (e.g. Care instructions) use Shopify Metafield
+translations (`translationsRegister` / `key: value`) so each locale can differ.
+Overlays live in `workingSnapshot.metafieldTranslations` and are stripped from
+commerce conflict compare.
 
 ## Collection
 

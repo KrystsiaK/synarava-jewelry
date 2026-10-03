@@ -15,6 +15,9 @@ describe("canonicalizeShopifyProjection", () => {
       title: "Ring",
       updatedAt: "2026-01-01T00:00:00Z",
       __typename: "Product",
+      metafieldTranslations: {
+        pt: { "custom::care_instructions": "Manter seco." },
+      },
       media: [{
         id: "m1",
         status: "READY",
@@ -38,6 +41,7 @@ describe("canonicalizeShopifyProjection", () => {
       title: "Ring",
       variants: { nodes: [] },
     });
+    expect(canonical).not.toHaveProperty("metafieldTranslations");
   });
 
   it("maps metafields by namespace::key regardless of array order", () => {

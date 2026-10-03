@@ -6,13 +6,26 @@ import {
   createProductMetafieldDefinitionAction,
   listCustomProductMetafieldDefinitionsAction,
 } from "@/app/admin/actions/sync";
-import { AdminHelp, AdminRichTextField, AdminSelectField, AdminTextField } from "@/components/synarava-cms";
+import {
+  AdminHelp,
+  AdminReadonlyField,
+  AdminRichTextField,
+  AdminSelectField,
+  AdminTextField,
+} from "@/components/synarava-cms";
+import { SOURCE_LOCALE } from "@/components/admin/products/product-editor-scope";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import {
   customMetafieldTypeFieldName,
   customMetafieldValueFieldName,
+  isTranslatableMetafieldType,
+  metafieldIdentityKey,
+  metafieldTranslatedValue,
+  metafieldTranslationsFromSnapshot,
   metafieldValueFromSnapshot,
   metafieldsArrayFromSnapshot,
+  type MetafieldTranslations,
   type ProductMetafieldDefinition,
 } from "@/lib/shopify/product-metafields-shared";
 
@@ -27,24 +40,61 @@ const METAFIELD_TYPE_OPTIONS = [
   "json",
 ] as const;
 
+function HiddenMetafieldOverlayFields({
+  definitions,
+  overlaysByLocale,
+  translationLocales,
+}: {
+  definitions: ProductMetafieldDefinition[];
+  overlaysByLocale: MetafieldTranslations;
+  translationLocales: AdminTranslationLocale[];
+}) {
+  const textDefinitions = definitions.filter((item) => isTranslatableMetafieldType(item.type));
+  return (
+    <div hidden data-component="HiddenMetafieldOverlayFields">
+      {translationLocales.flatMap(({ code }) => {
+        if (code === SOURCE_LOCALE) return [];
+        return textDefinitions.map((definition) => {
+          const name = customMetafieldValueFieldName(definition.namespace, definition.key, code);
+          const id = metafieldIdentityKey(definition.namespace, definition.key);
+          return (
+            <input
+              key={name}
+              type="hidden"
+              name={name}
+              value={overlaysByLocale[code]?.[id] ?? ""}
+              readOnly
+            />
+          );
+        });
+      })}
+    </div>
+  );
+}
+
 /**
  * Merchant PRODUCT metafields — edits are local FormData → Save → workingSnapshot.
- * Push / conflict resolve sends them to Shopify (same dual-window model as Price).
- * Add definition is shop-wide schema (Shopify Settings), not product sync.
+ * Source locale (EN) values sync via metafieldsSet; PT/RU text overlays use Shopify
+ * Translations API on the Metafield GID (`key: value`).
  *
  * @see https://shopify.dev/docs/apps/build/metafields/definitions
+ * @see https://shopify.dev/docs/apps/build/markets/manage-translated-content
  */
 export function ProductMetafieldsPanel({
   productId,
   shopifyProductId,
   shopifySnapshot,
   workingSnapshot,
+  activeLocale = SOURCE_LOCALE,
+  translationLocales = [],
 }: {
   productId: string;
   shopifyProductId: string | null;
   shopifySnapshot: unknown;
   /** OUR commerce window — preferred for field values when present. */
   workingSnapshot?: unknown;
+  activeLocale?: string;
+  translationLocales?: AdminTranslationLocale[];
 }) {
   const { pushToast } = useAdminToast();
   const [definitions, setDefinitions] = useState<ProductMetafieldDefinition[]>([]);
@@ -56,7 +106,13 @@ export function ProductMetafieldsPanel({
   const [newKey, setNewKey] = useState("");
   const [newType, setNewType] = useState<string>("single_line_text_field");
   const [newDescription, setNewDescription] = useState("");
-  const snapshotFields = metafieldsArrayFromSnapshot(workingSnapshot ?? shopifySnapshot);
+  const snapshotSource = workingSnapshot ?? shopifySnapshot;
+  const snapshotFields = metafieldsArrayFromSnapshot(snapshotSource);
+  const [overlaysByLocale, setOverlaysByLocale] = useState<MetafieldTranslations>(() =>
+    metafieldTranslationsFromSnapshot(snapshotSource),
+  );
+  const isSource = activeLocale === SOURCE_LOCALE;
+  const showOverlay = !isSource;
 
   // When the Shopify link disappears, clear loading/definitions during render.
   const [trackedShopifyId, setTrackedShopifyId] = useState(shopifyProductId);
@@ -101,6 +157,20 @@ export function ProductMetafieldsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopifyProductId, productId]);
 
+  function updateOverlay(namespace: string, key: string, value: string) {
+    if (activeLocale === SOURCE_LOCALE) return;
+    const id = metafieldIdentityKey(namespace, key);
+    setOverlaysByLocale((prev) => {
+      const localeBucket = { ...(prev[activeLocale] ?? {}) };
+      if (value.trim()) localeBucket[id] = value;
+      else delete localeBucket[id];
+      const next = { ...prev };
+      if (Object.keys(localeBucket).length > 0) next[activeLocale] = localeBucket;
+      else delete next[activeLocale];
+      return next;
+    });
+  }
+
   if (!shopifyProductId) {
     return (
       <section className="grid gap-3 border border-[var(--adm-border)] p-4">
@@ -120,27 +190,30 @@ export function ProductMetafieldsPanel({
           <p className="adm-label-row">
             <span className="adm-label">Product metafields</span>
             <AdminHelp>
-              Same as Shopify Admin → Product metafields. Edit values here, then Save (writes OUR
-              window). Push or resolve conflicts to send them to Shopify. Passport fields stay under
-              Catalog.
+              Same as Shopify Admin → Product metafields. English values Save into OUR window and
+              Push via metafieldsSet. Other languages translate text fields only (Shopify
+              Translations API); blank falls back to English. Numbers, dates, and flags stay shared.
             </AdminHelp>
           </p>
           <p className="mt-2 text-xs leading-5 text-[var(--adm-muted)]">
-            Values are part of commerce sync — not a separate Shopify write. Add definition only
-            creates a shop-wide field schema in Shopify.
+            {showOverlay
+              ? "Translate text metafields for this language. Non-text fields are edited in English."
+              : "Values are part of commerce sync — not a separate Shopify write. Add definition only creates a shop-wide field schema in Shopify."}
           </p>
         </div>
-        <button
-          type="button"
-          className="adm-btn-secondary"
-          disabled={pending}
-          onClick={() => setAddOpen((open) => !open)}
-        >
-          Add definition
-        </button>
+        {isSource ? (
+          <button
+            type="button"
+            className="adm-btn-secondary"
+            disabled={pending}
+            onClick={() => setAddOpen((open) => !open)}
+          >
+            Add definition
+          </button>
+        ) : null}
       </div>
 
-      {addOpen ? (
+      {addOpen && isSource ? (
         <div className="grid gap-3 rounded-xl border border-[var(--adm-border)] bg-[var(--adm-bg-soft)] p-4">
           <AdminTextField
             label="Name"
@@ -215,6 +288,12 @@ export function ProductMetafieldsPanel({
         </div>
       ) : null}
 
+      <HiddenMetafieldOverlayFields
+        definitions={definitions}
+        overlaysByLocale={overlaysByLocale}
+        translationLocales={translationLocales}
+      />
+
       {loading ? (
         <p className="text-xs text-[var(--adm-muted)]" role="status">Loading definitions from Shopify…</p>
       ) : definitions.length === 0 ? (
@@ -225,7 +304,7 @@ export function ProductMetafieldsPanel({
       ) : (
         <div className="grid gap-3">
           {definitions.map((definition) => {
-            const valueName = customMetafieldValueFieldName(definition.namespace, definition.key);
+            const enValueName = customMetafieldValueFieldName(definition.namespace, definition.key);
             const typeName = customMetafieldTypeFieldName(definition.namespace, definition.key);
             const help = `${definition.namespace}.${definition.key} · ${definition.type}`;
             const defaultValue = metafieldValueFromSnapshot(
@@ -233,30 +312,85 @@ export function ProductMetafieldsPanel({
               definition.namespace,
               definition.key,
             );
+            const translatable = isTranslatableMetafieldType(definition.type);
+            const overlayValue = metafieldTranslatedValue(
+              overlaysByLocale,
+              activeLocale,
+              definition.namespace,
+              definition.key,
+            );
+            const multiline = definition.type.includes("multi_line") || definition.type.includes("rich_text");
+
+            if (!translatable) {
+              return (
+                <div key={definition.id} className="grid gap-1">
+                  <input type="hidden" name={typeName} value={definition.type} readOnly />
+                  <div hidden={showOverlay}>
+                    <AdminTextField
+                      label={definition.name}
+                      help={help}
+                      name={enValueName}
+                      defaultValue={defaultValue}
+                    />
+                  </div>
+                  {showOverlay ? (
+                    <AdminReadonlyField
+                      label={definition.name}
+                      help={`${help} · shared (edit in English)`}
+                      value={defaultValue.trim() || "—"}
+                    />
+                  ) : null}
+                </div>
+              );
+            }
+
             return (
               <div key={definition.id} className="grid gap-1">
                 <input type="hidden" name={typeName} value={definition.type} readOnly />
-                {definition.type.includes("multi_line") ? (
-                  <AdminRichTextField
-                    label={definition.name}
-                    help={help}
-                    name={valueName}
-                    defaultValue={defaultValue}
-                  />
-                ) : (
-                  <AdminTextField
-                    label={definition.name}
-                    help={help}
-                    name={valueName}
-                    defaultValue={defaultValue}
-                  />
-                )}
+                <div hidden={showOverlay}>
+                  {multiline ? (
+                    <AdminRichTextField
+                      label={definition.name}
+                      help={help}
+                      name={enValueName}
+                      defaultValue={defaultValue}
+                    />
+                  ) : (
+                    <AdminTextField
+                      label={definition.name}
+                      help={help}
+                      name={enValueName}
+                      defaultValue={defaultValue}
+                    />
+                  )}
+                </div>
+                {showOverlay ? (
+                  multiline ? (
+                    <AdminRichTextField
+                      label={definition.name}
+                      help={`${help} · ${activeLocale.toUpperCase()}`}
+                      value={overlayValue}
+                      onChange={(value) => updateOverlay(definition.namespace, definition.key, value)}
+                      placeholder={defaultValue || undefined}
+                    />
+                  ) : (
+                    <AdminTextField
+                      label={definition.name}
+                      help={`${help} · ${activeLocale.toUpperCase()}`}
+                      value={overlayValue}
+                      onChange={(event) =>
+                        updateOverlay(definition.namespace, definition.key, event.target.value)
+                      }
+                      placeholder={defaultValue || undefined}
+                    />
+                  )
+                ) : null}
               </div>
             );
           })}
           <p className="text-xs text-[var(--adm-muted)]">
             Use Save product to store these in OUR commerce window, then Push (or resolve conflicts)
-            to update Shopify.
+            to update Shopify{showOverlay ? " translations" : ""}.
           </p>
         </div>
       )}

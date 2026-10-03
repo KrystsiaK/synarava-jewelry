@@ -50,13 +50,18 @@ describe("product-editor-scope", () => {
     expect(dirtyKeyForEdit("pt", "price")).toBe("*:price");
   });
 
-  it("marks metafields as a shared dirty section", () => {
-    expect(dirtyKeyForEdit("pt", "metafields")).toBe("*:metafields");
+  it("marks metafields as a locale-scoped dirty section", () => {
+    expect(dirtyKeyForEdit("pt", "metafields")).toBe("pt:metafields");
+    expect(dirtyKeyForEdit("en", "metafields")).toBe("en:metafields");
   });
 
-  it("attributes custom metafield form fields to the Metafields section", () => {
+  it("attributes custom metafield form fields to the Metafields section by locale", () => {
     expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "metafields", "en")).toBe(true);
     expect(fieldBelongsToBranch("customMetafieldType:custom:warranty", "metafields", "en")).toBe(true);
+    expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "metafields", "pt")).toBe(false);
+    expect(fieldBelongsToBranch("ptCustomMetafieldValue:custom:warranty", "metafields", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("ptCustomMetafieldValue:custom:warranty", "metafields", "en")).toBe(false);
+    expect(fieldBelongsToBranch("customMetafieldType:custom:warranty", "metafields", "pt")).toBe(false);
     expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "essentials", "en")).toBe(false);
   });
 

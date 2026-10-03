@@ -242,7 +242,7 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function shopifyProjection(value: unknown) {
+function shopifyProjection(value: unknown, locale: Locale = "en") {
   const snapshot = asRecord(value);
   const media = Array.isArray(snapshot.media) ? snapshot.media : [];
   const options = Array.isArray(snapshot.options) ? snapshot.options : [];
@@ -268,7 +268,10 @@ function shopifyProjection(value: unknown) {
         values: Array.isArray(row.values) ? row.values.filter((value): value is string => typeof value === "string") : [],
       }];
     }),
-    publicMetafields: projectPublicProductMetafields(snapshot.metafields),
+    publicMetafields: projectPublicProductMetafields(snapshot.metafields, {
+      locale,
+      snapshot,
+    }),
   };
 }
 
@@ -383,7 +386,7 @@ function toSummary(product: {
   const inStock = product.variants.some((variant) => isVariantPurchasable(variant));
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
-  const projection = shopifyProjection(product.shopifySnapshot);
+  const projection = shopifyProjection(product.shopifySnapshot, locale);
   const localMedia = product.media.map((item) => ({
     src: getS3PublicUrl(item.asset.key),
     alt: item.alt ?? localized.title,

@@ -2,6 +2,9 @@ import {
   coerceMetafieldRows,
   mergeCustomMetafieldsIntoList,
   metafieldIdentityKey,
+  metafieldTranslationsFromSnapshot,
+  withMetafieldTranslations,
+  type MetafieldTranslations,
 } from "@/lib/shopify/product-metafields-shared";
 
 /**
@@ -24,6 +27,8 @@ const TECHNICAL_KEYS = new Set([
   "endCursor",
   "updatedAt",
   "__typename",
+  // Local locale overlays for merchant text metafields — not part of Shopify product JSON.
+  "metafieldTranslations",
 ]);
 
 const SHOPIFY_CDN_HOST_RE = /(^|\.)cdn\.shopify\.com$/i;
@@ -418,6 +423,11 @@ export type LocalCommerceProjectionPatch = {
   tags?: string[];
   /** Merchant-owned product metafield values (excludes synarava / shopify / global). */
   customMetafields?: Array<{ namespace: string; key: string; type: string; value: string }>;
+  /**
+   * Per-locale text overlays for merchant metafields (`pt` / `ru` → `namespace::key`).
+   * Stored beside the Shopify-shaped window; stripped from commerce compare.
+   */
+  metafieldTranslations?: MetafieldTranslations;
   /** Shopify-shaped media nodes (gallery write-through from ProductMedia). */
   media?: unknown[];
   variant?: {
@@ -506,5 +516,10 @@ export function writeThroughLocalCommerceToProjection(
     next = setProjectionPath(next, "media", patch.media);
   }
 
-  return canonicalizeShopifyProjection(next);
+  // Form parse owns the full overlay map for locales present in FormData; replace, don't deep-merge.
+  const nextTranslations = patch.metafieldTranslations !== undefined
+    ? patch.metafieldTranslations
+    : metafieldTranslationsFromSnapshot(snapshot);
+
+  return withMetafieldTranslations(canonicalizeShopifyProjection(next), nextTranslations);
 }

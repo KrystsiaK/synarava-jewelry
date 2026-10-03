@@ -1,5 +1,8 @@
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
-import { isCustomMetafieldFormField } from "@/lib/shopify/product-metafields-shared";
+import {
+  customMetafieldFieldBelongsToLocale,
+  isCustomMetafieldFormField,
+} from "@/lib/shopify/product-metafields-shared";
 
 export const SOURCE_LOCALE = "en";
 
@@ -28,12 +31,11 @@ export function localeHasDirty(
   return false;
 }
 
-/** Inventory / metafields / media / shopify / price are shared across languages.
- * Passport is locale-scoped: EN owns ProductCharacteristic; PT/RU own TEXT overlays. */
+/** Inventory / media / shopify / price are shared across languages.
+ * Metafields + Passport are locale-scoped: EN owns source values; PT/RU own text overlays. */
 export function isSharedSection(section: ProductEditorSection): boolean {
   return (
     section === "inventory"
-    || section === "metafields"
     || section === "media"
     || section === "shopify"
     || section === "price"
@@ -41,7 +43,10 @@ export function isSharedSection(section: ProductEditorSection): boolean {
 }
 
 export function isLocaleSection(section: ProductEditorSection): boolean {
-  return section === "essentials" || section === "details" || section === "passport";
+  return section === "essentials"
+    || section === "details"
+    || section === "passport"
+    || section === "metafields";
 }
 
 export function dirtyKeyForEdit(locale: string, section: ProductEditorSection): DirtyScopeKey {
@@ -160,7 +165,8 @@ export function fieldBelongsToBranch(
     case "media":
       return MEDIA_SHARED.includes(fieldName);
     case "metafields":
-      return isCustomMetafieldFormField(fieldName);
+      return isCustomMetafieldFormField(fieldName)
+        && customMetafieldFieldBelongsToLocale(fieldName, locale);
     case "shopify":
       return false;
     default:

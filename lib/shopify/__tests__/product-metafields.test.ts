@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  customMetafieldValueFieldName,
   customMetafieldsFromWorkingSnapshot,
   isManagedProductMetafieldNamespace,
+  isTranslatableMetafieldType,
   listCustomProductMetafieldDefinitions,
   mergeCustomMetafieldsIntoList,
+  metafieldTranslationsFromSnapshot,
   metafieldValueFromSnapshot,
+  parseCustomMetafieldTranslationsForm,
   parseCustomMetafieldsForm,
   slugifyMetafieldKey,
   type ProductMetafieldDefinition,
@@ -100,5 +104,35 @@ describe("product-metafields-shared", () => {
     })).toEqual([
       { namespace: "custom", key: "warranty", type: "single_line_text_field", value: "2 years" },
     ]);
+  });
+
+  it("locale-prefixes metafield value field names", () => {
+    expect(customMetafieldValueFieldName("custom", "care_instructions")).toBe(
+      "customMetafieldValue:custom:care_instructions",
+    );
+    expect(customMetafieldValueFieldName("custom", "care_instructions", "pt")).toBe(
+      "ptCustomMetafieldValue:custom:care_instructions",
+    );
+    expect(isTranslatableMetafieldType("multi_line_text_field")).toBe(true);
+    expect(isTranslatableMetafieldType("number_integer")).toBe(false);
+  });
+
+  it("parses and reads per-locale metafield text overlays", () => {
+    const form = new FormData();
+    form.set("ptCustomMetafieldValue:custom:care_instructions", "Manter seco.");
+    form.set("ruCustomMetafieldValue:custom:care_instructions", "Хранить в сухом месте.");
+    form.set("ptCustomMetafieldValue:custom:finish", "");
+    expect(parseCustomMetafieldTranslationsForm(form)).toEqual({
+      pt: { "custom::care_instructions": "Manter seco." },
+      ru: { "custom::care_instructions": "Хранить в сухом месте." },
+    });
+    expect(metafieldTranslationsFromSnapshot({
+      metafields: [],
+      metafieldTranslations: {
+        pt: { "custom::care_instructions": "Manter seco." },
+      },
+    })).toEqual({
+      pt: { "custom::care_instructions": "Manter seco." },
+    });
   });
 });

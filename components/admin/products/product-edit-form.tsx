@@ -775,6 +775,8 @@ export function EditProductForm({
                         shopifyProductId={currentProduct.shopifyProductId}
                         shopifySnapshot={currentProduct.shopifySnapshot}
                         workingSnapshot={currentProduct.workingSnapshot}
+                        activeLocale={activeLocale}
+                        translationLocales={translationLocales}
                       />
                     </div>
 

@@ -110,15 +110,20 @@ live on **Product** (Shopify organization). Jewelry passport stays under
   (`synarava`, `shopify`, `global`).
 - **Add definition** → `metafieldDefinitionCreate` (shop-wide schema in Shopify;
   not a product Save).
-- **Values** → edit in the form → **Save** writes OUR `workingSnapshot` →
+- **EN values** → edit in the form → **Save** writes OUR `workingSnapshot.metafields` →
   **Push** / conflict resolve sends them via `metafieldsSet` (same dual-window
   sync as other commerce fields).
+- **PT/RU text** → per-locale overlays in `workingSnapshot.metafieldTranslations`
+  (not part of commerce conflict compare) → **Push** via Shopify
+  `translationsRegister` on the Metafield GID (`key: value`). Blank falls back
+  to English on the site. Non-text types stay shared.
 - Same capability as Shopify Admin → Settings → Custom data → Products /
-  product Metafields card.
+  product Metafields card, plus Markets translations for text fields.
 
 Docs: [Manage metafield definitions](https://shopify.dev/docs/apps/build/metafields/definitions),
 [`metafieldDefinitionCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldDefinitionCreate),
-[`metafieldsSet`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldsSet).
+[`metafieldsSet`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldsSet),
+[Manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content).
 
 ### Passport vocabulary (edit UI)
 

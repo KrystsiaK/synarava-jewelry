@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { localCommerceMatchesProjection } from "@/lib/shopify/local-commerce-projection";
-import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
+import {
+  canonicalizeShopifyProjection,
+  writeThroughLocalCommerceToProjection,
+} from "@/lib/shopify/shopify-projection-diff";
 import { classifyProjectionMerge } from "@/lib/shopify/projection-merge";
 
 describe("localCommerceMatchesProjection", () => {
@@ -95,6 +98,34 @@ describe("localCommerceMatchesProjection", () => {
       value: "2 years",
     });
     expect(Object.keys(metafields)).toHaveLength(2);
+  });
+
+  it("write-through preserves and replaces metafieldTranslations beside the projection", () => {
+    const next = writeThroughLocalCommerceToProjection(
+      {
+        title: "Ring",
+        metafields: [
+          { namespace: "custom", key: "care_instructions", type: "multi_line_text_field", value: "Keep dry." },
+        ],
+        metafieldTranslations: {
+          pt: { "custom::care_instructions": "Old PT" },
+        },
+      },
+      {
+        metafieldTranslations: {
+          pt: { "custom::care_instructions": "Manter seco." },
+          ru: { "custom::care_instructions": "Хранить сухим." },
+        },
+      },
+    );
+    expect(next).toMatchObject({
+      title: "Ring",
+      metafieldTranslations: {
+        pt: { "custom::care_instructions": "Manter seco." },
+        ru: { "custom::care_instructions": "Хранить сухим." },
+      },
+    });
+    expect(canonicalizeShopifyProjection(next)).not.toHaveProperty("metafieldTranslations");
   });
 
   it("inventory write-through updates inventoryQuantity and totalInventory together", () => {

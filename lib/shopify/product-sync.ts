@@ -64,6 +64,7 @@ import {
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = {
+  id?: string;
   namespace: string;
   key: string;
   type: string;
@@ -173,7 +174,7 @@ const PRODUCT_FIELDS = `
     pageInfo { hasNextPage endCursor }
     nodes { ${VARIANT_FIELDS} }
   }
-  metafields(first: 100) { pageInfo { hasNextPage endCursor } nodes { namespace key type value definition { name access { storefront } } } }
+  metafields(first: 100) { pageInfo { hasNextPage endCursor } nodes { id namespace key type value definition { name access { storefront } } } }
 `;
 
 function userErrors(errors: UserError[]) {
@@ -347,9 +348,19 @@ function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
 }
 
 /** L and B agree with live Shopify after successful pull/push. */
-function agreedProjectionWrite(remote: ShopifyProduct) {
+async function agreedProjectionWrite(remote: ShopifyProduct) {
   const snap = snapshotForProduct(remote);
-  return { shopifySnapshot: snap, workingSnapshot: snap };
+  const { fetchCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
+    "@/lib/shopify/product-metafield-translations"
+  );
+  const { withMetafieldTranslations } = await import("@/lib/shopify/product-metafields-shared");
+  const locales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
+  const translations = await fetchCustomMetafieldTranslations(
+    metafieldRefsFromNodes(remote.metafields.nodes),
+    locales.map((locale) => ({ code: locale.code, shopifyLocale: locale.shopifyLocale })),
+  );
+  const withTranslations = withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
+  return { shopifySnapshot: withTranslations, workingSnapshot: withTranslations };
 }
 
 async function syncOnlineStorePublication(productId: string, published: boolean) {
@@ -492,7 +503,7 @@ export async function fetchShopifyProduct(id: string) {
   if (!product) return null;
   const [variants, metafields, collections, publications] = await Promise.all([
     fetchRemainingProductConnection(shopifyId, "variants", VARIANT_FIELDS, product.variants),
-    fetchRemainingProductConnection(shopifyId, "metafields", "namespace key type value definition { name access { storefront } }", product.metafields),
+    fetchRemainingProductConnection(shopifyId, "metafields", "id namespace key type value definition { name access { storefront } }", product.metafields),
     fetchRemainingProductConnection(shopifyId, "collections", COLLECTION_FIELDS, product.collections),
     fetchRemainingProductConnection(shopifyId, "resourcePublicationsV2", "isPublished publishDate publication { id name }", product.resourcePublicationsV2),
   ]);
@@ -791,6 +802,7 @@ async function savePulledProduct(
     return { productId: existingById.id, status: "LOCAL_CHANGES" as const };
   }
 
+  const projectionWrite = await agreedProjectionWrite(remote);
   const product = await db.product.upsert({
     where: existing ? { id: existing.id } : { shopifyProductId: remote.id },
     update: {
@@ -805,7 +817,7 @@ async function savePulledProduct(
       shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
       seoTitle: remote.seo.title || null,
       seoDescription: remote.seo.description || null,
-      ...agreedProjectionWrite(remote),
+      ...projectionWrite,
       productType: remote.productType || null,
       priceCents: shopifyAmountToCents(firstVariant?.price),
       compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
@@ -833,7 +845,7 @@ async function savePulledProduct(
       shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
       seoTitle: remote.seo.title || null,
       seoDescription: remote.seo.description || null,
-      ...agreedProjectionWrite(remote),
+      ...projectionWrite,
       productType: remote.productType || null,
       currency: "EUR",
       priceCents: shopifyAmountToCents(firstVariant?.price),
@@ -1398,10 +1410,22 @@ export async function adoptShopifyProjectionField(
     path,
     value,
   );
+  const { metafieldTranslationsFromSnapshot, withMetafieldTranslations } = await import(
+    "@/lib/shopify/product-metafields-shared"
+  );
+  const preservedTranslations = metafieldTranslationsFromSnapshot(
+    product.workingSnapshot ?? product.shopifySnapshot,
+  );
 
   const columnData: Prisma.ProductUpdateInput = {
-    shopifySnapshot: live,
-    workingSnapshot: canonicalizeShopifyProjection(nextWorking) as Prisma.InputJsonValue,
+    shopifySnapshot: withMetafieldTranslations(
+      live,
+      metafieldTranslationsFromSnapshot(product.shopifySnapshot),
+    ) as Prisma.InputJsonValue,
+    workingSnapshot: withMetafieldTranslations(
+      canonicalizeShopifyProjection(nextWorking),
+      preservedTranslations,
+    ) as Prisma.InputJsonValue,
   };
 
   if (path === "title" && typeof value === "string") {
@@ -1726,16 +1750,45 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         shopifyManualSourceId: collection.shopifyManualSourceId,
       }, remote.id);
     }
+    let setMetafieldRefs: Array<{ id?: string | null; namespace: string; key: string; type: string }> = [];
     if (metafields.length) {
       const metafieldData = await shopifyAdminRequest<{
-        metafieldsSet: { userErrors: UserError[] };
+        metafieldsSet: {
+          userErrors: UserError[];
+          metafields: Array<{ id: string; namespace: string; key: string; type: string } | null>;
+        };
       }>(
         `mutation SynaravaMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) { userErrors { field message } }
+          metafieldsSet(metafields: $metafields) {
+            metafields { id namespace key type }
+            userErrors { field message }
+          }
         }`,
         { metafields: metafields.map((item) => ({ ...item, ownerId: remote.id })) },
       );
       userErrors(metafieldData.metafieldsSet.userErrors);
+      setMetafieldRefs = metafieldData.metafieldsSet.metafields.filter(
+        (item): item is { id: string; namespace: string; key: string; type: string } => Boolean(item),
+      );
+    }
+    {
+      const { pushCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
+        "@/lib/shopify/product-metafield-translations"
+      );
+      const pushLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
+      const refs = [
+        ...metafieldRefsFromNodes(remote.metafields.nodes),
+        ...setMetafieldRefs,
+        ...metafieldRefsFromNodes(currentRemote?.metafields.nodes ?? []),
+      ];
+      await pushCustomMetafieldTranslations({
+        metafieldRefs: refs,
+        workingSnapshot: product.workingSnapshot,
+        locales: pushLocales.map((locale) => ({
+          code: locale.code,
+          shopifyLocale: locale.shopifyLocale,
+        })),
+      });
     }
     const desiredKeys = new Set(metafields.map((item) => item.key));
     const managedKeys = new Set<string>(PRODUCT_CHARACTERISTICS.flatMap((item) =>
@@ -1853,12 +1906,13 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         imageUrl: item.image?.url ?? item.preview?.image?.url,
       })),
     });
+    const settledProjection = await agreedProjectionWrite(settled.product);
     const productUpdate = {
       shopifyProductId: settled.product.id,
       shopifyHandle: settled.product.handle,
       shopifyCategoryId: settled.product.category?.id ?? null,
       shopifyCategoryName: settled.product.category?.fullName ?? settled.product.category?.name ?? null,
-      ...agreedProjectionWrite(settled.product),
+      ...settledProjection,
       priceCents: shopifyAmountToCents(settled.product.variants.nodes[0]?.price),
       compareAtCents: settled.product.variants.nodes[0]?.compareAtPrice
         ? shopifyAmountToCents(settled.product.variants.nodes[0].compareAtPrice)
