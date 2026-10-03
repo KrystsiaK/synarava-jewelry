@@ -6,19 +6,18 @@ import Image from "next/image";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
+import { combineProductGallery } from "@/lib/media/product-gallery";
 
 type GalleryProduct = Pick<ProductSummary, "title" | "image" | "commerceMedia">;
 
 function galleryMedia(product: GalleryProduct) {
-  const seen = new Set<string>();
-  return [
-    { src: product.image, alt: product.title, width: null, height: null },
-    ...product.commerceMedia,
-  ].filter((item) => {
-    if (!item.src || seen.has(item.src)) return false;
-    seen.add(item.src);
-    return true;
-  });
+  // commerceMedia already includes the cover; re-apply shared id/url dedupe in case
+  // product.image only differs by Shopify CDN query/size from the first frame.
+  return combineProductGallery(
+    product.image ? { src: product.image, alt: product.title, width: null, height: null } : null,
+    product.commerceMedia,
+    [],
+  );
 }
 
 export function ProductMediaGallery({ product }: { product: GalleryProduct }) {

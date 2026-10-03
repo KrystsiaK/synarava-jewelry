@@ -28,6 +28,40 @@ describe("ProductMediaGallery", () => {
     expect(screen.getByAltText("Pearl and bead detail")).toBeInTheDocument();
   });
 
+  it("dedupes cover when product.image only differs from commerceMedia by Shopify CDN ?v=", () => {
+    render(
+      <ProductMediaGallery
+        product={{
+          title: "Pearl Necklace · 4 mm",
+          image: "https://cdn.shopify.com/s/files/1/1101/files/pearl-cover.jpg?v=1",
+          commerceMedia: [
+            {
+              src: "https://cdn.shopify.com/s/files/1/1101/files/pearl-cover.jpg?v=99",
+              alt: "Pearl Necklace · 4 mm",
+              width: 1600,
+              height: 2000,
+            },
+            {
+              src: "https://cdn.shopify.com/s/files/1/1101/files/pearl-flat.jpg?v=99",
+              alt: "Flat lay",
+              width: 1600,
+              height: 2000,
+            },
+            {
+              src: "https://cdn.shopify.com/s/files/1/1101/files/pearl-worn.jpg?v=99",
+              alt: "On body",
+              width: 1600,
+              height: 2000,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: /Show image/ })).toHaveLength(3);
+    expect(screen.getByRole("button", { name: /Enlarge image 1 of 3/ })).toBeInTheDocument();
+  });
+
   it("opens a focused lightbox and supports next-image navigation", () => {
     render(<ProductMediaGallery product={product} />);
 

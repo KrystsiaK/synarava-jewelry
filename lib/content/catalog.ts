@@ -25,6 +25,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
 import { combineProductGallery } from "@/lib/media/product-gallery";
+import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
 import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
 import {
@@ -244,22 +245,16 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function shopifyProjection(value: unknown, locale: Locale = "en") {
   const snapshot = asRecord(value);
-  const media = Array.isArray(snapshot.media) ? snapshot.media : [];
   const options = Array.isArray(snapshot.options) ? snapshot.options : [];
   return {
-    media: media.flatMap((item) => {
-      const row = asRecord(item);
-      const preview = asRecord(row.preview);
-      const image = asRecord(preview.image);
-      const src = typeof image.url === "string" ? image.url : "";
-      if (!src) return [];
-      return [{
-        src,
-        alt: typeof row.alt === "string" ? row.alt : "",
-        width: typeof image.width === "number" ? image.width : null,
-        height: typeof image.height === "number" ? image.height : null,
-      }];
-    }),
+    // Prefer shared frame parser (id + preview/image URL) so gallery dedupe can key by MediaImage GID.
+    media: mediaFramesFromWorkingSnapshot(value).map((frame) => ({
+      id: frame.id,
+      src: frame.url,
+      alt: frame.alt,
+      width: frame.width,
+      height: frame.height,
+    })),
     options: options.flatMap((item) => {
       const row = asRecord(item);
       if (typeof row.name !== "string") return [];
@@ -294,6 +289,7 @@ function toSummary(product: {
   shopifyCategoryId: string | null;
   shopifyCategoryName: string | null;
   shopifySnapshot: unknown;
+  workingSnapshot?: unknown;
   imageUrl: string | null;
   materialLine: string | null;
   symbolismLabel: string | null;
@@ -386,6 +382,8 @@ function toSummary(product: {
   const inStock = product.variants.some((variant) => isVariantPurchasable(variant));
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
+  // Options/metafields stay on the Shopify mirror; gallery prefers OUR working tree
+  // (same SoT as the admin Media tab) and falls back to shopifySnapshot.
   const projection = shopifyProjection(product.shopifySnapshot, locale);
   const localMedia = product.media.map((item) => ({
     src: getS3PublicUrl(item.asset.key),
@@ -393,10 +391,22 @@ function toSummary(product: {
     width: item.asset.width,
     height: item.asset.height,
   }));
+  const workingMedia = mediaFramesFromWorkingSnapshot(
+    product.workingSnapshot ?? product.shopifySnapshot,
+  ).map((frame) => ({
+    id: frame.id,
+    src: frame.url,
+    alt: frame.alt || localized.title,
+    width: frame.width,
+    height: frame.height,
+  }));
+  // Mirror admin Media: local ProductMedia rows OR snapshot tree — never both.
+  // Still prepend imageUrl as cover, then dedupe by media id / normalized URL.
+  const galleryFrames = localMedia.length > 0 ? localMedia : workingMedia;
   const combinedMedia = combineProductGallery(
     product.imageUrl ? { src: product.imageUrl, alt: localized.title, width: null, height: null } : null,
-    localMedia,
-    projection.media,
+    galleryFrames,
+    [],
   );
   return {
     shopifyProductId: product.shopifyProductId,
