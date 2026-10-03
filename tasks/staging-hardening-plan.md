@@ -6,10 +6,11 @@
 
 ## Статус
 
-**Реализация завершена локально 3 октября 2026.** Code review, typecheck,
-production build и все DB-независимые тесты пройдены. Остаются доставка в
-`origin/main`, Railway auto-deploy и внешняя проверка изоляции ресурсов/тестовый
-Shopify product.
+**Реализация доставлена 3 октября 2026.** Code review, typecheck, production
+build и все DB-независимые тесты пройдены. Commit `f1fcaf2e` находится в
+`origin/main` и успешно развернут Railway автоматически в staging и production.
+Live smoke-тесты пройдены. Остаются внешняя проверка значений credentials и
+добавление тестового Shopify product для полного cart/checkout E2E.
 
 ## Обнаруженные проблемы
 
@@ -76,7 +77,7 @@ Shopify product.
 - [x] Home CTA корректно переходит в локализованный shop.
 - [x] Production metadata/robots behavior не регрессирует.
 - [x] Проверки проходят; DB-зависимые исключения документированы ниже.
-- [ ] Изменения находятся в `origin/main`, staging развернул новый revision.
+- [x] Изменения находятся в `origin/main`, staging и production развернули revision `f1fcaf2`.
 
 ## Verification 2026-10-03
 
@@ -90,10 +91,24 @@ Shopify product.
 - `pnpm vitest run` — 321 files / 1677 tests passed; 9 tests в 4 files требуют
   живой локальный Postgres на `127.0.0.1:55432` и упали только по этой причине.
 - `graphify update .` — completed (16,174 nodes / 27,286 edges).
+- Railway staging `/api/health` — `200`, revision `f1fcaf2`.
+- Railway production `/api/health` на `shop.synarava.com` — `200`, revision
+  `f1fcaf2`.
+- Staging `/en` — `X-Robots-Tag: noindex, nofollow, noarchive`; footer содержит
+  `care@synarava.com`, legacy Gmail отсутствует, CTA содержит `/en/shop`.
+- Staging `robots.txt` — `Disallow: /`; `sitemap.xml` — пустой `urlset`.
+- Production `robots.txt` продолжает разрешать storefront и публикует sitemap;
+  legacy Gmail не найден на проверенных EN storefront/legal/service страницах.
+- Railway dashboard показывает успешный GitHub auto-deploy одного commit в оба
+  environment. В production публичный app-домен — `shop.synarava.com`; apex
+  `synarava.com` пока обслуживается GoDaddy Website Builder и не является этим
+  Next.js storefront.
 
 ## Внешние проверки, которые нельзя подменять кодом
 
-- Railway staging использует отдельный Postgres service/reference и отдельный S3 bucket/prefix.
+- Railway staging визуально содержит собственные environment-scoped Postgres и
+  bucket resources. До launch дополнительно сверить именно reference names без
+  раскрытия secret values.
 - Staging Shopify credentials относятся к staging store, а production credentials — к production store.
 - В обоих Railway environments `NEXT_PUBLIC_PRIVACY_EMAIL` не содержит старый Gmail.
 - В staging Shopify есть тестовый товар, опубликованный в Headless sales channel, прежде чем считать cart/checkout проверенными.
