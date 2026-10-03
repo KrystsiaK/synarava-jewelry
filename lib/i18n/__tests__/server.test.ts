@@ -28,4 +28,13 @@ describe("server translations", () => {
     // shop.allProducts is translated in ru.json; pick a key still EN-only.
     expect(t("footer.returns")).toBe("Returns");
   });
+
+  it("translates PDP related and reviews chrome in Russian", async () => {
+    const { t } = await getServerTranslations();
+
+    expect(t("product.relatedTitle")).toBe("Вам также может понравиться");
+    expect(t("reviews.title")).toBe("Отзывы покупателей");
+    expect(t("reviews.shareTitle")).toBe("Поделитесь впечатлением");
+    expect(t("reviews.signInCta")).toBe("Войти, чтобы оставить отзыв");
+  });
 });

@@ -42,4 +42,18 @@ describe("DisplayHeading", () => {
 
     expect(screen.getByRole("heading", { level: 2 })).toHaveClass("type-display", "font-serif");
   });
+
+  it("keeps Latin descenders when callers avoid leading-none", () => {
+    render(
+      <DisplayHeading
+        as="h2"
+        text="You may also like"
+        className="text-[clamp(2rem,4vw,3.5rem)] leading-[1.12]"
+      />,
+    );
+
+    const heading = screen.getByRole("heading", { level: 2, name: "You may also like" });
+    expect(heading).toHaveClass("type-display", "leading-[1.12]");
+    expect(heading.className).not.toMatch(/leading-none/);
+  });
 });

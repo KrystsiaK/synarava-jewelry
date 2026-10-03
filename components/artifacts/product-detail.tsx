@@ -853,7 +853,7 @@ function RelatedProductsSection({ products }: { products: ProductSummary[] }) {
         <DisplayHeading
           as="h2"
           text={t("product.relatedTitle")}
-          className="mb-8 text-[clamp(2rem,4vw,3.5rem)] leading-none md:mb-10"
+          className="mb-8 text-[clamp(2rem,4vw,3.5rem)] leading-[1.12] md:mb-10"
         />
         <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:gap-6">
           {products.map((product) => (

@@ -44,7 +44,7 @@ export function ProductReviews({
             <DisplayHeading
               as="h2"
               text={t("reviews.title")}
-              className="text-[clamp(2.1rem,4vw,3.8rem)] leading-none"
+              className="text-[clamp(2.1rem,4vw,3.8rem)] leading-[1.12]"
             />
             <div className="mt-5 flex items-center gap-3">
               {displayedAverage == null ? (
