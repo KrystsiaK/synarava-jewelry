@@ -122,7 +122,7 @@ export function formatCollectionMembershipError(input: {
   cause: string;
 }) {
   const hint = input.action === "REMOVE" && isEmptyConditionSourceError(input.cause)
-    ? " Shopify rejected emptying a condition-based collection source (last manual product). Synarava retries via collectionRemoveProducts."
+    ? " Shopify rejected emptying a condition-based collection source (last manual product). Synarava retries source deletion when other sources remain, or collectionRemoveProducts for the final collection-scoped source."
     : input.action === "ADD" && isEmptyConditionSourceError(input.cause)
       ? " Shopify rejected the condition-based source payload (needs at least one product selection or condition)."
       : "";

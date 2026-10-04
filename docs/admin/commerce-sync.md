@@ -198,8 +198,11 @@ Product Push updates collection membership through Synarava-owned
 `CollectionConditionsSource` deltas (`selectionsToAdd` / `selectionsToRemove`).
 Shopify rejects emptying a condition source (last manual selection) with
 “A condition based source must have at least one product selection or condition”.
-Push then retries REMOVE via deprecated `collectionRemoveProducts` (Shopify’s
-documented stopgap for collection-scoped sources). Failures name the collection
+Push refreshes the source ID first. Missing collection/managed source already
+satisfies REMOVE. When that delta would empty the managed source, Push deletes
+only that source if other sources remain; for the final source it retries via
+deprecated `collectionRemoveProducts` (Shopify’s documented collection-scoped
+stopgap). Failures name the collection
 GID and action instead of surfacing the raw GraphQL line alone.
 
 Category metafield `resolvedValues` are display enrichment on live product
