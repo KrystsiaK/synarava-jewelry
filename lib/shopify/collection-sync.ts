@@ -34,7 +34,7 @@ function membershipFailure(
   }));
 }
 
-async function fetchShopifyCollectionSources(collectionId: string) {
+async function fetchShopifyCollectionSources(collectionId: string, allowMissing = false) {
   const data = await shopifyAdminRequest<{
     collection: { sources: ShopifyCollectionSource[] } | null;
   }>(
@@ -49,6 +49,7 @@ async function fetchShopifyCollectionSources(collectionId: string) {
     { id: collectionId },
   );
   if (!data.collection) {
+    if (allowMissing) return [];
     throw new ShopifyAdminError(`Shopify collection ${collectionId} was not found.`);
   }
   return data.collection.sources;
@@ -159,24 +160,37 @@ export async function removeProductFromShopifyCollection(collection: {
   shopifyManualSourceId: string;
 }, productId: string) {
   try {
-    await runShopifyCollectionUpdate(buildCollectionMembershipUpdateInput({
-      collectionId: collection.shopifyCollectionId,
-      sourceId: collection.shopifyManualSourceId,
-      productId,
-      action: "REMOVE",
-    }));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!isEmptyConditionSourceError(message)) {
-      throw membershipFailure("REMOVE", collection.shopifyCollectionId, error);
-    }
-    // Last manual selection on a condition source — source deltas reject empty
-    // inclusion; collectionRemoveProducts still clears membership for
-    // collection-scoped sources (deprecated stopgap in 2026-07).
+    const sources = await fetchShopifyCollectionSources(collection.shopifyCollectionId, true);
+    const sourceId = findManagedCollectionSourceId(sources, collection.shopifyManualSourceId);
+    // Missing collection or managed source already satisfies removal. Never use
+    // another merchant source merely because the remembered id became stale.
+    if (!sourceId) return;
     try {
-      await runCollectionRemoveProducts(collection.shopifyCollectionId, productId);
-    } catch (fallbackError) {
-      throw membershipFailure("REMOVE", collection.shopifyCollectionId, fallbackError);
+      await runShopifyCollectionUpdate(buildCollectionMembershipUpdateInput({
+        collectionId: collection.shopifyCollectionId,
+        sourceId,
+        productId,
+        action: "REMOVE",
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isEmptyConditionSourceError(message)) throw error;
+      if (sources.length > 1) {
+        // The rejected delta would leave this source empty. Remove only that
+        // source; other collection sources remain. Legacy collectionRemoveProducts
+        // cannot see modern multi-source collections.
+        // https://shopify.dev/docs/api/admin-graphql/2026-07/input-objects/CollectionUpdateInput
+        await runShopifyCollectionUpdate({
+          id: collection.shopifyCollectionId,
+          sourcesToDelete: [sourceId],
+        });
+      } else {
+        // Shopify still rejects deleting the final source. Its supported
+        // collection-scoped stopgap preserves one empty source.
+        await runCollectionRemoveProducts(collection.shopifyCollectionId, productId);
+      }
     }
+  } catch (error) {
+    throw membershipFailure("REMOVE", collection.shopifyCollectionId, error);
   }
 }

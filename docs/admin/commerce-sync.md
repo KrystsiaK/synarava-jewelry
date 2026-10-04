@@ -170,7 +170,9 @@ explicit. Presence-only products retain their dedicated preview/apply flow.
 
 Collection membership uses Shopify 2026-07 `collectionUpdate` source deltas. Removal
 refreshes the managed source identity first; a missing collection/source already
-satisfies removal. Shopify-authored sources are not removed as a fallback.
+satisfies removal. An emptied managed source is deleted when other sources remain;
+for the final collection-scoped source the Shopify-supported legacy stopgap remains.
+Shopify-authored sources are not removed as a fallback.
 
 ---
 
