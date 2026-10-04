@@ -229,7 +229,7 @@ describe("diffShopifyProjections", () => {
     expect(diffs).toEqual([
       {
         path: "metafields.synarava::overall_length.value",
-        field: "Metafield synarava.overall_length.value",
+        field: "Overall length (synarava)",
         local: "18",
         shopify: "20",
       },
@@ -297,4 +297,60 @@ describe("projection path helpers", () => {
     expect(labelForShopifyProjectionPath("media[0].preview.image.url")).toBe("Media gallery (image 1)");
     expect(labelForShopifyProjectionPath("media")).toBe("Media gallery");
   });
+});
+
+
+describe("product metafield compare regression", () => {
+  it("uses namespace/key identity and omits Shopify-generated IDs and empty values", () => {
+    const fields = ["care_instructions", "finish", "material"].map((key) => ({
+      namespace: "custom", key, type: "single_line_text_field", value: "same",
+    }));
+    expect(diffShopifyProjections(
+      { metafields: [...fields, { namespace: "custom", key: "wrist_fit", type: "single_line_text_field", value: "" }] },
+      { metafields: fields.toReversed().map((field, index) => ({ ...field, id: `gid://shopify/Metafield/${index}` })) },
+    )).toEqual([]);
+    expect(diffShopifyProjections(
+      { metafields: fields },
+      { metafields: fields.map((field) => field.key === "care_instructions" ? { ...field, value: "changed" } : field) },
+    )).toHaveLength(1);
+  });
+});
+
+
+it("does not compare different metafields when an entry is removed", () => {
+  const fields = ["care", "finish", "material"].map((key) => ({ namespace: "custom", key, type: "single_line_text_field", value: key }));
+  const differences = diffShopifyProjections({ metafields: fields }, { metafields: fields.slice(1) });
+  expect(differences).toHaveLength(1);
+  expect(differences[0].field).toBe("Care (custom)");
+});
+
+it("labels legacy Shopify SEO metafields for people", () => {
+  expect(diffShopifyProjections(
+    { metafields: [{ namespace: "global", key: "title_tag", value: "Our title" }] },
+    { metafields: [{ namespace: "global", key: "title_tag", value: "Shopify title" }] },
+  )).toEqual([{ path: "metafields.global::title_tag.value", field: "SEO title", local: "Our title", shopify: "Shopify title" }]);
+});
+
+
+it("treats Shopify null SEO overrides as the empty editor value", () => {
+  expect(diffShopifyProjections({ seo: { title: "", description: "" } }, { seo: { title: null, description: null } })).toEqual([]);
+});
+
+
+it("reports one SEO conflict rather than its duplicate global metafield view", () => {
+  const window = (title: string) => ({ seo: { title, description: "" }, metafields: [{ namespace: "global", key: "title_tag", value: title, type: "single_line_text_field" }] });
+  expect(diffShopifyProjections(window("Our title"), window("Shopify title"))).toEqual([
+    { path: "seo.title", field: "SEO title", local: "Our title", shopify: "Shopify title" },
+  ]);
+});
+
+it("normalizes ID noise and SEO aliases in an already-saved identity map", () => {
+  const local = { seo: { title: "Our title", description: "" }, metafields: {
+    "global::title_tag": { namespace: "global", key: "title_tag", value: "Old title" },
+    "custom::care": { namespace: "custom", key: "care", value: "Dry" },
+  } };
+  const remote = { seo: { title: "Our title", description: null }, metafields: [
+    { namespace: "custom", key: "care", value: "Dry", id: "gid://shopify/Metafield/1" },
+  ] };
+  expect(diffShopifyProjections(local, remote)).toEqual([]);
 });

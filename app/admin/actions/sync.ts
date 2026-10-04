@@ -257,9 +257,13 @@ export async function loadCatalogConflictSignalsAction() {
 }
 
 export async function loadProductCatalogConflictAction(productId: string) {
-  await requireAdminSession("/admin/products");
+  const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
+    if (!productId.startsWith("shopify:")) {
+      const checked = await runProductConflictCheck({ productId, requestedBy: session.username });
+      if (checked.warning) return { error: checked.warning };
+    }
     return { conflict: await getProductCatalogConflict(productId) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not load this product's conflict details." };
@@ -420,9 +424,13 @@ export async function applyCollectionConflictResolutionAction(input: {
 
 /** Resolves a bulk direction, a single product's direction, or a hand-picked manual field list into the concrete fields it would touch — nothing is written. See docs/admin/catalog-conflict-resolution-ux.md dialogs 1-3. */
 export async function previewCatalogConflictResolutionAction(scope: CatalogConflictApplyScope) {
-  await requireAdminSession("/admin/products");
+  const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
+    if (scope.kind === "PRODUCT" && !scope.productId.startsWith("shopify:")) {
+      const checked = await runProductConflictCheck({ productId: scope.productId, requestedBy: session.username });
+      if (checked.warning) return { error: checked.warning };
+    }
     return { preview: await previewCatalogConflictResolution(scope) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not preview the conflict resolution." };

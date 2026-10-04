@@ -17,7 +17,7 @@ import {
 } from "@/lib/products/product-form-validation";
 import { slugify } from "@/lib/text/slug";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
-import { normalizeRichTextFields, normalizeRichTextForStorage } from "@/lib/content/rich-text";
+import { normalizeRichTextFields, normalizeRichTextForStorage, normalizeRichTextForEditor, sanitizeRichTextHtml } from "@/lib/content/rich-text";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import {
@@ -1208,6 +1208,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot;
       const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, {
         title: linked.name,
+        descriptionHtml: sanitizeRichTextHtml(normalizeRichTextForEditor(rich.description ?? "")),
+        seo: { title: seoTitle || "", description: rich.seoDescription || "" },
         handle: linked.slug,
         vendor: linked.vendor,
         productType: linked.productType,

@@ -6,6 +6,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { pushProductMetafields } from "@/lib/shopify/product-metafields-push";
+import { normalizeRichTextForEditor, sanitizeRichTextHtml } from "@/lib/content/rich-text";
 import { characteristicDisplayValue, PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
@@ -811,7 +813,7 @@ async function savePulledProduct(
       slug: remote.handle,
       sku: remoteSku,
       name: remote.title,
-      description: stripHtml(remote.descriptionHtml) || null,
+      description: sanitizeRichTextHtml(remote.descriptionHtml) || null,
       vendor: remote.vendor || null,
       shopifyCategoryId: remote.category?.id ?? null,
       shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
@@ -839,7 +841,7 @@ async function savePulledProduct(
       slug: remote.handle,
       sku: remoteSku,
       name: remote.title,
-      description: stripHtml(remote.descriptionHtml) || null,
+      description: sanitizeRichTextHtml(remote.descriptionHtml) || null,
       vendor: remote.vendor || null,
       shopifyCategoryId: remote.category?.id ?? null,
       shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
@@ -949,7 +951,7 @@ async function finishPulledProduct(
           localizedHandle: remoteTranslation?.handle || null,
           title: remoteTranslation?.title ?? "",
           shortDescription: localTranslation?.shortDescription ?? null,
-          description: remoteTranslation ? stripHtml(remoteTranslation.descriptionHtml) || null : null,
+          description: remoteTranslation ? sanitizeRichTextHtml(remoteTranslation.descriptionHtml) || null : null,
           materialLine: localTranslation?.materialLine ?? null,
           symbolismLabel: localTranslation?.symbolismLabel ?? null,
           symbolismTitle: localTranslation?.symbolismTitle ?? null,
@@ -1431,6 +1433,23 @@ export async function adoptShopifyProjectionField(
   if (path === "title" && typeof value === "string") {
     columnData.name = value;
   }
+  if (path === "descriptionHtml" && typeof value === "string") {
+    columnData.description = sanitizeRichTextHtml(value) || null;
+  }
+  if (path === "seo.title" || path === "seo.description") {
+    if (path === "seo.title") columnData.seoTitle = typeof value === "string" ? value || null : null;
+    else columnData.seoDescription = typeof value === "string" ? value || null : null;
+    const seo = getProjectionPath(nextWorking, "seo");
+    if (seo && typeof seo === "object" && !Array.isArray(seo)) {
+      const fields = seo as Record<string, unknown>;
+      columnData.workingSnapshot = withMetafieldTranslations(writeThroughLocalCommerceToProjection(nextWorking, {
+        seo: {
+          title: typeof fields.title === "string" ? fields.title : "",
+          description: typeof fields.description === "string" ? fields.description : "",
+        },
+      }), preservedTranslations) as Prisma.InputJsonValue;
+    }
+  }
   if (path === "handle" && typeof value === "string" && value.trim()) {
     columnData.slug = value.trim();
     columnData.shopifyHandle = value.trim();
@@ -1476,6 +1495,12 @@ export async function adoptShopifyProjectionField(
     where: { id: productId },
     data: columnData,
   });
+  const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
+  await patchOurProductWindow({
+    shopifyProductId: product.shopifyProductId,
+    localProductId: productId,
+    window: columnData.workingSnapshot,
+  });
 }
 
 export async function pullShopifyInventory(inventoryItemId: string, eventId?: string) {
@@ -1508,9 +1533,8 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
  * and `synarava.*` characteristic metafields plus merchant custom metafields
  * from `workingSnapshot` to Shopify via the Admin GraphQL API, creating the
  * remote product on first push. Product type,
- * vendor, and SEO are omitted from the input (rather than sent as empty
- * strings) when we have no local value, so a push never overwrites
- * Shopify's own value with a blank default.
+ * and vendor are omitted when we have no local value. Linked products send
+ * empty SEO overrides explicitly so clearing a saved value reaches Shopify.
  *
  * Collection membership is only pushed for local collections that already
  * carry a `shopifyCollectionId`. Shopify 2026-07 changes go through a
@@ -1673,13 +1697,13 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const input = {
       title: product.name,
       handle: product.slug,
-      descriptionHtml: product.description ? `<p>${product.description.replace(/[<>&]/g, "")}</p>` : "",
+      descriptionHtml: sanitizeRichTextHtml(normalizeRichTextForEditor(product.description ?? "")),
       ...(product.productType ? { productType: product.productType } : {}),
       ...(product.vendor ? { vendor: product.vendor } : {}),
-      ...(product.seoTitle || product.seoDescription ? {
+      ...(product.shopifyProductId || product.seoTitle || product.seoDescription ? {
         seo: {
-          title: product.seoTitle || undefined,
-          description: product.seoDescription || undefined,
+          title: product.seoTitle ?? "",
+          description: product.seoDescription ?? "",
         },
       } : {}),
       status: product.status,
@@ -1750,37 +1774,27 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         shopifyManualSourceId: collection.shopifyManualSourceId,
       }, remote.id);
     }
-    let setMetafieldRefs: Array<{ id?: string | null; namespace: string; key: string; type: string }> = [];
-    if (metafields.length) {
-      const metafieldData = await shopifyAdminRequest<{
-        metafieldsSet: {
-          userErrors: UserError[];
-          metafields: Array<{ id: string; namespace: string; key: string; type: string } | null>;
-        };
-      }>(
-        `mutation SynaravaMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) {
-            metafields { id namespace key type }
-            userErrors { field message }
-          }
-        }`,
-        { metafields: metafields.map((item) => ({ ...item, ownerId: remote.id })) },
-      );
-      userErrors(metafieldData.metafieldsSet.userErrors);
-      setMetafieldRefs = metafieldData.metafieldsSet.metafields.filter(
-        (item): item is { id: string; namespace: string; key: string; type: string } => Boolean(item),
-      );
-    }
+    const setMetafieldRefs = await pushProductMetafields({
+      ownerId: remote.id,
+      desired: metafields,
+      remote: currentRemote?.metafields.nodes ?? remote.metafields.nodes,
+      hasCustomWindow: getProjectionPath(product.workingSnapshot, "metafields") != null,
+      managedPassportKeys: new Set<string>(PRODUCT_CHARACTERISTICS.flatMap((item) =>
+        "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
+      )),
+    });
     {
       const { pushCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
         "@/lib/shopify/product-metafield-translations"
       );
       const pushLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
+      const desiredIdentities = new Set(metafields.filter((item) => item.value.trim())
+        .map((item) => `${item.namespace}:${item.key}`));
       const refs = [
+        ...metafieldRefsFromNodes(currentRemote?.metafields.nodes ?? []),
         ...metafieldRefsFromNodes(remote.metafields.nodes),
         ...setMetafieldRefs,
-        ...metafieldRefsFromNodes(currentRemote?.metafields.nodes ?? []),
-      ];
+      ].filter((item) => desiredIdentities.has(`${item.namespace}:${item.key}`));
       await pushCustomMetafieldTranslations({
         metafieldRefs: refs,
         workingSnapshot: product.workingSnapshot,
@@ -1789,24 +1803,6 @@ export async function pushProductToShopify(productId: string, forceTranslation =
           shopifyLocale: locale.shopifyLocale,
         })),
       });
-    }
-    const desiredKeys = new Set(metafields.map((item) => item.key));
-    const managedKeys = new Set<string>(PRODUCT_CHARACTERISTICS.flatMap((item) =>
-      "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
-    ));
-    const staleMetafields = remote.metafields.nodes.filter((item) =>
-      item.namespace === "synarava" && managedKeys.has(item.key) && !desiredKeys.has(item.key),
-    );
-    if (staleMetafields.length) {
-      const deleted = await shopifyAdminRequest<{
-        metafieldsDelete: { userErrors: UserError[] };
-      }>(
-        `mutation SynaravaMetafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
-          metafieldsDelete(metafields: $metafields) { userErrors { field message } }
-        }`,
-        { metafields: staleMetafields.map((item) => ({ ownerId: remote.id, namespace: "synarava", key: item.key })) },
-      );
-      userErrors(deleted.metafieldsDelete.userErrors);
     }
     const remoteVariant = remote.variants.nodes[0];
     let pushedInventory: { variantId: string; quantity: number } | null = null;
@@ -1950,9 +1946,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
           const localCopy = {
             handle: translation.localizedHandle ?? "",
             title: translation.title,
-            descriptionHtml: translation.description
-              ? `<p>${translation.description.replace(/[<>&]/g, "")}</p>`
-              : "",
+            descriptionHtml: sanitizeRichTextHtml(normalizeRichTextForEditor(translation.description ?? "")),
             seoTitle: translation.seoTitle ?? "",
             seoDescription: translation.seoDescription ?? "",
           };

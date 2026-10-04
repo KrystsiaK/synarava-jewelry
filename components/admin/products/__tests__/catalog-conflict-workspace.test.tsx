@@ -493,4 +493,36 @@ describe("CatalogConflictWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: /Pull from Shopify/i }));
     await waitFor(() => expect(mocks.pullProduct).toHaveBeenCalledWith("p1", true));
   });
+  it("opens whole-record choices from a scoped direction instead of rejecting blocked fields", async () => {
+    mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
+    const onToast = vi.fn();
+    renderWorkspace(vi.fn(), onToast, vi.fn(), {
+      ...signals, products: { p1: { shared: true, sharedCount: 1, locales: [] } },
+    }, { kind: "productLocale", productId: "p1", locale: "en" });
+    expect(await screen.findByText("Status")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close conflict details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply Synarava values" }));
+    expect(await screen.findByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
+    expect(onToast).not.toHaveBeenCalledWith("No supported fields for this language in that direction.", "info");
+    expect(mocks.pushProduct).not.toHaveBeenCalled();
+  });
+
+  it("keeps whole-record choices available alongside supported fields and preserves side values", async () => {
+    mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [field, blockedField] } });
+    renderWorkspace();
+    fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
+    const dialog = await screen.findByRole("dialog", { name: "Choose conflict values" });
+    expect(within(dialog).getByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Synarava Кольцо Choose this value/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Shopify Кольцо Shopify Choose this value/ })).toBeInTheDocument();
+  });
+
+  it("routes a catalog row with blocked commerce to full Pull/Push choices", async () => {
+    mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
+    renderWorkspace();
+    fireEvent.click(screen.getByRole("button", { name: "Apply Synarava values" }));
+    expect(await screen.findByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
+    expect(mocks.preview).not.toHaveBeenCalled();
+  });
+
 });

@@ -232,6 +232,18 @@ export async function applyReconcileChoice({
       };
     }
 
+    if (contentLocale === "en" && row.bindingResourceType === "PRODUCT" && field.shopifyTarget.kind === "native") {
+      const paths: Record<string, string> = {
+        title: "title", handle: "handle", body_html: "descriptionHtml",
+        meta_title: "seo.title", meta_description: "seo.description",
+      };
+      const path = paths[field.shopifyTarget.key];
+      if (path) {
+        const { adoptShopifyProjectionField } = await import("@/lib/shopify/product-sync");
+        await adoptShopifyProjectionField(subject.rootEntityId, path);
+      }
+    }
+
     const snapshot = await snapshotFor(row.bindingId, row.locale, row.lastSyncedSnapshot);
     await saveTranslationSnapshot({
       bindingId: row.bindingId,

@@ -12,6 +12,7 @@ const REGISTRY: EntityFieldRegistry = {
 const field = REGISTRY.fields[0];
 
 const mocks = vi.hoisted(() => ({
+  adoptProjection: vi.fn(),
   queryRaw: vi.fn(),
   executeRaw: vi.fn(),
   loadSubject: vi.fn(),
@@ -25,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   saveSnapshot: vi.fn(),
 }));
 
+vi.mock("@/lib/shopify/product-sync", () => ({ adoptShopifyProjectionField: mocks.adoptProjection }));
 vi.mock("@/lib/db", () => ({
   db: {
     $queryRaw: mocks.queryRaw,
@@ -201,6 +203,7 @@ describe("applyReconcileChoice", () => {
     }));
     expect(mocks.registerTranslations).not.toHaveBeenCalled();
     expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ locale: "en" }));
+    expect(mocks.adoptProjection).toHaveBeenCalledWith("product-1", "title");
   });
 
   it("refuses a second concurrent resolver that cannot claim the field", async () => {

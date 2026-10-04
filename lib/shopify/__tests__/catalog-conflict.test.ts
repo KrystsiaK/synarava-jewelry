@@ -370,3 +370,16 @@ describe("listConflictedProductIds", () => {
     expect(result).toEqual(["product-old-run"]);
   });
 });
+
+
+it("preserves OUR and Shopify SEO values on their respective sides", async () => {
+  mocks.inspectProductSyncState.mockResolvedValue(inspection({ state: "CONFLICT", differences: [
+    { field: "SEO title", path: "seo.title", local: "Synarava title", shopify: "Shopify title" },
+    { field: "SEO description", path: "seo.description", local: "Synarava description", shopify: "Shopify description" },
+  ] }));
+  const conflict = await getProductCatalogConflict("product-1");
+  expect(conflict.fields).toEqual(expect.arrayContaining([
+    expect.objectContaining({ label: "SEO title", synaravaValue: "Synarava title", shopifyValue: "Shopify title" }),
+    expect.objectContaining({ label: "SEO description", synaravaValue: "Synarava description", shopifyValue: "Shopify description" }),
+  ]));
+});

@@ -78,7 +78,7 @@ function shouldOmitKey(key: string, parentPath: string): boolean {
   if (key === "originalSource" && /(^|\.)media(\[\d+\])?$/.test(parentPath)) return true;
   // Array index (`metafields[0]`) or identity map (`metafields.custom::warranty`).
   if (
-    key === "definition"
+    (key === "definition" || key === "id")
     && (/(^|\.)metafields(\[\d+\])?$/.test(parentPath) || /(^|\.)metafields\.[^.]+$/.test(parentPath))
   ) {
     return true;
@@ -120,7 +120,7 @@ function metafieldsToIdentityMap(items: unknown[]): Record<string, unknown> {
  * Strip technical noise and normalize volatile values so equality is commerce-meaningful.
  */
 export function canonicalizeShopifyProjection(value: unknown, path = ""): unknown {
-  if (value == null) return null;
+  if (value == null) return /^seo\.(title|description)$/.test(path) ? "" : null;
   if (typeof value === "string") {
     if (/^https?:\/\//i.test(value)) return normalizeShopifyCdnUrl(value);
     return value;
@@ -129,7 +129,8 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
   if (Array.isArray(value)) {
     if (isMetafieldListPath(path)) {
       const rows = coerceMetafieldRows(value)
-        .filter((item) => typeof item.namespace === "string" && typeof item.key === "string")
+        .filter((item) => typeof item.namespace === "string" && typeof item.key === "string"
+        && (typeof item.value !== "string" || item.value.trim() !== ""))
         .map((item) =>
           canonicalizeShopifyProjection(
             item,
@@ -160,7 +161,8 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
   // Already-canonical map or GraphQL `{ nodes }` connection at metafields path.
   if (isMetafieldListPath(path)) {
     const rows = coerceMetafieldRows(value)
-      .filter((item) => typeof item.namespace === "string" && typeof item.key === "string")
+      .filter((item) => typeof item.namespace === "string" && typeof item.key === "string"
+        && (typeof item.value !== "string" || item.value.trim() !== ""))
       .map((item) =>
         canonicalizeShopifyProjection(
           item,
@@ -174,7 +176,17 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
   for (const key of Object.keys(value).toSorted()) {
     if (shouldOmitKey(key, path)) continue;
     const childPath = path ? `${path}.${key}` : key;
-    out[key] = canonicalizeShopifyProjection(value[key], childPath);
+    let childValue = value[key];
+    // SEO and these legacy metafields are two Shopify views of the same value.
+    // Keep the native SEO representation when present; legacy-only windows
+    // still retain and compare their metafield values.
+    if (key === "metafields" && isPlainObject(value.seo)) {
+      const seo = value.seo;
+      childValue = coerceMetafieldRows(childValue).filter((field) => !isPlainObject(field) || field.namespace !== "global"
+        || !(field.key === "title_tag" && Object.hasOwn(seo, "title")
+          || field.key === "description_tag" && Object.hasOwn(seo, "description")));
+    }
+    out[key] = canonicalizeShopifyProjection(childValue, childPath);
   }
   return out;
 }
@@ -256,12 +268,18 @@ export function labelForShopifyProjectionPath(path: string): string {
     const identity = metafieldMatch[1];
     const rest = metafieldMatch[2];
     const sep = identity.indexOf("::");
-    const label = sep >= 0
-      ? `${identity.slice(0, sep)}.${identity.slice(sep + 2)}`
-      : identity;
-    return rest ? `Metafield ${label}.${rest}` : `Metafield ${label}`;
+    if (sep < 0) return `Metafield ${identity}`;
+    const label = metafieldLabel({ namespace: identity.slice(0, sep), key: identity.slice(sep + 2) });
+    return !rest || rest === "value" ? label : `${label} · ${rest}`;
   }
   return path;
+}
+
+function metafieldLabel(field: Record<string, unknown>): string {
+  if (field.namespace === "global" && field.key === "title_tag") return "SEO title";
+  if (field.namespace === "global" && field.key === "description_tag") return "SEO description";
+  const name = String(field.key).replace(/[_-]/g, " ");
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} (${String(field.namespace)})`;
 }
 
 function walkDiff(
@@ -416,6 +434,8 @@ export function centsToShopifyAmount(cents: number): string {
 
 export type LocalCommerceProjectionPatch = {
   title?: string;
+  descriptionHtml?: string;
+  seo?: { title: string; description: string };
   handle?: string;
   vendor?: string | null;
   productType?: string | null;
@@ -449,6 +469,12 @@ export function writeThroughLocalCommerceToProjection(
   patch: LocalCommerceProjectionPatch,
 ): unknown {
   let next: unknown = snapshot ?? {};
+
+  if (patch.descriptionHtml !== undefined) next = setProjectionPath(next, "descriptionHtml", patch.descriptionHtml);
+  if (patch.seo !== undefined) {
+    next = setProjectionPath(next, "seo", patch.seo);
+
+  }
 
   if (patch.title != null) next = setProjectionPath(next, "title", patch.title);
   if (patch.handle != null) next = setProjectionPath(next, "handle", patch.handle);

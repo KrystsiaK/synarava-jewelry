@@ -146,3 +146,17 @@ describe("localCommerceMatchesProjection", () => {
     });
   });
 });
+
+
+it("writes saved description and SEO into OUR without retaining old global aliases", () => {
+  const next = writeThroughLocalCommerceToProjection({
+    descriptionHtml: "Old description", seo: { title: "Old title", description: "Old SEO" },
+    metafields: [{ namespace: "global", key: "title_tag", value: "Old title" }],
+  }, {
+    descriptionHtml: "<p>New <strong>description</strong></p>", seo: { title: "Our title", description: "Our SEO" },
+  });
+  expect(next).toMatchObject({
+    descriptionHtml: "<p>New <strong>description</strong></p>", seo: { title: "Our title", description: "Our SEO" },
+    metafields: {},
+  });
+});

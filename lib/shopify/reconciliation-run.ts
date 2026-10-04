@@ -410,7 +410,13 @@ export async function runTranslationReconciliation({
 
   try {
     const bindings = await db.shopifyTranslationBinding.findMany({
-      where: scope?.bindingId ? { id: scope.bindingId } : undefined,
+      where: scope?.bindingId ? { id: scope.bindingId }
+        : scope?.entityType === "PRODUCT" && scope.entityId ? {
+          OR: [
+            { resourceType: "PRODUCT", entityId: scope.entityId },
+            { resourceType: "METAOBJECT", entityId: { startsWith: `${scope.entityId}:` } },
+          ],
+        } : undefined,
       orderBy: { createdAt: "asc" },
     });
 

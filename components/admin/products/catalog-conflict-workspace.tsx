@@ -304,6 +304,7 @@ function DetailsModal({
   const onlyBlocked = conflict !== null && fields.length > 0 && actionable.length === 0;
   const emptyScope = conflict !== null && !loading && fields.length === 0;
   const needsWholeRecordSync = onlyBlocked || emptyScope;
+  const hasBlockedCommerce = fields.some((field) => field.origin === "COMMERCE" && field.blockedReason);
   const busy = applying;
   return (
     <AnimatedModal open onClose={busy ? () => undefined : onClose} ariaLabel="Choose conflict values" portalClassName="admin-modal-root" zIndexClassName="z-[300]" backdropZIndexClassName="z-[290]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,60rem)] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
@@ -327,7 +328,7 @@ function DetailsModal({
         ) : null}
         {emptyScope ? (
           <p className="rounded-lg border border-[var(--adm-conflict)] p-3 text-sm">
-            No per-field choices in this view. Use Pull or Push below to align the whole commerce record.
+            No remaining conflicting fields in this view.
           </p>
         ) : null}
         {onlyBlocked ? (
@@ -366,7 +367,8 @@ function DetailsModal({
             </div>
             <button type="button" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
           </>
-        ) : conflict ? (
+        ) : null}
+        {conflict && hasBlockedCommerce ? (
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy} onClick={() => onPull(conflict.productId)} className="adm-btn-secondary inline-flex items-center gap-2">
               <ArrowDownToLine className="size-4" />Pull from Shopify
@@ -541,10 +543,6 @@ export function CatalogConflictWorkspace({
   /** Product-wide direction under a locale/section tab becomes MANUAL over only that scope's fields. */
   function openProductDirection(productId: string, direction: CatalogConflictDirection) {
     if (guardFormBlocked()) return;
-    if (!isLocaleOrSectionScoped(viewScope)) {
-      openPreview({ kind: "PRODUCT", productId, direction });
-      return;
-    }
     setPreviewLoading(true);
     void loadProductCatalogConflictAction(productId)
       .then((result) => {
@@ -553,7 +551,19 @@ export function CatalogConflictWorkspace({
           setPreviewLoading(false);
           return;
         }
-        const fields = filterConflictFieldsForView(result.conflict?.fields ?? [], viewScope)
+        const visibleFields = filterConflictFieldsForView(result.conflict?.fields ?? [], viewScope);
+        if (visibleFields.some((field) => field.origin === "COMMERCE" && field.blockedReason)) {
+          setDetails({ productId, fields: visibleFields });
+          setSelections({});
+          setPreviewLoading(false);
+          return;
+        }
+        if (!isLocaleOrSectionScoped(viewScope)) {
+          setPreviewLoading(false);
+          openPreview({ kind: "PRODUCT", productId, direction });
+          return;
+        }
+        const fields = visibleFields
           .filter((field) => !field.blockedReason && field.allowedDirections.includes(direction));
         if (fields.length === 0) {
           onToast(
@@ -571,7 +581,10 @@ export function CatalogConflictWorkspace({
           selections: fields.map((field) => ({ productId, fieldKey: field.fieldKey, direction })),
         });
       })
-      .catch(() => setPreviewLoading(false));
+      .catch((error) => {
+        onToast(error instanceof Error ? error.message : "Could not load conflict values.", "error");
+        setPreviewLoading(false);
+      });
   }
 
   useEffect(() => {

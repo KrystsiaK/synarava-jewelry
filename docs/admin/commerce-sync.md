@@ -1,7 +1,7 @@
 # Commerce sync — current freeze (main)
 
 **Status:** shipped foundation on main. Later work continues on **separate feature branches**.  
-**Date:** 2026-09-26
+**Date:** 2026-10-04
 
 This is the only admin sync architecture doc for the current model. Older drafts
 (`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation)
@@ -81,7 +81,8 @@ Mirror Shopify Admin product header + Product organization:
   Media stays separate
 - Jewelry passport (synarava.*) lives on Synarava → Passport
 
-Local Save write-through includes title, vendor, productType, tags into
+Local Save write-through includes title, description HTML, SEO (including legacy
+`global` SEO aliases), vendor, productType, tags into
 `workingSnapshot` so conflict markers refresh after save.
 
 ---
@@ -138,9 +139,38 @@ the Metafields editor.
 Code: `lib/shopify/product-metafields-*.ts`,
 `lib/shopify/product-metafield-translations.ts`,
 `ProductMetafieldsPanel`, write-through in `shopify-projection-diff.ts`,
-Push merges custom values from `workingSnapshot` and registers Metafield translations.
+Push registers per-locale Metafield translations.
+[Manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content).
 
-Docs: [Manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content).
+Push merges custom values from `workingSnapshot`. Cleared custom values delete
+Shopify metafields by owner/namespace/key; unset form definitions do not create
+empty metafields. Writes are batched at 25 entries. Passport deletion uses both
+namespace and key so a same-named custom field cannot prevent a passport clear.
+
+Product and locale descriptions retain sanitized rich HTML through Pull/Save/Push.
+Push clears empty SEO overrides on linked products rather than retaining the old value.
+
+Conflict normalization omits metafield IDs and definitions; blank metafield values
+represent absence. Metafields are matched by namespace/key before deep-diff, so
+removing one never compares adjacent unrelated fields. UI labels use readable
+field names. `global.title_tag` / `global.description_tag` are duplicate views of
+native SEO, so windows with native `seo` compare that single representation.
+Legacy windows without native SEO retain the metafields and label them SEO title /
+SEO description.
+
+Conflict details and product direction preview refresh translation reconciliation
+before showing values. Synarava is OUR/local; Shopify is the remote value. EN native
+field resolution also updates the corresponding OUR path and store slice, so the
+resolved field does not reappear through the second compare view.
+
+Catalog, language and section direction buttons open field details when full
+commerce sync is required. Full Pull/Push remains available when those fields are
+mixed with fields that can be selected individually; the whole-record scope is
+explicit. Presence-only products retain their dedicated preview/apply flow.
+
+Collection membership uses Shopify 2026-07 `collectionUpdate` source deltas. Removal
+refreshes the managed source identity first; a missing collection/source already
+satisfies removal. Shopify-authored sources are not removed as a fallback.
 
 ---
 
