@@ -163,7 +163,7 @@ describe("shop listing projection", () => {
         id: "pearl-ru",
         title: "Жемчужное колье",
         shortDescription: "Коротко",
-        slug: "zhemchuzhnoe-kole",
+        slug: "pearl-necklace",
         sourceTitle: "Pearl Necklace",
       }),
       expect.objectContaining({

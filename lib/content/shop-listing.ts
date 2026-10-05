@@ -68,7 +68,7 @@ const SHOP_LISTING_SELECT = {
   shopifyCategoryName: true,
   createdAt: true,
   translations: {
-    select: { locale: true, localizedHandle: true, title: true, shortDescription: true, description: true, materialLine: true },
+    select: { locale: true, title: true, shortDescription: true, description: true, materialLine: true },
   },
   variants: {
     orderBy: { createdAt: "asc" },
