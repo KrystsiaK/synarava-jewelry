@@ -1,6 +1,7 @@
 import type { Locale } from "@/lib/i18n/locales";
 import {
   contentCompleteness,
+  hasContent,
   resolveLocalizedContent,
 } from "@/lib/i18n/localized-content";
 
@@ -106,14 +107,22 @@ export function findProductTranslation(product: LocalizableProduct, locale: Loca
   return product.translations?.find((translation) => translation.locale === locale) ?? null;
 }
 
+/**
+ * Storefront projection: a locale row without a title is a placeholder (empty
+ * admin tab / wiped draft), not buyer-facing copy. Fall back to the English
+ * source entirely so cards never go blank and we avoid a silent EN/RU mix
+ * from partial empty rows. Admin readiness still uses findProductTranslation.
+ */
 export function resolveProductCopy(product: LocalizableProduct, locale: Locale): ProductLocalizedCopy {
   const source = sourceCopy(product);
   if (locale === "en") return source;
 
   const translation = findProductTranslation(product, locale);
+  if (!translation || !hasContent(translation.title)) return source;
+
   return resolveLocalizedContent({
     source,
-    translation: translation ? translatedCopy(translation) : null,
+    translation: translatedCopy(translation),
     optionalFields: OPTIONAL_PRODUCT_FIELDS,
   });
 }

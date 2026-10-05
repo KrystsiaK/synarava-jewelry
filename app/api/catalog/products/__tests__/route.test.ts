@@ -49,6 +49,17 @@ describe("GET /api/catalog/products", () => {
     expect(mocks.listShopCatalogPage).toHaveBeenCalledWith(expect.objectContaining({ locale: "en" }));
   });
 
+  it("passes Russian locale through for the same shop listing loader as /ru/shop", async () => {
+    await GET(request("?locale=ru&sort=newest&limit=24"));
+
+    expect(mocks.listShopCatalogPage).toHaveBeenCalledWith({
+      filters: expect.objectContaining({ sort: "newest" }),
+      locale: "ru",
+      cursor: null,
+      limit: 24,
+    });
+  });
+
   it("returns a safe 500 without leaking the underlying error", async () => {
     mocks.listShopCatalogPage.mockRejectedValue(new Error("db exploded"));
 

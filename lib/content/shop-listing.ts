@@ -4,7 +4,6 @@ import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
 import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { formatCurrency } from "@/lib/i18n/format";
-import { resolveLocalizedContent } from "@/lib/i18n/localized-content";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
@@ -18,6 +17,7 @@ import {
 } from "@/lib/catalog/shop-query";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { listBestSellingShopifyProductIds, type ShopFilters } from "@/lib/content/catalog";
+import { resolveProductCopy } from "@/lib/products/localization";
 
 /** Fields used by shop cards, discovery, sorting and client-side filters. */
 export type ShopListingProduct = {
@@ -104,29 +104,32 @@ const SHOP_LISTING_SELECT = {
 type ShopListingRow = Prisma.ProductGetPayload<{ select: typeof SHOP_LISTING_SELECT }>;
 
 function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListingProduct {
-  const translation = locale !== "en" ? row.translations.find((item) => item.locale === locale) : null;
-  const copy = resolveLocalizedContent({
-    source: {
-      title: row.name,
-      shortDescription: row.shortDescription ?? "",
-      description: row.description ?? "",
-      materialLine: row.materialLine ?? "",
-    },
-    translation: translation ? {
-      title: translation.title,
-      shortDescription: translation.shortDescription ?? "",
-      description: translation.description ?? "",
-      materialLine: translation.materialLine ?? "",
-    } : null,
-    optionalFields: ["materialLine"],
-  });
+  // One projection path with PDP (`resolveProductCopy`) — listing used to
+  // re-implement resolveLocalizedContent and could drift on empty-title rows.
+  const copy = resolveProductCopy({
+    name: row.name,
+    shortDescription: row.shortDescription,
+    description: row.description,
+    materialLine: row.materialLine,
+    symbolismLabel: null,
+    symbolismTitle: null,
+    symbolismBody: null,
+    symbolismBody2: null,
+    details: null,
+    seoTitle: null,
+    seoDescription: null,
+    translations: row.translations,
+  }, locale);
+  const localizedHandle = locale === "en"
+    ? null
+    : row.translations.find((item) => item.locale === locale)?.localizedHandle;
   const primaryVariant = row.variants.find(isVariantPurchasable) ?? row.variants[0];
   const priceCents = primaryVariant?.priceCents ?? row.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   return {
     id: row.id,
     shopifyProductId: row.shopifyProductId,
-    slug: resolveLocalizedHandle(locale, row.slug, translation?.localizedHandle),
+    slug: resolveLocalizedHandle(locale, row.slug, localizedHandle),
     sourceTitle: row.name,
     series: row.seriesLabel ?? "",
     title: copy.title,

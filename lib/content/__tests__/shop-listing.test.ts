@@ -102,12 +102,13 @@ describe("shop listing projection", () => {
 
   it("projects translated product copy when an explicit Portuguese locale is supplied", async () => {
     rows.push({
+      id: "anel-1",
       slug: "anel", sku: "ANEL-1", shopifyProductId: null, name: "Ring", seriesLabel: null,
       shortDescription: "English", description: "English", materialLine: null,
       searchSummary: null, searchDocument: null, currency: "EUR", priceCents: 1000,
       imageUrl: "/ring.webp", shopifyCategoryId: null, shopifyCategoryName: null,
       createdAt: new Date("2026-01-01"),
-      translations: [{ locale: "pt", title: "Anel", shortDescription: "Português", description: "Português", materialLine: null }],
+      translations: [{ locale: "pt", localizedHandle: null, title: "Anel", shortDescription: "Português", description: "Português", materialLine: null }],
       variants: [{ status: "ACTIVE", stockOnHand: 1, inventoryPolicy: "DENY", tracked: true, priceCents: 1000, compareAtCents: null }],
       tags: [],
       collections: [],
@@ -118,6 +119,60 @@ describe("shop listing projection", () => {
       title: "Anel",
       shortDescription: "Português",
     }]);
+  });
+
+  it("projects Russian ProductTranslation onto catalog cards and falls back when the RU title is blank", async () => {
+    rows.push(
+      {
+        id: "pearl-ru",
+        slug: "pearl-necklace", sku: "PEARL-1", shopifyProductId: null, name: "Pearl Necklace", seriesLabel: null,
+        shortDescription: "English short", description: "English long", materialLine: "Pearl",
+        searchSummary: null, searchDocument: null, currency: "EUR", priceCents: 2000,
+        imageUrl: "/pearl.webp", shopifyCategoryId: null, shopifyCategoryName: null,
+        createdAt: new Date("2026-01-01"),
+        translations: [{
+          locale: "ru", localizedHandle: "zhemchuzhnoe-kole", title: "Жемчужное колье",
+          shortDescription: "Коротко", description: "Длинно", materialLine: null,
+        }],
+        variants: [{ status: "ACTIVE", stockOnHand: 1, inventoryPolicy: "DENY", tracked: true, priceCents: 2000, compareAtCents: null }],
+        tags: [],
+        collections: [],
+        characteristics: [],
+      },
+      {
+        id: "blank-ru",
+        slug: "blank-ru", sku: "BLANK-1", shopifyProductId: null, name: "Honey Bracelet", seriesLabel: null,
+        shortDescription: "English short", description: "English long", materialLine: null,
+        searchSummary: null, searchDocument: null, currency: "EUR", priceCents: 1500,
+        imageUrl: "/honey.webp", shopifyCategoryId: null, shopifyCategoryName: null,
+        createdAt: new Date("2026-01-02"),
+        translations: [{
+          locale: "ru", localizedHandle: null, title: "",
+          shortDescription: "Остаток", description: "Остаток", materialLine: null,
+        }],
+        variants: [{ status: "ACTIVE", stockOnHand: 1, inventoryPolicy: "DENY", tracked: true, priceCents: 1500, compareAtCents: null }],
+        tags: [],
+        collections: [],
+        characteristics: [],
+      },
+    );
+
+    const page = await listShopCatalogPage({ filters: { sort: "newest" }, locale: "ru", limit: 10 });
+    expect(page.nodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "pearl-ru",
+        title: "Жемчужное колье",
+        shortDescription: "Коротко",
+        slug: "zhemchuzhnoe-kole",
+        sourceTitle: "Pearl Necklace",
+      }),
+      expect.objectContaining({
+        id: "blank-ru",
+        title: "Honey Bracelet",
+        shortDescription: "English short",
+        sourceTitle: "Honey Bracelet",
+      }),
+    ]));
   });
 });
 

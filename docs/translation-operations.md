@@ -28,6 +28,8 @@ Do these in order. Skipping a step is how storefront chrome stays in English aft
 
 5. **Content and review.** Fill or import translations and pass review. Until real content is entered, buyer-facing pages render the English source as a fallback rather than an error or a blank page. Sync each entity to Shopify from **Admin → Localization** once its translation is reviewed. Run `pnpm translations:backfill --dry-run --strict` before enabling writes. Today that report only checks Portuguese completeness.
 
+   **Shop / catalog product cards** (`/[locale]/shop`, `GET /api/catalog/products`) read **`Product` + `ProductTranslation`** for the request locale — there is no separate catalog translation table. Title/short description come from `resolveProductCopy` (same helper as the PDP). A locale row with an empty title is treated as missing copy and falls back to English. Russian (and other locales) must be filled under **Admin → Products → [product] → locale tab**, or pulled from Shopify translations when Shopify already has them; the storefront does not call Shopify live for card copy.
+
 6. **Graphify.** After the locale wiring, messages, and this checklist change, run `graphify update .` so the knowledge graph indexes them.
 
 ## Shared structure vs localized text

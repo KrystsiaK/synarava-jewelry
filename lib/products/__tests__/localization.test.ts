@@ -57,6 +57,38 @@ describe("product localization", () => {
     expect(resolved.materialLine).toBe("Lava stone and silver");
   });
 
+  it("falls back to English when a Russian row exists but has no title (placeholder / wiped draft)", () => {
+    const resolved = resolveProductCopy(product({
+      translations: [{
+        locale: "ru",
+        title: "   ",
+        shortDescription: "Коротко",
+        description: "Описание",
+      }],
+    }), "ru");
+
+    expect(resolved.title).toBe("Lava Ring");
+    expect(resolved.shortDescription).toBe("A handwoven ring.");
+    expect(resolved.description).toBe("Made in Lisbon.");
+  });
+
+  it("projects Russian title and description when ProductTranslation has real copy", () => {
+    const resolved = resolveProductCopy(product({
+      translations: [{
+        locale: "ru",
+        title: "Кольцо Лава",
+        shortDescription: "Плетёное кольцо.",
+        description: "Сделано в Лиссабоне.",
+        materialLine: null,
+      }],
+    }), "ru");
+
+    expect(resolved.title).toBe("Кольцо Лава");
+    expect(resolved.shortDescription).toBe("Плетёное кольцо.");
+    expect(resolved.description).toBe("Сделано в Лиссабоне.");
+    expect(resolved.materialLine).toBe("Lava stone and silver");
+  });
+
   it("resolves a populated Portuguese `details` object instead of always falling back to English (regression, see lib/i18n/localized-content.ts hasContent)", () => {
     const resolved = resolveProductCopy(product({
       translations: [{
