@@ -659,7 +659,8 @@ function readProductTranslationFields(formData: FormData, locale: string) {
   ) as Record<(typeof TRANSLATABLE_PRODUCT_FIELDS)[number], string>;
   return {
     ...fields,
-    localizedHandle: readLocaleField(formData, locale, "localizedHandle"),
+    // Shared product.slug is the only URL path — no per-locale handle overrides.
+    localizedHandle: "",
     reviewedFlag: readLocaleField(formData, locale, "reviewed"),
   };
 }
@@ -1028,7 +1029,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       ["shortDescription", "description", "symbolismBody", "symbolismBody2", "seoDescription"],
     );
     const copy = {
-      localizedHandle: slugify(fields.localizedHandle) || null,
+      localizedHandle: null as string | null,
       title: fields.title,
       shortDescription: richTranslation.shortDescription || null,
       description: richTranslation.description || null,
@@ -1052,7 +1053,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       previousSyncStatus: previousTranslation?.syncStatus,
       previousShared: previousTranslation
         ? {
-          handle: previousTranslation.localizedHandle ?? "",
+          handle: "",
           title: previousTranslation.title,
           descriptionHtml: previousTranslation.description ?? "",
           seoTitle: previousTranslation.seoTitle ?? "",
@@ -1060,7 +1061,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         }
         : null,
       nextShared: {
-        handle: copy.localizedHandle ?? "",
+        handle: "",
         title: copy.title,
         descriptionHtml: copy.description ?? "",
         seoTitle: copy.seoTitle ?? "",

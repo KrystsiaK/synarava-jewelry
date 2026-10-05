@@ -67,7 +67,7 @@ const ESSENTIALS_SHARED = [
 ];
 /** Shopify description + SEO + title/handle; reviewed flag rides with locale Product tab. */
 const ESSENTIALS_LOCALE = [
-  "title", "localizedHandle",
+  "title",
   "description", "seoTitle", "seoDescription", "reviewed",
 ];
 /** compareAt + cost are Shopify-edit-only (AdminReadonlyField) — not in FormData / dirty scope. */

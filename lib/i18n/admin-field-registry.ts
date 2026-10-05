@@ -47,7 +47,6 @@ export const PRODUCT_FIELD_REGISTRY: EntityFieldRegistry = {
   entity: "product",
   fields: [
     { key: "title", label: "Title", mode: "localized", required: "always", kind: "short-text", shopifyTarget: native("PRODUCT", "title") },
-    { key: "localizedHandle", label: "URL handle", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: native("PRODUCT", "handle") },
     { key: "shortDescription", label: "Short description", mode: "localized", required: "always", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "short_description") },
     { key: "description", label: "Description", mode: "localized", required: "always", kind: "long-text", shopifyTarget: native("PRODUCT", "body_html") },
     { key: "materialLine", label: "Material line", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "material_line") },
@@ -65,6 +64,7 @@ export const PRODUCT_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "mediaCaption", label: "Image caption", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "media_caption") },
 
     { key: "sku", label: "SKU", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },
+    { key: "slug", label: "Slug", mode: "shared", required: "always", kind: "short-text", shopifyTarget: native("PRODUCT", "handle") },
     { key: "priceCents", label: "Price", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },
     { key: "compareAtCents", label: "Compare-at price", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "currency", label: "Currency", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },

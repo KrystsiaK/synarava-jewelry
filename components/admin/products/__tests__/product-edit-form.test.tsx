@@ -230,6 +230,25 @@ describe("EditProductForm", () => {
     expect(screen.getByLabelText(/Product type/)).toBeVisible();
   });
 
+  it("keeps one shared editable slug and hides per-locale URL handles", async () => {
+    const user = userEvent.setup();
+    render(<EditProductForm product={makeProduct()} collections={[]} />);
+    await act(async () => {});
+
+    const slug = screen.getByRole("textbox", { name: /Slug/ });
+    expect(slug).toBeVisible();
+    expect(slug).toHaveValue("lava-ring");
+    expect(screen.queryByLabelText(/URL handle/i)).not.toBeInTheDocument();
+
+    await user.tripleClick(slug);
+    await user.keyboard("lava-band");
+    expect(slug).toHaveValue("lava-band");
+
+    await user.click(screen.getByRole("tab", { name: "Português" }));
+    expect(screen.getByRole("textbox", { name: /Slug/ })).toHaveValue("lava-band");
+    expect(screen.queryByLabelText(/URL handle/i)).not.toBeInTheDocument();
+  });
+
   it("switches the same Short description field's value with the locale tab", async () => {
     const user = userEvent.setup();
     const product = makeProduct({

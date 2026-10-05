@@ -6,7 +6,6 @@ import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { formatCurrency } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
-import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 import { buildShopProductWhere } from "@/lib/catalog/shop-where";
 import {
   CATALOG_CANDIDATE_CAP,
@@ -120,16 +119,13 @@ function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListin
     seoDescription: null,
     translations: row.translations,
   }, locale);
-  const localizedHandle = locale === "en"
-    ? null
-    : row.translations.find((item) => item.locale === locale)?.localizedHandle;
   const primaryVariant = row.variants.find(isVariantPurchasable) ?? row.variants[0];
   const priceCents = primaryVariant?.priceCents ?? row.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   return {
     id: row.id,
     shopifyProductId: row.shopifyProductId,
-    slug: resolveLocalizedHandle(locale, row.slug, localizedHandle),
+    slug: row.slug,
     sourceTitle: row.name,
     series: row.seriesLabel ?? "",
     title: copy.title,

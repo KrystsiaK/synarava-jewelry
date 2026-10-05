@@ -63,7 +63,7 @@ describe("CreateProductForm", () => {
 
     expect(screen.getByRole("heading", { name: "Build the product one area at a time" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Slug/)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Slug/ })).toBeInTheDocument();
     expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
     // Collection lives on the Product (essentials) tab — Catalog was removed.
     expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
@@ -122,7 +122,7 @@ describe("CreateProductForm", () => {
     await act(async () => {});
 
     await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
-    await user.type(screen.getByLabelText(/Slug/), "lava-ring");
+    await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
     await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");
@@ -140,7 +140,7 @@ describe("CreateProductForm", () => {
     await act(async () => {});
 
     await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
-    await user.type(screen.getByLabelText(/Slug/), "lava-ring");
+    await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
     await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");

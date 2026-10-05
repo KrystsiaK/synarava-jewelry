@@ -143,6 +143,23 @@ describe("Shopify translations", () => {
     })).toBe("APPLY_REMOTE");
   });
 
+  it("ignores leftover Shopify handle translations when comparing product copy", () => {
+    expect(decideProductTranslationPull({
+      local: { handle: "", title: "Anel", descriptionHtml: "Corpo", seoTitle: "", seoDescription: "" },
+      localSyncStatus: "SYNCED",
+      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
+      remote: {
+        handle: "anel-lava",
+        title: "Anel",
+        descriptionHtml: "Corpo",
+        seoTitle: "",
+        seoDescription: "",
+        updatedAt: "2026-09-10T11:00:00Z",
+        outdated: false,
+      },
+    })).toBe("UNCHANGED");
+  });
+
   it("reports a conflict when both Shopify and Synarava changed the translation", () => {
     expect(decideProductTranslationPull({
       local: { title: "Edição local", descriptionHtml: "", seoTitle: "", seoDescription: "" },

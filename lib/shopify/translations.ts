@@ -37,7 +37,8 @@ function normalizedCopy(copy: ShopifyProductTranslationCopy | null) {
   if (!copy) return null;
   return {
     title: copy.title.trim(),
-    handle: copy.handle?.trim() ?? "",
+    // Product URLs use shared product.slug only — ignore per-locale handle for compare.
+    handle: "",
     descriptionHtml: copy.descriptionHtml
       .replace(/<[^>]*>/g, " ")
       .replace(/&nbsp;/gi, " ")

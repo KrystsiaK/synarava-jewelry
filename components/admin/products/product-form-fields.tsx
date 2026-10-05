@@ -605,9 +605,6 @@ export function ProductFormFields({
   const [titleByLocale, setTitleByLocale] = useState<Record<string, string>>(() =>
     Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.title ?? ""])),
   );
-  const [handleByLocale, setHandleByLocale] = useState<Record<string, string>>(() =>
-    Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.localizedHandle ?? ""])),
-  );
   const [reviewedByLocale, setReviewedByLocale] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.reviewed ?? false])),
   );
@@ -737,6 +734,12 @@ export function ProductFormFields({
             owner="Shopify"
             required
             name="slug"
+            help={
+              <AdminHelp label="URL path guidance">
+                One URL path for every language (<code>/en|/pt|/ru/…/products/&#123;slug&#125;</code>).
+                Edit freely — it is not per-locale.
+              </AdminHelp>
+            }
             data-validation-message={PRODUCT_FIELD_MESSAGES.slug}
             value={slugValue}
             onChange={(event) => updateSlug(event.target.value)}
@@ -744,27 +747,6 @@ export function ProductFormFields({
             errorId={validation.fieldErrorId("slug")}
             {...validation.fieldProps("slug")}
           />
-        </div>
-
-        {activeTranslation ? (
-          <AdminTextField
-            label={`URL handle (${activeLabel}, optional)`}
-            help={<AdminHelp label="URL handle guidance">Blank uses the English slug.</AdminHelp>}
-            value={handleByLocale[activeLocale] ?? ""}
-            onChange={(event) => setHandleByLocale((prev) => ({ ...prev, [activeLocale]: event.target.value }))}
-            placeholder={draft.slug}
-          />
-        ) : null}
-        <div hidden>
-          {translationLocales.map(({ code }) => (
-            <input
-              key={code}
-              type="hidden"
-              readOnly
-              name={adminLocaleFieldName(code, "localizedHandle", SOURCE_LOCALE)}
-              value={handleByLocale[code] ?? ""}
-            />
-          ))}
         </div>
 
         <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
@@ -836,7 +818,7 @@ export function ProductFormFields({
           )}
           path={localePath(
             activeLocale,
-            `/products/${(isEn ? slugValue : handleByLocale[activeLocale] || slugValue).trim() || "slug"}`,
+            `/products/${slugValue.trim() || "slug"}`,
           )}
         />
       </div>

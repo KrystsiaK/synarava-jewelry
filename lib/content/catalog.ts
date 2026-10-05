@@ -361,8 +361,8 @@ function toSummary(product: {
   )?.collection;
   const leadCollectionCopy = leadCollection ? resolveCollectionCopy(leadCollection, locale) : null;
   const localized = resolveProductCopy(product, locale);
-  const localizedHandle = product.translations.find((translation) => translation.locale === locale)?.localizedHandle;
-  const activeSlug = resolveLocalizedHandle(locale, product.slug, localizedHandle);
+  // Shared product.slug is the only storefront path — per-locale handles are retired.
+  const activeSlug = product.slug;
   const details = parseProductDetails(localized.details);
   const characteristicTextOverlay = parseCharacteristicTextOverlay(localized.details);
   const process = {

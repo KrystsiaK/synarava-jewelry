@@ -17,7 +17,6 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | Key | Mode | Required | Shopify target |
 |---|---|---|---|
 | title | localized | always | native `PRODUCT.title` |
-| localizedHandle | localized | optional | native `PRODUCT.handle` (Task 23) |
 | shortDescription | localized | always | metaobject `product_detail_copy.short_description` |
 | description | localized | always | native `PRODUCT.body_html` |
 | materialLine | localized | optional | metaobject `product_detail_copy.material_line` |
@@ -27,6 +26,7 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | optionName / optionValueLabel | localized | when-published | native `PRODUCT_OPTION` / `PRODUCT_OPTION_VALUE` |
 | mediaAlt | localized | optional (EN publish checklist via Issues / Meta Health) | native `MEDIA_IMAGE.alt` |
 | mediaCaption | localized | optional | metaobject `product_detail_copy.media_caption` |
+| slug | shared | always | native `PRODUCT.handle` (one path for every locale) |
 | sku, price, compareAt, currency, status, visibility, category, collections, tags, media, variants | shared | — | — |
 | merchant product metafield text (`custom.*` etc., Fields tab) | localized | optional | metafield `value` via Translations API on Metafield GID |
 | merchant product metafield non-text (number/boolean/date/url/json) | shared | optional | metafieldsSet (EN only) |
@@ -36,6 +36,10 @@ Structured Synarava CMS copy still uses `$app:` metaobjects (Task 16). Merchant
 translations (`translationsRegister` / `key: value`) so each locale can differ.
 Overlays live in `workingSnapshot.metafieldTranslations` and are stripped from
 commerce conflict compare.
+
+Product URLs use the shared `slug` for every language (`/pt/products/{slug}`).
+Per-locale product URL handles were removed from the admin — old translation
+handles still resolve once, then redirect to the shared slug.
 
 ## Collection
 
@@ -110,10 +114,9 @@ source of truth and is out of scope.
 - Site videos (`lib/site-videos.ts`): four ambient background video file
   slots with no title/caption/alt text today — nothing to localize. If
   buyer-facing video copy is added later, register it then.
-- URL/slug/handle is **no longer out of scope** — Task 23 (2026-09-19) added
-  an optional `localizedHandle` field to Product, Collection, and Page (see
-  their tables above), synced via Shopify's native `handle` translation and
-  resolved on the storefront through `lib/content/handle-localization.ts`
-  with a redirect record on change (`lib/content/handle-redirects.ts`). The
-  base `slug`/`code` columns stay `shared`; only the optional per-locale
-  override is localized.
+- URL/slug/handle: **Product** uses one shared `slug` for every language (admin
+  no longer exposes per-locale URL handles). **Collection** and **Page** still
+  have an optional `localizedHandle` (Task 23) synced via Shopify's native
+  `handle` translation and resolved through `lib/content/handle-localization.ts`
+  with a redirect record on change (`lib/content/handle-redirects.ts`). Their
+  base `slug`/`code` columns stay `shared`.
