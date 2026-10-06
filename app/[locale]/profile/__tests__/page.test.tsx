@@ -31,6 +31,13 @@ vi.mock("@/lib/content/product-reviews", () => ({
   listReviewProductLinks: mocks.listReviewProducts,
 }));
 
+vi.mock("@/lib/content/account-orders-settings", () => ({
+  getAccountOrdersSettings: vi.fn(async () => ({
+    buyAgainOnOrdersEnabled: true,
+    headlessReturnEnabled: false,
+  })),
+}));
+
 vi.mock("@/lib/i18n/server", () => ({
   getRequestLocale: vi.fn(async () => "en"),
 }));
