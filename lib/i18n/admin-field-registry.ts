@@ -31,7 +31,12 @@ export type LocalizedFieldDefinition = {
   mode: FieldMode;
   required: FieldRequiredness;
   kind: FieldKind;
-  /** null only when `mode: "shared"` — the translation platform never owns a shared field's sync. */
+  /**
+   * Where this field syncs in Shopify.
+   * Localized fields must declare a target (translation / locale copy).
+   * Shared fields may declare one for commerce sync (e.g. product.slug → handle)
+   * or `null` when Synarava-only / not pushed as that key.
+   */
   shopifyTarget: ShopifyFieldTarget;
 };
 

@@ -25,15 +25,18 @@ After code + tests (+ docs if needed) are complete:
 
 1. Commit on the feature branch and push the branch (optional if working
    directly on staging for a tiny fix).
-2. **Land on `staging`:**
+2. **Before any push to `staging` / `main`:** run `pnpm test:run` (or rely on
+   the repo `pre-push` hook — install via `pnpm hooks:install` / `pnpm install`).
+   Do not push knowingly with a red suite. Emergency only: `SKIP_GIT_HOOKS=1`.
+3. **Land on `staging`:**
    - `git fetch origin staging`
    - checkout `staging`, fast-forward or merge the feature branch
      (`--ff-only` when possible, otherwise `--no-ff`)
    - `git push origin staging`
-3. **Open/update a PR into `main`** from `staging` (or the feature branch if it
+4. **Open/update a PR into `main`** from `staging` (or the feature branch if it
    is already included on staging). Record association; do not leave shipping
    as “branch only.”
-4. Confirm with a one-liner: commit SHA is on `staging`, and the PR URL into
+5. Confirm with a one-liner: commit SHA is on `staging`, and the PR URL into
    `main` is ready (merge when required checks are green, unless an exception
    below applies).
 
