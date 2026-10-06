@@ -28,3 +28,16 @@ describe("home.archive messages (PR #102)", () => {
     expect(en.home.archive.viewCollection).toBe("View collection");
   });
 });
+
+describe("storefront chrome i18n (home / a11y / brand)", () => {
+  it("ships RU preferred chrome for material, skip, appearance, story, curated goods", () => {
+    expect(ru.home.material.specimen).toBe("Образец / {symbol}");
+    expect(ru.home.material.label).toBe("Материал {index}");
+    expect(ru.home.finalCta.eyebrow).toBe("07 / Продолжить историю");
+    expect(ru.a11y.skip).toBe("Перейти к основному содержанию");
+    expect(ru.theme.appearance).toBe("Внешний вид");
+    expect(ru.brand.curatedGoods).toBe("Выбранные вещи");
+    expect(en.home.material.specimen).toBe("Specimen / {symbol}");
+    expect(en.brand.curatedGoods).toBe("Curated goods");
+  });
+});

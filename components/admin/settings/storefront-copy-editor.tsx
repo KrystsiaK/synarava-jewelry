@@ -32,6 +32,7 @@ import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 const SHARED_AREAS = [
   { id: "header", label: "Header", detail: "Main links and menu labels" },
   { id: "footer", label: "Footer", detail: "Columns, legal line, emails" },
+  { id: "home", label: "Home", detail: "Featured collections and home chrome" },
   { id: "cookies", label: "Cookies", detail: "Banner and settings page" },
   { id: "contact", label: "Contact", detail: "Banner on service pages" },
   { id: "reviews", label: "Reviews", detail: "Form for leaving a review" },
@@ -45,6 +46,9 @@ const GROUP_AREA: Record<string, SharedAreaId> = {
   "footer-nav": "footer",
   "footer-service-heading": "footer",
   "footer-social-heading": "footer",
+  "home-archive": "home",
+  "home-material": "home",
+  "home-final-cta": "home",
   "cookies-consent": "cookies",
   "cookies-page": "cookies",
   "service-contact": "contact",
@@ -56,6 +60,7 @@ function areaForHash(hash: string): SharedAreaId | null {
   if (!id) return null;
   if (id === "shared-header" || id.startsWith("copy-header")) return "header";
   if (id === "shared-footer" || id.startsWith("copy-footer")) return "footer";
+  if (id === "shared-home" || id.startsWith("copy-home")) return "home";
   if (id === "shared-cookies" || id.startsWith("copy-cookies")) return "cookies";
   if (id === "shared-contact" || id === "copy-service-contact") return "contact";
   if (id === "shared-reviews" || id === "copy-reviews-form") return "reviews";
@@ -96,7 +101,16 @@ export function StorefrontCopyEditor({
   }, []);
 
   function selectArea(next: string) {
-    if (next !== "header" && next !== "footer" && next !== "cookies" && next !== "contact" && next !== "reviews") return;
+    if (
+      next !== "header"
+      && next !== "footer"
+      && next !== "home"
+      && next !== "cookies"
+      && next !== "contact"
+      && next !== "reviews"
+    ) {
+      return;
+    }
     setArea(next);
     const hash = `#shared-${next}`;
     if (window.location.hash !== hash) {
@@ -252,6 +266,20 @@ export function StorefrontCopyEditor({
                 hrefPlaceholder="https://"
                 allowExternalHint
               />
+            </div>
+
+            <div id="shared-home" hidden={area !== "home"} className="grid gap-10">
+              {copyGroups("home").map((group) => (
+                <CopyGroup
+                  key={group.id}
+                  group={group}
+                  copy={copy}
+                  defaults={defaults}
+                  englishDefaults={englishDefaults}
+                  locales={locales}
+                  activeLocale={activeLocale}
+                />
+              ))}
             </div>
 
             <div id="shared-cookies" hidden={area !== "cookies"} className="grid gap-10">

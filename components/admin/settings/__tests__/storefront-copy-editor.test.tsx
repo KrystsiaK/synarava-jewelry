@@ -51,7 +51,7 @@ function setupUser() {
 }
 
 /** Scope label queries to one area — document-wide getByLabelText walks ~2k nodes. */
-function area(id: "shared-header" | "shared-footer" | "shared-cookies" | "shared-contact" | "shared-reviews") {
+function area(id: "shared-header" | "shared-footer" | "shared-home" | "shared-cookies" | "shared-contact" | "shared-reviews") {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Missing area #${id}`);
   return within(node);
@@ -221,6 +221,16 @@ describe("StorefrontCopyEditor", () => {
     expect(footer.getByText("Footer — contact emails")).toBeVisible();
     expect(footer.getByRole("textbox", { name: "Email (primary)" })).toHaveValue("ops@synarava.com");
     expect(footer.getAllByLabelText("Column heading (EN)").length).toBeGreaterThan(0);
+
+    await user.click(sharedAreaTab(/^Home/));
+    const home = area("shared-home");
+    expect(home.getByText("Home — featured collections")).toBeVisible();
+    expect(home.getByText("Home — material lexicon chrome")).toBeVisible();
+    expect(home.getByText("Home — final CTA chrome")).toBeVisible();
+    const homeRoot = document.getElementById("shared-home");
+    expect(homeRoot?.querySelector('input[name="en:home.archive.collectionNote"]')).toBeTruthy();
+    expect(homeRoot?.querySelector('input[name="en:home.material.specimen"]')).toBeTruthy();
+    expect(homeRoot?.querySelector('input[name="en:home.finalCta.eyebrow"]')).toBeTruthy();
 
     await user.click(sharedAreaTab(/^Cookies/));
     const cookies = area("shared-cookies");
