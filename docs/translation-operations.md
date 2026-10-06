@@ -32,6 +32,8 @@ Do these in order. Skipping a step is how storefront chrome stays in English aft
 
    **Shop filter facet values** (category leaf, product type, material, finish/coating, origin) keep English/canonical keys for URLs and Prisma match. Display labels resolve in `getShopFilterData` via `lib/catalog/shop-facet-labels.ts`: passport TEXT overlays first (material/finish/origin), then the shipped jewelry vocabulary map, then English. Tag and Compliance facets are hidden (`supportsTagFilters` / `supportsComplianceFilters`) — tags here are operational SKU-like noise with no locale surface.
 
+   **Product passport TEXT** (material, metal, color, finish, care instructions, …) is also per-locale: English lives on `ProductCharacteristic`; PT/RU overlays live on `ProductTranslation.details.characteristics`. Fill them on **Synarava → Passport** while the matching locale tab is active. Blank overlays fall back to English on the PDP. Do not edit passport TEXT on the English tab expecting a single shared translation — that overwrites the EN source for every language.
+
 6. **Graphify.** After the locale wiring, messages, and this checklist change, run `graphify update .` so the knowledge graph indexes them.
 
 ## Shared structure vs localized text

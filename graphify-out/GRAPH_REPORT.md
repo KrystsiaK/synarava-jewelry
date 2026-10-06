@@ -1,23 +1,23 @@
 # Graph Report - workspace  (2026-10-06)
 
 ## Corpus Check
-- 1396 files · ~850,359 words
+- 1396 files · ~850,869 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 73 file(s) not represented in the graph (top: .csv 24, (none) 11, .xml 10)
 
 ## Summary
-- 9600 nodes · 22892 edges · 538 communities (426 shown, 112 thin omitted)
+- 9600 nodes · 22895 edges · 540 communities (429 shown, 111 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 761 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `24086113`
+- Built from commit: `6387bf6a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - live-browser.js
-- lucide-react
+- filter-bar.tsx
 - product-edit-form.tsx
 - page-editor-form.tsx
 - catalog.ts
@@ -51,7 +51,7 @@
 - Installation
 - el
 - Принятые архитектурные решения
-- synarava-cms.md
+- Synarava UI Kit
 - initPageChat
 - product-editor-tabs.tsx
 - bar.tsx
@@ -103,7 +103,7 @@
 - shopify/product-reviews.ts
 - dependencies
 - storefront-locale-cache.ts
-- Shopify automation playbook
+- P0 Flow recipes
 - План: безопасность клиентской сессии и навигация Account → Cart
 - devDependencies
 - auth-form-primitives.tsx
@@ -123,7 +123,7 @@
 - Self-Hosting Next.js
 - collection-fields.tsx
 - translations-cms.tsx
-- app/layout.tsx
+- site-header.tsx
 - legal-section-scroll.tsx
 - Admin Panel Test Cases — Authoring Reference
 - Apple Design
@@ -158,7 +158,7 @@
 - AdminCheckboxControl
 - chart-context.tsx
 - План реализации: единая EN/PT-система переводов с Shopify sync
-- s3.ts
+- order-status.ts
 - compilerOptions
 - DesignSystemGenerator
 - createLiveBrowserSessionState
@@ -179,7 +179,7 @@
 - ChartTooltip
 - Product Data Ownership and Synchronization
 - image-alt-checklist.ts
-- Security Audit — Synarava Jewelry (итерация 2)
+- 🟡 Medium
 - AdminErrorState
 - Copy Frameworks Reference
 - animate.md
@@ -203,7 +203,7 @@
 - [productId]/page.tsx
 - filter-bar.stories.tsx
 - Deploy Checklist — Synarava Jewelry
-- product-page.tsx
+- related-products.ts
 - id-token.ts
 - styling.mdx
 - Structural Patterns
@@ -214,7 +214,7 @@
 - International SEO: Evidence & Sources
 - Design System: Taste Standard
 - product-facts.ts
-- ProductCard
+- 2026-09-14T13-45-03Z__localhost-en-shop.md
 - useEphemeralToast
 - StorefrontCopy
 - План: разрешение конфликтов каталога Shopify ↔ Synarava
@@ -284,7 +284,7 @@
 - Avatar group hover
 - Error state shake
 - Analysis & Synthesis Instructions
-- artifact-button.tsx
+- artifact-button.stories.tsx
 - home-final-cta-section.ts
 - Component Building Principles
 - Android platform
@@ -375,7 +375,7 @@
 - P0 marketing automations
 - @storybook/react
 - y-axis-ticks.ts
-- useTranslations
+- product-reviews.stories.tsx
 - editorial-heading.stories.tsx
 - Shopify automation playbook
 - Synarava
@@ -397,13 +397,13 @@
 - The Animation Decision Framework
 - home-edit-section.ts
 - body-lead.stories.tsx
-- DividerOrnament
+- divider-ornament.stories.tsx
 - password-input.stories.tsx
 - GA4 ecommerce setup
 - CLAUDE.md
 - com.getcapacitor.BridgeActivity
 - shopify-gtm-purchase-pixel.js
-- CSS Transform Mastery
+- app/layout.tsx
 - admin-issues-actions.ts
 - admin-form-fields/SKILL.md
 - architecture-avoid-boolean-props.md
@@ -489,7 +489,7 @@
 - CONTRIBUTING.md
 - Spring Animations
 - mono-meta.stories.tsx
-- auth-shell.tsx
+- infrastructure-audit.mjs
 - filter-chips.test.tsx
 - 90-day delivery plan
 - collections-index-section.ts
@@ -501,8 +501,11 @@
 - Phase 2 — Automatic and manual checking
 - SEO and content growth
 - bcp47.test.ts
+- TranslationProvider
 - admin/README.md
 - Shop UX — handoff и точка восстановления
+- qt
+- Gesture and Drag Interactions
 - Synarava product passport
 - sharp
 - check-privacy-config.mjs
@@ -521,7 +524,6 @@
 - Этапы реализации
 - Post-purchase operations runbook
 - db.ts
-- export-legal-documents.mjs
 - proxy.ts
 - Product Marketing Context
 - Финальная рекомендация
@@ -534,7 +536,7 @@
 - Ключевые принципы
 - Staging runbook
 - TD-CX-01 — Evaluate Shopify Inbox for the headless storefront
-- infrastructure-audit.mjs
+- ref_node_fs
 - Практический план на пять дней
 - AI architecture
 
@@ -570,15 +572,15 @@
 - **Shared Characteristic Workflow** — synarava_enrichment_layer, shopify_product_metafields, bidirectional_metafield_mirroring [EXTRACTED 1.00]
 - **Three-layer Synchronization Boundary** — shopify_standard_fields, shopify_product_metafields, synarava_editorial_content [EXTRACTED 1.00]
 
-## Communities (538 total, 112 thin omitted)
+## Communities (540 total, 111 thin omitted)
 
 ### Community 0 - "live-browser.js"
 Cohesion: 0.03
 Nodes (140): applyGlobalBarLabelState(), applyPlaceholderDimensions(), applyPlaceholderSizingStyles(), averageRgb01(), beginEditPin(), bindEditBadgeProxy(), bufferToBase64(), buildAnnotationsForCapture() (+132 more)
 
-### Community 1 - "lucide-react"
+### Community 1 - "filter-bar.tsx"
 Cohesion: 0.05
-Nodes (70): CollectionProductsCatalog(), ease, HomePageProps, shopComplianceOptions(), FilterBar(), catalogHref(), urlQuery(), FilterBarProps (+62 more)
+Nodes (74): Page(), CollectionProductsCatalog(), ease, HomePageProps, shopComplianceOptions(), FilterBar(), catalogHref(), urlQuery() (+66 more)
 
 ### Community 2 - "product-edit-form.tsx"
 Cohesion: 0.04
@@ -590,7 +592,7 @@ Nodes (103): Component map, Meaning of “общий / shared / library control�
 
 ### Community 4 - "catalog.ts"
 Cohesion: 0.05
-Nodes (79): getProductTypeTiles(), Page(), featuredCollectionPosition(), buildCharacteristicFacetLabelMap(), buyerFacingTagNames(), characteristicFacetLabel(), isBuyerFacingTagName(), JEWELRY_FACET_VALUE_TRANSLATIONS (+71 more)
+Nodes (76): getProductTypeTiles(), featuredCollectionPosition(), buildCharacteristicFacetLabelMap(), buyerFacingTagNames(), characteristicFacetLabel(), isBuyerFacingTagName(), JEWELRY_FACET_VALUE_TRANSLATIONS, localizeShopFacetValue() (+68 more)
 
 ### Community 5 - "refreshPreservingScroll"
 Cohesion: 0.07
@@ -625,8 +627,8 @@ Cohesion: 0.06
 Nodes (69): CollectionActionState, AdminIssuesPage(), scanAdminIssuesAction(), CreateCollectionForm(), formAction(), updateDraft(), initialState, DeleteCollectionForm() (+61 more)
 
 ### Community 13 - "legal-sections.ts"
-Cohesion: 0.07
-Nodes (62): OfferPage(), PrivacyPage(), enFlat, mocks, ruFlat, TermsAndConditionsPage(), LegalDocumentPage(), CUSTOMER_CARE_EMAIL (+54 more)
+Cohesion: 0.05
+Nodes (72): OfferPage(), PrivacyPage(), enFlat, mocks, ruFlat, TermsAndConditionsPage(), LegalDocumentPage(), LegalSectionBody() (+64 more)
 
 ### Community 14 - "collection-sync.ts"
 Cohesion: 0.14
@@ -638,7 +640,7 @@ Nodes (72): ShopifyAdminError, displayNamesFromCategoryReference(), moneyToCents
 
 ### Community 16 - "useTranslations"
 Cohesion: 0.03
-Nodes (133): AboutCopy(), AboutHero(), AboutPage(), AboutPageProps, ease, MovementStory(), CraftSection(), ease (+125 more)
+Nodes (145): ProductReviewActionState, AboutCopy(), AboutHero(), AboutPage(), AboutPageProps, ease, MovementStory(), CraftSection() (+137 more)
 
 ### Community 17 - "collection-conflict-workspace.tsx"
 Cohesion: 0.06
@@ -682,7 +684,7 @@ Nodes (43): buildCollectionWindowFromColumns(), collectionCommerceInputFromWindo
 
 ### Community 27 - "ui/index.ts"
 Cohesion: 0.05
-Nodes (49): ProductReviewActionState, CustomerSignInLink(), initialState, ReviewForm(), ServicePage(), ServicePageProps, ServiceSection, props (+41 more)
+Nodes (42): AuthShell(), AuthShellProps, CustomerSignInLink(), baseProps, ContactCta(), ContactCtaProps, artifactButtonClasses(), ArtifactLink() (+34 more)
 
 ### Community 28 - "mobile/package.json"
 Cohesion: 0.10
@@ -712,7 +714,7 @@ Nodes (53): actionLabel(), applyConfigureBarChrome(), bindConfigureCountPillTool
 Cohesion: 0.13
 Nodes (15): Admin information architecture, Auth, CMS, Commerce, Current routes, Data model strategy, Search and rendering, Synarava Architecture (+7 more)
 
-### Community 35 - "synarava-cms.md"
+### Community 35 - "Synarava UI Kit"
 Cohesion: 0.18
 Nodes (11): Admin UI kit extension, Collection detail, Collections index, Design intent, Foundation tokens, Implementation rule, Manifesto and home, Product detail (+3 more)
 
@@ -738,7 +740,7 @@ Nodes (53): autosaveCollectionDraftAction(), autosaveProductDraftAction(), autos
 
 ### Community 41 - "rich-text.ts"
 Cohesion: 0.17
-Nodes (25): AdminRichTextFieldProps, linkKindHint(), RichTextLinkPanel(), apply(), RichTextModalEditor(), escapeAttr(), escapeHtml(), escapeOrphanAngles() (+17 more)
+Nodes (24): AdminRichTextFieldProps, linkKindHint(), RichTextLinkPanel(), apply(), RichTextModalEditor(), escapeAttr(), escapeHtml(), escapeOrphanAngles() (+16 more)
 
 ### Community 42 - "translations/page.tsx"
 Cohesion: 0.16
@@ -797,8 +799,8 @@ Cohesion: 0.10
 Nodes (37): agentStatusText(), barPaletteForTheme(), brandMarkSvg(), buildDesignHeader(), designPanelCss(), detectPageTheme(), ensureAgentPollTooltip(), fetchAgentPollingStatus() (+29 more)
 
 ### Community 56 - "modern-screenshot.umd.js"
-Cohesion: 0.14
-Nodes (27): be(), Ce(), s(), Ct(), dt(), Ee(), Et(), ft() (+19 more)
+Cohesion: 0.13
+Nodes (31): be(), bt(), Ce(), s(), Ct(), _e(), Ee(), Et() (+23 more)
 
 ### Community 57 - "shopify-category-field.tsx"
 Cohesion: 0.11
@@ -810,7 +812,7 @@ Nodes (39): dynamic, POST(), runtime, cartRedirect(), dynamic, GET(), logBuyAgai
 
 ### Community 59 - "shopify-profile-shell.tsx"
 Cohesion: 0.07
-Nodes (34): accountSections, dynamic, generateMetadata(), ProfilePage(), Props, revalidate, mocks, AccountReviews() (+26 more)
+Nodes (37): accountSections, dynamic, generateMetadata(), ProfilePage(), Props, revalidate, mocks, AccountReviews() (+29 more)
 
 ### Community 60 - "applyEditing"
 Cohesion: 0.07
@@ -846,7 +848,7 @@ Nodes (24): Metafield, metafieldsFromSnapshot(), record(), rows(), ShopifyProduc
 
 ### Community 68 - "Design Engineering"
 Cohesion: 0.07
-Nodes (27): Accessibility, Asymmetric enter/exit timing, Beauty is leverage, Cohesion matters, Core Philosophy, Damping at boundaries, Debugging Animations, Design Engineering (+19 more)
+Nodes (26): 3D transforms for depth, Accessibility, Asymmetric enter/exit timing, Beauty is leverage, Cohesion matters, Core Philosophy, CSS Transform Mastery, Debugging Animations (+18 more)
 
 ### Community 69 - "showToast"
 Cohesion: 0.12
@@ -920,7 +922,7 @@ Nodes (30): dependencies, @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, cls
 Cohesion: 0.10
 Nodes (22): AdminCommercePage(), AdminCustomerAccountPage(), pickAccountPage(), AdminSettingsPage(), dictionaries, mocks, customer, enFlat (+14 more)
 
-### Community 87 - "Shopify automation playbook"
+### Community 87 - "P0 Flow recipes"
 Cohesion: 0.33
 Nodes (6): 1. Low-stock operations, 2. First versus repeat paid order, 3. VIP candidate, not automatic discounting, 4. High-risk order review, 5. Fulfillment-delay warning, P0 Flow recipes
 
@@ -1000,9 +1002,9 @@ Nodes (24): CollectionFields(), CollectionLocaleContext, CollectionLocaleContext
 Cohesion: 0.15
 Nodes (18): differences, refresh, run, shared, DifferenceFilter, entityTypeLabel(), FILTERS, friendlyKey() (+10 more)
 
-### Community 108 - "app/layout.tsx"
-Cohesion: 0.04
-Nodes (68): RootLayout(), sans, serif, siteUrl, viewport, robots(), BUILT_IN_SITEMAP_SLUGS, RouteEntry (+60 more)
+### Community 108 - "site-header.tsx"
+Cohesion: 0.06
+Nodes (45): LanguageSwitcher(), MobileNavDrawer(), MobileNavDrawerProps, NavItem, SiteHeader(), handleScroll(), updateHeader(), SiteHeaderProps (+37 more)
 
 ### Community 109 - "legal-section-scroll.tsx"
 Cohesion: 0.17
@@ -1140,7 +1142,7 @@ Nodes (38): ChartHoverContext, ChartHoverContextValue, ChartStableContext, Chart
 Cohesion: 0.10
 Nodes (20): Capability map и порядок сборки, Definition of Done, Open questions — решено 2026-09-19, Persistence и миграция, Pull и конфликты, Shopify resource mapping, Storefront verification, Task index (+12 more)
 
-### Community 143 - "s3.ts"
+### Community 143 - "order-status.ts"
 Cohesion: 0.18
 Nodes (17): AccountOrdersActionSettings, buildBuyAgainPermalink(), CANCEL_REASON_KEYS, FINANCIAL_KEYS, financialTone(), FULFILLMENT_KEYS, fulfillmentTone(), normalizeEnum() (+9 more)
 
@@ -1173,8 +1175,8 @@ Cohesion: 0.10
 Nodes (27): AccountPageActionState, saveAccountPageAction(), AccountPageEditor(), formAction(), selectArea(), syncFromHash(), ACCOUNT_PAGE_AREAS, ACCOUNT_PAGE_GROUPS (+19 more)
 
 ### Community 152 - "legal-section-body.tsx"
-Cohesion: 0.21
-Nodes (12): LegalActionLink(), LegalSectionBody(), legalUrlTransform(), markdownComponents, isLegalActionHref(), LEGAL_ACTION_IDS, LEGAL_ACTION_PATHS, LegalActionId (+4 more)
+Cohesion: 0.25
+Nodes (11): LegalActionLink(), legalUrlTransform(), markdownComponents, isLegalActionHref(), LEGAL_ACTION_IDS, LEGAL_ACTION_PATHS, LegalActionId, parseLegalActionHref() (+3 more)
 
 ### Community 153 - "registry.mdx"
 Cohesion: 0.12
@@ -1216,7 +1218,7 @@ Nodes (23): Correct, Custom content, Custom indicators, Default tooltip, Docs, I
 Cohesion: 0.44
 Nodes (9): countWeakGalleryAlts(), ImageAltCoverageCounts, imageAltCoverageTone(), imageAltNeedsAttention(), imageAltSoftWarning(), isFilenameLikeImageAlt(), isPlaceholderImageAlt(), normalizeImageAlt() (+1 more)
 
-### Community 164 - "Security Audit — Synarava Jewelry (итерация 2)"
+### Community 164 - "🟡 Medium"
 Cohesion: 0.11
 Nodes (17): H1. IDOR: чужой черновик заказа читается по подменённой cookie, H2. Админ-сессия неотзываема, H3. Rate-limit обходится подменой заголовка; хранилище — память процесса, 🟠 High, M1. Нет `middleware.ts`; админка защищена только layout'ом, M2. `/checkout/confirmed?session_id=` принимает произвольную Stripe-сессию, M3. Корзина не очищается при выходе и может «прилипнуть» к чужому аккаунту, M4. `/api/cart/items` — без аутентификации, без лимитов (+9 more)
 
@@ -1257,8 +1259,8 @@ Cohesion: 0.12
 Nodes (16): 5.10 Subscribe to Derived State, 5.11 Use Functional setState Updates, 5.12 Use Lazy State Initialization, 5.13 Use Transitions for Non-Urgent Updates, 5.14 Use useDeferredValue for Expensive Derived Renders, 5.15 Use useRef for Transient Values, 5.1 Calculate Derived State During Rendering, 5.2 Defer State Reads to Usage Point (+8 more)
 
 ### Community 174 - "План реализации: серверный каталог, курсорная пагинация и бесконечная прокрутка"
-Cohesion: 0.13
-Nodes (15): initialPage(), product(), 1. Источник торговых данных, 2. Пагинация — keyset/cursor, не `offset`, 3. Состояние пользователя: URL сначала, `sessionStorage` — только для возврата, 3a. Точный контракт возврата в каталог, 4. API boundary, Definition of Done (+7 more)
+Cohesion: 0.14
+Nodes (14): initialPage(), product(), 1. Источник торговых данных, 3. Состояние пользователя: URL сначала, `sessionStorage` — только для возврата, 3a. Точный контракт возврата в каталог, 4. API boundary, Definition of Done, План реализации: серверный каталог, курсорная пагинация и бесконечная прокрутка (+6 more)
 
 ### Community 175 - "storefront.ts"
 Cohesion: 0.19
@@ -1312,9 +1314,9 @@ Nodes (14): AllActive, categories, collections, Default, EmptyResults, meta, Mob
 Cohesion: 0.13
 Nodes (14): Deploy Checklist — Synarava Jewelry, Environment Variables, Railway, Rate Limiting, Shopify, Безопасность, Версионирование релиза, Для медиа (выбрать одно: S3 или локальное хранилище) (+6 more)
 
-### Community 188 - "product-page.tsx"
-Cohesion: 0.10
-Nodes (21): generateMetadata(), ProductDetailPage(), Props, JsonLdScript(), getProductBreadcrumbs(), getProductPresentation(), JEWELRY_PRIORITY_CHARACTERISTIC_KEYS, ProductBreadcrumb (+13 more)
+### Community 188 - "related-products.ts"
+Cohesion: 0.40
+Nodes (3): pickRelatedProducts(), RelatedProductCandidate, product
 
 ### Community 189 - "id-token.ts"
 Cohesion: 0.28
@@ -1356,9 +1358,9 @@ Nodes (13): 1. Visual Theme & Atmosphere, 2. Color Palette & Roles, 3. Typograph
 Cohesion: 0.28
 Nodes (10): ProductCharacteristicValue, definitionName(), extractShopifyProductFacts(), record(), rows(), ShopifyProductFact, SIMPLE_TEXT_TYPES, SKIP_METAFIELD_NAMESPACES (+2 more)
 
-### Community 199 - "ProductCard"
-Cohesion: 0.18
-Nodes (11): ProductGrid(), ProductCard(), Design Health Score, Design Specificity Verdict, Minor Observations, Overall Impression, Persona Red Flags, Priority Issues (+3 more)
+### Community 199 - "2026-09-14T13-45-03Z__localhost-en-shop.md"
+Cohesion: 0.25
+Nodes (7): Design Health Score, Design Specificity Verdict, Minor Observations, Overall Impression, Persona Red Flags, Questions to Consider, What's Working
 
 ### Community 200 - "useEphemeralToast"
 Cohesion: 0.19
@@ -1589,8 +1591,8 @@ Cohesion: 0.42
 Nodes (10): useStripPan(), canPan(), onEnd(), onMove(), onPointerDown(), onPointerMove(), onPointerUp(), onStart() (+2 more)
 
 ### Community 258 - "k"
-Cohesion: 0.13
-Nodes (27): ae(), bt(), de(), _e(), er(), fe(), Gt(), Ie() (+19 more)
+Cohesion: 0.21
+Nodes (14): ae(), dt(), er(), fe(), ft(), jt(), k(), Kt() (+6 more)
 
 ### Community 259 - "Design System: Synarava"
 Cohesion: 0.20
@@ -1632,7 +1634,7 @@ Nodes (8): CSS, Error state shake, HTML usage, JavaScript orchestration, Recompu
 Cohesion: 0.22
 Nodes (9): 1. Define the Atmosphere, 2. Map the Color Palette, 3. Establish Typography Rules, 4. Define the Hero Section, 5. Describe Component Stylings, 6. Define Layout Principles, 8. Encode Motion Philosophy, 9. List Anti-Patterns (AI Tells) (+1 more)
 
-### Community 269 - "artifact-button.tsx"
+### Community 269 - "artifact-button.stories.tsx"
 Cohesion: 0.22
 Nodes (8): Choice, Ghost, Inverse, LinkVariant, meta, Primary, Secondary, Story
 
@@ -1677,8 +1679,8 @@ Cohesion: 0.31
 Nodes (6): TestForm(), DraftAutosaveOptions, DraftAutosaveResult, useDraftAutosave(), flushDraft(), scheduleDraftSave()
 
 ### Community 281 - "infrastructure-cleanup.mjs"
-Cohesion: 0.36
-Nodes (7): collectUploadKeys(), __dirname, EXECUTE, main(), OUT, resolveS3(), walk()
+Cohesion: 0.31
+Nodes (8): @aws-sdk/client-s3, collectUploadKeys(), __dirname, EXECUTE, main(), OUT, resolveS3(), walk()
 
 ### Community 282 - "synarava-redirect/package.json"
 Cohesion: 0.25
@@ -1717,8 +1719,8 @@ Cohesion: 0.52
 Nodes (6): globToRegex(), matchesScope(), normalizeIgnoreRule(), normalizeIgnoreValue(), pageCandidates(), resolveDetectIgnores()
 
 ### Community 291 - "migrate-local-uploads-to-s3.mjs"
-Cohesion: 0.22
-Nodes (13): @aws-sdk/client-s3, __dirname, listUploadFiles(), main(), mimeByExtension, prisma, publicUrlForKey(), replaceUploadUrls() (+5 more)
+Cohesion: 0.24
+Nodes (12): __dirname, listUploadFiles(), main(), mimeByExtension, prisma, publicUrlForKey(), replaceUploadUrls(), requiredEnv() (+4 more)
 
 ### Community 292 - "Detection Rules"
 Cohesion: 0.29
@@ -1980,7 +1982,7 @@ Nodes (13): meta, SiteState, Story, WithError, Default, meta, Story, Default (+5
 Cohesion: 0.40
 Nodes (3): Y_AXIS_DEFAULT_TICK_COUNT, Y_AXIS_MAX_TICK_COUNT, Y_AXIS_MIN_TICK_COUNT
 
-### Community 361 - "useTranslations"
+### Community 361 - "product-reviews.stories.tsx"
 Cohesion: 0.40
 Nodes (4): EmptySignedIn, meta, Story, WithReviews
 
@@ -2052,7 +2054,7 @@ Nodes (4): DEFAULT_HOME_EDIT_PRODUCT_TITLES, HomeEditProduct, resolveHomeEditPro
 Cohesion: 0.50
 Nodes (3): Default, meta, Story
 
-### Community 384 - "DividerOrnament"
+### Community 384 - "divider-ornament.stories.tsx"
 Cohesion: 0.50
 Nodes (3): Default, meta, Story
 
@@ -2064,9 +2066,9 @@ Nodes (5): Default, meta, NewPassword, Story, WithLabel
 Cohesion: 0.50
 Nodes (3): GA4 ecommerce setup, GTM configuration, Shopify purchase source
 
-### Community 391 - "CSS Transform Mastery"
-Cohesion: 0.40
-Nodes (5): 3D transforms for depth, CSS Transform Mastery, scale() scales children too, transform-origin, translateY with percentages
+### Community 391 - "app/layout.tsx"
+Cohesion: 0.11
+Nodes (22): generateMetadata(), sans, serif, siteUrl, viewport, robots(), BUILT_IN_SITEMAP_SLUGS, RouteEntry (+14 more)
 
 ### Community 404 - "admin-video-field.stories.tsx"
 Cohesion: 0.40
@@ -2092,9 +2094,9 @@ Nodes (5): Interruptibility advantage, Spring Animations, Spring-based mouse int
 Cohesion: 0.40
 Nodes (4): Accent, Default, meta, Story
 
-### Community 489 - "auth-shell.tsx"
-Cohesion: 0.50
-Nodes (3): AuthShell(), AuthShellProps, baseProps
+### Community 489 - "infrastructure-audit.mjs"
+Cohesion: 0.19
+Nodes (17): classifyForeignUrl(), __dirname, EXPECTED_PREFIXES, extractKeyFromUrl(), finding(), getS3PublicUrl(), headSample(), KNOWN_SITE_SETTING_KEYS (+9 more)
 
 ### Community 490 - "filter-chips.test.tsx"
 Cohesion: 0.40
@@ -2136,6 +2138,10 @@ Nodes (4): Phase 2 — Automatic and manual checking, Task 4: Реализова
 Cohesion: 0.67
 Nodes (3): Content engine, SEO and content growth, Technical SEO backlog
 
+### Community 501 - "TranslationProvider"
+Cohesion: 0.24
+Nodes (9): handleSelect(), persist(), TranslationProvider(), setLocale(), CartLabel(), mockUsePathname, SwitchButton(), SwitchToRussianButton() (+1 more)
+
 ### Community 502 - "admin/README.md"
 Cohesion: 0.11
 Nodes (12): synarava-cms (moved), Главное правило разметки, Документация по админке Synarava, Как это связано, Статус, Требует решения команды, Acceptance when done, Admin tech debt (+4 more)
@@ -2143,6 +2149,14 @@ Nodes (12): synarava-cms (moved), Главное правило разметки
 ### Community 503 - "Shop UX — handoff и точка восстановления"
 Cohesion: 0.17
 Nodes (11): Shop UX — handoff и точка восстановления, Важные ограничения, Изменённые/добавленные файлы, Как категории связаны с Shopify, Независимый review и внесённые исправления, Результат браузерной проверки, Статус, Уже выполненные проверки (+3 more)
+
+### Community 504 - "qt"
+Cohesion: 0.31
+Nodes (9): de(), Ie(), Lt(), Mt(), oe(), Ot(), qt(), Re() (+1 more)
+
+### Community 505 - "Gesture and Drag Interactions"
+Cohesion: 0.33
+Nodes (6): Damping at boundaries, Friction instead of hard stops, Gesture and Drag Interactions, Momentum-based dismissal, Multi-touch protection, Pointer capture for drag
 
 ### Community 506 - "Synarava product passport"
 Cohesion: 0.11
@@ -2182,7 +2196,7 @@ Nodes (5): Commands, Report semantics, Safe staging procedure, Shopify contract,
 
 ### Community 601 - "next"
 Cohesion: 0.06
-Nodes (90): generateMetadata(), Page(), generateMetadata(), Page(), LegacyArtifactRedirect(), Props, CarePage(), generateMetadata() (+82 more)
+Nodes (90): RootLayout(), Page(), generateMetadata(), Page(), LegacyArtifactRedirect(), Props, generateMetadata(), ProductDetailPage() (+82 more)
 
 ### Community 604 - "storefront-copy-editor.tsx"
 Cohesion: 0.06
@@ -2264,9 +2278,9 @@ Nodes (6): Git flow, Production guard, Railway environment checklist, Shopify st
 Cohesion: 0.29
 Nodes (6): Acceptance when done, Official references, Problem, Storefront and integrations tech debt, TD-CX-01 — Evaluate Shopify Inbox for the headless storefront, Why deferred
 
-### Community 818 - "infrastructure-audit.mjs"
-Cohesion: 0.08
-Nodes (27): classifyForeignUrl(), __dirname, EXPECTED_PREFIXES, extractKeyFromUrl(), finding(), getS3PublicUrl(), headSample(), KNOWN_SITE_SETTING_KEYS (+19 more)
+### Community 818 - "ref_node_fs"
+Cohesion: 0.10
+Nodes (13): packageJson, tagMatch, LEGAL_DOCUMENT_SLUGS, prisma, gitDir, hooksDst, hooksSrc, root (+5 more)
 
 ### Community 819 - "Практический план на пять дней"
 Cohesion: 0.33
@@ -2279,22 +2293,22 @@ Nodes (5): AI architecture, AI позже, AI сейчас, Как получа�
 ## Knowledge Gaps
 - **3673 isolated node(s):** `config`, `AdminIssueScanState`, `StoryImageProps`, `StoryImage`, `LinkProps` (+3668 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 4122 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **112 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **111 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vitest` connect `vitest` to `lucide-react`, `product-edit-form.tsx`, `page-editor-form.tsx`, `catalog.ts`, `refreshPreservingScroll`, `catalog-presence-server.ts`, `catalog-conflict-signals-server.ts`, `collection-edit-form.tsx`, `legal-sections.ts`, `collection-sync.ts`, `product-sync.ts`, `useTranslations`, `collection-conflict-workspace.tsx`, `admin/storefront-href.ts`, `session.ts`, `sync.ts`, `cart.ts`, `product-metafields-shared.ts`, `collection-presence-server.ts`, `ui/index.ts`, `ephemeral-toast.tsx`, `product-editor-tabs.tsx`, `products.ts`, `rich-text.ts`, `translations/page.tsx`, `api.ts`, `infrastructure-status.ts`, `products-cms.tsx`, `ref_node_crypto`, `pages/localization.ts`, `shopify-projection-diff.ts`, `shopify-category-field.tsx`, `[permalink]/route.ts`, `shopify-profile-shell.tsx`, `ref_server_only`, `reconciliation-run.ts`, `category-attribute-values.ts`, `privacy-consent-manager.tsx`, `issues.ts`, `checkRateLimit`, `editorial-translation-sync.ts`, `react`, `admin.ts`, `product-editor-scope.ts`, `characteristics.ts`, `footer-links-fields.ts`, `shopify/product-reviews.ts`, `dependencies`, `storefront-locale-cache.ts`, `next`, `redirects-visibility.ts`, `footer-contact.ts`, `actions/storefront-copy.ts`, `admin-nav-config.ts`, `admin-field-registry.ts`, `telemetry/client.ts`, `translations.ts`, `collection-fields.tsx`, `translations-cms.tsx`, `app/layout.tsx`, `legal-section-scroll.tsx`, `content/site-seo.ts`, `package.json`, `pages.ts`, `account-orders-settings-editor.tsx`, `order-lifecycle-webhooks.ts`, `editorial-metaobjects.ts`, `collections.ts`, `commerce-copy-editor.tsx`, `s3.ts`, `[locale]/layout.tsx`, `legal-section-body.tsx`, `db.ts`, `shopify/product-organization.ts`, `product-media-gallery.tsx`, `image-alt-checklist.ts`, `AdminErrorState`, `storefront.ts`, `admin-credentials-form.tsx`, `product-page.tsx`, `id-token.ts`, `product-facts.ts`, `useEphemeralToast`, `proxy.ts`, `collection-select-options.ts`, `home-lexicon-section.ts`, `tooltip-position.ts`, `commerce-field-apply.ts`, `meta-health.ts`, `storefront-copy-editor.test.tsx`, `home-final-cta-section.ts`, `document-title.ts`, `catalog-conflict-apply.test.ts`, `infrastructure-audit.mjs`, `translation-coverage.mjs`, `videos/route.ts`, `page-editor-form.test.tsx`, `history.ts`, `product-metafields-push.ts`, `synarava-redirect-theme-rules.test.ts`, `mediaFramesFromWorkingSnapshot`, `home-edit-section.ts`, `collections-index-section.ts`, `home-archive-section.ts`, `faq-json-ld.ts`, `bcp47.test.ts`?**
-  _High betweenness centrality (0.137) - this node is a cross-community bridge._
+- **Why does `vitest` connect `vitest` to `filter-bar.tsx`, `product-edit-form.tsx`, `page-editor-form.tsx`, `catalog.ts`, `refreshPreservingScroll`, `catalog-presence-server.ts`, `catalog-conflict-signals-server.ts`, `collection-edit-form.tsx`, `legal-sections.ts`, `collection-sync.ts`, `product-sync.ts`, `useTranslations`, `collection-conflict-workspace.tsx`, `admin/storefront-href.ts`, `session.ts`, `sync.ts`, `cart.ts`, `product-metafields-shared.ts`, `collection-presence-server.ts`, `ui/index.ts`, `ephemeral-toast.tsx`, `product-editor-tabs.tsx`, `products.ts`, `rich-text.ts`, `translations/page.tsx`, `api.ts`, `infrastructure-status.ts`, `products-cms.tsx`, `ref_node_crypto`, `pages/localization.ts`, `shopify-projection-diff.ts`, `shopify-category-field.tsx`, `[permalink]/route.ts`, `shopify-profile-shell.tsx`, `ref_server_only`, `reconciliation-run.ts`, `category-attribute-values.ts`, `privacy-consent-manager.tsx`, `issues.ts`, `checkRateLimit`, `editorial-translation-sync.ts`, `react`, `admin.ts`, `product-editor-scope.ts`, `characteristics.ts`, `footer-links-fields.ts`, `shopify/product-reviews.ts`, `dependencies`, `storefront-locale-cache.ts`, `next`, `redirects-visibility.ts`, `footer-contact.ts`, `actions/storefront-copy.ts`, `admin-nav-config.ts`, `admin-field-registry.ts`, `telemetry/client.ts`, `translations.ts`, `collection-fields.tsx`, `translations-cms.tsx`, `site-header.tsx`, `legal-section-scroll.tsx`, `content/site-seo.ts`, `package.json`, `pages.ts`, `account-orders-settings-editor.tsx`, `order-lifecycle-webhooks.ts`, `editorial-metaobjects.ts`, `collections.ts`, `commerce-copy-editor.tsx`, `order-status.ts`, `[locale]/layout.tsx`, `legal-section-body.tsx`, `db.ts`, `shopify/product-organization.ts`, `product-media-gallery.tsx`, `image-alt-checklist.ts`, `AdminErrorState`, `storefront.ts`, `admin-credentials-form.tsx`, `related-products.ts`, `id-token.ts`, `product-facts.ts`, `useEphemeralToast`, `proxy.ts`, `collection-select-options.ts`, `home-lexicon-section.ts`, `tooltip-position.ts`, `commerce-field-apply.ts`, `meta-health.ts`, `storefront-copy-editor.test.tsx`, `home-final-cta-section.ts`, `document-title.ts`, `catalog-conflict-apply.test.ts`, `ref_node_fs`, `translation-coverage.mjs`, `videos/route.ts`, `page-editor-form.test.tsx`, `history.ts`, `product-metafields-push.ts`, `synarava-redirect-theme-rules.test.ts`, `mediaFramesFromWorkingSnapshot`, `home-edit-section.ts`, `app/layout.tsx`, `collections-index-section.ts`, `home-archive-section.ts`, `faq-json-ld.ts`, `bcp47.test.ts`?**
+  _High betweenness centrality (0.136) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `localePath()` (e.g. with `Href (storefront path combobox)` and `SEO`) actually correct?**
   _`localePath()` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `config`, `AdminIssueScanState`, `StoryImageProps` to the rest of the system?**
   _3673 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `live-browser.js` be split into smaller, more focused modules?**
   _Cohesion score 0.02834199338686821 - nodes in this community are weakly interconnected._
-- **Why does `react` connect `react` to `account-orders-settings-editor.tsx`, `product-edit-form.tsx`, `page-editor-form.tsx`, `lucide-react`, `refreshPreservingScroll`, `commerce-copy-editor.tsx`, `collection-edit-form.tsx`, `AdminCheckboxControl`, `chart-context.tsx`, `legal-sections.ts`, `useTranslations`, `collection-conflict-workspace.tsx`, `vitest`, `admin/storefront-href.ts`, `session.ts`, `sync.ts`, `gauge.tsx`, `account-page-fields.ts`, `useDraftAutosave`, `product-metafields-shared.ts`, `bar-chart.tsx`, `ui/index.ts`, `ephemeral-toast.tsx`, `shopify/product-organization.ts`, `chart-tooltip.tsx`, `product-media-gallery.tsx`, `product-editor-tabs.tsx`, `bar.tsx`, `rich-text.ts`, `translations/page.tsx`, `products-cms.tsx`, `y-domain-utils.ts`, `bar-squares.tsx`, `admin-credentials-form.tsx`, `admin-alert.stories.tsx`, `[productId]/page.tsx`, `shopify-category-field.tsx`, `shopify-profile-shell.tsx`, `cart/actions.ts`, `privacy-consent-manager.tsx`, `useEphemeralToast`, `media-frame.tsx`, `footer-links-fields.ts`, `dependencies`, `next`, `auth-form-primitives.tsx`, `storefront-copy-editor.tsx`, `footer-contact.ts`, `actions/storefront-copy.ts`, `admin-nav-config.ts`, `wishlist-heart-button.stories.tsx`, `redirects-visibility.ts`, `collection-fields.tsx`, `auth-shell.tsx`, `translations-cms.tsx`, `app/layout.tsx`, `legal-section-scroll.tsx`, `International SEO & Localization`, `scroll-reveal.stories.tsx`, `content/site-seo.ts`, `filter-dropdown.stories.tsx`, `package.json`, `meta-health.ts`, `loading-sweep.tsx`?**
+- **Why does `react` connect `react` to `account-orders-settings-editor.tsx`, `product-edit-form.tsx`, `page-editor-form.tsx`, `filter-bar.tsx`, `refreshPreservingScroll`, `commerce-copy-editor.tsx`, `collection-edit-form.tsx`, `AdminCheckboxControl`, `chart-context.tsx`, `legal-sections.ts`, `useTranslations`, `collection-conflict-workspace.tsx`, `vitest`, `admin/storefront-href.ts`, `session.ts`, `sync.ts`, `gauge.tsx`, `account-page-fields.ts`, `useDraftAutosave`, `product-metafields-shared.ts`, `bar-chart.tsx`, `ui/index.ts`, `ephemeral-toast.tsx`, `shopify/product-organization.ts`, `chart-tooltip.tsx`, `product-media-gallery.tsx`, `product-editor-tabs.tsx`, `bar.tsx`, `rich-text.ts`, `translations/page.tsx`, `products-cms.tsx`, `y-domain-utils.ts`, `bar-squares.tsx`, `admin-credentials-form.tsx`, `admin-alert.stories.tsx`, `[productId]/page.tsx`, `shopify-category-field.tsx`, `shopify-profile-shell.tsx`, `cart/actions.ts`, `privacy-consent-manager.tsx`, `useEphemeralToast`, `media-frame.tsx`, `footer-links-fields.ts`, `dependencies`, `next`, `auth-form-primitives.tsx`, `storefront-copy-editor.tsx`, `footer-contact.ts`, `actions/storefront-copy.ts`, `admin-nav-config.ts`, `wishlist-heart-button.stories.tsx`, `redirects-visibility.ts`, `collection-fields.tsx`, `International SEO & Localization`, `translations-cms.tsx`, `site-header.tsx`, `legal-section-scroll.tsx`, `scroll-reveal.stories.tsx`, `content/site-seo.ts`, `filter-dropdown.stories.tsx`, `package.json`, `meta-health.ts`, `loading-sweep.tsx`?**
   _High betweenness centrality (0.102) - this node is a cross-community bridge._
-- **Should `lucide-react` be split into smaller, more focused modules?**
-  _Cohesion score 0.05422100205902539 - nodes in this community are weakly interconnected._
-- **Why does `next` connect `next` to `account-orders-settings-editor.tsx`, `product-edit-form.tsx`, `order-lifecycle-webhooks.ts`, `lucide-react`, `refreshPreservingScroll`, `collections.ts`, `commerce-copy-editor.tsx`, `collection-edit-form.tsx`, `legal-sections.ts`, `collection-sync.ts`, `useTranslations`, `collection-conflict-workspace.tsx`, `getCurrentAdminSession`, `session.ts`, `sync.ts`, `[locale]/layout.tsx`, `account-page-fields.ts`, `legal-section-body.tsx`, `cart.ts`, `ui/index.ts`, `db.ts`, `product-media-gallery.tsx`, `products.ts`, `api.ts`, `infrastructure-status.ts`, `products-cms.tsx`, `admin-credentials-form.tsx`, `[productId]/page.tsx`, `[permalink]/route.ts`, `shopify-profile-shell.tsx`, `product-page.tsx`, `reconciliation-run.ts`, `cart/actions.ts`, `privacy-consent-manager.tsx`, `admin-session.ts`, `issues.ts`, `checkRateLimit`, `editorial-translation-sync.ts`, `react`, `proxy.ts`, `media-frame.tsx`, `videos/route.ts`, `footer-links-fields.ts`, `history.ts`, `shopify/product-reviews.ts`, `actions.test.ts`, `actions/storefront-copy.ts`, `admin-nav-config.ts`, `telemetry/client.ts`, `auth-shell.tsx`, `translations-cms.tsx`, `app/layout.tsx`, `content/site-seo.ts`, `package.json`, `meta-health.ts`, `pages.ts`?**
-  _High betweenness centrality (0.079) - this node is a cross-community bridge._
+- **Should `filter-bar.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.05112560488112771 - nodes in this community are weakly interconnected._
+- **Why does `next` connect `next` to `account-orders-settings-editor.tsx`, `product-edit-form.tsx`, `order-lifecycle-webhooks.ts`, `filter-bar.tsx`, `refreshPreservingScroll`, `collections.ts`, `app/layout.tsx`, `commerce-copy-editor.tsx`, `collection-edit-form.tsx`, `legal-sections.ts`, `collection-sync.ts`, `useTranslations`, `collection-conflict-workspace.tsx`, `getCurrentAdminSession`, `session.ts`, `sync.ts`, `[locale]/layout.tsx`, `account-page-fields.ts`, `legal-section-body.tsx`, `cart.ts`, `ui/index.ts`, `db.ts`, `product-media-gallery.tsx`, `products.ts`, `api.ts`, `infrastructure-status.ts`, `products-cms.tsx`, `admin-credentials-form.tsx`, `[productId]/page.tsx`, `[permalink]/route.ts`, `shopify-profile-shell.tsx`, `reconciliation-run.ts`, `cart/actions.ts`, `privacy-consent-manager.tsx`, `admin-session.ts`, `issues.ts`, `checkRateLimit`, `editorial-translation-sync.ts`, `react`, `proxy.ts`, `media-frame.tsx`, `videos/route.ts`, `footer-links-fields.ts`, `history.ts`, `shopify/product-reviews.ts`, `actions.test.ts`, `actions/storefront-copy.ts`, `admin-nav-config.ts`, `telemetry/client.ts`, `translations-cms.tsx`, `site-header.tsx`, `content/site-seo.ts`, `package.json`, `TranslationProvider`, `meta-health.ts`, `pages.ts`?**
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
