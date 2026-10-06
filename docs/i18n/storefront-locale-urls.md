@@ -10,7 +10,7 @@ Internal storefront destinations are **locale-prefixed** in the browser (`/pt/sh
 | `storefrontHref(locale, href)` | Same for CTA/nav hrefs; leaves `http(s):` and `mailto:` alone |
 | `stripLocalePrefix(path)` / `toLocaleFreeHref(href)` | Catalog / Admin matching and CMS normalization |
 
-Prefer these helpers over string concatenation. Nav, product cards, CTAs, related products, and CMS `ctaHref` values must go through them so PT/RU pages never drop to bare `/shop`.
+Prefer these helpers over string concatenation. Nav, product cards, home hero CTA, final CTAs, related products, and CMS `ctaHref` values must go through them so PT/RU pages never drop to bare `/shop`.
 
 ## AdminHref
 

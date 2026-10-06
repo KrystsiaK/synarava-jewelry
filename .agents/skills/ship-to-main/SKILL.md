@@ -16,8 +16,9 @@ fixes only on a feature branch or draft PR and wait for the user to merge.
 
 Day-to-day integration branch is `staging`. `main` advances via PR from
 `staging` (or a feature branch that already landed on staging). A GitHub Action
-fast-forwards `staging` when `main` moves, so hotfixes on `main` do not leave
-staging behind.
+syncs `staging` when `main` moves (fast-forward when possible, otherwise a
+non-destructive merge of main into staging), so hotfixes on `main` do not leave
+staging behind and staging tip commits are never overwritten.
 
 ## Definition of done (shipping)
 
@@ -35,8 +36,9 @@ After code + tests (+ docs if needed) are complete:
    - `git push origin staging`
 3. **Open/update a PR into `main`** from `staging` (or the feature branch if it
    is already included on staging). Record association; do not leave shipping
-   as “branch only.” **Merge with a merge commit — do not squash** (squash
-   breaks `sync-main-to-staging` fast-forward).
+   as “branch only.” Prefer a **merge commit** when promoting; squash is
+   tolerated because `sync-main-to-staging` merges main into staging when
+   histories diverge (never force-resets staging).
 4. Confirm with a one-liner: commit SHA is on `staging`, and the PR URL into
    `main` is ready (merge when required checks are green, unless an exception
    below applies).

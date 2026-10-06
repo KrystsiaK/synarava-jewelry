@@ -125,6 +125,16 @@ test.describe("Home page", () => {
   });
 
   for (const locale of ["en", "pt"] as const) {
+    test(`keeps the hero shop CTA inside the ${locale.toUpperCase()} storefront`, async ({ page }) => {
+      await page.goto(`/${locale}`);
+      const heroShop = page.locator(`.home-hero a[href="/${locale}/shop"]`);
+      // CMS may omit the hero CTA; when present it must be locale-prefixed.
+      if ((await heroShop.count()) > 0) {
+        await expect(heroShop.first()).toBeVisible();
+      }
+      await expect(page.locator('.home-hero a[href="/shop"]')).toHaveCount(0);
+    });
+
     test(`keeps the final shop CTA inside the ${locale.toUpperCase()} storefront`, async ({ page }) => {
       await page.goto(`/${locale}`);
       await expect(

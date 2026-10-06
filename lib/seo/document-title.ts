@@ -74,3 +74,44 @@ export function metadataDocumentTitle(
 ): { absolute: string } {
   return { absolute: composeDocumentTitle(pageTitle, titleTemplate) };
 }
+
+const DEFAULT_BRAND = "Synarava";
+
+/** True when the title already leads with the brand (homepage SERP contract). */
+export function isBrandFirstTitle(
+  title: string | null | undefined,
+  brand: string = DEFAULT_BRAND,
+): boolean {
+  const trimmed = title?.trim();
+  if (!trimmed || !brand.trim()) return false;
+  return new RegExp(`^${escapeRegExp(brand.trim())}\\b`, "i").test(trimmed);
+}
+
+/**
+ * Homepage `<title>`: brand-first only. Never use the on-page H1 slogan.
+ * Prefers admin page SEO title, then localized messages fallback, then site SEO
+ * default — each only when it already leads with Synarava.
+ *
+ * @see https://nextjs.org/docs/app/api-reference/functions/generate-metadata#template
+ */
+export function resolveHomeDocumentTitle({
+  seoTitle,
+  siteDefaultTitle,
+  fallbackTitle,
+  brand = DEFAULT_BRAND,
+}: {
+  seoTitle?: string | null;
+  siteDefaultTitle?: string | null;
+  fallbackTitle: string;
+  brand?: string;
+}): string {
+  const candidates = [seoTitle, fallbackTitle, siteDefaultTitle, SITE_SEO_DEFAULTS.defaultTitle];
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed && isBrandFirstTitle(trimmed, brand)) return trimmed;
+  }
+  const safeFallback = fallbackTitle.trim() || SITE_SEO_DEFAULTS.defaultTitle;
+  return isBrandFirstTitle(safeFallback, brand)
+    ? safeFallback
+    : `${brand} | ${stripTitleTemplateBrand(safeFallback) || "Curated Goods"}`;
+}

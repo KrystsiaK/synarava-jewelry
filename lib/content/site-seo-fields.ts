@@ -12,13 +12,13 @@ export type SiteSeoFields = {
   ogDescription: string;
 };
 
-/** Shipped fallbacks — must stay in sync with the previous hardcoded root metadata. */
+/** Shipped fallbacks — brand-first; curated-goods framing (not jewellery-only). */
 export const SITE_SEO_DEFAULTS: SiteSeoFields = {
-  defaultTitle: "Synarava — Curated Goods with Character",
+  defaultTitle: "Synarava | Curated Goods",
   titleTemplate: "%s | Synarava",
   description:
     "A curated shop for jewelry, pet accessories, creative products for kids, and tools for making by hand.",
-  ogTitle: "Synarava — Curated Goods with Character",
+  ogTitle: "Synarava | Curated Goods",
   ogDescription:
     "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
 };
