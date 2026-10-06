@@ -517,8 +517,8 @@ function ArchiveRecord({
           text={item.title}
           className={
             mirror
-              ? "mb-6 text-5xl uppercase leading-[0.95] tracking-tighter text-right text-linen md:text-7xl"
-              : "mb-6 text-5xl uppercase leading-[0.95] tracking-tighter text-linen md:text-7xl"
+              ? "mb-8 text-5xl uppercase leading-[1.08] tracking-tighter text-right text-linen md:text-7xl"
+              : "mb-8 text-5xl uppercase leading-[1.08] tracking-tighter text-linen md:text-7xl"
           }
         />
         <div

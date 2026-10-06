@@ -42,6 +42,9 @@ function StaticTitle({ text, accentClassName }: { text: string; accentClassName?
  * Storefront display title. One component for every large serif heading.
  * Do not rebuild the word-slide with overflow-hidden: a line-height under 1
  * makes that mask shorter than Playfair's Cyrillic descenders.
+ * Prefer leading ≥ 1.05–1.12 for multi-line Cyrillic titles, and use mb-*
+ * for gap before the next block (`.type-display` is in `@layer components`
+ * so those utilities win over the ink-box negative margins).
  */
 export function DisplayHeading({
   as = "h1",
