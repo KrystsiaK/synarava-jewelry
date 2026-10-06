@@ -1,4 +1,5 @@
 import { BUILT_IN_PAGE_DEFINITIONS } from "@/lib/content/built-in-pages";
+import { localePath, toLocaleFreeHref } from "@/lib/i18n/routing";
 
 export const STOREFRONT_HREF_SEGMENT_LIMIT = 8;
 
@@ -69,13 +70,19 @@ export type ParsedHrefSearchQuery = {
 /**
  * Path-aware query parsing so "/products/" and "/collections/foo" drill into
  * catalog segments instead of only matching the top-level route.
+ * Locale-prefixed input (`/pt/products/…`) is normalized before scope detection.
  */
 export function parseHrefSearchQuery(query: string): ParsedHrefSearchQuery {
   const raw = normalizeHrefQuery(query);
-  const lower = raw.toLowerCase();
+  const free = toLocaleFreeHref(raw);
+  const pathForScope = free.startsWith("/") ? free : raw;
+  const lower = pathForScope.toLowerCase();
 
   if (lower === "/products" || lower.startsWith("/products/")) {
-    const remainder = lower === "/products" || lower === "/products/" ? "" : raw.slice("/products/".length);
+    const remainder =
+      lower === "/products" || lower === "/products/"
+        ? ""
+        : pathForScope.slice("/products/".length);
     return {
       raw,
       term: remainder.trim(),
@@ -86,7 +93,10 @@ export function parseHrefSearchQuery(query: string): ParsedHrefSearchQuery {
   }
 
   if (lower === "/collections" || lower.startsWith("/collections/")) {
-    const remainder = lower === "/collections" || lower === "/collections/" ? "" : raw.slice("/collections/".length);
+    const remainder =
+      lower === "/collections" || lower === "/collections/"
+        ? ""
+        : pathForScope.slice("/collections/".length);
     return {
       raw,
       term: remainder.trim(),
@@ -97,9 +107,11 @@ export function parseHrefSearchQuery(query: string): ParsedHrefSearchQuery {
     };
   }
 
+  // Prefer the locale-free path for label/href filtering when the query was prefixed.
+  const term = pathForScope.startsWith("/") ? free : raw;
   return {
     raw,
-    term: raw,
+    term,
     scope: "all",
     browseProducts: false,
     browseCollections: false,
@@ -133,15 +145,44 @@ export function listStaticRouteHits(): StorefrontHrefHit[] {
 }
 
 export function filterHitsByQuery(hits: StorefrontHrefHit[], query: string): StorefrontHrefHit[] {
-  const q = normalizeHrefQuery(query).toLowerCase();
-  if (!q) return hits;
+  const raw = normalizeHrefQuery(query);
+  if (!raw) return hits;
+  const q = raw.toLowerCase();
+  const freeQ = toLocaleFreeHref(raw).toLowerCase();
   return hits.filter((hit) => {
+    const href = hit.href.toLowerCase();
+    const detail = hit.detail.toLowerCase();
+    const label = hit.label.toLowerCase();
     return (
-      hit.label.toLowerCase().includes(q) ||
-      hit.href.toLowerCase().includes(q) ||
-      hit.detail.toLowerCase().includes(q)
+      label.includes(q) ||
+      href.includes(q) ||
+      detail.includes(q) ||
+      (freeQ !== q && (href.includes(freeQ) || detail.includes(freeQ) || label.includes(freeQ)))
     );
   });
+}
+
+/** Detail line for the picker when the editor locale is known (`/pt/shop`). */
+export function hrefHitDetailForLocale(href: string, locale?: string, status?: string): string {
+  const display = locale ? localePath(locale, toLocaleFreeHref(href) || href) : href;
+  return formatHrefDetail(display, status);
+}
+
+/** Map hits so the detail/path preview reflects the active editor locale. */
+export function withLocaleAwareHrefDetails(
+  result: StorefrontHrefSearchResult,
+  locale?: string,
+): StorefrontHrefSearchResult {
+  if (!locale) return result;
+  return {
+    segments: result.segments.map((segment) => ({
+      ...segment,
+      hits: segment.hits.map((hit) => ({
+        ...hit,
+        detail: hrefHitDetailForLocale(hit.href, locale, hit.status),
+      })),
+    })),
+  };
 }
 
 export function formatHrefDetail(href: string, status?: string): string {
@@ -165,8 +206,10 @@ export function statusLabelForCollection(status: string, visibility?: string): s
 }
 
 export function buildCustomPathHit(query: string): StorefrontHrefHit | null {
-  const href = normalizeHrefQuery(query);
-  if (!looksLikePath(href)) return null;
+  const raw = normalizeHrefQuery(query);
+  if (!looksLikePath(raw)) return null;
+  // Persist locale-free paths even when the editor typed `/pt/…`.
+  const href = toLocaleFreeHref(raw) || raw;
   return {
     id: `custom:${href}`,
     segment: "custom",
@@ -211,9 +254,20 @@ export function flattenHrefHits(result: StorefrontHrefSearchResult): StorefrontH
   return result.segments.flatMap((segment) => segment.hits);
 }
 
+function hrefKeysMatch(candidate: string, target: string): boolean {
+  const a = normalizeHrefQuery(candidate);
+  const b = normalizeHrefQuery(target);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const freeA = toLocaleFreeHref(a);
+  const freeB = toLocaleFreeHref(b);
+  return Boolean(freeA && freeB && freeA === freeB);
+}
+
 export function hasExactHrefMatch(result: StorefrontHrefSearchResult, href: string): boolean {
-  const target = normalizeHrefQuery(href);
-  return flattenHrefHits(result).some((hit) => hit.href === target && hit.segment !== "custom");
+  return flattenHrefHits(result).some(
+    (hit) => hit.segment !== "custom" && hrefKeysMatch(hit.href, href),
+  );
 }
 
 /** Soft warning copy when a CTA points at a non-live catalog/page target. */
@@ -245,7 +299,9 @@ export function hrefTargetIssueFromSearch(options: {
     return warning ? { tone: "warning", message: warning } : undefined;
   }
 
-  if (looksLikePath(href) && href.startsWith("/")) {
+  // Locale-prefixed internals (`/pt/shop`) are real destinations when the
+  // locale-free path matches a catalog/route hit — callers set hasExactHit.
+  if (looksLikePath(href) && (href.startsWith("/") || toLocaleFreeHref(href).startsWith("/"))) {
     return {
       tone: "error",
       message:
@@ -260,6 +316,12 @@ export function findExactHrefHit(
   result: StorefrontHrefSearchResult,
   href: string,
 ): StorefrontHrefHit | undefined {
-  const target = normalizeHrefQuery(href);
-  return flattenHrefHits(result).find((hit) => hit.href === target && hit.segment !== "custom");
+  return flattenHrefHits(result).find(
+    (hit) => hit.segment !== "custom" && hrefKeysMatch(hit.href, href),
+  );
+}
+
+/** Normalize committed admin hrefs to the locale-free CMS contract. */
+export function normalizeCommittedHref(href: string): string {
+  return toLocaleFreeHref(normalizeHrefQuery(href));
 }

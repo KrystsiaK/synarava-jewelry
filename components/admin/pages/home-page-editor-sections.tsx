@@ -83,6 +83,8 @@ type HomeLocaleDraft = {
 export type HomePageEditorSectionsProps = {
   content: EditablePageContent;
   draft: HomeLocaleDraft;
+  /** Active admin locale — AdminHref picker shows `/pt/…` detail lines. */
+  activeLocale: string;
   updateField: <K extends keyof HomeLocaleDraft>(key: K, value: HomeLocaleDraft[K]) => void;
   updateMaterial: (index: number, key: keyof MaterialDraft, value: string) => void;
   setMaterialPanelOpen: (index: number, open: boolean) => void;
@@ -198,6 +200,7 @@ function HomeLexiconMaterialFields({
 export function HomePageEditorSections({
   content,
   draft,
+  activeLocale,
   updateField,
   updateMaterial,
   setMaterialPanelOpen,
@@ -269,10 +272,12 @@ export function HomePageEditorSections({
               label="CTA href"
               help={
                 <AdminHelp>
-                  Shared across languages. Search by name, or type /products/ or /collections/ to pick a specific item.
+                  Shared across languages — store locale-free (`/shop`). Typing `/pt/shop` is accepted and saved as
+                  `/shop`; the storefront prefixes the active language.
                 </AdminHelp>
               }
               name="ctaHref"
+              locale={activeLocale}
               defaultValue={content.ctaHref ?? ""}
               placeholder="/products/…"
             />
@@ -555,10 +560,12 @@ export function HomePageEditorSections({
               label="Final CTA href"
               help={
                 <AdminHelp>
-                  Shared across languages. Empty falls back to /shop. Search by name, or type /products/ or /collections/ to drill in.
+                  Shared across languages — locale-free path (`/shop`). `/pt/shop` is accepted and normalized. Empty
+                  falls back to /shop.
                 </AdminHelp>
               }
               name="finalCtaHref"
+              locale={activeLocale}
               defaultValue={content.finalCtaHref ?? content.ctaHref ?? ""}
               placeholder="/shop"
             />
@@ -573,10 +580,12 @@ export function HomePageEditorSections({
               label="Secondary CTA href"
               help={
                 <AdminHelp>
-                  Locale-specific path without the language prefix (for example /about). Empty falls back to /about. Search by name, or type /products/ or /collections/ to drill in.
+                  Path without or with a language prefix (`/about` or `/pt/about`) — saved locale-free. Empty falls
+                  back to /about.
                 </AdminHelp>
               }
               name="_uiFinalSecondaryCtaHref"
+              locale={activeLocale}
               value={draft.finalSecondaryCtaHref}
               onValueChange={(href) => updateField("finalSecondaryCtaHref", href)}
               placeholder="/about"

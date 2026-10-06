@@ -909,6 +909,7 @@ export function PageEditor({
               key={new Date(page.updatedAt).toISOString()}
               content={content}
               draft={draft}
+              activeLocale={activeLocale}
               updateField={updateField as HomePageEditorSectionsProps["updateField"]}
               updateMaterial={updateMaterial}
               setMaterialPanelOpen={setMaterialPanelOpen}
@@ -1060,6 +1061,7 @@ export function PageEditor({
         {isCollectionsPage ? (
           <CollectionsPageEditorSections
             draft={draft}
+            activeLocale={activeLocale}
             updateField={updateField}
             archiveCollectionIds={archiveCollectionIds}
             setArchiveCollectionIds={setArchiveCollectionIds}
@@ -1154,10 +1156,11 @@ export function PageEditor({
               label="CTA href"
               help={
                 <AdminHelp>
-                  Shared across languages. Search by name, or type /products/ or /collections/ to pick a specific item.
+                  Shared across languages — locale-free (`/shop`). Typing `/pt/shop` is accepted and saved as `/shop`.
                 </AdminHelp>
               }
               name="ctaHref"
+              locale={activeLocale}
               defaultValue={content.ctaHref ?? ""}
               placeholder="/products/…"
             />

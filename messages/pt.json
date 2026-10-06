@@ -723,6 +723,13 @@
     }
   },
   "home": {
+    "archive": {
+      "collectionNote": "Nota da coleção",
+      "viewCollection": "Ver coleção",
+      "collection": "Coleção",
+      "edition": "Edição",
+      "viewCollectionAria": "Ver a coleção {title}"
+    },
     "editShowcase": {
       "eyebrow": "Algumas peças para começar",
       "title": "A Seleção",

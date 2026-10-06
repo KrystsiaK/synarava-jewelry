@@ -132,12 +132,12 @@ export function FooterLinkColumnEditor({
                 label="Path"
                 help={
                   <AdminHelp>
-                    Shared across languages. Search by name, or type /products/ or /collections/ to pick a
-                    specific item
+                    Shared across languages — locale-free (`/shop`). `/pt/shop` is accepted and normalized
                     {allowExternalHint ? ". External https:// URLs are fine for legal/social destinations." : "."}
                   </AdminHelp>
                 }
                 name={`${fieldName}Href-${item.id}`}
+                locale={activeLocale}
                 value={item.href}
                 onValueChange={(href) => updateHref(index, href)}
                 placeholder={hrefPlaceholder}
