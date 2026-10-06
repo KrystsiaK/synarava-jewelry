@@ -1,0 +1,34 @@
+# Keep staging current when main moves (hotfix / direct land on main).
+# Day-to-day work ships to staging first, then opens a PR into main.
+name: Sync main → staging
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: sync-main-to-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Fast-forward staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward staging to main
+        run: |
+          set -euo pipefail
+          git fetch origin main staging
+          git checkout staging
+          git merge --ff-only origin/main
+          git push origin staging

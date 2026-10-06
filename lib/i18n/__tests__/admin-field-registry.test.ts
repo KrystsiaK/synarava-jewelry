@@ -13,13 +13,17 @@ describe("admin field registry", () => {
     }
   });
 
-  it("gives every localized field a Shopify target and every shared field none", () => {
+  it("requires a Shopify target on every localized field", () => {
+    // Shared fields may still declare a commerce sync target (one value → one
+    // Shopify field), e.g. product.slug → PRODUCT.handle. They must not go
+    // through the translation platform; that is what `mode: "shared"` means.
     for (const registry of ADMIN_FIELD_REGISTRIES) {
       for (const field of registry.fields) {
         if (field.mode === "localized") {
-          expect(field.shopifyTarget, `${registry.entity}.${field.key} is localized but has no Shopify target`).not.toBeNull();
-        } else {
-          expect(field.shopifyTarget, `${registry.entity}.${field.key} is shared but declares a Shopify target`).toBeNull();
+          expect(
+            field.shopifyTarget,
+            `${registry.entity}.${field.key} is localized but has no Shopify target`,
+          ).not.toBeNull();
         }
       }
     }
