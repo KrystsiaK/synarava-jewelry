@@ -6,13 +6,15 @@ Staging URL: `https://synarava-shop-app-staging.up.railway.app`.
 
 - Day-to-day work lands on `staging` first (integration + Railway staging deploy).
 - Promote to production by opening a PR from `staging` into `main`.
-- **Do not squash** when merging that PR — use a merge commit (or rebase+merge
-  that preserves a tip `main` can fast-forward). Squash rewrites history and
-  makes `sync-main-to-staging` fail with `Not possible to fast-forward`.
+- Prefer a **merge commit** when promoting staging→main (avoids needless
+  divergence). Squash is allowed but leaves parallel tips; the sync job below
+  heals that with a merge, not a reset.
 - If `main` moves ahead (hotfix), `.github/workflows/sync-main-to-staging.yml`
-  fast-forwards `staging` to `main` so the branches do not diverge.
-- If the branches already diverged (usually after a squash), reset `staging` to
-  `main` once the trees match: `git checkout staging && git reset --hard origin/main && git push --force-with-lease origin staging`.
+  syncs `staging` from `main`: fast-forward when possible, otherwise
+  **merge main into staging** (non-destructive — staging tip commits stay).
+- Do **not** force-push or `reset --hard` staging onto main to “fix” diverge;
+  that drops unfinished staging work. Only merge conflicts need a manual
+  resolve on staging.
 
 Railway injects `RAILWAY_ENVIRONMENT_NAME`. The application uses that value to
 keep staging out of search indexes and to disable GTM/Meta destinations even if

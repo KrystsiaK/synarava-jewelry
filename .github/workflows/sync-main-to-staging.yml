@@ -1,6 +1,12 @@
 # Keep staging current when main moves (hotfix / direct land on main).
 # Day-to-day work ships to staging first, then opens a PR into main.
-# Promote with a merge commit (not squash) so this job can fast-forward.
+#
+# Policy (non-destructive):
+# 1. If staging already contains main → no-op success.
+# 2. If staging can fast-forward to main → ff + push.
+# 3. If histories diverged → merge main INTO staging (keeps staging tip
+#    commits; never resets or force-pushes staging).
+# 4. If that merge conflicts → fail with a clear message (manual resolve).
 name: Sync main → staging
 
 on:
@@ -17,7 +23,7 @@ permissions:
 
 jobs:
   sync:
-    name: Fast-forward staging
+    name: Sync staging from main
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -26,17 +32,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fast-forward staging to main
+      - name: Sync staging from main
         run: |
           set -euo pipefail
           git fetch origin main staging
           git checkout staging
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "staging already contains main; nothing to sync."
+            exit 0
+          fi
+
           if git merge --ff-only origin/main; then
+            echo "Fast-forwarded staging to main."
             git push origin staging
             exit 0
           fi
-          echo "::error::Cannot fast-forward staging to main (diverged history)."
-          echo "Usually caused by squash-merging staging→main."
-          echo "Fix: merge commit next time; for now reset staging to main when trees match:"
-          echo "  git checkout staging && git reset --hard origin/main && git push --force-with-lease origin staging"
+
+          echo "Histories diverged — merging main into staging (non-destructive)."
+          if git merge --no-ff origin/main -m "chore(git): merge main into staging (sync after diverge)"; then
+            git push origin staging
+            echo "Merged main into staging."
+            exit 0
+          fi
+
+          echo "::error::Cannot sync staging from main (merge conflict)."
+          echo "Resolve locally: checkout staging, merge origin/main, fix conflicts, push staging."
+          echo "Do not force-push staging or main; do not reset staging onto main."
+          git merge --abort || true
           exit 1
