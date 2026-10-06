@@ -332,6 +332,10 @@ function HeroSection({
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const reduceMotion = useReducedMotion();
+  const { locale } = useTranslations();
+  const resolvedCtaHref = ctaHref?.trim()
+    ? storefrontHref(locale, ctaHref.trim())
+    : undefined;
   const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
   const backdrop = resolveHeroBackdrop({ videoSrc: heroVideoSrc, imageSrc: heroImage });
   const videoSources = backdrop.mode === "video" ? backdrop.sources : [];
@@ -437,9 +441,9 @@ function HeroSection({
           />
         ) : null}
 
-        {ctaHref && ctaLabel ? (
+        {resolvedCtaHref && ctaLabel ? (
           <div className="mt-7 pl-8 sm:pl-14 md:mt-9">
-            <PrimaryCtaButton href={ctaHref}>
+            <PrimaryCtaButton href={resolvedCtaHref}>
               {ctaLabel}
             </PrimaryCtaButton>
           </div>

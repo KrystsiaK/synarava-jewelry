@@ -7,24 +7,35 @@ import {
 import { resolveHomeArchiveCollections } from "@/lib/content/home-archive-section";
 import { listShopListingProducts } from "@/lib/content/shop-listing";
 import { getSiteVideos } from "@/lib/site-videos";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { getSiteSeo } from "@/lib/content/site-seo";
+import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
+import { resolveHomeDocumentTitle } from "@/lib/seo/document-title";
 import { HomePage } from "@/components/home/home-page";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getRequestLocale();
-  const page = await getPageBySlug("home", locale);
+  const { locale, t } = await getServerTranslations();
+  const [page, siteSeo, openGraphLocales] = await Promise.all([
+    getPageBySlug("home", locale),
+    getSiteSeo(),
+    buildOpenGraphLocales(locale),
+  ]);
   const content = page?.content ?? {};
-  const { title, description } = localizedPageMetadataCopy({
+  const { description } = localizedPageMetadataCopy({
     page,
-    fallbackTitle: "Synarava — Curated Goods with Character",
+    fallbackTitle: t("home.metaTitle"),
     fallbackDescription: "",
   });
-
-  const openGraphLocales = await buildOpenGraphLocales(locale);
+  // Brand-first absolute title — never the H1 slogan alone.
+  // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#template
+  const title = resolveHomeDocumentTitle({
+    seoTitle: page?.seoTitle,
+    siteDefaultTitle: siteSeo.defaultTitle,
+    fallbackTitle: t("home.metaTitle"),
+  });
 
   return {
     title: { absolute: title },
@@ -45,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const locale = await getRequestLocale();
+  const { locale } = await getServerTranslations();
   const [page, collectionData, videos, products] = await Promise.all([
     getPageBySlug("home", locale),
     listCollections(locale),

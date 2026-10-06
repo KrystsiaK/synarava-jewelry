@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { SITE_SEO_DEFAULTS } from "@/lib/content/site-seo-fields";
 import {
   composeDocumentTitle,
+  isBrandFirstTitle,
   metadataDocumentTitle,
+  resolveHomeDocumentTitle,
   stripTitleTemplateBrand,
   titleTemplateSuffix,
 } from "../document-title";
@@ -62,5 +64,53 @@ describe("metadataDocumentTitle", () => {
     expect(metadataDocumentTitle("Shop", SITE_SEO_DEFAULTS.titleTemplate)).toEqual({
       absolute: "Shop | Synarava",
     });
+  });
+});
+
+describe("isBrandFirstTitle", () => {
+  it("detects titles that lead with Synarava", () => {
+    expect(isBrandFirstTitle("Synarava | Curated Goods")).toBe(true);
+    expect(isBrandFirstTitle("synarava — shop")).toBe(true);
+    expect(isBrandFirstTitle("TODAY, THIS.")).toBe(false);
+    expect(isBrandFirstTitle("Everyday jewellery | Synarava")).toBe(false);
+  });
+});
+
+describe("resolveHomeDocumentTitle", () => {
+  it("prefers a brand-first page SEO title", () => {
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "Synarava | TODAY, THIS.",
+        siteDefaultTitle: "Synarava | Curated Goods",
+        fallbackTitle: "Synarava | Curated Goods",
+      }),
+    ).toBe("Synarava | TODAY, THIS.");
+  });
+
+  it("ignores H1-style and trailing-brand SEO titles", () => {
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "TODAY, THIS.",
+        siteDefaultTitle: "Synarava — Curated Goods with Character",
+        fallbackTitle: "Synarava | Curated Goods",
+      }),
+    ).toBe("Synarava | Curated Goods");
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "Everyday jewellery and accessories | Synarava",
+        siteDefaultTitle: null,
+        fallbackTitle: "Synarava | Curated Goods",
+      }),
+    ).toBe("Synarava | Curated Goods");
+  });
+
+  it("falls through to site SEO default when messages fallback is empty", () => {
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "",
+        siteDefaultTitle: "Synarava | Curated Goods",
+        fallbackTitle: "  ",
+      }),
+    ).toBe("Synarava | Curated Goods");
   });
 });

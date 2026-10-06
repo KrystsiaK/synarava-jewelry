@@ -723,6 +723,7 @@
     }
   },
   "home": {
+    "metaTitle": "Synarava | Curated Goods",
     "archive": {
       "collectionNote": "Collection note",
       "viewCollection": "View collection",
