@@ -6,7 +6,7 @@ Synarava staff, founders, editors, and merchandisers use the admin area to maint
 
 ## Product Purpose
 
-Synarava is a couture jewelry storefront with a lightweight CMS. The admin exists to keep catalog, collection, and editorial content accurate, publishable, and safe to edit without engineering help.
+Synarava is an online shop of jewelry and accessories (plus related curated goods) with a lightweight CMS. The admin exists to keep catalog, collection, and editorial content accurate, publishable, and safe to edit without engineering help.
 
 ## Current Product Surfaces
 

@@ -13,6 +13,6 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     children:
-      "Handcrafted jewelry that bridges the gap between ancient Slavic mysticism and the contemporary architectural avant-garde.",
+      "Jewelry and accessories chosen for materials, form, symbolism, and everyday wear.",
   },
 };

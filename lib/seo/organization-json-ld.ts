@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/i18n/locales";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 
 export type OrganizationSocialLink = {
@@ -5,6 +6,13 @@ export type OrganizationSocialLink = {
 };
 
 const ABSOLUTE_HTTP_URL = /^https?:\/\//i;
+
+/** Locale Organization.description — matches current store positioning (not couture-only). */
+const ORGANIZATION_DESCRIPTION: Record<Locale, string> = {
+  en: "Synarava — an online shop of jewelry and accessories focused on materials, form, symbolism, and everyday wear.",
+  pt: "Synarava — loja online de joalharia e acessórios com foco em materiais, forma, simbolismo e uso quotidiano.",
+  ru: "Synarava — интернет-магазин украшений и аксессуаров с акцентом на материалы, форму, символику и повседневную носку.",
+};
 
 /** Absolute http(s) social profiles for Organization.sameAs (deduped, stable order). */
 export function organizationSameAs(
@@ -21,17 +29,21 @@ export function organizationSameAs(
   return urls;
 }
 
+export function organizationDescription(locale: Locale = "en") {
+  return ORGANIZATION_DESCRIPTION[locale] ?? ORGANIZATION_DESCRIPTION.en;
+}
+
 export function buildOrganizationJsonLd(
   socials: readonly OrganizationSocialLink[] = [],
   siteUrl: string = getPublicSiteUrl(),
+  locale: Locale = "en",
 ) {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Synarava",
     url: siteUrl,
-    description:
-      "Handcrafted couture jewelry rooted in folk symbolism and contemporary design.",
+    description: organizationDescription(locale),
     sameAs: organizationSameAs(socials),
   };
 }
