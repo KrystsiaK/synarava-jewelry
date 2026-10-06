@@ -55861,7 +55861,7 @@
       "node_kind": "heading",
       "norm_label": "cloud agent note",
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L59"
+      "source_location": "L61"
     },
     {
       "id": "agents_skills_ship_to_main_skill_definition_of_done_shipping",
@@ -55873,7 +55873,7 @@
       "node_kind": "heading",
       "norm_label": "definition of done (shipping)",
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L22"
+      "source_location": "L23"
     },
     {
       "id": "agents_skills_ship_to_main_skill_do_not",
@@ -55885,7 +55885,7 @@
       "node_kind": "heading",
       "norm_label": "do not",
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L44"
+      "source_location": "L46"
     },
     {
       "id": "agents_skills_ship_to_main_skill_exceptions_only_these",
@@ -55897,7 +55897,7 @@
       "node_kind": "heading",
       "norm_label": "exceptions (only these)",
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L52"
+      "source_location": "L54"
     },
     {
       "id": "agents_skills_ship_to_main_skill_ship_to_staging_main",
@@ -110282,7 +110282,7 @@
       "node_kind": "heading",
       "norm_label": "production guard",
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L71"
+      "source_location": "L73"
     },
     {
       "id": "docs_staging_runbook_railway_environment_checklist",
@@ -110294,7 +110294,7 @@
       "node_kind": "heading",
       "norm_label": "railway environment checklist",
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L22"
+      "source_location": "L24"
     },
     {
       "id": "docs_staging_runbook_shopify_staging_checklist",
@@ -110306,7 +110306,7 @@
       "node_kind": "heading",
       "norm_label": "shopify staging checklist",
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L41"
+      "source_location": "L43"
     },
     {
       "id": "docs_staging_runbook_smoke_test_after_every_deploy",
@@ -110318,7 +110318,7 @@
       "node_kind": "heading",
       "norm_label": "smoke test after every deploy",
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L54"
+      "source_location": "L56"
     },
     {
       "id": "docs_staging_runbook_staging_runbook",
@@ -307787,7 +307787,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -307798,7 +307798,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L44",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -307809,7 +307809,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L52",
+      "source_location": "L54",
       "weight": 1.0
     },
     {
@@ -307820,7 +307820,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".agents/skills/ship-to-main/SKILL.md",
-      "source_location": "L59",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -340490,7 +340490,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L22",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -340501,7 +340501,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L41",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -340523,7 +340523,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L54",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -340534,7 +340534,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/staging-runbook.md",
-      "source_location": "L71",
+      "source_location": "L73",
       "weight": 1.0
     },
     {
@@ -382258,5 +382258,5 @@
       "source_file": "docs/product-data-ownership.md"
     }
   ],
-  "built_at_commit": "064b421baf97139078502b40312033bfb78c5109"
+  "built_at_commit": "af327c54191cd26d4628b4283594c034f4a8c426"
 }

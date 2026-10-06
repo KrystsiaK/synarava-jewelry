@@ -1,7 +1,7 @@
 # Graph Report - workspace  (2026-10-06)
 
 ## Corpus Check
-- 1396 files · ~851,857 words
+- 1396 files · ~851,990 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 73 file(s) not represented in the graph (top: .csv 24, (none) 11, .xml 10)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `064b421b`
+- Built from commit: `af327c54`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -2277,4 +2277,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `filter-bar.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.05143638850889193 - nodes in this community are weakly interconnected._
 - **Why does `next` connect `next` to `content/account-orders-settings.ts`, `ref_node_crypto`, `product-edit-form.tsx`, `catalog.ts`, `refreshPreservingScroll`, `filter-bar.tsx`, `catalog-conflict-signals-server.ts`, `collection-fields.tsx`, `legal-sections.ts`, `ui/index.ts`, `orders-paid-webhook.ts`, `useTranslations`, `collection-conflict-workspace.tsx`, `collection-sync.ts`, `callback/route.ts`, `sync.ts`, `[locale]/layout.tsx`, `getStorefrontLocales`, `shop-catalog-client.tsx`, `cart.ts`, `session.ts`, `admin-session.ts`, `health/route.ts`, `product-media-gallery.tsx`, `products.ts`, `(admin)/layout.tsx`, `infrastructure-status.ts`, `list-products.ts`, `[permalink]/route.ts`, `shopify-profile-shell.tsx`, `reconciliation-run.ts`, `revalidateStorefrontPath`, `cart/actions.ts`, `shopify/route.ts`, `legal-section-body.tsx`, `privacy-consent-manager.tsx`, `proxy.ts`, `issues.ts`, `login/actions.ts`, `editorial-translation-sync.ts`, `@prisma/client`, `react`, `admin-shopify-sync-signal.tsx`, `videos/route.ts`, `db.ts`, `shopify/product-reviews.ts`, `admin-nav-tree.tsx`, `actions/storefront-copy.ts`, `product-form-fields.tsx`, `translations-cms.tsx`, `app/layout.tsx`, `content/site-seo.ts`, `getShopifyCustomerAccountConfig`, `actions.test.ts`, `package.json`, `meta-health.ts`, `page-editor-form.tsx`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
