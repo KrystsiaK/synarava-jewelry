@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getPageBySlug } from "@/lib/content/catalog";
 import { getRequestLocale } from "@/lib/i18n/server";
-import { localePath } from "@/lib/i18n/routing";
+import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: await buildAlternates(locale, `/${page.slug}`, { en: `/${page.sourceSlug}`, pt: `/${page.slug}` }),
     openGraph: {
       ...openGraphLocales,
-      url: localePath(locale, `/${slug}`),
+      url: localePath(locale, `/${page.slug}`),
       title,
       description,
       images: [{ url: page.content.heroImage ?? "/og-default.jpg", width: 1200, height: 630, alt: title }],
@@ -131,7 +131,9 @@ export default async function StaticCmsPage({ params }: Props) {
                 </p>
               ) : null}
               {content.ctaLabel && content.ctaHref ? (
-                <ArtifactLink href={content.ctaHref}>{content.ctaLabel}</ArtifactLink>
+                <ArtifactLink href={storefrontHref(locale, content.ctaHref)}>
+                  {content.ctaLabel}
+                </ArtifactLink>
               ) : null}
             </aside>
           </div>

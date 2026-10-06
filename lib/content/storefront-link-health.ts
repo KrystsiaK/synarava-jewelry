@@ -17,6 +17,7 @@ import {
   isStorefrontVisibleHealth,
   type StorefrontHrefHealth,
 } from "@/lib/content/storefront-href-health-fields";
+import { toLocaleFreeHref } from "@/lib/i18n/routing";
 
 export {
   isStorefrontVisibleHealth,
@@ -71,13 +72,13 @@ const loadCatalogIndex = cache(async (): Promise<CatalogIndex> => {
 });
 
 function normalizeInternalPath(href: string): string {
-  const trimmed = normalizeHrefQuery(href);
+  const trimmed = toLocaleFreeHref(normalizeHrefQuery(href));
   if (!trimmed || trimmed === "/") return trimmed;
   return trimmed.replace(/\/+$/, "") || "/";
 }
 
 function healthFromIndex(href: string, index: CatalogIndex): StorefrontHrefHealth {
-  const quick = classifyHrefWithoutLookup(href);
+  const quick = classifyHrefWithoutLookup(toLocaleFreeHref(href) || href);
   if (quick) return quick;
 
   const path = normalizeInternalPath(href);

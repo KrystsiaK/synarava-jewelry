@@ -329,7 +329,7 @@ describe("CatalogConflictWorkspace", () => {
     expect(screen.queryByRole("button", { name: /Use Synarava for all/i })).not.toBeInTheDocument();
   });
 
-  it("opens locale-scoped details with only that language's fields", async () => {
+  it("opens locale-scoped details with that language's fields plus SHARED commerce", async () => {
     mocks.load.mockResolvedValue({
       conflict: {
         productId: "p1",
@@ -351,7 +351,25 @@ describe("CatalogConflictWorkspace", () => {
     expect(await screen.findByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
     expect(screen.getByText("RU · Русский")).toBeInTheDocument();
     expect(screen.queryByText("PT · Português")).not.toBeInTheDocument();
-    expect(screen.queryByText("SHARED")).not.toBeInTheDocument();
+    // Shared commerce belongs under every language shell (commerce-sync marker tree).
+    expect(screen.getByText("SHARED")).toBeInTheDocument();
+  });
+
+  it("opens whole-record choices from a non-EN locale when only SHARED commerce conflicts", async () => {
+    mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
+    const onToast = vi.fn();
+    renderWorkspace(vi.fn(), onToast, vi.fn(), {
+      ...signals,
+      products: { p1: { shared: true, sharedCount: 1, locales: [] } },
+    }, { kind: "productLocale", productId: "p1", locale: "ru" });
+    expect(await screen.findByText("Status")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close conflict details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply Synarava values" }));
+    expect(await screen.findByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
+    expect(onToast).not.toHaveBeenCalledWith(
+      expect.stringMatching(/No supported fields|Nothing left to sync/),
+      "info",
+    );
   });
 
   it("opens section-scoped details with only that editor section's fields", async () => {
@@ -503,7 +521,10 @@ describe("CatalogConflictWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close conflict details" }));
     fireEvent.click(screen.getByRole("button", { name: "Apply Synarava values" }));
     expect(await screen.findByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
-    expect(onToast).not.toHaveBeenCalledWith("No supported fields for this language in that direction.", "info");
+    expect(onToast).not.toHaveBeenCalledWith(
+      expect.stringMatching(/No supported fields|Nothing left to sync/),
+      "info",
+    );
     expect(mocks.pushProduct).not.toHaveBeenCalled();
   });
 

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getPageBySlug } from "@/lib/content/catalog";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getRequestLocale } from "@/lib/i18n/server";
-import { localePath } from "@/lib/i18n/routing";
+import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
 import { buildOpenGraphLocales } from "@/lib/seo/open-graph-locale";
 import { localizedPageMetadataCopy } from "@/lib/seo/localized-page-metadata";
@@ -49,7 +49,7 @@ export default async function Page() {
       title={page?.title ?? ""}
       excerpt={content.body ?? page?.excerpt ?? ""}
       eyebrow={content.eyebrow ?? ""}
-      ctaHref={content.ctaHref ?? ""}
+      ctaHref={content.ctaHref ? storefrontHref(locale, content.ctaHref) : ""}
       ctaLabel={content.ctaLabel ?? ""}
       secondaryTitle={content.secondaryTitle}
       secondaryBody={content.secondaryBody ?? ""}

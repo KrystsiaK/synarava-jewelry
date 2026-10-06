@@ -73,19 +73,15 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: seo.description,
     keywords: [
+      "Synarava",
+      "jewelry",
+      "accessories",
+      "online shop",
       "curated goods",
-      "handmade gifts",
       "pet accessories",
       "creative products for kids",
       "jewelry making tools",
-      "handcrafted jewelry",
-      "couture jewelry",
-      "lava stone bracelet",
-      "folk jewelry",
-      "artisan jewelry",
-      "symbolic jewelry",
-      "collectible jewelry",
-      "Slavic jewelry",
+      "handmade gifts",
     ],
     authors: [{ name: "Synarava" }],
     creator: "Synarava",
@@ -167,7 +163,11 @@ export default async function RootLayout({
     filterLiveHeaderNav(headerNavRaw),
     filterLiveFooterLinks(footerLinksRaw),
   ]);
-  const organizationJsonLd = buildOrganizationJsonLd(footerLinks.socials.items);
+  const organizationJsonLd = buildOrganizationJsonLd(
+    footerLinks.socials.items,
+    undefined,
+    initialLocale,
+  );
 
   return (
     <html

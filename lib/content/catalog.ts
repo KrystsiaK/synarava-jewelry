@@ -14,6 +14,12 @@ import {
   resolveCharacteristicDisplayValue,
   type ProductCharacteristicValue,
 } from "@/lib/products/characteristics";
+import {
+  buildCharacteristicFacetLabelMap,
+  characteristicFacetLabel,
+  buyerFacingTagNames,
+  localizeShopFacetValue,
+} from "@/lib/catalog/shop-facet-labels";
 import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
@@ -37,6 +43,10 @@ import { ownedLocalizedPageFields, resolvePageLocalizedCopy } from "@/lib/pages/
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 import { findLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { normalizeCustomerCareContent } from "@/lib/content/customer-care-email";
+import {
+  formatCollectionEyebrow,
+  shippedCollectionEyebrowLabel,
+} from "@/lib/content/collection-eyebrow";
 
 // Shopify's Standard Product Taxonomy name is a " > "-delimited full path
 // (e.g. "Apparel & Accessories > Jewelry > Brooches & Lapel Pins >
@@ -495,9 +505,9 @@ function toSummary(product: {
         : item.textValue,
     })),
     categorySlug: product.shopifyCategoryId,
-    categoryName: categoryLeafLabel(product.shopifyCategoryName),
+    categoryName: localizeShopFacetValue(categoryLeafLabel(product.shopifyCategoryName), locale),
     tagSlugs: product.tags.map((item) => item.tag.slug),
-    tagNames: product.tags.map((item) => item.tag.name),
+    tagNames: buyerFacingTagNames(product.tags.map((item) => item.tag.name)),
     publicMetafields: projection.publicMetafields,
     symbolismLabel: localized.symbolismLabel || leadCollectionCopy?.symbolismLabel || "",
     symbolismTitle: localized.symbolismTitle || leadCollectionCopy?.symbolismTitle || "",
@@ -516,7 +526,7 @@ function toSummary(product: {
 }
 
 export async function getShopFilterData(locale: Locale = "en") {
-  const [categoryRows, productTypeRows, tags, collections, characteristicRows] = await Promise.all([
+  const [categoryRows, productTypeRows, tags, collections, characteristicRows, characteristicLocaleRows] = await Promise.all([
     // Category is Shopify Standard Product Taxonomy now (item 1) — there's
     // no local category table to browse, so the filter options are just
     // the distinct categories actually in use, like materials/finishes below.
@@ -532,9 +542,9 @@ export async function getShopFilterData(locale: Locale = "en") {
       distinct: ["productType"],
       orderBy: { productType: "asc" },
     }),
-    db.tag.findMany({
-      orderBy: { name: "asc" },
-    }),
+    // Tag facet removed from storefront (supportsTagFilters); keep the query
+    // cheap for any admin/debug caller that still reads `tags`.
+    Promise.resolve([] as Array<{ id: string; slug: string; name: string }>),
     db.collection.findMany({
       where: { status: "ACTIVE", visibility: "PUBLIC", isStorefrontDefault: false },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -546,17 +556,56 @@ export async function getShopFilterData(locale: Locale = "en") {
       distinct: ["key", "textValue"],
       orderBy: { textValue: "asc" },
     }),
+    locale === "en"
+      ? Promise.resolve([] as Array<{ key: string; textValue: string | null; details: unknown }>)
+      : db.productCharacteristic.findMany({
+          where: {
+            filterable: true,
+            textValue: { not: null },
+            product: { status: "ACTIVE", visibility: "PUBLIC" },
+          },
+          select: {
+            key: true,
+            textValue: true,
+            product: {
+              select: {
+                translations: {
+                  where: { locale },
+                  select: { details: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+        }).then((rows) => rows.map((row) => ({
+          key: row.key,
+          textValue: row.textValue,
+          details: row.product.translations[0]?.details ?? null,
+        }))),
   ]);
 
-  const categories = categoryRows.map((row) => ({
-    slug: row.shopifyCategoryId!,
-    name: categoryLeafLabel(row.shopifyCategoryName) || row.shopifyCategoryId!,
-  }));
+  const materialOverlays = buildCharacteristicFacetLabelMap(characteristicLocaleRows, "material", locale);
+  const finishOverlays = buildCharacteristicFacetLabelMap(characteristicLocaleRows, "finish", locale);
+  const originOverlays = buildCharacteristicFacetLabelMap(characteristicLocaleRows, "origin", locale);
+
+  const categories = categoryRows.map((row) => {
+    const enLeaf = categoryLeafLabel(row.shopifyCategoryName) || row.shopifyCategoryId!;
+    return {
+      slug: row.shopifyCategoryId!,
+      name: localizeShopFacetValue(enLeaf, locale),
+    };
+  });
   const productTypes = productTypeRows.flatMap((row) => {
     const value = row.productType?.trim();
-    return value ? [{ slug: value, name: value }] : [];
+    return value ? [{ slug: value, name: localizeShopFacetValue(value, locale) }] : [];
   });
-  const values = (key: string) => characteristicRows.filter((item) => item.key === key && item.textValue).map((item) => ({ slug: item.textValue!, name: item.textValue! }));
+  const values = (key: string, overlays: Map<string, string>) =>
+    characteristicRows
+      .filter((item) => item.key === key && item.textValue)
+      .map((item) => ({
+        slug: item.textValue!,
+        name: characteristicFacetLabel(item.textValue!, locale, overlays),
+      }));
   return {
     categories,
     productTypes,
@@ -565,9 +614,9 @@ export async function getShopFilterData(locale: Locale = "en") {
       ...collection,
       name: resolveCollectionName(collection, locale),
     })),
-    materials: values("material"),
-    finishes: values("finish"),
-    origins: values("origin"),
+    materials: values("material", materialOverlays),
+    finishes: values("finish", finishOverlays),
+    origins: values("origin", originOverlays),
   };
 }
 
@@ -580,6 +629,7 @@ export async function listCollections(locale: Locale = "en") {
     include: { translations: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
+  const collectionLabel = await resolveCollectionEyebrowLabel(locale);
 
   return collections.map((collection) => {
     const copy = resolveCollectionCopy(collection, locale);
@@ -589,7 +639,7 @@ export async function listCollections(locale: Locale = "en") {
       slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle),
       sourceSlug: collection.slug,
       name: copy.name,
-      eyebrow: formatCollectionEyebrow(collection.sortOrder),
+      eyebrow: formatCollectionEyebrow(collection.sortOrder, collectionLabel),
       summary: copy.description,
       seoTitle: copy.seoTitle,
       seoDescription: copy.seoDescription,
@@ -618,13 +668,14 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
 
   const copy = resolveCollectionCopy(collection, locale);
   const activeSlug = resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle);
+  const collectionLabel = await resolveCollectionEyebrowLabel(locale);
   return {
     id: collection.id,
     createdAt: collection.createdAt,
     slug: activeSlug,
     sourceSlug: collection.slug,
     name: copy.name,
-    eyebrow: formatCollectionEyebrow(collection.sortOrder),
+    eyebrow: formatCollectionEyebrow(collection.sortOrder, collectionLabel),
     summary: copy.description,
     seoTitle: copy.seoTitle,
     seoDescription: copy.seoDescription,
@@ -641,12 +692,12 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
   };
 }
 
-function formatCollectionEyebrow(sortOrder: number | null | undefined) {
-  if (!Number.isFinite(sortOrder) || (sortOrder ?? 0) <= 0) {
-    return "Collection";
-  }
-
-  return `Collection ${String(sortOrder).padStart(2, "0")}`;
+async function resolveCollectionEyebrowLabel(locale: Locale): Promise<string> {
+  // Prefer Shared / обменка override when present; else shipped messages.
+  const { getStorefrontCopy } = await import("@/lib/content/storefront-copy");
+  const copy = await getStorefrontCopy();
+  const override = copy[locale]?.["home.archive.collection"]?.trim();
+  return override || shippedCollectionEyebrowLabel(locale);
 }
 
 /**

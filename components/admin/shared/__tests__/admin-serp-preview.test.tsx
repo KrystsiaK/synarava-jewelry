@@ -8,7 +8,7 @@ describe("AdminSerpPreview", () => {
     render(
       <AdminSerpPreview
         title="Lava ring"
-        description="Handcrafted couture."
+        description="Jewelry and accessories for everyday wear."
         path="/en/products/lava-ring"
         siteHost="synarava.com"
       />,
@@ -17,7 +17,7 @@ describe("AdminSerpPreview", () => {
     expect(screen.getByText("Search preview")).toBeInTheDocument();
     expect(screen.getByText("synarava.com › en › products › lava-ring")).toBeInTheDocument();
     expect(screen.getByText("Lava ring | Synarava")).toBeInTheDocument();
-    expect(screen.getByText("Handcrafted couture.")).toBeInTheDocument();
+    expect(screen.getByText("Jewelry and accessories for everyday wear.")).toBeInTheDocument();
     expect(screen.getByLabelText("Character counts")).toHaveTextContent("Title");
     expect(screen.getByLabelText("Character counts")).toHaveTextContent("20/60");
   });

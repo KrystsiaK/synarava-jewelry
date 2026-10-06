@@ -69,7 +69,8 @@ export const PRODUCT_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "mediaCaption", label: "Image caption", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("product_detail_copy", "media_caption") },
 
     { key: "sku", label: "SKU", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },
-    { key: "slug", label: "Slug", mode: "shared", required: "always", kind: "short-text", shopifyTarget: native("PRODUCT", "handle") },
+    // Shared across locales; commerce push maps slug → PRODUCT.handle (productSet), not Translations API.
+    { key: "slug", label: "Slug", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },
     { key: "priceCents", label: "Price", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },
     { key: "compareAtCents", label: "Compare-at price", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "currency", label: "Currency", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },

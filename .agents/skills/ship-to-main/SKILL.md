@@ -33,10 +33,11 @@ After code + tests (+ docs if needed) are complete:
    - checkout `staging`, fast-forward or merge the feature branch
      (`--ff-only` when possible, otherwise `--no-ff`)
    - `git push origin staging`
-4. **Open/update a PR into `main`** from `staging` (or the feature branch if it
+3. **Open/update a PR into `main`** from `staging` (or the feature branch if it
    is already included on staging). Record association; do not leave shipping
-   as “branch only.”
-5. Confirm with a one-liner: commit SHA is on `staging`, and the PR URL into
+   as “branch only.” **Merge with a merge commit — do not squash** (squash
+   breaks `sync-main-to-staging` fast-forward).
+4. Confirm with a one-liner: commit SHA is on `staging`, and the PR URL into
    `main` is ready (merge when required checks are green, unless an exception
    below applies).
 

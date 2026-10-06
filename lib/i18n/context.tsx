@@ -7,7 +7,7 @@ import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 import { flattenMessages } from "./utils";
 import { normalizeLocale, SUPPORTED_LOCALES, type Locale } from "./locales";
-import { localePath } from "./routing";
+import { LOCALE_PATH_PREFIX_RE, localePath } from "./routing";
 
 export type { Locale } from "./locales";
 
@@ -42,10 +42,6 @@ const dictionaries: Partial<Record<Locale, Record<string, string>>> = {
   ru: flattenMessages(ru as Record<string, unknown>),
 };
 
-// Built from SUPPORTED_LOCALES so a newly registered locale is recognized
-// in the URL without touching this regex by hand.
-const LOCALE_PATH_PATTERN = new RegExp(`^/(${SUPPORTED_LOCALES.map((locale) => locale.code).join("|")})(?=/|$)`);
-
 const TranslationContext = createContext<TranslationContextValue>({
   locale: "en",
   setLocale: () => {},
@@ -73,7 +69,7 @@ export function TranslationProvider({
   // back/forward or a plain Link to a /pt/... route used to leave the previous
   // locale's dictionary in place. Deriving from pathname on every render means
   // there's no stored locale to go stale: it's re-read on every navigation.
-  const pathLocale = pathname.match(LOCALE_PATH_PATTERN)?.[1];
+  const pathLocale = pathname.match(LOCALE_PATH_PREFIX_RE)?.[1];
   const locale = normalizeLocale(pathLocale ?? initialLocale);
   const messages = useMemo(
     () => ({ ...dictionaries[locale], ...initialOverrides?.[locale] }),
@@ -92,7 +88,7 @@ export function TranslationProvider({
     // would force this whole subtree (the root layout wraps every page) out of
     // static rendering — setLocale only ever runs from a click handler, never
     // during render, so this is safe.
-    const rest = pathname.replace(LOCALE_PATH_PATTERN, "");
+    const rest = pathname.replace(LOCALE_PATH_PREFIX_RE, "");
     const { search, hash } = window.location;
     router.push(`${localePath(newLocale, rest === "" ? "/" : rest)}${search}${hash}`);
   }

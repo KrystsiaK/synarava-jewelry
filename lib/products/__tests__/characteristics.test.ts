@@ -85,6 +85,34 @@ describe("product characteristics", () => {
       characteristics: { material: "Жемчуг", unknown: "ignore" },
     })).toEqual({ material: "Жемчуг" });
   });
+
+  it("keeps RU care overlays separate from EN ProductCharacteristic text", () => {
+    const form = new FormData();
+    form.set("characteristic_care_instructions", "Avoid prolonged contact with water.");
+    form.set("characteristic_material", "Crystal pearl");
+    form.set("ruCharacteristic_care_instructions", "Избегайте длительного контакта с водой.");
+    form.set("ruCharacteristic_material", "Хрустальный жемчуг");
+
+    const enValues = parseCharacteristicsForm(form);
+    expect(enValues.find((item) => item.key === "care_instructions")?.textValue)
+      .toBe("Avoid prolonged contact with water.");
+    expect(enValues.find((item) => item.key === "material")?.textValue).toBe("Crystal pearl");
+
+    const ruOverlay = readCharacteristicTextOverlayFromForm(form, "ru");
+    expect(ruOverlay).toEqual({
+      care_instructions: "Избегайте длительного контакта с водой.",
+      material: "Хрустальный жемчуг",
+    });
+
+    const care = enValues.find((item) => item.key === "care_instructions")!;
+    expect(resolveCharacteristicDisplayValue(care, "ru", ruOverlay))
+      .toBe("Избегайте длительного контакта с водой.");
+    // EN PDP receives an empty overlay map — never the RU map.
+    expect(resolveCharacteristicDisplayValue(care, "en", {}))
+      .toBe("Avoid prolonged contact with water.");
+    expect(resolveCharacteristicDisplayValue(care, "pt", {}))
+      .toBe("Avoid prolonged contact with water.");
+  });
 });
 
 describe("characteristicLabel / characteristicGroupLabel / characteristicUnit", () => {

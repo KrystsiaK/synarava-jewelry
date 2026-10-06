@@ -26,7 +26,9 @@ import {
   flattenHrefHits,
   hrefTargetIssueFromSearch,
   looksLikePath,
+  normalizeCommittedHref,
   normalizeHrefQuery,
+  withLocaleAwareHrefDetails,
   type StorefrontHrefHit,
   type StorefrontHrefSearchResult,
 } from "@/lib/admin/storefront-href";
@@ -86,6 +88,11 @@ export type AdminHrefControlProps = {
   defaultValue?: string;
   value?: string;
   onValueChange?: (href: string) => void;
+  /**
+   * Active editor locale — picker detail lines show locale-prefixed paths
+   * (`/pt/shop`) while the committed value stays locale-free (`/shop`).
+   */
+  locale?: string;
   /** Soft orange chrome (draft targets, etc.). */
   warning?: string;
   warningId?: string;
@@ -107,6 +114,7 @@ export function AdminHrefControl({
   defaultValue = "",
   value,
   onValueChange,
+  locale,
   warning,
   warningId,
   onDetectedWarningChange,
@@ -120,8 +128,11 @@ export function AdminHrefControl({
   "aria-errormessage": ariaErrorMessage,
 }: AdminHrefControlProps) {
   const isControlled = value !== undefined;
-  const [uncontrolledHref, setUncontrolledHref] = useState(defaultValue);
-  const href = isControlled ? value : uncontrolledHref;
+  const [uncontrolledHref, setUncontrolledHref] = useState(() =>
+    normalizeCommittedHref(defaultValue),
+  );
+  const controlledHref = isControlled ? normalizeCommittedHref(value ?? "") : "";
+  const href = isControlled ? controlledHref : uncontrolledHref;
 
   const [query, setQuery] = useState(href);
   const [open, setOpen] = useState(false);
@@ -167,7 +178,8 @@ export function AdminHrefControl({
   };
 
   function commitHref(next: string, options?: { knownHit?: boolean; status?: string }) {
-    const normalized = normalizeHrefQuery(next);
+    // CMS contract: store locale-free paths; `/pt/shop` → `/shop`.
+    const normalized = normalizeCommittedHref(next);
     if (!isControlled) setUncontrolledHref(normalized);
     onValueChange?.(normalized);
     setQuery(normalized);
@@ -194,9 +206,13 @@ export function AdminHrefControl({
   const runSearch = useEffectEvent((search: string) => {
     startTransition(async () => {
       const next = await searchStorefrontHrefsAction(search);
-      setResult({ segments: next.segments });
+      const decorated = withLocaleAwareHrefDetails(
+        { segments: next.segments },
+        locale,
+      );
+      setResult(decorated);
       setSearchError(next.error ?? "");
-      setActiveIndex(next.segments.length ? 0 : -1);
+      setActiveIndex(decorated.segments.length ? 0 : -1);
     });
   });
 
@@ -236,9 +252,9 @@ export function AdminHrefControl({
 
   // Controlled value wins — adjust during render (no setState-in-effect).
   const [syncedValue, setSyncedValue] = useState(href);
-  if (isControlled && value !== syncedValue) {
-    setSyncedValue(value);
-    setQuery(value);
+  if (isControlled && controlledHref !== syncedValue) {
+    setSyncedValue(controlledHref);
+    setQuery(controlledHref);
   }
 
   useEffect(() => {

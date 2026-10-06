@@ -1,5 +1,6 @@
 # Keep staging current when main moves (hotfix / direct land on main).
 # Day-to-day work ships to staging first, then opens a PR into main.
+# Promote with a merge commit (not squash) so this job can fast-forward.
 name: Sync main → staging
 
 on:
@@ -30,5 +31,12 @@ jobs:
           set -euo pipefail
           git fetch origin main staging
           git checkout staging
-          git merge --ff-only origin/main
-          git push origin staging
+          if git merge --ff-only origin/main; then
+            git push origin staging
+            exit 0
+          fi
+          echo "::error::Cannot fast-forward staging to main (diverged history)."
+          echo "Usually caused by squash-merging staging→main."
+          echo "Fix: merge commit next time; for now reset staging to main when trees match:"
+          echo "  git checkout staging && git reset --hard origin/main && git push --force-with-lease origin staging"
+          exit 1

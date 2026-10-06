@@ -464,11 +464,17 @@ function ArchiveRecord({
   index: number;
   reduceMotion: boolean;
 }) {
+  const { t } = useTranslations();
   const recordRef = useRef<HTMLDivElement>(null);
   const progress = useElementScrollProgress(recordRef, "record-exit");
   const dim = useTransform(progress, [0, 1], reduceMotion ? [0, 0] : [0, 0.58]);
   const mirror = index % 2 === 1;
   const clipPath = ARCHIVE_CLIP_PATHS[index % ARCHIVE_CLIP_PATHS.length]!;
+  const collectionNote = t("home.archive.collectionNote");
+  const viewCollection = t("home.archive.viewCollection");
+  const collectionLabel = t("home.archive.collection");
+  const editionLabel = t("home.archive.edition");
+  const viewCollectionAria = t("home.archive.viewCollectionAria", { title: item.title });
 
   const textCard = (
     <motion.div
@@ -491,11 +497,15 @@ function ArchiveRecord({
               <span className="font-sans text-[9px] text-stone-beige/65 uppercase">
                 COORD:<br />53.90° N, 27.56° E
               </span>
-              <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold text-right">{item.series}</span>
+              <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold text-right uppercase">
+                {item.series}
+              </span>
             </>
           ) : (
             <>
-              <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold">{item.series}</span>
+              <span className="font-sans text-couture-red tracking-widest text-[10px] font-bold uppercase">
+                {item.series}
+              </span>
               <span className="font-sans text-[9px] text-stone-beige/65 text-right uppercase">
                 LOC:<br />53.90° N, 27.56° E
               </span>
@@ -507,8 +517,8 @@ function ArchiveRecord({
           text={item.title}
           className={
             mirror
-              ? "mb-6 text-5xl uppercase leading-[0.95] tracking-tighter text-right text-linen md:text-7xl"
-              : "mb-6 text-5xl uppercase leading-[0.95] tracking-tighter text-linen md:text-7xl"
+              ? "mb-8 text-5xl uppercase leading-[1.08] tracking-tighter text-right text-linen md:text-7xl"
+              : "mb-8 text-5xl uppercase leading-[1.08] tracking-tighter text-linen md:text-7xl"
           }
         />
         <div
@@ -518,30 +528,30 @@ function ArchiveRecord({
               : "font-sans text-[10px] text-stone-beige/80 leading-relaxed mb-8 text-justify uppercase font-bold"
           }
         >
-          [COLLECTION NOTE]<br />
+          [{collectionNote}]<br />
           <RichText content={item.description} />
         </div>
         {mirror ? (
-          <table className="w-full font-sans text-[10px] text-left border-collapse font-bold">
+          <table className="w-full font-sans text-[10px] text-left border-collapse font-bold uppercase">
             <tbody>
               <tr className="border-b border-linen/10">
-                <td className="py-2 text-couture-red w-1/3 font-bold">COLLECTION</td>
-                <td className="py-2 text-stone-beige uppercase">{item.series}</td>
+                <td className="py-2 text-couture-red w-1/3 font-bold">{collectionLabel}</td>
+                <td className="py-2 text-stone-beige">{item.series}</td>
               </tr>
               <tr className="border-b border-linen/10">
-                <td className="py-2 text-couture-red font-bold">EDITION</td>
-                <td className="py-2 text-stone-beige uppercase">{item.price}</td>
+                <td className="py-2 text-couture-red font-bold">{editionLabel}</td>
+                <td className="py-2 text-stone-beige">{item.price}</td>
               </tr>
             </tbody>
           </table>
         ) : (
           <div className="grid grid-cols-2 gap-4 border-t border-b border-linen/10 py-4 font-sans text-[10px] text-linen uppercase font-bold">
             <div>
-              <span className="text-couture-red block mb-1 font-bold">COLLECTION</span>
+              <span className="text-couture-red block mb-1 font-bold">{collectionLabel}</span>
               {item.series}
             </div>
             <div>
-              <span className="text-couture-red block mb-1 font-bold">EDITION</span>
+              <span className="text-couture-red block mb-1 font-bold">{editionLabel}</span>
               {item.price}
             </div>
           </div>
@@ -570,7 +580,7 @@ function ArchiveRecord({
       <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
         <ParallaxImage src={item.image} alt={item.title} clipPath={clipPath} />
         <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
-          View collection
+          {viewCollection}
           <ArrowRight className="size-3.5" aria-hidden="true" />
         </span>
       </div>
@@ -587,7 +597,7 @@ function ArchiveRecord({
             : "relative w-full min-h-[90vh] flex flex-col justify-center items-end"
       }
     >
-      <Link href={item.href} aria-label={`View ${item.title} collection`} className="group contents">
+      <Link href={item.href} aria-label={viewCollectionAria} className="group contents">
         {mirror ? (
           <>
             {imageCard}

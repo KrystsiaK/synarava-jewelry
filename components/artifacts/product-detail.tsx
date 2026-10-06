@@ -30,6 +30,7 @@ import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { characteristicGroupLabel, characteristicUnit } from "@/lib/products/characteristics";
+import { localizeShopFacetValue } from "@/lib/catalog/shop-facet-labels";
 import { normalizeLocale } from "@/lib/i18n/locales";
 import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
@@ -224,7 +225,12 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
     }
   }
   if (product.vendor) add(t("product.specifications.productDetails"), { label: t("product.specifications.brand"), value: product.vendor });
-  if (product.productType) add(t("product.specifications.productDetails"), { label: t("product.specifications.productType"), value: product.productType });
+  if (product.productType) {
+    add(t("product.specifications.productDetails"), {
+      label: t("product.specifications.productType"),
+      value: localizeShopFacetValue(product.productType, normalizeLocale(locale)),
+    });
+  }
   if (product.sku) add(t("product.specifications.productDetails"), { label: t("product.specifications.sku"), value: product.sku });
   const primaryVariant = product.variantDetails[0];
   if (primaryVariant?.barcode) add(t("product.specifications.productDetails"), { label: t("product.specifications.barcode"), value: primaryVariant.barcode });
@@ -288,7 +294,9 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
                       <span>
                         {row.characteristic?.valueType === "BOOLEAN" && row.characteristic.booleanValue
                           ? t("product.specifications.yes")
-                          : row.value}
+                          : looksLikeHtml(row.value)
+                            ? <RichText content={row.value} />
+                            : row.value}
                       </span>
                       {row.characteristic?.certificateUrl ? (
                         <a

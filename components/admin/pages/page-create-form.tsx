@@ -176,7 +176,12 @@ export function CreatePageForm({
         <div hidden={activeLocale !== SOURCE_LOCALE}>
           <AdminTextField label="CTA label" name="ctaLabel" placeholder="Shop all products" />
         </div>
-        <AdminHrefField label="CTA href" name="ctaHref" placeholder="/products/…" />
+        <AdminHrefField
+          label="CTA href"
+          name="ctaHref"
+          locale={activeLocale}
+          placeholder="/products/…"
+        />
       </div>
 
       <div hidden={activeLocale !== SOURCE_LOCALE}>

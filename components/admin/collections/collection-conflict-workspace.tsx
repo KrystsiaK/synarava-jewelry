@@ -58,13 +58,11 @@ function normalizeLocaleCode(locale: string) {
   return locale.trim().toLowerCase();
 }
 
+/** Shared commerce/presence under every language shell; plus that locale's rows. */
 export function fieldMatchesCollectionViewLocale(field: CatalogConflictField, locale: string): boolean {
-  const code = normalizeLocaleCode(locale);
-  if (code === "en") {
-    return field.scope.kind === "SHARED"
-      || (field.scope.kind === "LOCALE" && normalizeLocaleCode(field.scope.code) === "en");
-  }
-  return field.scope.kind === "LOCALE" && normalizeLocaleCode(field.scope.code) === code;
+  if (field.scope.kind === "SHARED") return true;
+  return field.scope.kind === "LOCALE"
+    && normalizeLocaleCode(field.scope.code) === normalizeLocaleCode(locale);
 }
 
 function filterFieldsForView(fields: CatalogConflictField[], viewScope: CollectionConflictViewScope | undefined) {
@@ -266,10 +264,17 @@ export function CollectionConflictWorkspace({
           setPreviewLoading(false);
           return;
         }
-        const fields = filterFieldsForView(result.conflict?.fields ?? [], viewScope)
+        const visibleFields = filterFieldsForView(result.conflict?.fields ?? [], viewScope);
+        const fields = visibleFields
           .filter((field) => !field.blockedReason && field.allowedDirections.includes(direction));
         if (fields.length === 0) {
-          onToast("No supported fields for this language in that direction.", "info");
+          if (visibleFields.length > 0) {
+            setDetails({ collectionId, fields: visibleFields });
+            setSelections({});
+            setPreviewLoading(false);
+            return;
+          }
+          onToast("Nothing left to sync for this language in that direction.", "info");
           setPreviewLoading(false);
           return;
         }

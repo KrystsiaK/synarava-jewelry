@@ -46,8 +46,10 @@ function groupHasValue(
 
 /**
  * Editable product passport.
- * EN named fields (`characteristic_*`) always stay in the DOM (visible or aria-hidden)
+ * EN named fields (`characteristic_*`) always stay in the DOM (visible or HTML-hidden)
  * so locale switches and scoped saves keep ProductCharacteristic values.
+ * Do not wrap those hidden EN controls in `display: contents` — Chromium then
+ * ignores `hidden` and PT/RU edits hit the shared EN fields for every language.
  * PT/RU TEXT overlays are controlled + submitted via HiddenPassportTextOverlayFields.
  */
 export function ProductPassportFields({
@@ -111,8 +113,11 @@ export function ProductPassportFields({
 
                   if (definition.type === "BOOLEAN") {
                     return (
-                      <div key={definition.key} className={showOverlay ? "contents" : undefined}>
-                        <div hidden={showOverlay}>
+                      // Do not use display:contents here — it breaks HTML `hidden` in
+                      // Chromium, so EN named fields stay clickable on PT/RU and overwrite
+                      // shared ProductCharacteristic values for every language.
+                      <div key={definition.key} className="min-w-0">
+                        <div hidden={showOverlay} aria-hidden={showOverlay || undefined}>
                           <AdminCheckboxField
                             name={enName}
                             label={enLabel}
@@ -140,8 +145,8 @@ export function ProductPassportFields({
 
                   if (definition.type === "NUMBER") {
                     return (
-                      <div key={definition.key} className={showOverlay ? "contents" : undefined}>
-                        <div hidden={showOverlay}>
+                      <div key={definition.key} className="min-w-0">
+                        <div hidden={showOverlay} aria-hidden={showOverlay || undefined}>
                           <AdminTextField
                             label={enLabel}
                             name={enName}
@@ -166,15 +171,18 @@ export function ProductPassportFields({
 
                   // TEXT — EN field always mounted; overlay UI when translating
                   const overlayValue = textOverlay[definition.key] ?? "";
+                  const isMultiline = "multiline" in definition && definition.multiline;
                   return (
-                    <div key={definition.key} className={showOverlay ? "contents" : undefined}>
-                      <div hidden={showOverlay}>
-                        {"multiline" in definition && definition.multiline ? (
+                    <div
+                      key={definition.key}
+                      className={isMultiline ? "min-w-0 md:col-span-2" : "min-w-0"}
+                    >
+                      <div hidden={showOverlay} aria-hidden={showOverlay || undefined}>
+                        {isMultiline ? (
                           <AdminRichTextField
                             name={enName}
                             label={enLabel}
                             defaultValue={String(current.value)}
-                            className="col-span-full"
                           />
                         ) : (
                           <AdminTextField
@@ -186,12 +194,11 @@ export function ProductPassportFields({
                         )}
                       </div>
                       {showOverlay ? (
-                        "multiline" in definition && definition.multiline ? (
+                        isMultiline ? (
                           <AdminRichTextField
                             label={label}
                             value={overlayValue}
                             onChange={(value) => onTextOverlayChange?.(definition.key, value)}
-                            className="col-span-full"
                             placeholder={String(current.value) || undefined}
                           />
                         ) : (

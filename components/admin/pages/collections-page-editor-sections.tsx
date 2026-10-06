@@ -41,6 +41,7 @@ export type CollectionsPageDraftFields = {
 
 type Props = {
   draft: CollectionsPageDraftFields;
+  activeLocale: string;
   updateField: <K extends keyof CollectionsPageDraftFields>(
     key: K,
     value: CollectionsPageDraftFields[K],
@@ -52,6 +53,7 @@ type Props = {
 
 export function CollectionsPageEditorSections({
   draft,
+  activeLocale,
   updateField,
   archiveCollectionIds,
   setArchiveCollectionIds,
@@ -190,10 +192,11 @@ export function CollectionsPageEditorSections({
             label="Button href"
             help={
               <AdminHelp>
-                Locale-specific path without the language prefix (for example /shop). Empty falls back to /shop.
+                Locale-free path (`/shop`); `/pt/shop` is accepted and normalized. Empty falls back to /shop.
               </AdminHelp>
             }
             name="_uiCalloutCtaHref"
+            locale={activeLocale}
             value={draft.calloutCtaHref}
             onValueChange={(href) => updateField("calloutCtaHref", href)}
             placeholder="/shop"

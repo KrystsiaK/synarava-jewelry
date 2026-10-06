@@ -170,9 +170,18 @@ explicit. Presence-only products retain their dedicated preview/apply flow.
 
 Collection membership uses Shopify 2026-07 `collectionUpdate` source deltas. Removal
 refreshes the managed source identity first; a missing collection/source already
-satisfies removal. An emptied managed source is deleted when other sources remain;
-for the final collection-scoped source the Shopify-supported legacy stopgap remains.
-Shopify-authored sources are not removed as a fallback.
+satisfies removal (null node **or** Shopify “Collection does not exist” / not-found
+errors). When the GID is gone, Push clears the local `shopifyCollectionId` /
+`shopifyManualSourceId` link and that product’s membership — it does **not** toast a
+hard failure that blocks the rest of the product sync. An emptied managed source is
+deleted when other sources remain; for the final collection-scoped source the
+Shopify-supported legacy stopgap remains. Shopify-authored sources are not removed
+as a fallback.
+
+Locale-scoped conflict direction arrows include SHARED commerce under every language
+shell. When the direction matrix has no per-field writes (blocked commerce, one-way
+presence, or an empty set), the UI opens whole-record Pull/Push details instead of a
+“No supported fields…” toast that looks like a broken sync.
 
 ---
 

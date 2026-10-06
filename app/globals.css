@@ -385,32 +385,38 @@ select {
  * border box; negative margin keeps the tight leading. The reveal mask
  * (.type-reveal) is the only overflow clip, and it is taller than the
  * glyphs so the resting word is never sliced.
+ * Lives in @layer components so Tailwind margin utilities (mb-6, etc.)
+ * can override the compensating negative margins — otherwise unlayered
+ * rules win and following copy (e.g. home archive [COLLECTION NOTE])
+ * gets pulled under Cyrillic descenders.
  * Page shells use overflow-x: clip. overflow-x: hidden forces the other
  * axis to auto and will cut this ink.
  */
-.type-display {
-  min-width: 0;
-  max-width: 100%;
-  padding-top: 0.32em;
-  padding-bottom: 0.46em;
-  margin-top: -0.32em;
-  margin-bottom: -0.46em;
-  overflow-wrap: break-word;
-}
+@layer components {
+  .type-display {
+    min-width: 0;
+    max-width: 100%;
+    padding-top: 0.32em;
+    padding-bottom: 0.46em;
+    margin-top: -0.32em;
+    margin-bottom: -0.46em;
+    overflow-wrap: break-word;
+  }
 
-.type-reveal {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  vertical-align: baseline;
-  padding: 0.32em 0.12em 0.46em;
-  margin-top: -0.32em;
-  margin-bottom: -0.46em;
-  overflow-wrap: anywhere;
-}
+  .type-reveal {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    vertical-align: baseline;
+    padding: 0.32em 0.12em 0.46em;
+    margin-top: -0.32em;
+    margin-bottom: -0.46em;
+    overflow-wrap: anywhere;
+  }
 
-.type-reveal-gap {
-  margin-right: 0.14em;
+  .type-reveal-gap {
+    margin-right: 0.14em;
+  }
 }
 
 @utility panel {

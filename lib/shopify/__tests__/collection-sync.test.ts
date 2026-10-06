@@ -5,10 +5,20 @@ import { SHOPIFY_MANUAL_SOURCE_TITLE } from "@/lib/shopify/collection-membership
 const mocks = vi.hoisted(() => ({
   request: vi.fn(),
   updateCollection: vi.fn(),
+  findCollection: vi.fn(),
+  deleteProductCollections: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
-  db: { collection: { update: mocks.updateCollection } },
+  db: {
+    collection: {
+      update: mocks.updateCollection,
+      findUnique: mocks.findCollection,
+    },
+    productCollection: {
+      deleteMany: mocks.deleteProductCollections,
+    },
+  },
 }));
 
 vi.mock("@/lib/shopify/admin", () => ({
@@ -187,8 +197,35 @@ describe("Shopify collection source synchronization", () => {
 
 it("treats removal from a missing collection as already removed", async () => {
   mocks.request.mockResolvedValueOnce({ collection: null });
+  mocks.findCollection.mockResolvedValueOnce({ id: "local-c1" });
+  mocks.deleteProductCollections.mockResolvedValueOnce({ count: 1 });
+  mocks.updateCollection.mockResolvedValueOnce({});
   await expect(removeProductFromShopifyCollection({ shopifyCollectionId: "c1", shopifyManualSourceId: "stale" }, "p1")).resolves.toBeUndefined();
   expect(mocks.request).toHaveBeenCalledTimes(1);
+  expect(mocks.deleteProductCollections).toHaveBeenCalledWith({
+    where: { productId: "p1", collectionId: "local-c1" },
+  });
+  expect(mocks.updateCollection).toHaveBeenCalledWith({
+    where: { id: "local-c1" },
+    data: {
+      shopifyCollectionId: null,
+      shopifyManualSourceId: null,
+      syncStatus: "UNLINKED",
+      syncError: null,
+    },
+  });
+});
+
+it("skips REMOVE when Shopify reports Collection does not exist as a GraphQL error", async () => {
+  mocks.request.mockRejectedValueOnce(new ShopifyAdminError("Collection does not exist"));
+  mocks.findCollection.mockResolvedValueOnce({ id: "local-c1" });
+  mocks.deleteProductCollections.mockResolvedValueOnce({ count: 0 });
+  mocks.updateCollection.mockResolvedValueOnce({});
+  await expect(removeProductFromShopifyCollection({
+    shopifyCollectionId: "gid://shopify/Collection/725160296797",
+    shopifyManualSourceId: "stale",
+  }, "p1")).resolves.toBeUndefined();
+  expect(mocks.updateCollection).toHaveBeenCalled();
 });
 
 it("refreshes a stale source id before removing membership", async () => {

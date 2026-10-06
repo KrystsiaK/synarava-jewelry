@@ -55,14 +55,14 @@ function normalizeLocaleCode(locale: string) {
   return locale.trim().toLowerCase();
 }
 
-/** EN/source includes SHARED commerce + EN translation rows; other tabs are locale-only. */
+/**
+ * Language shells include SHARED commerce under every locale (one price → EN/PT/RU)
+ * plus that locale's translation rows. See docs/admin/commerce-sync.md marker tree.
+ */
 export function fieldMatchesViewLocale(field: CatalogConflictField, locale: string): boolean {
-  const code = normalizeLocaleCode(locale);
-  if (code === "en") {
-    return field.scope.kind === "SHARED"
-      || (field.scope.kind === "LOCALE" && normalizeLocaleCode(field.scope.code) === "en");
-  }
-  return field.scope.kind === "LOCALE" && normalizeLocaleCode(field.scope.code) === code;
+  if (field.scope.kind === "SHARED") return true;
+  return field.scope.kind === "LOCALE"
+    && normalizeLocaleCode(field.scope.code) === normalizeLocaleCode(locale);
 }
 
 export function fieldMatchesViewSection(
@@ -305,6 +305,8 @@ function DetailsModal({
   const emptyScope = conflict !== null && !loading && fields.length === 0;
   const needsWholeRecordSync = onlyBlocked || emptyScope;
   const hasBlockedCommerce = fields.some((field) => field.origin === "COMMERCE" && field.blockedReason);
+  // Mixed actionable + blocked: keep field picks and still offer whole-record Pull/Push.
+  const showWholeRecordActions = needsWholeRecordSync || hasBlockedCommerce;
   const busy = applying;
   return (
     <AnimatedModal open onClose={busy ? () => undefined : onClose} ariaLabel="Choose conflict values" portalClassName="admin-modal-root" zIndexClassName="z-[300]" backdropZIndexClassName="z-[290]" className="adm-panel pointer-events-auto grid max-h-[min(88vh,60rem)] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
@@ -368,7 +370,7 @@ function DetailsModal({
             <button type="button" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
           </>
         ) : null}
-        {conflict && hasBlockedCommerce ? (
+        {conflict && showWholeRecordActions ? (
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy} onClick={() => onPull(conflict.productId)} className="adm-btn-secondary inline-flex items-center gap-2">
               <ArrowDownToLine className="size-4" />Pull from Shopify
@@ -552,7 +554,16 @@ export function CatalogConflictWorkspace({
           return;
         }
         const visibleFields = filterConflictFieldsForView(result.conflict?.fields ?? [], viewScope);
-        if (visibleFields.some((field) => field.origin === "COMMERCE" && field.blockedReason)) {
+        const needsWholeRecord = visibleFields.some(
+          (field) => field.origin === "COMMERCE" && field.blockedReason,
+        ) || (
+          visibleFields.length > 0
+          && visibleFields.every((field) => field.blockedReason || !field.allowedDirections.includes(direction))
+        );
+        if (needsWholeRecord) {
+          // Blocked commerce, one-way presence, or empty direction matrix for this
+          // scope — open field details with whole-record Pull/Push instead of a
+          // toast that looks like a broken sync.
           setDetails({ productId, fields: visibleFields });
           setSelections({});
           setPreviewLoading(false);
@@ -568,8 +579,8 @@ export function CatalogConflictWorkspace({
         if (fields.length === 0) {
           onToast(
             viewScope.kind === "productSection"
-              ? "No supported fields for this section in that direction."
-              : "No supported fields for this language in that direction.",
+              ? "Nothing left to sync in this section for that direction."
+              : "Nothing left to sync for this language in that direction.",
             "info",
           );
           setPreviewLoading(false);

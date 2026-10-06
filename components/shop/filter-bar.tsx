@@ -8,7 +8,7 @@ import { RichText } from "@/components/content/rich-text";
 import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
-import { supportsComplianceFilters } from "@/lib/catalog/taxonomy";
+import { supportsComplianceFilters, supportsTagFilters } from "@/lib/catalog/taxonomy";
 import type { ShopFilterLabels } from "@/lib/content/shop-page-copy";
 import { shopComplianceOptions } from "./compliance-options";
 import { FilterDropdown } from "./filter-dropdown";
@@ -224,6 +224,7 @@ export function FilterBar({
   ];
   const showFinish = true;
   const showCompliance = supportsComplianceFilters();
+  const showTags = supportsTagFilters();
 
   return (
     <div data-component="FilterBar" className="relative">
@@ -385,7 +386,7 @@ export function FilterBar({
             {showCollectionFilter ? (
               <FilterDropdown label={t("shop.filters.collection")} options={collections} value={filters.collection ?? ""} onChange={(v) => setFilter("collection", v)} allLabel={t("shop.filters.allCollections")} />
             ) : null}
-            <FilterDropdown label={t("shop.filters.tag")} options={tags} value={filters.tag ?? ""} onChange={(v) => setFilter("tag", v)} allLabel={t("shop.filters.allTags")} />
+            {showTags ? <FilterDropdown label={t("shop.filters.tag")} options={tags} value={filters.tag ?? ""} onChange={(v) => setFilter("tag", v)} allLabel={t("shop.filters.allTags")} /> : null}
             <FilterDropdown label={t("shop.filters.material")} options={materials} value={filters.material ?? ""} onChange={(v) => setFilter("material", v)} allLabel={t("shop.filters.allMaterials")} />
             {showFinish ? <FilterDropdown label={t("shop.filters.finish")} options={finishes} value={filters.finish ?? ""} onChange={(v) => setFilter("finish", v)} allLabel={t("shop.filters.allFinishes")} /> : null}
             <FilterDropdown label={t("shop.filters.origin")} options={origins} value={filters.origin ?? ""} onChange={(v) => setFilter("origin", v)} allLabel={t("shop.filters.allOrigins")} />
@@ -557,11 +558,15 @@ function MobileFilterSheet({
     ...(!hideCollection
       ? [{ key: "collection" as const, label: t("shop.filters.collection"), options: collections }]
       : []),
-    { key: "tag", label: t("shop.filters.tag"), options: tags },
+    ...(supportsTagFilters()
+      ? [{ key: "tag" as const, label: t("shop.filters.tag"), options: tags }]
+      : []),
     { key: "material", label: t("shop.filters.material"), options: materials },
     { key: "finish", label: t("shop.filters.finish"), options: finishes },
     { key: "origin", label: t("shop.filters.origin"), options: origins },
-    { key: "certified", label: t("shop.filters.compliance"), options: shopComplianceOptions(t) },
+    ...(supportsComplianceFilters()
+      ? [{ key: "certified" as const, label: t("shop.filters.compliance"), options: shopComplianceOptions(t) }]
+      : []),
   ];
 
   return (

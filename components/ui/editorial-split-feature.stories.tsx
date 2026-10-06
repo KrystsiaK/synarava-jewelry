@@ -28,7 +28,7 @@ const meta = {
       </div>
     ),
     description:
-      "Geometric folk codes, white ceramic, linen rhythm, and sculptural forms rooted in Belarusian symbolic language.",
+      "Materials, form, and quiet detail — jewelry and accessories made for everyday wear.",
     action: (
       <div className="flex items-center gap-4">
         <span className="label-caps border-b border-couture-red pb-1.5 text-couture-red">
