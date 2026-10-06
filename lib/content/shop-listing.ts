@@ -16,6 +16,7 @@ import {
 } from "@/lib/catalog/shop-query";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { listBestSellingShopifyProductIds, type ShopFilters } from "@/lib/content/catalog";
+import { buyerFacingTagNames, localizeShopFacetValue } from "@/lib/catalog/shop-facet-labels";
 import { resolveProductCopy } from "@/lib/products/localization";
 
 /** Fields used by shop cards, discovery, sorting and client-side filters. */
@@ -143,11 +144,11 @@ function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListin
       ...row.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
     ].filter(Boolean).join(" "),
     categorySlug: row.shopifyCategoryId,
-    categoryName: categoryLeafLabel(row.shopifyCategoryName),
+    categoryName: localizeShopFacetValue(categoryLeafLabel(row.shopifyCategoryName), locale),
     productType: row.productType?.trim() ?? "",
     collectionSlugs: row.collections.map((item) => item.collection.slug),
     tagSlugs: row.tags.map((item) => item.tag.slug),
-    tagNames: row.tags.map((item) => item.tag.name),
+    tagNames: buyerFacingTagNames(row.tags.map((item) => item.tag.name)),
     characteristics: row.characteristics,
     createdAt: row.createdAt,
   };

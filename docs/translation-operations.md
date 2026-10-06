@@ -30,6 +30,8 @@ Do these in order. Skipping a step is how storefront chrome stays in English aft
 
    **Shop / catalog product cards** (`/[locale]/shop`, `GET /api/catalog/products`) read **`Product` + `ProductTranslation`** for the request locale — there is no separate catalog translation table. Title/short description come from `resolveProductCopy` (same helper as the PDP). A locale row with an empty title is treated as missing copy and falls back to English. Russian (and other locales) must be filled under **Admin → Products → [product] → locale tab**, or pulled from Shopify translations when Shopify already has them; the storefront does not call Shopify live for card copy.
 
+   **Shop filter facet values** (category leaf, product type, material, finish/coating, origin) keep English/canonical keys for URLs and Prisma match. Display labels resolve in `getShopFilterData` via `lib/catalog/shop-facet-labels.ts`: passport TEXT overlays first (material/finish/origin), then the shipped jewelry vocabulary map, then English. Tag and Compliance facets are hidden (`supportsTagFilters` / `supportsComplianceFilters`) — tags here are operational SKU-like noise with no locale surface.
+
 6. **Graphify.** After the locale wiring, messages, and this checklist change, run `graphify update .` so the knowledge graph indexes them.
 
 ## Shared structure vs localized text

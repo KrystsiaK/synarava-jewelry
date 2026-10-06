@@ -45,7 +45,9 @@ describe("FilterBar", () => {
     expect(screen.queryByRole("button", { name: /^collection$/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /more filters/i }));
     expect(screen.getByRole("button", { name: /^collection$/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^tag$/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^tag$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^compliance$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^material$/i })).toBeInTheDocument();
   });
 
   it("renders result count", () => {
