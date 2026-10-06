@@ -9,8 +9,8 @@ const ABSOLUTE_HTTP_URL = /^https?:\/\//i;
 
 /** Locale Organization.description — matches current store positioning (not couture-only). */
 const ORGANIZATION_DESCRIPTION: Record<Locale, string> = {
-  en: "Synarava — an online shop of jewelry and accessories focused on materials, form, symbolism, and everyday wear.",
-  pt: "Synarava — loja online de joalharia e acessórios com foco em materiais, forma, simbolismo e uso quotidiano.",
+  en: "Synarava is an online shop for jewellery and accessories focused on materials, form, symbolism and everyday wear.",
+  pt: "Synarava é uma loja online de joalharia e acessórios com foco em materiais, forma, simbolismo e uso no dia a dia.",
   ru: "Synarava — интернет-магазин украшений и аксессуаров с акцентом на материалы, форму, символику и повседневную носку.",
 };
 

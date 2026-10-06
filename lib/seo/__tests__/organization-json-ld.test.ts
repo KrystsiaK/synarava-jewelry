@@ -30,8 +30,13 @@ describe("organizationDescription", () => {
     );
   });
 
-  it("falls back to English for unknown locales via en default", () => {
-    expect(organizationDescription("en")).toContain("jewelry and accessories");
+  it("uses the English and Portuguese store positioning copy", () => {
+    expect(organizationDescription("en")).toBe(
+      "Synarava is an online shop for jewellery and accessories focused on materials, form, symbolism and everyday wear.",
+    );
+    expect(organizationDescription("pt")).toBe(
+      "Synarava é uma loja online de joalharia e acessórios com foco em materiais, forma, simbolismo e uso no dia a dia.",
+    );
   });
 });
 
