@@ -54,9 +54,9 @@ Rules:
 - Sticky chrome uses shared rhythm (`.adm-band`, `--adm-inset-x` / Tailwind `px-adm-inset`, `.adm-band--sticky-radius`) — one horizontal gutter inside panels; no ad-hoc `px-*` / `py-*` on headers.
 - Contract: [`docs/admin/synarava-cms.md`](docs/admin/synarava-cms.md). Skill: `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`).
 
-## Ship finished work to main
+## Ship finished work (staging → main)
 
-- When implementation for a task is **done**, land it on `origin/main` yourself. Do not stop at a draft PR and wait for the user to merge.
+- When implementation for a task is **done**, land it on `origin/staging` yourself, then open/update a PR into `main`. Do not stop at a draft PR and wait for the user to merge.
 - Skill: [`ship-to-main`](.agents/skills/ship-to-main/SKILL.md).
 - Exceptions only: user says hold/draft-only/wait for review; or required CI is red and cannot be fixed in this turn.
 

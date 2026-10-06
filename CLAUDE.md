@@ -8,6 +8,6 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 
-## Ship finished work to main
+## Ship finished work (staging → main)
 
-When a task is done, land it on `origin/main` yourself — do not leave finished work waiting on a draft PR. Skill: `.agents/skills/ship-to-main/SKILL.md`.
+When a task is done, land it on `origin/staging` yourself, then open/update a PR into `main` — do not leave finished work waiting on a draft PR. Skill: `.agents/skills/ship-to-main/SKILL.md`.

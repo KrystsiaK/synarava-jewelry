@@ -2,6 +2,13 @@
 
 Staging URL: `https://synarava-shop-app-staging.up.railway.app`.
 
+## Git flow
+
+- Day-to-day work lands on `staging` first (integration + Railway staging deploy).
+- Promote to production by opening a PR from `staging` into `main`.
+- If `main` moves ahead (hotfix), `.github/workflows/sync-main-to-staging.yml`
+  fast-forwards `staging` to `main` so the branches do not diverge.
+
 Railway injects `RAILWAY_ENVIRONMENT_NAME`. The application uses that value to
 keep staging out of search indexes and to disable GTM/Meta destinations even if
 their IDs were copied from production. `NODE_ENV` is not used for this decision
