@@ -190,6 +190,40 @@ const COOKIE_SETTINGS_PAGE_GROUP: StorefrontCopyGroup = {
 
 const PLURAL = "Keep {count}. “one” is a single item; “few” and “many” are for languages such as Russian; “other” covers everything else. Leave few/many empty to reuse “other”.";
 
+const HOME_ARCHIVE_GROUP: StorefrontCopyGroup = {
+  id: "home-archive",
+  title: "Home — featured collections",
+  description:
+    "UI chrome on the home Featured collections strip (ArchivePathway). Collection titles, notes, and series values stay on each Collection record.",
+  fields: [
+    {
+      key: "home.archive.collectionNote",
+      label: "Collection note label",
+      hint: "Bracketed label above each collection summary (e.g. [COLLECTION NOTE]).",
+    },
+    {
+      key: "home.archive.viewCollection",
+      label: "View collection",
+      hint: "Overlay CTA on the collection image.",
+    },
+    {
+      key: "home.archive.collection",
+      label: "Collection field label",
+      hint: "Table / meta label beside the series value.",
+    },
+    {
+      key: "home.archive.edition",
+      label: "Edition field label",
+      hint: "Table / meta label beside the edition value.",
+    },
+    {
+      key: "home.archive.viewCollectionAria",
+      label: "View collection (aria)",
+      hint: "Accessible name for the collection card link. Keep {title}.",
+    },
+  ],
+};
+
 const REVIEW_FORM_GROUP: StorefrontCopyGroup = {
   id: "reviews-form",
   title: "Reviews — leave a review",
@@ -233,6 +267,7 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   FOOTER_SERVICE_HEADING_GROUP,
   FOOTER_SOCIAL_HEADING_GROUP,
   SERVICE_CONTACT_GROUP,
+  HOME_ARCHIVE_GROUP,
   COOKIE_CONSENT_GROUP,
   COOKIE_SETTINGS_PAGE_GROUP,
   REVIEW_FORM_GROUP,

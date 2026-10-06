@@ -203,4 +203,68 @@ describe("AdminHrefField", () => {
       );
     });
   });
+
+  it("accepts locale-prefixed paths that match a real route and stores locale-free", async () => {
+    mocks.search.mockResolvedValue({
+      segments: [
+        {
+          id: "routes",
+          label: "Routes",
+          hits: [
+            {
+              id: "route:shop",
+              segment: "routes",
+              label: "Shop",
+              href: "/shop",
+              detail: "/pt/shop",
+            },
+          ],
+        },
+      ],
+    });
+
+    const user = userEvent.setup();
+    const { container } = render(
+      <AdminHrefField label="CTA href" name="ctaHref" locale="pt" defaultValue="" />,
+    );
+
+    await user.type(screen.getByRole("combobox", { name: /CTA href/i }), "/pt/shop");
+    await waitFor(() => expect(mocks.search).toHaveBeenCalledWith("/pt/shop"));
+    await user.click(await screen.findByRole("option", { name: /Shop/ }));
+
+    expect(container.querySelector<HTMLInputElement>('input[type="hidden"][name="ctaHref"]')).toHaveValue(
+      "/shop",
+    );
+    expect(container.querySelector("[data-component='AdminFieldError']")).toBeNull();
+  });
+
+  it("normalizes a locale-prefixed default and does not flag it as missing", async () => {
+    mocks.search.mockResolvedValue({
+      segments: [
+        {
+          id: "routes",
+          label: "Routes",
+          hits: [
+            {
+              id: "route:shop",
+              segment: "routes",
+              label: "Shop",
+              href: "/shop",
+              detail: "/pt/shop",
+            },
+          ],
+        },
+      ],
+    });
+
+    const { container } = render(
+      <AdminHrefField label="CTA href" name="ctaHref" locale="pt" defaultValue="/pt/shop" />,
+    );
+
+    expect(container.querySelector<HTMLInputElement>('input[type="hidden"][name="ctaHref"]')).toHaveValue(
+      "/shop",
+    );
+    await waitFor(() => expect(mocks.search).toHaveBeenCalledWith("/shop"));
+    expect(container.querySelector("[data-component='AdminFieldError']")).toBeNull();
+  });
 });

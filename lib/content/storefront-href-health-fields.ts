@@ -4,6 +4,7 @@
  */
 
 import { looksLikePath, normalizeHrefQuery } from "@/lib/admin/storefront-href";
+import { toLocaleFreeHref } from "@/lib/i18n/routing";
 
 export type StorefrontHrefHealth =
   | "live"
@@ -23,11 +24,12 @@ export function classifyHrefWithoutLookup(href: string): StorefrontHrefHealth | 
   if (!trimmed) return "empty";
   if (/^https?:\/\//i.test(trimmed)) return "external";
   if (/^mailto:/i.test(trimmed)) return "external";
-  const path = trimmed === "/" ? "/" : trimmed.replace(/\/+$/, "") || "/";
+  const free = toLocaleFreeHref(trimmed);
+  const path = free === "/" ? "/" : free.replace(/\/+$/, "") || "/";
   if (EXTRA_LIVE_STOREFRONT_PATHS.has(path)) {
     return "live";
   }
-  if (!looksLikePath(trimmed)) return "missing";
+  if (!looksLikePath(trimmed) && !looksLikePath(free)) return "missing";
   return null;
 }
 

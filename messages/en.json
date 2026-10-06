@@ -723,6 +723,13 @@
     }
   },
   "home": {
+    "archive": {
+      "collectionNote": "Collection note",
+      "viewCollection": "View collection",
+      "collection": "Collection",
+      "edition": "Edition",
+      "viewCollectionAria": "View {title} collection"
+    },
     "editShowcase": {
       "eyebrow": "A few to start with",
       "title": "The Edit",

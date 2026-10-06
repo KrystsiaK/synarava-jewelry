@@ -37,6 +37,10 @@ import { ownedLocalizedPageFields, resolvePageLocalizedCopy } from "@/lib/pages/
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
 import { findLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { normalizeCustomerCareContent } from "@/lib/content/customer-care-email";
+import {
+  formatCollectionEyebrow,
+  shippedCollectionEyebrowLabel,
+} from "@/lib/content/collection-eyebrow";
 
 // Shopify's Standard Product Taxonomy name is a " > "-delimited full path
 // (e.g. "Apparel & Accessories > Jewelry > Brooches & Lapel Pins >
@@ -580,6 +584,7 @@ export async function listCollections(locale: Locale = "en") {
     include: { translations: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
+  const collectionLabel = await resolveCollectionEyebrowLabel(locale);
 
   return collections.map((collection) => {
     const copy = resolveCollectionCopy(collection, locale);
@@ -589,7 +594,7 @@ export async function listCollections(locale: Locale = "en") {
       slug: resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle),
       sourceSlug: collection.slug,
       name: copy.name,
-      eyebrow: formatCollectionEyebrow(collection.sortOrder),
+      eyebrow: formatCollectionEyebrow(collection.sortOrder, collectionLabel),
       summary: copy.description,
       seoTitle: copy.seoTitle,
       seoDescription: copy.seoDescription,
@@ -618,13 +623,14 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
 
   const copy = resolveCollectionCopy(collection, locale);
   const activeSlug = resolveLocalizedHandle(locale, collection.slug, collection.translations.find((translation) => translation.locale === locale)?.localizedHandle);
+  const collectionLabel = await resolveCollectionEyebrowLabel(locale);
   return {
     id: collection.id,
     createdAt: collection.createdAt,
     slug: activeSlug,
     sourceSlug: collection.slug,
     name: copy.name,
-    eyebrow: formatCollectionEyebrow(collection.sortOrder),
+    eyebrow: formatCollectionEyebrow(collection.sortOrder, collectionLabel),
     summary: copy.description,
     seoTitle: copy.seoTitle,
     seoDescription: copy.seoDescription,
@@ -641,12 +647,12 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
   };
 }
 
-function formatCollectionEyebrow(sortOrder: number | null | undefined) {
-  if (!Number.isFinite(sortOrder) || (sortOrder ?? 0) <= 0) {
-    return "Collection";
-  }
-
-  return `Collection ${String(sortOrder).padStart(2, "0")}`;
+async function resolveCollectionEyebrowLabel(locale: Locale): Promise<string> {
+  // Prefer Shared / обменка override when present; else shipped messages.
+  const { getStorefrontCopy } = await import("@/lib/content/storefront-copy");
+  const copy = await getStorefrontCopy();
+  const override = copy[locale]?.["home.archive.collection"]?.trim();
+  return override || shippedCollectionEyebrowLabel(locale);
 }
 
 /**

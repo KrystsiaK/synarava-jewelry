@@ -17,7 +17,7 @@ import {
   type HeaderNavData,
 } from "@/lib/content/header-nav-fields";
 import { useTranslations } from "@/lib/i18n/context";
-import { localePath } from "@/lib/i18n/routing";
+import { localePath, stripLocalePrefix } from "@/lib/i18n/routing";
 
 type SiteHeaderProps = {
   // null means the cart count couldn't be fetched (e.g. Shopify unavailable) —
@@ -30,7 +30,7 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: SiteHeaderProps) {
   const rawPathname = usePathname();
-  const pathname = rawPathname.replace(/^\/(en|pt)(?=\/|$)/, "") || "/";
+  const pathname = stripLocalePrefix(rawPathname);
   const { resolvedTheme } = useTheme();
   const { t, plural, locale } = useTranslations();
   const reduceMotion = useReducedMotion() ?? false;

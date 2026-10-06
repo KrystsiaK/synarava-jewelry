@@ -486,5 +486,35 @@
       },
       "viewAll": "Смотреть все изделия"
     }
+  },
+  "home": {
+    "archive": {
+      "collectionNote": "Заметка о коллекции",
+      "viewCollection": "Смотреть коллекцию",
+      "collection": "Коллекция",
+      "edition": "Выпуск",
+      "viewCollectionAria": "Смотреть коллекцию {title}"
+    },
+    "editShowcase": {
+      "eyebrow": "Несколько точек входа",
+      "title": "Подборка",
+      "body": "Четыре изделия — четыре стороны Synarava.",
+      "viewAllLabel": "Смотреть все изделия"
+    },
+    "manifesto": {
+      "label": "Принцип, который стоит держать",
+      "quoteBefore": "Украшение — не декор.",
+      "quoteBridge": "Это",
+      "quoteEmphasis": "структурный замысел",
+      "quoteAfter": "на форме человека.",
+      "attribution": "Манифест Synarava // Vol 1."
+    },
+    "finalCta": {
+      "body": "Финальный выбор — инстинкт.",
+      "title": "Выберите изделие, которое вас запомнит.",
+      "ctaLabel": "Войти в коллекцию",
+      "aboutLabel": "О нас",
+      "footerTitle": "Вещи, выверенные медленно,\nна всю жизнь."
+    }
   }
 }

@@ -126,11 +126,12 @@ export function HeaderNavEditor({
                 label="Path"
                 help={
                   <AdminHelp>
-                    Shared across languages. Search by name, or type /products/ or /collections/ to pick a
-                    specific item.
+                    Shared across languages — locale-free (`/shop`). `/pt/shop` is accepted and normalized; the
+                    storefront prefixes the active language.
                   </AdminHelp>
                 }
                 name={`headerNavHref-${item.id}`}
+                locale={activeLocale}
                 value={item.href}
                 onValueChange={(href) => updateHref(index, href)}
                 placeholder="/shop"

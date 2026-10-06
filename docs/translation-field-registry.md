@@ -26,7 +26,7 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | optionName / optionValueLabel | localized | when-published | native `PRODUCT_OPTION` / `PRODUCT_OPTION_VALUE` |
 | mediaAlt | localized | optional (EN publish checklist via Issues / Meta Health) | native `MEDIA_IMAGE.alt` |
 | mediaCaption | localized | optional | metaobject `product_detail_copy.media_caption` |
-| slug | shared | always | native `PRODUCT.handle` (one path for every locale) |
+| slug | shared | always | — (one path for every locale; commerce `productSet` maps to `PRODUCT.handle`) |
 | sku, price, compareAt, currency, status, visibility, category, collections, tags, media, variants | shared | — | — |
 | merchant product metafield text (`custom.*` etc., Fields tab) | localized | optional | metafield `value` via Translations API on Metafield GID |
 | merchant product metafield non-text (number/boolean/date/url/json) | shared | optional | metafieldsSet (EN only) |
@@ -85,7 +85,7 @@ native resource a given page instance binds to).
 
 Derived programmatically from `STOREFRONT_COPY_KEYS`
 (`lib/content/storefront-copy-fields.ts`) so the two lists cannot drift.
-Keys target metaobject `storefront_copy.<key>` — chrome, footer, contact CTA, cookie consent / settings copy, and the leave-a-review form (`reviews.shareTitle`, `reviews.form.*`).
+Keys target metaobject `storefront_copy.<key>` — chrome, footer, contact CTA, home Featured collections strip (`home.archive.*`), cookie consent / settings copy, and the leave-a-review form (`reviews.shareTitle`, `reviews.form.*`).
 Header cart and account labels, the cart page, the add-to-cart confirmation, and `/login`
 are **not** in this registry. They are local overrides in `SiteSetting` `commerce-copy-v1`
 (`lib/content/commerce-copy-fields.ts`). Shopify hosts checkout, payment, and the

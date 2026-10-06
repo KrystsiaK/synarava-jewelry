@@ -4,19 +4,23 @@ import {
   assembleHrefSearchResult,
   buildCustomPathHit,
   filterHitsByQuery,
+  findExactHrefHit,
   flattenHrefHits,
   formatHrefDetail,
   hasExactHrefMatch,
   hrefForCollection,
   hrefForPage,
   hrefForProduct,
+  hrefHitDetailForLocale,
   listStaticRouteHits,
   looksLikePath,
+  normalizeCommittedHref,
   parseHrefSearchQuery,
   hrefTargetIssueFromSearch,
   hrefTargetWarning,
   statusLabelForCollection,
   statusLabelForProduct,
+  withLocaleAwareHrefDetails,
 } from "@/lib/admin/storefront-href";
 
 describe("storefront-href helpers", () => {
@@ -112,6 +116,37 @@ describe("storefront-href helpers", () => {
     });
   });
 
+  it("treats locale-prefixed queries as their locale-free catalog paths", () => {
+    expect(parseHrefSearchQuery("/pt/shop")).toMatchObject({
+      raw: "/pt/shop",
+      term: "/shop",
+      scope: "all",
+    });
+    expect(parseHrefSearchQuery("/ru/products/oak-ring")).toMatchObject({
+      term: "oak-ring",
+      scope: "products",
+      browseProducts: true,
+    });
+    expect(parseHrefSearchQuery("/pt/collections/axis")).toMatchObject({
+      term: "axis",
+      scope: "collections",
+      browseCollections: true,
+    });
+
+    const routes = filterHitsByQuery(listStaticRouteHits(), "/pt/shop");
+    expect(routes.some((hit) => hit.href === "/shop")).toBe(true);
+
+    const result = assembleHrefSearchResult({
+      routes: listStaticRouteHits().filter((hit) => hit.href === "/shop"),
+    });
+    expect(hasExactHrefMatch(result, "/pt/shop")).toBe(true);
+    expect(findExactHrefHit(result, "/ru/shop")?.href).toBe("/shop");
+    expect(normalizeCommittedHref("/pt/shop")).toBe("/shop");
+    expect(buildCustomPathHit("/pt/promo")?.href).toBe("/promo");
+    expect(hrefHitDetailForLocale("/shop", "pt")).toBe("/pt/shop");
+    expect(withLocaleAwareHrefDetails(result, "pt").segments[0]?.hits[0]?.detail).toBe("/pt/shop");
+  });
+
   it("builds soft warnings for draft and unlisted targets", () => {
     expect(hrefTargetWarning("DRAFT")).toMatch(/draft/i);
     expect(hrefTargetWarning("UNLISTED")).toMatch(/unlisted/i);
@@ -129,6 +164,9 @@ describe("storefront-href helpers", () => {
     expect(
       hrefTargetIssueFromSearch({ href: "/shop", hasExactHit: true, exactHitStatus: "DRAFT" }),
     ).toMatchObject({ tone: "warning" });
+    expect(
+      hrefTargetIssueFromSearch({ href: "/pt/shop", hasExactHit: true }),
+    ).toBeUndefined();
   });
 
   it("includes cookie-settings in static routes", () => {

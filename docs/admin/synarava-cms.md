@@ -185,9 +185,10 @@ import { AdminHrefField } from "@/components/synarava-cms";
 - Same outer chrome as text (`AdminFieldShell` + `AdminTextControl`).
 - Search opens segmented results: **Routes** (built-in), **Pages**, **Collections**, **Products**, plus **Use custom path** when the query looks like a path and is not an exact match.
 - Result list is a **portaled** fixed `.adm-popover` (not an in-flow absolute child), so it stays visible inside `AdminCollapsiblePanel` / other overflow-clipped shells.
-- Type a product/collection **name**, or drill in with `/products/` / `/collections/` (and optional slug after the slash).
+- Type a product/collection **name**, or drill in with `/products/` / `/collections/` (and optional slug after the slash). Locale-prefixed queries (`/pt/shop`, `/ru/products/…`) are accepted and matched to the same destinations.
+- Pass optional `locale` so picker detail lines show the active-editor path (`/pt/shop`) while the committed value stays locale-free.
 - Selecting a **draft** or **unlisted** target keeps the value (not blocked) and shows a soft orange `warning` under the field.
-- Hidden input stores the committed href (locale-free: `/shop`, `/products/…`).
+- Hidden input stores the committed href (locale-free: `/shop`, `/products/…`). Typing `/pt/shop` normalizes to `/shop` on commit; the storefront prefixes the active language via `storefrontHref` / `localePath`.
 - Keyboard: ↑/↓, Enter, Esc. Embed: `AdminHrefControl`.
 
 ### Video (site film upload)
