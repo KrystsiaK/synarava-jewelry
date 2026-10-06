@@ -67,6 +67,7 @@ describe("admin-nav-config", () => {
     expect(settings?.children?.map((child) => child.label)).toEqual([
       "Header",
       "Footer",
+      "Home",
       "Cookies",
       "Contact",
       "Reviews",

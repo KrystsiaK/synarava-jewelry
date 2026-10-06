@@ -877,7 +877,7 @@ function RelatedProductsSection({ products }: { products: ProductSummary[] }) {
 function ProductFooter({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-10%" });
-  const { locale } = useTranslations();
+  const { locale, t } = useTranslations();
 
   if (!product.collectionSlug || !product.collectionName) {
     return null;
@@ -933,7 +933,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
           transition={{ duration: 0.8, ease, delay: 0.28 }}
         >
           <PrimaryCtaButton href={localePath(locale, `/collections/${product.collectionSlug}`)}>
-            View collection
+            {t("home.archive.viewCollection")}
           </PrimaryCtaButton>
 
           <Link

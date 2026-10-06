@@ -1,5 +1,6 @@
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
+import ru from "@/messages/ru.json";
 import { flattenMessages } from "@/lib/i18n/utils";
 import { getFooterContactEmails } from "@/lib/content/footer-contact";
 import { getFooterLinks } from "@/lib/content/footer-links";
@@ -36,13 +37,12 @@ export default async function AdminSettingsPage() {
     : eventStatus === "FAILED" || eventStatus === "CONFLICT"
       ? eventStatus
       : "PENDING";
-  // Only English and Portuguese ship a shipped-copy JSON file today — any
-  // other registered locale simply has no entry here, and the editor's own
-  // fallback chain (defaults[locale] ?? defaults.en) shows the English
-  // shipped copy as its placeholder until that locale gets real defaults.
+  // Shipped dictionaries for EN / PT / RU. Any other registered locale falls
+  // back to English placeholders via defaults[locale] ?? defaults.en.
   const defaults: StorefrontCopy = {
     en: flattenMessages(en as Record<string, unknown>),
     pt: flattenMessages(pt as Record<string, unknown>),
+    ru: flattenMessages(ru as Record<string, unknown>),
   };
   const locales = registryLocales.map((locale) => ({ code: locale.code, label: locale.nativeName }));
 
@@ -52,7 +52,7 @@ export default async function AdminSettingsPage() {
         <p className="adm-section-tag mb-3">[ SYN-ADM // SHARED ]</p>
         <h1 className="adm-page-title">Shared</h1>
         <p className="adm-page-subtitle">
-          Header, footer, cookies, the service-page contact banner, and the leave-a-review form. One save covers every tab.
+          Header, footer, home chrome, cookies, the service-page contact banner, and the leave-a-review form. One save covers every tab.
           Empty labels fall back to shipped defaults. Per-page copy stays under Pages.
         </p>
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />

@@ -412,7 +412,11 @@
     "removeFromWishlist": "Remover dos favoritos",
     "relatedTitle": "Também pode gostar",
     "presentation": {
-      "jewelry": { "descriptionLabel": "Notas sobre a peça", "descriptionTitle": "A peça, por completo", "buyingTitle": "Ajuste e cuidados" }
+      "jewelry": {
+        "descriptionLabel": "Notas sobre a peça",
+        "descriptionTitle": "A peça, por completo",
+        "buyingTitle": "Ajuste e cuidados"
+      }
     },
     "hero": {
       "category": "Categoria",
@@ -461,7 +465,10 @@
     },
     "wishlist": {
       "title": "Produtos guardados",
-      "saved": { "one": "{count} guardado", "other": "{count} guardados" },
+      "saved": {
+        "one": "{count} guardado",
+        "other": "{count} guardados"
+      },
       "empty": "Ainda não guardou nada.",
       "exploreShop": "Explorar a loja →",
       "removeAria": "Remover {title} dos favoritos"
@@ -593,10 +600,16 @@
   "reviews": {
     "title": "Avaliações de clientes",
     "noRatings": "Ainda sem avaliações",
-    "count": { "one": "{count} avaliação", "other": "{count} avaliações" },
+    "count": {
+      "one": "{count} avaliação",
+      "other": "{count} avaliações"
+    },
     "shareTitle": "Partilhe a sua experiência",
     "ratingLabel": "A sua classificação",
-    "star": { "one": "{count} estrela", "other": "{count} estrelas" },
+    "star": {
+      "one": "{count} estrela",
+      "other": "{count} estrelas"
+    },
     "titleLabel": "Título",
     "optional": "opcional",
     "titlePlaceholder": "O que mais se destacou?",
@@ -750,7 +763,12 @@
       "title": "Escolha a peça que se lembra de si.",
       "ctaLabel": "Entrar na coleção",
       "aboutLabel": "Sobre nós",
-      "footerTitle": "Objectos moldados com tempo,\nguardados para uma vida."
+      "footerTitle": "Objectos moldados com tempo,\nguardados para uma vida.",
+      "eyebrow": "07 / Continuar a história"
+    },
+    "material": {
+      "specimen": "Espécime / {symbol}",
+      "label": "Material {index}"
     }
   },
   "loginPage": {
@@ -767,5 +785,8 @@
     "note": "Novos clientes são criados automaticamente após a verificação do email.",
     "error": "Não foi possível concluir o início de sessão. Tente novamente.",
     "backToSite": "Voltar ao site"
+  },
+  "brand": {
+    "curatedGoods": "Peças escolhidas"
   }
 }

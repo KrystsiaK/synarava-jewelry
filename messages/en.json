@@ -412,7 +412,11 @@
     "removeFromWishlist": "Remove from wishlist",
     "relatedTitle": "You may also like",
     "presentation": {
-      "jewelry": { "descriptionLabel": "Object notes", "descriptionTitle": "The piece, in full", "buyingTitle": "Fit and care" }
+      "jewelry": {
+        "descriptionLabel": "Object notes",
+        "descriptionTitle": "The piece, in full",
+        "buyingTitle": "Fit and care"
+      }
     },
     "hero": {
       "category": "Category",
@@ -461,7 +465,10 @@
     },
     "wishlist": {
       "title": "Saved products",
-      "saved": { "one": "{count} saved", "other": "{count} saved" },
+      "saved": {
+        "one": "{count} saved",
+        "other": "{count} saved"
+      },
       "empty": "Nothing saved yet.",
       "exploreShop": "Explore the shop →",
       "removeAria": "Remove {title} from wishlist"
@@ -593,10 +600,16 @@
   "reviews": {
     "title": "Customer reviews",
     "noRatings": "No ratings yet",
-    "count": { "one": "{count} review", "other": "{count} reviews" },
+    "count": {
+      "one": "{count} review",
+      "other": "{count} reviews"
+    },
     "shareTitle": "Share your experience",
     "ratingLabel": "Your rating",
-    "star": { "one": "{count} star", "other": "{count} stars" },
+    "star": {
+      "one": "{count} star",
+      "other": "{count} stars"
+    },
     "titleLabel": "Title",
     "optional": "optional",
     "titlePlaceholder": "What stood out?",
@@ -750,7 +763,12 @@
       "title": "Choose the piece that remembers you.",
       "ctaLabel": "Enter the collection",
       "aboutLabel": "About us",
-      "footerTitle": "Objects shaped slowly,\nkept for a lifetime."
+      "footerTitle": "Objects shaped slowly,\nkept for a lifetime.",
+      "eyebrow": "07 / Continue the story"
+    },
+    "material": {
+      "specimen": "Specimen / {symbol}",
+      "label": "Material {index}"
     }
   },
   "loginPage": {
@@ -767,5 +785,8 @@
     "note": "New customers are created automatically after email verification.",
     "error": "We could not complete the sign-in. Please try again.",
     "backToSite": "Back to site"
+  },
+  "brand": {
+    "curatedGoods": "Curated goods"
   }
 }

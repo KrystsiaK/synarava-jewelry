@@ -183,7 +183,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
             </span>
             <span className="site-nav-wordmark-text hidden min-[1200px]:grid" aria-hidden="true">
               <span>SYNARAVA</span>
-              <span>CURATED GOODS</span>
+              <span>{t("brand.curatedGoods")}</span>
             </span>
           </Link>
         </div>

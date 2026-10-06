@@ -772,6 +772,7 @@ function MaterialPlate({
   reduceMotion: boolean;
   activeIndex?: number;
 }) {
+  const { t } = useTranslations();
   const revealed = "polygon(0% 0%, 100% 0%, 100% 100%, -8% 100%)";
   const concealed = "polygon(108% 0%, 108% 0%, 100% 100%, 100% 100%)";
   const isFirst = index === 0;
@@ -862,7 +863,7 @@ function MaterialPlate({
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(166,25,46,0.2),transparent_42%,rgba(0,0,0,0.65))]" />
         <div className="absolute inset-[7%] border border-linen/18 [clip-path:polygon(0_0,88%_0,100%_18%,100%_100%,12%_100%,0_82%)]" />
         <div className="absolute bottom-5 left-5 font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-linen/70 md:bottom-8 md:left-8">
-          Specimen / {material.symbol}
+          {t("home.material.specimen", { symbol: material.symbol })}
         </div>
         <span className="absolute -right-2 -top-8 font-serif text-[clamp(7rem,18vw,15rem)] leading-none text-linen/[0.08]" aria-hidden="true">
           {String(index + 1).padStart(2, "0")}
@@ -880,7 +881,7 @@ function MaterialPlate({
 
           <div className="flex flex-1 flex-col justify-center py-5 md:py-8">
             <p className="mb-2 font-sans text-[0.65rem] font-bold uppercase tracking-[0.24em] text-couture-red">
-              Material {String(index + 1).padStart(2, "0")}
+              {t("home.material.label", { index: String(index + 1).padStart(2, "0") })}
             </p>
             <DisplayHeading
               as="h3"
@@ -1188,7 +1189,7 @@ function CompactFinalCTA({
           <div className="relative z-20 max-w-sm pb-10">
             <p className="mb-5 flex items-center gap-3 font-sans text-[0.6rem] font-bold uppercase tracking-[0.2em] text-couture-red">
               <span className="h-px w-8 bg-couture-red" aria-hidden="true" />
-              07 / Continue the story
+              {t("home.finalCta.eyebrow")}
             </p>
             <RichText
               content={resolvedBody}
