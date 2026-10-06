@@ -103,6 +103,30 @@ describe("product localization", () => {
     expect(resolved.details).toEqual({ materialsTitle: "Materiais" });
   });
 
+  it("keeps RU passport TEXT overlays inside details.characteristics", () => {
+    const resolved = resolveProductCopy(product({
+      translations: [{
+        locale: "ru",
+        title: "Колье",
+        shortDescription: "Кратко",
+        description: "Описание",
+        details: {
+          characteristics: {
+            care_instructions: "Избегайте длительного контакта с водой.",
+            material: "Хрустальный жемчуг",
+          },
+        },
+      }],
+    }), "ru");
+
+    expect(resolved.details).toEqual({
+      characteristics: {
+        care_instructions: "Избегайте длительного контакта с водой.",
+        material: "Хрустальный жемчуг",
+      },
+    });
+  });
+
   it("reports missing Portuguese publish fields and review state", () => {
     expect(productLocaleReadiness(product({
       translations: [{

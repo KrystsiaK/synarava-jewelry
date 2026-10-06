@@ -141,12 +141,19 @@ Groups with data open by default; empty groups stay collapsed.
 
 ### Care
 
-- care instructions.
+- care instructions (multiline TEXT; EN on `ProductCharacteristic`, PT/RU on
+  `ProductTranslation.details.characteristics` — blank locale falls back to EN).
 
 ### Compliance
 
 - REACH certification (optional certificate URL);
 - lead, cadmium, and nickel-release declarations.
+
+Passport TEXT values are locale-split end-to-end: admin locale tabs write
+overlays via prefixed FormData (`ruCharacteristic_*`), never the shared EN
+named fields. The Passport field shell must not use `display: contents` around
+HTML `hidden` EN controls — that combination leaves EN editors clickable on
+PT/RU in Chromium and overwrites every language.
 
 ## Storefront presentation
 

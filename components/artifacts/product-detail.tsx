@@ -288,7 +288,9 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
                       <span>
                         {row.characteristic?.valueType === "BOOLEAN" && row.characteristic.booleanValue
                           ? t("product.specifications.yes")
-                          : row.value}
+                          : looksLikeHtml(row.value)
+                            ? <RichText content={row.value} />
+                            : row.value}
                       </span>
                       {row.characteristic?.certificateUrl ? (
                         <a

@@ -30,6 +30,8 @@ Do these in order. Skipping a step is how storefront chrome stays in English aft
 
    **Shop / catalog product cards** (`/[locale]/shop`, `GET /api/catalog/products`) read **`Product` + `ProductTranslation`** for the request locale — there is no separate catalog translation table. Title/short description come from `resolveProductCopy` (same helper as the PDP). A locale row with an empty title is treated as missing copy and falls back to English. Russian (and other locales) must be filled under **Admin → Products → [product] → locale tab**, or pulled from Shopify translations when Shopify already has them; the storefront does not call Shopify live for card copy.
 
+   **Product passport TEXT** (material, metal, color, finish, care instructions, …) is also per-locale: English lives on `ProductCharacteristic`; PT/RU overlays live on `ProductTranslation.details.characteristics`. Fill them on **Synarava → Passport** while the matching locale tab is active. Blank overlays fall back to English on the PDP. Do not edit passport TEXT on the English tab expecting a single shared translation — that overwrites the EN source for every language.
+
 6. **Graphify.** After the locale wiring, messages, and this checklist change, run `graphify update .` so the knowledge graph indexes them.
 
 ## Shared structure vs localized text
