@@ -32,8 +32,15 @@ node_modules/
 # IDE
 .idea/
 
-# graphify (generated — do not commit)
-graphify-out/
+# graphify — commit the queryable graph; keep rebuildable/local noise out
+graphify-out/cache/
+graphify-out/.obsidian/
+graphify-out/synarava-jewelry/
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/.graphify_chunk_*.json
+graphify-out/graph.html
+graphify-out/graph.svg
 
 # photo-editing scratch output (unreferenced by app code — do not commit)
 /artifacts/product-photo/
