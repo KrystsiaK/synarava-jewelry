@@ -128,14 +128,18 @@ describe("shop listing projection", () => {
         slug: "pearl-necklace", sku: "PEARL-1", shopifyProductId: null, name: "Pearl Necklace", seriesLabel: null,
         shortDescription: "English short", description: "English long", materialLine: "Pearl",
         searchSummary: null, searchDocument: null, currency: "EUR", priceCents: 2000,
-        imageUrl: "/pearl.webp", shopifyCategoryId: null, shopifyCategoryName: null,
+        imageUrl: "/pearl.webp", shopifyCategoryId: "gid://shopify/TaxonomyCategory/aa",
+        shopifyCategoryName: "Apparel & Accessories > Jewelry > Necklaces",
         createdAt: new Date("2026-01-01"),
         translations: [{
           locale: "ru", localizedHandle: "zhemchuzhnoe-kole", title: "Жемчужное колье",
           shortDescription: "Коротко", description: "Длинно", materialLine: null,
         }],
         variants: [{ status: "ACTIVE", stockOnHand: 1, inventoryPolicy: "DENY", tracked: true, priceCents: 2000, compareAtCents: null }],
-        tags: [],
+        tags: [
+          { tag: { slug: "jw-sku", name: "JW-NECKLACE-CRYSTAL-PEARL-WHT-4-001" } },
+          { tag: { slug: "gift", name: "Gift" } },
+        ],
         collections: [],
         characteristics: [],
       },
@@ -157,6 +161,15 @@ describe("shop listing projection", () => {
       },
     );
 
+    await expect(listShopListingProducts("ru")).resolves.toMatchObject([
+      {
+        title: "Жемчужное колье",
+        categoryName: "Колье",
+        tagNames: ["Gift"],
+      },
+      { title: "Honey Bracelet" },
+    ]);
+
     const page = await listShopCatalogPage({ filters: { sort: "newest" }, locale: "ru", limit: 10 });
     expect(page.nodes).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -175,7 +188,6 @@ describe("shop listing projection", () => {
     ]));
   });
 });
-
 describe("listShopCatalogPage", () => {
   beforeEach(() => {
     rows.length = 0;

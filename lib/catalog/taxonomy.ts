@@ -9,7 +9,19 @@ export function hasFitFilm() {
   return true;
 }
 
-/** Compliance filters apply to finished jewelry on the single catalog. */
+/**
+ * Compliance boolean facets (REACH / lead-free / …) are passport data, not a
+ * shop browse dimension Kiryl wants on the storefront. Keep the query param
+ * and where-clause for deep links; hide the filter chrome.
+ */
 export function supportsComplianceFilters() {
-  return true;
+  return false;
+}
+
+/**
+ * Product tags in this catalog are operational (SKU-like) and have no locale
+ * surface. Hide the tag facet; cards also filter via `buyerFacingTagNames`.
+ */
+export function supportsTagFilters() {
+  return false;
 }
