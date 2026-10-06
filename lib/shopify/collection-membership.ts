@@ -115,6 +115,16 @@ export function isEmptyConditionSourceError(message: string) {
   );
 }
 
+/**
+ * Shopify may return a null `collection` node, a GraphQL error, or a mutation
+ * userError when the GID was deleted. All mean membership is already gone.
+ */
+export function isMissingShopifyCollectionError(message: string) {
+  return /collection does not exist/i.test(message)
+    || /Shopify collection .+ was not found/i.test(message)
+    || /collection .+ was not found/i.test(message);
+}
+
 /** Human-readable membership failure — always names the collection + action. */
 export function formatCollectionMembershipError(input: {
   action: "ADD" | "REMOVE";

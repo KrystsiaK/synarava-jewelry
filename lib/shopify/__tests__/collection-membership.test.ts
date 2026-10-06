@@ -8,6 +8,7 @@ import {
   formatCollectionMembershipError,
   hasCollectionIdentityConflict,
   isEmptyConditionSourceError,
+  isMissingShopifyCollectionError,
   waitForShopifyJobCompletion,
 } from "@/lib/shopify/collection-membership";
 
@@ -104,6 +105,15 @@ describe("Shopify 2026-07 collection membership", () => {
       "A condition based source must have at least one product selection or condition",
     )).toBe(true);
     expect(isEmptyConditionSourceError("something else")).toBe(false);
+  });
+
+  it("detects deleted Shopify collection errors from query or mutation", () => {
+    expect(isMissingShopifyCollectionError("Collection does not exist")).toBe(true);
+    expect(isMissingShopifyCollectionError(
+      "Collection membership REMOVE failed for gid://shopify/Collection/1: Collection does not exist.",
+    )).toBe(true);
+    expect(isMissingShopifyCollectionError("Shopify collection gid://shopify/Collection/1 was not found.")).toBe(true);
+    expect(isMissingShopifyCollectionError("timeout")).toBe(false);
   });
 
   it("names the collection and action in membership errors", () => {

@@ -8,6 +8,7 @@ import {
   findManagedCollectionSourceId,
   formatCollectionMembershipError,
   isEmptyConditionSourceError,
+  isMissingShopifyCollectionError,
   waitForShopifyJobCompletion,
   type ShopifyCollectionSource,
   type ShopifyJob,
@@ -34,11 +35,21 @@ function membershipFailure(
   }));
 }
 
-async function fetchShopifyCollectionSources(collectionId: string, allowMissing = false) {
-  const data = await shopifyAdminRequest<{
-    collection: { sources: ShopifyCollectionSource[] } | null;
-  }>(
-    `query SynaravaCollectionSources($id: ID!) {
+type LoadedCollectionSources =
+  | { status: "missing" }
+  | { status: "ok"; sources: ShopifyCollectionSource[] };
+
+/**
+ * Loads live sources for a collection GID. Deleted collections resolve to
+ * `{ status: "missing" }` whether Shopify returns a null node or an error —
+ * callers must not treat that as a hard Push failure.
+ */
+async function loadShopifyCollectionSources(collectionId: string): Promise<LoadedCollectionSources> {
+  try {
+    const data = await shopifyAdminRequest<{
+      collection: { sources: ShopifyCollectionSource[] } | null;
+    }>(
+      `query SynaravaCollectionSources($id: ID!) {
       collection(id: $id) {
         sources {
           __typename id title
@@ -46,13 +57,47 @@ async function fetchShopifyCollectionSources(collectionId: string, allowMissing 
         }
       }
     }`,
-    { id: collectionId },
-  );
-  if (!data.collection) {
-    if (allowMissing) return [];
-    throw new ShopifyAdminError(`Shopify collection ${collectionId} was not found.`);
+      { id: collectionId },
+    );
+    if (!data.collection) return { status: "missing" };
+    return { status: "ok", sources: data.collection.sources };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (isMissingShopifyCollectionError(message)) return { status: "missing" };
+    throw error;
   }
-  return data.collection.sources;
+}
+
+/**
+ * Drop stale Shopify identity + optional product membership when a remote
+ * collection GID no longer exists. Keeps the local Collection row for editorial
+ * use; only the commerce link is cleared.
+ */
+export async function forgetMissingShopifyCollection(
+  shopifyCollectionId: string,
+  productId?: string,
+) {
+  const row = await db.collection.findUnique({
+    where: { shopifyCollectionId },
+    select: { id: true },
+  });
+  if (!row) return;
+
+  if (productId) {
+    await db.productCollection.deleteMany({
+      where: { productId, collectionId: row.id },
+    });
+  }
+
+  await db.collection.update({
+    where: { id: row.id },
+    data: {
+      shopifyCollectionId: null,
+      shopifyManualSourceId: null,
+      syncStatus: "UNLINKED",
+      syncError: null,
+    },
+  });
 }
 
 // Shopify 2026-07 replaces collectionAddProducts/collectionRemoveProducts
@@ -117,8 +162,16 @@ export async function addProductToShopifyCollection(collection: {
   shopifyManualSourceId: string | null;
 }, productId: string) {
   try {
+    const loaded = await loadShopifyCollectionSources(collection.shopifyCollectionId);
+    if (loaded.status === "missing") {
+      // Desired membership points at a deleted Shopify collection — drop the
+      // stale link instead of failing the whole product Push.
+      await forgetMissingShopifyCollection(collection.shopifyCollectionId, productId);
+      return;
+    }
+
     let sourceId = findManagedCollectionSourceId(
-      await fetchShopifyCollectionSources(collection.shopifyCollectionId),
+      loaded.sources,
       collection.shopifyManualSourceId,
     );
 
@@ -134,9 +187,12 @@ export async function addProductToShopifyCollection(collection: {
         collectionId: collection.shopifyCollectionId,
         productId,
       }));
-      sourceId = findManagedCollectionSourceId(
-        await fetchShopifyCollectionSources(collection.shopifyCollectionId),
-      );
+      const refreshed = await loadShopifyCollectionSources(collection.shopifyCollectionId);
+      if (refreshed.status === "missing") {
+        await forgetMissingShopifyCollection(collection.shopifyCollectionId, productId);
+        return;
+      }
+      sourceId = findManagedCollectionSourceId(refreshed.sources);
       if (!sourceId) {
         throw new ShopifyAdminError(
           `Shopify did not return the Synarava membership source for collection ${collection.shopifyCollectionId}.`,
@@ -151,6 +207,11 @@ export async function addProductToShopifyCollection(collection: {
       });
     }
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (isMissingShopifyCollectionError(message)) {
+      await forgetMissingShopifyCollection(collection.shopifyCollectionId, productId);
+      return;
+    }
     throw membershipFailure("ADD", collection.shopifyCollectionId, error);
   }
 }
@@ -160,11 +221,17 @@ export async function removeProductFromShopifyCollection(collection: {
   shopifyManualSourceId: string;
 }, productId: string) {
   try {
-    const sources = await fetchShopifyCollectionSources(collection.shopifyCollectionId, true);
-    const sourceId = findManagedCollectionSourceId(sources, collection.shopifyManualSourceId);
-    // Missing collection or managed source already satisfies removal. Never use
-    // another merchant source merely because the remembered id became stale.
+    const loaded = await loadShopifyCollectionSources(collection.shopifyCollectionId);
+    if (loaded.status === "missing") {
+      await forgetMissingShopifyCollection(collection.shopifyCollectionId, productId);
+      return;
+    }
+
+    const sourceId = findManagedCollectionSourceId(loaded.sources, collection.shopifyManualSourceId);
+    // Missing managed source already satisfies removal. Never use another
+    // merchant source merely because the remembered id became stale.
     if (!sourceId) return;
+
     try {
       await runShopifyCollectionUpdate(buildCollectionMembershipUpdateInput({
         collectionId: collection.shopifyCollectionId,
@@ -174,8 +241,12 @@ export async function removeProductFromShopifyCollection(collection: {
       }));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (isMissingShopifyCollectionError(message)) {
+        await forgetMissingShopifyCollection(collection.shopifyCollectionId, productId);
+        return;
+      }
       if (!isEmptyConditionSourceError(message)) throw error;
-      if (sources.length > 1) {
+      if (loaded.sources.length > 1) {
         // The rejected delta would leave this source empty. Remove only that
         // source; other collection sources remain. Legacy collectionRemoveProducts
         // cannot see modern multi-source collections.
@@ -191,6 +262,11 @@ export async function removeProductFromShopifyCollection(collection: {
       }
     }
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (isMissingShopifyCollectionError(message)) {
+      await forgetMissingShopifyCollection(collection.shopifyCollectionId, productId);
+      return;
+    }
     throw membershipFailure("REMOVE", collection.shopifyCollectionId, error);
   }
 }
