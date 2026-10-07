@@ -511,19 +511,20 @@ function SymbolismScrollSection({
         <div className="border-b border-foreground/15 py-10 md:py-14">
           <div className="flex flex-col gap-2 md:gap-0">
             {materialTerms.map((term, index) => (
-              <p
+              <DisplayHeading
                 key={`${term}-display`}
+                as="h2"
                 className={
                   index === 0
-                    ? "type-display font-serif text-[clamp(2.8rem,7vw,5.6rem)] leading-[0.9] tracking-[-0.035em]"
+                    ? "text-[clamp(2.8rem,7vw,5.6rem)] leading-[0.9] tracking-[-0.035em]"
                     : index === 1
-                      ? "type-display self-end font-serif text-[clamp(3.2rem,8vw,6rem)] italic leading-[0.86] tracking-[-0.035em] text-couture-red md:pr-[8vw]"
-                      : "type-display max-w-full text-[clamp(1.85rem,5vw,4.5rem)] font-light uppercase leading-[1.05] tracking-[0.08em] text-foreground/75"
+                      ? "self-end text-[clamp(3.2rem,8vw,6rem)] italic leading-[0.86] tracking-[-0.035em] text-couture-red md:pr-[8vw]"
+                      : "max-w-full text-[clamp(1.85rem,5vw,4.5rem)] font-light uppercase leading-[1.05] tracking-[0.08em] text-foreground/75"
                 }
               >
                 {term}
                 <span className="text-couture-red">.</span>
-              </p>
+              </DisplayHeading>
             ))}
           </div>
         </div>
@@ -754,9 +755,11 @@ function LookbookSection({ product }: { product: ProductSummary }) {
       >
         <div>
           <p className="label-mono mb-2 text-couture-red">{product.lookbookEyebrow}</p>
-          <h2 className="font-serif" style={{ fontSize: "clamp(1.6rem,3vw,2.4rem)" }}>
-            {product.lookbookTitle}
-          </h2>
+          <DisplayHeading
+            as="h2"
+            text={product.lookbookTitle}
+            className="text-[clamp(1.6rem,3vw,2.4rem)] leading-[1.12]"
+          />
         </div>
         <p className="hidden label-mono text-foreground/35 md:block">
           {product.lookbook.length} images

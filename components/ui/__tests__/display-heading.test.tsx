@@ -56,4 +56,28 @@ describe("DisplayHeading", () => {
     expect(heading).toHaveClass("type-display", "leading-[1.12]");
     expect(heading.className).not.toMatch(/leading-none/);
   });
+
+  it("keeps each Cyrillic reveal word intact (no mid-word orphan)", () => {
+    render(
+      <DisplayHeading
+        reveal
+        text="Жемчужный браслет · 8 мм"
+        accentClassName="italic text-couture-red"
+        className="max-w-[12ch]"
+      />,
+    );
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveAttribute("data-display-fit");
+
+    const masks = [...heading.querySelectorAll(".type-reveal")];
+    expect(masks.map((mask) => mask.textContent)).toEqual([
+      "Жемчужный",
+      "браслет",
+      "·",
+      "8",
+      "мм",
+    ]);
+    expect(masks.at(-1)).toHaveClass("italic", "text-couture-red");
+  });
 });

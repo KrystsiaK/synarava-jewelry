@@ -400,18 +400,28 @@ select {
     padding-bottom: 0.46em;
     margin-top: -0.32em;
     margin-bottom: -0.46em;
-    overflow-wrap: break-word;
+    /* Soft wrap only; DisplayHeading fits type so words never need mid-word breaks. */
+    overflow-wrap: normal;
+    --display-fit-scale: 1;
+  }
+
+  .type-display[data-display-fit] {
+    overflow-wrap: normal;
   }
 
   .type-reveal {
     display: inline-block;
     max-width: 100%;
-    overflow: hidden;
+    /* Y-clip for the slide-up mask; X stays visible if the fit floor still overflows. */
+    overflow-x: visible;
+    overflow-y: hidden;
     vertical-align: baseline;
     padding: 0.32em 0.12em 0.46em;
     margin-top: -0.32em;
     margin-bottom: -0.46em;
-    overflow-wrap: anywhere;
+    /* Never split inside a word — fit shrinks type instead of anywhere-break. */
+    overflow-wrap: normal;
+    white-space: nowrap;
   }
 
   .type-reveal-gap {

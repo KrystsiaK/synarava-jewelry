@@ -58,8 +58,12 @@ These primitives should be used across all screens:
   - utility eyebrow, section name, status label
 - `MonoMeta`
   - archive numbers, prices, timestamps, product codes
+- `DisplayHeading`
+  - every large storefront serif title (heroes, PDP, shop, collections)
+  - owns fit-by-longest-word: never mid-word-break; shrink type to the measure instead
+  - do not add `overflow-wrap: anywhere` / `break-all` on display type; do not rebuild titles with raw `.type-display`
 - `EditorialHeading`
-  - large serif display heading
+  - large serif display heading; for narrow `max-w-[Nch]` heroes use `DisplayHeading` + `text` (fit)
 - `BodyLead`
   - intro paragraph with generous line-height
 - `ArtifactPanel`
