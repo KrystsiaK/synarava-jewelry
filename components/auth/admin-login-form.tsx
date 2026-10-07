@@ -14,6 +14,7 @@ import {
   PasswordInput,
 } from "@/components/auth/auth-form-primitives";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
+import { DisplayHeading } from "@/components/ui/display-heading";
 
 const initialState: AdminLoginActionState = {};
 
@@ -77,7 +78,7 @@ function AdminLoginFormFields({
 
       <div className="space-y-2">
         <p className="label-caps text-accent">Admin access</p>
-        <h2 className="type-display font-serif text-[2.4rem] leading-none">Admin credentials</h2>
+        <DisplayHeading as="h2" text="Admin credentials" className="text-[2.4rem] leading-none" />
       </div>
 
       <AuthMessage error={displayError} />

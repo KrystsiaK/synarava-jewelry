@@ -139,17 +139,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
         data-scrolled={hasScrolledHeader ? "true" : "false"}
         data-overlay={pathname === "/shop" ? "true" : undefined}
       >
-        <div
-          className="site-nav-liquid-glass absolute inset-0 z-0 h-full w-full"
-          style={{
-            border: "none",
-            backgroundColor: "var(--color-header-chrome)",
-            backdropFilter: "url(#lg-refract-strong)",
-            WebkitBackdropFilter: "url(#lg-refract-strong)",
-            boxShadow: "var(--site-nav-shadow)",
-          }}
-          aria-hidden="true"
-        />
+        <div className="site-nav-liquid-glass absolute inset-0 z-0 h-full w-full" aria-hidden="true" />
         <div className="site-nav-mobile-glass absolute inset-0 z-0" aria-hidden="true" />
 
         <div className="z-10 flex items-center gap-2 md:gap-4">

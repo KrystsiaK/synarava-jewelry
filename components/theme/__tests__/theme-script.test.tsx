@@ -52,4 +52,12 @@ describe("ThemeScript", () => {
     expect(script).toContain("root.dataset.themePreference = preference");
     expect(script).toContain("root.dataset.theme = resolved");
   });
+
+  it("generated script gates SVG backdrop-filter to Blink", () => {
+    const script = getThemeScript("light");
+    expect(script).toContain("root.dataset.backdropFilterUrl");
+    expect(script).toContain("isBlink");
+    expect(script).toContain("CriOS");
+    expect(script).toContain("isAndroidWebView");
+  });
 });
