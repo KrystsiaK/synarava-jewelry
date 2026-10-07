@@ -17,6 +17,7 @@ import {
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { listBestSellingShopifyProductIds, type ShopFilters } from "@/lib/content/catalog";
 import { buyerFacingTagNames, localizeShopFacetValue } from "@/lib/catalog/shop-facet-labels";
+import { getTaxonomyFacetLabelMap } from "@/lib/catalog/taxonomy-value-labels";
 import { resolveProductCopy } from "@/lib/products/localization";
 
 /** Fields used by shop cards, discovery, sorting and client-side filters. */
@@ -103,7 +104,11 @@ const SHOP_LISTING_SELECT = {
 
 type ShopListingRow = Prisma.ProductGetPayload<{ select: typeof SHOP_LISTING_SELECT }>;
 
-function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListingProduct {
+function mapProductRowToListing(
+  row: ShopListingRow,
+  locale: Locale,
+  taxonomyOverlays?: Map<string, string> | null,
+): ShopListingProduct {
   // One projection path with PDP (`resolveProductCopy`) — listing used to
   // re-implement resolveLocalizedContent and could drift on empty-title rows.
   const copy = resolveProductCopy({
@@ -144,7 +149,12 @@ function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListin
       ...row.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
     ].filter(Boolean).join(" "),
     categorySlug: row.shopifyCategoryId,
-    categoryName: localizeShopFacetValue(categoryLeafLabel(row.shopifyCategoryName), locale),
+    categoryName: localizeShopFacetValue(
+      categoryLeafLabel(row.shopifyCategoryName),
+      locale,
+      taxonomyOverlays,
+    ),
+    // EN identity for client-side filter match; labels come from getShopFilterData.
     productType: row.productType?.trim() ?? "",
     collectionSlugs: row.collections.map((item) => item.collection.slug),
     tagSlugs: row.tags.map((item) => item.tag.slug),
@@ -156,15 +166,18 @@ function mapProductRowToListing(row: ShopListingRow, locale: Locale): ShopListin
 
 export async function listShopListingProducts(requestedLocale?: Locale): Promise<ShopListingProduct[]> {
   const locale = requestedLocale ?? await getRequestLocale();
-  const rows = await db.product.findMany({
-    where: { status: "ACTIVE", visibility: "PUBLIC" },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    select: SHOP_LISTING_SELECT,
-  });
+  const [rows, taxonomyOverlays] = await Promise.all([
+    db.product.findMany({
+      where: { status: "ACTIVE", visibility: "PUBLIC" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      select: SHOP_LISTING_SELECT,
+    }),
+    getTaxonomyFacetLabelMap(locale),
+  ]);
 
   return rows
     .sort((left, right) => featuredCollectionPosition(left.collections, undefined) - featuredCollectionPosition(right.collections, undefined))
-    .map((row) => mapProductRowToListing(row, locale));
+    .map((row) => mapProductRowToListing(row, locale, taxonomyOverlays));
 }
 
 async function getBestSellingRankMap(): Promise<Map<string, number> | null> {
@@ -231,17 +244,20 @@ export async function listShopCatalogPage(params: {
   const filters: ShopFilters = { ...params.filters, sort };
   const limit = params.limit ? Math.min(Math.max(1, Math.trunc(params.limit)), CATALOG_MAX_PAGE_SIZE) : CATALOG_DEFAULT_PAGE_SIZE;
 
-  const rows = await db.product.findMany({
-    where: buildShopProductWhere(filters, locale),
-    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-    take: CATALOG_CANDIDATE_CAP,
-    select: SHOP_LISTING_SELECT,
-  });
+  const [rows, taxonomyOverlays] = await Promise.all([
+    db.product.findMany({
+      where: buildShopProductWhere(filters, locale),
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      take: CATALOG_CANDIDATE_CAP,
+      select: SHOP_LISTING_SELECT,
+    }),
+    getTaxonomyFacetLabelMap(locale),
+  ]);
 
   const popularRank = sort === "popular" ? await getBestSellingRankMap() : null;
   const rawById = sort === "featured" ? new Map(rows.map((row) => [row.id, row])) : null;
 
-  const nodes = rows.map((row) => mapProductRowToListing(row, locale));
+  const nodes = rows.map((row) => mapProductRowToListing(row, locale, taxonomyOverlays));
   nodes.sort(buildCatalogComparator(sort, locale, filters.collection, rawById, popularRank));
 
   const cursorId = decodeCatalogCursor(params.cursor, filters, locale);

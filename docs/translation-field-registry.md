@@ -97,8 +97,21 @@ this registry (no Shopify `MENU`/`LINK` binding in this app).
 
 ## Taxonomy (merchant-owned labels only)
 
-Shopify's Standard Product Taxonomy (`shopifyCategoryName`) is Shopify's own
-source of truth and is out of scope.
+Shopify's Standard Product Taxonomy EN identity (`shopifyCategoryId` /
+`shopifyCategoryName` leaf) and product `productType` remain Shopify commerce
+SoT — never invent a parallel taxonomy tree in Synarava.
+
+**Buyer-facing display overlays** for distinct EN category leaves and product
+types live in `TaxonomyValueLabel` and are edited at **Admin → Shared → Taxonomy**
+(`/admin/settings#shared-taxonomy`). One row per `(kind, enValue, locale)`.
+
+| Surface | Shopify Translations API | Synarava overlay |
+|---|---|---|
+| Category leaf (SPT) | Not available (`TaxonomyCategory` ∉ TranslatableResourceType) | Primary path for RU/PT display |
+| Product type | `PRODUCT` field `product_type` — **pull** into shared overlay when present | Fills gaps; **no push** of shared overlays |
+
+Legacy registry rows below describe optional merchant-owned `taxonomy_label`
+metaobject fields (not the SPT leaf / productType facet path above):
 
 | Key | Mode | Required | Shopify target |
 |---|---|---|---|

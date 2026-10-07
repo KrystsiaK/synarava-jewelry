@@ -545,6 +545,24 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 }
 
+/// Display-label overlays for Shopify EN taxonomy identity (category leaf / product type).
+/// EN commerce identity stays on Product.shopifyCategory* / Product.productType — never duplicated here.
+model TaxonomyValueLabel {
+  id        String                    @id @default(cuid())
+  kind      TaxonomyValueKind
+  /// Canonical English value (category leaf name or productType string).
+  enValue   String
+  locale    String
+  label     String
+  source    TaxonomyValueLabelSource  @default(SYNARAVA)
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+
+  @@unique([kind, enValue, locale])
+  @@index([locale, kind])
+  @@index([enValue])
+}
+
 model LocalizedHandleRedirect {
   id         String        @id @default(cuid())
   entityType String
@@ -654,6 +672,20 @@ enum CharacteristicValueType {
   TEXT
   NUMBER
   BOOLEAN
+}
+
+enum TaxonomyValueKind {
+  CATEGORY_LEAF
+  PRODUCT_TYPE
+}
+
+enum TaxonomyValueLabelSource {
+  /// Pulled from Shopify PRODUCT.product_type translation (SoT when present).
+  SHOPIFY
+  /// Edited in Admin → Shared → Taxonomy.
+  SYNARAVA
+  /// Seeded from the shipped jewelry vocabulary map (non-destructive).
+  SEED_MAP
 }
 
 enum SyncDirection {
