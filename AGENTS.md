@@ -57,7 +57,7 @@ Rules:
 
 ## Ship finished work (staging → main)
 
-- When implementation for a task is **done**, land it on `origin/staging` yourself, then open/update a PR into `main`. Do not stop at a draft PR and wait for the user to merge.
+- When implementation for a task is **done**: land on `origin/staging` → open a **ready** PR into `main` → wait CI/CD → if green, **auto-merge** to `main`. Do not leave finished work only on staging or a draft PR.
 - Before push: `pnpm test:run` (enforced by `.githooks/pre-push` after `pnpm install` / `pnpm hooks:install`).
 - Skill: [`ship-to-main`](.agents/skills/ship-to-main/SKILL.md).
 - Exceptions only: user says hold/draft-only/wait for review; or required CI is red and cannot be fixed in this turn.

@@ -11,4 +11,4 @@ Rules:
 
 ## Ship finished work (staging → main)
 
-When a task is done, land it on `origin/staging` yourself, then open/update a PR into `main` — do not leave finished work waiting on a draft PR. Skill: `.agents/skills/ship-to-main/SKILL.md`.
+When a task is done: land on `origin/staging` → ready PR into `main` → wait CI/CD → if green, auto-merge to `main`. Do not leave finished work only on staging or a draft PR. Skill: `.agents/skills/ship-to-main/SKILL.md`.
