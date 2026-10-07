@@ -39,14 +39,30 @@ const HEADER_CHROME_GROUP: StorefrontCopyGroup = {
   fields: [
     { key: "nav.openMenu", label: "Open menu (aria)" },
     { key: "nav.closeMenu", label: "Close menu (aria)" },
+    {
+      key: "a11y.skip",
+      label: "Skip to main content",
+      hint: "Skip link shown on keyboard focus (layout chrome).",
+    },
+    {
+      key: "theme.appearance",
+      label: "Appearance",
+      hint: "Label above the theme toggle in the mobile menu.",
+    },
   ],
 };
 
 const FOOTER_BRAND_GROUP: StorefrontCopyGroup = {
   id: "footer-brand",
   title: "Footer — brand",
-  description: "Tagline and copyright beside the logo. Layout is fixed.",
+  description:
+    "Wordmark subtitle, tagline, and copyright. Curated goods also appears under the header wordmark.",
   fields: [
+    {
+      key: "brand.curatedGoods",
+      label: "Curated goods",
+      hint: "Second line under SYNARAVA in the header and footer wordmarks.",
+    },
     { key: "footer.tagline", label: "Tagline (under the logo)" },
     { key: "footer.copyright", label: "Copyright line" },
   ],
@@ -194,32 +210,65 @@ const HOME_ARCHIVE_GROUP: StorefrontCopyGroup = {
   id: "home-archive",
   title: "Home — featured collections",
   description:
-    "UI chrome on the home Featured collections strip (ArchivePathway). Collection titles, notes, and series values stay on each Collection record.",
+    "UI chrome on the home Featured collections strip (ArchivePathway). The Collection word also drives Collection 01 / 02 eyebrows on the collections index and collection detail hero. Collection titles, notes, and series values stay on each Collection record.",
   fields: [
     {
       key: "home.archive.collectionNote",
       label: "Collection note label",
-      hint: "Bracketed label above each collection summary (e.g. [COLLECTION NOTE]).",
+      hint: "Bracketed label above each collection summary on the home strip (e.g. [COLLECTION NOTE]). Home only.",
     },
     {
       key: "home.archive.viewCollection",
       label: "View collection",
-      hint: "Overlay CTA on the collection image.",
+      hint: "Overlay CTA on the home collection image (also PDP “continue exploring” CTA when linked).",
     },
     {
       key: "home.archive.collection",
       label: "Collection field label",
-      hint: "Table / meta label beside the series value.",
+      hint: "Meta label on the home strip AND the “Collection 02” eyebrow on /collections and collection detail.",
     },
     {
       key: "home.archive.edition",
       label: "Edition field label",
-      hint: "Table / meta label beside the edition value.",
+      hint: "Table / meta label beside the edition value on the home strip. Home only.",
     },
     {
       key: "home.archive.viewCollectionAria",
       label: "View collection (aria)",
-      hint: "Accessible name for the collection card link. Keep {title}.",
+      hint: "Accessible name for the home collection card link. Keep {title}.",
+    },
+  ],
+};
+
+const HOME_MATERIAL_GROUP: StorefrontCopyGroup = {
+  id: "home-material",
+  title: "Home — material lexicon chrome",
+  description:
+    "Overlay labels on MaterialLab plates. Section eyebrow/title/note and lexicon entries are edited under Pages → Home.",
+  fields: [
+    {
+      key: "home.material.specimen",
+      label: "Specimen label",
+      hint: "Corner label on each plate image. Keep {symbol} (e.g. 01).",
+    },
+    {
+      key: "home.material.label",
+      label: "Material index label",
+      hint: "Red index line above the material name. Keep {index} (e.g. 01).",
+    },
+  ],
+};
+
+const HOME_FINAL_CTA_GROUP: StorefrontCopyGroup = {
+  id: "home-final-cta",
+  title: "Home — final CTA chrome",
+  description:
+    "Eyebrow above the closing CTA. Body, title, and button labels fall back to messages and can be overridden on Pages → Home.",
+  fields: [
+    {
+      key: "home.finalCta.eyebrow",
+      label: "Continue the story",
+      hint: "Small red eyebrow (e.g. 07 / Continue the story).",
     },
   ],
 };
@@ -268,6 +317,8 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   FOOTER_SOCIAL_HEADING_GROUP,
   SERVICE_CONTACT_GROUP,
   HOME_ARCHIVE_GROUP,
+  HOME_MATERIAL_GROUP,
+  HOME_FINAL_CTA_GROUP,
   COOKIE_CONSENT_GROUP,
   COOKIE_SETTINGS_PAGE_GROUP,
   REVIEW_FORM_GROUP,

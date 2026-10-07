@@ -27,6 +27,12 @@ export type ShopifyProductTranslationCopy = {
 export type ShopifyProductTranslationSnapshot = ShopifyProductTranslationCopy & {
   updatedAt: string | null;
   outdated: boolean;
+  /**
+   * Pull-only: Shopify PRODUCT `product_type` translation when present.
+   * Never included in `registerProductTranslation` / push (shared Synarava
+   * overlays are the writer for gaps; see docs/admin-taxonomy-locale plan).
+   */
+  productType?: string;
 };
 
 type ProductTranslationPullDecision = "APPLY_REMOTE" | "KEEP_LOCAL" | "CONFLICT" | "UNCHANGED";
@@ -146,12 +152,14 @@ function productTranslationSnapshot(translations: RemoteTranslation[]): ShopifyP
     }
     return latest;
   }, null);
+  const productType = values.get("product_type")?.trim() ?? "";
   return {
     title: values.get("title") ?? "",
     handle: values.get("handle") ?? "",
     descriptionHtml: values.get("body_html") ?? "",
     seoTitle: values.get("meta_title") ?? "",
     seoDescription: values.get("meta_description") ?? "",
+    ...(productType ? { productType } : {}),
     updatedAt,
     outdated: translations.some((translation) => translation.outdated),
   };

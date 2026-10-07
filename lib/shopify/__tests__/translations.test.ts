@@ -82,6 +82,7 @@ describe("Shopify translations", () => {
       translatableResource: { translations: [
         { key: "title", value: "Anel", updatedAt: "2026-09-10T10:00:00Z", outdated: false },
         { key: "body_html", value: "<p>Feito em Lisboa.</p>", updatedAt: "2026-09-10T10:02:00Z", outdated: true },
+        { key: "product_type", value: "Anéis", updatedAt: "2026-09-10T10:03:00Z", outdated: false },
       ] },
     });
 
@@ -91,7 +92,8 @@ describe("Shopify translations", () => {
       descriptionHtml: "<p>Feito em Lisboa.</p>",
       seoTitle: "",
       seoDescription: "",
-      updatedAt: "2026-09-10T10:02:00.000Z",
+      productType: "Anéis",
+      updatedAt: "2026-09-10T10:03:00.000Z",
       outdated: true,
     });
   });

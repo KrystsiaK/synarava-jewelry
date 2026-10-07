@@ -54,6 +54,7 @@ import {
   registerProductTranslation,
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
+import { applyShopifyProductTypeLabel } from "@/lib/catalog/taxonomy-value-labels";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import {
   canonicalizeShopifyProjection,
@@ -918,6 +919,17 @@ async function finishPulledProduct(
       if (TRANSLATION_STATUS_RANK.UNAVAILABLE > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "UNAVAILABLE";
     }
     if (!translationAvailable) continue;
+
+    // Shared taxonomy overlay: PRODUCT.product_type translation → one EN value.
+    // Pull-only; never invent a parallel commerce type. Category SPT has no
+    // Translations API surface — Synarava overlays cover those gaps.
+    if (remoteTranslation?.productType && remote.productType?.trim()) {
+      await applyShopifyProductTypeLabel({
+        enProductType: remote.productType,
+        locale: translationLocale.code,
+        label: remoteTranslation.productType,
+      });
+    }
 
     const localShopifyCopy = localTranslation ? {
       handle: "",

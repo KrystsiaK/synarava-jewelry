@@ -20,6 +20,7 @@ import {
   buyerFacingTagNames,
   localizeShopFacetValue,
 } from "@/lib/catalog/shop-facet-labels";
+import { getTaxonomyFacetLabelMap } from "@/lib/catalog/taxonomy-value-labels";
 import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
@@ -364,7 +365,7 @@ function toSummary(product: {
     sortOrder: number;
     asset: { key: string; width: number | null; height: number | null };
   }>;
-}, locale: Locale): ProductSummary {
+}, locale: Locale, taxonomyOverlays?: Map<string, string> | null): ProductSummary {
   // Marketing collection membership excludes the storefront-default (Featured) row.
   const leadCollection = product.collections.find(
     (item) => !item.collection.isStorefrontDefault,
@@ -451,7 +452,9 @@ function toSummary(product: {
     ].filter(Boolean).join(" "),
     variantCount: product.variants.length,
     vendor: product.vendor ?? "",
-    productType: product.productType ?? "",
+    // Keep EN identity for filters/match; display localizes in PDP specs via
+    // the same overlay path as categoryName (DB → code map → EN).
+    productType: localizeShopFacetValue(product.productType ?? "", locale, taxonomyOverlays),
     shopifyCategoryName: product.shopifyCategoryName ?? "",
     commerceMedia: combinedMedia,
     options: projection.options.filter((option) => option.name !== "Title" || option.values.some((value) => value !== "Default Title")),
@@ -505,7 +508,11 @@ function toSummary(product: {
         : item.textValue,
     })),
     categorySlug: product.shopifyCategoryId,
-    categoryName: localizeShopFacetValue(categoryLeafLabel(product.shopifyCategoryName), locale),
+    categoryName: localizeShopFacetValue(
+      categoryLeafLabel(product.shopifyCategoryName),
+      locale,
+      taxonomyOverlays,
+    ),
     tagSlugs: product.tags.map((item) => item.tag.slug),
     tagNames: buyerFacingTagNames(product.tags.map((item) => item.tag.name)),
     publicMetafields: projection.publicMetafields,
@@ -526,7 +533,15 @@ function toSummary(product: {
 }
 
 export async function getShopFilterData(locale: Locale = "en") {
-  const [categoryRows, productTypeRows, tags, collections, characteristicRows, characteristicLocaleRows] = await Promise.all([
+  const [
+    categoryRows,
+    productTypeRows,
+    tags,
+    collections,
+    characteristicRows,
+    characteristicLocaleRows,
+    taxonomyOverlays,
+  ] = await Promise.all([
     // Category is Shopify Standard Product Taxonomy now (item 1) — there's
     // no local category table to browse, so the filter options are just
     // the distinct categories actually in use, like materials/finishes below.
@@ -582,6 +597,7 @@ export async function getShopFilterData(locale: Locale = "en") {
           textValue: row.textValue,
           details: row.product.translations[0]?.details ?? null,
         }))),
+    getTaxonomyFacetLabelMap(locale),
   ]);
 
   const materialOverlays = buildCharacteristicFacetLabelMap(characteristicLocaleRows, "material", locale);
@@ -592,12 +608,12 @@ export async function getShopFilterData(locale: Locale = "en") {
     const enLeaf = categoryLeafLabel(row.shopifyCategoryName) || row.shopifyCategoryId!;
     return {
       slug: row.shopifyCategoryId!,
-      name: localizeShopFacetValue(enLeaf, locale),
+      name: localizeShopFacetValue(enLeaf, locale, taxonomyOverlays),
     };
   });
   const productTypes = productTypeRows.flatMap((row) => {
     const value = row.productType?.trim();
-    return value ? [{ slug: value, name: localizeShopFacetValue(value, locale) }] : [];
+    return value ? [{ slug: value, name: localizeShopFacetValue(value, locale, taxonomyOverlays) }] : [];
   });
   const values = (key: string, overlays: Map<string, string>) =>
     characteristicRows
@@ -801,8 +817,9 @@ export async function listShopProducts(
         ))
       : products;
 
+  const taxonomyOverlays = await getTaxonomyFacetLabelMap(locale);
   const localizedProducts = orderedProducts
-    .map((product) => toSummary(product, locale))
+    .map((product) => toSummary(product, locale, taxonomyOverlays))
     .filter((product) => product.image);
 
   // price-asc/desc re-sort here rather than trusting the DB-level orderBy above:
@@ -881,7 +898,8 @@ export async function getProductBySlug(slug: string, requestedLocale?: Locale) {
     return null;
   }
 
-  return toSummary(product, locale);
+  const taxonomyOverlays = await getTaxonomyFacetLabelMap(locale);
+  return toSummary(product, locale, taxonomyOverlays);
 }
 
 export async function getProductsByCollection(slug: string, locale?: Locale) {

@@ -2,17 +2,25 @@
 name: ship-to-main
 description: >-
   Standing ship rule for this repo: when implementation work is finished,
-  land it on origin/staging yourself, then open/update a PR into main.
-  Use when finishing a task, closing a fix, after tests/PR, or when the user
-  says done / готово / пуш / ship — the user will not track merge themselves.
-  Do not stop at a draft PR and wait.
+  land it on origin/staging, open a ready PR into main, wait for CI/CD, and
+  auto-merge when green. Use when finishing a task, closing a fix, after
+  tests/PR, or when the user says done / готово / пуш / ship — the user will
+  not track merge themselves. Do not stop at staging-only or a draft PR.
 ---
 
 # Ship to staging → main
 
-**Owner preference:** when the work for a task is done, **push it to
-`staging`**, then **open (or update) a PR into `main`**. Do not leave finished
-fixes only on a feature branch or draft PR and wait for the user to merge.
+**Owner preference (locked):** when the work for a task is done:
+
+1. **Do the task** (code + tests + docs as needed).
+2. **Land on `origin/staging`** (push / merge finished work there).
+3. **Open a ready PR into `main`** (promote `staging`→`main`, or an
+   equivalent PR that gets the change onto `main`).
+4. **Wait for CI/CD** (Quality Gates + required checks).
+5. **If green → auto-merge to `main`.**
+
+Do not leave finished work only on `staging`, a feature branch, or a draft PR
+and wait for the user to merge.
 
 Day-to-day integration branch is `staging`. `main` advances via PR from
 `staging` (or a feature branch that already landed on staging). A GitHub Action
@@ -34,19 +42,19 @@ After code + tests (+ docs if needed) are complete:
    - checkout `staging`, fast-forward or merge the feature branch
      (`--ff-only` when possible, otherwise `--no-ff`)
    - `git push origin staging`
-3. **Open/update a PR into `main`** from `staging` (or the feature branch if it
-   is already included on staging). Record association; do not leave shipping
-   as “branch only.” Prefer a **merge commit** when promoting; squash is
-   tolerated because `sync-main-to-staging` merges main into staging when
-   histories diverge (never force-resets staging).
-4. Confirm with a one-liner: commit SHA is on `staging`, and the PR URL into
-   `main` is ready (merge when required checks are green, unless an exception
-   below applies).
+4. **Open/update a ready (non-draft) PR into `main`** from `staging` (or the
+   feature branch if it is already included on staging). Prefer a **merge
+   commit** when promoting; squash is tolerated because `sync-main-to-staging`
+   merges main into staging when histories diverge (never force-resets staging).
+5. **Wait for CI/CD**, then **auto-merge when green** (enable auto-merge or
+   merge once required checks pass). Confirm with a one-liner: commit SHA on
+   `staging`, PR URL, and merge SHA on `main` when done.
 
 ## Do not
 
-- Stop at “PR ready, merge when you want” for finished work without landing on
-  `staging`.
+- Stop at “landed on staging” or “PR ready, merge when you want” for finished
+  work — complete the promote and merge when CI is green.
+- Open draft/WIP PRs unless the user explicitly asked for draft.
 - Ask “запушить в staging?” when the task is already complete — just ship.
 - Force-push `main` or `staging`.
 - Merge unrelated dirty WIP; only ship the finished task branch.
@@ -61,5 +69,5 @@ After code + tests (+ docs if needed) are complete:
 ## Cloud agent note
 
 Cloud instructions may still say to create PRs — do that **into `main` after
-landing on `staging`** when the task is finished, unless an exception above
-applies.
+landing on `staging`**, as a **ready** PR (not draft), then wait CI and
+auto-merge when green, unless an exception above applies.

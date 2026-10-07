@@ -9,18 +9,21 @@ import { parseCharacteristicTextOverlay } from "@/lib/products/characteristics";
  * Only the displayed label localizes — same split as
  * `characteristicLabel` for passport field names.
  *
- * Shopify Standard Product Taxonomy IDs remain SoT; Admin API stores the
- * English `fullName`. Storefront TaxonomyCategory.name is language-aware,
- * but shop filters assemble options from the local catalog projection, so
- * we resolve leaf / product-type / common passport values here.
+ * Sync contract (category leaf + product type):
+ * - EN identity: Shopify SoT (`shopifyCategoryId` / `productType`).
+ * - Category translations: Standard Product Taxonomy is not a
+ *   TranslatableResourceType → Synarava `TaxonomyValueLabel` overlays only.
+ * - Product type: Shopify PRODUCT `product_type` translations are pulled into
+ *   shared overlays when present; Synarava fills gaps. No push of shared
+ *   overlays to Shopify (existing registerProductTranslation omits product_type).
  *
- * Characteristic TEXT overlays (`ProductTranslation.details.characteristics`)
- * win over this dictionary when present for a given EN textValue.
+ * Resolution (non-en): DB overlay map → this code dictionary → English.
+ * Characteristic TEXT overlays still win for material/finish/origin.
  */
 
-const JEWELRY_FACET_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
+/** Category leaf + product-type vocabulary (seeded into TaxonomyValueLabel). */
+export const JEWELRY_TAXONOMY_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   pt: {
-    // Category leaves / product types
     Jewelry: "Joalharia",
     Brooches: "Broches",
     "Brooches & Lapel Pins": "Broches e alfinetes",
@@ -35,7 +38,28 @@ const JEWELRY_FACET_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string, st
     Earring: "Brinco",
     Ring: "Anel",
     Brooch: "Broche",
-    // Common passport material / finish / origin values
+  },
+  ru: {
+    Jewelry: "Ювелирные изделия",
+    Brooches: "Броши",
+    "Brooches & Lapel Pins": "Броши и булавки",
+    Necklaces: "Колье",
+    Earrings: "Серьги",
+    Bracelets: "Браслеты",
+    Rings: "Кольца",
+    "Hair Accessories": "Аксессуары для волос",
+    "Beaded Necklace": "Бусы",
+    Necklace: "Колье",
+    Bracelet: "Браслет",
+    Earring: "Серьга",
+    Ring: "Кольцо",
+    Brooch: "Брошь",
+  },
+};
+
+/** Passport material / finish / origin common values (code-map fallback only). */
+const JEWELRY_PASSPORT_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
+  pt: {
     Pearl: "Pérola",
     "Crystal pearl": "Pérola de cristal",
     "Natural pearl": "Pérola natural",
@@ -53,20 +77,6 @@ const JEWELRY_FACET_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string, st
     Black: "Preto",
   },
   ru: {
-    Jewelry: "Ювелирные изделия",
-    Brooches: "Броши",
-    "Brooches & Lapel Pins": "Броши и булавки",
-    Necklaces: "Колье",
-    Earrings: "Серьги",
-    Bracelets: "Браслеты",
-    Rings: "Кольца",
-    "Hair Accessories": "Аксессуары для волос",
-    "Beaded Necklace": "Бусы",
-    Necklace: "Колье",
-    Bracelet: "Браслет",
-    Earring: "Серьга",
-    Ring: "Кольцо",
-    Brooch: "Брошь",
     Pearl: "Жемчуг",
     "Crystal pearl": "Хрустальный жемчуг",
     "Natural pearl": "Натуральный жемчуг",
@@ -85,11 +95,29 @@ const JEWELRY_FACET_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string, st
   },
 };
 
+/** Full shipped dictionary (taxonomy + passport). Kept for tests / fallback. */
+const JEWELRY_FACET_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
+  pt: {
+    ...JEWELRY_TAXONOMY_VALUE_TRANSLATIONS.pt,
+    ...JEWELRY_PASSPORT_VALUE_TRANSLATIONS.pt,
+  },
+  ru: {
+    ...JEWELRY_TAXONOMY_VALUE_TRANSLATIONS.ru,
+    ...JEWELRY_PASSPORT_VALUE_TRANSLATIONS.ru,
+  },
+};
+
 /** Locale display label for a canonical EN facet value (category leaf, type, material…). */
-export function localizeShopFacetValue(value: string, locale: Locale): string {
+export function localizeShopFacetValue(
+  value: string,
+  locale: Locale,
+  overlays?: Map<string, string> | null,
+): string {
   const trimmed = value.trim();
   if (!trimmed || locale === "en") return trimmed;
-  return JEWELRY_FACET_VALUE_TRANSLATIONS[locale]?.[trimmed] ?? trimmed;
+  return overlays?.get(trimmed)
+    ?? JEWELRY_FACET_VALUE_TRANSLATIONS[locale]?.[trimmed]
+    ?? trimmed;
 }
 
 /**

@@ -203,9 +203,11 @@ export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
   return [
     { id: "settings-header", href: "/admin/settings#shared-header", label: "Header" },
     { id: "settings-footer", href: "/admin/settings#shared-footer", label: "Footer" },
+    { id: "settings-home", href: "/admin/settings#shared-home", label: "Home" },
     { id: "settings-cookies", href: "/admin/settings#shared-cookies", label: "Cookies" },
     { id: "settings-contact", href: "/admin/settings#shared-contact", label: "Contact" },
     { id: "settings-reviews", href: "/admin/settings#shared-reviews", label: "Reviews" },
+    { id: "settings-taxonomy", href: "/admin/settings#shared-taxonomy", label: "Taxonomy" },
   ];
 }
 
@@ -256,7 +258,7 @@ export function buildAdminNavItems({
       label: "Shared",
       code: "SHR",
       children: buildStorefrontCopyNavChildren(),
-      childPreviewLimit: 5,
+      childPreviewLimit: 8,
       badge: syncBadge(sync.settings),
     },
     {

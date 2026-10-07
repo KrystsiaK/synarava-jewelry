@@ -23,6 +23,11 @@ describe("localizeShopFacetValue", () => {
   it("falls back to the English source when no map entry exists", () => {
     expect(localizeShopFacetValue("Custom Alloy X", "ru")).toBe("Custom Alloy X");
   });
+
+  it("prefers DB overlays over the shipped dictionary", () => {
+    const overlays = new Map([["Brooches", "Админ-броши"]]);
+    expect(localizeShopFacetValue("Brooches", "ru", overlays)).toBe("Админ-броши");
+  });
 });
 
 describe("characteristicFacetLabel", () => {

@@ -139,7 +139,7 @@ export function SiteFooter({ headerNav, footerLinks, contactEmails }: SiteFooter
       <div className={`relative text-center md:text-left ${showSocials ? "" : "md:col-span-2"}`}>
         <div className="artifact-footer__wordmark" aria-hidden="true">
           <span>SYNARAVA</span>
-          <span>CURATED GOODS</span>
+          <span>{t("brand.curatedGoods")}</span>
         </div>
         <div className="mt-16 flex flex-col items-center gap-4 md:mt-8 md:flex-row md:items-center md:gap-3">
           <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden md:h-20 md:w-20">

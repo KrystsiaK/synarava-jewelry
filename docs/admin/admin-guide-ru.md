@@ -441,9 +441,9 @@ legacy cover, пока не загружены изображения галер
 
 ## 7a. Shared (`/admin/settings`)
 
-Пять вкладок: **Header**, **Footer**, **Cookies**, **Contact**, **Reviews**. Язык — полоса
+Шесть вкладок: **Header**, **Footer**, **Home**, **Cookies**, **Contact**, **Reviews**. Язык — полоса
 LOCALE над ними. Одна кнопка **Save Shared** пишет все вкладки сразу. Боковое
-меню ведёт на ту же вкладку (`#shared-header`, `#shared-footer`,
+меню ведёт на ту же вкладку (`#shared-header`, `#shared-footer`, `#shared-home`,
 `#shared-cookies`, `#shared-contact`, `#shared-reviews`).
 
 - **Header — main links:** ordered list of name + path (storefront path autocomplete).
@@ -463,10 +463,15 @@ LOCALE над ними. Одна кнопка **Save Shared** пишет все 
 - **Footer — contact emails:** ordered list of mailto addresses
   (`footer-contact-v1`). The first email is the primary shared contact CTA
   target. Shared across languages.
-- **Chrome & footer labels:** menu controls, brand, column headings, contact aria
-  label, and contact-CTA copy (EN and other registered locales). Empty field =
-  default from `messages/*.json`. Stored in `storefront-copy-v1`. Cart and
-  account labels are edited under **Cart & account**, not here.
+- **Chrome & footer labels:** menu controls, skip link, appearance label, brand
+  (including Curated goods), column headings, contact aria label, and contact-CTA
+  copy (EN and other registered locales). Empty field = default from
+  `messages/*.json`. Stored in `storefront-copy-v1`. Cart and account labels are
+  edited under **Cart & account**, not here.
+- **Home chrome:** Featured collections strip (`home.archive.*`), material
+  lexicon plate labels (`home.material.*`), and final CTA eyebrow
+  (`home.finalCta.eyebrow`) — Shared → **Home** (`#shared-home`). Collection
+  titles/notes and lexicon entry content stay on **Pages → Home** / Collections.
 - **Shared — contact CTA:** title, body, and button label for the banner on Care,
   FAQ, Shipping, Returns, and Dispute Resolution (`service.contactTitle` /
   `contactBody` / `contactCta`). One banner for all those pages — not per-slug.
