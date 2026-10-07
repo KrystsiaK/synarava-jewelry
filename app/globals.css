@@ -438,7 +438,7 @@ select {
 .artifact-nav {
   position: sticky;
   inset-inline: 0;
-  top: 0.75rem;
+  top: 0;
   z-index: 50;
   display: flex;
   align-items: center;
@@ -465,54 +465,53 @@ select {
   position: fixed;
 }
 
+/*
+ * Header glass: frosted fallback by default (Safari/Firefox).
+ * Blink upgrades to SVG refraction via html[data-backdrop-filter-url="true"]
+ * set in the theme head script — @supports(url()) is optimistic on WebKit.
+ * https://bugs.webkit.org/show_bug.cgi?id=245510
+ */
+.site-nav-liquid-glass {
+  display: none;
+  border: none;
+  box-shadow: var(--site-nav-shadow);
+}
+
 .site-nav-mobile-glass {
+  display: block;
+  border: 1px solid var(--color-border-subtle);
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.66), transparent 34%),
+    color-mix(in srgb, var(--color-header-chrome) 88%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    inset 0 -1px 0 var(--color-border-subtle),
+    var(--site-nav-shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(1.18) brightness(1.05);
+  backdrop-filter: blur(16px) saturate(1.18) brightness(1.05);
+}
+
+html[data-theme="dark"] .site-nav-mobile-glass {
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(28, 28, 33, 0.56), rgba(10, 10, 13, 0.7));
+}
+
+html[data-backdrop-filter-url="true"] .site-nav-liquid-glass {
+  display: block;
+  clip-path: inset(0);
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.22), transparent 36%),
+    var(--color-header-chrome);
+  -webkit-backdrop-filter: url("#lg-refract-strong");
+  backdrop-filter: url("#lg-refract-strong");
+}
+
+html[data-backdrop-filter-url="true"] .site-nav-mobile-glass {
   display: none;
 }
 
 @media (max-width: 1199px) {
-  .site-nav-liquid-glass {
-    display: block !important;
-    clip-path: inset(0);
-    background:
-      linear-gradient(112deg, rgba(255, 255, 255, 0.22), transparent 36%),
-      var(--color-header-chrome) !important;
-    backdrop-filter: url("#lg-refract-strong") !important;
-    -webkit-backdrop-filter: url("#lg-refract-strong") !important;
-  }
-
-  .site-nav-mobile-glass {
-    display: none;
-  }
-
-  @supports not ((backdrop-filter: url("#lg-refract-strong")) or (-webkit-backdrop-filter: url("#lg-refract-strong"))) {
-    .site-nav-liquid-glass {
-      display: none !important;
-    }
-
-    .site-nav-mobile-glass {
-      display: block;
-    }
-  }
-
-  .site-nav-mobile-glass {
-    border: 1px solid var(--color-border-subtle);
-    background:
-      linear-gradient(112deg, rgba(255, 255, 255, 0.66), transparent 34%),
-      color-mix(in srgb, var(--color-header-chrome) 88%, transparent);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.13),
-      inset 0 -1px 0 var(--color-border-subtle),
-      var(--site-nav-shadow);
-    backdrop-filter: blur(16px) saturate(1.18) brightness(1.05);
-    -webkit-backdrop-filter: blur(16px) saturate(1.18) brightness(1.05);
-  }
-
-  html[data-theme="dark"] .site-nav-mobile-glass {
-    background:
-      linear-gradient(112deg, rgba(255, 255, 255, 0.16), transparent 34%),
-      linear-gradient(180deg, rgba(28, 28, 33, 0.56), rgba(10, 10, 13, 0.7));
-  }
-
   html[data-theme="dark"] .archive-record-surface {
     background:
       linear-gradient(138deg, rgba(166, 25, 46, 0.18), transparent 42%),
@@ -1666,7 +1665,7 @@ html[data-theme="dark"] .etched-glass {
 
 @media (min-width: 768px) {
   .artifact-nav {
-    top: 1rem;
+    top: 0;
     padding: 0.65rem clamp(1rem, 2.4vw, 1.75rem);
   }
 

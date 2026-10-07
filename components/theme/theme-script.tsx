@@ -30,6 +30,28 @@ export function getThemeScript(initialPreference: ThemePreference): string {
       root.dataset.themePreference = preference;
       root.dataset.theme = resolved;
       root.style.colorScheme = resolved;
+
+      // SVG backdrop-filter: url(#…) only paints in Blink. Safari/WebKit and
+      // Firefox parse/claim support but do not render it (WebKit 245510).
+      // @supports is optimistic there — gate on Blink + CSS.supports.
+      const ua = navigator.userAgent || '';
+      const isIosWebKit = /\\b(iPhone|iPad|iPod|CriOS|FxiOS|EdgiOS|OPiOS)\\b/i.test(ua);
+      const isAndroidWebView = /\\bwv\\b/i.test(ua);
+      const isBlink =
+        !isIosWebKit &&
+        !isAndroidWebView &&
+        (/\\bChrome\\/\\d+/i.test(ua) ||
+          /\\bChromium\\/\\d+/i.test(ua) ||
+          /\\bEdg\\/\\d+/i.test(ua));
+      const supportsCss = (property, value) =>
+        typeof CSS !== 'undefined' &&
+        typeof CSS.supports === 'function' &&
+        CSS.supports(property, value);
+      const backdropUrl =
+        isBlink &&
+        (supportsCss('backdrop-filter', 'url(#lg)') ||
+          supportsCss('-webkit-backdrop-filter', 'url(#lg)'));
+      root.dataset.backdropFilterUrl = backdropUrl ? 'true' : 'false';
     })();
   `;
 }

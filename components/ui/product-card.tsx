@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
@@ -20,6 +20,21 @@ interface ProductCardProps {
   offsetClass?: string;
 }
 
+function useCanHover() {
+  // Desktop-first: avoid a one-frame center-color flash on pointer devices.
+  const [canHover, setCanHover] = useState(true);
+
+  useEffect(() => {
+    const media = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const update = () => setCanHover(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return canHover;
+}
+
 export function ProductCard({
   product,
   index,
@@ -29,6 +44,14 @@ export function ProductCard({
 }: ProductCardProps) {
   const { t, locale } = useTranslations();
   const [imgError, setImgError] = useState(false);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  const canHover = useCanHover();
+  // Middle ~30% of the viewport: color when the card sits in the screen center.
+  const isCentered = useInView(mediaRef, {
+    margin: "-35% 0px -35% 0px",
+    amount: 0.4,
+  });
+  const showColor = canHover ? false : isCentered;
   const aspectClass = isFeatured ? "aspect-[16/9]" : "aspect-[3/4]";
   const discount = discountPercent(product.priceAmount, product.compareAtAmount);
 
@@ -41,10 +64,11 @@ export function ProductCard({
     >
       <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
         <motion.div
+          ref={mediaRef}
           className={`relative mb-5 overflow-hidden bg-stone-beige ${aspectClass}`}
           initial="rest"
-          whileHover="hover"
-          animate="rest"
+          whileHover={canHover ? "hover" : undefined}
+          animate={showColor ? "hover" : "rest"}
         >
           {discount != null ? (
             <span className="absolute left-3 top-3 z-20 bg-couture-red px-2 py-1 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
