@@ -5,9 +5,8 @@ Staging URL: `https://synarava-shop-app-staging.up.railway.app`.
 ## Git flow
 
 - Day-to-day work lands on `staging` first (integration + Railway staging deploy).
-- When a task is **done**, ship through: land on `staging` → ready PR
-  `staging`→`main` (or equivalent) → wait CI/CD (Quality Gates) → if green,
-  auto-merge to `main`. Do not leave finished work only on staging.
+- Finished-work ship steps (ready PR → wait CI → merge when green): see
+  [`ship-to-main`](../.agents/skills/ship-to-main/SKILL.md) (canonical).
 - Prefer a **merge commit** when promoting staging→main (avoids needless
   divergence). Squash is allowed but leaves parallel tips; the sync job below
   heals that with a merge, not a reset.
@@ -17,8 +16,6 @@ Staging URL: `https://synarava-shop-app-staging.up.railway.app`.
 - Do **not** force-push or `reset --hard` staging onto main to “fix” diverge;
   that drops unfinished staging work. Only merge conflicts need a manual
   resolve on staging.
-- Ready PRs only (no draft unless explicitly asked). See skill
-  [`ship-to-main`](../.agents/skills/ship-to-main/SKILL.md).
 
 Railway injects `RAILWAY_ENVIRONMENT_NAME`. The application uses that value to
 keep staging out of search indexes and to disable GTM/Meta destinations even if
