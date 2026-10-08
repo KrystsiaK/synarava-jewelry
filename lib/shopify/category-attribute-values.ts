@@ -68,6 +68,12 @@ const KEY_TO_CHARACTERISTIC: Record<string, ProductCharacteristicKey> = {
   stone: "stone_type",
   finish: "finish",
   plating: "plating",
+  care: "care_instructions",
+  "care-instructions": "care_instructions",
+  care_instructions: "care_instructions",
+  "wrist-fit": "fit_notes",
+  wrist_fit: "fit_notes",
+  "wrist-size": "fit_notes",
 };
 
 const LABEL_TO_CHARACTERISTIC: Record<string, ProductCharacteristicKey> = {
@@ -80,6 +86,10 @@ const LABEL_TO_CHARACTERISTIC: Record<string, ProductCharacteristicKey> = {
   stone: "stone_type",
   finish: "finish",
   plating: "plating",
+  care: "care_instructions",
+  "care instructions": "care_instructions",
+  "wrist fit": "fit_notes",
+  "wrist size": "fit_notes",
 };
 
 /**
