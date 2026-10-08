@@ -17,6 +17,8 @@ Everything Claude Code (ECC) is installed into project `.cursor/` and committed 
 
 **Not committed:** `.cursor/mcp.json`, `.cursor/mcp-configs/` (MCP wiring; avoid shipping secrets/keys).
 
+**Lint:** ECC CommonJS under `.cursor/scripts/**`, `.cursor/hooks/**`, `.cursor/skills/**`, `.cursor/.agents/**`, and `.cursor/.pi/**` is excluded from the app ESLint surface (`eslint.config.mjs` `globalIgnores`). Do not rewrite those files to satisfy app lint rules.
+
 ## Curated copies under `.agents/skills/`
 
 Cloud `available_skills` is dominated by repo-root `.agents/skills/`, not `.cursor/skills/`. These ECC (and related) skills are copied there so agents actively load them:
