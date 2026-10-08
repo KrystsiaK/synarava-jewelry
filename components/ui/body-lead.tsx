@@ -1,7 +1,16 @@
 import { type HTMLAttributes } from "react";
 
+import { glueTextChildren } from "@/lib/text/glue-text-children";
 import { cn } from "@/lib/ui";
 
-export function BodyLead({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
-  return <p data-component="BodyLead" className={cn("max-w-2xl text-lg leading-8 text-muted md:text-[1.2rem]", className)} {...props} />;
+export function BodyLead({ className, children, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p
+      data-component="BodyLead"
+      className={cn("max-w-2xl text-lg leading-8 text-muted md:text-[1.2rem]", className)}
+      {...props}
+    >
+      {glueTextChildren(children)}
+    </p>
+  );
 }

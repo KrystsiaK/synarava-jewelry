@@ -8,6 +8,7 @@ import { normalizeLocale, type Locale } from "./locales";
 import { flattenMessages, mergeLocaleOverrides } from "./utils";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { getCommerceCopy } from "@/lib/content/commerce-copy";
+import { glueOrphanPunctuation } from "@/lib/text/glue-orphan-punctuation";
 
 type Values = Record<string, string | number>;
 
@@ -40,11 +41,14 @@ export async function getServerTranslations() {
   const overrides = mergeLocaleOverrides(storefrontCopy, commerceCopy);
   const messages = { ...dictionaries[locale], ...overrides[locale] };
   const fallback = enDictionary;
-  const interpolate = (message: string, values?: Values) => values
-    ? message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
-        Object.hasOwn(values, key) ? String(values[key]) : match
-      ))
-    : message;
+  const interpolate = (message: string, values?: Values) => {
+    const filled = values
+      ? message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
+          Object.hasOwn(values, key) ? String(values[key]) : match
+        ))
+      : message;
+    return glueOrphanPunctuation(filled);
+  };
 
   return {
     locale,

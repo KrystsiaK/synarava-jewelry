@@ -61,9 +61,13 @@ These primitives should be used across all screens:
 - `DisplayHeading`
   - every large storefront serif title (heroes, PDP, shop, collections)
   - owns fit-by-longest-word: never mid-word-break; shrink type to the measure instead
-  - owns punctuation wrap: orphan marks (`·`, dashes, bullets) glue to the previous word via `displayTitleWords` / NBSP — never a lone line-start token in reveal or static titles
-  - plain product titles outside DisplayHeading use the same helper: `formatDisplayTitle` (`lib/ui/display-title-words.ts`)
+  - owns punctuation wrap for reveal/fit titles via `displayTitleWords` (adapter over `lib/text/glue-orphan-punctuation.ts`)
+  - plain product titles outside DisplayHeading use `formatDisplayTitle` (same shared NBSP glue)
   - do not add `overflow-wrap: anywhere` / `break-all` on display type; do not rebuild titles with raw `.type-display`
+- Orphan punctuation (global text layer)
+  - Shared helper: `lib/text/glue-orphan-punctuation.ts` — NBSP-glue before orphan marks (`·`, bullets, dashes, etc.)
+  - Choke points: `RichText` (storefront + admin preview), i18n `t`/`plural` interpolate, DisplayHeading / `formatDisplayTitle`, string children on `BodyLead` / `CapsLabel` / `MonoMeta` / `EditorialHeading`
+  - Render-time only (not storage / Shopify sync). Optional CSS `text-wrap: pretty` on `.rich-text` is defense-in-depth, not the primary fix.
 - `EditorialHeading`
   - large serif display heading; for narrow `max-w-[Nch]` heroes use `DisplayHeading` + `text` (fit)
 - `BodyLead`

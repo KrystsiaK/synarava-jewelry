@@ -3443,6 +3443,12 @@ select.adm-field option {
   list-style: decimal;
 }
 
+/* Defense-in-depth for orphan punctuation; primary fix is NBSP glue in
+   lib/text/glue-orphan-punctuation.ts (RichText, titles, i18n). */
+.rich-text {
+  text-wrap: pretty;
+}
+
 .rich-text p {
   margin: 0;
 }

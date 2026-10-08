@@ -7,6 +7,7 @@ import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 import { flattenMessages } from "./utils";
 import { normalizeLocale, SUPPORTED_LOCALES, type Locale } from "./locales";
+import { glueOrphanPunctuation } from "@/lib/text/glue-orphan-punctuation";
 import { LOCALE_PATH_PREFIX_RE, localePath } from "./routing";
 
 export type { Locale } from "./locales";
@@ -117,10 +118,14 @@ export function TranslationProvider({
 }
 
 function interpolate(message: string, values?: TranslationValues) {
-  if (!values) return message;
-  return message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
-    Object.hasOwn(values, key) ? String(values[key]) : match
-  ));
+  const filled = !values
+    ? message
+    : message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
+        Object.hasOwn(values, key) ? String(values[key]) : match
+      ));
+  // Storefront + admin chrome copy share this path — glue orphan punctuation
+  // at render so middots/dashes never start a line in UI strings.
+  return glueOrphanPunctuation(filled);
 }
 
 export function useTranslations() {

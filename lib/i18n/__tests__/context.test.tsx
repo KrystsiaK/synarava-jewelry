@@ -25,7 +25,26 @@ function SwitchToRussianButton() {
   return <button type="button" onClick={() => setLocale("ru")}>Switch to Russian</button>;
 }
 
+function OrphanPunctLabel() {
+  const { t } = useTranslations();
+  return <p data-testid="orphan">{t("test.orphan.punct")}</p>;
+}
+
 describe("TranslationProvider (REV-20)", () => {
+  it("glues orphan punctuation in interpolated UI copy", () => {
+    render(
+      <TranslationProvider
+        initialLocale="en"
+        initialOverrides={{ en: { "test.orphan.punct": "Size · 8 mm" }, pt: {}, ru: {} }}
+      >
+        <OrphanPunctLabel />
+      </TranslationProvider>,
+    );
+
+    // toHaveTextContent normalizes NBSP; assert raw textContent.
+    expect(screen.getByTestId("orphan").textContent).toBe("Size\u00A0· 8 mm");
+  });
+
   it("renders the Portuguese dictionary on the very first render, not just after a client fetch", () => {
     render(
       <TranslationProvider initialLocale="pt">
