@@ -37,4 +37,12 @@ describe("server translations", () => {
     expect(t("reviews.shareTitle")).toBe("Поделитесь впечатлением");
     expect(t("reviews.signInCta")).toBe("Войти, чтобы оставить отзыв");
   });
+
+  it("glues orphan punctuation in server UI copy", async () => {
+    mocks.getStorefrontCopy.mockResolvedValue({
+      ru: { "test.orphan.punct": "Размер · 8 мм" },
+    });
+    const { t } = await getServerTranslations();
+    expect(t("test.orphan.punct")).toBe("Размер\u00A0· 8 мм");
+  });
 });

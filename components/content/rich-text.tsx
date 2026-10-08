@@ -3,6 +3,10 @@ import {
   looksLikeHtml,
   sanitizeRichTextHtml,
 } from "@/lib/content/rich-text";
+import {
+  glueOrphanPunctuation,
+  glueOrphanPunctuationInHtml,
+} from "@/lib/text/glue-orphan-punctuation";
 
 type RichTextProps = {
   content: string;
@@ -15,21 +19,32 @@ type RichTextProps = {
  * Renders plain text (whitespace preserved) or sanitized link-capable HTML.
  * Safe for page bodies and admin rich-text previews.
  * Plain text stays a single paragraph; HTML uses a div so nested `<p>` tags are valid.
+ * Orphan punctuation (`·`, dashes, bullets) is NBSP-glued at render time.
  */
 export function RichText({ content, className, emptyFallback }: RichTextProps) {
   if (!content.trim()) {
     if (!emptyFallback) return null;
-    return <p className={cn(className)} data-empty="true">{emptyFallback}</p>;
+    return (
+      <p className={cn(className)} data-empty="true">
+        {glueOrphanPunctuation(emptyFallback)}
+      </p>
+    );
   }
 
   if (!looksLikeHtml(content)) {
-    return <p className={cn("whitespace-pre-line", className)}>{content}</p>;
+    return (
+      <p className={cn("whitespace-pre-line", className)}>
+        {glueOrphanPunctuation(content)}
+      </p>
+    );
   }
 
   return (
     <div
       className={cn("rich-text", className)}
-      dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }}
+      dangerouslySetInnerHTML={{
+        __html: glueOrphanPunctuationInHtml(sanitizeRichTextHtml(content)),
+      }}
     />
   );
 }

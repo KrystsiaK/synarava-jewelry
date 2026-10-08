@@ -4,6 +4,7 @@ import { useId, type ReactNode } from "react";
 
 import { FieldLabel } from "@/components/admin/shared/field-label";
 import { OwnershipLabel, type AdminFieldOwner } from "@/components/admin/shared/ownership-label";
+import { glueTextChildren } from "@/lib/text/glue-text-children";
 import { cn } from "@/lib/ui";
 
 export type AdminReadonlyFieldProps = {
@@ -58,7 +59,7 @@ export function AdminReadonlyField({
         data-empty={isEmpty ? "true" : "false"}
         className="adm-readonly__value"
       >
-        {isEmpty ? emptyLabel : value}
+        {isEmpty ? emptyLabel : glueTextChildren(value)}
       </p>
     </div>
   );
