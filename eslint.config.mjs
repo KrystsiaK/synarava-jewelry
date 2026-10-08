@@ -20,6 +20,13 @@ const eslintConfig = defineConfig([
     ".agents/**",
     ".claude/**",
     ".codex-tmp/**",
+    // ECC Cursor vendor surface (CommonJS hooks/scripts/skills) — not app code.
+    // Keep .cursor/rules/** on the lint surface if/when they become JS/TS.
+    ".cursor/scripts/**",
+    ".cursor/hooks/**",
+    ".cursor/skills/**",
+    ".cursor/.agents/**",
+    ".cursor/.pi/**",
     "artifacts/**",
     "edited-product-photos/**",
   ]),
