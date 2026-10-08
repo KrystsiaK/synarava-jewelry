@@ -46,18 +46,27 @@ After code + tests (+ docs if needed) are complete:
    - checkout `staging`, fast-forward or merge the feature branch
      (`--ff-only` when possible, otherwise `--no-ff`)
    - `git push origin staging`
-4. **Open/update a ready (non-draft) PR into `main`** from `staging` (or the
-   feature branch if it is already included on staging). Prefer a **merge
-   commit** when promoting; squash is tolerated because `sync-main-to-staging`
-   merges main into staging when histories diverge (never force-resets staging).
-5. **Wait for CI/CD**, then **auto-merge when green** (enable auto-merge or
+4. **Delete the feature branch after it lands on `staging`:**
+   - `git push origin --delete <feature-branch>`
+   - Also delete the local branch if present (`git branch -d <feature-branch>`).
+   - Skip only if the branch still has unique commits not on staging, or the
+     user asked to keep it.
+5. **Open/update a ready (non-draft) PR into `main`** from `staging`. Prefer a
+   **merge commit** when promoting; squash is tolerated because
+   `sync-main-to-staging` merges main into staging when histories diverge
+   (never force-resets staging). Do not open draft PRs.
+6. **Wait for CI/CD**, then **auto-merge when green** (enable auto-merge or
    merge once required checks pass). Confirm with a one-liner: commit SHA on
    `staging`, PR URL, and merge SHA on `main` when done.
+7. **If the feature branch still exists after merge to `main`**, delete it:
+   `git push origin --delete <feature-branch>` (and local `-d` if needed).
 
 ## Do not
 
 - Stop at “landed on staging” or “PR ready, merge when you want” for finished
   work — complete the promote and merge when CI is green.
+- Leave merged feature branches on the remote after they are ancestors of
+  `staging` (and preferably `main`) — delete them as part of ship.
 - Open draft/WIP PRs unless the user explicitly asked for draft.
 - Ask “запушить в staging?” when the task is already complete — just ship.
 - Force-push `main` or `staging`.
