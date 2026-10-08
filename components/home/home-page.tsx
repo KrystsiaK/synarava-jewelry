@@ -21,6 +21,7 @@ import { RichText } from "@/components/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath, storefrontHref } from "@/lib/i18n/routing";
 import { ArtifactLink, DisplayHeading, PrimaryCtaButton } from "@/components/ui";
+import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
 import { useVideoPlayback } from "@/lib/hooks/use-video-playback";
@@ -728,7 +729,7 @@ function EditShowcase({
                 <div className="mt-4 grid gap-2 border-t border-[#171513]/25 pt-3 md:grid-cols-[minmax(0,1fr)_auto] md:gap-4 md:pt-4">
                   <div className="min-w-0">
                     <h3 className="font-serif text-[clamp(1rem,1.45vw,1.3rem)] uppercase leading-[1.02] tracking-[-0.02em] text-[#171513]">
-                      {product.title}
+                      {formatDisplayTitle(product.title)}
                     </h3>
                     {kind ? <p className="mt-2 line-clamp-1 font-sans text-[0.55rem] font-bold uppercase tracking-[0.15em] text-[#746c63]">{kind}</p> : null}
                   </div>

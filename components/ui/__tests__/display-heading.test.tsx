@@ -71,13 +71,29 @@ describe("DisplayHeading", () => {
     expect(heading).toHaveAttribute("data-display-fit");
 
     const masks = [...heading.querySelectorAll(".type-reveal")];
+    // Middle dot binds to the previous word — never a lone line-start token.
     expect(masks.map((mask) => mask.textContent)).toEqual([
       "Жемчужный",
-      "браслет",
-      "·",
+      "браслет\u00A0·",
       "8",
       "мм",
     ]);
     expect(masks.at(-1)).toHaveClass("italic", "text-couture-red");
+    // sr-only spaces keep a readable accessible string; NBSP still binds middot.
+    expect(heading.textContent).toBe("Жемчужный браслет\u00A0· 8 мм");
+  });
+
+  it("glues middot on static (non-reveal) titles too", () => {
+    render(
+      <DisplayHeading
+        text="Жемчужный браслет · 8 мм"
+        accentClassName="italic text-couture-red"
+      />,
+    );
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.textContent).toContain("браслет\u00A0·");
+    expect(heading.textContent).not.toMatch(/браслет ·/);
+    expect(screen.getByText("мм")).toHaveClass("italic", "text-couture-red");
   });
 });

@@ -8,6 +8,7 @@ import { RichText } from "@/components/content/rich-text";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { buildSearchParams, type ShopFilters } from "./types";
 
 export type ShopProductTypeTile = {
@@ -34,7 +35,7 @@ function DiscoveryProductCard({ product }: { product: ShopListingProduct }) {
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"
         />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-5 pb-5 pt-16 text-white">
-          <p className="font-serif text-2xl leading-tight">{product.title}</p>
+          <p className="font-serif text-2xl leading-tight">{formatDisplayTitle(product.title)}</p>
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/75">
             {product.price}
           </p>

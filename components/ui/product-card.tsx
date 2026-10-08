@@ -9,6 +9,7 @@ import { RichText } from "@/components/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { discountPercent } from "@/lib/shopify/money";
+import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -131,7 +132,7 @@ export function ProductCard({
                 className="font-serif leading-tight text-white"
                 style={{ fontSize: isFeatured ? "clamp(1.2rem,2vw,1.6rem)" : "clamp(1rem,1.4vw,1.2rem)" }}
               >
-                {product.title}
+                {formatDisplayTitle(product.title)}
               </p>
               <span className="label-mono shrink-0 text-[0.68rem] text-couture-red">
                 {product.price}
@@ -161,7 +162,7 @@ export function ProductCard({
                   : "clamp(1.1rem,1.5vw,1.4rem)",
               }}
             >
-              {product.title}
+              {formatDisplayTitle(product.title)}
             </h3>
             {isFeatured && product.shortDescription && (
               <RichText

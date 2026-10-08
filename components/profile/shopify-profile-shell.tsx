@@ -21,6 +21,7 @@ import type { Locale } from "@/lib/i18n/locales";
 import { AccountReviews } from "@/components/profile/account-reviews";
 import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 import { ArtifactLink } from "@/components/ui";
+import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import type { AccountReviewRow } from "@/lib/profile/account-reviews";
 import {
   resolveOrderStatusView,
@@ -420,7 +421,7 @@ export function ShopifyProfileShell({
                               <Image src={product.image} alt={product.title} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
                             ) : null}
                           </div>
-                          <p className="truncate font-serif text-lg">{product.title}</p>
+                          <p className="truncate font-serif text-lg">{formatDisplayTitle(product.title)}</p>
                           <p className="mt-1 text-sm text-foreground/50">{product.price}</p>
                         </Link>
                       </div>
