@@ -99,6 +99,7 @@ export function projectPublicProductMetafields(
     const shopifyTranslated = typeof field.namespace === "string" && isTranslatableMetafieldType(field.type)
       ? localeBucket[metafieldIdentityKey(field.namespace, field.key)]?.trim()
       : "";
+    // Shopify translation first; Passport / dictionary only when Shopify has none.
     const valueText = shopifyTranslated
       || localizePublicFactValue({
         value: sourceValue,

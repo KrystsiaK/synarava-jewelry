@@ -139,4 +139,33 @@ describe("extractShopifyProductFacts", () => {
     );
     expect(facts.find((fact) => fact.key === "custom.wrist_fit")?.value).toBe("17 см");
   });
+
+  it("prefers pulled Shopify metafield translations over Passport overlays for custom facts", () => {
+    const facts = extractShopifyProductFacts({
+      locale: "ru",
+      characteristicTextOverlay: {
+        material: "Passport override that should lose",
+      },
+      snapshot: {
+        metafieldTranslations: {
+          ru: {
+            "custom::material": "Культивированный пресноводный жемчуг Grade AAA / нержавеющая сталь 316L",
+          },
+        },
+        metafields: [
+          {
+            namespace: "custom",
+            key: "material",
+            type: "single_line_text_field",
+            value: "Grade AAA cultured freshwater pearls / 316L stainless steel",
+            definition: { name: "Material", access: { storefront: "PUBLIC_READ" } },
+          },
+        ],
+      },
+    });
+
+    expect(facts.find((fact) => fact.key === "custom.material")?.value).toBe(
+      "Культивированный пресноводный жемчуг Grade AAA / нержавеющая сталь 316L",
+    );
+  });
 });

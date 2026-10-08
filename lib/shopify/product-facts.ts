@@ -11,7 +11,12 @@ import {
   extractSelectedShopifyCategoryAttributes,
   isShopifyCategoryMetafieldType,
 } from "@/lib/shopify/category-attribute-values";
-import { coerceMetafieldRows } from "@/lib/shopify/product-metafields-shared";
+import {
+  coerceMetafieldRows,
+  isTranslatableMetafieldType,
+  metafieldIdentityKey,
+  metafieldTranslationsFromSnapshot,
+} from "@/lib/shopify/product-metafields-shared";
 
 export type ShopifyProductFact = {
   key: string;
@@ -53,8 +58,9 @@ const SKIP_METAFIELD_NAMESPACES = new Set(["global", "synarava"]);
 const SIMPLE_TEXT_TYPES = new Set(["single_line_text_field", "multi_line_text_field", "string", "boolean", "number_integer", "number_decimal", "url"]);
 
 /**
- * Localize a pulled EN display value: passport TEXT overlay → taxonomy/code map → EN.
- * Used by Last Pull panel and related admin previews — not a Shopify translation push.
+ * Localize a pulled EN display value:
+ * Shopify metafield translation → Passport TEXT overlay → taxonomy/code map → EN.
+ * Display only — never implies a Shopify translation push.
  */
 export function localizePulledFactValue(input: {
   value: string;
@@ -62,9 +68,13 @@ export function localizePulledFactValue(input: {
   characteristicKey?: string | null;
   characteristicTextOverlay?: Record<string, string>;
   taxonomyOverlays?: Map<string, string> | null;
+  shopifyMetafieldTranslation?: string | null;
 }): string {
   const trimmed = input.value.trim();
   if (!trimmed || input.locale === "en") return trimmed;
+
+  const shopifyTranslated = input.shopifyMetafieldTranslation?.trim();
+  if (shopifyTranslated) return shopifyTranslated;
 
   const overlayKey = input.characteristicKey?.trim();
   if (overlayKey) {
@@ -119,6 +129,9 @@ export function extractShopifyProductFacts(input: {
   const locale = input.locale ?? "en";
   const textOverlay = input.characteristicTextOverlay ?? {};
   const taxonomyOverlays = input.taxonomyOverlays ?? null;
+  const shopifyTranslations = locale === "en"
+    ? {}
+    : (metafieldTranslationsFromSnapshot(input.snapshot)[locale] ?? {});
 
   function pushRaw(key: string, label: string, value: string) {
     const trimmedLabel = label.trim();
@@ -130,7 +143,13 @@ export function extractShopifyProductFacts(input: {
     facts.push({ key, label: trimmedLabel, value: trimmedValue });
   }
 
-  function push(key: string, label: string, value: string, characteristicKey?: string | null) {
+  function push(
+    key: string,
+    label: string,
+    value: string,
+    characteristicKey?: string | null,
+    shopifyMetafieldTranslation?: string | null,
+  ) {
     pushRaw(
       key,
       label,
@@ -140,6 +159,7 @@ export function extractShopifyProductFacts(input: {
         characteristicKey,
         characteristicTextOverlay: textOverlay,
         taxonomyOverlays,
+        shopifyMetafieldTranslation,
       }),
     );
   }
@@ -184,13 +204,16 @@ export function extractShopifyProductFacts(input: {
     if (access === "NONE") continue;
 
     const characteristicKey = characteristicKeyForShopifyCategoryMetafield(field.key, label);
+    const shopifyTranslated = isTranslatableMetafieldType(field.type)
+      ? shopifyTranslations[metafieldIdentityKey(field.namespace, field.key)]?.trim() ?? ""
+      : "";
 
     if (isShopifyCategoryMetafieldType(field.type)) {
       const resolved = Array.isArray(field.resolvedValues)
         ? field.resolvedValues.filter((entry): entry is string => typeof entry === "string" && Boolean(entry.trim()))
         : [];
       if (resolved.length) {
-        push(`${field.namespace}.${field.key}`, label, resolved.join(", "), characteristicKey);
+        push(`${field.namespace}.${field.key}`, label, resolved.join(", "), characteristicKey, shopifyTranslated);
       }
       continue;
     }
@@ -199,7 +222,7 @@ export function extractShopifyProductFacts(input: {
     const value = field.type === "boolean"
       ? field.value === "true" ? "Yes" : "No"
       : field.value.trim();
-    if (value) push(`${field.namespace}.${field.key}`, label, value, characteristicKey);
+    if (value) push(`${field.namespace}.${field.key}`, label, value, characteristicKey, shopifyTranslated);
   }
 
   const variants = rows(snapshot.variants);

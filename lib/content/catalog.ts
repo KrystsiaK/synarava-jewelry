@@ -22,6 +22,11 @@ import {
 } from "@/lib/catalog/shop-facet-labels";
 import { getTaxonomyFacetLabelMap } from "@/lib/catalog/taxonomy-value-labels";
 import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields";
+import {
+  characteristicOverlayFromMetafieldTranslations,
+  mergeCharacteristicDisplayOverlay,
+  metafieldTranslationsFromSnapshot,
+} from "@/lib/shopify/product-metafields-shared";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
 import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
@@ -381,7 +386,15 @@ function toSummary(product: {
   // Shared product.slug is the only storefront path — per-locale handles are retired.
   const activeSlug = product.slug;
   const details = parseProductDetails(localized.details);
-  const characteristicTextOverlay = parseCharacteristicTextOverlay(localized.details);
+  const passportTextOverlay = parseCharacteristicTextOverlay(localized.details);
+  const shopifyMetafieldOverlay = characteristicOverlayFromMetafieldTranslations(
+    metafieldTranslationsFromSnapshot(product.shopifySnapshot)[locale],
+  );
+  // Shopify Markets metafield translations win when present; Passport fills gaps.
+  const characteristicTextOverlay = mergeCharacteristicDisplayOverlay(
+    shopifyMetafieldOverlay,
+    passportTextOverlay,
+  );
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
     title: details.process?.title ?? "",

@@ -7,6 +7,8 @@ import {
   isTranslatableMetafieldType,
   listCustomProductMetafieldDefinitions,
   mergeCustomMetafieldsIntoList,
+  characteristicOverlayFromMetafieldTranslations,
+  mergeCharacteristicDisplayOverlay,
   metafieldTranslationsFromSnapshot,
   metafieldValueFromSnapshot,
   parseCustomMetafieldTranslationsForm,
@@ -133,6 +135,29 @@ describe("product-metafields-shared", () => {
       },
     })).toEqual({
       pt: { "custom::care_instructions": "Manter seco." },
+    });
+  });
+
+  it("maps custom metafield translations onto passport characteristic keys", () => {
+    expect(characteristicOverlayFromMetafieldTranslations({
+      "custom::material": "Культивированный жемчуг",
+      "custom::wrist_fit": "18–21 см",
+      "custom::care": "Хранить сухим.",
+      "shopify::ignored": "no",
+    })).toEqual({
+      material: "Культивированный жемчуг",
+      fit_notes: "18–21 см",
+      care_instructions: "Хранить сухим.",
+    });
+  });
+
+  it("prefers Shopify metafield translations over Passport overlays for display", () => {
+    expect(mergeCharacteristicDisplayOverlay(
+      { material: "Из Shopify" },
+      { material: "Из Passport", finish: "Только Passport" },
+    )).toEqual({
+      material: "Из Shopify",
+      finish: "Только Passport",
     });
   });
 });
