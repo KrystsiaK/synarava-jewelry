@@ -46,6 +46,7 @@ import {
 } from "@/components/admin/products/product-inventory-fields";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductCharacteristicValue } from "@/lib/products/characteristics";
+import type { Locale } from "@/lib/i18n/locales";
 import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
@@ -59,6 +60,10 @@ import {
 } from "@/lib/admin/collection-select-options";
 import type { ShopifyCategoryAttributeSelection } from "@/lib/shopify/category-attribute-values";
 import { extractShopifyProductFacts } from "@/lib/shopify/product-facts";
+
+function asEditorLocale(code: string): Locale {
+  return code === "pt" || code === "ru" ? code : "en";
+}
 
 export { OwnershipLabel } from "@/components/synarava-cms";
 
@@ -189,12 +194,17 @@ export function ProductDetailFields({
   }));
   const draft = draftByLocale[activeLocale] ?? draftByLocale[SOURCE_LOCALE];
   const isEn = activeLocale === SOURCE_LOCALE;
+  const editorLocale = asEditorLocale(activeLocale);
+  // Live Passport TEXT overlays for the active locale (draft) so Last Pull
+  // previews Synarava translations without Shopify translation sync.
   const shopifyFacts = extractShopifyProductFacts({
     snapshot: shopifySnapshot,
     shopifyCategoryName,
     vendor,
     productType,
     characteristics: characteristicValues,
+    locale: editorLocale,
+    characteristicTextOverlay: isEn ? {} : (characteristicTextByLocale[activeLocale] ?? {}),
   });
 
   function updateCharacteristicText(key: string, value: string) {

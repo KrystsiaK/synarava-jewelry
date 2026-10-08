@@ -44,6 +44,50 @@ export function isTranslatableMetafieldType(type: string) {
   return TRANSLATABLE_METAFIELD_TYPES.has(type);
 }
 
+/**
+ * Map pulled Shopify custom metafield translations onto Passport characteristic keys.
+ * `custom.wrist_fit` → `fit_notes`; other custom keys that match passport keys pass through.
+ */
+export function characteristicOverlayFromMetafieldTranslations(
+  localeBucket: Record<string, string> | undefined,
+): Record<string, string> {
+  if (!localeBucket) return {};
+  const out: Record<string, string> = {};
+  for (const [identity, raw] of Object.entries(localeBucket)) {
+    const value = raw.trim();
+    if (!value) continue;
+    const separator = identity.indexOf("::");
+    if (separator < 0) continue;
+    const namespace = identity.slice(0, separator);
+    const key = identity.slice(separator + 2);
+    if (namespace !== "custom" && namespace !== "synarava") continue;
+    const characteristicKey = key === "wrist_fit" || key === "wrist-fit"
+      ? "fit_notes"
+      : key === "care"
+        ? "care_instructions"
+        : key;
+    if (!out[characteristicKey]) out[characteristicKey] = value;
+  }
+  return out;
+}
+
+/**
+ * Display overlay for TEXT passport rows: Shopify metafield translation first,
+ * then Synarava Passport overlay, then blank (EN fallback at render).
+ */
+export function mergeCharacteristicDisplayOverlay(
+  shopifyOverlay: Record<string, string>,
+  passportOverlay: Record<string, string>,
+): Record<string, string> {
+  const keys = new Set([...Object.keys(shopifyOverlay), ...Object.keys(passportOverlay)]);
+  const out: Record<string, string> = {};
+  for (const key of keys) {
+    const value = shopifyOverlay[key]?.trim() || passportOverlay[key]?.trim();
+    if (value) out[key] = value;
+  }
+  return out;
+}
+
 export function listCustomProductMetafieldDefinitions(
   definitions: ProductMetafieldDefinition[],
 ): ProductMetafieldDefinition[] {
