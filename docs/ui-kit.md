@@ -61,6 +61,8 @@ These primitives should be used across all screens:
 - `DisplayHeading`
   - every large storefront serif title (heroes, PDP, shop, collections)
   - owns fit-by-longest-word: never mid-word-break; shrink type to the measure instead
+  - owns punctuation wrap: orphan marks (`·`, dashes, bullets) glue to the previous word via `displayTitleWords` / NBSP — never a lone line-start token in reveal or static titles
+  - plain product titles outside DisplayHeading use the same helper: `formatDisplayTitle` (`lib/ui/display-title-words.ts`)
   - do not add `overflow-wrap: anywhere` / `break-all` on display type; do not rebuild titles with raw `.type-display`
 - `EditorialHeading`
   - large serif display heading; for narrow `max-w-[Nch]` heroes use `DisplayHeading` + `text` (fit)

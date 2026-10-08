@@ -4,6 +4,7 @@ import { type CSSProperties, Fragment, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { ease } from "@/lib/animation";
+import { displayTitleWords } from "@/lib/ui/display-title-words";
 import { useFitDisplayText } from "@/lib/ui/use-fit-display-text";
 import { cn } from "@/lib/ui";
 
@@ -22,12 +23,8 @@ type DisplayHeadingProps = {
   accentClassName?: string;
 };
 
-function wordsOf(text: string) {
-  return text.trim().split(/\s+/).filter(Boolean);
-}
-
 function StaticTitle({ text, accentClassName }: { text: string; accentClassName?: string }) {
-  const words = wordsOf(text);
+  const words = displayTitleWords(text);
   if (!accentClassName || words.length === 0) return text;
   const last = words.at(-1) ?? "";
   const lead = words.slice(0, -1).join(" ");
@@ -42,6 +39,8 @@ function StaticTitle({ text, accentClassName }: { text: string; accentClassName?
 /**
  * Storefront display title. One component for every large serif heading.
  * Fits font-size so the longest word never mid-word-breaks in a narrow measure.
+ * Glues orphan punctuation (`·`, dashes, bullets) to the previous word so
+ * marks never wrap alone to the next line (PDP “браслет / · 8 мм”).
  * Do not rebuild the word-slide with overflow-hidden: a line-height under 1
  * makes that mask shorter than Playfair's Cyrillic descenders.
  * Prefer leading ≥ 1.05–1.12 for multi-line Cyrillic titles, and use mb-*
@@ -60,7 +59,7 @@ export function DisplayHeading({
 }: DisplayHeadingProps) {
   const Tag = as;
   const reduceMotion = useReducedMotion() ?? false;
-  const words = wordsOf(text);
+  const words = displayTitleWords(text);
   const slide = reveal && !children && words.length > 0;
   const fitWords = children ? [] : words;
   const { ref, style: fitStyle, scale } = useFitDisplayText({

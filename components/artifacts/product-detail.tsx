@@ -32,6 +32,7 @@ import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { characteristicGroupLabel, characteristicUnit } from "@/lib/products/characteristics";
 import { localizeShopFacetValue } from "@/lib/catalog/shop-facet-labels";
 import { normalizeLocale } from "@/lib/i18n/locales";
+import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
@@ -846,7 +847,7 @@ function RelatedProductCard({ product }: { product: ProductSummary }) {
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"
         />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-5 pb-5 pt-16 text-white">
-          <p className="font-serif text-2xl leading-tight">{product.title}</p>
+          <p className="font-serif text-2xl leading-tight">{formatDisplayTitle(product.title)}</p>
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/75">{product.price}</p>
         </div>
       </div>
