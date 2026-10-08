@@ -93,8 +93,9 @@ Pull seeds empty fields from Shopify category attributes and merchant metafields
 | Layer | Where |
 | --- | --- |
 | Group titles, field labels, units (`cm`/`g`) | Code dictionaries in `lib/products/characteristics.ts` (EN/PT/RU) |
-| TEXT values (material, color, …) | Per-locale overlay on `ProductTranslation.details.characteristics`; blank → EN |
+| TEXT values (material, color, care, fit notes, …) | Per-locale overlay on `ProductTranslation.details.characteristics`; blank → EN |
 | NUMBER / BOOLEAN | Shared `ProductCharacteristic` (EN); Yes/No display localized in code |
+| Last Pull / public Shopify category facts | Same Passport TEXT overlays for mapped keys (care→`care_instructions`, wrist fit→`fit_notes`, material/finish/…); category leaf + product type via Shared → Taxonomy / code map. Display only — not registered as Shopify metafield translations. |
 
 The passport checklist is intentionally small (jewelry filters + PDP priority).
 Arbitrary merchant fields are **not** added here — use the product editor

@@ -41,4 +41,36 @@ describe("projectPublicProductMetafields", () => {
       },
     )).toEqual([{ label: "Care instructions", value: "Manter seco." }]);
   });
+
+  it("prefers Synarava passport TEXT overlays over EN Shopify category/public facts", () => {
+    expect(projectPublicProductMetafields(
+      [
+        {
+          namespace: "shopify",
+          key: "material",
+          type: "list.product_taxonomy_value_reference",
+          value: "[\"gid://shopify/TaxonomyValue/1\"]",
+          resolvedValues: ["Crystal pearl"],
+          definition: { name: "Material", access: { storefront: null } },
+        },
+        {
+          namespace: "custom",
+          key: "wrist_fit",
+          type: "single_line_text_field",
+          value: "17 cm",
+          definition: { name: "Wrist fit", access: { storefront: "PUBLIC_READ" } },
+        },
+      ],
+      {
+        locale: "ru",
+        characteristicTextOverlay: {
+          material: "Хрустальный жемчуг",
+          fit_notes: "17 см",
+        },
+      },
+    )).toEqual([
+      { label: "Material", value: "Хрустальный жемчуг" },
+      { label: "Wrist fit", value: "17 см" },
+    ]);
+  });
 });

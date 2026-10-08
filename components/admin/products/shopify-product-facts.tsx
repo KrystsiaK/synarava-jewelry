@@ -18,9 +18,10 @@ export function ShopifyProductFactsPanel({
         <p className="adm-label-row">
           <span className="adm-label">Last Pull from Shopify</span>
           <AdminHelp>
-            Reference only — values Shopify had on the last Pull (category attributes, public
-            metafields, weight, origin). To change Synarava jewelry specs, open Passport, Save,
-            then Push. To refresh this list, Pull again.
+            EN identity comes from the last Shopify Pull. On PT/RU tabs, Passport TEXT overlays
+            (and taxonomy maps for category/type) replace matching values for preview — Synarava
+            only; they are not pushed as Shopify translations. Edit overlays under Synarava →
+            Passport. Refresh the EN pull with Pull again.
           </AdminHelp>
         </p>
       </div>

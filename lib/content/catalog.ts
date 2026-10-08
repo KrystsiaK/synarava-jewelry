@@ -254,7 +254,11 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function shopifyProjection(value: unknown, locale: Locale = "en") {
+function shopifyProjection(
+  value: unknown,
+  locale: Locale = "en",
+  characteristicTextOverlay: Record<string, string> = {},
+) {
   const snapshot = asRecord(value);
   const options = Array.isArray(snapshot.options) ? snapshot.options : [];
   return {
@@ -277,6 +281,8 @@ function shopifyProjection(value: unknown, locale: Locale = "en") {
     publicMetafields: projectPublicProductMetafields(snapshot.metafields, {
       locale,
       snapshot,
+      // Passport TEXT overlays for mapped Shopify category/public facts (no Shopify sync).
+      characteristicTextOverlay,
     }),
   };
 }
@@ -395,7 +401,7 @@ function toSummary(product: {
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   // Options/metafields stay on the Shopify mirror; gallery prefers OUR working tree
   // (same SoT as the admin Media tab) and falls back to shopifySnapshot.
-  const projection = shopifyProjection(product.shopifySnapshot, locale);
+  const projection = shopifyProjection(product.shopifySnapshot, locale, characteristicTextOverlay);
   const localMedia = product.media.map((item) => ({
     src: getS3PublicUrl(item.asset.key),
     alt: item.alt ?? localized.title,

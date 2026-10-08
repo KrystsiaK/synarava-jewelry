@@ -66,6 +66,10 @@ describe("characteristicKeyForShopifyCategoryMetafield", () => {
     expect(characteristicKeyForShopifyCategoryMetafield("color-pattern", "Color")).toBe("color");
     expect(characteristicKeyForShopifyCategoryMetafield("fabric", "Fabric")).toBe("material");
     expect(characteristicKeyForShopifyCategoryMetafield("material", "Material")).toBe("material");
+    expect(characteristicKeyForShopifyCategoryMetafield("care", "Care")).toBe("care_instructions");
+    expect(characteristicKeyForShopifyCategoryMetafield("care-instructions", "Care instructions")).toBe("care_instructions");
+    expect(characteristicKeyForShopifyCategoryMetafield("wrist-fit", "Wrist fit")).toBe("fit_notes");
+    expect(characteristicKeyForShopifyCategoryMetafield("wrist_fit", "Wrist fit")).toBe("fit_notes");
     expect(characteristicKeyForShopifyCategoryMetafield("unknown-attr", "Dye technique")).toBeNull();
   });
 });

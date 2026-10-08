@@ -64,4 +64,79 @@ describe("extractShopifyProductFacts", () => {
       { key: "origin", label: "Country of origin", value: "CN" },
     ]);
   });
+
+  it("applies Synarava passport TEXT overlays on non-EN without requiring Shopify translation sync", () => {
+    const facts = extractShopifyProductFacts({
+      locale: "ru",
+      shopifyCategoryName: "Jewelry > Necklaces",
+      productType: "Beaded Necklace",
+      characteristicTextOverlay: {
+        material: "Хрустальный жемчуг",
+        finish: "PVD золото 18K",
+        care_instructions: "Избегайте длительного контакта с водой.",
+        fit_notes: "17 см",
+      },
+      taxonomyOverlays: new Map([
+        ["Necklaces", "Колье"],
+        ["Beaded Necklace", "Бусы"],
+      ]),
+      snapshot: {
+        metafields: [
+          {
+            namespace: "shopify",
+            key: "material",
+            type: "list.product_taxonomy_value_reference",
+            value: "[\"gid://shopify/TaxonomyValue/1\"]",
+            resolvedValues: ["Crystal pearl"],
+            definition: { name: "Material" },
+          },
+          {
+            namespace: "shopify",
+            key: "finish",
+            type: "list.product_taxonomy_value_reference",
+            value: "[\"gid://shopify/TaxonomyValue/2\"]",
+            resolvedValues: ["18K Gold PVD"],
+            definition: { name: "Finish" },
+          },
+          {
+            namespace: "custom",
+            key: "care",
+            type: "multi_line_text_field",
+            value: "Avoid prolonged contact with water.",
+            definition: { name: "Care", access: { storefront: "PUBLIC_READ" } },
+          },
+          {
+            namespace: "custom",
+            key: "wrist_fit",
+            type: "single_line_text_field",
+            value: "17 cm",
+            definition: { name: "Wrist fit", access: { storefront: "PUBLIC_READ" } },
+          },
+        ],
+      },
+      characteristics: [
+        {
+          key: "material",
+          label: "Primary material",
+          group: "Materials & construction",
+          valueType: "TEXT",
+          textValue: "Crystal pearl",
+          numberValue: null,
+          booleanValue: null,
+          unit: null,
+          certificateUrl: null,
+          sortOrder: 0,
+        },
+      ],
+    });
+
+    expect(facts.find((fact) => fact.key === "category")?.value).toBe("Jewelry > Колье");
+    expect(facts.find((fact) => fact.key === "productType")?.value).toBe("Бусы");
+    expect(facts.find((fact) => fact.key === "category:material")?.value).toBe("Хрустальный жемчуг");
+    expect(facts.find((fact) => fact.key === "category:finish")?.value).toBe("PVD золото 18K");
+    expect(facts.find((fact) => fact.key === "custom.care")?.value).toBe(
+      "Избегайте длительного контакта с водой.",
+    );
+    expect(facts.find((fact) => fact.key === "custom.wrist_fit")?.value).toBe("17 см");
+  });
 });
