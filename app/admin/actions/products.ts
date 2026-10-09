@@ -1296,7 +1296,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       .map((item) => ({ key: item.key, value: item.value, type: item.type })),
     characteristics.length,
   );
-  const specCharacteristicKeys = new Set(
+  const specCharacteristicKeys = new Set<string>(
     SHOPIFY_PRODUCT_SPEC_FIELDS.map((item) => item.characteristicKey),
   );
   // Preserve Shopify-owned rows not owned by Product-tab specs (e.g. origin from Pull).
