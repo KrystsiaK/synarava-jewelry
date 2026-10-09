@@ -1,4 +1,5 @@
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
+import { isShopifyProductSpecFormField } from "@/lib/products/shopify-product-specs";
 import {
   customMetafieldFieldBelongsToLocale,
   isCustomMetafieldFormField,
@@ -145,7 +146,9 @@ export function fieldBelongsToBranch(
   switch (section) {
     case "essentials":
       return ESSENTIALS_SHARED.includes(fieldName)
-        || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE);
+        || matchesLocaleKey(fieldName, locale, ESSENTIALS_LOCALE)
+        // Shopify product specs (`custom.material`, …) are edited on Product.
+        || isShopifyProductSpecFormField(fieldName, locale);
     case "price":
       return PRICE_SHARED.includes(fieldName);
     case "inventory":
@@ -165,6 +168,10 @@ export function fieldBelongsToBranch(
     case "media":
       return MEDIA_SHARED.includes(fieldName);
     case "metafields":
+      // Jewelry specs owned by Product tab — avoid duplicate FormData ownership.
+      if (isShopifyProductSpecFormField(fieldName, locale) || isShopifyProductSpecFormField(fieldName, "en")) {
+        return false;
+      }
       return isCustomMetafieldFormField(fieldName)
         && customMetafieldFieldBelongsToLocale(fieldName, locale);
     case "shopify":

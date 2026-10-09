@@ -15,7 +15,7 @@ import {
 } from "@/lib/products/characteristics";
 
 describe("product characteristics", () => {
-  it("keeps a jewelry-core passport only", () => {
+  it("keeps a jewelry-core vocabulary; Passport form parses Synarava-only keys", () => {
     expect(PRODUCT_CHARACTERISTIC_GROUPS).toEqual([
       "Dimensions & fit",
       "Materials & construction",
@@ -28,7 +28,7 @@ describe("product characteristics", () => {
     expect(PRODUCT_CHARACTERISTICS.length).toBeLessThanOrEqual(16);
   });
 
-  it("parses typed values and certificate metadata", () => {
+  it("parses typed Passport values and certificate metadata (not Shopify-owned specs)", () => {
     const form = new FormData();
     form.set("characteristic_chain_length", "42");
     form.set("characteristic_material", "316L stainless steel");
@@ -37,39 +37,36 @@ describe("product characteristics", () => {
 
     const values = parseCharacteristicsForm(form);
     expect(values.find((item) => item.key === "chain_length")?.numberValue).toBe(42);
-    expect(values.find((item) => item.key === "material")?.textValue).toBe("316L stainless steel");
+    // material is Shopify-owned — edited as custom.material on Product, not Passport FormData
+    expect(values.find((item) => item.key === "material")).toBeUndefined();
     expect(values.find((item) => item.key === "reach_certified")).toMatchObject({
       booleanValue: true,
       certificateUrl: "https://example.com/reach.pdf",
     });
   });
 
-  it("includes typed characteristics in the search document", () => {
+  it("includes typed Passport characteristics in the search document", () => {
     const form = new FormData();
-    form.set("characteristic_metal", "Gold");
+    form.set("characteristic_chain_length", "18");
     form.set("characteristic_lead_free", "on");
     const characteristics = parseCharacteristicsForm(form);
 
     expect(buildProductSearchDocument({ name: "Link", sku: "L-12", slug: "link", characteristics }))
-      .toContain("Gold");
+      .toContain("18");
   });
 
-  it("parses care and finish fields used by filters and PDP", () => {
+  it("ignores Shopify-owned care/finish/origin on Passport FormData parse", () => {
     const form = new FormData();
     form.set("characteristic_finish", "Rhodium");
     form.set("characteristic_care_instructions", "Keep dry and store separately.");
     form.set("characteristic_origin", "Portugal");
+    form.set("characteristic_adjustable_length", "2");
 
     const values = parseCharacteristicsForm(form);
-    expect(values.find((item) => item.key === "finish")).toMatchObject({
-      textValue: "Rhodium",
-      filterable: true,
-    });
-    expect(values.find((item) => item.key === "care_instructions")).toMatchObject({
-      textValue: "Keep dry and store separately.",
-      filterable: false,
-    });
-    expect(values.find((item) => item.key === "origin")?.textValue).toBe("Portugal");
+    expect(values.find((item) => item.key === "finish")).toBeUndefined();
+    expect(values.find((item) => item.key === "care_instructions")).toBeUndefined();
+    expect(values.find((item) => item.key === "origin")).toBeUndefined();
+    expect(values.find((item) => item.key === "adjustable_length")?.numberValue).toBe(2);
   });
 
   it("reads locale TEXT overlays from FormData and details JSON", () => {
@@ -86,32 +83,35 @@ describe("product characteristics", () => {
     })).toEqual({ material: "Жемчуг" });
   });
 
-  it("keeps RU care overlays separate from EN ProductCharacteristic text", () => {
+  it("keeps RU overlays separate from EN for Passport-only TEXT keys", () => {
+    // care/material are Shopify-owned (Product-tab custom.*) — Passport parse ignores them.
     const form = new FormData();
-    form.set("characteristic_care_instructions", "Avoid prolonged contact with water.");
-    form.set("characteristic_material", "Crystal pearl");
-    form.set("ruCharacteristic_care_instructions", "Избегайте длительного контакта с водой.");
+    form.set("characteristic_chain_length", "18");
     form.set("ruCharacteristic_material", "Хрустальный жемчуг");
 
     const enValues = parseCharacteristicsForm(form);
-    expect(enValues.find((item) => item.key === "care_instructions")?.textValue)
-      .toBe("Avoid prolonged contact with water.");
-    expect(enValues.find((item) => item.key === "material")?.textValue).toBe("Crystal pearl");
+    expect(enValues.find((item) => item.key === "chain_length")?.numberValue).toBe(18);
+    expect(enValues.find((item) => item.key === "material")).toBeUndefined();
 
     const ruOverlay = readCharacteristicTextOverlayFromForm(form, "ru");
-    expect(ruOverlay).toEqual({
-      care_instructions: "Избегайте длительного контакта с водой.",
-      material: "Хрустальный жемчуг",
-    });
+    expect(ruOverlay.material).toBe("Хрустальный жемчуг");
 
-    const care = enValues.find((item) => item.key === "care_instructions")!;
-    expect(resolveCharacteristicDisplayValue(care, "ru", ruOverlay))
-      .toBe("Избегайте длительного контакта с водой.");
-    // EN PDP receives an empty overlay map — never the RU map.
-    expect(resolveCharacteristicDisplayValue(care, "en", {}))
-      .toBe("Avoid prolonged contact with water.");
-    expect(resolveCharacteristicDisplayValue(care, "pt", {}))
-      .toBe("Avoid prolonged contact with water.");
+    const material: Parameters<typeof resolveCharacteristicDisplayValue>[0] = {
+      key: "material",
+      label: "Primary material",
+      group: "Materials & construction",
+      valueType: "TEXT",
+      textValue: "Crystal pearl",
+      numberValue: null,
+      booleanValue: null,
+      unit: null,
+      certificateUrl: null,
+      sortOrder: 0,
+    };
+    expect(resolveCharacteristicDisplayValue(material, "ru", ruOverlay))
+      .toBe("Хрустальный жемчуг");
+    expect(resolveCharacteristicDisplayValue(material, "en", {}))
+      .toBe("Crystal pearl");
   });
 });
 

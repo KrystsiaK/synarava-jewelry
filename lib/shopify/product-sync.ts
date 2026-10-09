@@ -8,7 +8,12 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { pushProductMetafields } from "@/lib/shopify/product-metafields-push";
 import { normalizeRichTextForEditor, sanitizeRichTextHtml } from "@/lib/content/rich-text";
-import { characteristicDisplayValue, PRODUCT_CHARACTERISTICS } from "@/lib/products/characteristics";
+import {
+  characteristicDisplayValue,
+  isShopifyOwnedCharacteristicKey,
+  PASSPORT_CHARACTERISTICS,
+  PRODUCT_CHARACTERISTICS,
+} from "@/lib/products/characteristics";
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
 import {
@@ -1591,7 +1596,9 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const commerceCompareAtCents = localVariant?.compareAtCents ?? product.compareAtCents;
     const commerceTaxable = localVariant?.taxable ?? true;
     const commerceCostCents = localVariant?.costCents ?? null;
+    // synarava.* Push = Synarava Passport only. Shopify-owned specs push as custom.*.
     const metafields = product.characteristics.flatMap((item) => {
+      if (isShopifyOwnedCharacteristicKey(item.key)) return [];
       const value = metafieldValue(item);
       if (!value) return [];
       return [
@@ -1791,7 +1798,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       desired: metafields,
       remote: currentRemote?.metafields.nodes ?? remote.metafields.nodes,
       hasCustomWindow: getProjectionPath(product.workingSnapshot, "metafields") != null,
-      managedPassportKeys: new Set<string>(PRODUCT_CHARACTERISTICS.flatMap((item) =>
+      managedPassportKeys: new Set<string>(PASSPORT_CHARACTERISTICS.flatMap((item) =>
         "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
       )),
     });

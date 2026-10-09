@@ -65,13 +65,19 @@ describe("product-editor-scope", () => {
     expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "essentials", "en")).toBe(false);
   });
 
+  it("attributes Shopify product specs (custom.material, …) to Product, not Metafields", () => {
+    expect(fieldBelongsToBranch("customMetafieldValue:custom:material", "essentials", "en")).toBe(true);
+    expect(fieldBelongsToBranch("customMetafieldType:custom:finish", "essentials", "en")).toBe(true);
+    expect(fieldBelongsToBranch("ptCustomMetafieldValue:custom:wrist_fit", "essentials", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("customMetafieldValue:custom:material", "metafields", "en")).toBe(false);
+    expect(fieldBelongsToBranch("ptCustomMetafieldValue:custom:care_instructions", "metafields", "pt")).toBe(false);
+  });
+
   it("attributes passport characteristic fields to Passport, not Product", () => {
     expect(dirtyKeyForEdit("pt", "passport")).toBe("pt:passport");
-    expect(fieldBelongsToBranch("characteristic_material", "passport", "en")).toBe(true);
-    expect(fieldBelongsToBranch("characteristic_material", "passport", "pt")).toBe(false);
-    expect(fieldBelongsToBranch("ptCharacteristic_material", "passport", "pt")).toBe(true);
-    expect(fieldBelongsToBranch("ptCharacteristic_material", "passport", "en")).toBe(false);
-    expect(fieldBelongsToBranch("characteristic_material", "essentials", "en")).toBe(false);
+    expect(fieldBelongsToBranch("characteristic_chain_length", "passport", "en")).toBe(true);
+    expect(fieldBelongsToBranch("characteristic_reach_certified", "passport", "en")).toBe(true);
+    expect(fieldBelongsToBranch("characteristic_chain_length", "essentials", "en")).toBe(false);
     expect(fieldBelongsToBranch("collectionSlug", "passport", "en")).toBe(false);
   });
 

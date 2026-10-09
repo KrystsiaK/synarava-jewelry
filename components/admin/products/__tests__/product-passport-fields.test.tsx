@@ -11,79 +11,71 @@ describe("ProductPassportFields", () => {
     render(
       <ProductPassportFields
         characteristics={{
-          material: { value: "Freshwater pearl", certificateUrl: "" },
-          care_instructions: { value: "Keep dry", certificateUrl: "" },
+          chain_length: { value: "18", certificateUrl: "" },
+          reach_certified: { value: true, certificateUrl: "" },
         }}
       />,
     );
 
     expect(screen.getByText("Product parameters")).toBeInTheDocument();
-    expect(screen.getByLabelText("Primary material")).toHaveValue("Freshwater pearl");
+    expect(screen.getByLabelText("Chain length")).toHaveValue(18);
 
-    const materials = screen.getByRole("button", { name: "Materials & construction" })
+    const dimensions = screen.getByRole("button", { name: "Dimensions & fit" })
       .closest("[data-component='AdminCollapsiblePanel']");
     const compliance = screen.getByRole("button", { name: "Compliance" })
       .closest("[data-component='AdminCollapsiblePanel']");
 
-    expect(materials).toHaveAttribute("data-open", "true");
-    expect(compliance).toHaveAttribute("data-open", "false");
-    expect(screen.queryByRole("button", { name: "Pet sizing & use" })).not.toBeInTheDocument();
+    expect(dimensions).toHaveAttribute("data-open", "true");
+    expect(compliance).toHaveAttribute("data-open", "true");
+    expect(screen.queryByRole("button", { name: "Materials & construction" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Care" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Primary material")).not.toBeInTheDocument();
   });
 
-  it("shows localized labels and TEXT overlays for Portuguese", () => {
+  it("shows localized labels for Portuguese on Passport-only fields", () => {
     render(
       <ProductPassportFields
         characteristics={{
-          material: { value: "Freshwater pearl", certificateUrl: "" },
+          chain_length: { value: "18", certificateUrl: "" },
         }}
         activeLocale="pt"
-        textOverlay={{ material: "Pérola de água doce" }}
+        textOverlay={{}}
         onTextOverlayChange={() => undefined}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Materiais e construção" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Material principal")).toHaveValue("Pérola de água doce");
+    expect(screen.getByRole("button", { name: "Dimensões e ajuste" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Comprimento da corrente")).toHaveTextContent("18 cm");
   });
 
   it("keeps EN named passport fields HTML-hidden on RU without display:contents", () => {
     const { container } = render(
       <ProductPassportFields
         characteristics={{
-          material: { value: "Crystal pearl", certificateUrl: "" },
-          care_instructions: { value: "Avoid prolonged contact with water.", certificateUrl: "" },
+          chain_length: { value: "18", certificateUrl: "" },
+          reach_certified: { value: true, certificateUrl: "" },
         }}
         activeLocale="ru"
-        textOverlay={{
-          material: "Хрустальный жемчуг",
-          care_instructions: "Избегайте длительного контакта с водой.",
-        }}
+        textOverlay={{}}
         onTextOverlayChange={() => undefined}
       />,
     );
 
     expect(container.querySelector(".contents")).toBeNull();
 
-    const enMaterial = container.querySelector<HTMLInputElement>(
-      'input[name="characteristic_material"]',
+    const enChain = container.querySelector<HTMLInputElement>(
+      'input[name="characteristic_chain_length"]',
     );
-    expect(enMaterial).not.toBeNull();
-    expect(enMaterial).toHaveValue("Crystal pearl");
-    expect(enMaterial?.closest("[hidden]")).not.toBeNull();
+    expect(enChain).not.toBeNull();
+    expect(enChain).toHaveValue(18);
+    expect(enChain?.closest("[hidden]")).not.toBeNull();
 
-    const enCare = container.querySelector<HTMLTextAreaElement>(
-      'textarea[name="characteristic_care_instructions"]',
-    );
-    expect(enCare).not.toBeNull();
-    expect(enCare?.closest("[hidden]")).not.toBeNull();
-
-    expect(screen.getByLabelText("Основной материал")).toHaveValue("Хрустальный жемчуг");
-    expect(screen.getByLabelText("Основной материал")).not.toHaveAttribute("name");
+    expect(screen.getByLabelText("Длина цепочки")).toHaveTextContent("18 см");
   });
 });
 
 describe("HiddenPassportTextOverlayFields", () => {
-  it("submits prefixed TEXT overlays for every non-EN locale", () => {
+  it("submits only Synarava-only TEXT overlays (no Shopify-owned material/care)", () => {
     const { container } = render(
       <HiddenPassportTextOverlayFields
         overlaysByLocale={{
@@ -94,9 +86,7 @@ describe("HiddenPassportTextOverlayFields", () => {
       />,
     );
 
-    expect(container.querySelector('input[name="characteristic_material"]')).toBeNull();
-    expect(container.querySelector('input[name="ptCharacteristic_material"]')).toHaveValue("Pérola");
-    expect(container.querySelector('input[name="ruCharacteristic_care_instructions"]'))
-      .toHaveValue("Хранить сухим.");
+    expect(container.querySelector('input[name="ptCharacteristic_material"]')).toBeNull();
+    expect(container.querySelector('input[name="ruCharacteristic_care_instructions"]')).toBeNull();
   });
 });

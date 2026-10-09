@@ -35,6 +35,7 @@ import {
 } from "@/components/admin/products/shopify-category-field";
 import { ShopifyOrganizationSuggestField } from "@/components/admin/products/shopify-organization-suggest-field";
 import { ShopifyProductFactsPanel } from "@/components/admin/products/shopify-product-facts";
+import { ShopifyProductSpecsFields } from "@/components/admin/products/shopify-product-specs-fields";
 import {
   HiddenPassportTextOverlayFields,
   ProductPassportFields,
@@ -158,6 +159,7 @@ export function ProductDetailFields({
   activeLocale,
   shopifyLinked = false,
   shopifySnapshot = null,
+  workingSnapshot = null,
   shopifyCategoryName = "",
   vendor = "",
   productType = "",
@@ -177,6 +179,7 @@ export function ProductDetailFields({
   activeLocale: string;
   shopifyLinked?: boolean;
   shopifySnapshot?: unknown;
+  workingSnapshot?: unknown;
   shopifyCategoryName?: string;
   vendor?: string;
   productType?: string;
@@ -273,6 +276,12 @@ export function ProductDetailFields({
       ) : null}
 
       <div hidden={activeSection !== "essentials"} className="grid gap-4">
+        <ShopifyProductSpecsFields
+          workingSnapshot={workingSnapshot}
+          shopifySnapshot={shopifySnapshot}
+          activeLocale={activeLocale}
+          translationLocales={translationLocales}
+        />
         <ShopifyProductFactsPanel facts={shopifyFacts} linked={shopifyLinked} />
       </div>
 
@@ -280,8 +289,8 @@ export function ProductDetailFields({
         <p className="adm-label-row">
           <span className="adm-section-tag">[ SYNARAVA PASSPORT ]</span>
           <AdminHelp>
-            Jewelry core specs for the PDP and filters. English Save + Push as synarava.* metafields.
-            Other languages translate TEXT values only; blank falls back to English on the site.
+            Synarava-only parameters (chain lengths, compliance). Shopify-owned material, care,
+            finish, color, and related specs are edited under Product → Shopify product specs.
           </AdminHelp>
         </p>
         <ProductPassportFields

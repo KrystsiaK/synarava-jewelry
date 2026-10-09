@@ -9,6 +9,7 @@ import {
   mergeCustomMetafieldsIntoList,
   characteristicOverlayFromMetafieldTranslations,
   mergeCharacteristicDisplayOverlay,
+  mergeMetafieldTranslations,
   metafieldTranslationsFromSnapshot,
   metafieldValueFromSnapshot,
   parseCustomMetafieldTranslationsForm,
@@ -158,6 +159,31 @@ describe("product-metafields-shared", () => {
     )).toEqual({
       material: "Из Shopify",
       finish: "Только Passport",
+    });
+  });
+
+  it("merges Product-tab spec overlays without wiping untouched Metafields keys", () => {
+    expect(mergeMetafieldTranslations(
+      {
+        ru: {
+          "custom::material": "Жемчуг",
+          "custom::warranty": "1 год",
+        },
+      },
+      { ru: { "custom::material": "Культивированный жемчуг" } },
+      { ru: { "custom::material": "" } },
+    )).toEqual({
+      ru: {
+        "custom::material": "Культивированный жемчуг",
+        "custom::warranty": "1 год",
+      },
+    });
+    expect(mergeMetafieldTranslations(
+      { ru: { "custom::material": "Жемчуг", "custom::warranty": "1 год" } },
+      { ru: {} },
+      { ru: { "custom::material": "" } },
+    )).toEqual({
+      ru: { "custom::warranty": "1 год" },
     });
   });
 });

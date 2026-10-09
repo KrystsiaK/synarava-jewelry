@@ -79,10 +79,18 @@ Mirror Shopify Admin product header + Product organization:
   `productTypes`, `productTags` (store-wide used values; free text still allowed)
 - Category + Collections + site publish live on the Product tab (Shopify organization);
   Media stays separate
-- Jewelry passport (synarava.*) lives on Synarava → Passport
+- **Shopify product specs** — editable `custom.*` jewelry facts (material, care,
+  finish, wrist fit, color, metal, stone, plating, size). Save →
+  `workingSnapshot.metafields` (+ locale overlays) → Push via `metafieldsSet`.
+  Also projects matching `ProductCharacteristic` rows for PDP/filters. These
+  fields must **not** appear under Synarava → Passport.
+- Last Pull — verification for taxonomy attribute selections, unit weight,
+  country of origin, and other non-editable Pull projections
+- Synarava-only passport (chain lengths, compliance → synarava.*) lives on
+  Synarava → Passport
 
 Local Save write-through includes title, description HTML, SEO (including legacy
-`global` SEO aliases), vendor, productType, tags into
+`global` SEO aliases), vendor, productType, tags, and Product-tab custom specs into
 `workingSnapshot` so conflict markers refresh after save.
 
 ---
@@ -132,9 +140,11 @@ Shopify-native custom product fields (not the `synarava.*` passport):
 
 Text types (`single_line_text_field`, `multi_line_text_field`, `rich_text_field`) are
 per-locale. Numbers, dates, booleans, URLs, and JSON stay shared (edit in English).
-Passport stays on **Synarava → Passport**. Category / collection / publish stay on
-**Product**. Managed namespaces (`synarava`, `shopify`, `global`) are excluded from
-the Metafields editor.
+Core jewelry `custom.*` specs (material, care, finish, …) stay on **Product →
+Shopify product specs**. Synarava-only passport stays on **Synarava → Passport**.
+Category / collection / publish stay on **Product**. Managed namespaces
+(`synarava`, `shopify`, `global`) are excluded from the Metafields editor; Product-tab
+jewelry specs are also omitted there to avoid duplicate editors.
 
 Code: `lib/shopify/product-metafields-*.ts`,
 `lib/shopify/product-metafield-translations.ts`,

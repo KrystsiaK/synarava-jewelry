@@ -37,7 +37,7 @@ Do these in order. Skipping a step is how storefront chrome stays in English aft
 
    Tag and Compliance facets are hidden (`supportsTagFilters` / `supportsComplianceFilters`) — tags here are operational SKU-like noise with no locale surface.
 
-   **Product passport TEXT** (material, metal, color, finish, care instructions, fit notes, …) is also per-locale: English lives on `ProductCharacteristic`; PT/RU overlays live on `ProductTranslation.details.characteristics`. Fill them on **Synarava → Passport** while the matching locale tab is active. On the PDP and **Last Pull** preview, display order for mapped specs is: pulled Shopify Metafield translations (`custom.*` Markets translations, keyed by registry locale) → Passport TEXT overlay → English. Use Passport when Shopify has no translation (or you want a Synarava-only wording without Push). Do not edit passport TEXT on the English tab expecting a single shared translation — that overwrites the EN source for every language.
+   **Shopify-owned jewelry specs** (material, care, finish, wrist fit, color, …) are edited on **Product → Shopify product specs** (`custom.*`). Prefer pulled Shopify Metafield translations; Product-tab locale overlays fill gaps. **Synarava Passport** is Synarava-only (chain lengths, compliance) — not a duplicate editor for Shopify specs. On the PDP, display order for mapped specs is: Shopify Metafield translations → Synarava overlays → English.
 
 6. **Graphify.** After the locale wiring, messages, and this checklist change, run `graphify update .` so the knowledge graph indexes them.
 

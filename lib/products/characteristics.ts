@@ -3,9 +3,9 @@ import type { Locale } from "@/lib/i18n/locales";
 import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
 
 /**
- * Curated jewelry passport — mirrored to Shopify as `synarava.*` metafields.
- * Keep this list small: shop filters + PDP priority + category seed targets.
- * Arbitrary merchant fields live in the Metafields tab (Shopify definitions).
+ * Full jewelry characteristic vocabulary (Shopify-owned + Synarava-only).
+ * Shopify-owned keys are edited on Product (custom.*) — see shopify-product-specs.
+ * Synarava Passport UI + synarava.* Push use PASSPORT_CHARACTERISTICS only.
  *
  * Labels / groups / units are code dictionaries (no Shopify sync).
  * TEXT values may be overlaid per locale on ProductTranslation.details.characteristics;
@@ -30,11 +30,44 @@ export const PRODUCT_CHARACTERISTICS = [
   { key: "nickel_free", label: "Nickel-free release", group: "Compliance", type: "BOOLEAN" },
 ] as const;
 
+/** Characteristic keys owned by Shopify (Product tab / Pull) — not Passport UI. */
+export const SHOPIFY_OWNED_CHARACTERISTIC_KEYS = [
+  "material",
+  "care_instructions",
+  "finish",
+  "fit_notes",
+  "color",
+  "metal",
+  "stone_type",
+  "plating",
+  "size",
+  "origin",
+] as const;
+
+const SHOPIFY_OWNED_KEY_SET = new Set<string>(SHOPIFY_OWNED_CHARACTERISTIC_KEYS);
+
+export function isShopifyOwnedCharacteristicKey(key: string): boolean {
+  return SHOPIFY_OWNED_KEY_SET.has(key);
+}
+
+/** Synarava-only passport fields — editable under Synarava → Passport. */
+export const PASSPORT_CHARACTERISTICS = PRODUCT_CHARACTERISTICS.filter(
+  (item) => !isShopifyOwnedCharacteristicKey(item.key),
+);
+
 export const PRODUCT_CHARACTERISTIC_GROUPS = Array.from(
   new Set(PRODUCT_CHARACTERISTICS.map((item) => item.group)),
 );
 
+export const PASSPORT_CHARACTERISTIC_GROUPS = Array.from(
+  new Set(PASSPORT_CHARACTERISTICS.map((item) => item.group)),
+);
+
 export const PRODUCT_CHARACTERISTIC_TEXT_KEYS = PRODUCT_CHARACTERISTICS
+  .filter((item) => item.type === "TEXT")
+  .map((item) => item.key);
+
+export const PASSPORT_CHARACTERISTIC_TEXT_KEYS = PASSPORT_CHARACTERISTICS
   .filter((item) => item.type === "TEXT")
   .map((item) => item.key);
 
@@ -156,13 +189,14 @@ export type ProductCharacteristicValue = {
 };
 
 /**
- * Reads the fixed `PRODUCT_CHARACTERISTICS` list out of a product form,
- * one `characteristic_<key>` field per definition, and drops empty rows.
+ * Reads Synarava Passport fields from the product form
+ * (`characteristic_<key>`), and drops empty rows.
+ * Shopify-owned specs are edited as `custom.*` on Product — not here.
  * Always reads the EN (unprefixed) field names — locale TEXT overlays are
  * separate (`readCharacteristicTextOverlayFromForm`).
  */
 export function parseCharacteristicsForm(formData: FormData) {
-  return PRODUCT_CHARACTERISTICS.flatMap((definition, sortOrder) => {
+  return PASSPORT_CHARACTERISTICS.flatMap((definition, sortOrder) => {
     const field = characteristicFormKey(definition.key);
     const raw = String(formData.get(field) ?? "").trim();
     const valueType = definition.type as CharacteristicValueType;
