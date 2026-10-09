@@ -69,7 +69,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Title & organization",
     title: "Product identity",
     description:
-      "Title, handle, vendor, product type, tags, description, SEO, category, collection, and publish state — Shopify product header and organization. Inventory and shipping live on Inventory; custom metafields on Metafields; jewelry passport on Synarava → Passport.",
+      "Title, handle, vendor, product type, tags, description, SEO, category, collection, publish state, and Shopify-owned jewelry specs (material, care, finish, wrist fit, …). Inventory and shipping live on Inventory; other custom metafields on Metafields; Synarava-only passport on Synarava → Passport.",
     icon: PackageSearch,
     group: "shopify",
   },
@@ -102,7 +102,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Custom definitions",
     title: "Product metafields",
     description:
-      "Merchant-owned Shopify metafields (same as Shopify Admin → Metafields). Add definitions shop-wide and edit this product’s values. Jewelry passport fields live under Synarava → Passport.",
+      "Merchant-owned Shopify metafields (same as Shopify Admin → Metafields). Add definitions shop-wide and edit this product’s values. Core jewelry specs (material, care, finish, …) are edited on Product; Synarava-only passport under Synarava → Passport.",
     icon: Tags,
     group: "shopify",
   },
@@ -135,7 +135,7 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     shortLabel: "Jewelry specs",
     title: "Product passport",
     description:
-      "Synarava jewelry parameters (fit, materials, care, compliance). Save locally; Push mirrors them as synarava.* metafields. Not Shopify Admin collapsible rows.",
+      "Synarava-only parameters (chain lengths, compliance). Shopify-owned material, care, finish, color, and related specs are edited on Product. Save locally; Push mirrors Passport as synarava.* metafields.",
     icon: ClipboardList,
     group: "synarava",
   },

@@ -233,20 +233,58 @@ export function metafieldTranslatedValue(
   return translations[locale]?.[metafieldIdentityKey(namespace, key)] ?? "";
 }
 
-/** Merge locale overlays (patch wins per locale key; empty patch locale clears nothing unless explicit). */
+/**
+ * Merge locale overlays. `patch` non-empty values win. Identities listed in
+ * `touched` but absent from `patch` are cleared (empty FormData fields).
+ * Untouched identities keep `existing` — so Product-tab specs can submit a
+ * subset without wiping Metafields-tab overlays.
+ */
 export function mergeMetafieldTranslations(
   existing: MetafieldTranslations,
   patch: MetafieldTranslations,
+  touched: MetafieldTranslations = {},
 ): MetafieldTranslations {
+  const locales = new Set([
+    ...Object.keys(existing),
+    ...Object.keys(patch),
+    ...Object.keys(touched),
+  ]);
   const out: MetafieldTranslations = {};
-  for (const [locale, fields] of Object.entries(existing)) {
-    out[locale] = { ...fields };
+  for (const locale of locales) {
+    if (!locale || locale === SOURCE_LOCALE) continue;
+    const merged = { ...(existing[locale] ?? {}) };
+    const touchedIds = touched[locale] ? Object.keys(touched[locale]) : [];
+    if (touchedIds.length > 0) {
+      for (const id of touchedIds) {
+        const next = patch[locale]?.[id];
+        if (next?.trim()) merged[id] = next;
+        else delete merged[id];
+      }
+    } else {
+      Object.assign(merged, patch[locale] ?? {});
+    }
+    if (Object.keys(merged).length > 0) out[locale] = merged;
   }
-  for (const [locale, fields] of Object.entries(patch)) {
-    out[locale] = { ...fields };
-  }
-  for (const locale of Object.keys(out)) {
-    if (Object.keys(out[locale]).length === 0) delete out[locale];
+  return out;
+}
+
+/** Every locale metafield FormData identity, including empty clears. */
+export function metafieldTranslationTouchesFromForm(formData: FormData): MetafieldTranslations {
+  const out: MetafieldTranslations = {};
+  for (const name of formData.keys()) {
+    if (!isLocalePrefixedCustomMetafieldValueField(name)) continue;
+    const match = /^([a-z]{2})CustomMetafieldValue:(.+)$/i.exec(name);
+    if (!match) continue;
+    const locale = match[1].toLowerCase();
+    if (locale === SOURCE_LOCALE) continue;
+    const rest = match[2];
+    const sep = rest.indexOf(":");
+    if (sep <= 0) continue;
+    const namespace = rest.slice(0, sep).trim();
+    const key = rest.slice(sep + 1).trim();
+    if (!namespace || !key || isManagedProductMetafieldNamespace(namespace)) continue;
+    const bucket = out[locale] ?? (out[locale] = {});
+    bucket[metafieldIdentityKey(namespace, key)] = "";
   }
   return out;
 }

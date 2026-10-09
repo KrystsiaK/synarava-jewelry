@@ -16,6 +16,7 @@ import {
 import { SOURCE_LOCALE } from "@/components/admin/products/product-editor-scope";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
+import { isShopifyProductSpecCustomKey } from "@/lib/products/shopify-product-specs";
 import {
   customMetafieldTypeFieldName,
   customMetafieldValueFieldName,
@@ -303,7 +304,17 @@ export function ProductMetafieldsPanel({
         </p>
       ) : (
         <div className="grid gap-3">
-          {definitions.map((definition) => {
+          {definitions.some((item) =>
+            item.namespace === "custom" && isShopifyProductSpecCustomKey(item.key),
+          ) ? (
+            <p className="text-xs text-[var(--adm-muted)]">
+              Jewelry specs (material, care, finish, wrist fit, …) are edited on Product → Shopify
+              product specs — not duplicated here.
+            </p>
+          ) : null}
+          {definitions.filter((definition) => !(
+            definition.namespace === "custom" && isShopifyProductSpecCustomKey(definition.key)
+          )).map((definition) => {
             const enValueName = customMetafieldValueFieldName(definition.namespace, definition.key);
             const typeName = customMetafieldTypeFieldName(definition.namespace, definition.key);
             const help = `${definition.namespace}.${definition.key} · ${definition.type}`;

@@ -22,11 +22,19 @@ import { saveProductImageUpload } from "@/lib/media/local-upload";
 import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
 import {
   buildProductSearchDocument,
+  isShopifyOwnedCharacteristicKey,
   parseCharacteristicsForm,
   readCharacteristicTextOverlayFromForm,
 } from "@/lib/products/characteristics";
 import {
+  characteristicProjectionsFromShopifySpecs,
+  SHOPIFY_PRODUCT_SPEC_FIELDS,
+} from "@/lib/products/shopify-product-specs";
+import {
   formDataHasMetafieldTranslationFields,
+  mergeMetafieldTranslations,
+  metafieldTranslationsFromSnapshot,
+  metafieldTranslationTouchesFromForm,
   parseCustomMetafieldsForm,
   parseCustomMetafieldTranslationsForm,
 } from "@/lib/shopify/product-metafields-shared";
@@ -757,7 +765,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   const imageFile = formData.get("imageFile");
   const characteristics = parseCharacteristicsForm(formData);
   const customMetafields = parseCustomMetafieldsForm(formData);
-  const metafieldTranslations = formDataHasMetafieldTranslationFields(formData)
+  const parsedMetafieldTranslations = formDataHasMetafieldTranslationFields(formData)
     ? parseCustomMetafieldTranslationsForm(formData)
     : undefined;
   const tagSlugs = parseTags(tagInput);
@@ -798,6 +806,15 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
 
   const before = productId ? await getSavedProductPayload(productId).catch(() => null) : null;
+  // Product-tab specs submit a subset of locale overlays — merge into existing;
+  // touched identities (including empties) clear without wiping untouched keys.
+  const metafieldTranslations = parsedMetafieldTranslations
+    ? mergeMetafieldTranslations(
+      metafieldTranslationsFromSnapshot(before?.workingSnapshot ?? before?.shopifySnapshot),
+      parsedMetafieldTranslations,
+      metafieldTranslationTouchesFromForm(formData),
+    )
+    : undefined;
   // Compare-at and cost are Synarava read-only (edit in Shopify). Preserve last pull; ignore FormData.
   const compareAtCents = before?.variants[0]?.compareAtCents ?? before?.compareAtCents ?? null;
   const costCents = before?.variants[0]?.costCents ?? null;
@@ -1272,10 +1289,44 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
   }
 
+  // Passport FormData = Synarava-only. Shopify product specs project from custom.*.
+  const specProjections = characteristicProjectionsFromShopifySpecs(
+    customMetafields
+      .filter((item) => item.namespace === "custom")
+      .map((item) => ({ key: item.key, value: item.value, type: item.type })),
+    characteristics.length,
+  );
+  const specCharacteristicKeys = new Set(
+    SHOPIFY_PRODUCT_SPEC_FIELDS.map((item) => item.characteristicKey),
+  );
+  // Preserve Shopify-owned rows not owned by Product-tab specs (e.g. origin from Pull).
+  const preservedShopifyOwned = (before?.characteristics ?? [])
+    .filter((item) =>
+      isShopifyOwnedCharacteristicKey(item.key) && !specCharacteristicKeys.has(item.key),
+    )
+    .map((item, index) => ({
+      key: item.key,
+      label: item.label,
+      group: item.group,
+      valueType: item.valueType,
+      textValue: item.textValue,
+      numberValue: item.numberValue == null ? null : Number(item.numberValue),
+      booleanValue: item.booleanValue,
+      unit: item.unit,
+      certificateUrl: item.certificateUrl,
+      searchable: true,
+      filterable: true,
+      sortOrder: characteristics.length + specProjections.length + index,
+    }));
+  const nextCharacteristics = [
+    ...characteristics,
+    ...specProjections,
+    ...preservedShopifyOwned,
+  ];
   await db.productCharacteristic.deleteMany({ where: { productId: product.id } });
-  if (characteristics.length) {
+  if (nextCharacteristics.length) {
     await db.productCharacteristic.createMany({
-      data: characteristics.map((item) => ({ ...item, productId: product.id })),
+      data: nextCharacteristics.map((item) => ({ ...item, productId: product.id })),
     });
   }
 

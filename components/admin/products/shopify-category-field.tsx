@@ -309,8 +309,9 @@ export function ShopifyCategoryAttributes() {
       ) : null}
 
       <p className="text-xs text-[var(--adm-muted)]">
-        Values filled in Shopify under category attributes appear here after Pull. Synarava jewelry
-        specs stay under Passport; product-page story under Product page — not a second checklist.
+        Taxonomy attribute selections appear here after Pull (edit in Shopify Admin for now).
+        Editable `custom.*` jewelry specs live under Shopify product specs on this Product tab;
+        Synarava-only passport under Synarava → Passport.
       </p>
     </div>
   );

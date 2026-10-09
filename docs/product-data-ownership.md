@@ -8,10 +8,12 @@ Shopify is the system of record for every customer-facing commerce field that Sh
 
 The product admin is built as **Shopify skeleton + Synarava sections**:
 
-1. **Shopify skeleton** — every standard Shopify product/variant field we support must appear in admin, sync correctly (pull/push), and match Shopify Admin. We verify this field by field.
-2. **Synarava sections** — CMS-only: **Passport** (jewelry parameters → `synarava.*` metafields on Push) and **Product page** (short description, material line, symbolism, materials story, process, lookbook). Shopify description/SEO live on the Product tab, not a separate Content tab.
+1. **Shopify skeleton** — every standard Shopify product/variant field we support must appear in admin, sync correctly (pull/push), and match Shopify Admin. We verify this field by field. This includes **Shopify-owned jewelry specs** shown in Last Pull (`custom.material`, care, finish, wrist fit, color, metal, stone, plating, size, plus vendor / product type / category / unit weight / origin projections): editable under **Product → Shopify product specs** (and organization fields above), not under Synarava Passport.
+2. **Synarava sections** — CMS-only: **Passport** (Synarava-only parameters → `synarava.*` metafields on Push: chain lengths, compliance) and **Product page** (short description, material line, symbolism, materials story, process, lookbook). Shopify description/SEO live on the Product tab, not a separate Content tab.
 
 The section tab strip is visually split into two clusters: **Shopify** (commerce skeleton + Sync) and **Synarava** (CMS-only). Tab count and Shopify-side layout will grow to mirror Shopify’s product admin more closely; Synarava tabs stay a separate group.
+
+**Hard UI ownership:** fields that exist in Shopify (category attributes / product specs pulled from Shopify) are edited in the Shopify product section. They must **not** appear as duplicate editable fields under Synarava → Passport. Last Pull is verification for non-editable Pull projections (taxonomy attribute selections, unit weight, country of origin) — not the only interaction model for Shopify-owned specs.
 
 The Price tab (Shopify group) mirrors Shopify Admin’s Price card on the primary
 variant — editable `price` and `taxable`. **Compare-at** and **Cost** are
@@ -57,7 +59,8 @@ Synarava-only localized fields and other locales are not cleared by that decisio
 ## Catalog concepts
 
 - **Product category** means a Shopify Standard Product Taxonomy category. Synarava stores its GID and full name; there is no editable local category lifecycle.
-- **Category attributes** are Shopify-owned. Pull resolves selected `shopify.*` category metafields (taxonomy-value or metaobject references) to display names, surfaces them in the admin Catalog and Shopify mirror, and may seed empty Synarava passport characteristics for known mappings (Color → `color`, Fabric/Material → `material`, Size → `size`, and similar). Matching plain-text merchant metafields outside `synarava` / `global` (for example `custom.material`) also seed empty passport fields. Variant country of origin seeds empty `origin`. Unmapped attributes stay in the snapshot / Additional details. Push does not write TaxonomyValue GIDs; passport fields still round-trip as `synarava.*` metafields.
+- **Category attributes** are Shopify-owned. Pull resolves selected `shopify.*` category metafields (taxonomy-value or metaobject references) to display names and surfaces them under Product category (Pull display) and Last Pull verification. Push does not write TaxonomyValue GIDs yet — edit selections in Shopify Admin, then Pull.
+- **Shopify product specs** (`custom.material`, `care_instructions`, `finish`, `wrist_fit`, `color`, `metal`, `stone`, `plating`, `size`) are edited on **Product → Shopify product specs**. Save write-throughs `workingSnapshot.metafields` and projects matching `ProductCharacteristic` rows for PDP/filters. Push sends `custom.*` (not duplicate `synarava.*` for those keys). PT/RU use Shopify metafield translations when present; Synarava overlays only fill gaps.
 - **Collection** is the only product-grouping model. The local record projects Shopify identity and membership while retaining Synarava-owned editorial presentation.
 - **Tags** are Shopify product tags edited on the product. Local tag rows are a synchronized read projection, not standalone admin-managed records.
 - Tags power search and filters; they are not printed as a keyword list in the product purchase area.
@@ -83,27 +86,29 @@ Shopify contains additional operational and analytical API fields. “All Shopif
 
 ## Synarava product passport
 
-Structured jewelry parameters (material, color, size, care, compliance, …) are
+**Synarava-only** jewelry parameters (chain lengths, compliance flags) are
 editable under **Synarava → Passport** (**Product parameters**). Save stores them
 locally; Push mirrors **English** values to Shopify as `synarava.*` metafields.
-Pull seeds empty fields from Shopify category attributes and merchant metafields.
 
-**Localization (no Shopify sync for translations):**
+Shopify-owned specs (material, care, finish, wrist fit, color, metal, stone,
+plating, size, origin) are **not** Passport fields — see Product → Shopify
+product specs (and Inventory Pull projections for weight / origin).
+
+**Localization:**
 
 | Layer | Where |
 | --- | --- |
 | Group titles, field labels, units (`cm`/`g`) | Code dictionaries in `lib/products/characteristics.ts` (EN/PT/RU) |
-| TEXT values (material, color, care, fit notes, …) | Per-locale overlay on `ProductTranslation.details.characteristics`; blank → EN |
+| Shopify-owned TEXT specs | Prefer pulled Shopify Metafield translations (`metafieldTranslations`); Product-tab `custom.*` locale overlays for gaps; blank → EN |
+| Passport TEXT (Synarava-only) | Per-locale overlay on `ProductTranslation.details.characteristics`; blank → EN |
 | NUMBER / BOOLEAN | Shared `ProductCharacteristic` (EN); Yes/No display localized in code |
-| Last Pull / public Shopify category facts | Prefer pulled Shopify Metafield translations (`metafieldTranslations`, locale via `shopifyLocale` e.g. `pt-PT`); then Passport TEXT overlays for mapped keys (care→`care_instructions`, wrist fit→`fit_notes`, material/finish/…); category leaf + product type via Shared → Taxonomy / code map. Display only — Synarava overlays are not pushed as Shopify metafield translations unless the merchant uses Metafields → Push. |
+| Category leaf + product type | Shared → Taxonomy / code map when Shopify has no translation |
 
-The passport checklist is intentionally small (jewelry filters + PDP priority).
-Arbitrary merchant fields are **not** added here — use the product editor
-**Metafields** tab (Shopify metafield definitions + values via Admin API).
+The passport checklist is intentionally small (Synarava-only). Arbitrary merchant
+fields use the **Metafields** tab. Core jewelry `custom.*` specs use **Product**.
 
 **Catalog** product-editor tab is gone — category, collection, and site publish
-live on **Product** (Shopify organization). Jewelry passport stays under
-**Synarava → Passport**.
+live on **Product** (Shopify organization).
 
 ### Metafields tab (Shopify-native custom fields)
 
@@ -126,35 +131,31 @@ Docs: [Manage metafield definitions](https://shopify.dev/docs/apps/build/metafie
 [`metafieldsSet`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldsSet),
 [Manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content).
 
-### Passport vocabulary (edit UI)
+### Passport vocabulary (edit UI — Synarava-only)
 
 Groups with data open by default; empty groups stay collapsed.
 
 ### Dimensions and fit
 
-- size, fit notes;
 - chain length, adjustable length.
-
-### Materials and construction
-
-- primary material, metal, stone / gem;
-- finish, plating, color, origin.
-
-### Care
-
-- care instructions (multiline TEXT; EN on `ProductCharacteristic`, PT/RU on
-  `ProductTranslation.details.characteristics` — blank locale falls back to EN).
 
 ### Compliance
 
 - REACH certification (optional certificate URL);
 - lead, cadmium, and nickel-release declarations.
 
-Passport TEXT values are locale-split end-to-end: admin locale tabs write
-overlays via prefixed FormData (`ruCharacteristic_*`), never the shared EN
-named fields. The Passport field shell must not use `display: contents` around
-HTML `hidden` EN controls — that combination leaves EN editors clickable on
-PT/RU in Chromium and overwrites every language.
+### Shopify product specs (Product tab — not Passport)
+
+- primary material, care instructions, finish, wrist fit;
+- color, metal, stone / gem, plating, size;
+- vendor, product type, category (organization fields);
+- unit weight / country of origin (Inventory Pull projections).
+
+Passport TEXT values (Synarava-only) are locale-split end-to-end: admin locale
+tabs write overlays via prefixed FormData (`ruCharacteristic_*`), never the
+shared EN named fields. The Passport field shell must not use
+`display: contents` around HTML `hidden` EN controls — that combination leaves
+EN editors clickable on PT/RU in Chromium and overwrites every language.
 
 ## Storefront presentation
 

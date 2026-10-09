@@ -12,8 +12,8 @@ import { SOURCE_LOCALE } from "@/components/admin/products/product-editor-scope"
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
 import type { Locale } from "@/lib/i18n/locales";
 import {
-  PRODUCT_CHARACTERISTICS,
-  PRODUCT_CHARACTERISTIC_GROUPS,
+  PASSPORT_CHARACTERISTICS,
+  PASSPORT_CHARACTERISTIC_GROUPS,
   characteristicFormKey,
   characteristicGroupLabel,
   characteristicLabel,
@@ -31,7 +31,7 @@ function groupHasValue(
   textOverlay: Record<string, string>,
   showOverlay: boolean,
 ): boolean {
-  return PRODUCT_CHARACTERISTICS.some((definition) => {
+  return PASSPORT_CHARACTERISTICS.some((definition) => {
     if (definition.group !== group) return false;
     if (showOverlay && definition.type === "TEXT") {
       return Boolean(textOverlay[definition.key]?.trim())
@@ -45,7 +45,8 @@ function groupHasValue(
 }
 
 /**
- * Editable product passport.
+ * Editable Synarava-only passport (compliance, chain lengths).
+ * Shopify-owned specs (material, care, finish, …) live on Product → Shopify product specs.
  * EN named fields (`characteristic_*`) always stay in the DOM (visible or HTML-hidden)
  * so locale switches and scoped saves keep ProductCharacteristic values.
  * Do not wrap those hidden EN controls in `display: contents` — Chromium then
@@ -76,9 +77,9 @@ export function ProductPassportFields({
         <p className="adm-label-row">
           <span className="adm-label">Product parameters</span>
           <AdminHelp>
-            Jewelry core specs (material, size, care, compliance). English Save + Push mirrors
-            synarava metafields. Other languages translate TEXT values only (blank → English on the
-            site). Numbers and yes/no stay shared.
+            Synarava-only jewelry parameters (chain lengths, compliance). English Save + Push
+            mirrors synarava metafields. Material, care, finish, color, and other Shopify-owned
+            specs are edited under Product → Shopify product specs.
           </AdminHelp>
         </p>
         <p className="mt-2 text-xs leading-5 text-[var(--adm-muted)]">
@@ -88,7 +89,7 @@ export function ProductPassportFields({
         </p>
       </div>
 
-      {PRODUCT_CHARACTERISTIC_GROUPS.map((group) => {
+      {PASSPORT_CHARACTERISTIC_GROUPS.map((group) => {
         const openByDefault = groupHasValue(group, characteristics, textOverlay, showOverlay);
         const groupTitle = characteristicGroupLabel(group, locale);
         return (
@@ -96,7 +97,7 @@ export function ProductPassportFields({
             <fieldset className="min-w-0">
               <legend className="sr-only">{groupTitle}</legend>
               <div className="grid gap-3 md:grid-cols-2">
-                {PRODUCT_CHARACTERISTICS.filter((item) => item.group === group).map((definition) => {
+                {PASSPORT_CHARACTERISTICS.filter((item) => item.group === group).map((definition) => {
                   const current = characteristics[definition.key] ?? {
                     value: definition.type === "BOOLEAN" ? false : "",
                     certificateUrl: "",
@@ -223,7 +224,7 @@ export function ProductPassportFields({
   );
 }
 
-/** Locale TEXT overlays for every non-EN language (mirrors HiddenDetailsLocaleFields). */
+/** Locale TEXT overlays for Synarava-only Passport keys (mirrors HiddenDetailsLocaleFields). */
 export function HiddenPassportTextOverlayFields({
   overlaysByLocale,
 }: {
@@ -233,7 +234,7 @@ export function HiddenPassportTextOverlayFields({
     <div hidden data-component="HiddenPassportTextOverlayFields">
       {Object.entries(overlaysByLocale).flatMap(([locale, overlay]) => {
         if (locale === SOURCE_LOCALE) return [];
-        return PRODUCT_CHARACTERISTICS.filter((item) => item.type === "TEXT").map((definition) => {
+        return PASSPORT_CHARACTERISTICS.filter((item) => item.type === "TEXT").map((definition) => {
           const name = adminLocaleFieldName(locale, characteristicFormKey(definition.key), SOURCE_LOCALE);
           return (
             <input

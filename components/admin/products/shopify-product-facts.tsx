@@ -1,7 +1,23 @@
 import { AdminHelp } from "@/components/synarava-cms";
 import type { ShopifyProductFact } from "@/lib/shopify/product-facts";
+import {
+  isShopifyOwnedCharacteristicKey,
+  isShopifyProductSpecCustomKey,
+} from "@/lib/products/shopify-product-specs";
 
-/** Read-only snapshot of what the last Shopify Pull resolved — edit specs on Passport. */
+/** Pull projections that are not edited in Shopify product specs above. */
+function isVerificationFact(fact: ShopifyProductFact): boolean {
+  if (fact.key === "category" || fact.key === "vendor" || fact.key === "productType") return false;
+  if (fact.key.startsWith("custom.") && isShopifyProductSpecCustomKey(fact.key.slice("custom.".length))) {
+    return false;
+  }
+  if (fact.key.startsWith("characteristic:")) {
+    return !isShopifyOwnedCharacteristicKey(fact.key.slice("characteristic:".length));
+  }
+  return true;
+}
+
+/** Read-only Pull verification — editable Shopify specs live in ShopifyProductSpecsFields. */
 export function ShopifyProductFactsPanel({
   facts,
   linked,
@@ -9,6 +25,8 @@ export function ShopifyProductFactsPanel({
   facts: ShopifyProductFact[];
   linked: boolean;
 }) {
+  const verificationFacts = facts.filter(isVerificationFact);
+
   return (
     <section
       data-component="ShopifyProductFactsPanel"
@@ -18,10 +36,10 @@ export function ShopifyProductFactsPanel({
         <p className="adm-label-row">
           <span className="adm-label">Last Pull from Shopify</span>
           <AdminHelp>
-            EN identity comes from the last Shopify Pull. On PT/RU tabs, Passport TEXT overlays
-            (and taxonomy maps for category/type) replace matching values for preview — Synarava
-            only; they are not pushed as Shopify translations. Edit overlays under Synarava →
-            Passport. Refresh the EN pull with Pull again.
+            Verification of Pull projections that are not edited above (category taxonomy
+            attributes, unit weight, country of origin, and other remote facts). Edit material,
+            care, finish, wrist fit, and related `custom.*` fields in Shopify product specs.
+            Vendor, product type, and category are on this Product tab. Refresh with Pull.
           </AdminHelp>
         </p>
       </div>
@@ -30,13 +48,13 @@ export function ShopifyProductFactsPanel({
         <p className="text-sm text-[var(--adm-muted)]">
           Link this product to Shopify and Pull to see remote facts here.
         </p>
-      ) : facts.length === 0 ? (
+      ) : verificationFacts.length === 0 ? (
         <p className="text-sm text-[var(--adm-muted)]">
-          Nothing resolved on the last Pull yet. Fill Passport (Synarava) or edit in Shopify, then Pull.
+          No extra Pull projections beyond the editable Shopify product specs above.
         </p>
       ) : (
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          {facts.map((fact) => (
+          {verificationFacts.map((fact) => (
             <div key={fact.key} className="grid gap-0.5">
               <dt className="adm-label">{fact.label}</dt>
               <dd className="text-[var(--adm-ink)]">{fact.value}</dd>
