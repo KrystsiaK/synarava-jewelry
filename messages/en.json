@@ -111,7 +111,8 @@
       "eyebrow": "Explore Synarava by collection",
       "title": "Browse the Collections",
       "collections": "View collections",
-      "story": "About Synarava"
+      "story": "About Synarava",
+      "archiveGhost": "ARCHIVE"
     },
     "filters": {
       "eyebrow": "Find the right product",
@@ -411,6 +412,12 @@
     "addToWishlist": "Save to wishlist",
     "removeFromWishlist": "Remove from wishlist",
     "relatedTitle": "You may also like",
+    "continueExploring": {
+      "partOf": "Part of {name}",
+      "title": "Continue Exploring",
+      "backToShop": "Back to shop",
+      "archiveGhost": "ARCHIVE"
+    },
     "presentation": {
       "jewelry": {
         "descriptionLabel": "Object notes",

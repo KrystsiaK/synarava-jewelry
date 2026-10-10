@@ -127,7 +127,7 @@ function ShopFooter({
           className="select-none font-serif leading-none text-foreground"
           style={{ fontSize: "clamp(5rem,18vw,14rem)", opacity: 0.025, whiteSpace: "nowrap" }}
         >
-          ARCHIVE
+          {t("shop.footerCta.archiveGhost")}
         </span>
       </div>
 
