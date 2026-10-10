@@ -148,6 +148,19 @@ describe("FilterBar", () => {
     await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
   });
 
+  it("hides the WebKit native search cancel so only the custom clear control shows", () => {
+    render(<FilterBar {...defaultProps} initialFilters={{ q: "ажурный полумесяц" }} />);
+    const inputs = screen.getAllByDisplayValue(/ажурный полумесяц/i);
+    expect(inputs.length).toBeGreaterThan(0);
+    for (const input of inputs) {
+      expect(input).toHaveAttribute("type", "search");
+      expect(input.className).toContain("webkit-search-cancel-button");
+      expect(input.className).toContain("appearance-none");
+    }
+    // One custom clear per search field (desktop + mobile), not a second native control in DOM.
+    expect(screen.getAllByRole("button", { name: /clear search/i })).toHaveLength(2);
+  });
+
   // ── Session persistence ───────────────────────────────────────────────────
 
   it("shows restore banner when saved filters exist and URL has no params", async () => {

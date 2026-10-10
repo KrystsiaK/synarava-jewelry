@@ -355,7 +355,7 @@ export function FilterBar({
             </button>
           </div>
 
-          <div className="relative flex w-[min(28vw,17rem)] items-center border-b border-foreground/[0.14] transition-colors focus-within:border-couture-red">
+          <div className="relative flex w-[min(36vw,22rem)] min-w-[12rem] items-center border-b border-foreground/[0.14] transition-colors focus-within:border-couture-red">
             <Search className="pointer-events-none absolute left-0 size-3.5 text-muted/60" aria-hidden="true" />
             <input
               ref={searchRef}
@@ -365,8 +365,10 @@ export function FilterBar({
               placeholder={text(labels?.searchPlaceholder, "shop.filters.searchPlaceholder")}
               aria-label={text(labels?.searchLabel, "shop.filters.searchLabel")}
               className={cn(
-                "w-full bg-transparent py-2 pl-6 pr-6 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
+                "w-full min-w-0 bg-transparent py-2 pl-6 pr-11 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
                 "placeholder:text-muted/42 outline-none transition-[color,border-color] duration-200",
+                // Hide WebKit's native clear so only our custom X shows (Chrome/Safari).
+                "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
               )}
             />
             {search && (
@@ -405,7 +407,11 @@ export function FilterBar({
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={text(labels?.searchPlaceholder, "shop.filters.searchPlaceholder")}
             aria-label={text(labels?.searchLabel, "shop.filters.searchLabel")}
-            className="w-full bg-transparent py-3 pl-6 pr-6 text-[0.78rem] font-semibold uppercase tracking-[0.13em] placeholder:text-muted/42 outline-none"
+            className={cn(
+              "w-full min-w-0 bg-transparent py-3 pl-6 pr-11 text-[0.78rem] font-semibold uppercase tracking-[0.13em]",
+              "placeholder:text-muted/42 outline-none",
+              "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
+            )}
           />
           {search && (
             <button
