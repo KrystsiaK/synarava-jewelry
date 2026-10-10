@@ -1,4 +1,5 @@
 import type { ProductSummary } from "@/lib/content/catalog";
+import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
@@ -19,6 +20,9 @@ export function buildProductJsonLd(
   const description =
     plainTextFromRichText(product.shortDescription) ||
     plainTextFromRichText(product.description);
+  const includeReviews = storefrontReviewsVisible()
+    && reviews?.average != null
+    && reviews.count > 0;
 
   return {
     "@context": "https://schema.org",
@@ -34,13 +38,13 @@ export function buildProductJsonLd(
       "@type": "Brand",
       name: product.vendor || "Synarava",
     },
-    ...(reviews?.average != null && reviews.count > 0 ? {
+    ...(includeReviews ? {
       aggregateRating: {
         "@type": "AggregateRating",
-        ratingValue: reviews.average,
-        reviewCount: reviews.count,
+        ratingValue: reviews!.average,
+        reviewCount: reviews!.count,
       },
-      review: reviews.reviews.map((review) => ({
+      review: reviews!.reviews.map((review) => ({
         "@type": "Review",
         ...(review.title ? { name: review.title } : {}),
         ...(review.body ? { reviewBody: review.body } : {}),

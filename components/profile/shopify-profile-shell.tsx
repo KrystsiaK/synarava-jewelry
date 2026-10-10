@@ -21,6 +21,7 @@ import type { Locale } from "@/lib/i18n/locales";
 import { AccountReviews } from "@/components/profile/account-reviews";
 import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 import { ArtifactLink } from "@/components/ui";
+import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import type { AccountReviewRow } from "@/lib/profile/account-reviews";
 import {
@@ -30,8 +31,14 @@ import {
   type OrderStatusTone,
 } from "@/lib/shopify/customer-account/order-status";
 
-const tabs = ["overview", "wishlist", "orders", "reviews", "addresses", "security"] as const;
-type Tab = (typeof tabs)[number];
+const allTabs = ["overview", "wishlist", "orders", "reviews", "addresses", "security"] as const;
+type Tab = (typeof allTabs)[number];
+
+function visibleAccountTabs(): Tab[] {
+  return storefrontReviewsVisible()
+    ? [...allTabs]
+    : allTabs.filter((tab) => tab !== "reviews");
+}
 
 function tabHref(tab: Tab, locale: Locale) {
   return tab === "overview" ? localePath(locale, "/profile") : localePath(locale, `/profile?section=${tab}`);
@@ -208,6 +215,8 @@ export function ShopifyProfileShell({
 }) {
   const router = useRouter();
   const { t, plural, locale } = useTranslations();
+  const tabs = visibleAccountTabs();
+  const resolvedTab: Tab = tabs.includes(activeTab) ? activeTab : "overview";
   const tabLabels: Record<Tab, string> = {
     overview: t("profile.tabs.overview"),
     wishlist: t("profile.tabs.wishlist"),
@@ -337,14 +346,14 @@ export function ShopifyProfileShell({
                 id={`account-tab-${tab}`}
                 href={tabHref(tab, locale)}
                 role="tab"
-                aria-selected={activeTab === tab}
+                aria-selected={resolvedTab === tab}
                 aria-controls={`account-panel-${tab}`}
-                tabIndex={activeTab === tab ? 0 : -1}
+                tabIndex={resolvedTab === tab ? 0 : -1}
                 onKeyDown={(event) => handleTabKeyDown(event, tab)}
-                className={`relative px-4 py-4 md:px-7 ${activeTab === tab ? "text-foreground" : "text-foreground/40"}`}
+                className={`relative px-4 py-4 md:px-7 ${resolvedTab === tab ? "text-foreground" : "text-foreground/40"}`}
               >
                 <span className="label-caps">{tabLabels[tab]}</span>
-                {activeTab === tab ? (
+                {resolvedTab === tab ? (
                   <motion.span
                     layoutId="shopify-account-tab"
                     className="absolute inset-x-0 bottom-0 h-0.5 bg-couture-red"
@@ -357,17 +366,17 @@ export function ShopifyProfileShell({
 
         <AnimatePresence mode="wait">
           <motion.section
-            key={activeTab}
-            id={`account-panel-${activeTab}`}
+            key={resolvedTab}
+            id={`account-panel-${resolvedTab}`}
             role="tabpanel"
-            aria-labelledby={`account-tab-${activeTab}`}
+            aria-labelledby={`account-tab-${resolvedTab}`}
             tabIndex={0}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3 }}
           >
-            {activeTab === "overview" ? (
+            {resolvedTab === "overview" ? (
               <div className="space-y-10">
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
@@ -392,7 +401,7 @@ export function ShopifyProfileShell({
               </div>
             ) : null}
 
-            {activeTab === "wishlist" ? (
+            {resolvedTab === "wishlist" ? (
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
                   <h2 className="font-serif text-2xl">{t("profile.wishlist.title")}</h2>
@@ -431,7 +440,7 @@ export function ShopifyProfileShell({
               </div>
             ) : null}
 
-            {activeTab === "orders" ? (
+            {resolvedTab === "orders" ? (
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
                   <h2 className="font-serif text-2xl">{t("profile.orders.title")}</h2>
@@ -539,9 +548,11 @@ export function ShopifyProfileShell({
               </div>
             ) : null}
 
-            {activeTab === "reviews" ? <AccountReviews reviews={reviews} /> : null}
+            {storefrontReviewsVisible() && resolvedTab === "reviews" ? (
+              <AccountReviews reviews={reviews} />
+            ) : null}
 
-            {activeTab === "addresses" ? (
+            {resolvedTab === "addresses" ? (
               <div className="space-y-5">
                 <div className="flex items-end justify-between">
                   <h2 className="font-serif text-2xl">{t("profile.addresses.title")}</h2>
@@ -565,7 +576,7 @@ export function ShopifyProfileShell({
               </div>
             ) : null}
 
-            {activeTab === "security" ? (
+            {resolvedTab === "security" ? (
               <div className="max-w-3xl border border-stroke p-7 md:p-9">
                 <p className="label-caps mb-3 text-couture-red">{t("profile.security.eyebrow")}</p>
                 <h2 className="font-serif text-2xl">{t("profile.security.title")}</h2>

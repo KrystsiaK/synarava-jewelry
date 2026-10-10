@@ -6,8 +6,10 @@ Public pages use `/en` or `/pt` prefixes. `/[locale]` is the home page;
 `/[locale]/shop` loads the published catalog and runs search, filters, and sorting
 in the browser; `/[locale]/collections` and `/[locale]/collections/[slug]` present
 curated groups; `/[locale]/products/[slug]` contains the product gallery, variant
-selector, reviews, and purchase controls. `/[locale]/profile` shows Shopify-owned
-customer data, orders, and that customer's published product reviews. `/[locale]/about`, `/[locale]/about/manifesto`, service
+selector and purchase controls. Buyer-facing reviews are temporarily hidden behind
+`STOREFRONT_REVIEWS_VISIBLE` in `lib/features/storefront-reviews.ts` (PDP section,
+account Reviews tab, review JSON-LD) — components stay; flip the flag to restore.
+`/[locale]/profile` shows Shopify-owned customer data and orders. `/[locale]/about`, `/[locale]/about/manifesto`, service
 pages, and CMS pages provide editorial content. `/admin` is the separate CMS and
 commerce console.
 
