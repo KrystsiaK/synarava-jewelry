@@ -18,12 +18,27 @@ const mocks = vi.hoisted(() => ({
   compareAndPersistCommerceStoresAction: vi.fn(),
   listCustomProductMetafieldDefinitionsAction: vi.fn(),
   createProductMetafieldDefinitionAction: vi.fn(),
+  updateProductMediaAltAction: vi.fn(),
+  updateWorkingSnapshotMediaAltAction: vi.fn(),
+  moveProductMediaAction: vi.fn(),
+  removeProductMediaAction: vi.fn(),
+  setPrimaryProductMediaAction: vi.fn(),
+  refreshPreservingScroll: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/products", () => ({
   saveProductAction: mocks.saveProductAction,
   deleteProductAction: mocks.deleteProductAction,
   getSavedProductPayload: mocks.getSavedProductPayload,
+  updateProductMediaAltAction: mocks.updateProductMediaAltAction,
+  updateWorkingSnapshotMediaAltAction: mocks.updateWorkingSnapshotMediaAltAction,
+  moveProductMediaAction: mocks.moveProductMediaAction,
+  removeProductMediaAction: mocks.removeProductMediaAction,
+  setPrimaryProductMediaAction: mocks.setPrimaryProductMediaAction,
+}));
+
+vi.mock("@/lib/admin/preserve-scroll", () => ({
+  refreshPreservingScroll: (...args: unknown[]) => mocks.refreshPreservingScroll(...args),
 }));
 
 vi.mock("@/app/admin/actions/sync", () => ({
@@ -329,5 +344,70 @@ describe("EditProductForm", () => {
       "Product could not be saved. Reload this page before trying again.",
     );
     expect(screen.getByRole("heading", { name: "Choose an area to edit" })).toBeInTheDocument();
+  });
+
+  it("persists gallery alt on product Save and does not leave-prompt after blur-save", async () => {
+    const galleryProduct = makeProduct({
+      imageUrl: "/media/lava.jpg",
+      primaryAssetId: "asset-1",
+      media: [
+        {
+          id: "media-1",
+          assetId: "asset-1",
+          kind: "PRIMARY",
+          alt: "Old alt",
+          caption: null,
+          sortOrder: 0,
+          url: "/media/lava.jpg",
+          width: 800,
+          height: 800,
+        },
+      ],
+    });
+    const updated = {
+      ...galleryProduct,
+      media: [{ ...galleryProduct.media[0], alt: "Lava ring, front" }],
+    };
+    mocks.updateProductMediaAltAction.mockResolvedValue({
+      success: "Image alt text updated.",
+      product: updated,
+    });
+    mocks.saveProductAction.mockResolvedValue({
+      success: "Product saved.",
+      product: updated,
+    });
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <EditProductForm product={galleryProduct} collections={[]} />
+        <a href="/admin/products">Back to products</a>
+      </>,
+    );
+    await act(async () => {});
+
+    await user.click(screen.getByRole("tab", { name: /Media/ }));
+    const alt = screen.getByRole("textbox", { name: /Alt text/i });
+    await user.clear(alt);
+    await user.type(alt, "Lava ring, front");
+    await user.tab();
+
+    await waitFor(() => {
+      expect(mocks.updateProductMediaAltAction).toHaveBeenCalledWith("media-1", "Lava ring, front");
+    });
+    expect(screen.getByRole("textbox", { name: /Alt text/i })).not.toBeDisabled();
+    expect(mocks.refreshPreservingScroll).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("link", { name: "Back to products" }));
+    expect(screen.queryByRole("heading", { name: "Unsaved product changes" })).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Yes, save changes" }));
+
+    await waitFor(() => {
+      expect(mocks.saveProductAction).toHaveBeenCalled();
+    });
+    const formData = mocks.saveProductAction.mock.calls.at(-1)?.[0] as FormData;
+    expect(formData.get("media-alt-media-1")).toBe("Lava ring, front");
   });
 });

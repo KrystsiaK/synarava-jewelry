@@ -7,6 +7,11 @@
 export type LocalMediaAltFormUpdate = { mediaId: string; alt: string };
 export type TreeMediaAltFormUpdate = { index: number; alt: string };
 
+/** FormData / input names owned by the Media gallery alt editors. */
+export function isMediaAltFormField(name: string): boolean {
+  return name.startsWith("media-alt-");
+}
+
 export function mediaAltUpdatesFromForm(formData: FormData): {
   local: LocalMediaAltFormUpdate[];
   tree: TreeMediaAltFormUpdate[];
