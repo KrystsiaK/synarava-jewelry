@@ -112,24 +112,11 @@ describe("ProfilePage", () => {
     expect(mocks.getCustomerProfile).toHaveBeenCalledWith(session);
   });
 
-  it("lists the customer's Shopify reviews even when a product name cannot be resolved", async () => {
-    mocks.getReviews.mockResolvedValue([{
-      id: "gid://shopify/Metaobject/1",
-      rating: 5,
-      title: "A lasting piece",
-      body: "Beautifully made.",
-      submittedAt: "2026-09-10T12:00:00.000Z",
-      verificationStatus: "verified_buyer",
-      merchantReply: "",
-      productId: "gid://shopify/Product/10",
-      authorId: "gid://shopify/Customer/1",
-      handle: "review-1",
-      merchantRepliedAt: null,
-    }]);
-    mocks.listReviewProducts.mockRejectedValue(new Error("database unavailable"));
-
-    render(await ProfilePage({ searchParams: Promise.resolve({ section: "reviews" }) }));
-
-    expect(screen.getByTestId("profile")).toHaveAttribute("data-review-count", "1");
+  it("redirects the temporary-hidden Reviews section to overview without fetching reviews", async () => {
+    await expect(
+      ProfilePage({ searchParams: Promise.resolve({ section: "reviews" }) }),
+    ).rejects.toThrow("NEXT_REDIRECT:/en/profile");
+    expect(mocks.getReviews).not.toHaveBeenCalled();
+    expect(mocks.listReviewProducts).not.toHaveBeenCalled();
   });
 });

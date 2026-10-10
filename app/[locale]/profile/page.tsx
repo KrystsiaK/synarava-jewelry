@@ -11,6 +11,7 @@ import { listShopProducts } from "@/lib/content/catalog";
 import { getCustomerProductReviews, listReviewProductLinks } from "@/lib/content/product-reviews";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
+import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import { toAccountReviewRows } from "@/lib/profile/account-reviews";
 
 /** Orders/fulfillment/refunds must reflect Shopify after returning from account. */
@@ -39,7 +40,14 @@ export default async function ProfilePage({ searchParams }: Props) {
     searchParams,
   ]);
   const requestedSection = params?.section;
-  const activeSection = accountSections.find((section) => section === requestedSection) ?? "overview";
+  const reviewsVisible = storefrontReviewsVisible();
+  const allowedSections = reviewsVisible
+    ? accountSections
+    : accountSections.filter((section) => section !== "reviews");
+  const activeSection = allowedSections.find((section) => section === requestedSection) ?? "overview";
+  if (!reviewsVisible && requestedSection === "reviews") {
+    redirect(localePath(locale, "/profile"));
+  }
   const profileReturnTo = localePath(
     locale,
     activeSection === "overview" ? "/profile" : `/profile?section=${activeSection}`,
@@ -61,7 +69,7 @@ export default async function ProfilePage({ searchParams }: Props) {
       );
       return [];
     }),
-    getCustomerProductReviews(customer.id),
+    reviewsVisible ? getCustomerProductReviews(customer.id) : Promise.resolve([]),
     getAccountOrdersSettings(),
   ]);
   const productIds = [...new Set(customerReviews.map((review) => review.productId))];
@@ -69,13 +77,15 @@ export default async function ProfilePage({ searchParams }: Props) {
     wishlistIds.length
       ? listShopProducts({}, { shopifyProductIds: wishlistIds, limit: wishlistIds.length, locale }).then((products) => products.reverse())
       : Promise.resolve([]),
-    listReviewProductLinks(productIds, locale).catch((error) => {
-      console.error(
-        "[shopify-product-reviews] Product names unavailable:",
-        error instanceof Error ? error.message : "Unknown error",
-      );
-      return [];
-    }),
+    reviewsVisible
+      ? listReviewProductLinks(productIds, locale).catch((error) => {
+          console.error(
+            "[shopify-product-reviews] Product names unavailable:",
+            error instanceof Error ? error.message : "Unknown error",
+          );
+          return [];
+        })
+      : Promise.resolve([]),
   ]);
 
   return (

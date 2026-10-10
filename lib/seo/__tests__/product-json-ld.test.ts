@@ -66,7 +66,9 @@ describe("product JSON-LD", () => {
       inStock: true,
     } as ProductSummary;
 
-    expect(buildProductJsonLd(product, "https://synarava.com", {
+    // TEMPORARY: storefront reviews kill-switch omits review JSON-LD.
+    // When STOREFRONT_REVIEWS_VISIBLE flips true, restore aggregateRating expectations.
+    const jsonLd = buildProductJsonLd(product, "https://synarava.com", {
       average: 4.5,
       count: 2,
       reviews: [{
@@ -81,15 +83,9 @@ describe("product JSON-LD", () => {
         merchantReply: "",
         merchantRepliedAt: null,
       }],
-    })).toMatchObject({
-      aggregateRating: { "@type": "AggregateRating", ratingValue: 4.5, reviewCount: 2 },
-      review: [{
-        "@type": "Review",
-        name: "Beautiful",
-        reviewRating: { "@type": "Rating", ratingValue: 5, bestRating: 5, worstRating: 1 },
-        author: { "@type": "Person", name: "Ana" },
-      }],
     });
+    expect(jsonLd).not.toHaveProperty("aggregateRating");
+    expect(jsonLd).not.toHaveProperty("review");
   });
 
   it("reports OutOfStock for a product with no purchasable variant, even with stale stockOnHand", () => {
