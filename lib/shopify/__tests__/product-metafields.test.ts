@@ -11,6 +11,7 @@ import {
   mergeCharacteristicDisplayOverlay,
   mergeMetafieldTranslations,
   metafieldTranslationsFromSnapshot,
+  storefrontMetafieldTranslations,
   metafieldValueFromSnapshot,
   parseCustomMetafieldTranslationsForm,
   parseCustomMetafieldsForm,
@@ -165,11 +166,47 @@ describe("product-metafields-shared", () => {
       "custom::material": "Культивированный жемчуг",
       "custom::wrist_fit": "18–21 см",
       "custom::care": "Хранить сухим.",
+      "custom::stone": "Агат",
       "shopify::ignored": "no",
     })).toEqual({
       material: "Культивированный жемчуг",
       fit_notes: "18–21 см",
       care_instructions: "Хранить сухим.",
+      stone_type: "Агат",
+    });
+  });
+
+  it("prefers workingSnapshot metafieldTranslations over shopifySnapshot for storefront", () => {
+    expect(storefrontMetafieldTranslations(
+      {
+        metafieldTranslations: {
+          ru: { "custom::material": "Хрустальный жемчуг", "custom::finish": "PVD золото 18K" },
+        },
+      },
+      {
+        metafieldTranslations: {
+          ru: { "custom::material": "Старый pull", "custom::color": "Белый / золото" },
+        },
+      },
+    )).toEqual({
+      ru: {
+        "custom::material": "Хрустальный жемчуг",
+        "custom::finish": "PVD золото 18K",
+        "custom::color": "Белый / золото",
+      },
+    });
+  });
+
+  it("falls back to shopifySnapshot metafieldTranslations when working has none", () => {
+    expect(storefrontMetafieldTranslations(
+      { metafields: [] },
+      {
+        metafieldTranslations: {
+          pt: { "custom::material": "Pérola de cristal" },
+        },
+      },
+    )).toEqual({
+      pt: { "custom::material": "Pérola de cristal" },
     });
   });
 

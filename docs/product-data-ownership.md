@@ -99,7 +99,7 @@ product specs (and Inventory Pull projections for weight / origin).
 | Layer | Where |
 | --- | --- |
 | Group titles, field labels, units (`cm`/`g`) | Code dictionaries in `lib/products/characteristics.ts` (EN/PT/RU) |
-| Shopify-owned TEXT specs | Prefer pulled Shopify Metafield translations (`metafieldTranslations`); Product-tab `custom.*` locale overlays for gaps; blank → EN |
+| Shopify-owned TEXT specs | Prefer `workingSnapshot.metafieldTranslations` (Save) then last-Pull `shopifySnapshot`; Passport overlays fill gaps; then jewelry dictionary (`localizeShopFacetValue`); blank → EN |
 | Passport TEXT (Synarava-only) | Per-locale overlay on `ProductTranslation.details.characteristics`; blank → EN |
 | NUMBER / BOOLEAN | Shared `ProductCharacteristic` (EN); Yes/No display localized in code |
 | Category leaf + product type | Shared → Taxonomy / code map when Shopify has no translation |

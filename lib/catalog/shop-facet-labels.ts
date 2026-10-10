@@ -1,5 +1,9 @@
 import type { Locale } from "@/lib/i18n/locales";
-import { parseCharacteristicTextOverlay } from "@/lib/products/characteristics";
+import {
+  parseCharacteristicTextOverlay,
+  resolveCharacteristicDisplayValue,
+  type ProductCharacteristicValue,
+} from "@/lib/products/characteristics";
 
 /**
  * Buyer-facing labels for closed shop facet vocabularies.
@@ -62,8 +66,10 @@ const JEWELRY_PASSPORT_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string,
   pt: {
     Pearl: "Pérola",
     "Crystal pearl": "Pérola de cristal",
+    "Artificial pearls": "Pérolas artificiais",
     "Natural pearl": "Pérola natural",
     "Freshwater pearl": "Pérola de água doce",
+    "Jewellery beading wire": "Fio de contas",
     Metal: "Metal",
     Brass: "Latão",
     Gold: "Ouro",
@@ -72,6 +78,7 @@ const JEWELRY_PASSPORT_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string,
     "Stainless steel": "Aço inoxidável",
     "18K Gold PVD": "PVD ouro 18K",
     "18K gold PVD": "PVD ouro 18K",
+    "18K Gold PVD details": "PVD ouro 18K",
     "White / gold": "Branco / ouro",
     White: "Branco",
     Black: "Preto",
@@ -79,8 +86,10 @@ const JEWELRY_PASSPORT_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string,
   ru: {
     Pearl: "Жемчуг",
     "Crystal pearl": "Хрустальный жемчуг",
+    "Artificial pearls": "Искусственный жемчуг",
     "Natural pearl": "Натуральный жемчуг",
     "Freshwater pearl": "Речной жемчуг",
+    "Jewellery beading wire": "Ювелирный тросик",
     Metal: "Металл",
     Brass: "Латунь",
     Gold: "Золото",
@@ -89,6 +98,7 @@ const JEWELRY_PASSPORT_VALUE_TRANSLATIONS: Partial<Record<Locale, Record<string,
     "Stainless steel": "Нержавеющая сталь",
     "18K Gold PVD": "PVD золото 18K",
     "18K gold PVD": "PVD золото 18K",
+    "18K Gold PVD details": "PVD золото 18K",
     "White / gold": "Белый / золото",
     White: "Белый",
     Black: "Чёрный",
@@ -115,9 +125,19 @@ export function localizeShopFacetValue(
 ): string {
   const trimmed = value.trim();
   if (!trimmed || locale === "en") return trimmed;
-  return overlays?.get(trimmed)
-    ?? JEWELRY_FACET_VALUE_TRANSLATIONS[locale]?.[trimmed]
-    ?? trimmed;
+  const direct = overlays?.get(trimmed)
+    ?? JEWELRY_FACET_VALUE_TRANSLATIONS[locale]?.[trimmed];
+  if (direct) return direct;
+  // Compound material lines from Shopify specs: "A / B / C".
+  if (trimmed.includes(" / ")) {
+    const parts = trimmed.split(" / ").map((part) => part.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts
+        .map((part) => localizeShopFacetValue(part, locale, overlays))
+        .join(" / ");
+    }
+  }
+  return trimmed;
 }
 
 /**
@@ -155,6 +175,22 @@ export function characteristicFacetLabel(
   const trimmed = enValue.trim();
   if (!trimmed) return trimmed;
   return overlayByEnValue?.get(trimmed) ?? localizeShopFacetValue(trimmed, locale);
+}
+
+/**
+ * PDP spec value: Shopify/Passport TEXT overlay → jewelry dictionary → EN.
+ * Matches shop filter resolution so RU/PT cards and PDP stay aligned.
+ */
+export function resolvePdpCharacteristicDisplayValue(
+  value: ProductCharacteristicValue,
+  locale: Locale,
+  textOverlay: Record<string, string> = {},
+  taxonomyOverlays?: Map<string, string> | null,
+): string {
+  const resolved = resolveCharacteristicDisplayValue(value, locale, textOverlay);
+  if (value.valueType !== "TEXT") return resolved;
+  if (textOverlay[value.key]?.trim()) return resolved;
+  return localizeShopFacetValue(resolved, locale, taxonomyOverlays);
 }
 
 /**

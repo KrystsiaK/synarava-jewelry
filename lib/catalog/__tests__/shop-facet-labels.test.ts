@@ -6,7 +6,22 @@ import {
   characteristicFacetLabel,
   isBuyerFacingTagName,
   localizeShopFacetValue,
+  resolvePdpCharacteristicDisplayValue,
 } from "../shop-facet-labels";
+import type { ProductCharacteristicValue } from "@/lib/products/characteristics";
+
+const crystalPearl: ProductCharacteristicValue = {
+  key: "material",
+  label: "Primary material",
+  group: "Materials & construction",
+  valueType: "TEXT",
+  textValue: "Crystal pearl",
+  numberValue: null,
+  booleanValue: null,
+  unit: null,
+  certificateUrl: null,
+  sortOrder: 0,
+};
 
 describe("localizeShopFacetValue", () => {
   it("passes English through unchanged", () => {
@@ -38,6 +53,64 @@ describe("characteristicFacetLabel", () => {
 
   it("uses the jewelry dictionary when no overlay exists", () => {
     expect(characteristicFacetLabel("Pearl", "ru")).toBe("Жемчуг");
+  });
+});
+
+describe("resolvePdpCharacteristicDisplayValue", () => {
+  it("uses Shopify/Passport locale overlay before the jewelry dictionary", () => {
+    expect(resolvePdpCharacteristicDisplayValue(
+      crystalPearl,
+      "ru",
+      { material: "Культивированный жемчуг" },
+    )).toBe("Культивированный жемчуг");
+  });
+
+  it("falls back to the shipped jewelry dictionary for common PDP spec values", () => {
+    expect(resolvePdpCharacteristicDisplayValue(crystalPearl, "ru", {})).toBe("Хрустальный жемчуг");
+    expect(resolvePdpCharacteristicDisplayValue({
+      ...crystalPearl,
+      key: "finish",
+      label: "Finish",
+      textValue: "18K Gold PVD",
+    }, "pt", {})).toBe("PVD ouro 18K");
+    expect(resolvePdpCharacteristicDisplayValue({
+      ...crystalPearl,
+      key: "color",
+      label: "Color",
+      textValue: "White / gold",
+    }, "ru", {})).toBe("Белый / золото");
+    expect(resolvePdpCharacteristicDisplayValue({
+      ...crystalPearl,
+      key: "metal",
+      label: "Metal",
+      textValue: "316L stainless steel",
+    }, "ru", {})).toBe("Нержавеющая сталь 316L");
+  });
+
+  it("localizes slash-separated Shopify material lines part by part", () => {
+    expect(resolvePdpCharacteristicDisplayValue({
+      ...crystalPearl,
+      textValue: "Artificial pearls / 316L stainless steel / Jewellery beading wire",
+    }, "ru", {})).toBe(
+      "Искусственный жемчуг / Нержавеющая сталь 316L / Ювелирный тросик",
+    );
+    expect(resolvePdpCharacteristicDisplayValue({
+      ...crystalPearl,
+      key: "finish",
+      label: "Finish",
+      textValue: "18K Gold PVD details",
+    }, "ru", {})).toBe("PVD золото 18K");
+  });
+
+  it("leaves free-form care copy untouched when no overlay exists", () => {
+    const care = "Avoid prolonged contact with water.";
+    expect(resolvePdpCharacteristicDisplayValue({
+      ...crystalPearl,
+      key: "care_instructions",
+      label: "Care instructions",
+      group: "Care",
+      textValue: care,
+    }, "ru", {})).toBe(care);
   });
 });
 
