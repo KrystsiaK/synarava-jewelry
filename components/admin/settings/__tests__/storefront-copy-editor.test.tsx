@@ -51,7 +51,7 @@ function setupUser() {
 }
 
 /** Scope label queries to one area — document-wide getByLabelText walks ~2k nodes. */
-function area(id: "shared-header" | "shared-footer" | "shared-home" | "shared-cookies" | "shared-contact" | "shared-reviews") {
+function area(id: "shared-header" | "shared-footer" | "shared-home" | "shared-product" | "shared-cookies" | "shared-contact" | "shared-reviews") {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Missing area #${id}`);
   return within(node);
@@ -231,6 +231,13 @@ describe("StorefrontCopyEditor", () => {
     expect(homeRoot?.querySelector('input[name="en:home.archive.collectionNote"]')).toBeTruthy();
     expect(homeRoot?.querySelector('input[name="en:home.material.specimen"]')).toBeTruthy();
     expect(homeRoot?.querySelector('input[name="en:home.finalCta.eyebrow"]')).toBeTruthy();
+
+    await user.click(sharedAreaTab(/^Product/));
+    const product = area("shared-product");
+    expect(product.getByText("Product — continue exploring footer")).toBeVisible();
+    const productRoot = document.getElementById("shared-product");
+    expect(productRoot?.querySelector('input[name="en:product.continueExploring.title"]')).toBeTruthy();
+    expect(productRoot?.querySelector('input[name="pt:product.continueExploring.partOf"]')).toBeTruthy();
 
     await user.click(sharedAreaTab(/^Cookies/));
     const cookies = area("shared-cookies");
