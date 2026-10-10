@@ -62,7 +62,7 @@ not a second Order store — see [`payment-checkout-test-matrix.md`](./payment-c
     `messages` defaults instead.
   - Collection detail hero primary CTA uses per-collection Synarava `ctaLabel` (locale tabs on
     `/admin/collections/[id]`); empty falls back to Collections page `detailShopLabel`, then
-    `collections.detail.shopProducts`. Not a Shopify commerce field.
+    `collections.detail.shopProducts`. Editorial metaobject sync only — not a Shopify commerce field.
   - Collection detail (`/collections/[slug]`) reuses the shop catalog client for products:
     server-filtered pages, infinite scroll, and Featured sort = admin collection product order
   - Material lexicon structure (specimen count, order, images) is shared; locale rows only

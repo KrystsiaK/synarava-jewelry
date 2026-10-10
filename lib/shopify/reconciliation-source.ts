@@ -82,6 +82,7 @@ function collectionCopy(translation: Record<string, unknown>) {
     symbolismBody: translation.symbolismBody,
     symbolismBody2: translation.symbolismBody2,
     searchSummary: translation.searchSummary,
+    ctaLabel: translation.ctaLabel,
     seoTitle: translation.seoTitle,
     seoDescription: translation.seoDescription,
   };
@@ -256,7 +257,7 @@ const PRODUCT_TRANSLATION_FIELDS = new Set([
 ]);
 const COLLECTION_TRANSLATION_FIELDS = new Set([
   "name", "localizedHandle", "subtitle", "description", "manifesto", "storyTitle", "storyBody", "symbolismLabel",
-  "symbolismTitle", "symbolismBody", "symbolismBody2", "searchSummary", "seoTitle", "seoDescription",
+  "symbolismTitle", "symbolismBody", "symbolismBody2", "searchSummary", "ctaLabel", "seoTitle", "seoDescription",
 ]);
 const PAGE_SCALAR_FIELDS = new Set(["title", "localizedHandle", "excerpt", "seoTitle", "seoDescription"]);
 
