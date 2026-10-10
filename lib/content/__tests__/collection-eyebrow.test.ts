@@ -5,6 +5,7 @@ import {
   shippedCollectionEyebrowLabel,
 } from "@/lib/content/collection-eyebrow";
 import en from "@/messages/en.json";
+import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 
 describe("formatCollectionEyebrow", () => {
@@ -53,8 +54,9 @@ describe("storefront chrome i18n (home / a11y / brand)", () => {
     expect(ru.home.finalCta.eyebrow).toBe("07 / Продолжить историю");
     expect(ru.a11y.skip).toBe("Перейти к основному содержанию");
     expect(ru.theme.appearance).toBe("Внешний вид");
-    expect(ru.brand.curatedGoods).toBe("Выбранные вещи");
+    expect(ru.brand.curatedGoods).toBe("Украшения и аксессуары");
     expect(en.home.material.specimen).toBe("Specimen / {symbol}");
-    expect(en.brand.curatedGoods).toBe("Curated goods");
+    expect(en.brand.curatedGoods).toBe("Jewellery & Accessories");
+    expect(pt.brand.curatedGoods).toBe("Joalharia e acessórios");
   });
 });

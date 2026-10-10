@@ -29,12 +29,13 @@ export async function generateMetadata(): Promise<Metadata> {
     fallbackTitle: t("home.metaTitle"),
     fallbackDescription: "",
   });
-  // Brand-first absolute title — never the H1 slogan alone.
+  // Prefer page SEO title (trailing brand OK); never bare H1 slogans.
   // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#template
   const title = resolveHomeDocumentTitle({
     seoTitle: page?.seoTitle,
     siteDefaultTitle: siteSeo.defaultTitle,
     fallbackTitle: t("home.metaTitle"),
+    titleTemplate: siteSeo.titleTemplate,
   });
 
   return {

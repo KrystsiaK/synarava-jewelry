@@ -77,7 +77,7 @@ export function metadataDocumentTitle(
 
 const DEFAULT_BRAND = "Synarava";
 
-/** True when the title already leads with the brand (homepage SERP contract). */
+/** True when the title already leads with the brand (legacy absolute titles). */
 export function isBrandFirstTitle(
   title: string | null | undefined,
   brand: string = DEFAULT_BRAND,
@@ -88,9 +88,38 @@ export function isBrandFirstTitle(
 }
 
 /**
- * Homepage `<title>`: brand-first only. Never use the on-page H1 slogan.
- * Prefers admin page SEO title, then localized messages fallback, then site SEO
- * default — each only when it already leads with Synarava.
+ * Bare on-page H1 slogans must not become `<title>` / og:title.
+ * Only short ALL-CAPS lines that end with `.` (e.g. "TODAY, THIS.") —
+ * not short admin SEO titles like "FAQ" or "NEW ARRIVALS".
+ */
+function looksLikeBareSlogan(title: string, brand: string): boolean {
+  const trimmed = title.trim();
+  if (!trimmed || !trimmed.endsWith(".")) return false;
+  if (isBrandFirstTitle(trimmed, brand)) return false;
+  // Already ends with the template brand → SEO title, not a slogan.
+  if (stripTitleTemplateBrand(trimmed) !== trimmed) return false;
+  return (
+    trimmed.length <= 40 &&
+    /^[A-Z0-9][A-Z0-9\s,.'’\-–—!?]*\.$/.test(trimmed)
+  );
+}
+
+function resolveHomeTitleCandidate(
+  candidate: string,
+  brand: string,
+  titleTemplate: string,
+): string | null {
+  const trimmed = candidate.trim();
+  if (!trimmed || looksLikeBareSlogan(trimmed, brand)) return null;
+  if (isBrandFirstTitle(trimmed, brand)) return trimmed;
+  return composeDocumentTitle(trimmed, titleTemplate);
+}
+
+/**
+ * Homepage `<title>` / og:title: prefer admin page SEO title (any locale),
+ * then localized messages fallback, then site SEO default. Trailing-brand
+ * titles (`… | Synarava`) are first-class. Brand-first absolutes are kept
+ * without re-applying the template. Bare H1 slogans are skipped.
  *
  * @see https://nextjs.org/docs/app/api-reference/functions/generate-metadata#template
  */
@@ -99,19 +128,19 @@ export function resolveHomeDocumentTitle({
   siteDefaultTitle,
   fallbackTitle,
   brand = DEFAULT_BRAND,
+  titleTemplate = SITE_SEO_DEFAULTS.titleTemplate,
 }: {
   seoTitle?: string | null;
   siteDefaultTitle?: string | null;
   fallbackTitle: string;
   brand?: string;
+  titleTemplate?: string;
 }): string {
   const candidates = [seoTitle, fallbackTitle, siteDefaultTitle, SITE_SEO_DEFAULTS.defaultTitle];
   for (const candidate of candidates) {
-    const trimmed = candidate?.trim();
-    if (trimmed && isBrandFirstTitle(trimmed, brand)) return trimmed;
+    if (candidate == null) continue;
+    const resolved = resolveHomeTitleCandidate(candidate, brand, titleTemplate);
+    if (resolved) return resolved;
   }
-  const safeFallback = fallbackTitle.trim() || SITE_SEO_DEFAULTS.defaultTitle;
-  return isBrandFirstTitle(safeFallback, brand)
-    ? safeFallback
-    : `${brand} | ${stripTitleTemplateBrand(safeFallback) || "Curated Goods"}`;
+  return SITE_SEO_DEFAULTS.defaultTitle;
 }

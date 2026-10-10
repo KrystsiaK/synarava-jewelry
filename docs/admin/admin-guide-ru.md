@@ -463,11 +463,14 @@ LOCALE над ними. Одна кнопка **Save Shared** пишет все 
 - **Footer — contact emails:** ordered list of mailto addresses
   (`footer-contact-v1`). The first email is the primary shared contact CTA
   target. Shared across languages.
-- **Chrome & footer labels:** menu controls, skip link, appearance label, brand
-  (including Curated goods), column headings, contact aria label, and contact-CTA
-  copy (EN and other registered locales). Empty field = default from
-  `messages/*.json`. Stored in `storefront-copy-v1`. Cart and account labels are
-  edited under **Cart & account**, not here.
+- **Chrome & footer labels:** menu controls, skip link, appearance label,
+  **Header under logo** (`brand.curatedGoods` — Shared → **Header**, second line
+  under SYNARAVA; also reused in the footer wordmark), footer tagline/copyright,
+  column headings, contact aria label, and contact-CTA copy (EN and other
+  registered locales). Empty field = default from `messages/*.json`. Stored in
+  `storefront-copy-v1`. Cart and account labels are edited under **Cart &
+  account**, not here. Home SEO title / `og:title` are edited on **Pages → Home**
+  (per-locale SEO title), not here.
 - **Home chrome:** Featured collections strip (`home.archive.*`), material
   lexicon plate labels (`home.material.*`), and final CTA eyebrow
   (`home.finalCta.eyebrow`) — Shared → **Home** (`#shared-home`). Collection

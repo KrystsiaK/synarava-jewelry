@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
+import { hrefForPage } from "@/lib/admin/storefront-href";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 import { parseFormData } from "@/lib/forms/parse-form-data";
 import { slugify } from "@/lib/text/slug";
@@ -746,7 +747,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   });
 
   revalidateStorefront();
-  revalidateStorefrontPath(`/${slug}`);
+  // Home lives at `/{locale}`, not `/{locale}/home`.
+  revalidateStorefrontPath(hrefForPage(slug));
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages/${slug}`);
   revalidatePath(`/admin/pages?updated=${slug}`);
@@ -1121,7 +1123,7 @@ export async function deletePageAction(formData: FormData): Promise<PageActionSt
   });
 
   revalidateStorefront();
-  revalidateStorefrontPath(`/${slug}`);
+  revalidateStorefrontPath(hrefForPage(slug));
   revalidatePath("/admin");
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages/${slug}`);

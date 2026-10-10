@@ -31,6 +31,18 @@ describe("revalidateStorefrontPath", () => {
   });
 });
 
+describe("hrefForPage + revalidateStorefrontPath (Home)", () => {
+  it("maps the home slug to locale roots so SEO title saves bust /{locale}", async () => {
+    const { hrefForPage } = await import("@/lib/admin/storefront-href");
+    expect(hrefForPage("home")).toBe("/");
+    revalidateStorefrontPath(hrefForPage("home"));
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/en");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/pt");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/ru");
+    expect(mocks.revalidatePath).not.toHaveBeenCalledWith("/en/home");
+  });
+});
+
 describe("revalidateStorefrontTemplate", () => {
   it("revalidates a dynamic page template under every locale with the page type", () => {
     revalidateStorefrontTemplate("/products/[slug]");

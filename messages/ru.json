@@ -495,7 +495,7 @@
     }
   },
   "home": {
-    "metaTitle": "Synarava | Кураторские товары",
+    "metaTitle": "Украшения и аксессуары на каждый день | Synarava",
     "archive": {
       "collectionNote": "Заметка о коллекции",
       "viewCollection": "Смотреть коллекцию",
@@ -537,6 +537,6 @@
     "appearance": "Внешний вид"
   },
   "brand": {
-    "curatedGoods": "Выбранные вещи"
+    "curatedGoods": "Украшения и аксессуары"
   }
 }
