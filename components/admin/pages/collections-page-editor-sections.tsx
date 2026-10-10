@@ -208,7 +208,7 @@ export function CollectionsPageEditorSections({
         <div className="grid gap-4 md:grid-cols-2">
           <AdminTextField
             label="Shop button"
-            help={<AdminHelp>Button under the description on a collection page (default: Shop products).</AdminHelp>}
+            help="Default for every collection detail hero when that collection’s Hero CTA label is empty (dictionary: Shop products)."
             value={draft.detailShopLabel}
             onChange={(event) => updateField("detailShopLabel", event.target.value)}
             placeholder="Shop products"

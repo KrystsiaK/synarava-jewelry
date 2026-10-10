@@ -99,6 +99,8 @@ export const COLLECTION_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "symbolismBody", label: "Symbolism — body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_body") },
     { key: "symbolismBody2", label: "Symbolism — body (cont.)", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "symbolism_body_2") },
     { key: "searchSummary", label: "Search summary", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "search_summary") },
+    // Synarava editorial hero CTA (not commerce). Empty locale → Collections page detailShopLabel → messages.
+    { key: "ctaLabel", label: "Hero CTA label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "cta_label") },
     { key: "seoTitle", label: "SEO title", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("COLLECTION", "meta_title") },
     { key: "seoDescription", label: "SEO description", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("COLLECTION", "meta_description") },
     { key: "heroImageAlt", label: "Hero image alt text", mode: "localized", required: "optional", kind: "alt", shopifyTarget: native("COLLECTION_IMAGE", "alt") },

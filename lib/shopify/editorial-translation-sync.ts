@@ -301,6 +301,7 @@ export async function syncCollectionEditorialTranslation(
     symbolismBody: en?.symbolismBody ?? collection.symbolismBody,
     symbolismBody2: en?.symbolismBody2 ?? collection.symbolismBody2,
     searchSummary: en?.searchSummary ?? collection.searchSummary,
+    ctaLabel: en?.ctaLabel ?? collection.ctaLabel,
   };
   const translated = {
     subtitle: translation.subtitle,
@@ -312,6 +313,7 @@ export async function syncCollectionEditorialTranslation(
     symbolismBody: translation.symbolismBody,
     symbolismBody2: translation.symbolismBody2,
     searchSummary: translation.searchSummary,
+    ctaLabel: translation.ctaLabel,
   };
   return syncMetaobjectTarget({
     definition: "collection_section_copy",

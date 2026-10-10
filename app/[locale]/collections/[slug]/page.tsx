@@ -13,6 +13,7 @@ import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { CollectionDetail } from "@/components/collections/collection-detail";
 import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
+import { resolveCollectionHeroCtaLabel } from "@/lib/collections/hero-cta";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -125,7 +126,10 @@ export default async function Page({ params, searchParams }: Props) {
       <CollectionDetail
         collection={collection}
         labels={{
-          shopLabel: collectionsPage?.content.detailShopLabel,
+          shopLabel: resolveCollectionHeroCtaLabel({
+            collectionCtaLabel: collection.ctaLabel,
+            pageDetailShopLabel: collectionsPage?.content.detailShopLabel,
+          }),
           collectionsLabel: collectionsPage?.content.detailCollectionsLabel,
           scrollLabel: collectionsPage?.content.detailScrollLabel,
           manifestoEyebrow: collectionsPage?.content.detailManifestoEyebrow,

@@ -54,6 +54,7 @@ handles still resolve once, then redirect to the shared slug.
 | storyBody | localized | optional | metaobject `collection_section_copy.story_body` |
 | symbolismLabel/Title/Body/Body2 | localized | optional | metaobject `collection_section_copy.symbolism_*` |
 | searchSummary | localized | optional | metaobject `collection_section_copy.search_summary` |
+| ctaLabel (hero primary CTA) | localized | optional | metaobject `collection_section_copy.cta_label` (empty → Collections page `detailShopLabel` → `messages` `collections.detail.shopProducts`) |
 | seoTitle/seoDescription | localized | when-published | native `COLLECTION.meta_title`/`meta_description` |
 | heroImageAlt | localized | optional | native `COLLECTION_IMAGE.alt` |
 | sectionTitle/Eyebrow/Body (per `CollectionSection`) | localized | optional | metaobject `collection_section_copy.*` |
