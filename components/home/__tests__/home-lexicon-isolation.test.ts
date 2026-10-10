@@ -26,4 +26,13 @@ describe("HomePage material lexicon isolation", () => {
       /name:\s*item\.title,\s*category:\s*item\.series,\s*description:\s*item\.description/,
     );
   });
+
+  it("keeps mobile lexicon spring motion (never raw-progress bypass)", () => {
+    expect(source).toContain("MATERIAL_LAB_MOBILE_SPRING");
+    expect(source).toMatch(/const progress = reduceMotion \? rawTrackProgress : smoothProgress/);
+    expect(source).not.toMatch(/reduceMotion \|\| !isDesktop \? rawTrackProgress/);
+    expect(source).toContain("data-home-scroll-invite");
+    expect(source).toContain("data-lexicon-mobile-progress");
+    expect(source).not.toMatch(/scaleX:\s*mobileProgressScale/);
+  });
 });

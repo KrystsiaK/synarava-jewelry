@@ -152,6 +152,7 @@ test.describe("Home page", () => {
     const ancientOak = lexicon.getByRole("article").nth(1);
     const rawObsidian = lexicon.getByRole("article").nth(2);
     const mobileProgress = lexicon.locator("[data-lexicon-mobile-progress]");
+    const scrollInvite = page.locator("[data-home-scroll-invite]");
 
     const scrollLexiconTo = async (progress: number) => {
       await lexicon.evaluate((element, value) => {
@@ -165,8 +166,10 @@ test.describe("Home page", () => {
     const clipPath = (locator: typeof whiteCeramic) =>
       locator.evaluate((element) => getComputedStyle(element).clipPath);
 
+    await expect(scrollInvite).toBeVisible();
     await scrollLexiconTo(0);
     await expect(mobileProgress).toBeVisible();
+    await expect(mobileProgress.locator("span")).toHaveCount(3);
     await expect.poll(() => clipPath(whiteCeramic)).toContain("0% 0%");
 
     await scrollLexiconTo(0.5);
