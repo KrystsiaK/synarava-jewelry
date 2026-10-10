@@ -50,7 +50,13 @@ function HiddenMetafieldOverlayFields({
   overlaysByLocale: MetafieldTranslations;
   translationLocales: AdminTranslationLocale[];
 }) {
-  const textDefinitions = definitions.filter((item) => isTranslatableMetafieldType(item.type));
+  // Product-tab Shopify specs (`custom.care_instructions`, …) own their locale
+  // overlays via ShopifyProductSpecsFields. Submitting them again here as empty
+  // / stale duplicates made FormData.entries() last-write-wins wipe PT/RU edits.
+  const textDefinitions = definitions.filter((item) =>
+    isTranslatableMetafieldType(item.type)
+    && !(item.namespace === "custom" && isShopifyProductSpecCustomKey(item.key)),
+  );
   return (
     <div hidden data-component="HiddenMetafieldOverlayFields">
       {translationLocales.flatMap(({ code }) => {

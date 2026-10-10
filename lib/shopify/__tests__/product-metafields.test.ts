@@ -139,6 +139,27 @@ describe("product-metafields-shared", () => {
     });
   });
 
+  it("does not let a later empty duplicate FormData key wipe a live overlay", () => {
+    const form = new FormData();
+    // Product-tab specs submit the edit first; Metafields mirrors used to append
+    // a stale empty for the same identity and clear it on save.
+    form.append("ptCustomMetafieldValue:custom:care_instructions", "Manter seco.");
+    form.append("ptCustomMetafieldValue:custom:care_instructions", "");
+    form.append("ruCustomMetafieldValue:custom:material", "Жемчуг");
+    form.append("ruCustomMetafieldValue:custom:material", "");
+    expect(parseCustomMetafieldTranslationsForm(form)).toEqual({
+      pt: { "custom::care_instructions": "Manter seco." },
+      ru: { "custom::material": "Жемчуг" },
+    });
+  });
+
+  it("still clears an overlay when every duplicate FormData value is empty", () => {
+    const form = new FormData();
+    form.append("ptCustomMetafieldValue:custom:care_instructions", "");
+    form.append("ptCustomMetafieldValue:custom:care_instructions", "");
+    expect(parseCustomMetafieldTranslationsForm(form)).toEqual({});
+  });
+
   it("maps custom metafield translations onto passport characteristic keys", () => {
     expect(characteristicOverlayFromMetafieldTranslations({
       "custom::material": "Культивированный жемчуг",

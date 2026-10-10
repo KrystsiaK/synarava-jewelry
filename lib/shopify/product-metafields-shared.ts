@@ -172,9 +172,13 @@ export function parseCustomMetafieldsForm(formData: FormData): ProductMetafieldV
 /**
  * Parse per-locale text overlays (`ptCustomMetafieldValue:ns:key`).
  * Empty strings clear the overlay for that locale/field.
+ *
+ * Duplicate FormData keys (e.g. Product-tab specs + Metafields mirrors) are
+ * coalesced: any non-empty value wins over a later empty clear so a stale
+ * second owner cannot wipe a live edit.
  */
 export function parseCustomMetafieldTranslationsForm(formData: FormData): MetafieldTranslations {
-  const out: MetafieldTranslations = {};
+  const collected: Record<string, Record<string, string[]>> = {};
   for (const [name, raw] of formData.entries()) {
     if (typeof raw !== "string" || !isLocalePrefixedCustomMetafieldValueField(name)) continue;
     const match = /^([a-z]{2})CustomMetafieldValue:(.+)$/i.exec(name);
@@ -188,13 +192,22 @@ export function parseCustomMetafieldTranslationsForm(formData: FormData): Metafi
     const key = rest.slice(sep + 1).trim();
     if (!namespace || !key || isManagedProductMetafieldNamespace(namespace)) continue;
     const id = metafieldIdentityKey(namespace, key);
-    const bucket = out[locale] ?? (out[locale] = {});
-    const trimmed = raw.trim();
-    if (trimmed) bucket[id] = raw;
-    else delete bucket[id];
+    const localeBucket = collected[locale] ?? (collected[locale] = {});
+    const values = localeBucket[id] ?? (localeBucket[id] = []);
+    values.push(raw);
   }
-  for (const locale of Object.keys(out)) {
-    if (Object.keys(out[locale]).length === 0) delete out[locale];
+
+  const out: MetafieldTranslations = {};
+  for (const [locale, fields] of Object.entries(collected)) {
+    const bucket: Record<string, string> = {};
+    for (const [id, values] of Object.entries(fields)) {
+      let chosen: string | undefined;
+      for (const value of values) {
+        if (value.trim()) chosen = value;
+      }
+      if (chosen !== undefined) bucket[id] = chosen;
+    }
+    if (Object.keys(bucket).length > 0) out[locale] = bucket;
   }
   return out;
 }

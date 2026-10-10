@@ -144,7 +144,10 @@ Core jewelry `custom.*` specs (material, care, finish, …) stay on **Product �
 Shopify product specs**. Synarava-only passport stays on **Synarava → Passport**.
 Category / collection / publish stay on **Product**. Managed namespaces
 (`synarava`, `shopify`, `global`) are excluded from the Metafields editor; Product-tab
-jewelry specs are also omitted there to avoid duplicate editors.
+jewelry specs are also omitted there (visible fields **and** hidden locale
+overlay mirrors) so a second FormData owner cannot wipe PT/RU Product-tab edits
+on Save. Gallery alt text is persisted on product Save from `media-alt-*` fields
+(not blur-only).
 
 Code: `lib/shopify/product-metafields-*.ts`,
 `lib/shopify/product-metafield-translations.ts`,
