@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import Link from "next/link";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ProductRecord } from "@/components/admin/products/product-types";
@@ -381,7 +382,7 @@ describe("EditProductForm", () => {
     render(
       <>
         <EditProductForm product={galleryProduct} collections={[]} />
-        <a href="/admin/products">Back to products</a>
+        <Link href="/admin/products">Back to products</Link>
       </>,
     );
     await act(async () => {});
