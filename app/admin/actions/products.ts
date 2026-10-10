@@ -38,6 +38,10 @@ import {
   parseCustomMetafieldsForm,
   parseCustomMetafieldTranslationsForm,
 } from "@/lib/shopify/product-metafields-shared";
+import {
+  applyTreeMediaAltUpdates,
+  mediaAltUpdatesFromForm,
+} from "@/lib/shopify/product-media-alt-form";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { resolveProductTranslationSyncStatus } from "@/lib/shopify/translations";
@@ -1202,6 +1206,22 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
   }
 
+  // Gallery alt fields live in the product form (`media-alt-*`). Persist them on
+  // Save so blur-only actions cannot race with remount and look like a reset.
+  const mediaAltUpdates = mediaAltUpdatesFromForm(formData);
+  for (const { mediaId, alt } of mediaAltUpdates.local) {
+    const row = await db.productMedia.findFirst({
+      where: { id: mediaId, productId: product.id },
+      select: { id: true, assetId: true },
+    });
+    if (!row) continue;
+    const nextAlt = alt || null;
+    await db.$transaction([
+      db.productMedia.update({ where: { id: row.id }, data: { alt: nextAlt } }),
+      db.mediaAsset.update({ where: { id: row.assetId }, data: { alt: nextAlt } }),
+    ]);
+  }
+
   // Dual snapshot: Save updates working only; shopifySnapshot changes on refresh/pull.
   if (before?.shopifyProductId) {
     const linked = await db.product.findUnique({
@@ -1214,6 +1234,14 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         slug: true,
         vendor: true,
         productType: true,
+        media: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          select: {
+            assetId: true,
+            alt: true,
+            asset: { select: { key: true, width: true, height: true } },
+          },
+        },
         variants: {
           orderBy: { createdAt: "asc" },
           take: 1,
@@ -1224,6 +1252,25 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     if (linked?.shopifyProductId) {
       const variant = linked.variants[0];
       const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot;
+      let mediaPatch: unknown[] | undefined;
+      if (linked.media.length > 0) {
+        mediaPatch = linked.media.map((item) => {
+          const url = getS3PublicUrl(item.asset.key);
+          return {
+            id: `local:${item.assetId}`,
+            alt: item.alt ?? "",
+            mediaContentType: "IMAGE",
+            preview: { image: { url, width: item.asset.width, height: item.asset.height } },
+            image: { url, width: item.asset.width, height: item.asset.height },
+          };
+        });
+      } else if (mediaAltUpdates.tree.length > 0) {
+        const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
+          ? baseWindow as Record<string, unknown>
+          : null;
+        const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
+        mediaPatch = applyTreeMediaAltUpdates(baseMedia, mediaAltUpdates.tree);
+      }
       const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, {
         title: linked.name,
         descriptionHtml: sanitizeRichTextHtml(normalizeRichTextForEditor(rich.description ?? "")),
@@ -1234,6 +1281,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         tags: tagSlugs.map((slug) => slug.replace(/-/g, " ")),
         customMetafields: customMetafields.length > 0 ? customMetafields : undefined,
         metafieldTranslations,
+        media: mediaPatch,
         variant: variant
           ? {
               shopifyVariantId: variant.shopifyVariantId,
