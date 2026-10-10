@@ -113,6 +113,14 @@ const MATERIAL_LAB_SPRING = {
   restDelta: 0.0005,
 } as const;
 
+/** Snappier tracking on touch — less lag after the first swipe. */
+const MATERIAL_LAB_MOBILE_SPRING = {
+  stiffness: 220,
+  damping: 32,
+  mass: 0.28,
+  restDelta: 0.0005,
+} as const;
+
 const FINAL_SCENE_SPRING = {
   stiffness: 80,
   damping: 17,
@@ -778,12 +786,13 @@ function MaterialPlate({
   const concealed = "polygon(108% 0%, 108% 0%, 100% 100%, 100% 100%)";
   const isFirst = index === 0;
   const isLast = index === count - 1;
+  // Earlier handoffs + shorter hold windows so the first swipe already turns the plate.
   const ranges = count <= 2
-    ? (isFirst ? [0, 0.42, 0.72] : [0.42, 0.72, 1])
+    ? (isFirst ? [0, 0.28, 0.58] : [0.28, 0.58, 1])
     : ([
-        [0, 0.24, 0.42],
-        [0.24, 0.42, 0.58, 0.76],
-        [0.58, 0.76, 1],
+        [0, 0.14, 0.32],
+        [0.14, 0.32, 0.52, 0.72],
+        [0.52, 0.72, 1],
       ][index] ?? [0, 1]);
   const opacityValues = isFirst
     ? [1, 1, 0]
@@ -808,10 +817,10 @@ function MaterialPlate({
   const revealRanges = isFirst
     ? [0, 1]
     : count <= 2
-      ? [0, 0.42, 0.72, 1]
+      ? [0, 0.28, 0.58, 1]
       : index === 1
-        ? [0, 0.24, 0.42, 1]
-        : [0, 0.58, 0.76, 1];
+        ? [0, 0.14, 0.32, 1]
+        : [0, 0.52, 0.72, 1];
   const revealValues = isFirst ? [revealed, revealed] : [concealed, concealed, revealed, revealed];
 
   const opacity = useTransform(progress, ranges, reduceMotion ? opacityValues : opacityValues.map(() => 1));
@@ -848,10 +857,10 @@ function MaterialPlate({
       style={usesDiscreteIOSSteps
         ? { zIndex: index + 1 }
         : { opacity, x, rotate, scale, clipPath, zIndex: index + 1 }}
-      className="home-material-plate absolute inset-x-0 top-1/2 grid -translate-y-1/2 transform-gpu grid-cols-1 overflow-hidden border border-linen/15 bg-panel/94 [backface-visibility:hidden] md:grid-cols-[0.92fr_1.08fr]"
+      className="home-material-plate absolute inset-x-0 inset-y-0 grid transform-gpu grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border border-linen/15 bg-panel/94 [backface-visibility:hidden] md:inset-y-auto md:top-1/2 md:-translate-y-1/2 md:grid-cols-[0.92fr_1.08fr] md:grid-rows-1"
       aria-label={`${String(index + 1).padStart(2, "0")}. ${material.name}`}
     >
-      <div className="relative min-h-[31svh] overflow-hidden border-b border-linen/12 md:min-h-[64svh] md:border-b-0 md:border-r">
+      <div className="relative h-[22svh] shrink-0 overflow-hidden border-b border-linen/12 md:h-auto md:min-h-[64svh] md:border-b-0 md:border-r">
         <motion.div style={{ x: imageX }} className="absolute -inset-x-[10%] inset-y-0">
           <Image
             src={material.image}
@@ -863,39 +872,39 @@ function MaterialPlate({
         </motion.div>
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(166,25,46,0.2),transparent_42%,rgba(0,0,0,0.65))]" />
         <div className="absolute inset-[7%] border border-linen/18 [clip-path:polygon(0_0,88%_0,100%_18%,100%_100%,12%_100%,0_82%)]" />
-        <div className="absolute bottom-5 left-5 font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-linen/70 md:bottom-8 md:left-8">
+        <div className="absolute bottom-3 left-4 font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-linen/70 md:bottom-8 md:left-8">
           {t("home.material.specimen", { symbol: material.symbol })}
         </div>
-        <span className="absolute -right-2 -top-8 font-serif text-[clamp(7rem,18vw,15rem)] leading-none text-linen/[0.08]" aria-hidden="true">
+        <span className="absolute -right-2 -top-8 font-serif text-[clamp(5.5rem,16vw,15rem)] leading-none text-linen/[0.08] md:text-[clamp(7rem,18vw,15rem)]" aria-hidden="true">
           {String(index + 1).padStart(2, "0")}
         </span>
       </div>
 
-      <div className="relative min-h-[45svh] overflow-hidden p-6 md:min-h-[64svh] md:p-10 lg:p-14">
+      <div className="relative min-h-0 overflow-hidden p-4 md:min-h-[64svh] md:p-10 lg:p-14">
         <div className="home-glass-panel absolute inset-0" aria-hidden="true" />
 
-        <div className="relative z-10 flex h-full flex-col">
-          <div className="flex items-start justify-between gap-4 border-b border-linen/15 pb-4 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70">
+        <div className="relative z-10 flex h-full min-h-0 flex-col">
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-linen/15 pb-3 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70 md:pb-4">
             <span>{material.category}</span>
             <span className="text-couture-red">{noteLabel}</span>
           </div>
 
-          <div className="flex flex-1 flex-col justify-center py-5 md:py-8">
-            <p className="mb-2 font-sans text-[0.65rem] font-bold uppercase tracking-[0.24em] text-couture-red">
+          <div className="home-material-copy flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain py-3 md:justify-center md:overflow-visible md:py-8">
+            <p className="mb-1.5 font-sans text-[0.65rem] font-bold uppercase tracking-[0.24em] text-couture-red md:mb-2">
               {t("home.material.label", { index: String(index + 1).padStart(2, "0") })}
             </p>
             <DisplayHeading
               as="h3"
               text={material.name}
-              className="max-w-[9ch] text-balance text-[clamp(2.8rem,6vw,5.8rem)] font-bold uppercase leading-[0.84] tracking-[-0.035em] text-linen"
+              className="max-w-[9ch] text-balance text-[clamp(2.2rem,9vw,5.8rem)] font-bold uppercase leading-[0.84] tracking-[-0.035em] text-linen md:text-[clamp(2.8rem,6vw,5.8rem)]"
             />
             <RichText
               content={material.description}
-              className="mt-5 max-w-[64ch] text-pretty font-sans text-sm font-semibold leading-relaxed text-stone-beige/85 md:mt-7 md:text-base"
+              className="mt-3 max-w-[64ch] text-pretty font-sans text-sm font-semibold leading-relaxed text-stone-beige/85 md:mt-7 md:text-base"
             />
           </div>
 
-          <div className="grid grid-cols-3 border-t border-linen/15 pt-4">
+          <div className="grid shrink-0 grid-cols-3 border-t border-linen/15 pt-3 md:pt-4">
             {material.properties.map((property, propertyIndex) => (
               <div key={property} className={propertyIndex > 0 ? "border-l border-linen/15 pl-3 md:pl-5" : ""}>
                 <span className="mb-1 block font-sans text-[0.52rem] font-bold text-couture-red">0{propertyIndex + 1}</span>
@@ -912,40 +921,54 @@ function MaterialPlate({
 }
 
 // 4. MATERIAL EXPOSITION — scroll-controlled cubist specimen carousel
+const MATERIAL_LAB_IOS_PROGRESS_TICKS = 24;
+
 function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { materials: Omit<LexiconMaterial, "symbol">[]; eyebrow?: string; title?: string; noteLabel?: string }) {
   const ref = useRef<HTMLElement>(null);
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const progressTickRefs = useRef<Array<HTMLDivElement | null>>([]);
   const scrollContext = useContext(HomeScrollContext);
   const [activeIndex, setActiveIndex] = useState(0);
   const reduceMotion = useReducedMotion() ?? false;
+  const isDesktop = useDesktopViewport();
   const scrollYProgress = useElementScrollProgress(ref, "sticky");
-  const smoothProgress = useSpring(scrollYProgress, MATERIAL_LAB_SPRING);
-  const progress = reduceMotion ? scrollYProgress : smoothProgress;
-  const progressScale = useTransform(progress, [0, 1], [0, 1]);
+  const iosTrackProgress = useMotionValue(0);
   const usesDiscreteIOSSteps = scrollContext?.isIOSWebKit ?? false;
+  const springConfig = isDesktop ? MATERIAL_LAB_SPRING : MATERIAL_LAB_MOBILE_SPRING;
+  const rawTrackProgress = usesDiscreteIOSSteps ? iosTrackProgress : scrollYProgress;
+  const smoothProgress = useSpring(rawTrackProgress, springConfig);
+  const progress = reduceMotion || !isDesktop ? rawTrackProgress : smoothProgress;
+  // Desktop rail: linear. Mobile bar: front-loaded so the first swipe is unmistakable.
+  const desktopProgressScale = useTransform(progress, [0, 1], [0, 1]);
+  const mobileProgressScale = useTransform(progress, [0, 0.12, 0.45, 1], [0.06, 0.48, 0.78, 1]);
   const materials = useMemo<LexiconMaterial[]>(
     () => rawMaterials.slice(0, 3).map((item, index) => ({ ...item, symbol: String(index + 1).padStart(2, "0") })),
     [rawMaterials],
   );
   const materialCount = materials.length;
-  const sectionHeightClass = materialCount <= 2 ? "h-[230svh]" : "h-[330svh]";
+  // Shorter mobile travel — one swipe advances the story; desktop keeps the long sticky path.
+  const sectionHeightClass = materialCount <= 2
+    ? "h-[165svh] md:h-[230svh]"
+    : "h-[210svh] md:h-[330svh]";
   const progressEndLabel = String(Math.max(materialCount, 1)).padStart(2, "0");
 
   useEffect(() => {
     if (!usesDiscreteIOSSteps) return;
 
-    const visibility = new Map<Element, number>();
-    const observer = new IntersectionObserver(
+    const stepVisibility = new Map<Element, number>();
+    const tickVisibility = new Map<Element, number>();
+
+    const stepObserver = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          visibility.set(entry.target, entry.intersectionRatio);
+          stepVisibility.set(entry.target, entry.intersectionRatio);
         }
 
         let nextIndex = 0;
         let highestVisibility = 0;
         stepRefs.current.forEach((element, index) => {
           if (!element) return;
-          const ratio = visibility.get(element) ?? 0;
+          const ratio = stepVisibility.get(element) ?? 0;
           if (ratio > highestVisibility) {
             highestVisibility = ratio;
             nextIndex = index;
@@ -956,15 +979,51 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
           setActiveIndex((currentIndex) => currentIndex === nextIndex ? currentIndex : nextIndex);
         }
       },
-      { rootMargin: "-18% 0px -18% 0px", threshold: [0, 0.25, 0.5, 0.75] },
+      {
+        // Tighter band so steps advance sooner after a swipe (less “stuck” dead zone).
+        rootMargin: "-10% 0px -10% 0px",
+        threshold: [0, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 1],
+      },
+    );
+
+    // Dense ticks drive the mobile progress bar without a window scroll listener (iOS contract).
+    const tickObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          tickVisibility.set(entry.target, entry.intersectionRatio);
+        }
+
+        let bestIndex = 0;
+        let bestRatio = 0;
+        progressTickRefs.current.forEach((element, index) => {
+          if (!element) return;
+          const ratio = tickVisibility.get(element) ?? 0;
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
+            bestIndex = index;
+          }
+        });
+
+        if (bestRatio > 0) {
+          const denom = Math.max(MATERIAL_LAB_IOS_PROGRESS_TICKS - 1, 1);
+          iosTrackProgress.set(Math.min(1, Math.max(0, bestIndex / denom)));
+        }
+      },
+      { rootMargin: "-40% 0px -40% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
     );
 
     stepRefs.current.forEach((element) => {
-      if (element) observer.observe(element);
+      if (element) stepObserver.observe(element);
+    });
+    progressTickRefs.current.forEach((element) => {
+      if (element) tickObserver.observe(element);
     });
 
-    return () => observer.disconnect();
-  }, [usesDiscreteIOSSteps]);
+    return () => {
+      stepObserver.disconnect();
+      tickObserver.disconnect();
+    };
+  }, [iosTrackProgress, usesDiscreteIOSSteps]);
 
   if (materials.length === 0) {
     return null;
@@ -977,17 +1036,28 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
       aria-labelledby="lexicon-title"
     >
       {usesDiscreteIOSSteps ? (
-        <div className="pointer-events-none absolute inset-0 flex flex-col" aria-hidden="true">
-          {materials.map((material, index) => (
-            <div
-              key={material.name}
-              ref={(element) => { stepRefs.current[index] = element; }}
-              className="min-h-0 flex-1"
-            />
-          ))}
-        </div>
+        <>
+          <div className="pointer-events-none absolute inset-0 flex flex-col" aria-hidden="true">
+            {materials.map((material, index) => (
+              <div
+                key={material.name}
+                ref={(element) => { stepRefs.current[index] = element; }}
+                className="min-h-0 flex-1"
+              />
+            ))}
+          </div>
+          <div className="pointer-events-none absolute inset-0 flex flex-col" aria-hidden="true">
+            {Array.from({ length: MATERIAL_LAB_IOS_PROGRESS_TICKS }, (_, index) => (
+              <div
+                key={index}
+                ref={(element) => { progressTickRefs.current[index] = element; }}
+                className="min-h-0 flex-1"
+              />
+            ))}
+          </div>
+        </>
       ) : null}
-      <div className="sticky top-0 h-svh overflow-hidden px-4 py-5 md:px-[4vw] md:py-8">
+      <div className="sticky top-0 h-svh overflow-hidden px-4 py-4 md:px-[4vw] md:py-8">
         <div
           className="pointer-events-none absolute inset-0 opacity-50"
           style={{ background: "radial-gradient(circle at 64% 42%, rgba(166,25,46,0.16), transparent 32%)" }}
@@ -999,8 +1069,8 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
         }} aria-hidden="true" />
 
         <div className="relative mx-auto h-full max-w-[90rem]">
-          <header className="absolute inset-x-0 top-20 z-20 flex items-start justify-between gap-6 md:top-24">
-            <div>
+          <header className="absolute inset-x-0 top-[4.75rem] z-20 flex items-start justify-between gap-4 md:top-24 md:gap-6">
+            <div className="min-w-0 flex-1">
               <p className="mb-1 font-sans text-[0.58rem] font-bold uppercase tracking-[0.28em] text-couture-red">
                 {eyebrow?.trim() || "Material glossary / scroll to turn"}
               </p>
@@ -1008,19 +1078,33 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
                 as="h2"
                 id="lexicon-title"
                 text={title?.trim() || "Lexicon"}
-                className="text-[clamp(2rem,4.5vw,4.5rem)] font-bold uppercase leading-none tracking-[-0.035em] text-linen"
+                className="text-[clamp(1.85rem,8vw,4.5rem)] font-bold uppercase leading-none tracking-[-0.035em] text-linen md:text-[clamp(2rem,4.5vw,4.5rem)]"
               />
+              <div
+                data-lexicon-mobile-progress
+                className="mt-3 flex items-center gap-3 sm:hidden"
+                aria-hidden="true"
+              >
+                <span className="shrink-0 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70">01</span>
+                <div className="relative h-2.5 min-w-0 flex-1 overflow-hidden bg-linen/15">
+                  <motion.div
+                    style={{ scaleX: mobileProgressScale, transformOrigin: "left" }}
+                    className="absolute inset-0 bg-couture-red will-change-transform"
+                  />
+                </div>
+                <span className="shrink-0 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70">{progressEndLabel}</span>
+              </div>
             </div>
             <div className="hidden items-center gap-3 pt-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/60 sm:flex">
               <span>01</span>
               <div className="relative h-16 w-px bg-linen/15">
-                <motion.div style={{ scaleY: progressScale, transformOrigin: "top" }} className="absolute inset-0 bg-couture-red" />
+                <motion.div style={{ scaleY: desktopProgressScale, transformOrigin: "top" }} className="absolute inset-0 bg-couture-red" />
               </div>
               <span>{progressEndLabel}</span>
             </div>
           </header>
 
-          <div className="absolute inset-x-0 bottom-0 top-[9.5rem] md:top-[11.5rem]">
+          <div className="absolute inset-x-0 bottom-0 top-[8.75rem] md:top-[11.5rem]">
             {materials.map((material, index) => (
               <MaterialPlate
                 key={material.name}
