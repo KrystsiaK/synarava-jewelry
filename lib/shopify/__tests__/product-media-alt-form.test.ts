@@ -2,8 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyTreeMediaAltUpdates,
+  isMediaAltFormField,
   mediaAltUpdatesFromForm,
 } from "@/lib/shopify/product-media-alt-form";
+
+describe("isMediaAltFormField", () => {
+  it("recognizes local and tree gallery alt names", () => {
+    expect(isMediaAltFormField("media-alt-abc")).toBe(true);
+    expect(isMediaAltFormField("media-alt-tree-0")).toBe(true);
+    expect(isMediaAltFormField("name")).toBe(false);
+  });
+});
 
 describe("mediaAltUpdatesFromForm", () => {
   it("reads local and tree alt fields without confusing tree ids for media ids", () => {

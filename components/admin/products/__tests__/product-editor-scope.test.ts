@@ -217,6 +217,48 @@ describe("product-editor-scope", () => {
     expect(dirtyKeyForEdit("pt", "inventory")).toBe("*:inventory");
   });
 
+  it("attributes gallery alt FormData keys to the Media branch", () => {
+    expect(dirtyKeyForEdit("pt", "media")).toBe("*:media");
+    expect(fieldBelongsToBranch("media-alt-abc123", "media", "en")).toBe(true);
+    expect(fieldBelongsToBranch("media-alt-tree-0", "media", "pt")).toBe(true);
+    expect(fieldBelongsToBranch("media-alt-abc123", "essentials", "en")).toBe(false);
+  });
+
+  it("writes media-alt keys from the current branch when saving Media", () => {
+    const baseline = new FormData();
+    baseline.set("productId", "p1");
+    baseline.set("name", "Saved Name");
+    baseline.set("slug", "saved-name");
+    baseline.set("sku", "SKU-1");
+    baseline.set("price", "10");
+    baseline.set("stockOnHand", "1");
+    baseline.set("workflowState", "DRAFT");
+    baseline.set("media-alt-m1", "Old alt");
+
+    const current = new FormData();
+    current.set("productId", "p1");
+    current.set("name", "Saved Name");
+    current.set("slug", "saved-name");
+    current.set("sku", "SKU-1");
+    current.set("price", "10");
+    current.set("stockOnHand", "1");
+    current.set("workflowState", "DRAFT");
+    current.set("media-alt-m1", "Lava ring, front view");
+    current.set("media-alt-tree-0", "Tree cover");
+
+    const scoped = buildScopedProductFormData({
+      baseline,
+      current,
+      section: "media",
+      locale: "en",
+    });
+
+    expect(scoped.get("media-alt-m1")).toBe("Lava ring, front view");
+    expect(scoped.get("media-alt-tree-0")).toBe("Tree cover");
+    expect(scoped.get("name")).toBe("Saved Name");
+    expect(scoped.get("saveScope")).toBe("en:media");
+  });
+
   it("writes price-tab fields from the current branch when saving price", () => {
     const baseline = new FormData();
     baseline.set("productId", "p1");

@@ -25,11 +25,14 @@ export function ProductMediaManager({
   onChange,
   ensureProduct,
   issues = [],
+  onAltPersistStart,
 }: {
   product: ProductRecord | null;
   onChange: (product: ProductRecord) => void;
   ensureProduct?: () => Promise<ProductRecord | null>;
   issues?: AdminIssueSummary[];
+  /** Called synchronously when blur-save starts so leave-guard dirty can clear before click. */
+  onAltPersistStart?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -77,11 +80,13 @@ export function ProductMediaManager({
   }
 
   function saveLocalAlt(mediaId: string, alt: string) {
+    onAltPersistStart?.();
     mutate(() => updateProductMediaAltAction(mediaId, alt));
   }
 
   function saveTreeAlt(index: number, alt: string) {
     if (!product) return;
+    onAltPersistStart?.();
     mutate(() => updateWorkingSnapshotMediaAltAction(product.id, index, alt));
   }
 
@@ -126,11 +131,9 @@ export function ProductMediaManager({
                   <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">{primary ? "01 · Cover" : String(index + 1).padStart(2, "0")}</span>
                 </div>
                 <AdminTextField
-                  key={`${item.id}:${altValue}`}
                   label="Alt text"
                   name={`media-alt-${item.id}`}
                   defaultValue={altValue}
-                  disabled={pending}
                   owner="Shopify"
                   help="Short description of what the image shows. Avoid filenames."
                   warning={imageAltSoftWarning(altValue) ?? undefined}
@@ -160,11 +163,9 @@ export function ProductMediaManager({
                 </span>
               </div>
               <AdminTextField
-                key={`tree-${index}:${frame.alt}`}
                 label="Alt text"
                 name={`media-alt-tree-${index}`}
                 defaultValue={frame.alt}
-                disabled={pending}
                 owner="Shopify"
                 help="Edits OUR commerce tree until Push. Prefer a product description over Image N."
                 warning={imageAltSoftWarning(frame.alt) ?? undefined}

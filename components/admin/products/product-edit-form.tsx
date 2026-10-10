@@ -795,10 +795,18 @@ export function EditProductForm({
                       <ProductMediaManager
                         product={currentProduct}
                         issues={issues}
+                        onAltPersistStart={() => {
+                          // Blur fires before the click that may hit a nav link. Clear
+                          // Media dirty synchronously so leave-guard does not false-positive
+                          // while the independent alt server action is already persisting.
+                          flushSync(() => clearDirty([sectionDirtyKey("*", "media")]));
+                        }}
                         onChange={(next) => {
                           setState({ success: "Gallery updated locally.", product: next });
                           clearDirty([sectionDirtyKey("*", "media")]);
-                          onUpdated?.(next);
+                          // Do not router.refresh here — it races leave-guard / remounts
+                          // the editor while alt inputs are mid-edit. Server revalidatePath
+                          // keeps list caches; local product state is already updated.
                         }}
                       />
                     </div>
