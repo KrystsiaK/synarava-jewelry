@@ -1,7 +1,7 @@
 # Commerce sync — current freeze (main)
 
 **Status:** shipped foundation on main. Later work continues on **separate feature branches**.  
-**Date:** 2026-10-04
+**Date:** 2026-10-10
 
 This is the only admin sync architecture doc for the current model. Older drafts
 (`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation)
@@ -49,6 +49,20 @@ Product and language chrome open the full product / locale set.
 
 Code: `commerce-conflict-section.ts`, `filterSignalsForView` / `filterConflictFieldsForView`
 (`product` · `productLocale` · `productSection`), `AdminLocaleTabs` / section conflict chips.
+
+### One compare result (banner · icon · Sync)
+
+Product editor conflict chrome must share **one** compare result:
+
+| Surface | Source |
+| --- | --- |
+| Banner (`ProductConflictCompareBanner`) | `productConflictCompareSummary` → same count as icon |
+| Conflict icon badge | `productConflictBadgeCount(signal, { commerceFieldCount })` |
+| Sync tab field list | `inspectProductSyncState` → `diffShopifyProjections(working, shopify)` after `canonicalizeShopifyProjection` |
+
+Commerce axis: full Shopify-shaped windows (`workingSnapshot` vs `shopifySnapshot`), one normalize, deep-diff — **no** field allowlists. Synarava overlays (`metafieldTranslations`, …) are stripped in normalize and must not pollute compare.
+
+Translation axis in the catalog conflict signal: only two-sided `CONFLICT` rows (not `LOCAL_ONLY` / `SHOPIFY_ONLY`). Do **not** drive the product banner from raw `getLatestReconcileDifferences()` — that path previously showed “N fields differ” while the icon stayed green.
 
 ---
 

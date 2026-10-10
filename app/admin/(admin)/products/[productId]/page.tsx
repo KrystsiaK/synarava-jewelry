@@ -1,9 +1,7 @@
 import Link from "next/link";
 
 import { ProductEditRoute } from "@/components/admin/products/product-route-editor";
-import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { getAdminCatalogData } from "@/lib/content/catalog";
-import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { ProductIncomingUpdateMarker } from "@/components/admin/products/product-incoming-update-marker";
 import { requireAdminSession } from "@/lib/auth/admin-session";
@@ -17,9 +15,12 @@ export default async function EditProductPage({
 }) {
   const { productId } = await params;
   const session = await requireAdminSession("/admin/products");
-  const [{ products, collections, issues }, syncDifferences, translationLocales, conflictSignals] = await Promise.all([
+  // Conflict banner lives inside the editor and shares the same compare result
+  // as the conflict icon + Sync tab (commerce deep-diff + CONFLICT translations).
+  // Do not mount AdminSyncInlineWarning from raw reconcile rows here — that
+  // counted LOCAL_ONLY/SHOPIFY_ONLY and disagreed with the icon.
+  const [{ products, collections, issues }, translationLocales, conflictSignals] = await Promise.all([
     getAdminCatalogData(),
-    getLatestReconcileDifferences(),
     getAdminTranslationLocales(),
     getCatalogConflictSignals(session.username).catch((error): CatalogConflictSignals => {
       console.error("[admin-product-edit] catalog conflict status unavailable", error);
@@ -29,9 +30,6 @@ export default async function EditProductPage({
   const product = products.find((item) => item.id === productId);
   const productIssues = issues.filter(
     (issue) => issue.entityType === "PRODUCT" && issue.entityId === productId,
-  );
-  const productSyncDifferences = syncDifferences.filter(
-    (difference) => difference.rootEntityType === "PRODUCT" && difference.rootEntityId === productId,
   );
 
   if (!product) {
@@ -67,7 +65,6 @@ export default async function EditProductPage({
             Back to table
           </Link>
         </div>
-        <AdminSyncInlineWarning className="mt-4" differences={productSyncDifferences} />
       </div>
 
       <ProductEditRoute

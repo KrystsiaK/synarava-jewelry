@@ -38,6 +38,7 @@ import {
   conflictSectionsFromDifferences,
   productEditorSectionForCommerceDiff,
 } from "@/components/admin/products/commerce-conflict-section";
+import { ProductConflictCompareBanner } from "@/components/admin/products/product-conflict-compare-banner";
 import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
@@ -631,6 +632,15 @@ export function EditProductForm({
 
           <ProgressBar pending={isPending} />
           <AdminAlert message={state.fieldErrors ? undefined : state.error} />
+
+          {currentProduct.shopifyProductId ? (
+            <ProductConflictCompareBanner
+              signal={productConflict}
+              commerceFieldCount={commerceFieldCount}
+              localeTabs={localeTabs.map((tab) => ({ code: tab.code, label: tab.label }))}
+              onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
+            />
+          ) : null}
 
           <AdminPanel.Root
             data-component="ProductLocaleWorkspace"
