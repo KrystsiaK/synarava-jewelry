@@ -333,8 +333,7 @@ describe("ShopifyProfileShell total spent (REV-14)", () => {
 });
 
 describe("ShopifyProfileShell reviews", () => {
-  it("opens the Shopify review when its text is chosen", async () => {
-    const user = userEvent.setup();
+  it("hides the Reviews tab while STOREFRONT_REVIEWS_VISIBLE is temporary false", () => {
     render(
       <ShopifyProfileShell
         customer={customer}
@@ -355,11 +354,8 @@ describe("ShopifyProfileShell reviews", () => {
       />,
     );
 
-    expect(screen.getByRole("tab", { name: /^reviews$/i })).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getByRole("button", { name: "A lasting piece" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(dialog).toHaveTextContent("Beautifully made and thoughtfully presented.");
-    expect(dialog).toHaveTextContent("Thank you.");
-    expect(screen.getByRole("link", { name: "View product" })).toHaveAttribute("href", "/en/products/lava-ring");
+    expect(screen.queryByRole("tab", { name: /^reviews$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^overview$/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("button", { name: "A lasting piece" })).not.toBeInTheDocument();
   });
 });
