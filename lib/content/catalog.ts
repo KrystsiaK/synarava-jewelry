@@ -11,7 +11,6 @@ import {
 import {
   characteristicLabel,
   parseCharacteristicTextOverlay,
-  resolveCharacteristicDisplayValue,
   type ProductCharacteristicValue,
 } from "@/lib/products/characteristics";
 import {
@@ -19,13 +18,15 @@ import {
   characteristicFacetLabel,
   buyerFacingTagNames,
   localizeShopFacetValue,
+  resolvePdpCharacteristicDisplayValue,
 } from "@/lib/catalog/shop-facet-labels";
 import { getTaxonomyFacetLabelMap } from "@/lib/catalog/taxonomy-value-labels";
 import { projectPublicProductMetafields } from "@/lib/shopify/public-metafields";
 import {
   characteristicOverlayFromMetafieldTranslations,
   mergeCharacteristicDisplayOverlay,
-  metafieldTranslationsFromSnapshot,
+  storefrontMetafieldTranslations,
+  type MetafieldTranslations,
 } from "@/lib/shopify/product-metafields-shared";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { normalizeShopSort, type ShopSort } from "@/lib/catalog/shop-sort";
@@ -264,6 +265,7 @@ function shopifyProjection(
   value: unknown,
   locale: Locale = "en",
   characteristicTextOverlay: Record<string, string> = {},
+  metafieldTranslations?: MetafieldTranslations,
 ) {
   const snapshot = asRecord(value);
   const options = Array.isArray(snapshot.options) ? snapshot.options : [];
@@ -287,6 +289,7 @@ function shopifyProjection(
     publicMetafields: projectPublicProductMetafields(snapshot.metafields, {
       locale,
       snapshot,
+      metafieldTranslations,
       // Passport TEXT overlays for mapped Shopify category/public facts (no Shopify sync).
       characteristicTextOverlay,
     }),
@@ -388,14 +391,21 @@ function toSummary(product: {
   const activeSlug = product.slug;
   const details = parseProductDetails(localized.details);
   const passportTextOverlay = parseCharacteristicTextOverlay(localized.details);
+  // OUR workingSnapshot owns Save-time PT/RU metafield overlays; shopifySnapshot
+  // fills gaps from the last Pull (admin already prefers working ?? shopify).
+  const mergedMetafieldTranslations = storefrontMetafieldTranslations(
+    product.workingSnapshot,
+    product.shopifySnapshot,
+  );
   const shopifyMetafieldOverlay = characteristicOverlayFromMetafieldTranslations(
-    metafieldTranslationsFromSnapshot(product.shopifySnapshot)[locale],
+    mergedMetafieldTranslations[locale],
   );
   // Shopify Markets metafield translations win when present; Passport fills gaps.
   const characteristicTextOverlay = mergeCharacteristicDisplayOverlay(
     shopifyMetafieldOverlay,
     passportTextOverlay,
   );
+  const commerceSnapshot = product.workingSnapshot ?? product.shopifySnapshot;
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
     title: details.process?.title ?? "",
@@ -413,9 +423,13 @@ function toSummary(product: {
   const inStock = product.variants.some((variant) => isVariantPurchasable(variant));
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
-  // Options/metafields stay on the Shopify mirror; gallery prefers OUR working tree
-  // (same SoT as the admin Media tab) and falls back to shopifySnapshot.
-  const projection = shopifyProjection(product.shopifySnapshot, locale, characteristicTextOverlay);
+  // Options/metafields + gallery prefer OUR working tree (admin SoT), else last Pull.
+  const projection = shopifyProjection(
+    commerceSnapshot,
+    locale,
+    characteristicTextOverlay,
+    mergedMetafieldTranslations,
+  );
   const localMedia = product.media.map((item) => ({
     src: getS3PublicUrl(item.asset.key),
     alt: item.alt ?? localized.title,
@@ -515,18 +529,34 @@ function toSummary(product: {
           };
           return {
             label: characteristicLabel(item.key, item.label, locale),
-            value: resolveCharacteristicDisplayValue(value, locale, characteristicTextOverlay),
+            value: resolvePdpCharacteristicDisplayValue(
+              value,
+              locale,
+              characteristicTextOverlay,
+              taxonomyOverlays,
+            ),
           };
         })
       : details.attributes ?? [],
-    characteristics: product.characteristics.map((item) => ({
-      ...item,
-      label: characteristicLabel(item.key, item.label, locale),
-      numberValue: item.numberValue == null ? null : Number(item.numberValue),
-      textValue: item.valueType === "TEXT"
-        ? (characteristicTextOverlay[item.key] ?? item.textValue)
-        : item.textValue,
-    })),
+    characteristics: product.characteristics.map((item) => {
+      const value: ProductCharacteristicValue = {
+        ...item,
+        numberValue: item.numberValue == null ? null : Number(item.numberValue),
+      };
+      return {
+        ...item,
+        label: characteristicLabel(item.key, item.label, locale),
+        numberValue: value.numberValue,
+        textValue: item.valueType === "TEXT"
+          ? resolvePdpCharacteristicDisplayValue(
+            value,
+            locale,
+            characteristicTextOverlay,
+            taxonomyOverlays,
+          )
+          : item.textValue,
+      };
+    }),
     categorySlug: product.shopifyCategoryId,
     categoryName: localizeShopFacetValue(
       categoryLeafLabel(product.shopifyCategoryName),

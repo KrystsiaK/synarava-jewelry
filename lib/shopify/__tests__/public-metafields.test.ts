@@ -42,6 +42,33 @@ describe("projectPublicProductMetafields", () => {
     )).toEqual([{ label: "Care instructions", value: "Manter seco." }]);
   });
 
+  it("uses pre-merged metafieldTranslations over a single working snapshot", () => {
+    expect(projectPublicProductMetafields(
+      [
+        {
+          namespace: "custom",
+          key: "material",
+          type: "single_line_text_field",
+          value: "Pearl",
+          definition: { name: "Material", access: { storefront: "PUBLIC_READ" } },
+        },
+      ],
+      {
+        locale: "ru",
+        snapshot: {
+          metafieldTranslations: {
+            ru: { "custom::material": "Только working" },
+          },
+        },
+        metafieldTranslations: {
+          ru: {
+            "custom::material": "Из merged Shopify+working",
+          },
+        },
+      },
+    )).toEqual([{ label: "Material", value: "Из merged Shopify+working" }]);
+  });
+
   it("prefers Synarava passport TEXT overlays over EN Shopify category/public facts", () => {
     expect(projectPublicProductMetafields(
       [

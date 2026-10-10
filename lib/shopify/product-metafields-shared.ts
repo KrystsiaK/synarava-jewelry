@@ -46,7 +46,8 @@ export function isTranslatableMetafieldType(type: string) {
 
 /**
  * Map pulled Shopify custom metafield translations onto Passport characteristic keys.
- * `custom.wrist_fit` → `fit_notes`; other custom keys that match passport keys pass through.
+ * Product-tab custom keys that differ from passport keys are remapped
+ * (`wrist_fit` → `fit_notes`, `stone` → `stone_type`, `care` → `care_instructions`).
  */
 export function characteristicOverlayFromMetafieldTranslations(
   localeBucket: Record<string, string> | undefined,
@@ -65,10 +66,26 @@ export function characteristicOverlayFromMetafieldTranslations(
       ? "fit_notes"
       : key === "care"
         ? "care_instructions"
-        : key;
+        : key === "stone"
+          ? "stone_type"
+          : key;
     if (!out[characteristicKey]) out[characteristicKey] = value;
   }
   return out;
+}
+
+/**
+ * Storefront metafield locale overlays: OUR `workingSnapshot` wins, then last
+ * Shopify pull. Admin Save writes PT/RU into working only until the next Pull.
+ */
+export function storefrontMetafieldTranslations(
+  workingSnapshot: unknown,
+  shopifySnapshot: unknown,
+): MetafieldTranslations {
+  return mergeMetafieldTranslations(
+    metafieldTranslationsFromSnapshot(shopifySnapshot),
+    metafieldTranslationsFromSnapshot(workingSnapshot),
+  );
 }
 
 /**

@@ -37,7 +37,7 @@ Do these in order. Skipping a step is how storefront chrome stays in English aft
 
    Tag and Compliance facets are hidden (`supportsTagFilters` / `supportsComplianceFilters`) — tags here are operational SKU-like noise with no locale surface.
 
-   **Shopify-owned jewelry specs** (material, care, finish, wrist fit, color, …) are edited on **Product → Shopify product specs** (`custom.*`). Prefer pulled Shopify Metafield translations; Product-tab locale overlays fill gaps. **Synarava Passport** is Synarava-only (chain lengths, compliance) — not a duplicate editor for Shopify specs. On the PDP, display order for mapped specs is: Shopify Metafield translations → Synarava overlays → English.
+   **Shopify-owned jewelry specs** (material, care, finish, wrist fit, color, …) are edited on **Product → Shopify product specs** (`custom.*`). Prefer OUR `workingSnapshot.metafieldTranslations` (admin Save), then last-Pull `shopifySnapshot`, then Synarava Passport overlays, then the shipped jewelry value dictionary (same map as shop filters). **Synarava Passport** is Synarava-only (chain lengths, compliance) — not a duplicate editor for Shopify specs. Free-form care copy still needs a locale overlay; dictionary entries cover common closed values (Crystal pearl, 18K Gold PVD, …).
 
 6. **Graphify.** After the locale wiring, messages, and this checklist change, run `graphify update .` so the knowledge graph indexes them.
 

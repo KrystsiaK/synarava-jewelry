@@ -10,6 +10,7 @@ import {
   isTranslatableMetafieldType,
   metafieldIdentityKey,
   metafieldTranslationsFromSnapshot,
+  type MetafieldTranslations,
 } from "@/lib/shopify/product-metafields-shared";
 
 const SUPPORTED_TYPES = new Set([
@@ -55,12 +56,15 @@ export function projectPublicProductMetafields(
   options?: {
     locale?: string;
     snapshot?: unknown;
+    /** Pre-merged working+shopify overlays; wins over reading a single snapshot. */
+    metafieldTranslations?: MetafieldTranslations;
     /** Synarava Passport TEXT overlays — display only; never pushed as Shopify translations. */
     characteristicTextOverlay?: Record<string, string>;
   },
 ): Array<{ label: string; value: string }> {
   const locale = (options?.locale ?? "en") as Locale;
-  const translations = metafieldTranslationsFromSnapshot(options?.snapshot ?? value);
+  const translations = options?.metafieldTranslations
+    ?? metafieldTranslationsFromSnapshot(options?.snapshot ?? value);
   const localeBucket = locale !== "en" ? translations[locale] ?? {} : {};
   const passportOverlay = options?.characteristicTextOverlay ?? {};
 
