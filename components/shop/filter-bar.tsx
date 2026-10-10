@@ -355,8 +355,9 @@ export function FilterBar({
             </button>
           </div>
 
-          <div className="relative flex w-[min(36vw,22rem)] min-w-[12rem] items-center border-b border-foreground/[0.14] transition-colors focus-within:border-couture-red">
-            <Search className="pointer-events-none absolute left-0 size-3.5 text-muted/60" aria-hidden="true" />
+          {/* Boxed like FilterDropdown — underline + band border-y stacked as a double rule. */}
+          <div className="relative flex w-[min(36vw,22rem)] min-w-[12rem] items-center border border-foreground/[0.1] bg-surface/45 transition-[border-color,background-color] focus-within:border-couture-red focus-within:bg-surface">
+            <Search className="pointer-events-none absolute left-3 size-3.5 text-muted/60" aria-hidden="true" />
             <input
               ref={searchRef}
               type="search"
@@ -365,7 +366,7 @@ export function FilterBar({
               placeholder={text(labels?.searchPlaceholder, "shop.filters.searchPlaceholder")}
               aria-label={text(labels?.searchLabel, "shop.filters.searchLabel")}
               className={cn(
-                "w-full min-w-0 bg-transparent py-2 pl-6 pr-11 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
+                "w-full min-w-0 bg-transparent py-2 pl-9 pr-11 text-[0.8rem] font-semibold uppercase tracking-[0.13em]",
                 "placeholder:text-muted/42 outline-none transition-[color,border-color] duration-200",
                 // Hide WebKit's native clear so only our custom X shows (Chrome/Safari).
                 "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",

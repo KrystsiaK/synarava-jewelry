@@ -161,6 +161,16 @@ describe("FilterBar", () => {
     expect(screen.getAllByRole("button", { name: /clear search/i })).toHaveLength(2);
   });
 
+  it("styles desktop search as a boxed control, not an underline stacked on the band edge", () => {
+    render(<FilterBar {...defaultProps} initialFilters={{ q: "ыва" }} />);
+    // Desktop search mounts first (md:block band); mobile follows.
+    const wrap = screen.getAllByDisplayValue(/ыва/i)[0]?.parentElement;
+    expect(wrap).toBeTruthy();
+    expect(wrap!.className.split(/\s+/)).toContain("border");
+    expect(wrap!.className.split(/\s+/)).not.toContain("border-b");
+    expect(wrap!.className).toContain("bg-surface");
+  });
+
   // ── Session persistence ───────────────────────────────────────────────────
 
   it("shows restore banner when saved filters exist and URL has no params", async () => {
