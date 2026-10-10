@@ -28,6 +28,15 @@ describe("resolveCollectionCtaLabel", () => {
     ).toBe("");
   });
 
+  it("returns empty when the locale has no translation row at all", () => {
+    expect(
+      resolveCollectionCtaLabel(
+        { ctaLabel: "Shop this series", translations: [{ locale: "pt", ctaLabel: "Ver" }] },
+        "ru",
+      ),
+    ).toBe("");
+  });
+
   it("trims whitespace and treats blank as empty", () => {
     expect(resolveCollectionCtaLabel({ ctaLabel: "  " }, "en")).toBe("");
     expect(
