@@ -64,6 +64,9 @@ model Collection {
   symbolismBody         String?
   symbolismBody2        String?
   searchSummary         String?
+  /// Synarava-only hero primary CTA label (per locale via CollectionTranslation).
+  /// Empty → Collections page detailShopLabel → messages collections.detail.shopProducts.
+  ctaLabel              String?
   seoTitle              String?
   seoDescription        String?
   heroImageUrl          String?
@@ -111,6 +114,8 @@ model CollectionTranslation {
   symbolismBody   String?
   symbolismBody2  String?
   searchSummary   String?
+  /// Synarava-only hero CTA; empty does not inherit EN — see Collection.ctaLabel.
+  ctaLabel        String?
   seoTitle        String?
   seoDescription  String?
   reviewStatus    TranslationReviewStatus @default(DRAFT)

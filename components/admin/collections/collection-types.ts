@@ -9,6 +9,8 @@ export type CollectionLocaleDraft = {
   description: string;
   manifesto: string;
   searchSummary: string;
+  /** Hero primary CTA on the collection detail page. */
+  ctaLabel: string;
   storyTitle: string;
   storyBody: string;
   symbolismLabel: string;
@@ -28,6 +30,8 @@ export type CollectionDraft = {
   description: string;
   manifesto: string;
   searchSummary: string;
+  /** Hero primary CTA on the collection detail page. */
+  ctaLabel: string;
   seoTitle: string;
   seoDescription: string;
   storyTitle: string;
