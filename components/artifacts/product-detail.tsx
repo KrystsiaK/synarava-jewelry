@@ -35,6 +35,7 @@ import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { Share2, Star } from "lucide-react";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
+import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import { truncateText } from "@/lib/text/truncate";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
@@ -154,7 +155,7 @@ function ProductHero({
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, ease, delay: 0.68 }}
             >
-              {reviews?.average != null && reviews.count > 0 ? (
+              {storefrontReviewsVisible() && reviews?.average != null && reviews.count > 0 ? (
                 <a
                   href="#reviews"
                   className="inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
@@ -998,7 +999,7 @@ export function ProductDetail({
       <CraftSection product={product} fitVideoSrc={fitVideoSrc} />
       <LookbookSection product={product} />
       <RelatedProductsSection products={relatedProducts} />
-      {reviews && submitReviewAction ? (
+      {storefrontReviewsVisible() && reviews && submitReviewAction ? (
         <ProductReviews
           productSlug={product.slug}
           locale={locale}
