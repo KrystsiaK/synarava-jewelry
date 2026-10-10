@@ -895,7 +895,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
           className="select-none font-serif leading-none text-foreground"
           style={{ fontSize: "clamp(4rem,14vw,12rem)", opacity: 0.022, whiteSpace: "nowrap" }}
         >
-          ARCHIVE
+          {t("product.continueExploring.archiveGhost")}
         </span>
       </div>
 
@@ -917,7 +917,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, ease, delay: 0.1 }}
         >
-          Part of {product.collectionName}
+          {t("product.continueExploring.partOf", { name: product.collectionName })}
         </motion.p>
 
         <motion.h2
@@ -927,7 +927,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.18 }}
         >
-          Continue Exploring
+          {t("product.continueExploring.title")}
         </motion.h2>
 
         <motion.div
@@ -944,7 +944,7 @@ function ProductFooter({ product }: { product: ProductSummary }) {
             href={localePath(locale, "/shop")}
             className="label-mono border-b border-foreground/20 pb-1 text-foreground/60 transition-colors hover:border-couture-red hover:text-couture-red"
           >
-            Back to shop
+            {t("product.continueExploring.backToShop")}
           </Link>
         </motion.div>
       </div>

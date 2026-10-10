@@ -220,7 +220,7 @@ const HOME_ARCHIVE_GROUP: StorefrontCopyGroup = {
     {
       key: "home.archive.viewCollection",
       label: "View collection",
-      hint: "Overlay CTA on the home collection image (also PDP “continue exploring” CTA when linked).",
+      hint: "Overlay CTA on the home collection image and the PDP “Continue exploring” primary button when the product is linked to a collection.",
     },
     {
       key: "home.archive.collection",
@@ -236,6 +236,33 @@ const HOME_ARCHIVE_GROUP: StorefrontCopyGroup = {
       key: "home.archive.viewCollectionAria",
       label: "View collection (aria)",
       hint: "Accessible name for the home collection card link. Keep {title}.",
+    },
+  ],
+};
+
+const PRODUCT_CONTINUE_EXPLORING_GROUP: StorefrontCopyGroup = {
+  id: "product-continue-exploring",
+  title: "Product — continue exploring footer",
+  description:
+    "Bottom CTA band on every product page that belongs to a collection (ProductFooter). Not a CMS block — chrome only. Collection name comes from the linked Collection record; titles/notes stay there.",
+  fields: [
+    {
+      key: "product.continueExploring.partOf",
+      label: "Part of collection",
+      hint: "Red eyebrow above the heading. Keep {name} for the localized collection title.",
+    },
+    {
+      key: "product.continueExploring.title",
+      label: "Continue exploring heading",
+    },
+    {
+      key: "product.continueExploring.backToShop",
+      label: "Back to shop link",
+    },
+    {
+      key: "product.continueExploring.archiveGhost",
+      label: "Archive watermark",
+      hint: "Faint background word behind the heading.",
     },
   ],
 };
@@ -317,6 +344,7 @@ export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   FOOTER_SOCIAL_HEADING_GROUP,
   SERVICE_CONTACT_GROUP,
   HOME_ARCHIVE_GROUP,
+  PRODUCT_CONTINUE_EXPLORING_GROUP,
   HOME_MATERIAL_GROUP,
   HOME_FINAL_CTA_GROUP,
   COOKIE_CONSENT_GROUP,

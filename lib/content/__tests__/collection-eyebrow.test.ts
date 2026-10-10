@@ -29,6 +29,23 @@ describe("home.archive messages (PR #102)", () => {
   });
 });
 
+describe("product.continueExploring messages", () => {
+  it("ships localized PDP footer chrome (no hardcoded EN leftovers)", () => {
+    expect(en.product.continueExploring).toEqual({
+      partOf: "Part of {name}",
+      title: "Continue Exploring",
+      backToShop: "Back to shop",
+      archiveGhost: "ARCHIVE",
+    });
+    expect(ru.product.continueExploring).toEqual({
+      partOf: "Часть коллекции {name}",
+      title: "Продолжить знакомство",
+      backToShop: "Назад в магазин",
+      archiveGhost: "АРХИВ",
+    });
+  });
+});
+
 describe("storefront chrome i18n (home / a11y / brand)", () => {
   it("ships RU preferred chrome for material, skip, appearance, story, curated goods", () => {
     expect(ru.home.material.specimen).toBe("Образец / {symbol}");

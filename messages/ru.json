@@ -211,6 +211,12 @@
     "addToWishlist": "Сохранить в избранное",
     "removeFromWishlist": "Убрать из избранного",
     "relatedTitle": "Вам также может понравиться",
+    "continueExploring": {
+      "partOf": "Часть коллекции {name}",
+      "title": "Продолжить знакомство",
+      "backToShop": "Назад в магазин",
+      "archiveGhost": "АРХИВ"
+    },
     "presentation": {
       "jewelry": {
         "descriptionLabel": "Заметки об изделии",
@@ -417,7 +423,8 @@
       "eyebrow": "Synarava по коллекциям",
       "title": "Смотреть коллекции",
       "collections": "Коллекции",
-      "story": "О Synarava"
+      "story": "О Synarava",
+      "archiveGhost": "АРХИВ"
     },
     "filters": {
       "eyebrow": "Найти нужное изделие",
