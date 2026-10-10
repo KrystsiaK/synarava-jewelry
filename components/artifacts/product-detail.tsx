@@ -168,17 +168,6 @@ function ProductHero({
               <ShareButton title={product.title} />
               <WishlistHeartButton productSlug={product.slug} isSignedIn={isSignedIn} />
             </motion.div>
-
-            {product.materialLine ? (
-              <motion.p
-                className="mt-3 label-caps text-foreground/50 md:mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.7, ease, delay: 0.7 }}
-              >
-                {product.materialLine}
-              </motion.p>
-            ) : null}
           </div>
 
           <motion.div className="mt-7 md:mt-9">
