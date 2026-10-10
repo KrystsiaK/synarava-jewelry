@@ -30,12 +30,21 @@ Do these in order. Skipping a step is how storefront chrome stays in English aft
 
    **Shop / catalog product cards** (`/[locale]/shop`, `GET /api/catalog/products`) read **`Product` + `ProductTranslation`** for the request locale — there is no separate catalog translation table. Title/short description come from `resolveProductCopy` (same helper as the PDP). A locale row with an empty title is treated as missing copy and falls back to English. Russian (and other locales) must be filled under **Admin → Products → [product] → locale tab**, or pulled from Shopify translations when Shopify already has them; the storefront does not call Shopify live for card copy.
 
+   Card chips share one locale resolver with filters and PDP (`localizeShopFacetValue` / taxonomy overlays):
+
+   | Chip | EN identity | Display |
+   |---|---|---|
+   | Category | SPT leaf | overlay → dictionary → EN |
+   | Product type | `Product.productType` (URL key stays EN) | `productTypeLabel` via same path |
+   | Material | passport `material` / `materialLine` | `materialLabel` via same path |
+   | SEO tags | Shopify tags | **hidden** when they duplicate type/material vocabulary |
+
    **Shop filter facet values** (category leaf, product type, material, finish/coating, origin) keep English/canonical keys for URLs and Prisma match. Display labels resolve in `getShopFilterData` via `lib/catalog/shop-facet-labels.ts`:
 
    - **Category leaf / product type:** shared `TaxonomyValueLabel` overlays (Admin → **Shared → Taxonomy**, `/admin/settings#shared-taxonomy`) → shipped jewelry vocabulary map → English. EN identity stays Shopify (`shopifyCategoryId` + English SPT leaf / `productType`). Standard Product Taxonomy categories are **not** a Shopify `TranslatableResourceType`, so there is no Translations API pull/push for category names — Synarava overlays only. `PRODUCT.product_type` **is** translatable: on product translation **pull**, a non-empty Shopify `product_type` upserts the shared product-type overlay (`source=SHOPIFY`). Synarava fills gaps. Shared overlays are **not** pushed to Shopify (`registerProductTranslation` still omits `product_type`).
-   - **Material / finish / origin:** passport TEXT overlays first, then the shipped map, then English.
+   - **Material / finish / origin:** passport TEXT overlays first, then the shipped map, then English. Closed values missing from Passport still fall through the dictionary (including case-insensitive match for `304L` / `304l`).
 
-   Tag and Compliance facets are hidden (`supportsTagFilters` / `supportsComplianceFilters`) — tags here are operational SKU-like noise with no locale surface.
+   Tag and Compliance facets are hidden (`supportsTagFilters` / `supportsComplianceFilters`) — tags here are operational SEO/SKU noise with no locale surface; cards no longer surface those keywords as chips.
 
    **Shopify-owned jewelry specs** (material, care, finish, wrist fit, color, …) are edited on **Product → Shopify product specs** (`custom.*`). Prefer OUR `workingSnapshot.metafieldTranslations` (admin Save), then last-Pull `shopifySnapshot`, then Synarava Passport overlays, then the shipped jewelry value dictionary (same map as shop filters). **Synarava Passport** is Synarava-only (chain lengths, compliance) — not a duplicate editor for Shopify specs. Free-form care copy still needs a locale overlay; dictionary entries cover common closed values (Crystal pearl, 18K Gold PVD, …).
 

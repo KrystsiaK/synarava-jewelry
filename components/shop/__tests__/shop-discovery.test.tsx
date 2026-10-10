@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-import type { ProductSummary } from "@/lib/content/catalog";
+import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { ShopDiscovery } from "../shop-discovery";
 
 const product = {
@@ -8,9 +8,11 @@ const product = {
   title: "New necklace",
   image: "/necklace.jpg",
   price: "€120",
+  productTypeLabel: "Necklaces",
+  materialLabel: "",
   tagNames: [],
   categoryName: "Necklaces",
-} as ProductSummary;
+} as ShopListingProduct;
 
 describe("ShopDiscovery", () => {
   it("offers new, popular, and product type pathways", () => {

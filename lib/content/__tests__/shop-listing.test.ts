@@ -126,6 +126,7 @@ describe("shop listing projection", () => {
       {
         id: "pearl-ru",
         slug: "pearl-necklace", sku: "PEARL-1", shopifyProductId: null, name: "Pearl Necklace", seriesLabel: null,
+        productType: "Beaded Necklace",
         shortDescription: "English short", description: "English long", materialLine: "Pearl",
         searchSummary: null, searchDocument: null, currency: "EUR", priceCents: 2000,
         imageUrl: "/pearl.webp", shopifyCategoryId: "gid://shopify/TaxonomyCategory/aa",
@@ -139,9 +140,10 @@ describe("shop listing projection", () => {
         tags: [
           { tag: { slug: "jw-sku", name: "JW-NECKLACE-CRYSTAL-PEARL-WHT-4-001" } },
           { tag: { slug: "gift", name: "Gift" } },
+          { tag: { slug: "304l-stainless-steel", name: "304l stainless steel" } },
         ],
         collections: [],
-        characteristics: [],
+        characteristics: [{ key: "material", textValue: "Pearl", booleanValue: null }],
       },
       {
         id: "blank-ru",
@@ -165,6 +167,9 @@ describe("shop listing projection", () => {
       {
         title: "Жемчужное колье",
         categoryName: "Колье",
+        productType: "Beaded Necklace",
+        productTypeLabel: "Бусы",
+        materialLabel: "Жемчуг",
         tagNames: ["Gift"],
       },
       { title: "Honey Bracelet" },
@@ -186,6 +191,36 @@ describe("shop listing projection", () => {
         sourceTitle: "Honey Bracelet",
       }),
     ]));
+  });
+
+  it("falls back materialLabel to localized materialLine when passport material is absent", async () => {
+    rows.push({
+      id: "bangle-1",
+      slug: "golden-light-bracelet", sku: "BANGLE-1", shopifyProductId: null,
+      name: "Golden Light Bracelet", seriesLabel: null, productType: "Bangle Bracelet",
+      shortDescription: "EN", description: "EN", materialLine: "304L stainless steel",
+      searchSummary: null, searchDocument: null, currency: "EUR", priceCents: 3290,
+      imageUrl: "/bangle.webp", shopifyCategoryId: "gid://shopify/TaxonomyCategory/bracelets",
+      shopifyCategoryName: "Apparel & Accessories > Jewelry > Bracelets",
+      createdAt: new Date("2026-01-01"),
+      translations: [{
+        locale: "ru", localizedHandle: null, title: "Браслет «Золотой свет»",
+        shortDescription: "Коротко", description: "Длинно", materialLine: null,
+      }],
+      variants: [{ status: "ACTIVE", stockOnHand: 1, inventoryPolicy: "DENY", tracked: true, priceCents: 3290, compareAtCents: null }],
+      tags: [{ tag: { slug: "304l-stainless-steel", name: "304l stainless steel" } }],
+      collections: [],
+      characteristics: [],
+    });
+
+    await expect(listShopListingProducts("ru")).resolves.toMatchObject([{
+      title: "Браслет «Золотой свет»",
+      productType: "Bangle Bracelet",
+      productTypeLabel: "Жёсткий браслет",
+      materialLabel: "Нержавеющая сталь 304L",
+      categoryName: "Браслеты",
+      tagNames: [],
+    }]);
   });
 });
 describe("listShopCatalogPage", () => {

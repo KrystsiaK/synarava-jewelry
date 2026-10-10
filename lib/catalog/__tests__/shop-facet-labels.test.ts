@@ -35,6 +35,22 @@ describe("localizeShopFacetValue", () => {
     expect(localizeShopFacetValue("18K Gold PVD", "ru")).toBe("PVD золото 18K");
   });
 
+  it("localizes catalog Shopify product types used on shop filters", () => {
+    expect(localizeShopFacetValue("Bangle Bracelet", "ru")).toBe("Жёсткий браслет");
+    expect(localizeShopFacetValue("Beaded Bracelet", "ru")).toBe("Браслет из бусин");
+    expect(localizeShopFacetValue("Chain Bracelet", "pt")).toBe("Pulseira de corrente");
+    expect(localizeShopFacetValue("Hoop Earrings", "ru")).toBe("Серьги-кольца");
+  });
+
+  it("localizes 304L material lines and matches dictionary case-insensitively", () => {
+    expect(localizeShopFacetValue("304L stainless steel", "ru")).toBe("Нержавеющая сталь 304L");
+    expect(localizeShopFacetValue("304l stainless steel", "ru")).toBe("Нержавеющая сталь 304L");
+    expect(localizeShopFacetValue(
+      "Acrylic beads / 304L stainless steel / jewellery beading wire",
+      "ru",
+    )).toBe("Акриловые бусины / Нержавеющая сталь 304L / Ювелирный тросик");
+  });
+
   it("falls back to the English source when no map entry exists", () => {
     expect(localizeShopFacetValue("Custom Alloy X", "ru")).toBe("Custom Alloy X");
   });
@@ -135,5 +151,18 @@ describe("buyerFacingTagNames", () => {
       "Pearl",
       "aa-12-34",
     ])).toEqual(["Pearl"]);
+  });
+
+  it("drops SEO keyword tags that duplicate type / material vocabulary", () => {
+    expect(isBuyerFacingTagName("304l stainless steel")).toBe(false);
+    expect(isBuyerFacingTagName("bangle bracelet")).toBe(false);
+    expect(isBuyerFacingTagName("synarava")).toBe(false);
+    expect(isBuyerFacingTagName("everyday bracelet")).toBe(false);
+    expect(buyerFacingTagNames([
+      "304l stainless steel",
+      "bangle bracelet",
+      "Gift",
+      "synarava",
+    ])).toEqual(["Gift"]);
   });
 });
