@@ -21,6 +21,8 @@ function product(id: string) {
     categorySlug: null,
     categoryName: "",
     productType: "",
+    productTypeLabel: "",
+    materialLabel: "",
     collectionSlugs: [],
     tagSlugs: [],
     tagNames: [],

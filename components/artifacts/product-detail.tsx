@@ -30,7 +30,6 @@ import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { characteristicGroupLabel, characteristicUnit } from "@/lib/products/characteristics";
-import { localizeShopFacetValue } from "@/lib/catalog/shop-facet-labels";
 import { normalizeLocale } from "@/lib/i18n/locales";
 import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { Share2, Star } from "lucide-react";
@@ -216,9 +215,11 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
   }
   if (product.vendor) add(t("product.specifications.productDetails"), { label: t("product.specifications.brand"), value: product.vendor });
   if (product.productType) {
+    // `toSummary` already ran localizeShopFacetValue (+ taxonomy overlays).
+    // Do not re-localize — a second pass would look up the translated string.
     add(t("product.specifications.productDetails"), {
       label: t("product.specifications.productType"),
-      value: localizeShopFacetValue(product.productType, normalizeLocale(locale)),
+      value: product.productType,
     });
   }
   if (product.sku) add(t("product.specifications.productDetails"), { label: t("product.specifications.sku"), value: product.sku });

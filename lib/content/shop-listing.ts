@@ -38,7 +38,12 @@ export type ShopListingProduct = {
   searchText: string;
   categorySlug: string | null;
   categoryName: string;
+  /** EN identity for URL / Prisma filter match (same key as `?productType=`). */
   productType: string;
+  /** Buyer-facing product type — same `localizeShopFacetValue` path as filters + PDP. */
+  productTypeLabel: string;
+  /** Buyer-facing material from passport characteristic (dictionary / overlay). */
+  materialLabel: string;
   collectionSlugs: string[];
   tagSlugs: string[];
   tagNames: string[];
@@ -128,6 +133,10 @@ function mapProductRowToListing(
   const primaryVariant = row.variants.find(isVariantPurchasable) ?? row.variants[0];
   const priceCents = primaryVariant?.priceCents ?? row.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
+  const productType = row.productType?.trim() ?? "";
+  const materialEn = row.characteristics.find((item) => item.key === "material")?.textValue?.trim()
+    || copy.materialLine.trim()
+    || "";
   return {
     id: row.id,
     shopifyProductId: row.shopifyProductId,
@@ -149,13 +158,19 @@ function mapProductRowToListing(
       ...row.tags.flatMap((item) => [item.tag.slug, item.tag.name]),
     ].filter(Boolean).join(" "),
     categorySlug: row.shopifyCategoryId,
+    // Same resolution order as PDP `toSummary` / `getShopFilterData`:
+    // TaxonomyValueLabel overlay → jewelry dictionary → English.
     categoryName: localizeShopFacetValue(
       categoryLeafLabel(row.shopifyCategoryName),
       locale,
       taxonomyOverlays,
     ),
-    // EN identity for client-side filter match; labels come from getShopFilterData.
-    productType: row.productType?.trim() ?? "",
+    // EN identity for URL / Prisma match; display uses productTypeLabel.
+    productType,
+    productTypeLabel: localizeShopFacetValue(productType, locale, taxonomyOverlays),
+    materialLabel: materialEn
+      ? localizeShopFacetValue(materialEn, locale, taxonomyOverlays)
+      : "",
     collectionSlugs: row.collections.map((item) => item.collection.slug),
     tagSlugs: row.tags.map((item) => item.tag.slug),
     tagNames: buyerFacingTagNames(row.tags.map((item) => item.tag.name)),

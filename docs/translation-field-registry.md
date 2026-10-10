@@ -105,11 +105,14 @@ SoT — never invent a parallel taxonomy tree in Synarava.
 **Buyer-facing display overlays** for distinct EN category leaves and product
 types live in `TaxonomyValueLabel` and are edited at **Admin → Shared → Taxonomy**
 (`/admin/settings#shared-taxonomy`). One row per `(kind, enValue, locale)`.
+Shop listing cards, filter chips, and PDP product-type rows all resolve through
+`localizeShopFacetValue` (overlay → shipped dictionary → English).
 
 | Surface | Shopify Translations API | Synarava overlay |
 |---|---|---|
 | Category leaf (SPT) | Not available (`TaxonomyCategory` ∉ TranslatableResourceType) | Primary path for RU/PT display |
 | Product type | `PRODUCT` field `product_type` — **pull** into shared overlay when present | Fills gaps; **no push** of shared overlays |
+| Material facet / card chip | Metafield `custom.material` translations → PDP; filter also uses Passport TEXT + dictionary | Closed values in `shop-facet-labels` dictionary; free-form needs Passport / metafield overlay |
 
 Legacy registry rows below describe optional merchant-owned `taxonomy_label`
 metaobject fields (not the SPT leaf / productType facet path above):
