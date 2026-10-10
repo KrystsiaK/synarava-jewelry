@@ -35,7 +35,7 @@ const HEADER_CHROME_GROUP: StorefrontCopyGroup = {
   id: "header-chrome",
   title: "Header — menu",
   description:
-    "Menu control labels in the header and mobile drawer. Cart and account labels are edited under Cart & account.",
+    "Menu control labels in the header and mobile drawer, plus the wordmark second line under SYNARAVA. Cart and account labels are edited under Cart & account.",
   fields: [
     { key: "nav.openMenu", label: "Open menu (aria)" },
     { key: "nav.closeMenu", label: "Close menu (aria)" },
@@ -49,6 +49,12 @@ const HEADER_CHROME_GROUP: StorefrontCopyGroup = {
       label: "Appearance",
       hint: "Label above the theme toggle in the mobile menu.",
     },
+    {
+      key: "brand.curatedGoods",
+      label: "Header under logo",
+      hint:
+        "Second line under SYNARAVA in the header wordmark (also reused in the footer wordmark). Not the footer tagline.",
+    },
   ],
 };
 
@@ -56,13 +62,8 @@ const FOOTER_BRAND_GROUP: StorefrontCopyGroup = {
   id: "footer-brand",
   title: "Footer — brand",
   description:
-    "Wordmark subtitle, tagline, and copyright. Curated goods also appears under the header wordmark.",
+    "Footer tagline and copyright. The wordmark second line is edited under Header — menu (Header under logo).",
   fields: [
-    {
-      key: "brand.curatedGoods",
-      label: "Curated goods",
-      hint: "Second line under SYNARAVA in the header and footer wordmarks.",
-    },
     { key: "footer.tagline", label: "Tagline (under the logo)" },
     { key: "footer.copyright", label: "Copyright line" },
   ],

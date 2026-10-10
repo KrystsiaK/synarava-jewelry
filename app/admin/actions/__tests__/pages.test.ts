@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   upsertPageTranslation: vi.fn(),
   createAuditLog: vi.fn(),
   revalidatePath: vi.fn(),
+  revalidateStorefrontPath: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
@@ -15,7 +16,7 @@ vi.mock("@/lib/auth/admin-session", () => ({
   getCurrentAdminSession: mocks.getCurrentAdminSession,
 }));
 vi.mock("@/lib/content/revalidate-storefront", () => ({
-  revalidateStorefrontPath: vi.fn(),
+  revalidateStorefrontPath: mocks.revalidateStorefrontPath,
   revalidateStorefrontTemplate: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({
@@ -32,9 +33,14 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/lib/media/local-upload", () => ({ savePageImageUpload: vi.fn() }));
 vi.mock("@/lib/i18n/admin-translation-locales", () => ({
-  getAdminTranslationLocales: vi.fn().mockResolvedValue([{ code: "pt", label: "Português" }]),
+  getAdminTranslationLocales: vi.fn().mockResolvedValue([
+    { code: "pt", label: "Português" },
+    { code: "ru", label: "Русский" },
+  ]),
 }));
 
+import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
+import { HOME_SEO_TITLE_BY_LOCALE } from "@/lib/seo/home-seo-defaults";
 import { savePageAction } from "@/app/admin/actions/pages";
 
 beforeEach(() => {
@@ -200,6 +206,57 @@ describe("savePageAction", () => {
         }),
       }),
     }));
+  });
+
+  it("persists localized Home seoTitle and revalidates /{locale} not /home", async () => {
+    const formData = new FormData();
+    formData.set("slug", "home");
+    formData.set("title", "Home");
+    formData.set("workflowState", "PUBLISHED");
+    formData.set("seoTitle", HOME_SEO_TITLE_BY_LOCALE.en);
+    formData.set("seoDescription", "EN meta description.");
+    formData.set("ptSeoTitle", HOME_SEO_TITLE_BY_LOCALE.pt);
+    formData.set("ptSeoDescription", "Descrição PT.");
+    formData.set("ruSeoTitle", HOME_SEO_TITLE_BY_LOCALE.ru);
+    formData.set("ruSeoDescription", "Описание RU.");
+
+    await expect(savePageAction(formData)).resolves.toMatchObject({
+      success: "Page created.",
+    });
+
+    expect(mocks.upsertPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          seoTitle: HOME_SEO_TITLE_BY_LOCALE.en,
+          seoDescription: "EN meta description.",
+        }),
+      }),
+    );
+
+    const translationCalls = mocks.upsertPageTranslation.mock.calls.map(
+      (call) => call[0] as {
+        where: { pageId_locale: { locale: string } };
+        create: { locale: string; seoTitle: string | null; seoDescription: string | null };
+      },
+    );
+    const byLocale = Object.fromEntries(
+      translationCalls.map((call) => [call.create.locale, call.create]),
+    );
+    expect(byLocale.en).toMatchObject({
+      seoTitle: HOME_SEO_TITLE_BY_LOCALE.en,
+      seoDescription: "EN meta description.",
+    });
+    expect(byLocale.pt).toMatchObject({
+      seoTitle: HOME_SEO_TITLE_BY_LOCALE.pt,
+      seoDescription: "Descrição PT.",
+    });
+    expect(byLocale.ru).toMatchObject({
+      seoTitle: HOME_SEO_TITLE_BY_LOCALE.ru,
+      seoDescription: "Описание RU.",
+    });
+
+    expect(revalidateStorefrontPath).toHaveBeenCalledWith("/");
+    expect(revalidateStorefrontPath).not.toHaveBeenCalledWith("/home");
   });
 
   it("rejects an invalid Final CTA contact email when contact is enabled", async () => {

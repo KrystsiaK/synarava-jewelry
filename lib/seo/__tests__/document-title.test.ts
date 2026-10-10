@@ -77,40 +77,78 @@ describe("isBrandFirstTitle", () => {
 });
 
 describe("resolveHomeDocumentTitle", () => {
-  it("prefers a brand-first page SEO title", () => {
+  const EN = "Jewellery & Accessories for Everyday Wear | Synarava";
+  const PT = "Joalharia e acessórios para todos os dias | Synarava";
+  const RU = "Украшения и аксессуары на каждый день | Synarava";
+
+  it("prefers a localized page SEO title for EN/PT/RU (trailing brand)", () => {
     expect(
       resolveHomeDocumentTitle({
-        seoTitle: "Synarava | TODAY, THIS.",
+        seoTitle: EN,
         siteDefaultTitle: "Synarava | Curated Goods",
         fallbackTitle: "Synarava | Curated Goods",
       }),
-    ).toBe("Synarava | TODAY, THIS.");
-  });
-
-  it("ignores H1-style and trailing-brand SEO titles", () => {
+    ).toBe(EN);
     expect(
       resolveHomeDocumentTitle({
-        seoTitle: "TODAY, THIS.",
-        siteDefaultTitle: "Synarava — Curated Goods with Character",
-        fallbackTitle: "Synarava | Curated Goods",
-      }),
-    ).toBe("Synarava | Curated Goods");
-    expect(
-      resolveHomeDocumentTitle({
-        seoTitle: "Everyday jewellery and accessories | Synarava",
+        seoTitle: PT,
         siteDefaultTitle: null,
-        fallbackTitle: "Synarava | Curated Goods",
+        fallbackTitle: "Synarava | Seleção cuidada",
       }),
-    ).toBe("Synarava | Curated Goods");
+    ).toBe(PT);
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: RU,
+        siteDefaultTitle: null,
+        fallbackTitle: "Synarava | Кураторские товары",
+      }),
+    ).toBe(RU);
   });
 
-  it("falls through to site SEO default when messages fallback is empty", () => {
+  it("composes a page SEO title that omits the brand suffix", () => {
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "Jewellery & Accessories for Everyday Wear",
+        siteDefaultTitle: null,
+        fallbackTitle: EN,
+      }),
+    ).toBe(EN);
+  });
+
+  it("falls through to localized home.metaTitle when seoTitle is empty", () => {
     expect(
       resolveHomeDocumentTitle({
         seoTitle: "",
         siteDefaultTitle: "Synarava | Curated Goods",
-        fallbackTitle: "  ",
+        fallbackTitle: EN,
       }),
-    ).toBe("Synarava | Curated Goods");
+    ).toBe(EN);
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "   ",
+        siteDefaultTitle: null,
+        fallbackTitle: PT,
+      }),
+    ).toBe(PT);
+  });
+
+  it("keeps a legacy brand-first absolute title without doubling the brand", () => {
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "Synarava | TODAY, THIS.",
+        siteDefaultTitle: EN,
+        fallbackTitle: EN,
+      }),
+    ).toBe("Synarava | TODAY, THIS.");
+  });
+
+  it("ignores bare H1 slogans and uses the localized fallback instead", () => {
+    expect(
+      resolveHomeDocumentTitle({
+        seoTitle: "TODAY, THIS.",
+        siteDefaultTitle: "Synarava | Curated Goods",
+        fallbackTitle: EN,
+      }),
+    ).toBe(EN);
   });
 });

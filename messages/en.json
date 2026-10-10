@@ -743,7 +743,7 @@
     }
   },
   "home": {
-    "metaTitle": "Synarava | Curated Goods",
+    "metaTitle": "Jewellery & Accessories for Everyday Wear | Synarava",
     "archive": {
       "collectionNote": "Collection note",
       "viewCollection": "View collection",
@@ -794,6 +794,6 @@
     "backToSite": "Back to site"
   },
   "brand": {
-    "curatedGoods": "Curated goods"
+    "curatedGoods": "Jewellery & Accessories"
   }
 }

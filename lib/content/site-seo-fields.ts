@@ -12,13 +12,13 @@ export type SiteSeoFields = {
   ogDescription: string;
 };
 
-/** Shipped fallbacks — brand-first; curated-goods framing (not jewellery-only). */
+/** Shipped fallbacks — trailing brand; jewellery & accessories Home framing. */
 export const SITE_SEO_DEFAULTS: SiteSeoFields = {
-  defaultTitle: "Synarava | Curated Goods",
+  defaultTitle: "Jewellery & Accessories for Everyday Wear | Synarava",
   titleTemplate: "%s | Synarava",
   description:
     "A curated shop for jewelry, pet accessories, creative products for kids, and tools for making by hand.",
-  ogTitle: "Synarava | Curated Goods",
+  ogTitle: "Jewellery & Accessories for Everyday Wear | Synarava",
   ogDescription:
     "Jewelry, pet accessories, creative products for kids, and tools for making by hand.",
 };
