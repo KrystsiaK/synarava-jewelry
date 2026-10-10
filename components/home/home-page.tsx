@@ -471,16 +471,23 @@ function HeroSection({
         ) : null}
       </motion.div>
 
-      {/* Mobile-only vertical scroll invitation — transform/opacity pulse, Apple cue. */}
+      {/*
+        First-viewport rail: h-svh from the section top so the invite stays in
+        the opening screen even when the hero itself is taller than one view.
+      */}
       {!reduceMotion ? (
         <div
-          data-home-scroll-invite
-          className="pointer-events-none absolute bottom-7 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 md:bottom-10 min-[920px]:hidden"
+          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[100dvh] min-[920px]:hidden"
           aria-hidden="true"
         >
-          <span className="home-scroll-invite__track">
-            <span className="home-scroll-invite__thumb" />
-          </span>
+          <div
+            data-home-scroll-invite
+            className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center"
+          >
+            <span className="home-scroll-invite__capsule">
+              <span className="home-scroll-invite__thumb" />
+            </span>
+          </div>
         </div>
       ) : null}
     </section>
@@ -1171,7 +1178,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
               className="pointer-events-none absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center min-[920px]:hidden"
               aria-hidden="true"
             >
-              <span className="home-scroll-invite__track home-scroll-invite__track--compact">
+              <span className="home-scroll-invite__capsule home-scroll-invite__capsule--compact">
                 <span className="home-scroll-invite__thumb" />
               </span>
             </div>
