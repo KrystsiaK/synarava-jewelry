@@ -889,7 +889,7 @@ function MaterialPlate({
             <span className="text-couture-red">{noteLabel}</span>
           </div>
 
-          <div className="home-material-copy flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain py-3 md:justify-center md:overflow-visible md:py-8">
+          <div className="home-material-copy flex min-h-0 flex-1 flex-col overflow-y-auto py-3 md:justify-center md:overflow-visible md:py-8">
             <p className="mb-1.5 font-sans text-[0.65rem] font-bold uppercase tracking-[0.24em] text-couture-red md:mb-2">
               {t("home.material.label", { index: String(index + 1).padStart(2, "0") })}
             </p>
@@ -940,7 +940,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
   const progress = reduceMotion || !isDesktop ? rawTrackProgress : smoothProgress;
   // Desktop rail: linear. Mobile bar: front-loaded so the first swipe is unmistakable.
   const desktopProgressScale = useTransform(progress, [0, 1], [0, 1]);
-  const mobileProgressScale = useTransform(progress, [0, 0.12, 0.45, 1], [0.06, 0.48, 0.78, 1]);
+  const mobileProgressScale = useTransform(progress, [0, 0.12, 0.45, 1], [0, 0.52, 0.8, 1]);
   const materials = useMemo<LexiconMaterial[]>(
     () => rawMaterials.slice(0, 3).map((item, index) => ({ ...item, symbol: String(index + 1).padStart(2, "0") })),
     [rawMaterials],
@@ -1082,7 +1082,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
               />
               <div
                 data-lexicon-mobile-progress
-                className="mt-3 flex items-center gap-3 sm:hidden"
+                className="mt-3 flex items-center gap-3 min-[920px]:hidden"
                 aria-hidden="true"
               >
                 <span className="shrink-0 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70">01</span>
@@ -1095,7 +1095,7 @@ function MaterialLab({ materials: rawMaterials, eyebrow, title, noteLabel }: { m
                 <span className="shrink-0 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/70">{progressEndLabel}</span>
               </div>
             </div>
-            <div className="hidden items-center gap-3 pt-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/60 sm:flex">
+            <div className="hidden items-center gap-3 pt-2 font-sans text-[0.58rem] font-bold uppercase tracking-[0.2em] text-stone-beige/60 min-[920px]:flex">
               <span>01</span>
               <div className="relative h-16 w-px bg-linen/15">
                 <motion.div style={{ scaleY: desktopProgressScale, transformOrigin: "top" }} className="absolute inset-0 bg-couture-red" />
