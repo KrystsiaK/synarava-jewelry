@@ -44,6 +44,7 @@ import {
   resolveProductCopy,
   type ProductTranslationRecord,
 } from "@/lib/products/localization";
+import { resolveCollectionCtaLabel } from "@/lib/collections/hero-cta";
 import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/localization";
 import { ownedLocalizedPageFields, resolvePageLocalizedCopy } from "@/lib/pages/localization";
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
@@ -723,6 +724,8 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
     symbolismTitle: copy.symbolismTitle,
     symbolismBody: copy.symbolismBody,
     symbolismBody2: copy.symbolismBody2,
+    /** Locale-only; empty does not inherit EN — page falls back to detailShopLabel / messages. */
+    ctaLabel: resolveCollectionCtaLabel(collection, locale),
     updatedAt: collection.updatedAt,
   };
 }

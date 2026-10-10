@@ -38,6 +38,7 @@ const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", lab
 
 const EMPTY_TRANSLATION: CollectionLocaleDraft = {
   localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
+  ctaLabel: "",
   storyTitle: "", storyBody: "",
   symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
   reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
@@ -158,7 +159,7 @@ export function WorkflowStateField({
 // registry row (Task U1) — this JSX and the mirror list don't change.
 function HiddenLocaleFields({ draft, translationLocales }: { draft: CollectionDraft; translationLocales: AdminTranslationLocale[] }) {
   const keys: Array<keyof CollectionLocaleDraft & keyof CollectionDraft> = [
-    "name", "subtitle", "description", "manifesto", "searchSummary",
+    "name", "subtitle", "description", "manifesto", "searchSummary", "ctaLabel",
     "storyTitle", "storyBody",
     "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
   ];
@@ -390,6 +391,16 @@ export function CollectionFields({
         }}
         error={isEn ? fieldErrors?.description : undefined}
         placeholder={isEn ? "This text appears on the collection card and collection hero." : "Optional — shows the English summary until filled in."}
+      />
+
+      <AdminTextField
+        label="Hero CTA label"
+        owner="Synarava"
+        unitId="field-ctaLabel"
+        help="Primary button under the collection hero summary. Empty uses the Collections page shop-button chrome for this locale, then the site dictionary."
+        value={isEn ? draft.ctaLabel : active!.ctaLabel}
+        onChange={(e) => (isEn ? onChange("ctaLabel", e.target.value) : updateActiveTranslation("ctaLabel", e.target.value))}
+        placeholder={isEn ? "Shop products" : "Optional — uses Collections page / dictionary for this locale when empty."}
       />
 
       <div className="grid gap-4 md:grid-cols-2" hidden={!isEn}>
