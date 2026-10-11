@@ -63,3 +63,25 @@ export function combineProductGallery(
     }];
   });
 }
+
+/**
+ * Storefront PDP gallery from ONE source: OUR media tree
+ * (`workingSnapshot.media` / ProductMedia order).
+ *
+ * `featuredFallback` (Product.imageUrl) is used only when the tree is empty —
+ * never prepended onto a non-empty tree. Prepending re-invents a cover that
+ * already lives in the tree (often last), and when S3 vs CDN URLs fail id/url
+ * dedupe the PDP shows a ghost thumb (e.g. 05/05 with thumbs 1 === 5).
+ */
+export function buildStorefrontProductGallery(input: {
+  media: ProductGalleryImage[];
+  featuredFallback?: ProductGalleryImage | null;
+}): ProductGalleryImage[] {
+  const tree = input.media.filter((image) => Boolean(image?.src?.trim()));
+  if (tree.length > 0) {
+    return combineProductGallery(null, tree, []);
+  }
+  const fallback = input.featuredFallback;
+  if (!fallback?.src?.trim()) return [];
+  return combineProductGallery(fallback, [], []);
+}
