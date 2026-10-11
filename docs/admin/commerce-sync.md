@@ -118,7 +118,7 @@ Gallery is part of the dual commerce windows — **not** a parallel ProductMedia
 | SoT for detect / Media UI | `workingSnapshot.media` (OUR tree) |
 | Local upload / reorder / remove | `ProductMedia` staging → write-through into `workingSnapshot.media` |
 | After Pull with no local rows | Media tab shows OUR tree frames (CDN URLs from Shopify adopt) |
-| Alt text | Blur-saves via media actions (fields stay editable; no `router.refresh`); also in FormData as `media-alt-*` / `media-alt-tree-*` on product Save (Media-owned branch). Blur clears Media dirty synchronously so leave-guard does not false-positive. |
+| Alt text | Blur-saves via media actions (fields stay editable; no `router.refresh`); also in FormData as `media-alt-*` / `media-alt-tree-*` on product Save (Media-owned branch). Blur clears Media dirty synchronously so leave-guard does not false-positive. **Per-image alts stay distinct:** Push prefers local → OUR `workingSnapshot.media` → remote; never broadcasts the product title onto every image. Save merges local rows without wiping prior tree alts when staging alt is empty. |
 | Field Decisions | Media labels are choosable: Pull adopts whole `media`; Push runs product media pipeline |
 | Whole-record fallback | Status / tags still use inline **Pull from Shopify** / **Push to Shopify** in the same dialog (no “Go to Sync”) |
 

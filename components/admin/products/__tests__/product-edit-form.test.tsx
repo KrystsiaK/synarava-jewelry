@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Link from "next/link";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -410,5 +410,81 @@ describe("EditProductForm", () => {
     });
     const formData = mocks.saveProductAction.mock.calls.at(-1)?.[0] as FormData;
     expect(formData.get("media-alt-media-1")).toBe("Lava ring, front");
+  });
+
+  it("submits distinct media-alt values for every gallery image on product Save", async () => {
+    const galleryProduct = makeProduct({
+      name: "Soleil Lemon Bag Charm",
+      imageUrl: "/media/1.jpg",
+      primaryAssetId: "asset-1",
+      media: [
+        {
+          id: "media-1",
+          assetId: "asset-1",
+          kind: "PRIMARY",
+          alt: "Soleil Lemon Bag Charm",
+          caption: null,
+          sortOrder: 0,
+          url: "/media/1.jpg",
+          width: 800,
+          height: 800,
+        },
+        {
+          id: "media-2",
+          assetId: "asset-2",
+          kind: "GALLERY",
+          alt: "Soleil Lemon Bag Charm",
+          caption: null,
+          sortOrder: 1,
+          url: "/media/2.jpg",
+          width: 800,
+          height: 800,
+        },
+        {
+          id: "media-3",
+          assetId: "asset-3",
+          kind: "GALLERY",
+          alt: "Soleil Lemon Bag Charm",
+          caption: null,
+          sortOrder: 2,
+          url: "/media/3.jpg",
+          width: 800,
+          height: 800,
+        },
+      ],
+    });
+    mocks.saveProductAction.mockResolvedValue({
+      success: "Product saved.",
+      product: galleryProduct,
+    });
+
+    const user = userEvent.setup();
+    render(<EditProductForm product={galleryProduct} collections={[]} />);
+    await act(async () => {});
+
+    await user.click(screen.getByRole("tab", { name: /Media/ }));
+    const inputs = screen.getAllByRole("textbox", { name: /Alt text/i });
+    expect(inputs).toHaveLength(3);
+
+    const distinct = [
+      "Lemon charm, front on linen",
+      "Lemon charm, side with pearls",
+      "Lemon charm, detail aventurine",
+    ];
+    // Set values without blur-save races — Save FormData must still carry each distinct alt.
+    for (let index = 0; index < inputs.length; index += 1) {
+      fireEvent.change(inputs[index], { target: { value: distinct[index] } });
+    }
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Yes, save changes" }));
+
+    await waitFor(() => {
+      expect(mocks.saveProductAction).toHaveBeenCalled();
+    });
+    const formData = mocks.saveProductAction.mock.calls.at(-1)?.[0] as FormData;
+    expect(formData.get("media-alt-media-1")).toBe(distinct[0]);
+    expect(formData.get("media-alt-media-2")).toBe(distinct[1]);
+    expect(formData.get("media-alt-media-3")).toBe(distinct[2]);
   });
 });

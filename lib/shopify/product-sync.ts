@@ -40,6 +40,10 @@ import {
   shopifyMediaFilename,
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
+import {
+  rawMediaAltsFromWorkingSnapshot,
+  resolveGalleryMediaAlt,
+} from "@/lib/shopify/product-media-alt-form";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
   findOnlineStorePublication,
@@ -1643,27 +1647,34 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       }
     };
     const currentRemote = product.shopifyProductId ? await fetchShopifyProduct(product.shopifyProductId) : null;
-    const localAssetsById = new Map<string, LocalProductAsset>();
-    for (const item of product.media) {
+    // OUR tree alts (Media tab after Pull / after local media released on Push).
+    // Must ride productSet — falling back to product.name for every image made
+    // Soleil Lemon (and siblings) show identical ALT text in admin + Shopify.
+    const treeAlts = rawMediaAltsFromWorkingSnapshot(product.workingSnapshot);
+    const localAssetsById = new Map<string, LocalProductAsset & { sortIndex: number }>();
+    product.media.forEach((item, index) => {
       localAssetsById.set(item.assetId, {
         assetId: item.assetId,
         filename: item.asset.filename,
         key: item.asset.key,
         mimeType: item.asset.mimeType,
-        alt: item.alt || product.name,
+        // Raw staging alt — resolve once when building productSet files.
+        alt: item.alt ?? "",
+        sortIndex: index,
       });
-    }
+    });
     if (product.primaryAsset && !localAssetsById.has(product.primaryAsset.id)) {
       localAssetsById.set(product.primaryAsset.id, {
         assetId: product.primaryAsset.id,
         filename: product.primaryAsset.filename,
         key: product.primaryAsset.key,
         mimeType: product.primaryAsset.mimeType,
-        alt: product.name,
+        alt: "",
+        sortIndex: -1,
       });
     }
     const localAssets = [...localAssetsById.values()].sort((left, right) =>
-      left.assetId === product.primaryAssetId ? -1 : right.assetId === product.primaryAssetId ? 1 : 0,
+      left.assetId === product.primaryAssetId ? -1 : right.assetId === product.primaryAssetId ? 1 : left.sortIndex - right.sortIndex,
     );
     const remoteByFilename = new Map(
       (currentRemote?.media.nodes ?? []).flatMap((item) => {
@@ -1684,34 +1695,54 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       (currentRemote?.media.nodes ?? []).flatMap((item) => item.preview?.image?.url ? [[item.preview.image.url, item] as const] : []),
     );
     const files: Array<{ id?: string; originalSource?: string; alt: string; filename?: string; contentType?: "IMAGE" }> = [];
-    for (const asset of localAssets) {
+    for (const [assetIndex, asset] of localAssets.entries()) {
       const existing = remoteByFilename.get(asset.filename);
+      const treeIndex = asset.sortIndex >= 0 ? asset.sortIndex : assetIndex;
+      const alt = resolveGalleryMediaAlt({
+        localAlt: asset.alt,
+        treeAlt: treeAlts[treeIndex],
+        remoteAlt: existing?.alt,
+      });
       if (existing) {
         seenMediaIds.add(existing.id);
-        files.push({ id: existing.id, alt: asset.alt });
+        files.push({ id: existing.id, alt });
         continue;
       }
       const originalSource = stagedUrls.get(asset.assetId);
       if (!originalSource) throw new ShopifyAdminError(`Shopify staging URL is missing for ${asset.filename}.`);
-      files.push({ originalSource, filename: asset.filename, contentType: "IMAGE", alt: asset.alt });
+      files.push({ originalSource, filename: asset.filename, contentType: "IMAGE", alt });
     }
     const directImage = localAssets.length ? null : shopifyImageUrl(product.imageUrl);
     if (directImage) {
       const existing = remoteByUrl.get(directImage);
+      const alt = resolveGalleryMediaAlt({
+        localAlt: null,
+        treeAlt: treeAlts[0],
+        remoteAlt: existing?.alt,
+      });
       if (existing) {
         seenMediaIds.add(existing.id);
-        files.push({ id: existing.id, alt: product.name });
+        files.push({ id: existing.id, alt });
       } else {
         seenMediaUrls.add(directImage);
-        files.push({ originalSource: directImage, contentType: "IMAGE", alt: product.name });
+        files.push({ originalSource: directImage, contentType: "IMAGE", alt });
       }
     }
-    for (const remote of currentRemote?.media.nodes ?? []) {
+    // Remote-only frames (local ProductMedia released after prior Push): push OUR tree alts by gallery index.
+    const remoteNodes = currentRemote?.media.nodes ?? [];
+    for (const [remoteIndex, remote] of remoteNodes.entries()) {
       const url = remote.preview?.image?.url;
       if (seenMediaIds.has(remote.id) || (url && seenMediaUrls.has(url))) continue;
       seenMediaIds.add(remote.id);
       if (url) seenMediaUrls.add(url);
-      files.push({ id: remote.id, alt: remote.alt || product.name });
+      files.push({
+        id: remote.id,
+        alt: resolveGalleryMediaAlt({
+          localAlt: null,
+          treeAlt: treeAlts[remoteIndex] ?? "",
+          remoteAlt: remote.alt,
+        }),
+      });
     }
     const input = {
       title: product.name,

@@ -41,6 +41,7 @@ import {
 import {
   applyTreeMediaAltUpdates,
   mediaAltUpdatesFromForm,
+  mergeLocalMediaRowsIntoWorkingMedia,
 } from "@/lib/shopify/product-media-alt-form";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
@@ -334,20 +335,22 @@ async function finishProductMediaMutation(productId: string, success: string): P
   });
 
   if (linked?.shopifyProductId) {
-    const media = linked.media.map((item) => {
-      const url = getS3PublicUrl(item.asset.key);
-      return {
-        id: `local:${item.assetId}`,
-        alt: item.alt ?? "",
-        mediaContentType: "IMAGE",
-        preview: { image: { url, width: item.asset.width, height: item.asset.height } },
-        image: { url, width: item.asset.width, height: item.asset.height },
-      };
+    const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot ?? {};
+    const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
+      ? baseWindow as Record<string, unknown>
+      : null;
+    const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
+    const media = mergeLocalMediaRowsIntoWorkingMedia({
+      baseMedia,
+      localRows: linked.media.map((item) => ({
+        assetId: item.assetId,
+        alt: item.alt,
+        url: getS3PublicUrl(item.asset.key),
+        width: item.asset.width,
+        height: item.asset.height,
+      })),
     });
-    const nextWorking = writeThroughLocalCommerceToProjection(
-      linked.workingSnapshot ?? linked.shopifySnapshot ?? {},
-      { media },
-    );
+    const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, { media });
     await db.product.update({
       where: { id: productId },
       data: {
@@ -1253,22 +1256,24 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       const variant = linked.variants[0];
       const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot;
       let mediaPatch: unknown[] | undefined;
+      const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
+        ? baseWindow as Record<string, unknown>
+        : null;
+      const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
       if (linked.media.length > 0) {
-        mediaPatch = linked.media.map((item) => {
-          const url = getS3PublicUrl(item.asset.key);
-          return {
-            id: `local:${item.assetId}`,
-            alt: item.alt ?? "",
-            mediaContentType: "IMAGE",
-            preview: { image: { url, width: item.asset.width, height: item.asset.height } },
-            image: { url, width: item.asset.width, height: item.asset.height },
-          };
+        // Prefer local alts; keep prior OUR-tree alts when staging alt is still empty
+        // so Save cannot collapse distinct gallery copy into blanks / product title.
+        mediaPatch = mergeLocalMediaRowsIntoWorkingMedia({
+          baseMedia,
+          localRows: linked.media.map((item) => ({
+            assetId: item.assetId,
+            alt: item.alt,
+            url: getS3PublicUrl(item.asset.key),
+            width: item.asset.width,
+            height: item.asset.height,
+          })),
         });
       } else if (mediaAltUpdates.tree.length > 0) {
-        const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
-          ? baseWindow as Record<string, unknown>
-          : null;
-        const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
         mediaPatch = applyTreeMediaAltUpdates(baseMedia, mediaAltUpdates.tree);
       }
       const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, {
