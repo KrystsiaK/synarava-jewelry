@@ -871,15 +871,91 @@ html[data-theme="dark"] .home-material-plate {
 .home-material-copy {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(166, 25, 46, 0.55) transparent;
+  scrollbar-color: rgba(166, 25, 46, 0.45) transparent;
+  /* Clear the category rule so the first body line never sits under a hairline. */
+  scroll-padding-top: 0.35rem;
 }
 
 .home-material-copy::-webkit-scrollbar {
-  width: 3px;
+  width: 2px;
 }
 
 .home-material-copy::-webkit-scrollbar-thumb {
-  background: rgba(166, 25, 46, 0.55);
+  background: rgba(166, 25, 46, 0.45);
+}
+
+.home-material-copy__body {
+  /* Guarantee a readable first paragraph band on mobile before in-card scroll. */
+  padding-bottom: 0.25rem;
+}
+
+/*
+ * Vertical scroll invitation — compositor-only (transform + opacity).
+ * Apple-style capsule with a traveling thumb; never a horizontal blot.
+ */
+.home-scroll-invite__capsule {
+  position: relative;
+  display: block;
+  width: 1.05rem;
+  height: 2.55rem;
+  overflow: hidden;
+  border: 1px solid rgba(33, 29, 25, 0.28);
+  border-radius: 999px;
+  background: rgba(247, 247, 245, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(247, 247, 245, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.home-scroll-invite__capsule--compact {
+  width: 0.9rem;
+  height: 2.05rem;
+  border-color: rgba(247, 247, 245, 0.38);
+  background: rgba(8, 8, 10, 0.28);
+}
+
+html[data-theme="dark"] .home-scroll-invite__capsule {
+  border-color: rgba(247, 247, 245, 0.34);
+  background: rgba(8, 8, 10, 0.35);
+}
+
+.home-scroll-invite__thumb {
+  position: absolute;
+  left: 50%;
+  top: 0.28rem;
+  width: 0.28rem;
+  height: 0.45rem;
+  margin-left: -0.14rem;
+  border-radius: 999px;
+  background: rgb(166, 25, 46);
+  transform: translate3d(0, 0, 0);
+  animation: home-scroll-invite-pulse 1.65s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes home-scroll-invite-pulse {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate3d(0, 1.35rem, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 1.7rem, 0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-scroll-invite__thumb {
+    animation: none;
+    opacity: 0.85;
+    transform: translate3d(0, 0.55rem, 0);
+  }
 }
 
 .shop-hero {
