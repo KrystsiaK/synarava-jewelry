@@ -41,7 +41,9 @@ import {
 import {
   applyTreeMediaAltUpdates,
   mediaAltUpdatesFromForm,
+  mediaNodePreviewUrl,
   mergeLocalMediaRowsIntoWorkingMedia,
+  removeWorkingSnapshotMediaAtIndex,
 } from "@/lib/shopify/product-media-alt-form";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
@@ -581,6 +583,71 @@ export async function updateWorkingSnapshotMediaAltAction(
   revalidatePath("/admin/products");
   revalidateStorefront();
   return { success: "Image alt text updated.", product: await getSavedProductPayload(productId) };
+}
+
+/**
+ * Remove a gallery frame from OUR workingSnapshot.media (Media tab after Pull).
+ * Marks sync PENDING; Push omits the Shopify media id so productSet deletes it remotely.
+ */
+export async function removeWorkingSnapshotMediaAction(
+  productId: string,
+  mediaIndex: number,
+): Promise<ProductMediaActionState> {
+  await requireAdminSession("/admin/products");
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      shopifyProductId: true,
+      workingSnapshot: true,
+      shopifySnapshot: true,
+      media: { select: { id: true }, take: 1 },
+    },
+  });
+  if (!product) return { error: "Product not found." };
+  if (product.media.length > 0) {
+    return { error: "Use Remove on the staging gallery row for this product." };
+  }
+
+  const base =
+    product.workingSnapshot && typeof product.workingSnapshot === "object"
+      ? structuredClone(product.workingSnapshot) as Record<string, unknown>
+      : product.shopifySnapshot && typeof product.shopifySnapshot === "object"
+        ? structuredClone(product.shopifySnapshot) as Record<string, unknown>
+        : {};
+  const currentMedia = Array.isArray(base.media) ? [...base.media] : [];
+  const nextMedia = removeWorkingSnapshotMediaAtIndex(currentMedia, mediaIndex);
+  if (!nextMedia) {
+    return { error: "Gallery image not found in the commerce tree." };
+  }
+  const nextWorking = writeThroughLocalCommerceToProjection(base, { media: nextMedia });
+  const coverUrl = nextMedia.length > 0 ? mediaNodePreviewUrl(nextMedia[0]) : null;
+
+  await db.product.update({
+    where: { id: productId },
+    data: {
+      ...(product.shopifyProductId
+        ? { syncStatus: "PENDING" as const, syncError: null }
+        : {}),
+      workingSnapshot: nextWorking as Prisma.InputJsonValue,
+      imageUrl: coverUrl,
+    },
+  });
+  if (product.shopifyProductId) {
+    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
+    await patchOurProductWindow({
+      shopifyProductId: product.shopifyProductId,
+      localProductId: productId,
+      window: nextWorking,
+    });
+  }
+
+  revalidatePath("/admin/products");
+  revalidateStorefront();
+  return {
+    success: "Image removed from the gallery. Push to Shopify to delete it remotely.",
+    product: await getSavedProductPayload(productId),
+  };
 }
 
 async function uploadOptionalProductAsset(input: {

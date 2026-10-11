@@ -6,7 +6,10 @@ import {
   mediaAltUpdatesFromForm,
   mergeLocalMediaRowsIntoWorkingMedia,
   rawMediaAltsFromWorkingSnapshot,
+  removeWorkingSnapshotMediaAtIndex,
   resolveGalleryMediaAlt,
+  retainedShopifyMediaIdsFromWorkingSnapshot,
+  workingSnapshotMediaNodes,
 } from "@/lib/shopify/product-media-alt-form";
 
 describe("isMediaAltFormField", () => {
@@ -160,9 +163,9 @@ describe("resolveGalleryMediaAlt", () => {
 describe("mergeLocalMediaRowsIntoWorkingMedia", () => {
   it("keeps distinct tree alts when local ProductMedia alt is still empty", () => {
     const base = [
-      { id: "gid://1", alt: "Lemon charm, front", preview: { image: { url: "a.jpg" } } },
-      { id: "gid://2", alt: "Lemon charm, side", preview: { image: { url: "b.jpg" } } },
-      { id: "gid://3", alt: "Lemon charm, detail", preview: { image: { url: "c.jpg" } } },
+      { id: "gid://1", alt: "Lemon charm, front", preview: { image: { url: "https://cdn/a.jpg" } } },
+      { id: "gid://2", alt: "Lemon charm, side", preview: { image: { url: "https://cdn/b.jpg" } } },
+      { id: "gid://3", alt: "Lemon charm, detail", preview: { image: { url: "https://cdn/c.jpg" } } },
     ];
     const next = mergeLocalMediaRowsIntoWorkingMedia({
       baseMedia: base,
@@ -177,5 +180,59 @@ describe("mergeLocalMediaRowsIntoWorkingMedia", () => {
       "Lemon charm, side (edited)",
       "Lemon charm, detail",
     ]);
+  });
+
+  it("keeps the correct Shopify media id when a middle staging row is removed", () => {
+    const base = [
+      { id: "gid://shopify/MediaImage/1", alt: "Front", preview: { image: { url: "https://cdn/a.jpg" } } },
+      { id: "gid://shopify/MediaImage/2", alt: "Side", preview: { image: { url: "https://cdn/b.jpg" } } },
+      { id: "gid://shopify/MediaImage/3", alt: "Detail", preview: { image: { url: "https://cdn/c.jpg" } } },
+    ];
+    const next = mergeLocalMediaRowsIntoWorkingMedia({
+      baseMedia: base,
+      localRows: [
+        { assetId: "a1", alt: "Front", url: "https://cdn/a.jpg", width: 1, height: 1 },
+        { assetId: "a3", alt: "Detail", url: "https://cdn/c.jpg", width: 1, height: 1 },
+      ],
+    });
+    expect(next.map((node) => (node as { id: string }).id)).toEqual([
+      "gid://shopify/MediaImage/1",
+      "gid://shopify/MediaImage/3",
+    ]);
+  });
+});
+
+describe("removeWorkingSnapshotMediaAtIndex", () => {
+  it("splices one frame and rejects out-of-range indexes", () => {
+    const media = [
+      { id: "gid://1", alt: "A" },
+      { id: "gid://2", alt: "B" },
+      { id: "gid://3", alt: "C" },
+    ];
+    expect(removeWorkingSnapshotMediaAtIndex(media, 1)).toEqual([
+      { id: "gid://1", alt: "A" },
+      { id: "gid://3", alt: "C" },
+    ]);
+    expect(media).toHaveLength(3);
+    expect(removeWorkingSnapshotMediaAtIndex(media, -1)).toBeNull();
+    expect(removeWorkingSnapshotMediaAtIndex(media, 3)).toBeNull();
+  });
+});
+
+describe("workingSnapshotMediaNodes / retainedShopifyMediaIdsFromWorkingSnapshot", () => {
+  it("returns null when media key is absent, and nodes/GIDs when present", () => {
+    expect(workingSnapshotMediaNodes({ title: "Ring" })).toBeNull();
+    expect(workingSnapshotMediaNodes({ media: [] })).toEqual([]);
+    expect(retainedShopifyMediaIdsFromWorkingSnapshot({ title: "Ring" })).toBeNull();
+    expect(retainedShopifyMediaIdsFromWorkingSnapshot({ media: [] })).toEqual([]);
+    expect(
+      retainedShopifyMediaIdsFromWorkingSnapshot({
+        media: [
+          { id: "gid://shopify/MediaImage/1" },
+          { id: "local:asset-2" },
+          { id: "gid://shopify/MediaImage/3" },
+        ],
+      }),
+    ).toEqual(["gid://shopify/MediaImage/1", "gid://shopify/MediaImage/3"]);
   });
 });
