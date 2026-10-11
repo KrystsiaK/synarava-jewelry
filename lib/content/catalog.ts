@@ -37,7 +37,7 @@ import { formatCurrency } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
-import { combineProductGallery } from "@/lib/media/product-gallery";
+import { buildStorefrontProductGallery } from "@/lib/media/product-gallery";
 import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
 import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
@@ -446,13 +446,15 @@ function toSummary(product: {
     height: frame.height,
   }));
   // Mirror admin Media: local ProductMedia rows OR snapshot tree — never both.
-  // Still prepend imageUrl as cover, then dedupe by media id / normalized URL.
+  // Gallery SoT is that tree alone; imageUrl is fallback only when the tree is empty
+  // (never prepend featured — that invents a ghost when URLs/ids diverge).
   const galleryFrames = localMedia.length > 0 ? localMedia : workingMedia;
-  const combinedMedia = combineProductGallery(
-    product.imageUrl ? { src: product.imageUrl, alt: localized.title, width: null, height: null } : null,
-    galleryFrames,
-    [],
-  );
+  const combinedMedia = buildStorefrontProductGallery({
+    media: galleryFrames,
+    featuredFallback: product.imageUrl
+      ? { src: product.imageUrl, alt: localized.title, width: null, height: null }
+      : null,
+  });
   return {
     shopifyProductId: product.shopifyProductId,
     slug: activeSlug,

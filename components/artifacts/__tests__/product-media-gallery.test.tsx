@@ -62,6 +62,48 @@ describe("ProductMediaGallery", () => {
     expect(screen.getByRole("button", { name: /Enlarge image 1 of 3/ })).toBeInTheDocument();
   });
 
+  it("does not prepend product.image when commerceMedia is the sole gallery SoT", () => {
+    // Ghost regression: featured/cover URL differs by host from the last tree frame
+    // (S3 card image vs Shopify CDN media). Prepending would show 05/05 with thumbs 1==5.
+    render(
+      <ProductMediaGallery
+        product={{
+          title: "Mini Hammered Horseshoe Necklace",
+          image: "https://media.synarava.example/products/horseshoe-cover.jpg",
+          commerceMedia: [
+            {
+              src: "https://cdn.shopify.com/s/files/1/1101/files/horseshoe-a.jpg",
+              alt: "A",
+              width: 1600,
+              height: 2000,
+            },
+            {
+              src: "https://cdn.shopify.com/s/files/1/1101/files/horseshoe-b.jpg",
+              alt: "B",
+              width: 1600,
+              height: 2000,
+            },
+            {
+              src: "https://cdn.shopify.com/s/files/1/1101/files/horseshoe-c.jpg",
+              alt: "C",
+              width: 1600,
+              height: 2000,
+            },
+            {
+              src: "https://cdn.shopify.com/s/files/1/1101/files/horseshoe-cover.jpg",
+              alt: "Cover",
+              width: 1600,
+              height: 2000,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: /Show image/ })).toHaveLength(4);
+    expect(screen.getByRole("button", { name: /Enlarge image 1 of 4/ })).toBeInTheDocument();
+  });
+
   it("opens a focused lightbox and supports next-image navigation", () => {
     render(<ProductMediaGallery product={product} />);
 

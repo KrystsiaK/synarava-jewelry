@@ -6,18 +6,19 @@ import Image from "next/image";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
-import { combineProductGallery } from "@/lib/media/product-gallery";
+import { buildStorefrontProductGallery } from "@/lib/media/product-gallery";
 
 type GalleryProduct = Pick<ProductSummary, "title" | "image" | "commerceMedia">;
 
 function galleryMedia(product: GalleryProduct) {
-  // commerceMedia already includes the cover; re-apply shared id/url dedupe in case
-  // product.image only differs by Shopify CDN query/size from the first frame.
-  return combineProductGallery(
-    product.image ? { src: product.image, alt: product.title, width: null, height: null } : null,
-    product.commerceMedia,
-    [],
-  );
+  // commerceMedia is the sole gallery SoT from catalog (OUR tree order).
+  // product.image is card/OG cover only — never prepended onto a non-empty tree.
+  return buildStorefrontProductGallery({
+    media: product.commerceMedia,
+    featuredFallback: product.image
+      ? { src: product.image, alt: product.title, width: null, height: null }
+      : null,
+  });
 }
 
 export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
