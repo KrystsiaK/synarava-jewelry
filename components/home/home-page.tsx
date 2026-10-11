@@ -603,7 +603,7 @@ function ArchiveRecord({
         )}
       </div>
       <motion.div
-        className="pointer-events-none absolute inset-0 z-20 bg-black"
+        className="archive-record-dim pointer-events-none absolute inset-0 z-20"
         style={{ opacity: dim }}
         aria-hidden="true"
       />
