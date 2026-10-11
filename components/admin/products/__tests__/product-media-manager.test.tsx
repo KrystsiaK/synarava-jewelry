@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   updateWorkingSnapshotMediaAltAction: vi.fn(),
   moveProductMediaAction: vi.fn(),
   removeProductMediaAction: vi.fn(),
+  removeWorkingSnapshotMediaAction: vi.fn(),
   setPrimaryProductMediaAction: vi.fn(),
   pushToast: vi.fn(),
 }));
@@ -18,6 +19,7 @@ vi.mock("@/app/admin/actions/products", () => ({
   updateWorkingSnapshotMediaAltAction: mocks.updateWorkingSnapshotMediaAltAction,
   moveProductMediaAction: mocks.moveProductMediaAction,
   removeProductMediaAction: mocks.removeProductMediaAction,
+  removeWorkingSnapshotMediaAction: mocks.removeWorkingSnapshotMediaAction,
   setPrimaryProductMediaAction: mocks.setPrimaryProductMediaAction,
 }));
 
@@ -227,6 +229,74 @@ describe("ProductMediaManager alt editing", () => {
       "Lemon charm, side",
     );
     expect(mocks.updateProductMediaAltAction).not.toHaveBeenCalled();
+  });
+
+  it("removes a tree gallery frame by index after Pull", async () => {
+    mocks.removeWorkingSnapshotMediaAction.mockResolvedValue({
+      success: "Image removed from the gallery. Push to Shopify to delete it remotely.",
+      product: makeProduct({ media: [] }),
+    });
+    const user = userEvent.setup();
+    render(
+      <ProductMediaManager
+        product={makeProduct({
+          media: [],
+          workingSnapshot: {
+            media: [
+              {
+                id: "gid://shopify/MediaImage/1",
+                alt: "Front",
+                preview: { image: { url: "https://cdn.example/1.jpg", width: 800, height: 800 } },
+              },
+              {
+                id: "gid://shopify/MediaImage/2",
+                alt: "Side",
+                preview: { image: { url: "https://cdn.example/2.jpg", width: 800, height: 800 } },
+              },
+            ],
+          },
+        })}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const removeButtons = screen.getAllByRole("button", { name: "Remove" });
+    expect(removeButtons).toHaveLength(2);
+    await user.click(removeButtons[1]);
+
+    expect(mocks.removeWorkingSnapshotMediaAction).toHaveBeenCalledWith("product-1", 1);
+    expect(mocks.removeProductMediaAction).not.toHaveBeenCalled();
+  });
+
+  it("asks for confirmation before removing the last tree gallery frame", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    mocks.removeWorkingSnapshotMediaAction.mockResolvedValue({
+      success: "Image removed from the gallery. Push to Shopify to delete it remotely.",
+      product: makeProduct({ media: [] }),
+    });
+    const user = userEvent.setup();
+    render(
+      <ProductMediaManager
+        product={makeProduct({
+          media: [],
+          workingSnapshot: {
+            media: [
+              {
+                id: "gid://shopify/MediaImage/1",
+                alt: "Front",
+                preview: { image: { url: "https://cdn.example/1.jpg", width: 800, height: 800 } },
+              },
+            ],
+          },
+        })}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(mocks.removeWorkingSnapshotMediaAction).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it("keeps alt editable while blur-save is in flight and does not remount on alt update", async () => {

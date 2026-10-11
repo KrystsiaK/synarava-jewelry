@@ -43,6 +43,7 @@ import {
 import {
   rawMediaAltsFromWorkingSnapshot,
   resolveGalleryMediaAlt,
+  workingSnapshotMediaNodes,
 } from "@/lib/shopify/product-media-alt-form";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
@@ -1728,21 +1729,50 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         files.push({ originalSource: directImage, contentType: "IMAGE", alt });
       }
     }
-    // Remote-only frames (local ProductMedia released after prior Push): push OUR tree alts by gallery index.
+    // Remaining gallery frames after local ProductMedia is released (typical post-Push /
+    // post-Pull Media tab): OUR `workingSnapshot.media` is SoT. Include those Shopify
+    // GIDs (with tree alts) and omit remote media removed from the tree so productSet
+    // list-field semantics delete them on Shopify
+    // (https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet).
     const remoteNodes = currentRemote?.media.nodes ?? [];
-    for (const [remoteIndex, remote] of remoteNodes.entries()) {
-      const url = remote.preview?.image?.url;
-      if (seenMediaIds.has(remote.id) || (url && seenMediaUrls.has(url))) continue;
-      seenMediaIds.add(remote.id);
-      if (url) seenMediaUrls.add(url);
-      files.push({
-        id: remote.id,
-        alt: resolveGalleryMediaAlt({
-          localAlt: null,
-          treeAlt: treeAlts[remoteIndex] ?? "",
-          remoteAlt: remote.alt,
-        }),
-      });
+    const remoteById = new Map(remoteNodes.map((item) => [item.id, item] as const));
+    const treeMedia = workingSnapshotMediaNodes(product.workingSnapshot);
+    if (treeMedia) {
+      for (const [treeIndex, node] of treeMedia.entries()) {
+        if (!node || typeof node !== "object" || Array.isArray(node)) continue;
+        const id = typeof (node as { id?: unknown }).id === "string"
+          ? (node as { id: string }).id
+          : null;
+        if (!id || !id.startsWith("gid://shopify/") || seenMediaIds.has(id)) continue;
+        const remote = remoteById.get(id);
+        const url = remote?.preview?.image?.url;
+        seenMediaIds.add(id);
+        if (url) seenMediaUrls.add(url);
+        files.push({
+          id,
+          alt: resolveGalleryMediaAlt({
+            localAlt: null,
+            treeAlt: treeAlts[treeIndex] ?? "",
+            remoteAlt: remote?.alt,
+          }),
+        });
+      }
+    } else {
+      // Legacy windows without a `media` key: keep remote frames (do not wipe).
+      for (const [remoteIndex, remote] of remoteNodes.entries()) {
+        const url = remote.preview?.image?.url;
+        if (seenMediaIds.has(remote.id) || (url && seenMediaUrls.has(url))) continue;
+        seenMediaIds.add(remote.id);
+        if (url) seenMediaUrls.add(url);
+        files.push({
+          id: remote.id,
+          alt: resolveGalleryMediaAlt({
+            localAlt: null,
+            treeAlt: treeAlts[remoteIndex] ?? "",
+            remoteAlt: remote.alt,
+          }),
+        });
+      }
     }
     const input = {
       title: product.name,

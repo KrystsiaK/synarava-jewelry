@@ -110,19 +110,104 @@ export type LocalMediaRowForWorkingMerge = {
   height: number | null;
 };
 
+/** Preview / image URL from a Shopify-shaped media node. */
+export function mediaNodePreviewUrl(node: unknown): string | null {
+  if (!isPlainObject(node)) return null;
+  const preview = isPlainObject(node.preview) ? node.preview : null;
+  const previewImage = preview && isPlainObject(preview.image) ? preview.image : null;
+  const image = isPlainObject(node.image) ? node.image : null;
+  if (previewImage && typeof previewImage.url === "string" && previewImage.url) {
+    return previewImage.url;
+  }
+  if (image && typeof image.url === "string" && image.url) return image.url;
+  return null;
+}
+
+/**
+ * Remove one OUR-tree media frame by index (immutable).
+ * Returns null when the index is out of range.
+ */
+export function removeWorkingSnapshotMediaAtIndex(
+  media: unknown[],
+  mediaIndex: number,
+): unknown[] | null {
+  if (!Number.isInteger(mediaIndex) || mediaIndex < 0 || mediaIndex >= media.length) {
+    return null;
+  }
+  return media.filter((_, index) => index !== mediaIndex);
+}
+
+/**
+ * OUR-tree media nodes when the window has a `media` key.
+ * - `null` — no `media` key (legacy: do not treat tree as SoT).
+ * - `unknown[]` — tree is SoT (may be empty after intentional clear).
+ */
+export function workingSnapshotMediaNodes(workingSnapshot: unknown): unknown[] | null {
+  if (!isPlainObject(workingSnapshot) || !("media" in workingSnapshot)) return null;
+  return Array.isArray(workingSnapshot.media) ? workingSnapshot.media : [];
+}
+
+/**
+ * Shopify media GIDs retained on Push from OUR `workingSnapshot.media`.
+ * - `null` — no `media` key on the window (legacy: do not treat tree as SoT).
+ * - `string[]` — tree is SoT; remote media not listed must be omitted from
+ *   `productSet.files` so Shopify deletes them (list-field semantics).
+ */
+export function retainedShopifyMediaIdsFromWorkingSnapshot(
+  workingSnapshot: unknown,
+): string[] | null {
+  const media = workingSnapshotMediaNodes(workingSnapshot);
+  if (media == null) return null;
+  return media.flatMap((node) => {
+    if (!isPlainObject(node) || typeof node.id !== "string") return [];
+    return node.id.startsWith("gid://shopify/") ? [node.id] : [];
+  });
+}
+
+function findPriorMediaIndex(input: {
+  baseMedia: unknown[];
+  url: string;
+  preferredIndex: number;
+  used: ReadonlySet<number>;
+}): number {
+  const byUrl = input.baseMedia.findIndex((node, index) => {
+    if (input.used.has(index)) return false;
+    return mediaNodePreviewUrl(node) === input.url;
+  });
+  if (byUrl >= 0) return byUrl;
+
+  if (
+    input.preferredIndex < input.baseMedia.length
+    && !input.used.has(input.preferredIndex)
+  ) {
+    return input.preferredIndex;
+  }
+
+  return input.baseMedia.findIndex((_, index) => !input.used.has(index));
+}
+
 /**
  * Build Shopify-shaped media for Save write-through.
- * Prefer non-empty local alts; otherwise keep the prior OUR-tree alt at that index
+ * Prefer non-empty local alts; otherwise keep the matched prior OUR-tree alt
  * so empty staging rows cannot wipe distinct tree edits.
  * Intentional: output length follows `localRows` (staging gallery is SoT when present);
- * extra `baseMedia` tail entries are dropped.
+ * extra `baseMedia` entries are dropped. Priors match by URL first so remove/reorder
+ * keeps the correct Shopify media `id` (index-only match reassigned deleted slots).
  */
 export function mergeLocalMediaRowsIntoWorkingMedia(input: {
   localRows: ReadonlyArray<LocalMediaRowForWorkingMerge>;
   baseMedia: unknown[];
 }): unknown[] {
+  const usedPrior = new Set<number>();
   return input.localRows.map((item, index) => {
-    const prior = input.baseMedia[index];
+    const priorIndex = findPriorMediaIndex({
+      baseMedia: input.baseMedia,
+      url: item.url,
+      preferredIndex: index,
+      used: usedPrior,
+    });
+    if (priorIndex >= 0) usedPrior.add(priorIndex);
+    const prior = priorIndex >= 0 ? input.baseMedia[priorIndex] : undefined;
     const priorAlt = isPlainObject(prior) ? trimAlt(prior.alt) : "";
     const localAlt = trimAlt(item.alt);
     const priorId = isPlainObject(prior) && typeof prior.id === "string" ? prior.id : null;

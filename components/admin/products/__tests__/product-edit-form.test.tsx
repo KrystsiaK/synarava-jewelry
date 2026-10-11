@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   updateWorkingSnapshotMediaAltAction: vi.fn(),
   moveProductMediaAction: vi.fn(),
   removeProductMediaAction: vi.fn(),
+  removeWorkingSnapshotMediaAction: vi.fn(),
   setPrimaryProductMediaAction: vi.fn(),
   refreshPreservingScroll: vi.fn(),
 }));
@@ -35,6 +36,7 @@ vi.mock("@/app/admin/actions/products", () => ({
   updateWorkingSnapshotMediaAltAction: mocks.updateWorkingSnapshotMediaAltAction,
   moveProductMediaAction: mocks.moveProductMediaAction,
   removeProductMediaAction: mocks.removeProductMediaAction,
+  removeWorkingSnapshotMediaAction: mocks.removeWorkingSnapshotMediaAction,
   setPrimaryProductMediaAction: mocks.setPrimaryProductMediaAction,
 }));
 

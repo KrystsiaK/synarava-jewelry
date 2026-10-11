@@ -141,8 +141,11 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
    конфликтов → Apply по полям. **Галерея (Media):** бейдж конфликта значит,
    что в Shopify и Synarava разные commerce-снимки `media`. Вкладка Media
    читает **OUR** дерево (`workingSnapshot.media`); локальные `ProductMedia`
-   — staging для upload/reorder (write-through в то же дерево). У каждого
-   кадра — поле **Alt text** (Shopify `MEDIA_IMAGE.alt`): blur сохраняет;
+   — staging для upload/reorder/remove (write-through в то же дерево). После
+   Pull кнопка **Remove** на кадре удаляет его из OUR дерева; **Push** не
+   включает этот Shopify media id в `productSet.files`, и Shopify удаляет
+   файл. У каждого кадра — поле **Alt text** (Shopify `MEDIA_IMAGE.alt`):
+   blur сохраняет;
    пустой / `Image N` / filename-like alt — мягкое предупреждение и пункт
    publish checklist (Issues `MISSING_IMAGE_ALT` + Meta Health). В Field
    Decisions галерею можно взять/отправить тем же контрактом (Pull = adopt

@@ -6,6 +6,7 @@ import Image from "next/image";
 import {
   moveProductMediaAction,
   removeProductMediaAction,
+  removeWorkingSnapshotMediaAction,
   setPrimaryProductMediaAction,
   updateProductMediaAltAction,
   updateWorkingSnapshotMediaAltAction,
@@ -90,6 +91,17 @@ export function ProductMediaManager({
     mutate(() => updateWorkingSnapshotMediaAltAction(product.id, index, alt));
   }
 
+  function removeTreeFrame(index: number) {
+    if (!product) return;
+    if (treeFrames.length <= 1) {
+      const confirmed = window.confirm(
+        "This is the last gallery image. Remove it? Push will delete all product media in Shopify.",
+      );
+      if (!confirmed) return;
+    }
+    mutate(() => removeWorkingSnapshotMediaAction(product.id, index));
+  }
+
   return (
     <section
       id="field-imageUrl"
@@ -109,7 +121,8 @@ export function ProductMediaManager({
           <p className="adm-label">Product gallery</p>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
             Upload up to 250 images. Position 1 is the catalog cover. Gallery lives in the OUR commerce tree
-            (`workingSnapshot.media`); uploads write through there for conflict detect. Descriptive alt text is
+            (`workingSnapshot.media`); uploads and removes write through there for conflict detect. Remove drops
+            a frame locally; Push omits it from Shopify so the remote media is deleted. Descriptive alt text is
             part of the publish checklist (Shopify <code className="text-[0.7rem]">MEDIA_IMAGE.alt</code>).
           </p>
           <AdminFieldIssue issues={coverIssues} />
@@ -174,6 +187,16 @@ export function ProductMediaManager({
                   saveTreeAlt(index, event.currentTarget.value);
                 }}
               />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="adm-btn-danger min-h-9 px-3"
+                  disabled={pending}
+                  onClick={() => removeTreeFrame(index)}
+                >
+                  Remove
+                </button>
+              </div>
             </article>
           ))}
         </div>
