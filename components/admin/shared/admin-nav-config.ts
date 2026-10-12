@@ -208,6 +208,7 @@ export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
     { id: "settings-contact", href: "/admin/settings#shared-contact", label: "Contact" },
     { id: "settings-reviews", href: "/admin/settings#shared-reviews", label: "Reviews" },
     { id: "settings-taxonomy", href: "/admin/settings#shared-taxonomy", label: "Taxonomy" },
+    { id: "settings-sku-policy", href: "/admin/settings#shared-sku-policy", label: "SKU policy" },
   ];
 }
 

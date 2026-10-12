@@ -75,24 +75,68 @@ export type LegacyImportRow = {
  * Persistence boundary for the SKU registry.
  * Prisma Postgres is the production adapter; tests use an in-memory serializable store.
  */
+export type ConfirmAssignmentParams = {
+  readonly workspaceKey: string;
+  readonly reservationId: string;
+  readonly sku: string;
+  readonly externalSystem: "shopify";
+  readonly externalShop: string;
+  readonly externalProductId: string;
+  readonly externalVariantId: string;
+  readonly shopifyReadBackSku: string;
+  readonly correlationId: string;
+  readonly actor: string;
+};
+
 export type SkuRegistryStore = {
   ensureWorkspace(key: string): Promise<WorkspaceRecord>;
+  saveDraftProfile(
+    workspaceKey: string,
+    config: PolicyProfileConfig,
+  ): Promise<ProfileRecord>;
   publishProfile(
     workspaceKey: string,
     config: PolicyProfileConfig,
   ): Promise<ProfileRecord>;
+  publishProfileVersion(
+    workspaceKey: string,
+    version: number,
+  ): Promise<ProfileRecord>;
+  listProfiles(workspaceKey: string): Promise<readonly ProfileRecord[]>;
   getPublishedProfile(workspaceKey: string): Promise<ProfileRecord | null>;
   getLastAllocatedSequence(
     workspaceId: string,
     stem: string,
   ): Promise<number | null>;
   reserve(params: ReserveParams): Promise<ReservationRecord>;
+  getReservation(
+    workspaceKey: string,
+    reservationId: string,
+  ): Promise<ReservationRecord | null>;
   cancelReservationAsTombstone(
     workspaceKey: string,
     reservationId: string,
     correlationId: string,
     actor: string,
   ): Promise<ReservationRecord>;
+  confirmAssignment(params: ConfirmAssignmentParams): Promise<AssignmentRecord>;
+  lockAssignment(
+    workspaceKey: string,
+    assignmentId: string,
+    lockState: "PUBLICATION_LOCKED" | "ORDER_LOCKED",
+    correlationId: string,
+    actor: string,
+  ): Promise<AssignmentRecord>;
+  validateSku(
+    workspaceKey: string,
+    sku: string,
+  ): Promise<{
+    readonly sku: string;
+    readonly validFormat: boolean;
+    readonly assigned: boolean;
+    readonly reservationStatus: ReservationRecord["status"] | null;
+    readonly policyVersion: number | null;
+  }>;
   importLegacyAssignments(
     workspaceKey: string,
     rows: readonly LegacyImportRow[],

@@ -19,6 +19,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
+    "dev": "pnpm build && SKU_API_DEV_TOKEN=${SKU_API_DEV_TOKEN:-dev-sku-token} SKU_SEED_EXAMPLE=1 node dist/main.js",
     "postinstall": "pnpm prisma:generate"
   },
   "dependencies": {

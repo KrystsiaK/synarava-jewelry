@@ -5,6 +5,12 @@ export {
   type SkuErrorBody,
 } from "./errors.js";
 export {
+  createSkuClient,
+  type SkuClient,
+  type SkuClientConfig,
+  type SkuClientResult,
+} from "./client.js";
+export {
   confirmAssignmentRequestSchema,
   confirmAssignmentResponseSchema,
   correlationIdSchema,

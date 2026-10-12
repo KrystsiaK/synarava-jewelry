@@ -81,6 +81,28 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
   const getWorkspace = (key: string): MutableWorkspace | null =>
     workspaces.get(key) ?? null;
 
+  const requireWorkspace = (key: string): MutableWorkspace => {
+    const workspace = getWorkspace(key);
+    if (!workspace) {
+      throw domainError(fail("WORKSPACE_NOT_FOUND", `workspace ${key}`));
+    }
+    return workspace;
+  };
+
+  const assertProfileConfig = (
+    workspaceKey: string,
+    config: PolicyProfileConfig,
+  ) => {
+    if (config.workspace !== workspaceKey) {
+      throw domainError(
+        fail("INVALID_INPUT", "profile.workspace must match workspace key"),
+      );
+    }
+    if (config.suffix.reuse !== false) {
+      throw domainError(fail("INVALID_INPUT", "suffix.reuse must be false"));
+    }
+  };
+
   const getPublished = (workspaceKey: string): MutableProfile | null => {
     const list = profiles.get(workspaceKey) ?? [];
     const published = list
@@ -105,25 +127,42 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
       });
     },
 
-    async publishProfile(workspaceKey, config) {
-      return runExclusive(async () => {
-        const workspace = getWorkspace(workspaceKey);
-        if (!workspace) {
-          throw domainError(fail("WORKSPACE_NOT_FOUND", `workspace ${workspaceKey}`));
-        }
-        if (config.workspace !== workspaceKey) {
+    async saveDraftProfile(workspaceKey, config) {
+      return runExclusive(() => {
+        const workspace = requireWorkspace(workspaceKey);
+        assertProfileConfig(workspaceKey, config);
+        const list = profiles.get(workspaceKey) ?? [];
+        const withoutSameVersion = list.filter((p) => p.version !== config.version);
+        const existing = list.find((p) => p.version === config.version);
+        if (existing && existing.status === "PUBLISHED") {
           throw domainError(
-            fail("INVALID_INPUT", "profile.workspace must match workspace key"),
+            fail("INVALID_INPUT", "published profile versions are immutable"),
           );
         }
-        if (config.suffix.reuse !== false) {
-          throw domainError(fail("INVALID_INPUT", "suffix.reuse must be false"));
-        }
+        const record: MutableProfile = {
+          id: existing?.id ?? randomUUID(),
+          workspaceId: workspace.id,
+          version: config.version,
+          status: "DRAFT",
+          config,
+        };
+        profiles.set(workspaceKey, [...withoutSameVersion, record]);
+        appendAudit(workspace.id, "system", "profile.draft", `profile-${config.version}`, {
+          version: config.version,
+        });
+        return record;
+      });
+    },
 
+    async publishProfile(workspaceKey, config) {
+      return runExclusive(() => {
+        const workspace = requireWorkspace(workspaceKey);
+        assertProfileConfig(workspaceKey, config);
         const list = profiles.get(workspaceKey) ?? [];
         const retired = list.map((p) =>
           p.status === "PUBLISHED" ? { ...p, status: "RETIRED" as const } : p,
         );
+        const withoutVersion = retired.filter((p) => p.version !== config.version);
         const record: MutableProfile = {
           id: randomUUID(),
           workspaceId: workspace.id,
@@ -131,7 +170,7 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
           status: "PUBLISHED",
           config,
         };
-        profiles.set(workspaceKey, [...retired, record]);
+        profiles.set(workspaceKey, [...withoutVersion, record]);
         appendAudit(
           workspace.id,
           "system",
@@ -143,8 +182,52 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
       });
     },
 
+    async publishProfileVersion(workspaceKey, version) {
+      return runExclusive(() => {
+        const workspace = requireWorkspace(workspaceKey);
+        const list = profiles.get(workspaceKey) ?? [];
+        const draft = list.find((p) => p.version === version);
+        if (!draft) {
+          throw domainError(fail("INVALID_INPUT", `profile v${version} not found`));
+        }
+        if (draft.status === "PUBLISHED") {
+          return draft;
+        }
+        const retired = list.map((p) =>
+          p.status === "PUBLISHED" ? { ...p, status: "RETIRED" as const } : p,
+        );
+        const published: MutableProfile = { ...draft, status: "PUBLISHED" };
+        profiles.set(
+          workspaceKey,
+          retired.map((p) => (p.version === version ? published : p)),
+        );
+        appendAudit(workspace.id, "system", "profile.publish", `profile-${version}`, {
+          version,
+        });
+        return published;
+      });
+    },
+
+    async listProfiles(workspaceKey) {
+      return runExclusive(() => {
+        requireWorkspace(workspaceKey);
+        return [...(profiles.get(workspaceKey) ?? [])].toSorted(
+          (a, b) => b.version - a.version,
+        );
+      });
+    },
+
     async getPublishedProfile(workspaceKey) {
       return runExclusive(() => getPublished(workspaceKey));
+    },
+
+    async getReservation(workspaceKey, reservationId) {
+      return runExclusive(() => {
+        const workspace = requireWorkspace(workspaceKey);
+        const found = reservationsById.get(reservationId);
+        if (!found || found.workspaceId !== workspace.id) return null;
+        return found;
+      });
     },
 
     async getLastAllocatedSequence(workspaceId, stem) {
@@ -376,6 +459,120 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
         });
 
         return { created, skipped, assignments: result };
+      });
+    },
+
+    async confirmAssignment(params) {
+      return runExclusive(() => {
+        const workspace = requireWorkspace(params.workspaceKey);
+        const reservation = reservationsById.get(params.reservationId);
+        if (!reservation || reservation.workspaceId !== workspace.id) {
+          throw domainError(fail("RESERVATION_NOT_FOUND", params.reservationId));
+        }
+        if (reservation.sku !== params.sku) {
+          throw domainError(
+            fail("ASSIGNMENT_CONFLICT", "sku does not match reservation"),
+          );
+        }
+        if (params.shopifyReadBackSku.trim().toUpperCase() !== reservation.sku) {
+          throw domainError(
+            fail(
+              "ASSIGNMENT_CONFLICT",
+              "Shopify read-back SKU does not match reservation",
+            ),
+          );
+        }
+        if (reservation.status !== "PENDING" && reservation.status !== "CONFIRMED") {
+          throw domainError(
+            fail("ASSIGNMENT_CONFLICT", `reservation is ${reservation.status}`),
+          );
+        }
+
+        const aKey = assignmentKey(workspace.id, reservation.sku);
+        const existing = assignments.get(aKey);
+        if (existing) {
+          return existing;
+        }
+
+        const confirmed: ReservationRecord = {
+          ...reservation,
+          status: "CONFIRMED",
+        };
+        reservationsBySku.set(aKey, confirmed);
+        reservationsById.set(confirmed.id, confirmed);
+
+        const assignment: AssignmentRecord = {
+          id: randomUUID(),
+          workspaceId: workspace.id,
+          sku: reservation.sku,
+          policyVersion: reservation.policyVersion,
+          source: "RESERVED",
+          status: "ACTIVE",
+          lockState: "NONE",
+          externalSystem: params.externalSystem,
+          externalShop: params.externalShop,
+          externalProductId: params.externalProductId,
+          externalVariantId: params.externalVariantId,
+          reservationId: reservation.id,
+          correlationId: params.correlationId,
+          createdAt: new Date(),
+        };
+        assignments.set(aKey, assignment);
+        appendAudit(workspace.id, params.actor, "assignment.confirm", params.correlationId, {
+          assignmentId: assignment.id,
+          sku: assignment.sku,
+        });
+        return assignment;
+      });
+    },
+
+    async lockAssignment(
+      workspaceKey,
+      assignmentId,
+      lockState,
+      correlationId,
+      actor,
+    ) {
+      return runExclusive(() => {
+        const workspace = requireWorkspace(workspaceKey);
+        const found = [...assignments.values()].find(
+          (a) => a.id === assignmentId && a.workspaceId === workspace.id,
+        );
+        if (!found) {
+          throw domainError(fail("ASSIGNMENT_CONFLICT", "assignment not found"));
+        }
+        const rank = { NONE: 0, PUBLICATION_LOCKED: 1, ORDER_LOCKED: 2 } as const;
+        const nextLock =
+          rank[lockState] >= rank[found.lockState] ? lockState : found.lockState;
+        const updated: AssignmentRecord = { ...found, lockState: nextLock };
+        assignments.set(assignmentKey(workspace.id, found.sku), updated);
+        appendAudit(workspace.id, actor, "assignment.lock", correlationId, {
+          assignmentId,
+          lockState: nextLock,
+        });
+        return updated;
+      });
+    },
+
+    async validateSku(workspaceKey, skuRaw) {
+      return runExclusive(() => {
+        const workspace = requireWorkspace(workspaceKey);
+        const profile = getPublished(workspaceKey);
+        if (!profile) {
+          throw domainError(fail("PROFILE_NOT_PUBLISHED", "no published profile"));
+        }
+        const parsed = parseSku(skuRaw, profile.config);
+        const sku = parsed.ok ? parsed.value.sku : skuRaw.trim().toUpperCase();
+        const aKey = assignmentKey(workspace.id, sku);
+        const assignment = assignments.get(aKey) ?? null;
+        const reservation = reservationsBySku.get(aKey) ?? null;
+        return {
+          sku,
+          validFormat: parsed.ok,
+          assigned: Boolean(assignment),
+          reservationStatus: reservation?.status ?? null,
+          policyVersion: profile.version,
+        };
       });
     },
 
