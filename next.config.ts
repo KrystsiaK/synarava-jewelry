@@ -43,6 +43,9 @@ const s3SignedBucketHostname =
     : null;
 
 const nextConfig: NextConfig = {
+  // Workspace packages are TypeScript source (not prebuilt dist). Next must
+  // transpile them; see https://nextjs.org/docs/app/api-reference/config/next-config-js/transpilePackages
+  transpilePackages: ["@synarava/sku-contract"],
   // Tie browser assets and Server Action references to the build that created
   // them. Next.js can then hard-navigate a long-lived tab after a Railway
   // deployment instead of mixing old client code with new action IDs.

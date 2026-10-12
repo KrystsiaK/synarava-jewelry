@@ -3,13 +3,13 @@ export {
   skuErrorCodeSchema,
   type SkuApiErrorCode,
   type SkuErrorBody,
-} from "./errors.js";
+} from "./errors";
 export {
   createSkuClient,
   type SkuClient,
   type SkuClientConfig,
   type SkuClientResult,
-} from "./client.js";
+} from "./client";
 export {
   confirmAssignmentRequestSchema,
   confirmAssignmentResponseSchema,
@@ -30,4 +30,4 @@ export {
   type ReserveResponse,
   type ValidateRequest,
   type ValidateResponse,
-} from "./v1.js";
+} from "./v1";
