@@ -1,0 +1,658 @@
+# Руководство по админ-панели Synarava
+
+Документ описывает, как пользоваться CMS-админкой интернет-магазина Synarava:
+где что находится, как создавать и публиковать контент, как работает
+синхронизация с Shopify и на что обращать внимание при повседневной работе.
+
+Актуализировано по состоянию на 2026-09-25: Pages draft restore after
+deployment skew reload; product workspace sticky chrome, locale-scoped
+conflict sync, whole-product Save, leave-guard, scroll preserve after Save;
+legal/service page sections are add/remove/reorder with editable names.
+
+---
+
+## 1. Доступ и вход в систему
+
+- Адрес входа: `/admin/login`.
+- Админ-доступ **полностью отделён** от аккаунтов покупателей витрины — это
+  отдельная система логина и отдельная cookie-сессия.
+- Логин и пароль администратора задаются переменными окружения
+  (`ADMIN_USERNAME` / `ADMIN_EMAIL` и `ADMIN_PASSWORD_HASH`), поменять их из
+  интерфейса нельзя — страница «Аккаунт» это явно показывает.
+  - В режиме разработки (не production) допускается временный пароль в
+    открытом виде через `ADMIN_PASSWORD`, но в production он игнорируется —
+    обязателен `ADMIN_PASSWORD_HASH`.
+- Если переменные не настроены, форма логина покажет ошибку
+  «Admin auth is not configured…» вместо попытки проверки пароля.
+- **Ограничение частоты попыток входа**: не более 10 попыток за 15 минут с
+  одного IP-адреса (независимо от логина). При превышении — сообщение
+  «Too many attempts. Try again in N s.» и обратный отсчёт на кнопке входа.
+  Успешный вход сбрасывает счётчик для этого IP.
+- Сессия администратора живёт **8 часов**, хранится в httpOnly-cookie с
+  областью действия `/admin` (то есть не отправляется на витрину). Есть
+  скользящее продление `lastSeenAt`, но не бесконечное — по истечении 8 часов
+  нужно логиниться заново.
+- Параметр `redirectTo` в URL логина всегда проверяется: он обязан быть
+  относительным путём внутри `/admin` и не может указывать обратно на
+  `/admin/login` (иначе появился бы бесконечный редирект). Попытка подставить
+  внешний домен (`https://evil.com`) или `//evil.com` в этот параметр
+  игнорируется, пользователя всегда вернёт на `/admin`.
+- Исходный URL также кратко запоминается в httpOnly-cookie
+  `synarava-admin-return-to` (10 минут, `Path=/admin`): если query `redirectTo`
+  потеряется (например, после повторной проверки сессии в layout при ещё
+  подписанной, но уже истёкшей cookie), после входа всё равно откроется та
+  страница, с которой начался заход.
+- Выход из системы — кнопка «Log out» в сайдбаре или в шапке (мобильное меню).
+  После выхода cookie-сессия удаляется и в базе, и в браузере.
+- Любая страница `/admin/*` при отсутствии валидной сессии редиректит на
+  `/admin/login?redirectTo=<исходный путь>`. Быстрый request guard в `proxy.ts`
+  отсекает запрос до рендера и пишет return-to cookie; серверный layout читает
+  текущий путь из заголовков `x-pathname` / `x-search` (их выставляет proxy) и
+  повторно проверяет сессию по базе — без хардкода на `/admin`. Если сессия
+  истекла во время Server Action, proxy отвечает специальным action-redirect,
+  поэтому браузер открывает логин обычной навигацией, не повторяя POST на
+  страницу логина.
+- Вкладка, оставленная открытой во время production deployment, распознаёт
+  смену версии по Railway commit/deployment ID. Если устаревший Server Action
+  всё же вызван, экран восстановления предлагает загрузить актуальную версию.
+  В редакторе **Pages** (в том числе FAQ / Care / Shipping / Returns) несохранённые
+  поля локали перед reload сохраняются в sessionStorage этой вкладки и
+  восстанавливаются после загрузки актуальной версии — после reload нужно снова
+  нажать Save.
+
+## 2. Общая структура интерфейса
+
+После входа пользователь попадает в «Admin console» — единый layout с:
+
+- **Верхней панелью (topbar)**: логотип, переключатель темы (светлая/тёмная),
+  индикатор открытых проблем (issues) со ссылкой, индикатор «Live CMS».
+  Topbar зафиксирован сверху при прокрутке.
+- **Левым сайдбаром**: разделы навигации (`Overview`, `Pages`, `Shared`,
+  `Cart & account`,
+  `Customer account`,
+  `Meta`, `Videos`, `Catalog`, `Problems`, `Collections`, `Localization`,
+  `Infrastructure`, `Account`) и
+  счётчик открытых проблем рядом с соответствующим пунктом.
+  Home и About редактируются внутри `Pages` (`/admin/pages/home`,
+  `/admin/pages/about`).
+  Сайдбар прокручивается независимо от контента страницы.
+- **Мобильным меню** — гамбургер с тем же списком разделов + переключатель
+  темы + кнопка выхода, для узких экранов.
+- **Основной областью контента** — сама страница раздела.
+
+## 3. Панель управления (Control Room, `/admin`)
+
+Стартовая страница после входа. Показывает:
+
+- Плитки-счётчики для реализованных контентных и каталожных разделов.
+- Статус-строку: сколько товаров опубликовано/в черновике, сколько коллекций
+  опубликовано, текущая активная локаль (сейчас всегда `EN`).
+- Список последних страниц и до 7 последних товаров с бейджем
+  `PUB` (опубликован) / `DRF` (черновик).
+
+## 4. Каталог → Товары (`/admin/products`)
+
+Самый сложный раздел админки: карточка товара одновременно хранит данные,
+которыми управляет Shopify («коммерческое ядро»), и редакторский контент,
+который принадлежит только Synarava CMS и переживает любую синхронизацию.
+
+### 4.1. Список товаров
+
+- Поиск по названию, слагу, SKU.
+- Фильтры: статус (`Published` / `Draft` / `Archived`), категория Shopify,
+  коллекция.
+- На каждой строке — быстрые действия: **Draft / Publish / Archive / Delete**.
+- **Run conflict check** одновременно проверяет подключение и права Shopify, обновляет сохранённые расхождения и открывает список найденных конфликтов (см. §4.5).
+- После **Run conflict check** список конфликтов открывается сам, если товары найдены. Кнопка **Show conflicts** в заголовке каталога открывает тот же список позже. Toast «N products need review» без списка — ошибка: проверка должна и сохранить commerce-флаг, и показать диалог.
+- В списке доступны массовые направления, три действия на товар и ручной выбор полей. Запись начинается только после обязательного preview. Поддерживаются переводы и commerce-поля **Name, Handle, Vendor, Product type, Variant SKU, Price, Compare-at price, Charge tax**. Остальные commerce-поля (Status, media, tags, …) попадают в **Not included** с причиной — их резолвят через редактор товара → Sync → Push/Pull.
+- После успешного **Use Shopify** у товара появляется ссылка **Updated from Shopify · review**. Она снимается только после открытия страницы редактора `/admin/products/[id]`, не после просмотра списка. **Use Synarava** этот маркер не ставит.
+- Сигналы отражают сохранённые расхождения, а не гарантированное состояние Shopify прямо сейчас. `Checking`, `stale`, `failed` и `disconnected` отмечаются отдельно; при ошибке чтения данных ноль конфликтов не показывается.
+
+### 4.2. Создание / редактирование товара
+
+Редактор — **workspace** с разделением Save и Sync. Модель: **остов Shopify**
+(все поддерживаемые commerce-поля, проверка sync поле за полем) **+ секции
+Synarava** (редакторский CMS-слой, которого нет в Shopify). После Save позиция
+скролла в колонке контента не сбрасывается (остаётесь на той же секции).
+Переход на другую страницу (создание → редактор, удаление → список) —
+отдельный случай.
+
+1. **Уровень товара** (липкая шапка): конфликты по всему продукту, Check,
+   Delete, **Save product** (всегда сохраняет весь товар локально).
+2. **Уровень языка** (вкладки EN / PT / …): sticky под шапкой + sync
+   control справа — Check/conflicts для **всех секций** активного языка.
+3. **Уровень секции**: табы визуально разделены на две группы —
+   **Shopify** (Product, Price, Inventory, Metafields, Media, Sync) и **Synarava**
+   (Passport — jewelry specs / `synarava.*`; Product page — short description,
+   symbolism, materials, process, lookbook).
+   Description и SEO — на вкладке **Product** (Shopify). Отдельной вкладки Content нет.
+   Category, collection и Site state (publish) тоже на **Product** (как organization
+   в Shopify Admin). Отдельной вкладки Catalog нет. Характеристики паспорта — на
+   **Passport**.
+   **Inventory** — SKU и available qty (Save + Push); location table, barcode,
+   tracking, sell-when-out-of-stock, weight, origin, HS — с последнего Pull
+   (правка пока в Shopify Admin). Отдельной вкладки Variants пока нет.
+   Вкладка **Price** зеркалит карточку
+   Price в Shopify Admin: цена, налог (`taxable`); **compare-at** и **cost**
+   только чтение (правка в Shopify Admin — compare-at также см. [tech debt TD-01](../tech-debt.md#td-01--compare-at-price-legal-rules--synarava-edit-path));
+   Profit/Margin считаются локально. Unit price (г/кг) — следующий шаг. В блоке описания секции
+   (вместо декоративной картинки) — sync control, scoped на
+   текущую секцию × язык (shared-секции → EN/shared). Check → список
+   конфликтов → Apply по полям. **Галерея (Media):** бейдж конфликта значит,
+   что в Shopify и Synarava разные commerce-снимки `media`. Вкладка Media
+   читает **OUR** дерево (`workingSnapshot.media`); локальные `ProductMedia`
+   — staging для upload/reorder/remove (write-through в то же дерево). После
+   Pull кнопка **Remove** на кадре удаляет его из OUR дерева; **Push** не
+   включает этот Shopify media id в `productSet.files`, и Shopify удаляет
+   файл. У каждого кадра — поле **Alt text** (Shopify `MEDIA_IMAGE.alt`):
+   blur сохраняет;
+   пустой / `Image N` / filename-like alt — мягкое предупреждение и пункт
+   publish checklist (Issues `MISSING_IMAGE_ALT` + Meta Health). В Field
+   Decisions галерею можно взять/отправить тем же контрактом (Pull = adopt
+   `media`, Push = push pipeline) или целым Pull/Push, если поле ещё без
+   scoped write (Status, tags). JSON/`originalSource` в диалоге не
+   сбрасывается — только короткое имя файла. Набор Shopify-табов будет
+   расширяться, чтобы ближе повторить структуру product admin в Shopify.
+
+При уходе со страницы с несохранёнными вкладками открывается модалка
+подтверждения; закрытие вкладки браузера тоже предупреждает.
+
+На форме создания вкладка Sync появляется после первого сохранения.
+Переключение вкладок не сбрасывает введённые значения. Ссылки из «Проблем» автоматически открывают вкладку с нужным полем и
+скроллят к контролу. Открытые проблемы на карточке товара: окрашивается
+вкладка секции (и язык — только для языковых полей); sticky-шапка секции
+держит табы и название + sync-actions отдельными sticky-слоями (между ними
+можно вставить другой chrome), ниже описание с иллюстрацией, под
+линией — полный ряд ошибок с кликом на поле. У самого поля проблема
+подсвечивает контрол (красная рамка и фон) и текст ошибки выезжает
+абсолютом под ним — без сдвига соседних рядов; отдельные баннеры над
+инпутом не используются. Shared-поля (категория,
+коллекция, галерея, passport) язык не красят. Большие группы
+характеристик на вкладке Passport свёрнуты и раскрываются независимо.
+Если у товара есть `imageUrl`, но галерея ещё пустая, Media показывает
+legacy cover, пока не загружены изображения галереи.
+
+Поля, помеченные владельцем **Shopify** — это то, что реально пушится/тянется
+из Shopify (название, слаг, SKU, цена (EUR), доступное количество, описание,
+галерея изображений, статус публикации). Поля с владельцем **Synarava** —
+локальный редакторский слой, который Shopify-синхронизация не трогает.
+Поля форм собираются **только** через библиотеку **synarava-cms**
+(`@/components/synarava-cms`: `AdminTextField` / `AdminSelectField` /
+`AdminHrefField` / `AdminCheckboxField` / `AdminRichTextField` и shell). Контракт —
+в [`synarava-cms.md`](../wiki/synarava-cms.md); агентам — skill `synarava-cms`.
+
+- Серия (`seriesLabel`), краткое и полное описание.
+- Символизм (label/title/body/body2).
+- Линейка материалов (`materialLine`). Теги Shopify вводятся через запятую,
+  нормализуются через slugify, схлопывают дубликаты и пушатся в Shopify;
+  отдельного экрана управления тегами нет.
+- Категория выбирается из Shopify Standard Product Taxonomy и хранится как
+  Shopify GID + полное имя. Коллекция выбирается из локальной проекции
+  Shopify-коллекций (одно значение в текущей форме, хотя модель допускает
+  несколько связей).
+- Характеристики (`characteristics`) — фиксированный jewelry passport
+  (Dimensions & fit, Materials & construction, Care, Compliance). Подписи
+  групп/полей и единицы (`cm`/`g`) живут в коде (EN/PT/RU). **Значения TEXT**
+  (материал, цвет, …) переводятся на вкладке языка → Passport и пишутся в
+  `ProductTranslation.details.characteristics` (без Shopify sync); пустое
+  поле на витрине показывает английский. Числа и boolean — общие (EN);
+  Yes/No локализуются при показе. Поля бывают текстовые, числовые
+  и булевы (чекбокс); у некоторых булевых характеристик (например
+  REACH-сертификация) есть дополнительное поле URL сертификата — оно
+  сохраняется, даже если сам чекбокс выключен.
+- Раздел «Materials» — до 3 карточек материал (заголовок + текст + фото),
+  сохраняется только если заполнены все три поля карточки.
+- Раздел «Process» — эйбрау/заголовок, фото процесса, до 4 пар
+  статистика/подпись (сохраняются только заполненные пары).
+- Раздел «Lookbook» — до 4 карточек (фото + подпись + флаг «featured»),
+  сохраняется только если есть фото.
+- Поле Department выбирает одну коллекцию, отмеченную для основной навигации.
+  Отдельной сущности Department и отдельного значения в `details` больше нет.
+  До 8 свободных пар «атрибут: значение» сохраняются только при заполнении
+  обоих значений.
+- Галерея товара принимает до 250 изображений. Первое изображение становится
+  обложкой каталога; изображения можно переставлять, назначать обложкой и
+  удалять из товара. На форме создания первая загрузка при необходимости
+  сначала создаёт приватный черновик. После успешной обработки изображений
+  Shopify локальные staging-объекты освобождаются только когда соответствующая
+  Shopify-копия уже имеет статус `READY`.
+
+### 4.3. Публикация и обязательные поля
+
+- Обязательны при **любом** сохранении: название, слаг, SKU, цена
+  (`> 0`). Клиент и сервер показывают ошибку непосредственно у каждого
+  некорректного поля и общую подсказку «Review the highlighted fields and try
+  again.».
+- При создании совпадающий slug или SKU возвращает полевую ошибку и никогда не
+  обновляет уже существующий товар.
+- У товара три состояния витрины: **Draft** (скрыт), **Published**
+  (виден в каталоге и по прямой ссылке) и **Unlisted** (из каталога и
+  поиска исключён, но по прямой ссылке открывается и его можно положить в
+  корзину). Unlisted — полноценный статус, а не разновидность черновика:
+  у него свои `status`/`visibility` и проставляется дата публикации.
+- Дополнительное правило именно для публикации: **обязательно основное
+  изображение товара**. Оно распространяется и на `PUBLISHED`, и на
+  `UNLISTED` — без картинки сохранить в оба этих статуса нельзя ни через
+  форму, ни через быструю кнопку «Publish» в таблице, вернётся ошибка
+  «Product image is required before publishing.»
+- Загружаемые изображения: только `image/*`, до 10 МБ, форматы
+  JPEG/PNG/WebP/AVIF (перекодируются на сервере в WebP, максимум 2560px по
+  большей стороне).
+- Черновик автосохраняется в фоне (debounce), пока форма создания не пуста —
+  это создаёт запись со статусом `DRAFT`/`PRIVATE` ещё до явного нажатия
+  «Save». Пустая форма ничего не автосохраняет.
+
+### 4.4. Удаление и смена статуса
+
+- **Delete** удаляет запись товара безвозвратно вместе с медиа, вариантами,
+  тегами и связями с коллекциями. Публичный URL товара перестаёт открываться.
+  Если товар привязан к Shopify и Shopify настроен — сначала товар удаляется
+  и в Shopify; при ошибке удаления в Shopify локальное удаление не
+  выполняется.
+- **Archive** — мягкое скрытие (`status=ARCHIVED`, `visibility=PRIVATE`),
+  рекомендуемая альтернатива удалению. Только архивные товары освобождаются
+  от проверок таксономии в разделе «Проблемы» — Unlisted проверяется наравне
+  с опубликованными.
+- **Draft** — снимает с публикации, не удаляя данные.
+- Удаление изображения **из галереи** идёт мимо проверки «нужна картинка
+  перед публикацией»: она стоит только в сохранении формы. Если удалить
+  последнее изображение опубликованного товара, он останется опубликованным
+  без картинки (см. PROD-C43 в каталоге тест-кейсов).
+- Все операции создают запись в журнале аудита (кто/когда/что изменил).
+
+### 4.5. Синхронизация с Shopify
+
+Раздел товаров использует единый conflict workflow вместо отдельного старого сравнения каталогов:
+
+- **Run conflict check** — проверяет подключение и обязательные права Shopify Admin API, при первом
+  запуске привязывает каталог к магазину, настраивает доступные product/review webhooks, сверяет
+  каталог и сохраняет найденные расхождения. Отсутствующие дополнительные права на переводы,
+  отзывы и списки желаемого показываются отдельно; ошибка чтения не превращается в ложные
+  «0 conflicts».
+- Если токен указывает на другой магазин, проверка предлагает явный **Rebind**. Он очищает только
+  store-specific Shopify ID; новые идентичности устанавливаются последующими сохранениями,
+  webhook-событиями, refresh и conflict check.
+- **Show conflicts** открывает сохранённый список. Массовое или точечное разрешение всегда сначала
+  показывает preview конкретных товаров, полей и языков, а запись начинается только после Confirm.
+  Товар только в Shopify показывается с единственным действием Pull; товар только в Synarava — с
+  единственным действием Push. В смешанном наборе каждый bulk применяет только своё направление,
+  а несовместимые товары остаются в preview с объяснением.
+- Точечные действия на карточке товара: **Check Shopify**, **Pull** /
+  **Refresh from Shopify**, **Push to Shopify** / **Create in Shopify**.
+- Состояния синхронизации: `UNLINKED`, `PENDING`, `SYNCED`, `CONFLICT`,
+  `FAILED`, плюс отдельные состояния сравнения `LOCAL_CHANGES`,
+  `REMOTE_CHANGES`, `REMOTE_MISSING`.
+  - При конфликте (правки есть и локально, и в Shopify) push/pull без
+    подтверждения блокируется; нужно явно выбрать «Use Shopify version» или
+    «Keep Synarava and push».
+  - Если связанный товар пропал из Shopify, обычные pull/push редактора блокируются. После нового
+    conflict check карточка `Missing in Shopify` позволяет явно пересоздать его через Push с preview.
+  - Push при отсутствии ещё ни одного варианта товара недоступен (кнопка
+    показывает «Save core fields first»).
+
+## 5. Коллекции (`/admin/collections`)
+
+- Список с ручной сортировкой (кнопки «вверх/вниз» переставляют
+  `sortOrder`; при создании новая коллекция всегда встаёт в начало списка, а
+  остальные сдвигаются).
+- Конфликты с Shopify по editorial/translation полям и presence используют тот же UX, что
+  и каталог товаров: **Run conflict check**, **Show conflicts**, список → поля →
+  preview → Confirm. Surface — translation reconcile (`COLLECTION`) плюс
+  presence-снимок (`ShopifyCatalogPresenceSnapshot` id `collections`): коллекции
+  только в Shopify / только в Synarava появляются в том же списке.
+  Для «только в Synarava» можно **Push to Shopify** или выбрать сторону Shopify
+  (**Remove from Synarava** — удаление локальной записи, как take theirs в git).
+  После успешного сохранения связанной коллекции запускается scoped check.
+- Обязательные поля при сохранении (каждое поле подсвечивается своей
+  ошибкой, а не общей): название, слаг, код коллекции, краткое описание
+  («Collection summary»), манифест, поисковое summary, **hero-изображение**
+  (обязательно всегда, не только при публикации — в отличие от товаров).
+- Первый текстовый блок страницы коллекции (заголовок и абзац рядом с фото)
+  редактируется отдельно от краткого описания в хидере: **Story heading** и
+  **Story paragraph**, с переводом на каждой языковой вкладке. Пустой
+  заголовок на сайте показывает английский запасной текст. Пустой абзац
+  не подставляет summary из хидера. Второй блок (eyebrow, заголовок и два
+  абзаца) — это Symbolism label / title / body / secondary body.
+- Статусы: `DRAFT` (`PRIVATE`) / `ACTIVE` (`PUBLIC`, `publishedAt` = дата
+  публикации) / `ARCHIVED` (`PRIVATE`).
+- В форме редактирования **Site state** (Draft / Published) — тот же
+  выпадающий список, что у товара, среди полей Name / Slug / Accent code.
+  Save и Delete — иконки в липкой шапке, как у товара. Смена видимости —
+  только через Site state или быстрые действия в таблице.
+- Перевод коллекции в **Draft** (форма Site state → Draft + Save, или
+  быстрое действие Draft в таблице) скрывает коллекцию **и** переводит все
+  её товары со статусом `ACTIVE` / `UNLISTED` в локальный Draft
+  (`PRIVATE`, `publishedAt` = null). Статус в Shopify при этом **не**
+  пушится. Publish коллекции товары обратно не публикует — у каждого товара
+  свой Site state.
+- **Товар ↔ draft-коллекция** (граничные случаи):
+  - В select Collection на форме товара draft-коллекции **остаются** в списке
+    с пометкой `(Draft)`, чтобы можно было готовить membership до публикации
+    коллекции. Archived показывается только если это текущее назначение.
+  - Published / Unlisted товар **нельзя** сохранить (и нельзя Publish из
+    таблицы), пока маркетинговая коллекция не `ACTIVE`+`PUBLIC` — ошибка на
+    поле Collection.
+  - Shopify pull **не падает**, если локальная коллекция в Draft: membership
+    синхронизируется как обычно. Если pull вернул товару ACTIVE/UNLISTED, а
+    коллекция осталась Draft, Problems → Scan покажет WARNING
+    `LIVE_IN_UNPUBLISHED_COLLECTION` (товар живой, коллекция ещё нет).
+- Быстрые действия в таблице: Draft / Publish / Archive / Delete, плюс
+  перемещение вверх/вниз.
+- Удаление коллекции необратимо удаляет её и её секции; товары не удаляются,
+  но теряют привязку к коллекции (что тоже может создать проблему «нет
+  коллекции» для товара).
+- Черновик тоже автосохраняется в фоне при непустой форме создания.
+- Shopify ID, handle и членство товаров синхронизируются с Shopify; название,
+  hero, манифест и другая редакторская подача остаются под управлением
+  Synarava.
+
+## 6. Страницы (`/admin/pages`)
+
+- Управляет произвольными редакторскими страницами и тремя «системными»
+  слагами: `home`, `about`, `manifesto`.
+- **Системные страницы нельзя удалить** — при попытке вернётся ошибка
+  «System pages cannot be deleted.» (кнопка удаления для них скрыта в UI, но
+  защита есть и на уровне сервера — так что прямой вызов экшена тоже
+  заблокирован).
+- Для `home` и `about` подписи полей в форме адаптируются под их специфику
+  (например «Hero headline» вместо «Title», «About introduction» вместо
+  «Body» и т.д.), хотя структура данных общая.
+- Страница `collections` сохраняет Title / Excerpt / Hero image (SEO и
+  медиа). Ниже — секции **Page header** (eyebrow, main heading, introduction,
+  opening label, count label, qualifier), **Collections on this page**
+  (`AdminOrderedList` + select: какие коллекции видны на `/collections` и в
+  каком порядке; выбранные строки — это весь список, снятие строки прячет
+  коллекцию со страницы и не удаляет запись; пустой список оставляет все
+  опубликованные коллекции в порядке каталога), **Collection card link label**
+  (общий текст CTA «Explore collection» на каждой карточке — ссылка своя у
+  коллекции, подпись одна на страницу, с переводами), **Bottom callout** (eyebrow,
+  heading, button label/href) и
+  **Collection page buttons** (кнопки под описанием на странице коллекции и
+  в нижнем тизере, плюс scroll cue на hero), **Manifesto & story chrome**
+  (общие лейблы секций: manifesto eyebrow / watermark, story eyebrow, accent
+  code label — цитата манифеста и story heading/paragraph редактируются на
+  самой коллекции; декоративные линии и ромб — фиксированный дизайн, не CMS) и
+  **Products in this collection** (надпись перед названием
+  коллекции и заголовок сетки товаров). Копирайт локализуется по EN / PT / RU; список коллекций
+  общий для языков. Пустая подпись на витрине берёт словарь языка.
+- Страница коллекции `/collections/[slug]` показывает товары этой коллекции
+  тем же каталогом, что и `/shop`: фильтры, сортировка (по умолчанию Featured
+  = порядок товаров в админке коллекции) и ленивая подгрузка.
+- Home разбит на секции витрины (`01 / Hero` … `06 / Final CTA`) в
+  `AdminCollapsiblePanel`. В **Featured collections** админ выбирает
+  коллекции через select, добавляет строки и меняет порядок стрелками
+  (`AdminOrderedList`); минимум одна строка; пустой выбор = новейшая
+  опубликованная коллекция на сайте. **Product showcase** — четыре
+  товара с тем же ordered-list UI и подписью ссылки «View all»
+  (локализовается вместе с остальным копирайтом секции).
+  **Manifesto** и **Final CTA** при пустых полях показывают дефолтный
+  копирайт витрины — включённый тумблер без текста больше не прячет секцию.
+  В **Final CTA** — ровно четыре слота Collage photos (товары → фото для
+  кубистского коллажа; пустые слоты = imagery из Featured collections).
+  Primary CTA label/href и Secondary CTA label/href редактируются по
+  локали (secondary по умолчанию — «About us» / локальный эквивалент и
+  `/about`). Closing statement — нижняя фраза секции. Contact email включается
+  чекбоксом Include contact email (по умолчанию выкл.); при включении
+  обязательны Contact link label и Contact email.
+  **Material lexicon** — от 2 до 3 материалов в том же `AdminOrderedList`
+  (стрелки + Add); каждая строка — `AdminCollapsiblePanel` (новые открыты,
+  в шапке номер / имя / категория); изображения и состав списка общие для
+  языков — локаль меняет только текст тех же specimens. Featured collections
+  на эту секцию не влияют.
+- У каждой страницы есть блок перевода на португальский (`PT`) — заголовок,
+  эйбрау, экерпт, текст, CTA, цитата, вторичный блок. Это опциональный слой,
+  отсутствие перевода не блокирует сохранение.
+- Обязательное поле — заголовок (título/title) и итоговый слаг (генерируется
+  из слага, а если пуст — из заголовка).
+- Публикация/черновик/архив работают так же, как у товаров и коллекций.
+- Hero-изображение можно загрузить и позже удалить отдельным флагом «убрать
+  изображение», не трогая остальной контент.
+- **Legal documents** (`privacy`, `terms-and-conditions`, `offer`) и
+  **service pages** (`care`, `faq`, `shipping`, `returns`,
+  `dispute-resolution`): секции — упорядоченный список (`AdminOrderedList`).
+  Можно добавлять, удалять и менять порядок; у каждой секции редактируются
+  **имя** (TOC / eyebrow), **заголовок** и **тело**. Порядок общий для языков;
+  тексты — по локали. Сохранённый список на витрине авторитетен (пустые поля
+  остаются пустыми). Пока документ не создан, витрина показывает shipped
+  defaults из кода. На `/terms-and-conditions` шапка читает поля **Eyebrow**
+  и **Excerpt** той же вкладки локали (`AdminTextField` / `AdminRichTextField`).
+  Пустое поле заменяется языковым дефолтом (RU eyebrow
+  `ЮРИДИЧЕСКАЯ ИНФОРМАЦИЯ`, RU excerpt — абзац об условиях продажи; PT eyebrow
+  `INFORMAÇÃO LEGAL`; EN — текущие английские строки). Сохранённое значение
+  локали важнее дефолта. Пустой португальский Excerpt оставляет текущий intro.
+  Privacy и offer этот путь не меняет. Отдельной страницы Legal Notice в админке нет.
+
+## 7. Видео (`/admin/videos`)
+
+- Раздел управляет 4 именованными слотами видео, используемыми на витрине:
+  `homeBeads`, `homeModel`, `braceletFilm`, `materialsFilm`.
+- **Смысл:** эти фильмы **заменяют** статичные hero-картинки страниц (Home /
+  About), когда слот заполнен. Картинка из Pages остаётся запасным вариантом
+  и может использоваться как `poster` у `<video>`.
+- Поля загрузки — общий контрол synarava-cms `AdminVideoField` (превью
+  текущего и выбранного файла; кнопка **Remove current video** как у картинок).
+- Файлы загружаются **через приложение** (`POST /admin/api/videos`) в S3 —
+  без настройки CORS на бакете. Тот же эндпоинт очищает слот по флагу
+  `remove_<slot>=1`.
+- Допустимые форматы: только `video/mp4` и `video/webm`. Максимальный размер
+  — **100 МБ** на файл.
+- Можно за один сабмит загрузить и/или снять несколько слотов (**Save video
+  changes**). Если нет ни файла, ни отметки на удаление — ошибка «Choose a
+  video to upload, or mark a current video for removal.»
+- После сохранения слот обновляется на витрине (см. описание под каждым
+  полем); пустой слот снова показывает статичный hero-image.
+
+## 7a. Shared (`/admin/settings`)
+
+Шесть вкладок: **Header**, **Footer**, **Home**, **Cookies**, **Contact**, **Reviews**. Язык — полоса
+LOCALE над ними. Одна кнопка **Save Shared** пишет все вкладки сразу. Боковое
+меню ведёт на ту же вкладку (`#shared-header`, `#shared-footer`, `#shared-home`,
+`#shared-cookies`, `#shared-contact`, `#shared-reviews`).
+
+- **Header — main links:** ordered list of name + path (storefront path autocomplete).
+  Add/remove/reorder like other CMS lists. Path is shared across locales; name is
+  per locale. Empty name falls back to the shipped default for Home / Shop /
+  Collections / About, or to the path for custom rows. Stored in `SiteSetting`
+  `header-nav-v1`. The footer **Navigation** column reuses this same menu
+  (home `/` is omitted in the footer). Links to deleted pages stay visible in
+  admin with an error (“leads nowhere”) and are **hidden on the storefront**.
+- **Footer — service / legal / social links:** same model as header main links
+  (`footer-links-v1`). Service ships with Care, Shipping, Returns, FAQ.
+  Legal ships as the quiet bottom line: Terms & Conditions, Privacy Policy,
+  Cookie settings, Livro de Reclamações, Consumer Dispute Resolution.
+  Saved rows still drop Legal Notice, Shipping Policy, and Return & Refund
+  Policy. Socials start empty. External `https://` URLs are allowed (e.g. Livro de
+  Reclamações, Instagram). Legal Notice is not a page in Pages.
+- **Footer — contact emails:** ordered list of mailto addresses
+  (`footer-contact-v1`). The first email is the primary shared contact CTA
+  target. Shared across languages.
+- **Chrome & footer labels:** menu controls, skip link, appearance label,
+  **Header under logo** (`brand.curatedGoods` — Shared → **Header**, second line
+  under SYNARAVA; also reused in the footer wordmark), footer tagline/copyright,
+  column headings, contact aria label, and contact-CTA copy (EN and other
+  registered locales). Empty field = default from `messages/*.json`. Stored in
+  `storefront-copy-v1`. Cart and account labels are edited under **Cart &
+  account**, not here. Home SEO title / `og:title` are edited on **Pages → Home**
+  (per-locale SEO title), not here.
+- **Home chrome:** Featured collections strip (`home.archive.*`), material
+  lexicon plate labels (`home.material.*`), and final CTA eyebrow
+  (`home.finalCta.eyebrow`) — Shared → **Home** (`#shared-home`). Collection
+  titles/notes and lexicon entry content stay on **Pages → Home** / Collections.
+- **Shared — contact CTA:** title, body, and button label for the banner on Care,
+  FAQ, Shipping, Returns, and Dispute Resolution (`service.contactTitle` /
+  `contactBody` / `contactCta`). One banner for all those pages — not per-slug.
+- **Cookies — banner & preferences:** first-visit banner and the preferences
+  form (modal and `/cookie-settings`). Same labels on both surfaces
+  (`privacyConsent.*`).
+- **Cookies — settings page:** confirmation, back link, and SEO on
+  `/cookie-settings` (`cookieSettings.*`). The footer “Cookie settings” link
+  name stays in Footer — legal links.
+- **Reviews — leave a review:** the product-page form (`reviews.shareTitle`,
+  `reviews.form.*`, star counts). The reviews themselves are Shopify
+  `product_review` entries and are not edited here. The account table is
+  **Customer account → Reviews**.
+- Контент страниц (Home, About, Shop, Care, FAQ, Shipping, Returns) — в
+  **Pages**, не здесь (кроме общего contact CTA выше).
+- Chrome, footer, contact CTA, cookies, and the leave-a-review form sync to Shopify metaobject `$app:storefront_copy`;
+  header/footer link labels and contact emails are local (no Shopify `MENU`/`LINK`
+  binding yet). Cart, account, and login labels moved to **Cart & account**
+  and are not part of this sync. Conflicts for synced fields show under **Localization**.
+
+## 7a-2. Cart & account (`/admin/commerce`)
+
+One screen for the storefront surfaces we render ourselves around an order:
+
+- **Header — cart & account:** cart and login/account labels in the header and
+  mobile menu (`nav.cart`, `nav.login`, `nav.account`, `nav.loginRegister`,
+  plus the screen-reader count). Menu open/close stays in Shared.
+- **Cart:** `/cart` — titles, empty state, line controls, summary, the checkout
+  button, and the note that delivery and payment happen on Shopify.
+- **Add to cart & checkout:** the product button and the confirmation that
+  links to the cart or to checkout.
+- **Login:** `/login` before Shopify Customer Account. The sign-in itself is a
+  one-time email code on Shopify. There is no password form here.
+
+Empty fields fall back to `messages/*.json`. Saved overrides live in
+`SiteSetting` `commerce-copy-v1` and override the dictionary the same way Shared
+does. The screen is the shared locale panel: sticky language band with **Save
+cart & account**, then Header / Cart / Checkout / Login tabs. One section is
+open at a time. This copy is **not** synced to Shopify.
+Checkout address, shipping rates, payment, and the customer-account code screen
+are Shopify-hosted and are not edited here.
+
+Header cart/account labels that were previously saved under Shared stay visible
+until the first save on this screen, which copies them into `commerce-copy-v1`
+and clears them from `storefront-copy-v1`.
+
+The signed-in account page (`/profile`) is edited on **Customer account**, not here.
+
+## 7a-3. Customer account (`/admin/customer-account`)
+
+Copy for the page a signed-in customer sees: the frame (eyebrow, sign out, tab
+names, browser title), then one section per storefront tab — Overview, Wishlist,
+Orders, Reviews, Addresses, Sign-in & security — and the return request on an order.
+
+**Orders** also exposes status-chip labels (payment, fulfillment, cancel, refund,
+return, shipment), action labels (cancel request, pay now, buy again), and empty/error
+hints. These ride the same `commerce-copy-v1` / `profile.*` обменка as the rest of
+the account page.
+
+Above the copy editor: **Orders — buyer actions** toggles stored in SiteSetting
+`account-orders-settings-v1` (not localized):
+
+- **Buy again on Orders tab** — default off (ops freeze). When on, eligible orders
+  link into the headless cart-permalink bridge.
+- **Headless return form on Orders** — default off; Shopify secure account remains
+  the canonical return/cancel surface until production validation.
+
+Name, email, order rows, amounts, dates, address lines, and the review text come
+from Shopify and are not fields here. The form for leaving a review is **Shared → Reviews**. Empty fields fall back to `messages/*.json`. Overrides
+are stored in `SiteSetting` `commerce-copy-v1` with the cart copy, but this
+screen writes only `profile.*` keys, and Cart & account does not clear them.
+This copy is not synced to Shopify.
+
+## 7b. Meta (`/admin/meta`)
+
+- **Health** — чеклист без новых настроек: публичный URL, `robots.txt`,
+  `sitemap.xml`, покрытие SEO title у published products/collections/pages,
+  покрытие descriptive **image alt** у published products с галереей,
+  sample-ссылки Google Rich Results Test. Дыры правятся в Pages / Catalog /
+  Collections (Shopify SoT), не здесь.
+- **Redirects** — read-only зеркало: Shopify URL Redirects (Admin GraphQL
+  `urlRedirects`, scope `read_online_store_navigation`) + локальные
+  `LocalizedHandleRedirect` на headless-домене. Редактирование — в Shopify
+  Admin (`/content/redirects`) или сменой localized handle в редакторе;
+  второго редактора редиректов здесь нет. Shopify-редиректы действуют на
+  Online Store host и **не** наследуются автоматически нашим доменом.
+- Глобальные SEO-дефолты сайта: default title, title template, description,
+  Open Graph title/description. Хранятся в `SiteSetting` (`site-seo-v1`),
+  пустое поле возвращает shipped default.
+- SEO отдельных страниц — в редакторе **Pages** (поля **SEO title** /
+  **SEO description**; пустые значения падают на Title / Excerpt). SEO
+  коллекций и товаров — в **Collections** / **Catalog** и уходит в Shopify
+  `meta_title` / `meta_description`. На витрине collection/page metadata
+  читает эти SEO-поля с тем же fallback. Рядом с SEO-полями — **Search
+  preview** (как в выдаче) и мягкие лимиты 60 / 160 символов (предупреждение,
+  не блокер публикации). Раздел Meta не является редактором Shopify metafields.
+- Хаб-ссылки на Pages, Catalog, Collections и Localization помогают не искать
+  SEO в неверном месте.
+
+## 8. Проблемы / QA (`/admin/issues`)
+
+Автоматический аудит целостности каталога. Кнопка **«Scan now»** запускает
+проверку и покажет «Scan complete. N open problem(s), M new.»
+
+Что проверяется:
+
+- Для каждого **неархивного** товара: отсутствие **Shopify Standard Product
+  Taxonomy** категории (`shopifyCategoryId`), отсутствие тегов, отсутствие
+  маркетинговой коллекции (membership только в Featured / storefront-default
+  не считается) — `WARNING`-уровень «Missing taxonomy».
+- Для **ACTIVE + PUBLIC** товаров с галереей: blank / placeholder (`Image N`) /
+  filename-like alt на кадрах — `WARNING` `MISSING_IMAGE_ALT` (правятся на
+  вкладке Media; после нормальных alt Scan/save закрывает issue).
+- **Битые изображения** (`ERROR`-уровень «Broken media») — для основного
+  изображения товара, изображений материалов, изображения процесса, всех
+  изображений lookbook, а также hero-изображения каждой коллекции. Пути
+  `/media/uploads/...` проверяются через S3 `HeadObject` (это proxy к бакету,
+  не файлы в `public/`). Локальные пути вне `/media/` — по файловой системе,
+  внешние `https://` — HTTP HEAD (с фолбэком на ranged GET).
+- Проблемы, которые перестали воспроизводиться при повторном скане,
+  автоматически помечаются `RESOLVED` — вручную закрывать их не нужно.
+  Сохранение товара с заполненной категорией / коллекцией / тегами тоже
+  сразу закрывает соответствующие taxonomy-предупреждения.
+- При наличии `RESEND_API_KEY` и адреса `ADMIN_ISSUE_EMAIL_TO`/`ADMIN_EMAIL`
+  на **новые** проблемы (не встречавшиеся на предыдущем скане) уходит письмо.
+  Без этих переменных отправка тихо пропускается (это ожидаемо, не баг).
+- Открытые проблемы отражаются счётчиком в сайдбаре/топбаре и ведут прямиком
+  на нужное поле нужной записи через якорь в URL (`#field-...`).
+  Для товаров предупреждения видны во вкладках редактора; для коллекций —
+  баннер сверху формы и подсветка поля hero (`#field-heroImageUrl`).
+
+## 9. Аккаунт (`/admin/account`)
+
+- Только просмотр: имя пользователя текущей сессии и подсказка, что логин и
+  пароль меняются через переменные окружения (`ADMIN_USERNAME`,
+  `ADMIN_PASSWORD_HASH`) и требуют передеплоя/рестарта приложения.
+- Форма смены пароля в UI отсутствует; если её вызвать напрямую через экшен —
+  вернётся заглушка-ошибка «Admin credentials are managed through environment
+  variables.», данные не меняются.
+
+## 9a. Infrastructure (`/admin/infrastructure`)
+
+- Read-only статус Railway Postgres и S3-бакета (без аудита мёртвых файлов и
+  без ротации кредов).
+- Postgres: `SELECT 1` latency, версия, размер БД, топ таблиц, соединения
+  (active/idle/max). Недоступные представления (`pg_stat_*`) показываются явно,
+  страница не падает целиком.
+- S3: `HeadBucket` ok/fail + latency, bucket/region/endpoint host/`forcePathStyle`.
+  Размер и число объектов — только через Railway GraphQL `bucketInstanceDetails`,
+  если заданы `RAILWAY_TOKEN` + project/environment/bucket id; иначе пометка, что
+  размер недоступен без token. Полный `ListObjectsV2` не выполняется.
+- Снимок кэшируется на ~45 с. Ошибки БД и бакета независимы.
+
+## 10. Журнал аудита
+
+Каждое создание/изменение/удаление/смена статуса товаров, коллекций и страниц
+пишет запись в `AuditLog` (кто, когда, что было до/после,
+доп. метаданные вроде направления реордера). Из интерфейса, описанного
+кодовой базой на момент анализа, отдельного экрана для просмотра этого
+журнала в самой админке нет — это скорее фундамент для будущего аудита или
+для отладки через базу данных напрямую.
+
+## 11. Практические заметки для тестировщика
+
+- Публикация — не «одна кнопка на весь сайт»: у каждой сущности (товар,
+  коллекция, страница) отдельный workflow-статус, и у товаров/коллекций есть
+  собственные обязательные поля именно для публикации.
+- Автосохранение черновиков создаёт записи в базе **без явного сохранения** —
+  при тестировании создания новых сущностей стоит помнить, что просто начав
+  заполнять форму и уйдя со страницы, можно оставить черновик в списке.
+- Slug генерируется автоматически, но при ручном редактировании
+  «залипает» — повторное изменение названия его больше не перезаписывает,
+  пока пользователь полностью не очистит поле слага.
+- Удаление коллекции не удаляет связанные товары — оно рвёт связь. Это нужно
+  проверять отдельно от собственно факта удаления записи.
+- Раздел товаров рассчитан на работу с настроенным и без настроенного
+  Shopify — обе конфигурации предполагаются штатными и обе стоит
+  протестировать.

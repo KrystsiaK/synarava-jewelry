@@ -1,0 +1,140 @@
+# Deploy Checklist — Synarava Jewelry
+
+Translation rollout and recovery are documented in `docs/runbooks/translation-operations.md`; run its dry-run/backfill and live round-trip gates before enabling Shopify translation writes in production.
+
+Список всего что нужно настроить перед деплоем в production.
+Обновляй этот файл по мере того как что-то добавляется или закрывается.
+
+---
+
+## Environment Variables
+
+### Обязательные (без них приложение не запустится)
+
+| Переменная | Описание |
+|-----------|----------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `ADMIN_USERNAME` | Логин для отдельного входа в `/admin/login` |
+| `ADMIN_PASSWORD_HASH` | Хеш пароля админки. Генерить локально: `pnpm auth:hash` |
+| `ADMIN_SESSION_SECRET` | Отдельный секрет для подписи admin-cookie. Минимум 32 случайных символа (валидируется при старте). Генерить: `openssl rand -hex 32` |
+| `SHOPIFY_CUSTOMER_SESSION_SECRET` | AES ключ для customer-session / OAuth transaction cookies. Минимум 32 символа. **Ротация разлогинит всех покупателей** (ключ = `sha256(секрет)`). |
+| `SHOPIFY_WEBHOOK_SECRET` | HMAC вебхуков Shopify. Длина не валидируется — значение выдаёт Shopify, его нельзя «удлинить». |
+| `TRUSTED_PROXY_HOPS` | Опционально. Сколько прокси справа в `X-Forwarded-For` считать своими (по умолчанию `1`). На Railway обычно хватает `x-real-ip`; если перед приложением стоит CDN, поставьте `2`. |
+
+Перед деплоем security-hardening: проверь, что `ADMIN_SESSION_SECRET` и `SHOPIFY_CUSTOMER_SESSION_SECRET` уже ≥32. Если customer-session секрет короче — либо удлини/замени осознанно (форс-логаут), либо временно ослабь валидацию. Миграция session-id — no-op; хеширование идёт в приложении (dual-read + lazy promote), без `pgcrypto`.
+
+### Обязательные для коммерции
+
+| Переменная | Описание |
+|-----------|----------|
+| `SHOPIFY_STORE_DOMAIN` | Постоянный домен `your-store.myshopify.com` |
+| `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` | Private Storefront API token (только server-side) |
+| `APP_URL` | Полный URL витрины (`https://shop.synarava.com`). Канон для sitemap/canonical/OAuth |
+
+Без этих трёх переменных корзина и чекаут падают с явной ошибкой конфигурации — Shopify единственный commerce backend, локального фолбэка нет.
+
+### Для медиа (выбрать одно: S3 или локальное хранилище)
+
+| Переменная | Описание |
+|-----------|----------|
+| `S3_REGION` | AWS регион (`eu-central-1`) |
+| `S3_BUCKET` | Имя бакета |
+| `S3_ACCESS_KEY_ID` | AWS access key |
+| `S3_SECRET_ACCESS_KEY` | AWS secret key |
+| `S3_ENDPOINT` | Опционально — для совместимых хранилищ (Minio, R2, etc.) |
+| `S3_PUBLIC_URL` | Публичный origin бакета или CDN для `next/image` (`https://cdn.example.com` или публичный S3 endpoint) |
+
+Видео storefront загружаются только через `/admin/videos` и требуют S3. Файлы идут **через приложение** (`POST /admin/api/videos` → PutObject), без browser→bucket CORS. Для Railway Bucket добавьте references на `REGION`, `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `ENDPOINT`, а также `S3_FORCE_PATH_STYLE=false` и `S3_USE_PROXY=true`. Не задавайте `S3_PUBLIC_URL`: нативные Railway Buckets приватные, поэтому приложение отдаёт медиа по `/media/uploads/*` через защищённый server-side proxy. Лимит файла — 100 МБ.
+
+### Опциональные
+
+| Переменная | Описание |
+|-----------|----------|
+| `NEXTAUTH_URL` | Базовый URL (если не задан `APP_URL`) |
+| `DEEPL_API_KEY` | API ключ DeepL для машинного перевода |
+
+---
+
+## Перед первым запуском
+
+- [ ] Проверить версию релиза в `package.json` (`0.2.0` для текущего Railway-ready pass)
+- [ ] Прогнать preflight локально: `pnpm lint`, `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm build`
+- [ ] Запустить миграции: `pnpm prisma:deploy` (на Railway это делает `railway.json` `preDeployCommand`)
+- [ ] Сгенерировать `ADMIN_PASSWORD_HASH`: `pnpm auth:hash`
+- [ ] Установить `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`
+- [ ] Проверить что `/admin` редиректит на `/admin/login`, а после входа доступны все разделы
+
+## Railway
+
+Конфигурация деплоя хранится в `railway.json`, чтобы build/deploy protocol был версионирован в git:
+
+- builder: `RAILPACK`
+- build command: `pnpm build`
+- pre-deploy command: `pnpm prisma:deploy`
+- start command: `pnpm start`
+- healthcheck: `/api/health`
+
+Для PostgreSQL в Railway выставить `DATABASE_URL` как reference variable на Postgres service, например `${{Postgres.DATABASE_URL}}`.
+
+Railpack должен использовать стандартную установку из `package.json` и
+`pnpm-lock.yaml`. Не задавайте кастомный `RAILPACK_INSTALL_CMD`: проект не
+зависит от приватных package registries и не требует npm/GitHub Packages токенов.
+
+### Версионирование релиза
+
+- [ ] Перед production deploy поднять `package.json` `version` по semver.
+- [ ] Для визуальных/UI изменений без breaking changes использовать minor (`0.1.0` → `0.2.0`).
+- [ ] Для hotfix после production использовать patch (`0.2.0` → `0.2.1`).
+- [ ] В git tag использовать формат `vX.Y.Z`, например `v0.2.0`.
+- [ ] Убедиться, что GitHub CI прошел `check:version`, typecheck, lint, unit tests и build.
+- [ ] В release commit включать `railway.json`, `prisma/migrations/**`, `docs/runbooks/deploy.md`, `docs/audits/2026-07-security.md` и кодовые изменения.
+
+---
+
+## Shopify
+
+- [ ] Создать вебхук в Shopify Admin → Settings → Notifications → Webhooks (или через **Reconcile** / conflict check в `/admin`, которая регистрирует их автоматически при заданном `APP_URL`)
+  - Events: `products/create`, `products/update`, `products/delete`, `inventory_levels/update`, `orders/paid`
+- [ ] Для отзывов получить approval Shopify Product Review Syndication и выдать scopes: `write_product_reviews`, `read_metaobjects`, `read_customers`, `read_orders`, `read_products`
+- [ ] Для wishlist выдать Admin API scopes `read_customers` и `write_customers`; без них профиль работает, но сохранение товаров недоступно
+- [ ] `orders/paid` требует `read_orders` (уже в review scopes); endpoint: `/api/shopify/webhooks/orders/paid` — confirmation/ops only, без локального Order store
+- [ ] Запустить **Test Shopify connection**: он включает стандартный `product_review` metaobject и регистрирует отфильтрованные `metaobjects/create`, `metaobjects/update`, `metaobjects/delete` webhooks
+- [ ] Скопировать секрет подписи вебхука в `SHOPIFY_WEBHOOK_SECRET`
+- [ ] Прогнать **Reconcile** в `/admin` и убедиться, что каталог совпал по Shopify product ID/SKU/handle без конфликтов
+- [ ] После смены payment settings — прогнать owner matrix в `docs/testing/payment-checkout-test-matrix.md` (Shopify рекомендует test order)
+---
+
+## Rate Limiting
+
+Rate-limit хранится в Postgres (`RateLimitBucket`) и переживает несколько инстансов; in-memory `Map` в `lib/auth/rate-limit.ts` — только резервный фолбэк на время недоступности БД, не основное хранилище.
+
+- [ ] Ничего дополнительно настраивать не нужно — таблица создаётся миграцией
+
+---
+
+## Безопасность
+
+- [ ] `ADMIN_SESSION_SECRET` установлен и не менее 32 символов (приложение падает без него в production)
+- [ ] `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` и `SHOPIFY_ADMIN_ACCESS_TOKEN` никогда не заданы через `NEXT_PUBLIC_` переменную
+- [ ] S3 бакет не публичный — доступ только через подписанные URL или Nginx/CDN
+- [ ] Настроить HTTPS (Let's Encrypt / Cloudflare)
+- [ ] Проверить заголовки безопасности: `curl -I https://your-domain.com` → должны быть `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`
+
+---
+
+## Инфраструктура
+
+- [ ] PostgreSQL: выбрать хостинг (Railway, Supabase, Neon, RDS, etc.)
+- [ ] Node.js: версия 20+
+- [ ] Деплой платформа: Vercel / Railway / Fly.io / self-hosted
+- [ ] Настроить `DATABASE_URL` с pooler если serverless (PgBouncer / Supabase pooler)
+
+---
+
+## После деплоя
+
+- [ ] Открыть `/` — сайт загружается
+- [ ] Добавить товар в корзину
+- [ ] Дойти до `/checkout` — для гостя редирект на hosted Shopify checkout; для залогиненного Customer Account URL содержит `sso=silent`; при недоступном checkout — явная ошибка (не silent bounce на `/cart`)
+- [ ] Войти в `/profile` через Shopify Customer Account (magic-link/OTP)
+- [ ] Проверить что `/admin` **недоступен** без `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH`

@@ -6,7 +6,7 @@ import { resolveLegalText } from "@/lib/content/legal-sections";
  * pattern live in the locale dictionary (`legal.common.months.*`,
  * `legal.common.datePattern`) — they are not admin fields.
  *
- * Adding a language: `docs/translation-operations.md` (Adding a new language).
+ * Adding a language: `docs/runbooks/translation-operations.md` (Adding a new language).
  * If that dictionary has no month names, this returns the source string.
  */
 

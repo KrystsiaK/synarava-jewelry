@@ -755,7 +755,7 @@ enum PageStatus {
 // platform, shared by every entity (Product, Collection, Page, and
 // structured content synced through an app-owned metaobject) — kept apart
 // from ProductSyncEvent, which is commerce (inventory/price/catalog) sync,
-// not translations. See tasks/plan.md "Persistence и миграция".
+// not translations. See docs/history/2026-09-en-pt-translation-plan.md "Persistence и миграция".
 model ShopifyTranslationBinding {
   id                 String                  @id @default(cuid())
   resourceType       TranslationResourceType
@@ -931,7 +931,7 @@ model TranslationCache {
 
 // Registry of storefront locales. Adding a new language (once published in
 // Shopify Markets) is a row here, not a schema change or enum edit — see
-// tasks/universal-localization-plan.md. `routeSegment` is operator-chosen
+// docs/history/2026-09-universal-localization.md. `routeSegment` is operator-chosen
 // and Shopify sync (`lib/shopify/storefront-locale-sync.ts`) never
 // overwrites it; only `isPublished`/`shopifyUpdatedAt` come from Shopify.
 model StorefrontLocale {

@@ -124,7 +124,7 @@ Then:
 
 Run after the draft is previewable (or temporarily published with Buy again
 still limited to a test customer if needed). Record evidence in
-[`docs/payment-checkout-test-matrix.md`](../../../docs/payment-checkout-test-matrix.md).
+[`docs/testing/payment-checkout-test-matrix.md`](../../../docs/testing/payment-checkout-test-matrix.md).
 
 | ID | Check | Pass |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ still limited to a test customer if needed). Record evidence in
 
 ## Related docs
 
-- [`SHOPIFY_POST_PURCHASE_FLOWS.md`](../../../SHOPIFY_POST_PURCHASE_FLOWS.md)
-- [`docs/post-purchase-ops-runbook.md`](../../../docs/post-purchase-ops-runbook.md)
-- [`docs/payment-checkout-test-matrix.md`](../../../docs/payment-checkout-test-matrix.md)
+- [`docs/proposals/shopify-post-purchase-flows.md`](../../../docs/proposals/shopify-post-purchase-flows.md)
+- [`docs/runbooks/post-purchase-ops.md`](../../../docs/runbooks/post-purchase-ops.md)
+- [`docs/testing/payment-checkout-test-matrix.md`](../../../docs/testing/payment-checkout-test-matrix.md)
 - Official Shopify redirect guide: <https://shopify.dev/docs/storefronts/headless/hydrogen/migrate/redirect-traffic>

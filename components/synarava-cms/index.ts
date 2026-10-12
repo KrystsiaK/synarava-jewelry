@@ -4,7 +4,7 @@
  * Prefer importing from `@/components/synarava-cms`.
  * Implementation lives under `components/admin/shared/`; this module is the public API.
  *
- * Contract: docs/admin/synarava-cms.md
+ * Contract: docs/wiki/synarava-cms.md
  */
 
 export {

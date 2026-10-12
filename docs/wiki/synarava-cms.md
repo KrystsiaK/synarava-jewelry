@@ -1,0 +1,609 @@
+# synarava-cms
+
+Shared Synarava admin form controls (**synarava-cms**).
+
+**Default for all admin forms:** import from `@/components/synarava-cms` and reuse
+these primitives — do not invent parallel markup.
+
+**“Общий / shared control” means:** one library control, applied everywhere that
+type is used, with **identical** outer chrome (border, radius, focus, label row).
+Optional props (`clearable`, adornments) only add slots **inside** that chrome —
+they must not switch to a second look. Import-path cleanup alone is not done if
+two visual variants remain. Agent skill encodes this contract.
+
+| | |
+|--|--|
+| Public API | `@/components/synarava-cms` (`components/synarava-cms/index.ts`) |
+| Implementation | `components/admin/shared/` |
+| Tokens | `.adm-field*`, `.adm-field-group*`, `.adm-check*`, `.adm-collapse*`, `.adm-panel*`, `.adm-band*` / `--adm-rhythm*` / `--adm-z-*` in `app/globals.css` |
+| Agent skill | `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`) |
+
+| Export | Role |
+|--------|------|
+| `AdminFieldShell` | Label + owner + help + absolute error/`issue` (`.adm-field-unit`) |
+| `AdminTextField` / `AdminTextControl` | Labeled text / embeddable control |
+| `AdminReadonlyField` | Label + value only (no input); synced or derived facts |
+| `AdminSelectField` / `AdminSelectControl` | Select / embeddable select. `AdminSelectField` forwards `validationName` like `AdminTextField`. |
+| `AdminHrefField` / `AdminHrefControl` | Segmented storefront path combobox (routes / pages / collections / products) |
+| `AdminVideoField` / `AdminVideoControl` | Site video (MP4/WebM) upload + current/selected preview |
+| `AdminCheckboxField` / `AdminCheckboxControl` | Checkbox row (+ optional follow-on) / inline row |
+| `AdminLongTextField` | Legacy plain preview + Edit modal — prefer `AdminRichTextField` |
+| `AdminRichTextField` | Default long copy (TipTap: paragraphs, bold/italic, lists, links) |
+| `AdminCollapsiblePanel` | Titled collapsible panel (chevron; header/body divider) |
+| `AdminPanel` | Rounded shell (`Root` / `Header` / `Body`); sticky header lifts by −radius |
+| `AdminNavTree` / `buildAdminNavItems` | Config-driven admin sidebar tree (expand, show-more, router sync) |
+| `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones; optional Shopify/Synarava groups) |
+| `AdminEntityList` | Dense list shell (header / row / infinite-scroll load more) |
+| `AdminListWorkspace` | Sticky list chrome (`Root` / `Header` / `Filters` / `Body`) over `AdminPanel` |
+| `AdminIconButton` | Square icon action + tooltip (`adm-icon-btn`, fixed 2rem, no wrap) |
+| `AdminSignalChip` | Locale / problem / conflict glyph + tooltip (`empty`/`partial`/`progress`/`ok`; `danger` only for real errors) |
+| `AdminSortChips` | Compact sort chip bar |
+| `AdminStatusBadge` | Workflow / sync status pill (`published`/`draft`/`archived`/`unlisted`/…; `error` only for real faults) |
+| `AdminOrderedList` | Ordered rows with up/down + remove (+ optional Add); same `onChange` API reserved for future DnD |
+| `AdminAlert` | Form-level error or success banner (transparent wash, theme-aware ink) |
+| `AdminSerpPreview` | Google-style search listing preview + soft 60/160 char meters for SEO title/description |
+| `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
+| `fieldClass` / `useAdminFieldIds` | Shared helpers |
+
+## Contracts
+
+### Shell
+
+- `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `issue`, optional `unitId`. Optional `validationName` sets `data-validation-for` so `useAdminFormValidation` scrolls to this unit instead of a hidden locale mirror.
+- Field-level errors are **absolute** inside the unit. Every `.adm-field-unit`
+  **always** reserves a one-line error band (`padding-bottom`) so siblings never
+  jump when validation appears. Long messages **ellipsis** in that band; full
+  copy is available via tooltip / `title`. They must not push sibling rows or
+  paint over the next section.
+- **Tall media composites** (`ImageFileField` + preview/path): do **not** put
+  `AdminFieldIssue` as a direct `.adm-field-unit > .adm-field-error` child — the
+  absolute band paints over the path. Keep issue copy in normal flow under the
+  label (see `ProductMediaManager` / collection hero), or wrap it so it is not
+  a direct unit child.
+- **Issue / validation scroll:** use `scrollAdminFieldIntoView` (`block: "start"`
+  + `[id^="field-"]` scroll-margin). Never `block: "center"` under sticky admin
+  chrome — it overshoots tall hero/media blocks.
+- `invalid` forces error chrome without copy (issue-linked fields).
+- `warning` — soft orange notice in the **same** absolute band as `error` (`.adm-field-warning` / `.adm-field-group--warning`). Error wins when both are set. Does not set `aria-invalid`.
+- Field error copy uses `--adm-danger-ink` (deep red in light, a clearer red in dark). Do not hardcode pale pink.
+
+### Form alert
+
+Save, load, and action failures use `AdminAlert`. It is not the field-level band.
+
+```tsx
+import { AdminAlert } from "@/components/synarava-cms";
+
+<AdminAlert message={error} />
+<AdminAlert tone="success" message="Saved." />
+```
+
+- One chrome: `.adm-alert`. Error is a transparent danger wash, a thin danger border, and `--adm-danger-ink` text, so the sentence stays red in light and dark.
+- Empty `message` renders nothing.
+- Do not use `AuthMessage` in admin. That login banner hardcodes `#ffd6db` for a dark page and disappears on the light theme.
+- `AdminFormAlert` is the same component. New call sites use `AdminAlert`.
+
+### Stacking (`--adm-z-*`)
+
+Admin surfaces share one z-index scale (defined on `.admin-terminal` / `.admin-modal-root`):
+
+| Token | Default | Use |
+|-------|---------|-----|
+| `--adm-z-field` | `0` | Field chrome, **including** `.adm-help` triggers — stay flat |
+| `--adm-z-popover` | `40` | Menus — class `.adm-popover` (`AdminHrefField` portaled listbox, Shopify category search, …) |
+| `--adm-z-sticky` | `90` | Sticky locale / workspace bands (`90`–`95`) |
+| `--adm-z-modal-backdrop` | `190` | Modal backdrops |
+| `--adm-z-modal` | `200` | Modals (`AdminModal`, `200`+) |
+| `--adm-z-tooltip` | `280` | Portaled `.ui-tooltip` |
+| `--adm-z-toast` | `600` | Shared ephemeral toast stack (admin surface; see [`ephemeral-toast.md`](ephemeral-toast.md)) |
+
+**Rule:** never elevate `.adm-help` (or other in-flow field chrome) into the popover band — that made info icons paint over open combobox lists. New absolute admin menus must use `.adm-popover` (or `z-index: var(--adm-z-popover)`), not ad-hoc `z-20`.
+
+**Overflow:** `AdminHrefControl` portals its listbox to `.admin-terminal` / `.admin-modal-root` (fixed, `.adm-popover`) so results are not clipped by `.adm-collapse` / `.adm-collapse__clip` (`overflow: clip|hidden`). Do not keep href menus `position: absolute` inside the field — that regresses inside collapsible sections.
+
+### Ephemeral toast (not synarava-cms)
+
+Mutation feedback toasts are **shared UI** in `components/ui/ephemeral-toast` — usable from admin and storefront. They are **not** synarava-cms form controls. Admin keeps a thin adapter (`AdminToastProvider` / `useAdminToast` from `components/admin/shared/admin-toast`) so existing call sites keep working. Form-level save banners still use `AdminAlert`.
+
+Save uses `AdminIconButton` / `SaveButtons` with an instructional tooltip — that tip is **not** save feedback. `pushToast` owns success/error and closes competing tooltips. Admin toasts sit **top-center** (near Save). Contract: [`ephemeral-toast.md`](ephemeral-toast.md).
+
+A string `help` is always that **i**, including when the field has an owner badge. It is never printed into the label row. The name itself is one line (`.adm-label__text`): if it does not fit, it ellipsizes and the full name shows in the shared tooltip. The required mark and the owner badge stay outside the clipped text.
+
+The help mark is a blue Playfair italic **i** (`--adm-info`), larger than the kicker (about `1.05rem` against `.adm-label` at `0.72rem`) and lifted a fraction above the caps, like an editorial note. Beside a label it stays a bare italic (hover disc only). Set `detached` when the mark sits between sections with no label: it becomes a 1.65rem circle button so it does not look like a fallen letter. The italic is the real Playfair cut, not a skewed roman, and it has no stroke. The trigger hugs the stem and stays inside the label row, so help does not move the input’s top edge — a field with help shares that edge with a field without it. Hover lays a soft blue disc behind the mark, without widening the row; press scales to 0.97 without dropping the lift (`translate` and `scale` are separate). Help tags (`.ui-tooltip`) are compact ink hints, not panels. The first one waits on the pointer; the next tag within a short window opens immediately, so a row of icon buttons can be scanned. Keyboard focus opens at once. A touch hold shows the tag and does not fire the button. `prefers-reduced-motion` fades opacity only.
+
+`AdminModal` is the admin dialog. It dims the page and centers a 14px sheet that settles in 400ms on `cubic-bezier(0.32, 0.72, 0, 1)` and leaves on the same path. Reduced motion is a 160ms fade. Storefront `.t-modal` timing is separate. `AdminConfirmModal` is that sheet with Cancel and a confirm action. Long text, rich text, and record details use the same shell.
+
+Library controls share one press: buttons, icon buttons, help, checkboxes, sort chips, and signal chips scale to `0.97` on pointer-down (`100ms`) and sit still when motion is reduced. Fields focus with the accent at 24% mix, so light and dark use the same ring. Collapsible panels open on a 280ms settle. Secondary actions use `.adm-btn-secondary`, the same chrome as `.adm-btn-ghost`.
+
+### Text
+
+```tsx
+import { AdminTextField } from "@/components/synarava-cms";
+
+<AdminTextField label="SKU" owner="Shopify" name="sku" required error={…} />
+<AdminTextField label="Length" endAdornment="mm" name="length" />
+<AdminTextField label="Tags" clearable name="tags" />
+<AdminTextField label="CTA href" warning="This link target is draft." name="ctaHref" />
+```
+
+- Every text control uses one `.adm-field-group` chrome (same border/focus).
+- Affixes and clear are optional slots **inside** that border.
+- `clearable`: × visible on `:focus-within` when the value is non-empty.
+- Embed / combobox: `AdminTextControl` (same group chrome; optional `clearable`).
+- Product single-line fields consume `AdminTextField` / `AdminTextControl` via
+  `@/components/synarava-cms`. Story: `synarava-cms/AdminTextField`.
+
+### Readonly (label + value)
+
+```tsx
+import { AdminHelp, AdminReadonlyField } from "@/components/synarava-cms";
+
+<AdminReadonlyField
+  label="Compare-at price"
+  owner="Shopify"
+  value="€148.00"
+  emptyLabel="Not set"
+  help={<AdminHelp>Edit in Shopify Admin.</AdminHelp>}
+/>
+```
+
+- **No input chrome** — label row (owner / help) + typographic value only.
+- Empty / null / `""` → `emptyLabel` (default `—`) with muted empty styling.
+- Use for Shopify-synced facts edited elsewhere, or derived UI-only metrics
+  (Profit / Margin). Story: `synarava-cms/AdminReadonlyField`.
+
+### Select
+
+```tsx
+import { AdminSelectField } from "@/components/synarava-cms";
+
+<AdminSelectField label="Collection" owner="Synarava" name="collectionSlug" invalid={…} issue={…}>
+  <option value="">No collection</option>
+</AdminSelectField>
+```
+
+- Same outer chrome as text: one `.adm-field-group` + `.adm-field--select` inside
+  (padding matches text inputs; caret reserved on the right).
+- Embed: `AdminSelectControl` (same group chrome).
+- All admin dropdowns (product Site state / Collection, pages publishing, CMS
+  filters) use this control via `@/components/synarava-cms`.
+  Story: `synarava-cms/AdminSelectField`.
+
+### Href (storefront path combobox)
+
+```tsx
+import { AdminHrefField } from "@/components/synarava-cms";
+
+<AdminHrefField
+  label="CTA href"
+  name="ctaHref"
+  defaultValue="/shop"
+  help={<AdminHelp>Shared across languages — a link target, not translated copy.</AdminHelp>}
+/>
+```
+
+- Same outer chrome as text (`AdminFieldShell` + `AdminTextControl`).
+- Search opens segmented results: **Routes** (built-in), **Pages**, **Collections**, **Products**, plus **Use custom path** when the query looks like a path and is not an exact match.
+- Result list is a **portaled** fixed `.adm-popover` (not an in-flow absolute child), so it stays visible inside `AdminCollapsiblePanel` / other overflow-clipped shells.
+- Type a product/collection **name**, or drill in with `/products/` / `/collections/` (and optional slug after the slash). Locale-prefixed queries (`/pt/shop`, `/ru/products/…`) are accepted and matched to the same destinations.
+- Pass optional `locale` so picker detail lines show the active-editor path (`/pt/shop`) while the committed value stays locale-free.
+- Selecting a **draft** or **unlisted** target keeps the value (not blocked) and shows a soft orange `warning` under the field.
+- Hidden input stores the committed href (locale-free: `/shop`, `/products/…`). Typing `/pt/shop` normalizes to `/shop` on commit; the storefront prefixes the active language via `storefrontHref` / `localePath`.
+- Keyboard: ↑/↓, Enter, Esc. Embed: `AdminHrefControl`.
+
+### Video (site film upload)
+
+```tsx
+import { AdminHelp, AdminVideoField } from "@/components/synarava-cms";
+
+<AdminVideoField
+  label="Home — beads"
+  name="homeBeads"
+  help={<AdminHelp>First video in the home-page hero rotation.</AdminHelp>}
+  currentVideoUrl={videos.homeBeads || null}
+  removeFieldName="remove_homeBeads"
+/>
+```
+
+- Labeled MP4 / WebM picker with **Selected** + **Current** preview panels (and an empty placeholder).
+- Optional `removeFieldName` mirrors image fields: toggle **Remove current video** → hidden `remove_*` = `1` on save. Save clears the slot and deletes the `uploads/videos/<slot>/` object from the bucket. Replacing a slot deletes the previous object the same way. A file still attached to a product or collection is left in the bucket.
+- Same shell contract as other fields (`AdminFieldShell` + absolute error/warning band).
+- Embed without the shell: `AdminVideoControl`.
+- Upload MIME is normalized: empty browser `File.type` falls back to `.mp4` / `.webm` extension (`lib/media/video-mime.ts`).
+- Applied on `/admin/videos` (`SiteVideosCms`). Storefront heroes prefer site video over a static hero image (`lib/media/hero-media.ts`); the image can still serve as `poster`.
+- Story: `synarava-cms/AdminVideoField`.
+
+### Checkbox
+
+```tsx
+import { AdminCheckboxControl, AdminCheckboxField } from "@/components/synarava-cms";
+
+<AdminCheckboxField name="washable" label="Washable" />
+<AdminCheckboxControl label="PT translation reviewed" checked={…} onChange={…} />
+```
+
+- One chrome: square control + label only — **no** outer bordered field band.
+- Checked mark is **light** (`#f8f7f4`) on `--adm-accent` so it stays readable in
+  light theme (`#7b5b1c`) and dark theme (`#d8b66a`).
+- `AdminCheckboxField` without children = same as `AdminCheckboxControl` (no wrapper).
+- `AdminCheckboxField` with children = `.adm-check-stack` under the row (e.g. certificate URL).
+- `AdminCheckboxControl` = row only (featured, reviewed, acknowledgements).
+- Home “site sections” stay **switches**, not these checkboxes.
+- Applied across product characteristics, lookbook featured, translation reviewed,
+  and conflict/apply acknowledgements via `@/components/synarava-cms`.
+
+### Panel shell
+
+```tsx
+import { AdminPanel } from "@/components/synarava-cms";
+
+<AdminPanel.Root stickyAbove="var(--adm-product-workspace-sticky-height, 5.5rem)">
+  <AdminPanel.Header sticky stickyBand="locale">…</AdminPanel.Header>
+  <AdminPanel.Body>…</AdminPanel.Body>
+</AdminPanel.Root>
+```
+
+- Rounded container (`--adm-panel-radius`, default `0.875rem`). Overflow stays **visible** so sticky pins to `.admin-content`.
+- Soft refresh after save (`refreshPreservingScroll` in `lib/admin/preserve-scroll.ts`) must keep `.admin-content` scroll — do not call bare `router.refresh()` on stay-on-page saves. Navigation (`push` after create/delete) may reset scroll intentionally.
+- Sticky header `top: calc(stickyAbove - radius)` — header **occupies** the rounded top; it is not inset below the crescents.
+- Sticky headers automatically get `.adm-band` + `.adm-band--sticky-radius`: `padding-top = band-pad-y + radius` so optical vertical padding stays equal after the −radius lift.
+- Nested sticky bands (tabs, section title) subtract the same radius once from the stack; they use equal `.adm-band` padding (no sticky-radius) because they sit flush under the previous band.
+- Applied on the product locale workspace.
+- List / page editors use `AdminListWorkspace` (same `AdminPanel.Header sticky` +
+  full-width `.adm-panel__header--ruled` edge) — do not hand-roll inset borders
+  inside padded panels.
+
+### Vertical rhythm + inset (sticky bands)
+
+All admin panel chrome padding comes from one token scale on `.admin-terminal` /
+`.admin-modal-root`, bridged into Tailwind `@theme` as `--spacing-adm-*`:
+
+| Token | Default | Use |
+|-------|---------|-----|
+| `--adm-rhythm` … `--adm-rhythm-6` | 4px steps | Generic spacing |
+| `--adm-inset-x` / `--spacing-adm-inset` | 16px | **One** horizontal gutter for every band/body inside a panel |
+| `--adm-band-pad-y` / `--spacing-adm-band-y` | 12px | Single-row chrome (locale, section title) |
+| `--adm-band-pad-y-lg` | 16px | Multi-line workspace title (Y only) |
+
+| Class / utility | Role |
+|-----------------|------|
+| `.adm-band` | Flex + band-y + **inset-x** |
+| `.adm-band--lg` | Larger Y; same inset-x |
+| `.adm-band--sticky-radius` | Extra top pad = `--adm-panel-radius` (first sticky under rounded panel) |
+| `.adm-inset-x` or Tailwind `px-adm-inset` | Horizontal gutter alone (body, description) |
+
+Do **not** invent per-screen `px-5` / `px-6` / `pad-x-lg` on panel chrome — change `--adm-inset-x` once.
+
+### Collapsible panel
+
+```tsx
+import { AdminCollapsiblePanel } from "@/components/synarava-cms";
+
+<AdminCollapsiblePanel title="Dimensions & fit">
+  {/* fields */}
+</AdminCollapsiblePanel>
+```
+
+- One chrome: bordered panel, title left, **one** chevron right (rotates when open).
+- Implemented as a **button** + animated panel (not native `&lt;details&gt;` — avoids double markers).
+- Open/close uses `grid-template-rows` 0fr→1fr (~220ms ease-out); chevron rotates with the same curve.
+- When open, soft header + **one** `.adm-collapse__rule` hairline (no inset/border-bottom on the header).
+- `tone="warning"` — orange border/fill (`.adm-collapse--warning`); optional `caption` string uses
+  shared `AdminFieldWarning` under the panel (same band as field warnings — no extra frame).
+  Stays visible when collapsed. Panel root is `.adm-field-unit` so the message band is reserved.
+- Closed panels keep fields in `FormData` (`visibility: hidden`, no `inert`). Parent forms that use `requestSubmit` must set `noValidate` so native constraints (e.g. `type="email"`) cannot block save on unfocusable fields — validation belongs in server actions.
+- Applied to product characteristic groups and Shopify snapshot mirror.
+- Story: `synarava-cms/AdminCollapsiblePanel`.
+
+### Admin nav tree
+
+Config-driven sidebar navigation (`AdminNavTree` + `buildAdminNavItems`).
+
+```tsx
+import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
+
+<AdminNavTree
+  items={buildAdminNavItems({
+    pages,
+    issueCount,
+    syncCounts: { products: 3, pages: 1, collections: 0, settings: 0, total: 4 },
+  })}
+  issueNavHrefs={issueNavHrefs}
+  syncNavHrefs={syncNavHrefs}
+/>
+```
+
+- **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA, cookie copy, and the leave-a-review form), Cart & account (cart, checkout handoff, login), and Customer account (the signed-in `/profile` page, including the reviews table). Catalog stays a leaf.
+- **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
+- **Signals:** left marker shows issue (red) / sync-conflict (amber) / both (split red+amber dots); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
+- **Meaning:** red = open Problems; amber = unresolved Shopify field conflicts / divergences. When a node has both, the split marker keeps both visible.
+- **Truncation:** long labels ellipsize; tooltip on long titles.
+- **Focus:** no outline ring on nav items — soft background only.
+- Story: `synarava-cms/AdminNavTree`.
+
+### Admin section tabs
+
+Compact single-row tabs with a cool content well (`AdminSectionTabs`).
+
+The strip is one line. When it is wider than the viewport it pans on the X
+axis: a horizontal touch moves the row (with a short glide after release) and
+does not select the tab under the finger. A vertical touch still scrolls the
+admin page. Edge fades show that more tabs sit off-screen.
+
+Optional **`groups`** keep labeled clusters in that same row (product editor:
+Shopify commerce skeleton vs Synarava-only sections). Each item may set
+`group` to a group id. `stripLabel` is the short chip; `label` stays in the
+accessible name. Groups may set `compactLabel` for narrow viewports.
+Keyboard arrows still move across the whole tablist.
+
+Product editor color is two levels. Each language button carries its own
+hue (`--adm-locale-en` gold, `--adm-locale-pt` sage, `--adm-locale-ru`
+steel): a tint at rest, the solid color when selected. The two-letter label
+stays centered; a status mark sits on the chip’s corner. `AdminLocaleTabs`
+paints that same color as a 3px border on the shell that contains the tabs
+(the enclosing admin panel, or the form when there is no panel). Pages,
+collections, commerce copy, and storefront copy use this one path. Inside
+a product, section tabs are colored by background: Shopify cool, Synarava warm.
+
+```tsx
+import { AdminSectionTabs } from "@/components/synarava-cms";
+
+<AdminSectionTabs
+  groups={[
+    { id: "shopify", label: "Shopify" },
+    { id: "synarava", label: "Synarava" },
+  ]}
+  items={[
+    { id: "essentials", label: "Product", stripLabel: "Product", detail: "Title & organization", group: "shopify" },
+    { id: "passport", label: "Passport", stripLabel: "Pass", detail: "Jewelry specs", group: "synarava" },
+    { id: "sync", label: "Sync", tone: "conflict", dirty: true, group: "shopify" },
+    { id: "details", label: "Product page", detail: "Story & craft", group: "synarava" },
+  ]}
+  active={active}
+  onChange={setActive}
+>
+  {/* Title + fields — share the cool well so “inside tab” is obvious */}
+</AdminSectionTabs>
+```
+
+| State | Look |
+|-------|------|
+| Idle | Quiet label on the capsule, no cell fill |
+| Idle hover | Faint ink wash |
+| Selected | Raised thumb under the segment; accent icon; label in ink |
+| Issue | Danger icon and label; thumb keeps a danger hairline |
+| Conflict | Amber icon and label; thumb keeps a conflict hairline |
+| Dirty | Amber dot on the icon |
+| Grouped strip | Two capsules in one row; horizontal pan when the row overflows |
+
+Tokens: `--adm-cool`, `--adm-cool-soft`, `--adm-tab-well`, `--adm-conflict-soft`.  
+Product editor uses this via `ProductEditorTabs` (always grouped). Story: `synarava-cms/AdminSectionTabs`.
+
+Locale editors (product, Shared) share one shell. `AdminPanel.Header` with `adm-panel__header--ruled` holds `AdminLocaleTabs` `embedded`. `AdminPanel.Body` holds `AdminSectionTabs` `embedded`. Field inset is `adm-inset-x`. Standalone `AdminSectionTabs` (its own border and top radius) is only for a tab strip that *is* the card. Nested inside a locale frame it climbs out of the 3px border.
+
+Embedded section tabs stick under the locale band. The product offset includes a workspace header (`--adm-product-workspace-sticky-height`, fallback `5.5rem`). `AdminPanel` sets that variable to `0px` when no workspace header sits above the panel, and measures the locale band, so the first field does not show in a gap above the tabs.
+
+Switching a product section settles the title, intro copy, and section mark on a critically damped spring (no overshoot, about 0.4s). Copy and the mark shift a few pixels from the direction of the tab; the form body only fades, so fields do not slide. `prefers-reduced-motion` keeps a short opacity cross-fade and skips the shift.
+
+### Entity list (tables)
+
+Shared dense list primitives for products / pages / collections:
+
+```tsx
+import {
+  AdminEntityList,
+  AdminIconButton,
+  AdminListWorkspace,
+  AdminSignalChip,
+  AdminSortChips,
+  AdminTextField,
+  AdminSelectField,
+} from "@/components/synarava-cms";
+
+<AdminListWorkspace.Root>
+  <AdminListWorkspace.Header
+    tag="[ CURRENT CATALOG ]"
+    title="Products list"
+    meta="30 of 35 · …"
+    actions={<Link href="…">New product</Link>}
+  >
+    <AdminListWorkspace.Filters summary={activeFilters || undefined}>
+      <AdminTextField label="Search" … />
+      <AdminSelectField label="Status" … />
+      <AdminSortChips value={sort} options={options} onChange={setSort} />
+    </AdminListWorkspace.Filters>
+  </AdminListWorkspace.Header>
+  <AdminListWorkspace.Body>
+    <AdminEntityList.Root>
+      <AdminEntityList.Header columns={…} gridClassName="xl:grid-cols-[…]" />
+      <AdminEntityList.Row gridClassName="…">…</AdminEntityList.Row>
+      <AdminEntityList.LoadMore hasMore={…} onLoadMore={…} />
+    </AdminEntityList.Root>
+  </AdminListWorkspace.Body>
+</AdminListWorkspace.Root>
+```
+
+| Export | Role |
+|--------|------|
+| `AdminListWorkspace` | Sticky title band + optional collapsible filters + body (wraps `AdminPanel`) |
+| `AdminIconButton` | Square icon action + tooltip + `aria-label` (optional badge) |
+| `AdminSignalChip` | Locale / problem / conflict glyph with explanatory tooltip |
+| `AdminSortChips` | Compact single-select sort bar (Problems / Conflicts first) |
+| `AdminEntityList` | Header + dense rows + infinite-scroll sentinel |
+
+- Sticky header uses `AdminPanel.Header sticky` + `.adm-panel__header--ruled` so the
+  bottom border spans the **full panel width** (not an inset rule inside `p-5`).
+- `AdminListWorkspace.Filters` reuses `AdminCollapsiblePanel` — collapse the search /
+  select / sort chain to free vertical space; pass `summary` so active filters stay
+  visible when collapsed (e.g. `Draft · Rings`). Put `AdminSortChips` **inside**
+  Filters, not as a sibling under the sticky title.
+- Filter fields stay `AdminTextField` / `AdminSelectField` (dense in the filters body —
+  no reserved form-error band).
+- Applied on products, pages, and collections list screens.
+- Page edit / create editors use the same `AdminListWorkspace` shell (sticky title +
+  Save, full-width ruled edge, embedded locale tabs in the header).
+- Page **Save** matches products/collections: `AdminIconButton` + `HardDriveUpload`
+  (icon + tooltip), not a primary text button. Confirm stays in `AdminConfirmModal`.
+- Locale-panel copy editors (Account, Shared/storefront, Cart & account, Site SEO,
+  Site video, Account orders settings) put the same `AdminIconButton` +
+  `HardDriveUpload` in the sticky header — either `AdminLocaleTabs` `trailing` or
+  the panel header actions row. Do **not** put a bottom-of-form primary Save button
+  on editor surfaces.
+
+Products list loads via `listAdminProductsPage` + `GET /admin/api/products` (cursor, filters, sort including problems/conflicts). Do not load the full catalog into the client for browsing.
+
+### Status badge
+
+```tsx
+import { AdminStatusBadge } from "@/components/synarava-cms";
+
+<AdminStatusBadge status="PUBLISHED" />
+<AdminStatusBadge status="ARCHIVED" />
+<AdminStatusBadge tone="pending">SHOPIFY: PENDING</AdminStatusBadge>
+```
+
+- One pill chrome (`.adm-badge` + `.adm-badge--*`).
+- `status` maps workflow labels; `tone` for sync / custom copy.
+- `error` only for real faults (failed sync, open problems) — never for “not filled yet”.
+
+### Ordered list
+
+```tsx
+import { AdminOrderedList, AdminSelectField } from "@/components/synarava-cms";
+
+<AdminOrderedList
+  label="Collections"
+  name="archiveCollectionIds"
+  items={ids}
+  onChange={setIds}
+  getKey={(_, index) => String(index)}
+  getValue={(id) => id}
+  minItems={1}
+  createItem={() => ""}
+  addLabel="Add collection"
+  renderItem={(id, { index }) => (
+    <AdminSelectField label={`Collection ${index + 1}`} value={id} onChange={…}>
+      <option value="">Default</option>
+    </AdminSelectField>
+  )}
+/>
+```
+
+- Up / down / remove via `AdminIconButton` (`.adm-ordered-list__controls`).
+- `onChange` + `lib/admin/ordered-ids` helpers are the reorder contract — swap the
+  control strip for drag-and-drop later without changing callers.
+- Optional repeated hidden inputs via `name` + `getValue` (`FormData.getAll`).
+- Home Featured collections is the first consumer; Collections index (`collections`
+  page) reuses the same ordered-select pattern for `/collections` display order
+  (all published collections still render); Material lexicon uses the
+  same list with collapsible rows (`AdminCollapsiblePanel` inside
+  `renderItem`, min 2 / max 3, `showItemControls={false}` + `trailing` actions).
+  Incomplete specimens use `tone="warning"` + caption (“won't appear on the site”).
+
+### Long text (legacy)
+
+`AdminLongTextField` — plain-text preview + Edit modal (textarea). Kept for
+Storybook / rare plain-only cases. **New and existing long copy use
+`AdminRichTextField` instead** (products, collections, pages, storefront copy,
+SEO fields).
+
+### Rich text (default long copy)
+
+`AdminRichTextField` — same preview + Edit chrome, with a TipTap modal
+(Bold / Italic / List / Numbered / Link). Stored value is sanitized HTML
+(`p`, `br`, `strong`/`em`, `ul`/`ol`/`li`, `a[href]`). Multiple paragraphs
+are kept as HTML so storefront spacing survives. Plain text still loads
+(converted for the editor) and single plain paragraphs may still save as
+plain text until the operator adds structure.
+
+**Links (internal + remote):** the Link tool opens a panel that reuses
+`AdminHrefControl` — search/pick storefront paths (`/shop`, `/products/…`) or
+paste a remote `https://…` / `mailto:` / `#anchor`. Sanitizer rules:
+
+- Internal (`/…`, `#…`) → same tab
+- External `http(s)` → `target="_blank"` + `rel="noopener noreferrer"`
+
+```tsx
+import { AdminRichTextField } from "@/components/synarava-cms";
+
+<AdminRichTextField label="Body" value={…} onChange={…} />
+```
+
+- Preview reuses `.adm-long-text-preview` so the outer chrome matches.
+- Storefront renders via `RichText` (`components/content/rich-text.tsx` +
+  `lib/content/rich-text.ts`). Meta / JSON-LD / Shopify SEO fields strip to
+  plain text with `plainTextFromRichText`.
+- Applied on **all** admin long-copy Edit fields (products, collections,
+  pages, storefront copy, account copy, site SEO). Legacy legal Markdown
+  still renders until a section is re-saved as rich HTML. For cookie
+  preferences in WYSIWYG, link to `/cookie-settings`.
+- Story: `synarava-cms/AdminRichTextField`.
+
+### Search preview (SERP)
+
+`AdminSerpPreview` — live title · URL · description chrome for Shopify SEO
+fields. Soft meters only (60 / 160); not a Yoast-style score. Pair with
+`seoTitleWarning` / `seoDescriptionWarning` from `lib/seo/serp-preview.ts` on
+the SEO fields’ `warning` prop. The preview title is composed with
+`composeDocumentTitle` (`lib/seo/document-title.ts`) so the site brand suffix
+appears once even when the Shopify SEO title already ends with `| Synarava`.
+
+```tsx
+import {
+  AdminRichTextField,
+  AdminSerpPreview,
+  AdminTextField,
+} from "@/components/synarava-cms";
+import {
+  resolveSerpTitle,
+  resolveSerpDescription,
+  seoTitleWarning,
+  seoDescriptionWarning,
+} from "@/lib/seo/serp-preview";
+import { localePath } from "@/lib/i18n/routing";
+
+<AdminTextField
+  label="SEO title"
+  value={seoTitle}
+  warning={seoTitleWarning(seoTitle)}
+  onChange={…}
+/>
+<AdminRichTextField
+  label="SEO description"
+  value={seoDescription}
+  warning={seoDescriptionWarning(seoDescription)}
+  onChange={…}
+/>
+<AdminSerpPreview
+  title={resolveSerpTitle(seoTitle, pageTitle)}
+  description={resolveSerpDescription(seoDescription, excerpt)}
+  path={localePath(locale, `/products/${slug}`)}
+/>
+```
+
+- Preview + soft meters count **plain** composed document title / description text.
+- Applied on product, collection, and page SEO clusters.
+- URL host defaults from `NEXT_PUBLIC_SITE_URL` / `APP_URL`, else `shop.synarava.com`.
+- Product `generateMetadata` uses `metadataDocumentTitle` (absolute) so the root
+  layout `title.template` does not append a second `| Synarava`.
+
+### Tall / composite fields
+
+Example: Shopify product category — `ShopifyCategoryControl` inside the shell,
+`ShopifyCategoryAttributes` **outside** (`components/admin/products/shopify-category-field.tsx`).
+Never put tall follow-on panels inside the same `adm-field-unit` as the absolute error.
+
+## Out of library (for now)
+
+- Still-image file pickers (`ImageFileField`) — site **video** uploads use `AdminVideoField`
+- Native hidden mirrors for locale tabs
+- Home section visibility switches
+
+When adding a new control type, extend **synarava-cms** first (implementation under `admin/shared`, re-export from `components/synarava-cms`); update this doc and the skill in the same change.
+
+**Not synarava-cms:** cross-surface chrome shared with the storefront (ephemeral toast, storefront modal shell, tooltip) belongs in `components/ui/` — see [`ephemeral-toast.md`](ephemeral-toast.md) and [`ui-kit.md`](ui-kit.md).
+
+## Graphify
+
+After changing synarava-cms modules, run `graphify update .`.
+Query: `graphify query "synarava-cms AdminTextField AdminSelectField AdminHrefField AdminCheckboxField AdminCollapsiblePanel"`.

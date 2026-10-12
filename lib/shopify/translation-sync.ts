@@ -66,7 +66,7 @@ export async function saveTranslationSnapshot({
   `);
 }
 
-/** Every push/pull/reconcile attempt gets its own event row — the audit trail tasks/plan.md's sync model requires, independent of ProductSyncEvent's commerce sync history. */
+/** Every push/pull/reconcile attempt gets its own event row — the audit trail docs/history/2026-09-en-pt-translation-plan.md's sync model requires, independent of ProductSyncEvent's commerce sync history. */
 export async function recordSyncEvent({
   bindingId,
   locale,
@@ -133,7 +133,7 @@ export async function recordReconcileAuditDetails({
  * Re-runs `perform` for an existing event and updates its status in place —
  * idempotent because it never touches the locally persisted translation
  * content, only this bookkeeping row, so a failed retry cannot lose local
- * copy (tasks/plan.md Task 6 acceptance).
+ * copy (docs/history/2026-09-en-pt-translation-plan.md Task 6 acceptance).
  */
 export async function retrySyncEvent(eventId: string, perform: () => Promise<void>) {
   await db.translationSyncEvent.update({

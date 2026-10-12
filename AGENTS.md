@@ -35,6 +35,7 @@ Rules:
 
 ## Documentation hygiene
 
+- Map of all docs, sections (wiki / runbooks / testing / adr / proposals / strategy / audits / history) and where a new doc goes: [`docs/README.md`](docs/README.md). Deferred work goes to the single register [`docs/tech-debt.md`](docs/tech-debt.md); hard-to-reverse decisions go to [`docs/adr/`](docs/adr/README.md). Do not add docs to the repository root.
 - Treat documentation updates as part of Definition of Done. When a change makes product, architecture, setup, or operational documentation stale, update or remove the stale material in the same change.
 - Do not preserve placeholders, superseded instructions, or descriptions of unimplemented future state as if they were current. Keep historical context only when it is explicitly labeled as history or captured in an ADR/history document.
 - Before committing, review the documentation touched by or directly describing the changed behavior and make sure it matches the implementation.
@@ -44,8 +45,8 @@ Rules:
 - Treat Shopify as the source of truth for catalog and commerce capabilities. Verify the current official Shopify API and data model before implementing a commerce feature.
 - Reuse Shopify-native resources, collections, metafields, metaobjects, and semantics whenever Shopify supports the capability. Do not create a parallel local commerce concept; local data may only act as an explicit projection, cache, or Synarava-specific editorial layer.
 - Keep local projections synchronized with Shopify. When a Shopify capability requires approval or restricted access scopes, preserve the Shopify-native integration contract and surface the requirement instead of replacing it with an invented local substitute.
-- **Conflict detect (hard rule):** dual full commerce stores (our + shopify); each entity holds a normalized Shopify-shaped window; strip technical noise with a **single** normalize used before save and before compare; deep-diff objects. Never maintain commerce field allowlists for detection. Skill: [`shopify-commerce-compare`](.agents/skills/shopify-commerce-compare/SKILL.md). Doc: [`docs/admin/commerce-sync.md`](docs/admin/commerce-sync.md).
-- **Product admin working model:** Shopify skeleton + Synarava sections. The editor must expose every supported Shopify product field (verify pull/push field by field) and add Synarava-only settings in a separate UI cluster. Section tabs use `AdminSectionTabs` groups: **Shopify** (commerce + Sync) vs **Synarava** (CMS-only). Tab layout on the Shopify side should converge toward Shopify Admin’s product structure over time — see [`docs/product-data-ownership.md`](docs/product-data-ownership.md).
+- **Conflict detect (hard rule):** dual full commerce stores (our + shopify); each entity holds a normalized Shopify-shaped window; strip technical noise with a **single** normalize used before save and before compare; deep-diff objects. Never maintain commerce field allowlists for detection. Skill: [`shopify-commerce-compare`](.agents/skills/shopify-commerce-compare/SKILL.md). Doc: [`docs/wiki/commerce-sync.md`](docs/wiki/commerce-sync.md).
+- **Product admin working model:** Shopify skeleton + Synarava sections. The editor must expose every supported Shopify product field (verify pull/push field by field) and add Synarava-only settings in a separate UI cluster. Section tabs use `AdminSectionTabs` groups: **Shopify** (commerce + Sync) vs **Synarava** (CMS-only). Tab layout on the Shopify side should converge toward Shopify Admin’s product structure over time — see [`docs/wiki/product-data-ownership.md`](docs/wiki/product-data-ownership.md).
 
 ## synarava-cms
 
@@ -53,7 +54,7 @@ Rules:
 - Locale + section editors use the product shell: `AdminPanel.Header` (`adm-panel__header--ruled`) with `AdminLocaleTabs embedded`, then `AdminSectionTabs embedded` in `AdminPanel.Body`, content inset via `adm-inset-x`. Never a standalone tab strip or a second bordered card inside the locale frame — that strip draws its own border and climbs out of the frame.
 - If the control does not exist in synarava-cms, add it there and use it. Do not ship a one-off header, tab row, or field.
 - Sticky chrome uses shared rhythm (`.adm-band`, `--adm-inset-x` / Tailwind `px-adm-inset`, `.adm-band--sticky-radius`) — one horizontal gutter inside panels; no ad-hoc `px-*` / `py-*` on headers.
-- Contract: [`docs/admin/synarava-cms.md`](docs/admin/synarava-cms.md). Skill: `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`).
+- Contract: [`docs/wiki/synarava-cms.md`](docs/wiki/synarava-cms.md). Skill: `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`).
 
 ## Ship finished work (staging → main)
 
@@ -71,4 +72,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## ECC (Everything Claude Code)
 
-Project-local ECC Cursor install is committed under `.cursor/` (skills, agents, commands, hooks, scripts, rules). Curated high-value skills are also copied to `.agents/skills/` so cloud `available_skills` injects them. Inventory and refresh notes: [`docs/agents/ecc-skills.md`](docs/agents/ecc-skills.md). Do not commit `.cursor/mcp.json` / MCP secrets.
+Project-local ECC Cursor install is committed under `.cursor/` (skills, agents, commands, hooks, scripts, rules). Curated high-value skills are also copied to `.agents/skills/` so cloud `available_skills` injects them. Inventory and refresh notes: [`docs/wiki/ecc-skills.md`](docs/wiki/ecc-skills.md). Do not commit `.cursor/mcp.json` / MCP secrets.

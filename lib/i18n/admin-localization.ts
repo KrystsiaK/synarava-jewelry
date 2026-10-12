@@ -104,7 +104,7 @@ export function diffFieldConflicts<T extends LocalizedRecord>(
   return conflicts;
 }
 
-/** PUSH/PULL/CONFLICT/NOOP per tasks/plan.md "Pull и конфликты" — the primitive Task 7's reconcile engine builds on. */
+/** PUSH/PULL/CONFLICT/NOOP per docs/history/2026-09-en-pt-translation-plan.md "Pull и конфликты" — the primitive Task 7's reconcile engine builds on. */
 export function determineSyncDirection<T extends LocalizedRecord>(
   registry: EntityFieldRegistry,
   base: T | null | undefined,
