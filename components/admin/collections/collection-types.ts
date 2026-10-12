@@ -11,6 +11,8 @@ export type CollectionLocaleDraft = {
   searchSummary: string;
   /** Hero primary CTA on the collection detail page. */
   ctaLabel: string;
+  /** Hero image alt text for the active locale. */
+  heroImageAlt: string;
   storyTitle: string;
   storyBody: string;
   symbolismLabel: string;
@@ -32,6 +34,8 @@ export type CollectionDraft = {
   searchSummary: string;
   /** Hero primary CTA on the collection detail page. */
   ctaLabel: string;
+  /** Hero image alt text (English / source locale). */
+  heroImageAlt: string;
   seoTitle: string;
   seoDescription: string;
   storyTitle: string;

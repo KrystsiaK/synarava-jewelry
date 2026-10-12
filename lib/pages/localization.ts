@@ -14,6 +14,7 @@ const materialSchema = z.object({
   category: z.string().optional(),
   description: z.string().optional(),
   properties: z.string().optional(),
+  imageAlt: z.string().optional(),
 });
 
 const legalSectionSchema = z.object({
@@ -27,6 +28,7 @@ export const pageTranslationContentSchema = z.object({
   eyebrow: z.string().optional(),
   body: z.string().optional(),
   ctaLabel: z.string().optional(),
+  heroImageAlt: z.string().optional(),
   calloutEyebrow: z.string().optional(),
   calloutHeading: z.string().optional(),
   calloutCtaHref: z.string().optional(),
@@ -112,12 +114,14 @@ type MaterialEntry = {
   description?: string;
   properties?: string;
   image?: string;
+  imageAlt?: string;
 };
 
 /**
  * Material lexicon structure (count, order, images) is shared across locales.
- * Translation rows only store text; replacing the whole array would drop images
- * and change card count when a locale's text is incomplete — never do that.
+ * Translation rows only store text (incl. imageAlt); replacing the whole array
+ * would drop images and change card count when a locale's text is incomplete —
+ * never do that.
  */
 export function mergeMaterialLexicon(
   source: unknown,
@@ -136,6 +140,7 @@ export function mergeMaterialLexicon(
       category: hasContent(localized.category) ? localized.category : entry.category,
       description: hasContent(localized.description) ? localized.description : entry.description,
       properties: hasContent(localized.properties) ? localized.properties : entry.properties,
+      imageAlt: hasContent(localized.imageAlt) ? localized.imageAlt : entry.imageAlt,
     };
   });
 }

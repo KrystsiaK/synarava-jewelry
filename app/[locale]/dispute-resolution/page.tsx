@@ -54,6 +54,7 @@ export default async function DisputeResolutionPage() {
         shippedServiceEntries('dispute-resolution', locale),
       )}
       heroImage={content?.heroImage}
+      heroImageAlt={content?.heroImageAlt}
     />
   );
 }

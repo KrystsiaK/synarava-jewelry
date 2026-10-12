@@ -3,6 +3,7 @@ export type HomeLexiconMaterialFields = {
   category?: string;
   description?: string;
   image?: string;
+  imageAlt?: string;
   properties?: string;
 };
 
@@ -16,6 +17,7 @@ export type ResolvedLexiconMaterial = {
   category: string;
   description: string;
   image: string;
+  imageAlt: string;
   properties: string[];
 };
 
@@ -56,6 +58,7 @@ export function resolveLexiconMaterials(
         category: item.category?.trim() ?? "",
         description,
         image,
+        imageAlt: item.imageAlt?.trim() ?? "",
         properties: (item.properties ?? "")
           .split(",")
           .map((property) => property.trim())

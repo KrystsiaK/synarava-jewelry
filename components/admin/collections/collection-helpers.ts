@@ -3,7 +3,7 @@ import type { AdminCollection, CollectionDraft, CollectionLocaleDraft, Collectio
 function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
   return {
     localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
-    ctaLabel: "",
+    ctaLabel: "", heroImageAlt: "",
     storyTitle: "", storyBody: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
     reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
@@ -14,7 +14,7 @@ function emptyCollectionLocaleDraft(): CollectionLocaleDraft {
 export function emptyCollectionDraft(translationLocales: string[] = ["pt"]): CollectionDraft {
   return {
     name: "", subtitle: "", slug: "", code: "", description: "",
-    manifesto: "", searchSummary: "", ctaLabel: "", seoTitle: "", seoDescription: "", storyTitle: "", storyBody: "",
+    manifesto: "", searchSummary: "", ctaLabel: "", heroImageAlt: "", seoTitle: "", seoDescription: "", storyTitle: "", storyBody: "",
     symbolismLabel: "", symbolismTitle: "",
     symbolismBody: "", symbolismBody2: "", workflowState: "DRAFT",
     translations: Object.fromEntries(translationLocales.map((locale) => [locale, emptyCollectionLocaleDraft()])),
@@ -118,6 +118,7 @@ export function collectionToDraft(collection: AdminCollection, translationLocale
     manifesto: collection.manifesto ?? "",
     searchSummary: collection.searchSummary ?? "",
     ctaLabel: collection.ctaLabel ?? "",
+    heroImageAlt: collection.heroImageAlt ?? "",
     seoTitle: collection.seoTitle ?? "",
     seoDescription: collection.seoDescription ?? "",
     storyTitle: collection.storyTitle ?? "",
@@ -137,6 +138,7 @@ export function collectionToDraft(collection: AdminCollection, translationLocale
         manifesto: row?.manifesto ?? "",
         searchSummary: row?.searchSummary ?? "",
         ctaLabel: row?.ctaLabel ?? "",
+        heroImageAlt: row?.heroImageAlt ?? "",
         storyTitle: row?.storyTitle ?? "",
         storyBody: row?.storyBody ?? "",
         symbolismLabel: row?.symbolismLabel ?? "",

@@ -18,6 +18,7 @@ export type ServicePageProps = {
   intro: string;
   sections: ServiceSection[];
   heroImage?: string;
+  heroImageAlt?: string;
   /** Shared site contact email (footer-contact-v1). */
   contactEmail?: string;
 };
@@ -28,6 +29,7 @@ export function ServicePage({
   intro,
   sections,
   heroImage,
+  heroImageAlt,
   contactEmail = DEFAULT_FOOTER_CONTACT_EMAIL,
 }: ServicePageProps) {
   const { t } = useTranslations();
@@ -39,7 +41,7 @@ export function ServicePage({
           heroImage ? "flex min-h-[68svh] items-end pb-12 pt-32 md:min-h-[76svh] md:pb-16" : "pb-12 pt-32 md:pb-16 md:pt-40",
         )}
       >
-        <PageHeroImage src={heroImage} />
+        <PageHeroImage src={heroImage} alt={heroImageAlt} />
         <div className="site-shell relative z-10 w-full">
           <div className="max-w-4xl">
             <p className={cn("label-caps", heroImage ? "text-white/75" : "text-accent")}>{eyebrow}</p>

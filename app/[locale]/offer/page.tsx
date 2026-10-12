@@ -67,6 +67,7 @@ export default async function OfferPage() {
   return (
     <LegalDocumentPage
       heroImage={heroImage}
+      heroImageAlt={page?.content.heroImageAlt}
       eyebrowLabel={t("legal.common.eyebrow")}
       title={page?.title || t("legal.offer.title")}
       intro={intro}

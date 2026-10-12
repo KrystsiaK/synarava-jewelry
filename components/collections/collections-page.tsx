@@ -79,6 +79,7 @@ function resolveCopy(
 export function CollectionsHero({
   collections,
   heroImage,
+  heroImageAlt,
   eyebrow,
   heading,
   introduction,
@@ -88,6 +89,7 @@ export function CollectionsHero({
 }: {
   collections: CollectionSummary[];
   heroImage?: string;
+  heroImageAlt?: string;
   eyebrow: string;
   heading: string;
   introduction: string;
@@ -126,11 +128,12 @@ export function CollectionsHero({
         <motion.div
           className="absolute left-0 top-24 h-[58svh] w-[96%] overflow-hidden md:left-[3vw] md:top-28 md:h-[76vh] md:w-[64%] md:[clip-path:polygon(8%_0,100%_0,93%_100%,0_91%)]"
           style={reduceMotion ? undefined : { y: mediaY, scale: mediaScale }}
+          aria-hidden={heroImageAlt?.trim() ? undefined : true}
         >
           <Image
             data-testid="collections-hero-media"
             src={heroImage}
-            alt=""
+            alt={heroImageAlt?.trim() ?? ""}
             fill
             preload
             quality={75}
@@ -211,7 +214,7 @@ function CollectionRow({
       href={localePath(locale, `/collections/${collection.slug}`)}
       reversed={isReversed}
       imageSrc={collection.heroImage}
-      imageAlt={collection.name}
+      imageAlt={collection.heroImageAlt || collection.name}
       className="mx-auto max-w-[90rem] bg-transparent"
       imagePanelClassName={
         isReversed
@@ -361,10 +364,12 @@ function CollectionsFooter({
 export function CollectionsPage({
   collections,
   heroImage,
+  heroImageAlt,
   content,
 }: {
   collections: CollectionSummary[];
   heroImage?: string;
+  heroImageAlt?: string;
   content?: CollectionsPageCopy;
 }) {
   const { t } = useTranslations();
@@ -377,6 +382,7 @@ export function CollectionsPage({
       <CollectionsHero
         collections={collections}
         heroImage={heroImage}
+        heroImageAlt={heroImageAlt}
         eyebrow={copy.eyebrow}
         heading={copy.heading}
         introduction={copy.introduction}

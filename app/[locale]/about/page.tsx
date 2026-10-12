@@ -56,6 +56,7 @@ export default async function Page() {
       quote={content.quote}
       heroVideoSrc={videos.braceletFilm}
       heroImage={content.heroImage}
+      heroImageAlt={content.heroImageAlt}
       materialVideoSrc={videos.materialsFilm}
     />
   );

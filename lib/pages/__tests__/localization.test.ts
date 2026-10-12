@@ -102,16 +102,18 @@ describe("page localization", () => {
       eyebrow: "Arquivo",
       body: "Corpo",
       heroImage: "/shared.webp",
+      heroImageAlt: "Pérolas ao sol",
       ctaHref: "/shop",
       finalSecondaryCtaLabel: "Sobre nós",
       finalSecondaryCtaHref: "/about",
-      materialLexicon: [{ name: "Pérolas", image: "/shared-pearl.webp" }],
+      materialLexicon: [{ name: "Pérolas", image: "/shared-pearl.webp", imageAlt: "Pérola de água doce" }],
     })).toEqual({
       eyebrow: "Arquivo",
       body: "Corpo",
+      heroImageAlt: "Pérolas ao sol",
       finalSecondaryCtaLabel: "Sobre nós",
       finalSecondaryCtaHref: "/about",
-      materialLexicon: [{ name: "Pérolas" }],
+      materialLexicon: [{ name: "Pérolas", imageAlt: "Pérola de água doce" }],
     });
   });
 
@@ -174,6 +176,7 @@ describe("page localization", () => {
               category: "Organic",
               description: "Natural, irregular.",
               image: "/pearl.webp",
+              imageAlt: "EN pearl alt",
               properties: "Natural, Soft",
             },
             {
@@ -181,6 +184,7 @@ describe("page localization", () => {
               category: "Metal",
               description: "Bright alloy.",
               image: "/silver.webp",
+              imageAlt: "EN silver alt",
               properties: "Bright",
             },
             {
@@ -200,7 +204,7 @@ describe("page localization", () => {
           // Translation rows intentionally omit images (shared). A naive
           // whole-array replace would drop images and collapse the lexicon.
           materialLexicon: [
-            { name: "Pérola de água doce", description: "Natural e irregular." },
+            { name: "Pérola de água doce", description: "Natural e irregular.", imageAlt: "PT pearl alt" },
             { name: "Prata de lei", category: "Metal", description: "" },
           ],
         },
@@ -213,6 +217,7 @@ describe("page localization", () => {
         category: "Organic",
         description: "Natural e irregular.",
         image: "/pearl.webp",
+        imageAlt: "PT pearl alt",
         properties: "Natural, Soft",
       },
       {
@@ -220,6 +225,7 @@ describe("page localization", () => {
         category: "Metal",
         description: "Bright alloy.",
         image: "/silver.webp",
+        imageAlt: "EN silver alt",
         properties: "Bright",
       },
       {

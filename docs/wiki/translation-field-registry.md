@@ -56,7 +56,7 @@ handles still resolve once, then redirect to the shared slug.
 | searchSummary | localized | optional | metaobject `collection_section_copy.search_summary` |
 | ctaLabel (hero primary CTA) | localized | optional | metaobject `collection_section_copy.cta_label` (empty → Collections page `detailShopLabel` → `messages` `collections.detail.shopProducts`) |
 | seoTitle/seoDescription | localized | when-published | native `COLLECTION.meta_title`/`meta_description` |
-| heroImageAlt | localized | optional | native `COLLECTION_IMAGE.alt` |
+| heroImageAlt | localized | optional | — (Synarava CMS storefront alt; not Shopify `COLLECTION_IMAGE.alt`) |
 | sectionTitle/Eyebrow/Body (per `CollectionSection`) | localized | optional | metaobject `collection_section_copy.*` |
 | code, slug, status, visibility, membership, images, navOrdering | shared | — | — |
 
@@ -73,6 +73,8 @@ page only uses the subset of keys its template renders (keys mirror
 | body | localized | when-published | native `PAGE.body_html` |
 | excerpt, eyebrow, ctaLabel, calloutEyebrow/Heading/CtaHref, heroOpeningLabel/heroCountLabel/heroQualifier, detailShopLabel/detailCollectionsLabel/detailScrollLabel/detailManifesto*/detailStoryEyebrow/detailAccentCodeLabel/detailTeaser*, detailCatalogEyebrow/detailCatalogHeading, quote, secondaryTitle/Body, archive/The Edit/material/manifesto/final-cta section copy (incl. secondary CTA label/href), materialLexicon, legalIntro, legalLastUpdatedLabel, legalSections, Shop page section copy (`shopNew*`, `shopProductType*`, `shopFilter*`, `shopAvailableCountLabel`) | localized | optional (see code for exceptions) | metaobject `page_section_copy.*` |
 | seoTitle/seoDescription | localized | when-published | native `PAGE.meta_title`/`meta_description` |
+| heroImageAlt | localized | optional | — (Synarava CMS; next to shared hero image pick) |
+| materialLexicon[].imageAlt | localized | optional | — (Synarava CMS; per lexicon specimen, next to shared image) |
 | slug, template, status, visibility, heroImage, ctaHref, finalCtaHref, finalContactEmail, editProductIds, finalCtaProductIds, section enabled flags, legalLastUpdated | shared | — | — |
 
 `legalLastUpdated` is one shared display date (for example `5 September 2026`). Save copies it onto every locale row; it is not per-locale copy, and the admin does not retype it per language. The storefront formats the month from `messages/<locale>.json` (`legal.common.months`, optional `legal.common.datePattern`). `legalLastUpdatedLabel` is the per-locale label; when that field is empty the page uses `legal.common.lastUpdated`. See [Adding a new language](../runbooks/translation-operations.md#adding-a-new-language).

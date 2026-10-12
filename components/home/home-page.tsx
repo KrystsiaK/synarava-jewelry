@@ -45,6 +45,7 @@ type HomePageContent = HomeSectionVisibilityFields & HomeLexiconSectionFields & 
   heroTitle?: string;
   heroBody?: string;
   heroImage?: string;
+  heroImageAlt?: string;
   heroVideoSrc?: string | string[];
   heroVideo?: string | string[];
   ctaLabel?: string;
@@ -79,6 +80,7 @@ export interface CollectionItem {
   description: string;
   price: string;
   image: string;
+  imageAlt?: string;
   href: string;
 }
 
@@ -96,6 +98,7 @@ type LexiconMaterial = {
   category: string;
   description: string;
   image: string;
+  imageAlt: string;
   symbol: string;
   properties: string[];
 };
@@ -344,12 +347,19 @@ function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipP
 function HeroSection({
   heroVideoSrc,
   heroImage,
+  heroImageAlt,
   eyebrow,
   title,
   excerpt,
   ctaLabel,
   ctaHref,
-}: Pick<HomePageProps, "heroVideoSrc" | "title" | "excerpt"> & { heroImage?: string; eyebrow?: string; ctaLabel?: string; ctaHref?: string }) {
+}: Pick<HomePageProps, "heroVideoSrc" | "title" | "excerpt"> & {
+  heroImage?: string;
+  heroImageAlt?: string;
+  eyebrow?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const reduceMotion = useReducedMotion();
@@ -417,7 +427,16 @@ function HeroSection({
               onError={() => setActiveVideoIndex((index) => (index + 1) % videoSources.length)}
             />
           ) : backdrop.mode === "image" ? (
-            <Image src={backdrop.src} alt="" fill preload quality={85} sizes="100vw" className="home-hero-media h-full w-full object-cover" aria-hidden="true" />
+            <Image
+              src={backdrop.src}
+              alt={heroImageAlt?.trim() ?? ""}
+              fill
+              preload
+              quality={85}
+              sizes="100vw"
+              className="home-hero-media h-full w-full object-cover"
+              aria-hidden={heroImageAlt?.trim() ? undefined : true}
+            />
           ) : null}
         </motion.div>
 
@@ -623,7 +642,7 @@ function ArchiveRecord({
       }
     >
       <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
-        <ParallaxImage src={item.image} alt={item.title} clipPath={clipPath} />
+        <ParallaxImage src={item.image} alt={item.imageAlt || item.title} clipPath={clipPath} />
         <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
           {viewCollection}
           <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -898,7 +917,7 @@ function MaterialPlate({
         <motion.div style={{ x: imageX }} className="absolute -inset-x-[10%] inset-y-0 will-change-transform">
           <Image
             src={material.image}
-            alt=""
+            alt={material.imageAlt}
             fill
             sizes="(max-width: 768px) 100vw, 45vw"
             className="object-cover grayscale contrast-125 brightness-[0.62]"
@@ -1757,6 +1776,7 @@ export function HomePage({ collections, products = [], heroVideoSrc, content }: 
       {visibility.hero ? <HeroSection
         heroVideoSrc={resolvedHeroVideoSrc}
         heroImage={content?.heroImage}
+        heroImageAlt={content?.heroImageAlt}
         eyebrow={content?.eyebrow}
         title={content?.heroTitle}
         excerpt={content?.heroBody}

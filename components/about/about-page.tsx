@@ -24,6 +24,7 @@ type AboutPageProps = {
   quote?: string;
   heroVideoSrc?: string;
   heroImage?: string;
+  heroImageAlt?: string;
   materialVideoSrc?: string;
 };
 
@@ -33,10 +34,12 @@ function AboutHero({
   eyebrow,
   heroVideoSrc,
   heroImage,
-}: Pick<AboutPageProps, "title" | "excerpt" | "eyebrow" | "heroVideoSrc" | "heroImage">) {
+  heroImageAlt,
+}: Pick<AboutPageProps, "title" | "excerpt" | "eyebrow" | "heroVideoSrc" | "heroImage" | "heroImageAlt">) {
   const reduceMotion = useReducedMotion();
   const { videoRef, isPlaying, onPlay, onPause, toggle } = useVideoPlayback(Boolean(reduceMotion));
   const backdrop = resolveHeroBackdrop({ videoSrc: heroVideoSrc, imageSrc: heroImage });
+  const alt = heroImageAlt?.trim() ?? "";
 
   return (
     <header data-component="AboutHero" className="about-hero relative flex min-h-[100svh] items-end bg-background text-foreground">
@@ -66,13 +69,13 @@ function AboutHero({
         ) : backdrop.mode === "image" ? (
           <Image
             src={backdrop.src}
-            alt=""
+            alt={alt}
             fill
             preload
             sizes="100vw"
             quality={85}
             className="object-cover object-center"
-            aria-hidden="true"
+            aria-hidden={alt ? undefined : true}
           />
         ) : null}
       </motion.div>
@@ -204,6 +207,7 @@ export function AboutPage(props: AboutPageProps) {
         eyebrow={props.eyebrow}
         heroVideoSrc={props.heroVideoSrc}
         heroImage={props.heroImage}
+        heroImageAlt={props.heroImageAlt}
       />
       <AboutCopy
         title={props.secondaryTitle}

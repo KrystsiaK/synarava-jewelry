@@ -37,6 +37,7 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     manifesto: "Manifesto copy.",
     searchSummary: "Search helper text.",
     ctaLabel: null,
+    heroImageAlt: null,
     storyTitle: null,
     storyBody: null,
     seoTitle: null,

@@ -76,7 +76,7 @@ function DetailHero({
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <motion.div className="absolute inset-0 scale-110" style={{ y: imgY }}>
           <Image
-            alt={collection.name}
+            alt={collection.heroImageAlt || collection.name}
             src={collection.heroImage}
             fill
             preload
@@ -307,7 +307,7 @@ function CollectionStory({
                 transition={{ duration: 1.25, ease }}
               >
                 <Image
-                  alt={`${collection.name} detail`}
+                  alt={collection.heroImageAlt || `${collection.name} detail`}
                   src={collection.heroImage}
                   fill
                   sizes="(max-width: 768px) 100vw, 58vw"

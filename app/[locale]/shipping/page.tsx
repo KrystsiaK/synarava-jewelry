@@ -54,6 +54,7 @@ export default async function ShippingPage() {
         shippedServiceEntries("shipping", locale),
       )}
       heroImage={content?.heroImage}
+      heroImageAlt={content?.heroImageAlt}
     />
   );
 }

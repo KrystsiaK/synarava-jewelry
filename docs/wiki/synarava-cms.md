@@ -599,6 +599,8 @@ Never put tall follow-on panels inside the same `adm-field-unit` as the absolute
 - Native hidden mirrors for locale tabs
 - Home section visibility switches
 
+**CMS image alt (Synarava only):** next to every non-product `ImageFileField` (page/home hero, collection hero, home material lexicon), put a locale-aware `AdminTextField` for alt text. Image assets stay shared; alt is per locale (EN/PT/RU…). Do not invent Shopify/`COLLECTION_IMAGE` media alt for these CMS surfaces — product Media tab alts stay on the commerce path.
+
 When adding a new control type, extend **synarava-cms** first (implementation under `admin/shared`, re-export from `components/synarava-cms`); update this doc and the skill in the same change.
 
 **Not synarava-cms:** cross-surface chrome shared with the storefront (ephemeral toast, storefront modal shell, tooltip) belongs in `components/ui/` — see [`ephemeral-toast.md`](ephemeral-toast.md) and [`ui-kit.md`](ui-kit.md).
