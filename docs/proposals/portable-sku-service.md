@@ -1,6 +1,6 @@
 # План реализации переносимого SKU-сервиса
 
-**Статус:** approved implementation plan — код сервиса ещё не создан · **Дата:** 2026-10-12
+**Статус:** Этап 1 (domain POC) реализован в монорепе · Этапы 2–6 открыты · **Дата:** 2026-10-12 (обновлено 2026-10-12)
 
 > **Handoff для исполнителя:** сначала прочитать [ADR-0002](../adr/0002-shopify-catalog-ownership.md), [ADR-0003](../adr/0003-commerce-conflict-deep-diff.md), [ADR-0004](../adr/0004-portable-sku-service-boundary.md), [`product-data-ownership.md`](../wiki/product-data-ownership.md) и настоящий документ. Не переоткрывать принятые решения внутри реализации; новое отклонение сначала оформить как изменение ADR/RFC.
 
@@ -248,6 +248,15 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 - unit/property/concurrency tests.
 
 **Выход:** повторяемый результат, отсутствие коллизий под параллельной нагрузкой, нулевые вызовы LLM.
+
+**Статус реализации (2026-10-12):** выполнено.
+
+- `packages/sku-core` — normalize / stem / format / parse / preview + property + import-boundary tests
+- `packages/sku-contract` — Zod schemas for `/v1` (HTTP в Этапе 2)
+- `services/sku-api` — Prisma schema + SQL migration, `SkuRegistryStore` + in-memory serializable adapter, allocator, legacy importer + `fixtures/legacy-v0-sample.json`
+- `pnpm-workspace.yaml` включает `packages/*` и `services/*`; `pnpm test:sku` / `pnpm test:run` гоняют SKU-тесты
+- Wiki: [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
+- Канонический import 49 SKU и Prisma Postgres runtime — ops/staging после `SKU_DATABASE_URL`; в CI POC concurrency доказан на in-memory store без Docker
 
 ### Этап 2 — HTTP API и admin profile
 

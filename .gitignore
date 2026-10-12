@@ -87,3 +87,8 @@ scripts/audit/infrastructure-cleanup-results.json
 # ECC MCP wiring stays local (see docs/wiki/ecc-skills.md)
 .cursor/mcp.json
 .cursor/mcp-configs/
+
+# Portable SKU service generated artifacts
+services/sku-api/src/generated/
+services/sku-api/dist/
+packages/*/dist/

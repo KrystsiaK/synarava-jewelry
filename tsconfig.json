@@ -36,6 +36,8 @@
     ".claude",
     "mobile",
     "scripts",
+    "packages",
+    "services",
     "**/__tests__/**",
     "*.config.ts",
     "*.config.mts"
