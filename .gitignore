@@ -41,6 +41,7 @@ graphify-out/.graphify_root
 graphify-out/.graphify_chunk_*.json
 graphify-out/graph.html
 graphify-out/graph.svg
+graphify-out/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
 
 # photo-editing scratch output (unreferenced by app code — do not commit)
 /artifacts/product-photo/
@@ -82,3 +83,7 @@ scripts/audit/infrastructure-cleanup-results.json
 
 # Codex scratch (theme zips, screenshots) — do not commit
 .codex-work/
+
+# ECC MCP wiring stays local (see docs/wiki/ecc-skills.md)
+.cursor/mcp.json
+.cursor/mcp-configs/
