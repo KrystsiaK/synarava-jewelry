@@ -38,7 +38,7 @@ const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", lab
 
 const EMPTY_TRANSLATION: CollectionLocaleDraft = {
   localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
-  ctaLabel: "",
+  ctaLabel: "", heroImageAlt: "",
   storyTitle: "", storyBody: "",
   symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
   reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
@@ -159,7 +159,7 @@ export function WorkflowStateField({
 // registry row (Task U1) — this JSX and the mirror list don't change.
 function HiddenLocaleFields({ draft, translationLocales }: { draft: CollectionDraft; translationLocales: AdminTranslationLocale[] }) {
   const keys: Array<keyof CollectionLocaleDraft & keyof CollectionDraft> = [
-    "name", "subtitle", "description", "manifesto", "searchSummary", "ctaLabel",
+    "name", "subtitle", "description", "manifesto", "searchSummary", "ctaLabel", "heroImageAlt",
     "storyTitle", "storyBody",
     "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
   ];
@@ -369,6 +369,16 @@ export function CollectionFields({
             onRemoveChange={(removing) => {
               if (!removing && currentHeroImageUrl) onFieldEdit?.("heroImageFile");
             }}
+          />
+          <AdminTextField
+            label="Hero image alt text"
+            owner="Synarava"
+            unitId="field-heroImageAlt"
+            validationName="heroImageAlt"
+            help="Describes the hero photo for screen readers on this language. Blank falls back to the English alt, then the collection name."
+            value={isEn ? draft.heroImageAlt : active!.heroImageAlt}
+            onChange={(e) => (isEn ? onChange("heroImageAlt", e.target.value) : updateActiveTranslation("heroImageAlt", e.target.value))}
+            placeholder={isEn ? "e.g. Freshwater pearls on linen" : "Optional — uses English alt until filled in."}
           />
           <FieldError message={fieldErrors?.heroImageFile} />
         </section>

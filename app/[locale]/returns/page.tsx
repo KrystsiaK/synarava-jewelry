@@ -54,6 +54,7 @@ export default async function ReturnsPage() {
         shippedServiceEntries("returns", locale),
       )}
       heroImage={content?.heroImage}
+      heroImageAlt={content?.heroImageAlt}
     />
   );
 }

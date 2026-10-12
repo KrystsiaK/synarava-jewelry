@@ -158,6 +158,7 @@ describe("savePageAction", () => {
               category: "Organic",
               description: "Irregular.",
               properties: "Natural",
+              imageAlt: "",
               image: "/pearl.webp",
             },
             {
@@ -165,6 +166,7 @@ describe("savePageAction", () => {
               category: "Wood",
               description: "Ancient.",
               properties: "Warm",
+              imageAlt: "",
               image: "/oak.webp",
             },
           ],

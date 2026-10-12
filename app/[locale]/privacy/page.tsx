@@ -80,6 +80,7 @@ export default async function PrivacyPage() {
   return (
     <LegalDocumentPage
       heroImage={heroImage}
+      heroImageAlt={page?.content.heroImageAlt}
       eyebrowLabel={t("legal.common.eyebrow")}
       title={t("legal.privacy.title")}
       intro={intro}

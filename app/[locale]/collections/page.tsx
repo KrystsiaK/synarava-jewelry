@@ -47,6 +47,7 @@ export default async function Page() {
     <CollectionsPage
       collections={collections}
       heroImage={content?.heroImage}
+      heroImageAlt={content?.heroImageAlt}
       content={{
         eyebrow: content?.eyebrow,
         heading: content?.secondaryTitle,

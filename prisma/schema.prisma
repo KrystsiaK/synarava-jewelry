@@ -67,6 +67,8 @@ model Collection {
   /// Synarava-only hero primary CTA label (per locale via CollectionTranslation).
   /// Empty → Collections page detailShopLabel → messages collections.detail.shopProducts.
   ctaLabel              String?
+  /// Synarava CMS hero image alt (per locale via CollectionTranslation). Not Shopify COLLECTION_IMAGE.
+  heroImageAlt          String?
   seoTitle              String?
   seoDescription        String?
   heroImageUrl          String?
@@ -116,6 +118,8 @@ model CollectionTranslation {
   searchSummary   String?
   /// Synarava-only hero CTA; empty does not inherit EN — see Collection.ctaLabel.
   ctaLabel        String?
+  /// Synarava CMS hero image alt; empty falls back to EN then collection name on the storefront.
+  heroImageAlt    String?
   seoTitle        String?
   seoDescription  String?
   reviewStatus    TranslationReviewStatus @default(DRAFT)

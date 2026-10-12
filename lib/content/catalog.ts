@@ -46,6 +46,7 @@ import {
   type ProductTranslationRecord,
 } from "@/lib/products/localization";
 import { resolveCollectionCtaLabel } from "@/lib/collections/hero-cta";
+import { resolveCollectionHeroImageAlt } from "@/lib/collections/hero-image-alt";
 import { resolveCollectionCopy, resolveCollectionName } from "@/lib/collections/localization";
 import { ownedLocalizedPageFields, resolvePageLocalizedCopy } from "@/lib/pages/localization";
 import { resolveLocalizedHandle } from "@/lib/content/handle-localization";
@@ -78,6 +79,7 @@ export type CollectionSummary = {
   seoTitle: string;
   seoDescription: string;
   heroImage: string;
+  heroImageAlt: string;
   accent: string;
   updatedAt: Date;
 };
@@ -206,11 +208,13 @@ export type PageContent = {
   materialSectionEyebrow?: string;
   materialSectionTitle?: string;
   materialSectionNoteLabel?: string;
+  heroImageAlt?: string;
   materialLexicon?: Array<{
     name?: string;
     category?: string;
     description?: string;
     image?: string;
+    imageAlt?: string;
     properties?: string;
   }>;
   manifestoSectionLabel?: string;
@@ -712,6 +716,7 @@ export async function listCollections(locale: Locale = "en") {
       seoTitle: copy.seoTitle,
       seoDescription: copy.seoDescription,
       heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
+      heroImageAlt: resolveCollectionHeroImageAlt(collection, locale),
       accent: collection.code ?? "",
       updatedAt: collection.updatedAt,
     };
@@ -748,6 +753,7 @@ export async function getCollectionBySlug(slug: string, locale: Locale = "en") {
     seoTitle: copy.seoTitle,
     seoDescription: copy.seoDescription,
     heroImage: storefrontMedia(collection.heroImageUrl, collection.slug),
+    heroImageAlt: resolveCollectionHeroImageAlt(collection, locale),
     accent: collection.code ?? "",
     manifesto: copy.manifesto,
     storyTitle: copy.storyTitle,

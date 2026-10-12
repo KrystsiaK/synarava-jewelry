@@ -73,6 +73,7 @@ export default async function Page() {
       description: c.summary,
       price: "",
       image: c.heroImage,
+      imageAlt: c.heroImageAlt,
       href: localePath(locale, `/collections/${c.slug}`),
     }));
 

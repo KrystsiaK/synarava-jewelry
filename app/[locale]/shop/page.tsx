@@ -110,6 +110,7 @@ export default async function Page({ searchParams }: Props) {
       popularProducts={popular.nodes}
       showPopular={popular.popularAvailable && popular.nodes.length > 0}
       heroImage={page?.content.heroImage}
+      heroImageAlt={page?.content.heroImageAlt}
       heroTitle={page?.title || t("nav.shop")}
       heroDescription={page?.content.body || t("shop.heroDescription")}
       archiveCount={archiveCount}

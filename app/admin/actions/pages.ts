@@ -171,7 +171,7 @@ function normalizePageContentRichText<T extends Record<string, unknown>>(content
 }
 
 const TRANSLATABLE_PAGE_FIELDS = [
-  "eyebrow", "body", "ctaLabel", "calloutEyebrow", "calloutHeading", "calloutCtaHref",
+  "eyebrow", "body", "ctaLabel", "heroImageAlt", "calloutEyebrow", "calloutHeading", "calloutCtaHref",
   "heroOpeningLabel", "heroCountLabel", "heroQualifier",
   "detailShopLabel", "detailCollectionsLabel", "detailScrollLabel",
   "detailManifestoEyebrow", "detailManifestoGhost", "detailStoryEyebrow", "detailAccentCodeLabel",
@@ -191,6 +191,7 @@ type MaterialTextEntry = {
   category: string;
   description: string;
   properties: string;
+  imageAlt: string;
 };
 
 /** Lexicon slots are variable (min 2 / max 3); presence of `materialNName` marks each row. */
@@ -205,6 +206,7 @@ function readMaterialTextEntries(formData: FormData, locale: string): MaterialTe
         readLocaleField(formData, locale, `material${index}Description`),
       ),
       properties: readLocaleField(formData, locale, `material${index}Properties`),
+      imageAlt: readLocaleField(formData, locale, `material${index}ImageAlt`),
     });
   }
   return entries;
@@ -235,6 +237,7 @@ function buildMaterialLexiconEntries(
     category: entry.category,
     description: entry.description,
     properties: entry.properties,
+    imageAlt: entry.imageAlt,
     image: images[index],
   }));
 }
@@ -311,6 +314,7 @@ const pageContentFieldsSchema = z.object({
   eyebrow: z.string().trim().default(""),
   body: z.string().trim().default(""),
   ctaLabel: z.string().trim().default(""),
+  heroImageAlt: z.string().trim().default(""),
   ctaHref: z.string().trim().default(""),
   calloutEyebrow: z.string().trim().default(""),
   calloutHeading: z.string().trim().default(""),
@@ -387,7 +391,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     return { error: "Page slug and title are required." };
   }
   const {
-    pageId, workflowState, title, excerpt, seoTitle, seoDescription, eyebrow, body, ctaLabel, ctaHref, quote,
+    pageId, workflowState, title, excerpt, seoTitle, seoDescription, eyebrow, body, ctaLabel, heroImageAlt, ctaHref, quote,
     secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionViewAllLabel,
@@ -464,7 +468,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
   });
   const materialLexicon = buildMaterialLexiconEntries(materialEntries, materialImages);
   const englishTranslationContent = normalizePageContentRichText({
-    eyebrow, body, ctaLabel, calloutEyebrow, calloutHeading, calloutCtaHref,
+    eyebrow, body, ctaLabel, heroImageAlt, calloutEyebrow, calloutHeading, calloutCtaHref,
     heroOpeningLabel, heroCountLabel, heroQualifier,
     detailShopLabel, detailCollectionsLabel, detailScrollLabel,
     detailManifestoEyebrow, detailManifestoGhost, detailStoryEyebrow, detailAccentCodeLabel,
@@ -489,6 +493,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       eyebrow: fields.eyebrow,
       body: fields.body,
       ctaLabel: fields.ctaLabel,
+      heroImageAlt: fields.heroImageAlt,
       calloutEyebrow: fields.calloutEyebrow,
       calloutHeading: fields.calloutHeading,
       calloutCtaHref: fields.calloutCtaHref,
@@ -557,6 +562,7 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       eyebrow,
       body,
       ctaLabel,
+      heroImageAlt,
       ctaHref,
       calloutEyebrow,
       calloutHeading,
@@ -772,7 +778,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
     return {};
   }
   const {
-    pageId, title, excerpt, seoTitle, seoDescription, eyebrow, body, ctaLabel, ctaHref, quote,
+    pageId, title, excerpt, seoTitle, seoDescription, eyebrow, body, ctaLabel, heroImageAlt, ctaHref, quote,
     secondaryTitle, secondaryBody, heroSectionEnabled,
     archiveSectionEnabled, editSectionEnabled, materialSectionEnabled, manifestoSectionEnabled, finalCtaSectionEnabled,
     archiveSectionLabel, editSectionEyebrow, editSectionTitle, editSectionBody, editSectionViewAllLabel,
@@ -809,6 +815,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       eyebrow: fields.eyebrow,
       body: fields.body,
       ctaLabel: fields.ctaLabel,
+      heroImageAlt: fields.heroImageAlt,
       calloutEyebrow: fields.calloutEyebrow,
       calloutHeading: fields.calloutHeading,
       calloutCtaHref: fields.calloutCtaHref,
@@ -879,6 +886,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       eyebrow,
       body,
       ctaLabel,
+      heroImageAlt,
       ctaHref,
       calloutEyebrow,
       calloutHeading,
@@ -971,7 +979,7 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
       });
 
   const englishTranslationContent = {
-    eyebrow, body, ctaLabel, calloutEyebrow, calloutHeading, calloutCtaHref,
+    eyebrow, body, ctaLabel, heroImageAlt, calloutEyebrow, calloutHeading, calloutCtaHref,
     heroOpeningLabel, heroCountLabel, heroQualifier,
     detailShopLabel, detailCollectionsLabel, detailScrollLabel,
     detailManifestoEyebrow, detailManifestoGhost, detailStoryEyebrow, detailAccentCodeLabel,

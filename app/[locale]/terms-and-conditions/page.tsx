@@ -74,6 +74,7 @@ export default async function TermsAndConditionsPage() {
   return (
     <LegalDocumentPage
       heroImage={heroImage}
+      heroImageAlt={page?.content.heroImageAlt}
       eyebrowLabel={header.eyebrow}
       title={page?.title || t("legal.terms.title")}
       intro={header.excerpt}

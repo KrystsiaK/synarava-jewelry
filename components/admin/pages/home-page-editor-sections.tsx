@@ -50,6 +50,7 @@ export type MaterialDraft = {
   description: string;
   properties: string;
   image: string;
+  imageAlt: string;
   /** UI-only — lifted so save remounts do not slam rows shut. */
   panelOpen: boolean;
 };
@@ -59,6 +60,7 @@ type HomeLocaleDraft = {
   eyebrow: string;
   body: string;
   ctaLabel: string;
+  heroImageAlt: string;
   quote: string;
   secondaryTitle: string;
   secondaryBody: string;
@@ -183,12 +185,19 @@ function HomeLexiconMaterialFields({
           name={`material${index + 1}ImageFile`}
           className={fieldClass(undefined, warnings.image)}
           currentImageUrl={material.image || undefined}
-          currentImageAlt={material.name || `Material ${index + 1}`}
+          currentImageAlt={material.imageAlt || material.name || `Material ${index + 1}`}
           currentImageLabel="Current image"
           removeFieldName={`removeMaterial${index + 1}Image`}
           aria-invalid={Boolean(warnings.image) || undefined}
         />
       </AdminFieldShell>
+      <AdminTextField
+        label="Image alt text"
+        value={material.imageAlt}
+        onChange={(event) => updateMaterial(index, "imageAlt", event.target.value)}
+        help={<AdminHelp>Describes this specimen photo for screen readers in the active language.</AdminHelp>}
+        placeholder="e.g. Irregular freshwater pearl close-up"
+      />
     </div>
   );
 }
@@ -292,10 +301,17 @@ export function HomePageEditorSections({
             <ImageFileField
               name="heroImageFile"
               currentImageUrl={content.heroImage}
-              currentImageAlt="Home hero"
+              currentImageAlt={draft.heroImageAlt || "Home hero"}
               currentImageLabel="Current hero image"
               previewAspect="video"
               removeFieldName="removeHeroImage"
+            />
+            <AdminTextField
+              label="Hero image alt text"
+              value={draft.heroImageAlt}
+              onChange={(event) => updateField("heroImageAlt", event.target.value)}
+              help={<AdminHelp>Describes the hero still for screen readers in the active language. The image file itself is shared across languages.</AdminHelp>}
+              placeholder="e.g. Synarava jewelry still life on linen"
             />
           </div>
         </div>

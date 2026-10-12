@@ -60,6 +60,7 @@ export default async function FaqPage() {
         intro={resolveLegalText(content?.body, introDefaults.intro)}
         sections={sections}
         heroImage={content?.heroImage}
+        heroImageAlt={content?.heroImageAlt}
       />
     </>
   );

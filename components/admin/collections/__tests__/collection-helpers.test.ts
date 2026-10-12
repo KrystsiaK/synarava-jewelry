@@ -26,6 +26,7 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     manifesto: null,
     searchSummary: null,
     ctaLabel: null,
+    heroImageAlt: null,
     storyTitle: null,
     storyBody: null,
     seoTitle: null,
@@ -52,7 +53,7 @@ describe("emptyCollectionDraft", () => {
   it("gives the PT locale draft blank fields and NOT_APPLICABLE sync status", () => {
     expect(emptyCollectionDraft(["pt"]).translations.pt).toEqual({
       localizedHandle: "", name: "", subtitle: "", description: "", manifesto: "", searchSummary: "",
-      ctaLabel: "",
+      ctaLabel: "", heroImageAlt: "",
       storyTitle: "", storyBody: "",
       symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
       reviewed: false, syncStatus: "NOT_APPLICABLE", syncError: "",
@@ -124,6 +125,7 @@ describe("collectionToDraft", () => {
         symbolismBody2: null,
         searchSummary: null,
         ctaLabel: null,
+        heroImageAlt: null,
         reviewStatus: "REVIEWED",
         syncStatus: "PENDING",
         syncError: null,

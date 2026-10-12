@@ -103,7 +103,8 @@ export const COLLECTION_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "ctaLabel", label: "Hero CTA label", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "cta_label") },
     { key: "seoTitle", label: "SEO title", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("COLLECTION", "meta_title") },
     { key: "seoDescription", label: "SEO description", mode: "localized", required: "when-published", kind: "seo", shopifyTarget: native("COLLECTION", "meta_description") },
-    { key: "heroImageAlt", label: "Hero image alt text", mode: "localized", required: "optional", kind: "alt", shopifyTarget: native("COLLECTION_IMAGE", "alt") },
+    // Synarava CMS storefront alt via editorial metaobject — not native COLLECTION_IMAGE.alt.
+    { key: "heroImageAlt", label: "Hero image alt text", mode: "localized", required: "optional", kind: "alt", shopifyTarget: metaobject("collection_section_copy", "hero_image_alt") },
     { key: "sectionTitle", label: "Section title", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "title") },
     { key: "sectionEyebrow", label: "Section eyebrow", mode: "localized", required: "optional", kind: "short-text", shopifyTarget: metaobject("collection_section_copy", "eyebrow") },
     { key: "sectionBody", label: "Section body", mode: "localized", required: "optional", kind: "long-text", shopifyTarget: metaobject("collection_section_copy", "body") },
@@ -188,6 +189,8 @@ export const PAGE_FIELD_REGISTRY: EntityFieldRegistry = {
     { key: "status", label: "Status", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },
     { key: "visibility", label: "Visibility", mode: "shared", required: "always", kind: "short-text", shopifyTarget: null },
     { key: "heroImage", label: "Hero image asset", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
+    // Localized alt next to the shared hero asset; lives in Page.content / PageTranslation.content.
+    { key: "heroImageAlt", label: "Hero image alt text", mode: "localized", required: "optional", kind: "alt", shopifyTarget: metaobject("page_section_copy", "hero_image_alt") },
     { key: "ctaHref", label: "CTA href", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "finalCtaHref", label: "Final CTA href", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },
     { key: "finalContactEmail", label: "Final contact email", mode: "shared", required: "optional", kind: "short-text", shopifyTarget: null },

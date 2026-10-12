@@ -21,18 +21,21 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export function ShopHero({
   heroImage,
+  heroImageAlt,
   title,
   description,
   archiveCount,
   availableCountLabel,
 }: {
   heroImage?: string;
+  heroImageAlt?: string;
   title: string;
   description: string;
   archiveCount: number;
   availableCountLabel?: string;
 }) {
   const { t, plural } = useTranslations();
+  const alt = heroImageAlt?.trim() ?? "";
 
   return (
     <header data-component="ShopHero"
@@ -42,10 +45,11 @@ export function ShopHero({
         <div
           data-testid="shop-hero-media"
           className="absolute inset-0 overflow-hidden bg-charcoal"
+          aria-hidden={alt ? undefined : true}
         >
           <Image
             src={heroImage}
-            alt=""
+            alt={alt}
             fill
             preload
             quality={75}
@@ -195,6 +199,7 @@ export type ShopPageProps = {
   popularProducts: ShopListingProduct[];
   showPopular: boolean;
   heroImage?: string;
+  heroImageAlt?: string;
   heroTitle: string;
   heroDescription: string;
   archiveCount: number;
@@ -213,6 +218,7 @@ export function ShopPage({
   popularProducts,
   showPopular,
   heroImage,
+  heroImageAlt,
   heroTitle,
   heroDescription,
   archiveCount,
@@ -241,6 +247,7 @@ export function ShopPage({
     >
       <ShopHero
         heroImage={heroImage}
+        heroImageAlt={heroImageAlt}
         title={heroTitle}
         description={heroDescription}
         archiveCount={archiveCount}

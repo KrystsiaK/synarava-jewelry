@@ -90,6 +90,7 @@ type PageLocaleDraft = {
   seoDescription: string;
   body: string;
   ctaLabel: string;
+  heroImageAlt: string;
   calloutEyebrow: string;
   calloutHeading: string;
   calloutCtaHref: string;
@@ -196,6 +197,7 @@ function emptyMaterial(overrides?: Partial<MaterialDraft>): MaterialDraft {
     description: "",
     properties: "",
     image: "",
+    imageAlt: "",
     panelOpen: false,
     ...overrides,
   };
@@ -216,6 +218,7 @@ function materialsFromCopy(copy: EditablePageCopy, sharedImages?: EditablePageCo
       category: text?.category ?? "",
       description: text?.description ?? "",
       properties: text?.properties ?? "",
+      imageAlt: text?.imageAlt ?? "",
       image: typeof image === "string" ? image : "",
     });
   });
@@ -237,6 +240,7 @@ function draftFromCopy(
     seoDescription: copy.seoDescription ?? "",
     body: copy.body ?? "",
     ctaLabel: copy.ctaLabel ?? "",
+    heroImageAlt: copy.heroImageAlt ?? "",
     calloutEyebrow: copy.calloutEyebrow ?? "",
     calloutHeading: copy.calloutHeading ?? "",
     calloutCtaHref: copy.calloutCtaHref ?? "",
@@ -307,6 +311,7 @@ function HiddenLocaleFields({
           field("seoDescription", draft.seoDescription),
           field("body", draft.body),
           field("ctaLabel", draft.ctaLabel),
+          field("heroImageAlt", draft.heroImageAlt),
           field("calloutEyebrow", draft.calloutEyebrow),
           field("calloutHeading", draft.calloutHeading),
           field("calloutCtaHref", draft.calloutCtaHref),
@@ -350,6 +355,7 @@ function HiddenLocaleFields({
             field(`material${index + 1}Category`, material.category),
             field(`material${index + 1}Description`, material.description),
             field(`material${index + 1}Properties`, material.properties),
+            field(`material${index + 1}ImageAlt`, material.imageAlt),
           ]),
           ...sectionFields("legal", draft.legalSections),
           ...sectionFields("service", draft.serviceSections),
@@ -474,6 +480,7 @@ export function PageEditor({
             category: localized?.category ?? "",
             description: localized?.description ?? "",
             properties: localized?.properties ?? "",
+            imageAlt: localized?.imageAlt ?? "",
           });
         });
         draft.legalSections = alignDocumentSectionsToEnglish(
@@ -1050,10 +1057,17 @@ export function PageEditor({
           <ImageFileField
             name="heroImageFile"
             currentImageUrl={content.heroImage}
-            currentImageAlt={`${page.title} hero`}
+            currentImageAlt={draft.heroImageAlt || `${page.title} hero`}
             currentImageLabel="Current hero image"
             previewAspect="video"
             removeFieldName="removeHeroImage"
+          />
+          <AdminTextField
+            label="Hero image alt text"
+            value={draft.heroImageAlt}
+            onChange={(event) => updateField("heroImageAlt", event.target.value)}
+            help={<AdminHelp>Describes the hero photo for screen readers in the active language. The image file itself is shared across languages.</AdminHelp>}
+            placeholder="e.g. Soft daylight still of the page subject"
           />
         </div>
         ) : null}

@@ -14,6 +14,7 @@ export type EditablePageCopy = {
   eyebrow?: string;
   body?: string;
   ctaLabel?: string;
+  heroImageAlt?: string;
   ctaHref?: string;
   calloutEyebrow?: string;
   calloutHeading?: string;
@@ -49,6 +50,7 @@ export type EditablePageCopy = {
     category?: string;
     description?: string;
     image?: string;
+    imageAlt?: string;
     properties?: string;
   }>;
   manifestoSectionLabel?: string;

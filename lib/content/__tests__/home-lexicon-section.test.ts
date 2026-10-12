@@ -49,6 +49,7 @@ describe("resolveLexiconMaterials", () => {
       category: "Organic",
       description: "Natural, irregular, individually varied.",
       image: "/pearl.jpg",
+      imageAlt: "",
       properties: ["Natural", "Hypoallergenic"],
     }]);
   });

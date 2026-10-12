@@ -54,6 +54,7 @@ export default async function CarePage() {
         shippedServiceEntries("care", locale),
       )}
       heroImage={content?.heroImage}
+      heroImageAlt={content?.heroImageAlt}
     />
   );
 }

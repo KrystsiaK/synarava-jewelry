@@ -36,6 +36,7 @@ const collections = [{
   seoTitle: "",
   seoDescription: "",
   heroImage: "/automatic-collection.jpg",
+  heroImageAlt: "Automatic collection",
   accent: "AX",
   updatedAt: new Date("2026-01-01"),
 }] as CollectionSummary[];

@@ -83,7 +83,7 @@ export default async function StaticCmsPage({ params }: Props) {
   return (
     <main className="artifact-shell min-h-screen pb-20 md:pb-32">
       <header className={heroImage ? "relative flex min-h-[68svh] items-end border-b border-stroke pb-12 pt-24 md:min-h-[76svh] md:pb-16 md:pt-28" : "pt-24 md:pt-28"}>
-        <PageHeroImage src={heroImage} />
+        <PageHeroImage src={heroImage} alt={content.heroImageAlt} />
         <div className="site-shell relative z-10 w-full">
           <div className="mx-auto max-w-4xl">
             <p className={heroImage ? "label-caps text-white/75" : "label-caps text-accent"}>
