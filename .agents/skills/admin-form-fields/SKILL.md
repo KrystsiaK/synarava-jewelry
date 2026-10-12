@@ -10,7 +10,7 @@ description: >-
 This skill was renamed to **`synarava-cms`**.
 
 - Skill: `.agents/skills/synarava-cms/` / `.claude/skills/synarava-cms/`
-- Doc: `docs/admin/synarava-cms.md`
+- Doc: `docs/wiki/synarava-cms.md`
 - Import: `@/components/synarava-cms`
 
 Read and follow `synarava-cms` for all admin form work.

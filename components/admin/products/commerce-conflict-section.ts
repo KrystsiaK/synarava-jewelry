@@ -134,7 +134,7 @@ export function conflictSectionsFromDifferences(
 /**
  * Language shells to mark for a conflict set.
  * Shared commerce (Price, Catalog, …) → every locale. Locale-only → those codes only.
- * @see docs/admin/commerce-sync.md
+ * @see docs/wiki/commerce-sync.md
  */
 export function conflictLocalesFromCommerce(input: {
   localeCodes: readonly string[];

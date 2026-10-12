@@ -106,7 +106,7 @@ SHOPIFY_WEBHOOK_SECRET=...
 The admin product editor is **Shopify skeleton + Synarava sections**: every
 supported Shopify commerce field should appear in admin and be verified field by
 field (pull/push), while Synarava-only CMS settings sit in a separate tab group.
-See [`docs/product-data-ownership.md`](docs/product-data-ownership.md).
+See [`docs/wiki/product-data-ownership.md`](docs/wiki/product-data-ownership.md).
 
 The local catalog is the storefront read model. Saving a product in
 the admin stores the draft locally; **Push to Shopify** sends title, handle, description, vendor,
@@ -124,7 +124,7 @@ then SKU, then handle. Ambiguous identities are recorded as conflicts instead of
 Logged-in Customer Account sessions append Shopify’s `sso=silent` to the Cart API checkout URL
 before redirect ([checkout authentication](https://shopify.dev/docs/storefronts/headless/building-with-the-customer-account-api/checkout-authentication)).
 If checkout cannot be opened, `/checkout` shows an error instead of silently returning to the cart.
-Payment / checkout verification matrix: [`docs/payment-checkout-test-matrix.md`](docs/payment-checkout-test-matrix.md).
+Payment / checkout verification matrix: [`docs/testing/payment-checkout-test-matrix.md`](docs/testing/payment-checkout-test-matrix.md).
 
 The Admin API token needs
 `read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`, and
@@ -206,11 +206,12 @@ GitHub CI checks that this value is valid semver and that release tags match `vX
 
 ## Architecture notes
 
-- data model and admin strategy: [docs/architecture.md](docs/architecture.md)
-- product/Shopify ownership contract: [docs/product-data-ownership.md](docs/product-data-ownership.md)
-- September 2026 admin and catalog refactor history: [docs/history/admin-shopify-refactor-2026-09.md](docs/history/admin-shopify-refactor-2026-09.md)
-- UI kit contract: [docs/ui-kit.md](docs/ui-kit.md)
-- why Shopify is the sole commerce backend: [SHOPIFY_DECISION.md](SHOPIFY_DECISION.md)
+- documentation map (start here): [docs/README.md](docs/README.md)
+- data model and admin strategy: [docs/wiki/architecture.md](docs/wiki/architecture.md)
+- product/Shopify ownership contract: [docs/wiki/product-data-ownership.md](docs/wiki/product-data-ownership.md)
+- September 2026 admin and catalog refactor history: [docs/history/2026-09-admin-shopify-refactor.md](docs/history/2026-09-admin-shopify-refactor.md)
+- UI kit contract: [docs/wiki/ui-kit.md](docs/wiki/ui-kit.md)
+- why Shopify is the sole commerce backend: [docs/adr/0001-shopify-hybrid-commerce.md](docs/adr/0001-shopify-hybrid-commerce.md)
 
 ## Current implementation posture
 

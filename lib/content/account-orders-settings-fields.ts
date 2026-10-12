@@ -8,7 +8,7 @@ export type AccountOrdersSettings = {
   /**
    * When true, Orders tab may offer Buy again via the headless cart-permalink
    * bridge. Default false — keep frozen until BA matrix + redirect theme pass
-   * (see docs/post-purchase-ops-runbook.md).
+   * (see docs/runbooks/post-purchase-ops.md).
    */
   buyAgainOnOrdersEnabled: boolean;
   /**

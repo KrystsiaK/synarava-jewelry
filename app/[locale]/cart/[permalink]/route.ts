@@ -59,7 +59,7 @@ function logBuyAgain(event: string, fields: Record<string, unknown>) {
  * After the storefront redirect theme is published, that path arrives here.
  * Mutating GET is required by Shopify's link contract — replay + rate limit apply.
  *
- * @see SHOPIFY_POST_PURCHASE_FLOWS.md
+ * @see docs/proposals/shopify-post-purchase-flows.md
  * @see https://shopify.dev/docs/apps/build/checkout/create-cart-permalinks
  */
 export async function GET(request: Request, context: RouteContext) {

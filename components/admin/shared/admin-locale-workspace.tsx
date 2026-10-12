@@ -327,7 +327,7 @@ export type AdminLocaleWorkspaceProps = {
  * cleanly separable from its localized ones. Both panels always render (as
  * `hidden`, not unmounted) so uncontrolled inputs keep their value and any
  * shared controlled draft state survives switching tabs — see
- * tasks/plan.md "Скрытие panel не размонтирует uncontrolled inputs".
+ * docs/history/2026-09-en-pt-translation-plan.md "Скрытие panel не размонтирует uncontrolled inputs".
  *
  * Still EN/PT-only (named `en`/`pt` props, not a locale-keyed map) — no
  * caller has a third panel to render yet. `AdminLocaleTabs` above is the

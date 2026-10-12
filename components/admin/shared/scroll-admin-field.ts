@@ -5,7 +5,7 @@
  * and fights sticky topbar / locale / section chrome. CSS scroll-margin on
  * `[id^="field-"]` leaves room under that chrome.
  *
- * @see docs/admin/synarava-cms.md (scroll / sticky)
+ * @see docs/wiki/synarava-cms.md (scroll / sticky)
  */
 export function scrollAdminFieldIntoView(fieldPathOrEl: string | HTMLElement) {
   const target =

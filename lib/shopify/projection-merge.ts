@@ -2,7 +2,7 @@
  * Three-way merge classification for Shopify-shaped projections (B / L / R).
  * Detection stays object+path based — no commerce field allowlists.
  *
- * @see docs/admin/commerce-sync.md
+ * @see docs/wiki/commerce-sync.md
  */
 
 import { isDeepStrictEqual } from "node:util";

@@ -3,7 +3,7 @@ import type { AdminLocale } from "@/components/admin/shared/admin-locale-workspa
 
 // Every PT-localized field in this codebase is named with a "pt" + capital
 // prefix (ptTitle, ptMaterialSectionNoteLabel, ...) — see
-// docs/translation-field-registry.md. Reusing that convention here means
+// docs/wiki/translation-field-registry.md. Reusing that convention here means
 // entity forms don't need to hand-maintain a second "which fields are PT"
 // list just for validation-driven tab switching.
 const PT_FIELD_NAME = /^pt[A-Z]/;

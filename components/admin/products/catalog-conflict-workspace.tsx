@@ -57,7 +57,7 @@ function normalizeLocaleCode(locale: string) {
 
 /**
  * Language shells include SHARED commerce under every locale (one price → EN/PT/RU)
- * plus that locale's translation rows. See docs/admin/commerce-sync.md marker tree.
+ * plus that locale's translation rows. See docs/wiki/commerce-sync.md marker tree.
  */
 export function fieldMatchesViewLocale(field: CatalogConflictField, locale: string): boolean {
   if (field.scope.kind === "SHARED") return true;
@@ -103,7 +103,7 @@ export function filterSignalsForView(
   const locale = normalizeLocaleCode(viewScope.locale);
   const locales = signal.locales.filter((entry) => normalizeLocaleCode(entry.code) === locale);
   // Shared commerce (price, vendor, …) is one payload under every language shell —
-  // not EN-only. See docs/admin/commerce-sync.md.
+  // not EN-only. See docs/wiki/commerce-sync.md.
   const shared = Boolean(signal.shared);
   const hasLocaleConflict = locales.some((entry) => entry.count > 0);
   if (!hasLocaleConflict && !shared && !signal.presence) {

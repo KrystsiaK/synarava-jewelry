@@ -6,7 +6,7 @@ import { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 // (one value across every locale) or localized (an independent value per
 // registered locale), how required it is, and where it syncs in Shopify.
 // Form schemas, validation, completeness, and Shopify adapters all read this
-// instead of re-declaring the same field list — see tasks/plan.md "Единый
+// instead of re-declaring the same field list — see docs/history/2026-09-en-pt-translation-plan.md "Единый
 // контракт полей".
 //
 // This is the source of truth. If a buyer-facing field exists in a form or

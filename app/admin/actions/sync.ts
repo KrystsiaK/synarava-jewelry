@@ -422,7 +422,7 @@ export async function applyCollectionConflictResolutionAction(input: {
   }
 }
 
-/** Resolves a bulk direction, a single product's direction, or a hand-picked manual field list into the concrete fields it would touch — nothing is written. See docs/admin/catalog-conflict-resolution-ux.md dialogs 1-3. */
+/** Resolves a bulk direction, a single product's direction, or a hand-picked manual field list into the concrete fields it would touch — nothing is written. See docs/wiki/catalog-conflict-resolution-ux.md dialogs 1-3. */
 export async function previewCatalogConflictResolutionAction(scope: CatalogConflictApplyScope) {
   const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };

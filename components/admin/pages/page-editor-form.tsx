@@ -80,7 +80,7 @@ const DEFAULT_TRANSLATION_LOCALES: AdminTranslationLocale[] = [{ code: "pt", lab
 // locale tab, everything else about it (label, position, layout) stays put.
 // Adding a third/fourth language later means adding a locale to this draft
 // and to AdminLocaleTabs' locale list — it does not mean touching this JSX
-// again. See tasks/plan.md and the 2026-09-19 conversation that asked for
+// again. See docs/history/2026-09-en-pt-translation-plan.md and the 2026-09-19 conversation that asked for
 // this instead of a duplicated-per-locale layout.
 type PageLocaleDraft = {
   title: string;

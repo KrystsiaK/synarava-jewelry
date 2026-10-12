@@ -72,7 +72,7 @@ export const PASSPORT_CHARACTERISTIC_TEXT_KEYS = PASSPORT_CHARACTERISTICS
   .map((item) => item.key);
 
 // Merchant-owned characteristic taxonomy is code-defined, not admin-editable
-// (see docs/translation-field-registry.md).
+// (see docs/wiki/translation-field-registry.md).
 const CHARACTERISTIC_GROUP_LABEL_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   pt: {
     "Dimensions & fit": "Dimensões e ajuste",

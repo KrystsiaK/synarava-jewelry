@@ -29,7 +29,7 @@ patches.
    `shopifySnapshot`): each is a map of Shopify-shaped windows. Per-product
    `workingSnapshot` / `shopifySnapshot` are the entity slices that compose
    those stores. See
-   [`docs/admin/commerce-sync.md`](../../../docs/admin/commerce-sync.md).
+   [`docs/wiki/commerce-sync.md`](../../../docs/wiki/commerce-sync.md).
 4. **Deep-diff** windows (and store-level presence). Status is derived from
    object compare — not “any column≠Shopify = conflict”.
 5. **View columns** on the entity (`priceCents`, `taxable`, name, …) are
@@ -83,5 +83,5 @@ Admin owns **projected columns**.
 - Normalize + deepDiff: `lib/shopify/shopify-projection-diff.ts`
 - Detection must **not** use `VARIANT_FIELD_COMPARATORS` / Prisma-column allowlists
   (`lib/shopify/reconciliation.ts` may keep helpers for other flows)
-- Ownership doc: `docs/product-data-ownership.md`
-- Current sync freeze: `docs/admin/commerce-sync.md`
+- Ownership doc: `docs/wiki/product-data-ownership.md`
+- Current sync freeze: `docs/wiki/commerce-sync.md`

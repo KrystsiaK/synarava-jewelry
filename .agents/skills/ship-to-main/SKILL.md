@@ -11,7 +11,7 @@ description: >-
 # Ship to staging → main
 
 **Canonical source of truth** for the ship flow. Other repo docs (`AGENTS.md`,
-`CLAUDE.md`, `docs/staging-runbook.md`) should only point here — do not
+`CLAUDE.md`, `docs/runbooks/staging.md`) should only point here — do not
 duplicate the 5-step rule elsewhere.
 
 **Owner preference (locked):** when the work for a task is done:
