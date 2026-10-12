@@ -15,8 +15,8 @@ import {
   type ReserveResponse,
   type ValidateRequest,
   type ValidateResponse,
-} from "./v1.js";
-import { skuErrorBodySchema, type SkuErrorBody } from "./errors.js";
+} from "./v1";
+import { skuErrorBodySchema, type SkuErrorBody } from "./errors";
 
 export type SkuClientConfig = {
   readonly baseUrl: string;

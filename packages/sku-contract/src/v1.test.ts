@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { previewRequestSchema, workspaceKeySchema } from "./v1.js";
+import { previewRequestSchema, workspaceKeySchema } from "./v1";
 
 describe("sku-contract v1", () => {
   it("accepts workspace keys", () => {
