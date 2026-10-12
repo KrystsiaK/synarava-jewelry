@@ -9,7 +9,7 @@
 | Package | Role |
 | --- | --- |
 | `packages/sku-core` | Pure domain: normalize, stem, format/parse/validate, preview. No Shopify/Next/Prisma/HTTP. |
-| `packages/sku-contract` | Zod `/v1` schemas + typed `createSkuClient`. |
+| `packages/sku-contract` | Zod `/v1` schemas + typed `createSkuClient`. Consumed by Next via `transpilePackages` (extensionless TS imports — not Node `.js` suffixes). |
 | `services/sku-api` | Prisma registry schema/migrations, allocator, legacy importer, HTTP `/v1` + auth, Railway stub. |
 
 ## HTTP (Этап 2)
