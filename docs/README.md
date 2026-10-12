@@ -31,7 +31,7 @@
 
 ## Индекс
 
-**Wiki** — [architecture](wiki/architecture.md) · [product-data-ownership](wiki/product-data-ownership.md) · [commerce-sync](wiki/commerce-sync.md) · [catalog-conflict-resolution-ux](wiki/catalog-conflict-resolution-ux.md) · [synarava-cms](wiki/synarava-cms.md) · [ui-kit](wiki/ui-kit.md) · [ephemeral-toast](wiki/ephemeral-toast.md) · [storefront-locale-urls](wiki/storefront-locale-urls.md) · [translation-field-registry](wiki/translation-field-registry.md) · [privacy-operations](wiki/privacy-operations.md) · [analytics/ga4-ecommerce-setup](wiki/analytics/ga4-ecommerce-setup.md) · [ecc-skills](wiki/ecc-skills.md)
+**Wiki** — [architecture](wiki/architecture.md) · [product-data-ownership](wiki/product-data-ownership.md) · [commerce-sync](wiki/commerce-sync.md) · [catalog-conflict-resolution-ux](wiki/catalog-conflict-resolution-ux.md) · [portable-sku-service](wiki/portable-sku-service.md) · [synarava-cms](wiki/synarava-cms.md) · [ui-kit](wiki/ui-kit.md) · [ephemeral-toast](wiki/ephemeral-toast.md) · [storefront-locale-urls](wiki/storefront-locale-urls.md) · [translation-field-registry](wiki/translation-field-registry.md) · [privacy-operations](wiki/privacy-operations.md) · [analytics/ga4-ecommerce-setup](wiki/analytics/ga4-ecommerce-setup.md) · [ecc-skills](wiki/ecc-skills.md)
 
 **Runbooks** — [deploy](runbooks/deploy.md) · [staging](runbooks/staging.md) · [post-purchase-ops](runbooks/post-purchase-ops.md) · [translation-operations](runbooks/translation-operations.md) · [translation-migration](runbooks/translation-migration.md) · [admin-guide-ru](runbooks/admin-guide-ru.md) · [shopify-automation-playbook](runbooks/shopify-automation-playbook.md)
 

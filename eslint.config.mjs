@@ -29,6 +29,9 @@ const eslintConfig = defineConfig([
     ".cursor/.pi/**",
     "artifacts/**",
     "edited-product-photos/**",
+    "services/sku-api/src/generated/**",
+    "services/sku-api/dist/**",
+    "packages/*/dist/**",
   ]),
   // Vendored Bklit chart kit (portal axes, mount gates, motion measurement)
   // uses patterns React 19 eslint forbids; keep other rules, relax those two.

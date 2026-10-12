@@ -8,6 +8,7 @@ import { getHeaderNav } from "@/lib/content/header-nav";
 import { getStorefrontCopy, type StorefrontCopy } from "@/lib/content/storefront-copy";
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
 import { TaxonomyLabelsEditor } from "@/components/admin/settings/taxonomy-labels-editor";
+import { SkuPolicyEditor } from "@/components/admin/settings/sku-policy-editor";
 import { STOREFRONT_COPY_KEY } from "@/lib/content/storefront-copy";
 import { AdminSyncInlineWarning } from "@/components/admin/translations/admin-sync-inline-warning";
 import { db } from "@/lib/db";
@@ -15,6 +16,7 @@ import { getLatestReconcileDifferences } from "@/lib/shopify/reconciliation-run"
 import type { AdminLocaleStatus } from "@/components/admin/shared/admin-locale-workspace";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { loadTaxonomyLabelsEditorPayload } from "@/app/admin/actions/taxonomy-labels";
+import { loadSkuPolicyEditorPayload } from "@/app/admin/actions/sku-policy";
 
 export default async function AdminSettingsPage() {
   const [
@@ -26,6 +28,7 @@ export default async function AdminSettingsPage() {
     syncDifferences,
     registryLocales,
     taxonomyLabels,
+    skuPolicy,
   ] =
     await Promise.all([
       getStorefrontCopy(),
@@ -39,6 +42,7 @@ export default async function AdminSettingsPage() {
       getLatestReconcileDifferences(),
       getStorefrontLocales(),
       loadTaxonomyLabelsEditorPayload(),
+      loadSkuPolicyEditorPayload(),
     ]);
   const storefrontSyncDifferences = syncDifferences.filter(
     (difference) => difference.rootEntityType === "STOREFRONT_COPY" && difference.rootEntityId === STOREFRONT_COPY_KEY,
@@ -80,6 +84,7 @@ export default async function AdminSettingsPage() {
         ptStatus={ptStatus}
       />
       <TaxonomyLabelsEditor initial={taxonomyLabels} locales={locales} />
+      <SkuPolicyEditor initial={skuPolicy} />
     </div>
   );
 }

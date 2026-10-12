@@ -1,6 +1,6 @@
 # План реализации переносимого SKU-сервиса
 
-**Статус:** approved implementation plan — код сервиса ещё не создан · **Дата:** 2026-10-12
+**Статус:** Этапы 1–2 реализованы в монорепе · Этапы 3–6 открыты · **Дата:** 2026-10-12 (обновлено 2026-10-12)
 
 > **Handoff для исполнителя:** сначала прочитать [ADR-0002](../adr/0002-shopify-catalog-ownership.md), [ADR-0003](../adr/0003-commerce-conflict-deep-diff.md), [ADR-0004](../adr/0004-portable-sku-service-boundary.md), [`product-data-ownership.md`](../wiki/product-data-ownership.md) и настоящий документ. Не переоткрывать принятые решения внутри реализации; новое отклонение сначала оформить как изменение ADR/RFC.
 
@@ -249,6 +249,15 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 **Выход:** повторяемый результат, отсутствие коллизий под параллельной нагрузкой, нулевые вызовы LLM.
 
+**Статус реализации (2026-10-12):** выполнено.
+
+- `packages/sku-core` — normalize / stem / format / parse / preview + property + import-boundary tests
+- `packages/sku-contract` — Zod schemas for `/v1` (HTTP в Этапе 2)
+- `services/sku-api` — Prisma schema + SQL migration, `SkuRegistryStore` + in-memory serializable adapter, allocator, legacy importer + `fixtures/legacy-v0-sample.json`
+- `pnpm-workspace.yaml` включает `packages/*` и `services/*`; `pnpm test:sku` / `pnpm test:run` гоняют SKU-тесты
+- Wiki: [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
+- Канонический import 49 SKU и Prisma Postgres runtime — ops/staging после `SKU_DATABASE_URL`; в CI POC concurrency доказан на in-memory store без Docker
+
 ### Этап 2 — HTTP API и admin profile
 
 - endpoints из раздела 7;
@@ -257,6 +266,14 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 - audit log и read-only просмотр assignments.
 
 **Выход:** профиль можно версионировать и проверять без ручного изменения БД.
+
+**Статус реализации (2026-10-12):** выполнено (без production/n8n/Shopify staging wiring).
+
+- `services/sku-api` HTTP: `/health`, `/v1/workspaces/{key}/…` preview, reservations, validate, assignments/confirm, lock, audit-events, profiles draft/publish/list
+- Auth: Bearer service token, salted scrypt hash (`SKU_API_CREDENTIALS` или dev `SKU_API_DEV_TOKEN`); workspace path must match credential
+- `packages/sku-contract` typed `createSkuClient` for Synarava
+- Admin Settings → SKU policy (`SkuPolicyEditor` + synarava-cms): draft/publish, assignments, audit; disabled until `SKU_API_URL` + `SKU_API_TOKEN`
+- Persistence for local/HTTP tests: in-memory store; Prisma Postgres schema from Этап 1 remains for Railway `SKU_DATABASE_URL` adapter (follow-up)
 
 ### Этап 3 — Synarava adapter
 

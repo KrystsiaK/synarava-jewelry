@@ -72,6 +72,7 @@ describe("admin-nav-config", () => {
       "Contact",
       "Reviews",
       "Taxonomy",
+      "SKU policy",
     ]);
     expect(settings?.badge).toEqual({ kind: "sync", count: 1 });
     expect(commerce).toMatchObject({ href: "/admin/commerce", label: "Cart & account", code: "BAG" });
