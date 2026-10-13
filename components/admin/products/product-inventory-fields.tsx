@@ -217,7 +217,7 @@ export function ProductInventoryFields({
                   error={fieldErrors.sku}
                   errorId={validation.fieldErrorId("sku")}
                   help={(
-                    <AdminHelp label="SKU assignment guidance">
+                    <AdminHelp label="Commerce code assignment guidance">
                       Optional until draft save. With sku-api configured, Inventory switches to
                       Preview / Confirm assign after the product exists.
                     </AdminHelp>

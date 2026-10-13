@@ -141,7 +141,7 @@ export function ProductSkuAssignPanel({
         owner="Shopify"
         value={notAssigned ? "Not assigned" : displaySku}
         help={(
-          <AdminHelp label="SKU assignment guidance">
+          <AdminHelp label="Commerce code assignment guidance">
             Shopify owns the assigned Variant SKU. Synarava reserves via sku-api, writes Shopify,
             then confirms only after read-back matches. Do not invent commerce SKUs in the form.
           </AdminHelp>
