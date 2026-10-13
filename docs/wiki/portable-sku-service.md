@@ -64,6 +64,8 @@ pnpm test:sku                                          # unit (memory store)
 pnpm --filter @synarava/sku-api test:integration       # real PostgreSQL
 ```
 
+Postgres integration covers persist-across-reconnect, **parallel same-stem unique sequences**, and concurrent identical idempotency keys. Serializable reserve retries `P2034` / unique races (`P2002`) with a bounded backoff.
+
 ## Not done yet
 
 - Synarava product Inventory reserve/confirm flow (Этап 3)

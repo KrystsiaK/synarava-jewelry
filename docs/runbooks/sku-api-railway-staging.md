@@ -54,13 +54,13 @@ pnpm --filter @synarava/sku-api credentials:generate -- synarava-shop
 
 Server-only (never `NEXT_PUBLIC_*`):
 
-| Variable | Example |
+| Variable | Value |
 | --- | --- |
-| `SKU_API_URL` | `http://sku-api.railway.internal:PORT` — private URL, **no trailing slash** |
+| `SKU_API_URL` | Exact private form (no trailing slash): `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}` |
 | `SKU_API_TOKEN` | plaintext from `credentials:generate` |
 | `SKU_API_WORKSPACE` | `synarava-shop` (optional; default) |
 
-Use Railway private networking / reference variables so the web service reaches `sku-api` without a public ingress.
+Paste the `SKU_API_URL` template above into the **synarava-web** staging variables as written (Railway resolves the `${{sku-api.*}}` references). Do not use a public `*.up.railway.app` URL for staging v1.
 
 ## Healthcheck
 

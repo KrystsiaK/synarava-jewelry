@@ -116,4 +116,65 @@ describe.skipIf(skip)("Prisma SkuRegistryStore (PostgreSQL)", () => {
       datasources: { db: { url: databaseUrl } },
     });
   }, 60_000);
+
+  it("assigns unique sequential SKUs under parallel same-stem reserves", async () => {
+    const workspaceKey = "synarava-shop-concurrency";
+    await prisma.workspace.deleteMany({ where: { key: workspaceKey } });
+
+    const store = createPrismaSkuRegistryStore(prisma);
+    await bootstrapSynaravaShopWorkspace(store, { workspaceKey });
+
+    const parallel = 12;
+    const results = await Promise.all(
+      Array.from({ length: parallel }, (_, index) =>
+        store.reserve({
+          workspaceKey,
+          familyKey: "jewelry.necklace",
+          idempotencyKey: `pg-concurrency-${index}`,
+          correlationId: `pg-concurrency-corr-${index}`,
+          actor: "concurrency-test",
+        }),
+      ),
+    );
+
+    const skus = results.map((r) => r.sku).toSorted();
+    expect(new Set(skus).size).toBe(parallel);
+    expect(skus).toEqual(
+      Array.from({ length: parallel }, (_, i) =>
+        `JW-NECK-${String(i + 1).padStart(3, "0")}`,
+      ),
+    );
+
+    const sequences = results.map((r) => r.sequence).toSorted((a, b) => a - b);
+    expect(sequences).toEqual(
+      Array.from({ length: parallel }, (_, i) => i + 1),
+    );
+  }, 60_000);
+
+  it("returns the same reservation for concurrent identical idempotency keys", async () => {
+    const workspaceKey = "synarava-shop-idempotency-race";
+    await prisma.workspace.deleteMany({ where: { key: workspaceKey } });
+
+    const store = createPrismaSkuRegistryStore(prisma);
+    await bootstrapSynaravaShopWorkspace(store, { workspaceKey });
+
+    const key = "pg-idempotency-race-shared";
+    const results = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        store.reserve({
+          workspaceKey,
+          familyKey: "jewelry.bracelet",
+          idempotencyKey: key,
+          correlationId: `pg-idem-corr-${index}`,
+          actor: "concurrency-test",
+        }),
+      ),
+    );
+
+    const ids = new Set(results.map((r) => r.id));
+    const skus = new Set(results.map((r) => r.sku));
+    expect(ids.size).toBe(1);
+    expect(skus.size).toBe(1);
+    expect(results[0]?.sku).toBe("JW-BRACELET-001");
+  }, 60_000);
 });

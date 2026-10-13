@@ -8,7 +8,7 @@ import {
   type PolicyProfileConfig,
 } from "@synarava/sku-core";
 import { createHash } from "node:crypto";
-import type { Prisma, PrismaClient } from "../generated/prisma/index.js";
+import { Prisma, type PrismaClient } from "../generated/prisma/index.js";
 import { assertProfileConfig, domainError } from "./errors.js";
 import {
   mapAssignment,
@@ -17,6 +17,10 @@ import {
   mapReservation,
   mapWorkspace,
 } from "./mappers.js";
+import {
+  RetryableTransactionConflict,
+  withSerializableRetry,
+} from "./retry.js";
 import type {
   LegacyImportRow,
   ProfileRecord,
@@ -248,126 +252,165 @@ export function createPrismaSkuRegistryStore(
     },
 
     async reserve(params) {
-      return prisma.$transaction(
-        async (tx) => {
-          const workspace = await tx.workspace.findUnique({
-            where: { key: params.workspaceKey },
-          });
-          if (!workspace || workspace.status !== "ACTIVE") {
-            throw domainError(
-              fail("WORKSPACE_NOT_FOUND", `workspace ${params.workspaceKey}`),
-            );
-          }
+      return withSerializableRetry(async () => {
+        try {
+          return await prisma.$transaction(
+            async (tx) => {
+              const workspace = await tx.workspace.findUnique({
+                where: { key: params.workspaceKey },
+              });
+              if (!workspace || workspace.status !== "ACTIVE") {
+                throw domainError(
+                  fail("WORKSPACE_NOT_FOUND", `workspace ${params.workspaceKey}`),
+                );
+              }
 
-          const existing = await tx.reservation.findUnique({
-            where: {
-              workspaceId_idempotencyKey: {
-                workspaceId: workspace.id,
-                idempotencyKey: params.idempotencyKey,
-              },
+              const existing = await tx.reservation.findUnique({
+                where: {
+                  workspaceId_idempotencyKey: {
+                    workspaceId: workspace.id,
+                    idempotencyKey: params.idempotencyKey,
+                  },
+                },
+              });
+              if (existing) {
+                return mapReservation(existing);
+              }
+
+              const profileRow = await getPublishedProfileRow(tx, workspace.id);
+              if (!profileRow) {
+                throw domainError(
+                  fail("PROFILE_NOT_PUBLISHED", "no published profile"),
+                );
+              }
+              const profile = mapProfile(profileRow, params.workspaceKey);
+
+              const familyKey = normalizeFamilyKey(params.familyKey);
+              if (!familyKey.ok) throw domainError(familyKey);
+
+              const stem = resolveStem(profile.config, familyKey.value);
+              if (!stem.ok) throw domainError(stem);
+
+              // Insert-if-missing then row-lock so same-stem reserves serialize.
+              // lastAllocated=0 means "none issued yet" (nextSequence treats as null).
+              await tx.$executeRaw`
+                INSERT INTO "SequenceCursor" (id, "workspaceId", stem, "lastAllocated", "updatedAt")
+                VALUES (
+                  concat('c_', substr(md5(random()::text), 1, 24)),
+                  ${workspace.id},
+                  ${stem.value},
+                  0,
+                  CURRENT_TIMESTAMP
+                )
+                ON CONFLICT ("workspaceId", stem) DO NOTHING
+              `;
+
+              const locked = await tx.$queryRaw<
+                Array<{ lastAllocated: number }>
+              >`
+                SELECT "lastAllocated" FROM "SequenceCursor"
+                WHERE "workspaceId" = ${workspace.id} AND stem = ${stem.value}
+                FOR UPDATE
+              `;
+              const lastAllocated = locked[0]?.lastAllocated ?? 0;
+              const sequence = nextSequence(
+                lastAllocated > 0 ? lastAllocated : null,
+                profile.config,
+              );
+              if (!sequence.ok) throw domainError(sequence);
+
+              const formatted = formatSku(
+                stem.value,
+                sequence.value,
+                profile.config,
+              );
+              if (!formatted.ok) throw domainError(formatted);
+
+              const conflict = await tx.reservation.findUnique({
+                where: {
+                  workspaceId_sku: {
+                    workspaceId: workspace.id,
+                    sku: formatted.value.sku,
+                  },
+                },
+              });
+              if (conflict) {
+                // Same-stem race under contention — outer retry re-reads cursor.
+                throw new RetryableTransactionConflict(
+                  `sku ${formatted.value.sku} contended`,
+                );
+              }
+
+              const row = await tx.reservation.create({
+                data: {
+                  workspaceId: workspace.id,
+                  sku: formatted.value.sku,
+                  stem: stem.value,
+                  sequence: sequence.value,
+                  familyKey: familyKey.value,
+                  policyVersion: profile.version,
+                  status: "PENDING",
+                  idempotencyKey: params.idempotencyKey,
+                  correlationId: params.correlationId,
+                },
+              });
+
+              await tx.sequenceCursor.update({
+                where: {
+                  workspaceId_stem: {
+                    workspaceId: workspace.id,
+                    stem: stem.value,
+                  },
+                },
+                data: { lastAllocated: sequence.value },
+              });
+
+              await appendAudit(
+                tx,
+                workspace.id,
+                params.actor,
+                "reservation.create",
+                params.correlationId,
+                {
+                  reservationId: row.id,
+                  sku: row.sku,
+                  sequence: row.sequence,
+                },
+              );
+              return mapReservation(row);
             },
-          });
-          if (existing) {
-            return mapReservation(existing);
-          }
-
-          const profileRow = await getPublishedProfileRow(tx, workspace.id);
-          if (!profileRow) {
-            throw domainError(
-              fail("PROFILE_NOT_PUBLISHED", "no published profile"),
-            );
-          }
-          const profile = mapProfile(profileRow, params.workspaceKey);
-
-          const familyKey = normalizeFamilyKey(params.familyKey);
-          if (!familyKey.ok) throw domainError(familyKey);
-
-          const stem = resolveStem(profile.config, familyKey.value);
-          if (!stem.ok) throw domainError(stem);
-
-          // Row lock so concurrent reserves for the same stem serialize.
-          await tx.$executeRaw`
-            SELECT id FROM "SequenceCursor"
-            WHERE "workspaceId" = ${workspace.id} AND stem = ${stem.value}
-            FOR UPDATE
-          `;
-
-          const cursor = await tx.sequenceCursor.findUnique({
-            where: {
-              workspaceId_stem: { workspaceId: workspace.id, stem: stem.value },
-            },
-          });
-          const sequence = nextSequence(
-            cursor ? cursor.lastAllocated : null,
-            profile.config,
+            { isolationLevel: "Serializable" },
           );
-          if (!sequence.ok) throw domainError(sequence);
-
-          const formatted = formatSku(stem.value, sequence.value, profile.config);
-          if (!formatted.ok) throw domainError(formatted);
-
-          const conflict = await tx.reservation.findUnique({
-            where: {
-              workspaceId_sku: {
-                workspaceId: workspace.id,
-                sku: formatted.value.sku,
-              },
-            },
-          });
-          if (conflict) {
-            throw domainError(
-              fail(
-                "ASSIGNMENT_CONFLICT",
-                `sku ${formatted.value.sku} already held`,
-              ),
-            );
+        } catch (error) {
+          // Idempotency race: loser of unique insert reloads winner's row.
+          const code =
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            typeof (error as { code: unknown }).code === "string"
+              ? (error as { code: string }).code
+              : null;
+          if (code === "P2002") {
+            const workspace = await prisma.workspace.findUnique({
+              where: { key: params.workspaceKey },
+            });
+            if (workspace) {
+              const byIdempotency = await prisma.reservation.findUnique({
+                where: {
+                  workspaceId_idempotencyKey: {
+                    workspaceId: workspace.id,
+                    idempotencyKey: params.idempotencyKey,
+                  },
+                },
+              });
+              if (byIdempotency) {
+                return mapReservation(byIdempotency);
+              }
+            }
           }
-
-          const row = await tx.reservation.create({
-            data: {
-              workspaceId: workspace.id,
-              sku: formatted.value.sku,
-              stem: stem.value,
-              sequence: sequence.value,
-              familyKey: familyKey.value,
-              policyVersion: profile.version,
-              status: "PENDING",
-              idempotencyKey: params.idempotencyKey,
-              correlationId: params.correlationId,
-            },
-          });
-
-          await tx.sequenceCursor.upsert({
-            where: {
-              workspaceId_stem: {
-                workspaceId: workspace.id,
-                stem: stem.value,
-              },
-            },
-            create: {
-              workspaceId: workspace.id,
-              stem: stem.value,
-              lastAllocated: sequence.value,
-            },
-            update: { lastAllocated: sequence.value },
-          });
-
-          await appendAudit(
-            tx,
-            workspace.id,
-            params.actor,
-            "reservation.create",
-            params.correlationId,
-            {
-              reservationId: row.id,
-              sku: row.sku,
-              sequence: row.sequence,
-            },
-          );
-          return mapReservation(row);
-        },
-        { isolationLevel: "Serializable" },
-      );
+          throw error;
+        }
+      });
     },
 
     async getReservation(workspaceKey, reservationId) {

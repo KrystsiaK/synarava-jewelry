@@ -274,9 +274,10 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 - Credentials CLI: `pnpm --filter @synarava/sku-api credentials:generate` — prints hashed `SKU_API_CREDENTIALS` and plaintext `SKU_API_TOKEN` separately
 - `packages/sku-contract` typed `createSkuClient` for Synarava
 - Admin Settings → SKU policy (`SkuPolicyEditor` + synarava-cms): draft/publish, assignments, audit; disabled until `SKU_API_URL` + `SKU_API_TOKEN`
-- Persistence: `SKU_DATABASE_URL` → Prisma Postgres `SkuRegistryStore`; unset → in-memory (tests/local). Integration test: migrate → bootstrap → reserve → reconnect → persist
+- Persistence: `SKU_DATABASE_URL` → Prisma Postgres `SkuRegistryStore`; unset → in-memory (tests/local). Integration tests: migrate → bootstrap → reserve → reconnect → persist; parallel same-stem unique sequences; concurrent identical idempotency keys
+- Reserve retries Prisma `P2034` / SQLSTATE `40001` serialization conflicts and `P2002` unique races with bounded backoff
 - Bootstrap: idempotent `synarava-shop` + published profile v1 on start (`SKU_BOOTSTRAP=0` to skip). `SKU_SEED_EXAMPLE` removed from staging/prod path
-- Railway staging runbook: [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)
+- Railway staging runbook: [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md) — web→api URL `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}`
 
 ### Этап 3 — Synarava adapter
 
