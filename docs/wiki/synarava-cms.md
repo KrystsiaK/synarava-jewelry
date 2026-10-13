@@ -363,8 +363,14 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
   onChange={setActive}
 >
   {/* Title + fields — share the cool well so “inside tab” is obvious */}
+  <div className="adm-inset-x grid gap-4 py-4">{/* fields */}</div>
 </AdminSectionTabs>
 ```
+
+The well owns the bottom border and radius when the strip is **not** `embedded`.
+Children must not add a second `border` / `rounded-b-*` — that stacks two gold
+edges at the corners (outer well curve + inner panel line). Use `adm-inset-x`
+for horizontal inset only, same as the product edit shell.
 
 | State | Look |
 |-------|------|

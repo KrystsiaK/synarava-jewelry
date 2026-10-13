@@ -179,7 +179,7 @@ export function CreateProductForm({
             id={`product-editor-panel-${activeSection}`}
             role="tabpanel"
             aria-labelledby={`product-editor-tab-${activeSection}`}
-            className="grid gap-4 rounded-b-lg border border-t-0 border-[var(--adm-border)] px-[var(--adm-inset-x)] py-4"
+            className="adm-inset-x grid gap-4 py-4"
           >
             <div hidden={activeSection === "passport" || activeSection === "media"}>
               <ProductFormFields

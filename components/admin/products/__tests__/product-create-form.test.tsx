@@ -72,6 +72,15 @@ beforeEach(() => {
 });
 
 describe("CreateProductForm", () => {
+  it("lets AdminSectionTabs well own bottom chrome (no nested border/radius)", () => {
+    render(<CreateProductForm collections={collections} />);
+
+    const panel = screen.getByRole("tabpanel");
+    expect(panel.className).toMatch(/adm-inset-x/);
+    expect(panel.className).not.toMatch(/rounded-b-/);
+    expect(panel.className).not.toMatch(/\bborder\b/);
+  });
+
   it("renders the core Shopify-backed fields and the gallery manager", async () => {
     const user = userEvent.setup();
     render(<CreateProductForm collections={collections} />);
