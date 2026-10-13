@@ -14,7 +14,11 @@ import {
   previewVariantSku,
   resumePendingSkuAssignment,
 } from "@/lib/sku/assign-variant-sku";
-import { isPendingCommerceSku } from "@/lib/sku/pending-sku";
+import {
+  isPendingCommerceSku,
+  isShopifyInventPlaceholderSku,
+  localSkuForEmptyShopifySku,
+} from "@/lib/sku/pending-sku";
 import {
   listPendingSkuReservations,
   readPendingSkuReservation,
@@ -128,22 +132,77 @@ function variantRows(
 ): SkuAssignVariantRow[] {
   return product.variants.map((variant) => {
     const pending = readPendingSkuReservation(product.details, variant.id);
+    const needsAssign = isPendingCommerceSku(variant.sku) || Boolean(pending);
     return {
       variantId: variant.id,
       title: variant.title || "Default Title",
       sku: variant.sku,
       shopifyVariantId: variant.shopifyVariantId,
-      pending: isPendingCommerceSku(variant.sku) || Boolean(pending),
+      pending: needsAssign,
       pendingReservationSku: pending?.sku ?? null,
       shopifyLinked: Boolean(product.shopifyProductId && variant.shopifyVariantId),
     };
   });
 }
 
+/**
+ * Rewrite legacy Pull invent `SHOPIFY-*` → `PENDING-p…-v…` so Inventory never
+ * displays a synthetic SKU as if it were assigned (M2).
+ */
+async function rewriteShopifyInventPlaceholders(
+  product: NonNullable<Awaited<ReturnType<typeof loadProductForSku>>>,
+): Promise<NonNullable<Awaited<ReturnType<typeof loadProductForSku>>>> {
+  if (!product.shopifyProductId) return product;
+  let changed = false;
+  let nextProductSku = product.sku;
+  const primaryId = product.variants[0]?.id ?? null;
+
+  for (const variant of product.variants) {
+    if (!isShopifyInventPlaceholderSku(variant.sku)) continue;
+    const nextSku = localSkuForEmptyShopifySku({
+      shopifyProductId: product.shopifyProductId,
+      shopifyVariantId: variant.shopifyVariantId,
+    });
+    if (nextSku === variant.sku) continue;
+    await db.productVariant.update({
+      where: { id: variant.id },
+      data: { sku: nextSku },
+    });
+    if (variant.id === primaryId || isShopifyInventPlaceholderSku(nextProductSku)) {
+      nextProductSku = nextSku;
+    }
+    changed = true;
+  }
+
+  if (isShopifyInventPlaceholderSku(product.sku) && product.shopifyProductId) {
+    const nextSku = localSkuForEmptyShopifySku({
+      shopifyProductId: product.shopifyProductId,
+      shopifyVariantId: product.variants[0]?.shopifyVariantId ?? null,
+    });
+    if (nextSku !== product.sku) {
+      nextProductSku = nextSku;
+      changed = true;
+    }
+  }
+
+  if (!changed) return product;
+
+  if (nextProductSku !== product.sku) {
+    await db.product.update({
+      where: { id: product.id },
+      data: { sku: nextProductSku },
+    });
+  }
+
+  const reloaded = await loadProductForSku(product.id);
+  return reloaded ?? product;
+}
+
 export async function loadSkuAssignContext(productId: string): Promise<SkuAssignContext> {
   await requireAdminSession("/admin/products");
   const config = getSkuServiceConfig();
-  const product = await loadProductForSku(productId);
+  const loaded = await loadProductForSku(productId);
+  const product = loaded ? await rewriteShopifyInventPlaceholders(loaded) : null;
   const empty: SkuAssignContext = {
     configured: false,
     reason: "Product not found",

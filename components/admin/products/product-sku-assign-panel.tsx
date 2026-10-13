@@ -23,6 +23,13 @@ import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
 } from "@/lib/products/product-form-validation";
+import { needsSkuAssignment } from "@/lib/sku/pending-sku";
+
+/** Show Family → Preview → Confirm when SKU is a placeholder (client-side, not only server flag). */
+function rowNeedsAssignControls(row: SkuAssignVariantRow): boolean {
+  if (row.pendingReservationSku) return false;
+  return needsSkuAssignment(row.sku) || row.pending;
+}
 
 function VariantAssignRow({
   productId,
@@ -49,7 +56,7 @@ function VariantAssignRow({
   previewSku: string | null;
   previewMeta: string | null;
 }) {
-  const notAssigned = row.pending && !row.pendingReservationSku;
+  const notAssigned = rowNeedsAssignControls(row);
   return (
     <div className="grid gap-3 rounded-md border border-[var(--adm-border)] p-3" data-variant-id={row.variantId}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -69,7 +76,10 @@ function VariantAssignRow({
       ) : null}
 
       {notAssigned ? (
-        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
+        <div
+          className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end"
+          data-sku-assign-controls="true"
+        >
           <AdminSelectField
             label="Family"
             owner="Synarava"
@@ -204,6 +214,7 @@ export function ProductSkuAssignPanel({
       }];
 
   const primarySku = rows[0]?.sku || draftSku;
+  const primaryNeedsAssign = rows[0] ? rowNeedsAssignControls(rows[0]) : needsSkuAssignment(primarySku);
 
   function refresh() {
     return loadSkuAssignContext(productId).then(setContext);
@@ -273,11 +284,12 @@ export function ProductSkuAssignPanel({
       <AdminReadonlyField
         label="SKU"
         owner="Shopify"
-        value={rows.every((row) => row.pending && !row.pendingReservationSku) ? "Not assigned" : primarySku}
+        value={primaryNeedsAssign ? "Not assigned" : primarySku}
         help={(
           <AdminHelp label="Commerce code assignment guidance">
             Shopify owns the assigned Variant SKU. Synarava reserves via sku-api, writes Shopify,
             then confirms only after read-back matches. Retry confirm is idempotent (no new number).
+            Placeholders (PENDING-*, SHOPIFY-*) stay assignable — they are not commerce SKUs.
           </AdminHelp>
         )}
       />
