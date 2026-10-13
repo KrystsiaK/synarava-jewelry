@@ -1,5 +1,12 @@
-# Railway service: sku-api (staging/production isolated SKU_DATABASE_URL)
-# Watch paths should include services/sku-api, packages/sku-core, packages/sku-contract.
+# Railway service: sku-api
+# Full staging checklist: docs/runbooks/sku-api-railway-staging.md
+#
+# Service root: monorepo repository root (pnpm workspace).
+# Config-as-code path: services/sku-api/railway.toml
+# Watch paths: services/sku-api/**, packages/sku-core/**, packages/sku-contract/**,
+#              pnpm-lock.yaml, pnpm-workspace.yaml, package.json
+# Required env: SKU_DATABASE_URL, SKU_API_CREDENTIALS
+# Health: GET /health (ready only when credentials + DB)
 
 [build]
 builder = "NIXPACKS"

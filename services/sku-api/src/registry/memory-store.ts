@@ -6,9 +6,9 @@ import {
   parseSku,
   resolveStem,
   type PolicyProfileConfig,
-  type SkuResult,
 } from "@synarava/sku-core";
 import { createHash, randomUUID } from "node:crypto";
+import { assertProfileConfig, domainError } from "./errors.js";
 import type {
   AssignmentRecord,
   AuditEventRecord,
@@ -19,6 +19,8 @@ import type {
   SkuRegistryStore,
   WorkspaceRecord,
 } from "./types.js";
+
+export { isDomainError } from "./errors.js";
 
 type MutableWorkspace = {
   id: string;
@@ -87,20 +89,6 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
       throw domainError(fail("WORKSPACE_NOT_FOUND", `workspace ${key}`));
     }
     return workspace;
-  };
-
-  const assertProfileConfig = (
-    workspaceKey: string,
-    config: PolicyProfileConfig,
-  ) => {
-    if (config.workspace !== workspaceKey) {
-      throw domainError(
-        fail("INVALID_INPUT", "profile.workspace must match workspace key"),
-      );
-    }
-    if (config.suffix.reuse !== false) {
-      throw domainError(fail("INVALID_INPUT", "suffix.reuse must be false"));
-    }
   };
 
   const getPublished = (workspaceKey: string): MutableProfile | null => {
@@ -598,24 +586,6 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
 
 function hashRows(rows: readonly LegacyImportRow[]): string {
   return createHash("sha256").update(JSON.stringify(rows)).digest("hex").slice(0, 16);
-}
-
-class DomainError extends Error {
-  readonly code: string;
-
-  constructor(result: Extract<SkuResult<never>, { ok: false }>) {
-    super(result.message);
-    this.name = "DomainError";
-    this.code = result.code;
-  }
-}
-
-function domainError(result: Extract<SkuResult<never>, { ok: false }>): DomainError {
-  return new DomainError(result);
-}
-
-export function isDomainError(error: unknown): error is DomainError {
-  return error instanceof DomainError;
 }
 
 export function publishExampleProfile(

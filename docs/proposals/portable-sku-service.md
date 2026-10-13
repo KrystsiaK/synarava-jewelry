@@ -256,7 +256,7 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 - `services/sku-api` — Prisma schema + SQL migration, `SkuRegistryStore` + in-memory serializable adapter, allocator, legacy importer + `fixtures/legacy-v0-sample.json`
 - `pnpm-workspace.yaml` включает `packages/*` и `services/*`; `pnpm test:sku` / `pnpm test:run` гоняют SKU-тесты
 - Wiki: [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
-- Канонический import 49 SKU и Prisma Postgres runtime — ops/staging после `SKU_DATABASE_URL`; в CI POC concurrency доказан на in-memory store без Docker
+- Канонический import 49 SKU — отдельный ops-шаг после staging deploy; Prisma Postgres runtime + integration test готовы; в CI unit concurrency остаётся на in-memory store
 
 ### Этап 2 — HTTP API и admin profile
 
@@ -267,13 +267,16 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 **Выход:** профиль можно версионировать и проверять без ручного изменения БД.
 
-**Статус реализации (2026-10-12):** выполнено (без production/n8n/Shopify staging wiring).
+**Статус реализации (2026-10-12 / deploy-ready 2026-10-13):** выполнено (без production/n8n/Shopify staging wiring / Этап 3).
 
 - `services/sku-api` HTTP: `/health`, `/v1/workspaces/{key}/…` preview, reservations, validate, assignments/confirm, lock, audit-events, profiles draft/publish/list
-- Auth: Bearer service token, salted scrypt hash (`SKU_API_CREDENTIALS` или dev `SKU_API_DEV_TOKEN`); workspace path must match credential
+- Auth: Bearer service token, salted scrypt hash (`SKU_API_CREDENTIALS` или local-only `SKU_API_DEV_TOKEN`); workspace path must match credential
+- Credentials CLI: `pnpm --filter @synarava/sku-api credentials:generate` — prints hashed `SKU_API_CREDENTIALS` and plaintext `SKU_API_TOKEN` separately
 - `packages/sku-contract` typed `createSkuClient` for Synarava
 - Admin Settings → SKU policy (`SkuPolicyEditor` + synarava-cms): draft/publish, assignments, audit; disabled until `SKU_API_URL` + `SKU_API_TOKEN`
-- Persistence for local/HTTP tests: in-memory store; Prisma Postgres schema from Этап 1 remains for Railway `SKU_DATABASE_URL` adapter (follow-up)
+- Persistence: `SKU_DATABASE_URL` → Prisma Postgres `SkuRegistryStore`; unset → in-memory (tests/local). Integration test: migrate → bootstrap → reserve → reconnect → persist
+- Bootstrap: idempotent `synarava-shop` + published profile v1 on start (`SKU_BOOTSTRAP=0` to skip). `SKU_SEED_EXAMPLE` removed from staging/prod path
+- Railway staging runbook: [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)
 
 ### Этап 3 — Synarava adapter
 

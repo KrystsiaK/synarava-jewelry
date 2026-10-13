@@ -11,15 +11,17 @@
     }
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --exclude 'src/**/*.integration.test.ts'",
+    "test:integration": "vitest run src/**/*.integration.test.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "SKU_DATABASE_URL=${SKU_DATABASE_URL:-postgresql://sku:sku@127.0.0.1:5432/sku} prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
+    "credentials:generate": "node ./scripts/generate-credentials.mjs",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
-    "dev": "pnpm build && SKU_API_DEV_TOKEN=${SKU_API_DEV_TOKEN:-dev-sku-token} SKU_SEED_EXAMPLE=1 node dist/main.js",
+    "dev": "pnpm build && SKU_API_DEV_TOKEN=${SKU_API_DEV_TOKEN:-dev-sku-token} node dist/main.js",
     "postinstall": "pnpm prisma:generate"
   },
   "dependencies": {

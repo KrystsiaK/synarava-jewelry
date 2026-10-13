@@ -15,10 +15,16 @@ export {
   type LegacyImportFile,
 } from "./legacy-import.js";
 export {
+  bootstrapSynaravaShopWorkspace,
+  type BootstrapResult,
+} from "./bootstrap.js";
+export { createSkuStoreRuntime, type SkuStoreRuntime } from "./registry/create-store.js";
+export { isDomainError } from "./registry/errors.js";
+export {
   createMemorySkuRegistryStore,
-  isDomainError,
   publishExampleProfile,
 } from "./registry/memory-store.js";
+export { createPrismaSkuRegistryStore } from "./registry/prisma-store.js";
 export type {
   AssignmentRecord,
   AuditEventRecord,

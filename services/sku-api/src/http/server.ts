@@ -13,13 +13,15 @@ import {
   authenticateRequest,
   type WorkspaceCredential,
 } from "../auth.js";
-import { isDomainError } from "../registry/memory-store.js";
+import { isDomainError } from "../registry/errors.js";
 import type { SkuRegistryStore } from "../registry/types.js";
 
 export type SkuHttpApp = {
   readonly store: SkuRegistryStore;
   readonly credentials: readonly WorkspaceCredential[];
   readonly ready: () => boolean;
+  /** Persistence mode — surfaced on /health for ops. */
+  readonly mode?: "postgres" | "memory";
 };
 
 const draftProfileSchema = z.object({
@@ -82,6 +84,7 @@ export function createSkuHttpServer(app: SkuHttpApp) {
           ok: ready,
           service: "@synarava/sku-api",
           ready,
+          store: app.mode ?? "memory",
         });
       }
 

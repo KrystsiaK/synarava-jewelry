@@ -1,17 +1,14 @@
 import { createCredential, parseCredentialsEnv } from "./auth.js";
-import { createSkuHttpServer, seedExampleWorkspace } from "./http/server.js";
-import { createMemorySkuRegistryStore } from "./registry/memory-store.js";
+import { bootstrapSynaravaShopWorkspace } from "./bootstrap.js";
+import { createSkuHttpServer } from "./http/server.js";
+import { createSkuStoreRuntime } from "./registry/create-store.js";
 
 const port = Number(process.env.PORT ?? process.env.SKU_API_PORT ?? 8787);
 const host = process.env.SKU_API_HOST ?? "0.0.0.0";
 
 async function main() {
-  const store = createMemorySkuRegistryStore();
-  // Postgres Prisma adapter arrives with SKU_DATABASE_URL wiring on Railway.
-  // Memory store is the Этап 2 local/default runtime until that adapter lands.
-  if (process.env.SKU_SEED_EXAMPLE === "1") {
-    await seedExampleWorkspace(store);
-  }
+  const runtime = createSkuStoreRuntime();
+  const { store } = runtime;
 
   let credentials = parseCredentialsEnv(process.env.SKU_API_CREDENTIALS);
   if (credentials.length === 0 && process.env.SKU_API_DEV_TOKEN) {
@@ -28,10 +25,50 @@ async function main() {
     );
   }
 
+  // Idempotent workspace + published profile. Never use SKU_SEED_EXAMPLE in staging/prod.
+  // Opt out with SKU_BOOTSTRAP=0 for empty local runs.
+  const bootstrapDisabled = process.env.SKU_BOOTSTRAP === "0";
+  if (!bootstrapDisabled) {
+    const bootstrap = await bootstrapSynaravaShopWorkspace(store);
+    console.info(
+      JSON.stringify({
+        level: "info",
+        message: "bootstrap",
+        ...bootstrap,
+      }),
+    );
+  }
+
+  let dbReady = runtime.mode === "memory";
+  if (runtime.mode === "postgres") {
+    dbReady = await runtime.ready();
+    if (!dbReady) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "SKU_DATABASE_URL set but database not reachable",
+        }),
+      );
+    }
+  }
+
+  const credentialsReady = credentials.length > 0;
   const server = createSkuHttpServer({
     store,
     credentials,
-    ready: () => credentials.length > 0,
+    ready: () => credentialsReady && dbReady,
+    mode: runtime.mode,
+  });
+
+  const shutdown = async () => {
+    await runtime.disconnect();
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => {
+    void shutdown();
+  });
+  process.on("SIGINT", () => {
+    void shutdown();
   });
 
   server.listen(port, host, () => {
@@ -41,7 +78,8 @@ async function main() {
         stage: "http-v1",
         host,
         port,
-        ready: credentials.length > 0,
+        store: runtime.mode,
+        ready: credentialsReady && dbReady,
       }),
     );
   });
