@@ -563,7 +563,7 @@ export function EditProductForm({
     <>
       <div
         ref={rowRef}
-        className="adm-panel grid gap-4 p-5 transition-colors"
+        className="grid gap-4 transition-colors"
         style={{
           ...(highlighted
             ? { background: "var(--adm-accent-soft)", outline: "1px solid var(--adm-border-strong)" }

@@ -9,7 +9,7 @@ import {
 } from "@/app/admin/actions/products";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
-import { AdminAlert, AdminHelp } from "@/components/synarava-cms";
+import { AdminAlert, AdminHelp, AdminPanel } from "@/components/synarava-cms";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/use-draft-autosave";
@@ -141,12 +141,12 @@ export function CreateProductForm({
 
   return (
     <>
-      <form ref={formRef} action={formAction} noValidate className="adm-panel grid gap-4 p-5">
+      {/* One bordered shell only (locale AdminPanel). An outer `.adm-panel` around
+          this nested a second bottom border+radius — staging still showed the double
+          gold corner after the earlier tabpanel-only fix. */}
+      <form ref={formRef} action={formAction} noValidate className="grid gap-4">
         <input type="hidden" name="productId" value={draftId} />
-        <div
-          className="flex items-center justify-between gap-4 pb-4"
-          style={{ borderBottom: "1px solid var(--adm-border)" }}
-        >
+        <div className="adm-product-workspace-header adm-band adm-band--lg justify-between gap-4">
           <div>
             <p className="adm-section-tag">Product workspace</p>
             <h2 className="adm-title-sm mt-2">
@@ -164,57 +164,74 @@ export function CreateProductForm({
           </AdminHelp>
         </div>
 
-        <AdminLocaleTabs
-          active={activeLocale}
-          onSelect={selectLocale}
-          locales={localeTabs}
-        />
-
-        <ProductEditorTabs
-          active={activeSection}
-          onChange={setActiveSection}
-          includeShopify={false}
+        <AdminPanel.Root
+          data-component="ProductLocaleWorkspace"
+          stickyAbove="var(--adm-product-workspace-sticky-height, 5.5rem)"
         >
-          <div
-            id={`product-editor-panel-${activeSection}`}
-            role="tabpanel"
-            aria-labelledby={`product-editor-tab-${activeSection}`}
-            className="adm-inset-x grid gap-4 py-4"
+          <AdminPanel.Header
+            sticky
+            stickyBand="locale"
+            className="adm-panel__header--ruled"
           >
-            <div hidden={activeSection === "passport" || activeSection === "media"}>
-              <ProductFormFields
-                draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
-                collections={collections}
-                validation={validation}
-                translationLocales={translationLocales}
-                activeSection={activeSection}
-                activeLocale={activeLocale}
-                onLocaleChange={selectLocale}
-                mode="create"
-                productId={draftProduct?.id ?? (draftId || null)}
-              />
-            </div>
-            <div hidden={activeSection !== "media"}>
-              <ProductMediaManager
-                product={draftProduct}
-                ensureProduct={ensureDraftForGallery}
-                onChange={(product) => {
-                  setDraftId(product.id);
-                  setDraftProduct(product);
-                }}
-              />
-            </div>
-            <ProductDetailFields
-              details={getProductEditorDetails(null)}
-              translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
-              mode="create"
-              collections={collections}
-              translationLocales={translationLocales}
-              activeSection={activeSection}
-              activeLocale={activeLocale}
+            <AdminLocaleTabs
+              embedded
+              active={activeLocale}
+              onSelect={selectLocale}
+              locales={localeTabs}
             />
-          </div>
-        </ProductEditorTabs>
+          </AdminPanel.Header>
+
+          <AdminPanel.Body>
+            <ProductEditorTabs
+              embedded
+              active={activeSection}
+              onChange={setActiveSection}
+              includeShopify={false}
+            >
+              <div className="adm-inset-x grid gap-4 py-4">
+                <div
+                  id={`product-editor-panel-${activeSection}`}
+                  role="tabpanel"
+                  aria-labelledby={`product-editor-tab-${activeSection}`}
+                  className="grid gap-4"
+                >
+                  <div hidden={activeSection === "passport" || activeSection === "media"}>
+                    <ProductFormFields
+                      draft={{ ...draft, imageUrl: draftProduct?.imageUrl ?? "" }}
+                      collections={collections}
+                      validation={validation}
+                      translationLocales={translationLocales}
+                      activeSection={activeSection}
+                      activeLocale={activeLocale}
+                      onLocaleChange={selectLocale}
+                      mode="create"
+                      productId={draftProduct?.id ?? (draftId || null)}
+                    />
+                  </div>
+                  <div hidden={activeSection !== "media"}>
+                    <ProductMediaManager
+                      product={draftProduct}
+                      ensureProduct={ensureDraftForGallery}
+                      onChange={(product) => {
+                        setDraftId(product.id);
+                        setDraftProduct(product);
+                      }}
+                    />
+                  </div>
+                  <ProductDetailFields
+                    details={getProductEditorDetails(null)}
+                    translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
+                    mode="create"
+                    collections={collections}
+                    translationLocales={translationLocales}
+                    activeSection={activeSection}
+                    activeLocale={activeLocale}
+                  />
+                </div>
+              </div>
+            </ProductEditorTabs>
+          </AdminPanel.Body>
+        </AdminPanel.Root>
       </form>
 
       <AdminConfirmModal

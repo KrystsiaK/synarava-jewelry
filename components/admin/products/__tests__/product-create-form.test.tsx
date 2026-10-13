@@ -72,11 +72,16 @@ beforeEach(() => {
 });
 
 describe("CreateProductForm", () => {
-  it("lets AdminSectionTabs well own bottom chrome (no nested border/radius)", () => {
-    render(<CreateProductForm collections={collections} />);
+  it("uses one ProductLocaleWorkspace panel with embedded tabs (no stacked borders)", () => {
+    const { container } = render(<CreateProductForm collections={collections} />);
+
+    const localeShell = container.querySelector('[data-component="ProductLocaleWorkspace"]');
+    expect(localeShell).toHaveClass("adm-panel");
+    // Outer form must not also be `.adm-panel` — that stacked two gold bottom edges.
+    expect(container.querySelector("form.adm-panel")).toBeNull();
+    expect(container.querySelectorAll(".adm-panel").length).toBe(1);
 
     const panel = screen.getByRole("tabpanel");
-    expect(panel.className).toMatch(/adm-inset-x/);
     expect(panel.className).not.toMatch(/rounded-b-/);
     expect(panel.className).not.toMatch(/\bborder\b/);
   });

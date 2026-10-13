@@ -372,6 +372,11 @@ Children must not add a second `border` / `rounded-b-*` — that stacks two gold
 edges at the corners (outer well curve + inner panel line). Use `adm-inset-x`
 for horizontal inset only, same as the product edit shell.
 
+Never nest a second `.adm-panel` around `ProductLocaleWorkspace` / the locale
+`AdminPanel`. Workspace header, alerts, and save chrome sit **above** that one
+bordered shell (see product create/edit). Two stacked panels read as a double
+gold bottom corner with a dark gap between the radii.
+
 | State | Look |
 |-------|------|
 | Idle | Quiet label on the capsule, no cell fill |
