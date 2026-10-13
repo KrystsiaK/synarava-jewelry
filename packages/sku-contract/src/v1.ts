@@ -79,6 +79,46 @@ export const confirmAssignmentResponseSchema = z.object({
   correlationId: correlationIdSchema,
 });
 
+export const CATALOG_AUDIT_MAX_BATCH = 100;
+
+export const catalogAuditItemSchema = z.object({
+  externalVariantId: z.string().min(1).max(256),
+  sku: z.string().max(128),
+});
+
+export const catalogAuditRequestSchema = z.object({
+  items: z.array(catalogAuditItemSchema).max(CATALOG_AUDIT_MAX_BATCH),
+  previousDigest: z.string().min(1).max(128).nullable().optional(),
+  correlationId: correlationIdSchema,
+});
+
+export const catalogAuditDeviationCodeSchema = z.enum([
+  "MISSING_ASSIGNMENT",
+  "SKU_MISMATCH",
+  "EXTERNAL_EMPTY",
+  "INVALID_FORMAT",
+]);
+
+export const catalogAuditDeviationSchema = z.object({
+  externalVariantId: z.string().min(1),
+  codes: z.array(catalogAuditDeviationCodeSchema).min(1),
+  observedSku: z.string(),
+  ledgerSku: z.string().nullable(),
+  assignmentId: z.string().nullable(),
+});
+
+export const catalogAuditResponseSchema = z.object({
+  ok: z.literal(true),
+  itemCount: z.number().int().nonnegative(),
+  deviationCount: z.number().int().nonnegative(),
+  deviations: z.array(catalogAuditDeviationSchema),
+  digest: z.string().min(1),
+  shouldNotify: z.boolean(),
+  durationMs: z.number().int().nonnegative(),
+  llmEnabled: z.literal(false),
+  correlationId: correlationIdSchema,
+});
+
 export type PreviewRequest = z.infer<typeof previewRequestSchema>;
 export type PreviewResponse = z.infer<typeof previewResponseSchema>;
 export type ReserveRequest = z.infer<typeof reserveRequestSchema>;
@@ -91,3 +131,5 @@ export type ConfirmAssignmentRequest = z.infer<
 export type ConfirmAssignmentResponse = z.infer<
   typeof confirmAssignmentResponseSchema
 >;
+export type CatalogAuditRequest = z.infer<typeof catalogAuditRequestSchema>;
+export type CatalogAuditResponse = z.infer<typeof catalogAuditResponseSchema>;

@@ -92,3 +92,6 @@ scripts/audit/infrastructure-cleanup-results.json
 services/sku-api/src/generated/
 services/sku-api/dist/
 packages/*/dist/
+
+# SKU catalog audit CLI checkpoint (local)
+**/.sku-audit-checkpoint.json

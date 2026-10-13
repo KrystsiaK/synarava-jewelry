@@ -313,12 +313,16 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 ### Этап 5 — n8n audit automation
 
-- read-only catalog audit;
-- batching, checkpoint и идемпотентный повтор;
-- уведомление только при новом отклонении;
-- измерение времени и стоимости; LLM выключен по умолчанию.
+**Статус реализации (2026-10-13):** Slice A на staging (без Railway n8n / production / merge в main).
 
-**Выход:** workflow не создаёт SKU и не владеет состоянием; повторный запуск не создаёт побочных изменений.
+- read-only catalog audit: `POST /v1/workspaces/{key}/audit/catalog` + `runCatalogAudit` (`services/sku-api/src/audit/catalog-audit.ts`)
+- batching (max 100), digest checkpoint (`previousDigest` / CLI `.sku-audit-checkpoint.json`), идемпотентный повтор
+- `shouldNotify` только при новом deviation digest; `durationMs` + `llmEnabled: false`
+- Dry-run CLI: `pnpm --filter @synarava/sku-api audit:catalog` · runbook [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
+
+**Ещё не в Этапе 5:** Railway n8n service + scheduled workflow (Slice B); mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue automation.
+
+**Выход (Slice A):** API/CLI не создаёт SKU и не владеет ledger-состоянием; повторный запуск с тем же digest не создаёт нового notify.
 
 ### Этап 6 — ограниченный production rollout
 

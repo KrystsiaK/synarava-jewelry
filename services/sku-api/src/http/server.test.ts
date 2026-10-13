@@ -132,6 +132,112 @@ describe("sku-api http", () => {
     expect(foreign.status).toBe(403);
   });
 
+  it("catalog audit is read-only and notifies only on new digest", async () => {
+    const headers = {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      "idempotency-key": "http-audit-idem-1",
+    };
+
+    const reserve = await fetch(
+      `${baseUrl}/v1/workspaces/synarava-shop/reservations`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          familyKey: "jewelry.bracelet",
+          correlationId: "corr-http-audit-reserve",
+        }),
+      },
+    );
+    expect(reserve.status).toBe(200);
+    const reserved = (await reserve.json()) as {
+      reservationId: string;
+      sku: string;
+    };
+
+    const confirm = await fetch(
+      `${baseUrl}/v1/workspaces/synarava-shop/assignments/confirm`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          reservationId: reserved.reservationId,
+          sku: reserved.sku,
+          externalSystem: "shopify",
+          externalShop: "staging.myshopify.com",
+          externalProductId: "gid://shopify/Product/audit",
+          externalVariantId: "gid://shopify/ProductVariant/audit",
+          shopifyReadBackSku: reserved.sku,
+          correlationId: "corr-http-audit-confirm",
+        }),
+      },
+    );
+    expect(confirm.status).toBe(200);
+
+    const first = await fetch(
+      `${baseUrl}/v1/workspaces/synarava-shop/audit/catalog`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          items: [
+            {
+              externalVariantId: "gid://shopify/ProductVariant/audit",
+              sku: "JW-BRACELET-999",
+            },
+          ],
+          previousDigest: null,
+          correlationId: "corr-http-audit-1",
+        }),
+      },
+    );
+    expect(first.status).toBe(200);
+    const firstBody = (await first.json()) as {
+      shouldNotify: boolean;
+      digest: string;
+      deviationCount: number;
+      llmEnabled: boolean;
+    };
+    expect(firstBody.shouldNotify).toBe(true);
+    expect(firstBody.deviationCount).toBe(1);
+    expect(firstBody.llmEnabled).toBe(false);
+
+    const second = await fetch(
+      `${baseUrl}/v1/workspaces/synarava-shop/audit/catalog`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          items: [
+            {
+              externalVariantId: "gid://shopify/ProductVariant/audit",
+              sku: "JW-BRACELET-999",
+            },
+          ],
+          previousDigest: firstBody.digest,
+          correlationId: "corr-http-audit-2",
+        }),
+      },
+    );
+    expect(second.status).toBe(200);
+    await expect(second.json()).resolves.toMatchObject({
+      shouldNotify: false,
+      digest: firstBody.digest,
+      deviationCount: 1,
+      llmEnabled: false,
+    });
+  });
+
   it("draft and publish profile versions", async () => {
     const headers = {
       authorization: `Bearer ${token}`,
