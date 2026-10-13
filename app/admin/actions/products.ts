@@ -71,6 +71,8 @@ import {
   writeAuditLog,
   type DraftAutosaveResult,
 } from "./shared";
+import { getSkuServiceConfig } from "@/lib/sku/config";
+import { createPendingCommerceSku } from "@/lib/sku/pending-sku";
 
 export type ProductActionState = {
   error?: string;
@@ -1557,7 +1559,12 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     }
   }
   const slug = slugify(parsed.data.slug) || createDraftToken("draft-product");
-  const sku = parsed.data.sku || createDraftToken("sku").toUpperCase();
+  // When sku-api is configured, never invent a commerce-looking SKU token.
+  // Local PENDING-* is identity-only until Inventory preview/reserve/confirm.
+  const sku = parsed.data.sku
+    || (getSkuServiceConfig().configured
+      ? createPendingCommerceSku(createDraftToken)
+      : createDraftToken("sku").toUpperCase());
   const name = parsed.data.name || "Untitled product";
   const price = Number(parsed.data.price || "0");
   const removeImage = parsed.data.removeImage === "1";

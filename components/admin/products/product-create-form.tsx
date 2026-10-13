@@ -191,6 +191,7 @@ export function CreateProductForm({
                 activeLocale={activeLocale}
                 onLocaleChange={selectLocale}
                 mode="create"
+                productId={draftProduct?.id ?? (draftId || null)}
               />
             </div>
             <div hidden={activeSection !== "media"}>

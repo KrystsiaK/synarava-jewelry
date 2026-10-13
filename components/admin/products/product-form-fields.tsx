@@ -597,6 +597,8 @@ export function ProductFormFields({
   onTaxonomySatisfactionChange,
   selectedShopifyCategoryAttributes = [],
   mode = "edit",
+  productId = null,
+  onSkuAssigned,
 }: {
   draft: ProductDraft;
   collections: CollectionOption[];
@@ -618,6 +620,8 @@ export function ProductFormFields({
   /** Resolved Shopify category attribute values from the last pull snapshot. */
   selectedShopifyCategoryAttributes?: ShopifyCategoryAttributeSelection[];
   mode?: "create" | "edit";
+  productId?: string | null;
+  onSkuAssigned?: (sku: string) => void;
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -939,6 +943,8 @@ export function ProductFormFields({
           }}
           fieldErrors={fieldErrors}
           validation={validation}
+          productId={productId}
+          onSkuAssigned={onSkuAssigned}
         />
       </div>
 
