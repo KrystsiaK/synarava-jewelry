@@ -38,7 +38,10 @@ import { tryCreateSkuClient } from "@/lib/sku/client";
 import { getSkuServiceConfig } from "@/lib/sku/config";
 import { confirmPendingSkuAfterShopifyWrite } from "@/lib/sku/assign-variant-sku";
 import { readPendingSkuReservation } from "@/lib/sku/pending-reservation";
-import { isPendingCommerceSku } from "@/lib/sku/pending-sku";
+import {
+  assertSkuAssignableBeforePush,
+  requireSkuClientForPendingConfirm,
+} from "@/lib/sku/push-sku-gate";
 import {
   matchReadyShopifyMedia,
   SHOPIFY_PRODUCT_MEDIA_FRAGMENT,
@@ -1603,15 +1606,11 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     const localVariant = product.variants[0];
     const commerceSku = localVariant?.sku ?? product.sku;
     const pendingSkuReservation = readPendingSkuReservation(product.details);
-    if (
-      getSkuServiceConfig().configured
-      && isPendingCommerceSku(commerceSku)
-      && !pendingSkuReservation
-    ) {
-      throw new Error(
-        "SKU is not assigned. Use Inventory → Preview / Confirm assign before Push (sku-api).",
-      );
-    }
+    assertSkuAssignableBeforePush({
+      skuApiConfigured: getSkuServiceConfig().configured,
+      commerceSku,
+      pendingReservation: pendingSkuReservation,
+    });
     const commercePriceCents = localVariant?.priceCents ?? product.priceCents;
     const commerceCompareAtCents = localVariant?.compareAtCents ?? product.compareAtCents;
     const commerceTaxable = localVariant?.taxable ?? true;
@@ -1948,12 +1947,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         }
         const readBackSku = savedVariant.inventoryItem?.sku ?? savedVariant.sku ?? "";
         if (pendingSkuReservation && readBackSku) {
-          const skuClient = tryCreateSkuClient();
-          if (!skuClient) {
-            throw new Error(
-              "SKU reservation is pending but sku-api is not configured — cannot confirm assignment. Check SKU_API_URL / SKU_API_TOKEN.",
-            );
-          }
+          const skuClient = requireSkuClientForPendingConfirm(tryCreateSkuClient());
           const confirmResult = await confirmPendingSkuAfterShopifyWrite(
             {
               productId,
