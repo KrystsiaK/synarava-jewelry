@@ -1,6 +1,6 @@
 # План реализации переносимого SKU-сервиса
 
-**Статус:** Этапы 1–2 реализованы в монорепе · Этапы 3–6 открыты · **Дата:** 2026-10-12 (обновлено 2026-10-12)
+**Статус:** Этапы 1–4 код на staging · Этапы 5–6 открыты · **Дата:** 2026-10-12 (обновлено 2026-10-13)
 
 > **Handoff для исполнителя:** сначала прочитать [ADR-0002](../adr/0002-shopify-catalog-ownership.md), [ADR-0003](../adr/0003-commerce-conflict-deep-diff.md), [ADR-0004](../adr/0004-portable-sku-service-boundary.md), [`product-data-ownership.md`](../wiki/product-data-ownership.md) и настоящий документ. Не переоткрывать принятые решения внутри реализации; новое отклонение сначала оформить как изменение ADR/RFC.
 
@@ -297,13 +297,16 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 ### Этап 4 — Shopify staging
 
-- multi-variant draft: отдельный SKU на каждый вариант;
-- параллельное создание двух вариантов одного family;
-- duplicate/empty SKU и прямое внешнее изменение;
-- дублирование Shopify-товара;
-- публикация, последующая попытка изменения и сохранение SKU в тестовом заказе;
-- webhook delay/retry/out-of-order и недоступность SKU-сервиса;
-- сверка Shopify, assignment ledger и локальной проекции.
+**Статус реализации (2026-10-13):** код матрицы + linked/idempotent recovery на staging; ручной прогон M2+ — у Kiryl (M1 unlinked уже verified).
+
+- Матрица: [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)
+- Linked flow: Inventory Confirm assign при `shopifyProductId` + `shopifyVariantId` → reserve → write → read-back → confirm
+- Idempotent resume: `resumePendingSkuAssignment` / UI **Retry confirm** — без нового `reserve`; повтор Confirm assign при pending тоже resume
+- Multi-variant: per-`variantId` assign + `details.skuAssignmentPendings` map; Inventory table по каждому локальному варианту
+- Vitest: linked, unlinked pending map, resume, per-variant, legacy pending shape
+- Conflict/external change по-прежнему через normalize/deep-diff (ADR-0003); assign не создаёт второй reserve на уже назначенный SKU
+
+**Ещё вручную на staging:** M2–M13 в матрице (linked, idempotent retry, multi-variant parallel, external edit, duplicate product, publish/order smoke, sku-api down, ledger reconcile). Push по-прежнему пишет primarily primary variant commerce SKU.
 
 **Выход:** тест-матрица с фактическими результатами и доказательствами; production не затронут.
 

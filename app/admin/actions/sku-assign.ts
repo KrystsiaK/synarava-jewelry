@@ -12,9 +12,23 @@ import { getSkuServiceConfig } from "@/lib/sku/config";
 import {
   assignVariantSku,
   previewVariantSku,
+  resumePendingSkuAssignment,
 } from "@/lib/sku/assign-variant-sku";
 import { isPendingCommerceSku } from "@/lib/sku/pending-sku";
-import { readPendingSkuReservation } from "@/lib/sku/pending-reservation";
+import {
+  listPendingSkuReservations,
+  readPendingSkuReservation,
+} from "@/lib/sku/pending-reservation";
+
+export type SkuAssignVariantRow = {
+  variantId: string;
+  title: string;
+  sku: string;
+  shopifyVariantId: string | null;
+  pending: boolean;
+  pendingReservationSku: string | null;
+  shopifyLinked: boolean;
+};
 
 export type SkuAssignContext = {
   configured: boolean;
@@ -25,6 +39,7 @@ export type SkuAssignContext = {
   pendingReservationSku: string | null;
   shopifyLinked: boolean;
   variantId: string | null;
+  variants: SkuAssignVariantRow[];
 };
 
 export type SkuAssignActionState = {
@@ -33,6 +48,7 @@ export type SkuAssignActionState = {
   message?: string;
   sku?: string;
   confirmed?: boolean;
+  resumed?: boolean;
   policyVersion?: number;
   correlationId?: string;
 };
@@ -47,7 +63,7 @@ async function loadProductForSku(productId: string) {
       shopifyProductId: true,
       variants: {
         orderBy: { createdAt: "asc" },
-        select: { id: true, sku: true, shopifyVariantId: true },
+        select: { id: true, sku: true, title: true, shopifyVariantId: true },
       },
     },
   });
@@ -61,9 +77,19 @@ async function persistLocalSku(input: {
 }): Promise<{ variantId: string }> {
   const details = input.details as Prisma.InputJsonValue;
   return db.$transaction(async (tx) => {
+    const primary = await tx.productVariant.findFirst({
+      where: { productId: input.productId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    const mirrorsProductSku = !input.variantId || !primary || input.variantId === primary.id;
+
     await tx.product.update({
       where: { id: input.productId },
-      data: { sku: input.sku, details },
+      data: {
+        ...(mirrorsProductSku ? { sku: input.sku } : {}),
+        details,
+      },
     });
 
     if (input.variantId) {
@@ -97,25 +123,43 @@ function externalShopDomain(): string {
   return env.SHOPIFY_STORE_DOMAIN ?? "unknown.myshopify.com";
 }
 
+function variantRows(
+  product: NonNullable<Awaited<ReturnType<typeof loadProductForSku>>>,
+): SkuAssignVariantRow[] {
+  return product.variants.map((variant) => {
+    const pending = readPendingSkuReservation(product.details, variant.id);
+    return {
+      variantId: variant.id,
+      title: variant.title || "Default Title",
+      sku: variant.sku,
+      shopifyVariantId: variant.shopifyVariantId,
+      pending: isPendingCommerceSku(variant.sku) || Boolean(pending),
+      pendingReservationSku: pending?.sku ?? null,
+      shopifyLinked: Boolean(product.shopifyProductId && variant.shopifyVariantId),
+    };
+  });
+}
+
 export async function loadSkuAssignContext(productId: string): Promise<SkuAssignContext> {
   await requireAdminSession("/admin/products");
   const config = getSkuServiceConfig();
   const product = await loadProductForSku(productId);
-  if (!product) {
-    return {
-      configured: false,
-      reason: "Product not found",
-      familyKeys: [],
-      currentSku: "",
-      pending: true,
-      pendingReservationSku: null,
-      shopifyLinked: false,
-      variantId: null,
-    };
-  }
+  const empty: SkuAssignContext = {
+    configured: false,
+    reason: "Product not found",
+    familyKeys: [],
+    currentSku: "",
+    pending: true,
+    pendingReservationSku: null,
+    shopifyLinked: false,
+    variantId: null,
+    variants: [],
+  };
+  if (!product) return empty;
 
-  const pendingReservation = readPendingSkuReservation(product.details);
-  const primary = product.variants[0] ?? null;
+  const variants = variantRows(product);
+  const primary = variants[0] ?? null;
+  const anyPending = listPendingSkuReservations(product.details);
   const currentSku = primary?.sku ?? product.sku;
 
   if (!config.configured) {
@@ -124,10 +168,11 @@ export async function loadSkuAssignContext(productId: string): Promise<SkuAssign
       reason: config.reason,
       familyKeys: [],
       currentSku,
-      pending: isPendingCommerceSku(currentSku),
-      pendingReservationSku: pendingReservation?.sku ?? null,
-      shopifyLinked: Boolean(product.shopifyProductId && primary?.shopifyVariantId),
-      variantId: primary?.id ?? null,
+      pending: primary?.pending ?? isPendingCommerceSku(currentSku),
+      pendingReservationSku: primary?.pendingReservationSku ?? anyPending[0]?.sku ?? null,
+      shopifyLinked: Boolean(primary?.shopifyLinked),
+      variantId: primary?.variantId ?? null,
+      variants,
     };
   }
 
@@ -138,10 +183,11 @@ export async function loadSkuAssignContext(productId: string): Promise<SkuAssign
       reason: "SKU client unavailable",
       familyKeys: [],
       currentSku,
-      pending: isPendingCommerceSku(currentSku),
-      pendingReservationSku: pendingReservation?.sku ?? null,
-      shopifyLinked: Boolean(product.shopifyProductId && primary?.shopifyVariantId),
-      variantId: primary?.id ?? null,
+      pending: primary?.pending ?? true,
+      pendingReservationSku: primary?.pendingReservationSku ?? null,
+      shopifyLinked: Boolean(primary?.shopifyLinked),
+      variantId: primary?.variantId ?? null,
+      variants,
     };
   }
 
@@ -158,10 +204,11 @@ export async function loadSkuAssignContext(productId: string): Promise<SkuAssign
     configured: true,
     familyKeys: Object.keys(families).sort(),
     currentSku,
-    pending: isPendingCommerceSku(currentSku) || Boolean(pendingReservation),
-    pendingReservationSku: pendingReservation?.sku ?? null,
-    shopifyLinked: Boolean(product.shopifyProductId && primary?.shopifyVariantId),
-    variantId: primary?.id ?? null,
+    pending: primary?.pending ?? Boolean(anyPending.length),
+    pendingReservationSku: primary?.pendingReservationSku ?? anyPending[0]?.sku ?? null,
+    shopifyLinked: Boolean(primary?.shopifyLinked),
+    variantId: primary?.variantId ?? null,
+    variants,
   };
 }
 
@@ -198,6 +245,7 @@ export async function previewProductSkuAction(input: {
 export async function assignProductSkuAction(input: {
   productId: string;
   familyKey: string;
+  variantId?: string | null;
 }): Promise<SkuAssignActionState> {
   await requireAdminSession("/admin/products");
   const client = tryCreateSkuClient();
@@ -206,13 +254,14 @@ export async function assignProductSkuAction(input: {
   }
 
   const product = await loadProductForSku(input.productId);
-  const variantId = product?.variants[0]?.id ?? "primary";
+  const variantId = input.variantId ?? product?.variants[0]?.id ?? null;
   const result = await assignVariantSku(
     {
       productId: input.productId,
       familyKey: input.familyKey,
+      variantId,
       correlationId: randomUUID(),
-      idempotencyKey: `sku-assign:${input.productId}:${variantId}:${input.familyKey}`,
+      idempotencyKey: `sku-assign:${input.productId}:${variantId ?? "primary"}:${input.familyKey}`,
     },
     {
       client,
@@ -233,6 +282,43 @@ export async function assignProductSkuAction(input: {
     ok: true,
     sku: result.sku,
     confirmed: result.confirmed,
+    resumed: result.resumed,
+    policyVersion: result.policyVersion,
+    correlationId: result.correlationId,
+    message: result.message,
+  };
+}
+
+export async function resumePendingSkuAction(input: {
+  productId: string;
+  variantId?: string | null;
+}): Promise<SkuAssignActionState> {
+  await requireAdminSession("/admin/products");
+  const client = tryCreateSkuClient();
+  if (!client) {
+    return { ok: false, error: "SKU API is not configured on this environment" };
+  }
+
+  const result = await resumePendingSkuAssignment(
+    { productId: input.productId, variantId: input.variantId },
+    {
+      client,
+      externalShop: externalShopDomain(),
+      loadProduct: loadProductForSku,
+      persistLocalSku,
+    },
+  );
+
+  revalidatePath(`/admin/products/${input.productId}`);
+  revalidatePath("/admin/products");
+  if (!result.ok) {
+    return { ok: false, error: result.error, correlationId: result.correlationId };
+  }
+  return {
+    ok: true,
+    sku: result.sku,
+    confirmed: result.confirmed,
+    resumed: true,
     policyVersion: result.policyVersion,
     correlationId: result.correlationId,
     message: result.message,

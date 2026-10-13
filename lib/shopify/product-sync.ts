@@ -1960,6 +1960,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
               shopifyProductId: remote.id,
               shopifyVariantId: savedVariant.id,
               shopifyReadBackSku: readBackSku,
+              localVariantId: localVariant?.id ?? null,
             },
             {
               client: skuClient,
