@@ -250,6 +250,8 @@ export function ProductSkuAssignPanel({
         setError(result.error ?? "Assign failed");
         pushToast({ tone: "error", message: result.error ?? "Assign failed" });
         await refresh();
+        // Shopify-write failures still persist local SKU + write-through — refresh conflict chrome.
+        onAssigned?.(result.sku ?? "");
         return;
       }
       pushToast({ tone: "success", message: result.message ?? `Assigned ${result.sku}` });
@@ -271,6 +273,7 @@ export function ProductSkuAssignPanel({
         setError(result.error ?? "Resume failed");
         pushToast({ tone: "error", message: result.error ?? "Resume failed" });
         await refresh();
+        onAssigned?.(result.sku ?? "");
         return;
       }
       pushToast({ tone: "success", message: result.message ?? `Confirmed ${result.sku}` });

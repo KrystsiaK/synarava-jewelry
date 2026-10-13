@@ -39,6 +39,7 @@ import { getSkuServiceConfig } from "@/lib/sku/config";
 import { confirmPendingSkuAfterShopifyWrite } from "@/lib/sku/assign-variant-sku";
 import { readPendingSkuReservation } from "@/lib/sku/pending-reservation";
 import { localSkuForEmptyShopifySku } from "@/lib/sku/pending-sku";
+import { persistLocalSku } from "@/lib/sku/persist-local-sku";
 import {
   assertSkuAssignableBeforePush,
   requireSkuClientForPendingConfirm,
@@ -1982,23 +1983,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
                   },
                 },
               }),
-              persistLocalSku: async (input) => db.$transaction(async (tx) => {
-                await tx.product.update({
-                  where: { id: input.productId },
-                  data: {
-                    sku: input.sku,
-                    details: input.details as Prisma.InputJsonValue,
-                  },
-                });
-                if (input.variantId) {
-                  await tx.productVariant.update({
-                    where: { id: input.variantId },
-                    data: { sku: input.sku },
-                  });
-                  return { variantId: input.variantId };
-                }
-                return { variantId: localVariant?.id ?? savedVariant.id };
-              }),
+              persistLocalSku,
             },
           );
           if (!confirmResult.ok) {

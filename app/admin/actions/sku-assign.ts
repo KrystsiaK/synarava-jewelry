@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { Prisma } from "@prisma/client";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
@@ -14,6 +14,7 @@ import {
   previewVariantSku,
   resumePendingSkuAssignment,
 } from "@/lib/sku/assign-variant-sku";
+import { persistLocalSku } from "@/lib/sku/persist-local-sku";
 import {
   isPendingCommerceSku,
   isShopifyInventPlaceholderSku,
@@ -23,6 +24,8 @@ import {
   listPendingSkuReservations,
   readPendingSkuReservation,
 } from "@/lib/sku/pending-reservation";
+import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
+import { runProductConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 
 export type SkuAssignVariantRow = {
   variantId: string;
@@ -73,53 +76,19 @@ async function loadProductForSku(productId: string) {
   });
 }
 
-async function persistLocalSku(input: {
+function scheduleSkuAssignConflictCheck(input: {
   productId: string;
-  variantId: string | null;
-  sku: string;
-  details: Record<string, unknown>;
-}): Promise<{ variantId: string }> {
-  const details = input.details as Prisma.InputJsonValue;
-  return db.$transaction(async (tx) => {
-    const primary = await tx.productVariant.findFirst({
-      where: { productId: input.productId },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
+  shopifyProductId: string | null | undefined;
+  requestedBy: string;
+}) {
+  if (!input.shopifyProductId || !hasShopifyAdminConfig()) return;
+  after(() => {
+    void runProductConflictCheck({
+      productId: input.productId,
+      requestedBy: input.requestedBy,
+    }).catch((error) => {
+      console.error("[sku-assign] scoped conflict check failed", error);
     });
-    const mirrorsProductSku = !input.variantId || !primary || input.variantId === primary.id;
-
-    await tx.product.update({
-      where: { id: input.productId },
-      data: {
-        ...(mirrorsProductSku ? { sku: input.sku } : {}),
-        details,
-      },
-    });
-
-    if (input.variantId) {
-      await tx.productVariant.update({
-        where: { id: input.variantId },
-        data: { sku: input.sku },
-      });
-      return { variantId: input.variantId };
-    }
-
-    const product = await tx.product.findUniqueOrThrow({
-      where: { id: input.productId },
-      select: { priceCents: true, compareAtCents: true, status: true },
-    });
-    const created = await tx.productVariant.create({
-      data: {
-        productId: input.productId,
-        sku: input.sku,
-        title: "Default Title",
-        priceCents: product.priceCents,
-        compareAtCents: product.compareAtCents,
-        status: product.status,
-      },
-      select: { id: true },
-    });
-    return { variantId: created.id };
   });
 }
 
@@ -306,7 +275,7 @@ export async function assignProductSkuAction(input: {
   familyKey: string;
   variantId?: string | null;
 }): Promise<SkuAssignActionState> {
-  await requireAdminSession("/admin/products");
+  const currentUser = await requireAdminSession("/admin/products");
   const client = tryCreateSkuClient();
   if (!client) {
     return { ok: false, error: "SKU API is not configured on this environment" };
@@ -330,6 +299,13 @@ export async function assignProductSkuAction(input: {
     },
   );
 
+  // Persist may have run on Shopify-write failure too — re-inspect whenever linked.
+  scheduleSkuAssignConflictCheck({
+    productId: input.productId,
+    shopifyProductId: product?.shopifyProductId,
+    requestedBy: currentUser.username,
+  });
+
   if (!result.ok) {
     revalidatePath(`/admin/products/${input.productId}`);
     return { ok: false, error: result.error, correlationId: result.correlationId };
@@ -352,12 +328,13 @@ export async function resumePendingSkuAction(input: {
   productId: string;
   variantId?: string | null;
 }): Promise<SkuAssignActionState> {
-  await requireAdminSession("/admin/products");
+  const currentUser = await requireAdminSession("/admin/products");
   const client = tryCreateSkuClient();
   if (!client) {
     return { ok: false, error: "SKU API is not configured on this environment" };
   }
 
+  const product = await loadProductForSku(input.productId);
   const result = await resumePendingSkuAssignment(
     { productId: input.productId, variantId: input.variantId },
     {
@@ -367,6 +344,12 @@ export async function resumePendingSkuAction(input: {
       persistLocalSku,
     },
   );
+
+  scheduleSkuAssignConflictCheck({
+    productId: input.productId,
+    shopifyProductId: product?.shopifyProductId,
+    requestedBy: currentUser.username,
+  });
 
   revalidatePath(`/admin/products/${input.productId}`);
   revalidatePath("/admin/products");

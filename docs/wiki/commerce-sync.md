@@ -22,6 +22,7 @@ Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/s
 | Per-collection windows | `Collection.workingSnapshot` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
 | Detect | One normalize → deep-diff windows. **No** commerce field allowlists for detection |
 | Local Save | Write-through columns into `workingSnapshot`, patch OUR store slice, **re-inspect** so tab markers refresh |
+| SKU assign (Family → Confirm / resume) | Same write-through + OUR patch + scoped conflict re-inspect as Save (`lib/sku/persist-local-sku.ts`). Column-only SKU writes must not skip the compare SoT |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
 | Cost / compare-at | Read from Shopify-shaped snapshot projection, not stale Prisma-only guesses |
 | Console | DevTools filter `commerce-store` — full OUR + Shopify + conflicts on `/admin/products` and `/admin/collections` entry |
@@ -29,6 +30,7 @@ Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/s
 ```text
 On /admin/products or /admin/collections entry → refresh both stores → console flow
 On product/collection Save → patch OUR + re-inspect → markers from fresh diffs
+On SKU assign / resume → write-through SKU into workingSnapshot + patch OUR + re-inspect
 On push / pull / apply  → refresh windows + reload editor
 ```
 

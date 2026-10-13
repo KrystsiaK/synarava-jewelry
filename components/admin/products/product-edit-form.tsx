@@ -758,11 +758,25 @@ export function EditProductForm({
                           mode="edit"
                           productId={currentProduct.id}
                           onSkuAssigned={() => {
-                            void getSavedProductPayload(currentProduct.id).then((saved) => {
-                              if (!saved) return;
-                              setState((prev) => ({ ...prev, product: saved }));
-                              setFieldsRevision((value) => value + 1);
-                            });
+                            void (async () => {
+                              try {
+                                const saved = await getSavedProductPayload(currentProduct.id);
+                                if (!saved) return;
+                                setState((prev) => ({ ...prev, product: saved }));
+                                onUpdated?.(saved);
+                                setFieldsRevision((value) => value + 1);
+                                if (!saved.shopifyProductId) return;
+                                // Mirror Save: re-inspect windows + reload conflict chips
+                                // after SKU write-through (columns alone never flip syncStatus).
+                                const inspectResult = await inspectProductSyncAction(saved.id);
+                                if (inspectResult.inspection) {
+                                  setInspection(inspectResult.inspection);
+                                }
+                                await refreshConflicts(undefined, { quiet: true });
+                              } catch {
+                                // Keep assign success; conflict chrome can be refreshed via Check.
+                              }
+                            })();
                           }}
                         />
                       </div>
