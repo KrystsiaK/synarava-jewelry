@@ -22,6 +22,21 @@ vi.mock("@/app/admin/actions/product-organization", () => ({
   listShopifyProductOrganizationAction: vi.fn().mockResolvedValue({ options: [] }),
 }));
 
+vi.mock("@/app/admin/actions/sku-assign", () => ({
+  loadSkuAssignContext: vi.fn().mockResolvedValue({
+    configured: false,
+    reason: "test",
+    familyKeys: [],
+    currentSku: "",
+    pending: true,
+    pendingReservationSku: null,
+    shopifyLinked: false,
+    variantId: null,
+  }),
+  previewProductSkuAction: vi.fn(),
+  assignProductSkuAction: vi.fn(),
+}));
+
 import { CreateProductForm } from "@/components/admin/products/product-create-form";
 import type { CollectionOption } from "@/components/admin/products/product-types";
 
@@ -64,8 +79,10 @@ describe("CreateProductForm", () => {
     expect(screen.getByRole("heading", { name: "Build the product one area at a time" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Slug/ })).toBeInTheDocument();
-    expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Inventory Stock/i }));
+    expect(screen.getByRole("textbox", { name: /^SKU/ })).toBeInTheDocument();
     // Collection lives on the Product (essentials) tab — Catalog was removed.
+    await user.click(screen.getByRole("tab", { name: /Title & organization/i }));
     expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Featured" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
@@ -123,7 +140,8 @@ describe("CreateProductForm", () => {
 
     await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
     await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
-    await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
+    await user.click(screen.getByRole("tab", { name: /Inventory Stock/i }));
+    await user.type(screen.getByRole("textbox", { name: /^SKU/ }), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");
 
@@ -141,7 +159,8 @@ describe("CreateProductForm", () => {
 
     await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
     await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
-    await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
+    await user.click(screen.getByRole("tab", { name: /Inventory Stock/i }));
+    await user.type(screen.getByRole("textbox", { name: /^SKU/ }), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
