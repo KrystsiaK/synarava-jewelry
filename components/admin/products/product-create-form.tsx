@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { flushSync } from "react-dom";
 
 import {
   autosaveProductDraftAction,
@@ -17,6 +16,10 @@ import { buildDraftFormData, useDraftAutosave } from "@/components/admin/shared/
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
+import {
+  requestProductSaveWithValidation,
+  revealProductFieldErrors,
+} from "@/components/admin/products/product-validation-navigate";
 import { ProgressBar, SaveButtons } from "@/components/admin/products/product-sync-strip";
 import {
   emptyDraft,
@@ -94,9 +97,13 @@ export function CreateProductForm({
         const result = await saveProductAction(formData);
         setState(result);
         setConfirmOpen(false);
-        validation.showFieldErrors(result.fieldErrors ?? {});
         if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
-          setActiveSection(result.fieldErrors.price ? "price" : "essentials");
+          revealProductFieldErrors(
+            { validation, setActiveSection, activeLocale, selectLocale },
+            result.fieldErrors,
+          );
+        } else {
+          validation.showFieldErrors({});
         }
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.warning) pushToast({ message: result.warning, tone: "info" });
@@ -120,23 +127,16 @@ export function CreateProductForm({
 
   function requestSave() {
     setState({});
-    const previousSection = activeSection;
-    const previousLocale = activeLocale;
-    if (previousLocale !== SOURCE_LOCALE) {
-      flushSync(() => selectLocale(SOURCE_LOCALE));
-    }
-
-    flushSync(() => setActiveSection("essentials"));
-    if (!validation.validate()) return;
-
-    flushSync(() => setActiveSection("price"));
-    if (!validation.validate()) return;
-
-    flushSync(() => setActiveSection(previousSection));
-    if (previousLocale !== SOURCE_LOCALE) {
-      flushSync(() => selectLocale(previousLocale));
-    }
-    setConfirmOpen(true);
+    requestProductSaveWithValidation(
+      {
+        form: formRef.current,
+        validation,
+        setActiveSection,
+        activeLocale,
+        selectLocale,
+      },
+      () => setConfirmOpen(true),
+    );
   }
 
   return (

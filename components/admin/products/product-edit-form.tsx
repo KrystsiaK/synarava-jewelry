@@ -43,6 +43,10 @@ import { ProductLocaleConflictControl } from "@/components/admin/products/produc
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import {
+  requestProductSaveWithValidation,
+  revealProductFieldErrors,
+} from "@/components/admin/products/product-validation-navigate";
+import {
   dirtyKeyForEdit,
   isSharedSection,
   localeHasDirty,
@@ -395,10 +399,13 @@ export function EditProductForm({
         const result = await saveProductAction(formData);
         setState(result);
         setConfirmOpen(false);
-        validation.showFieldErrors(result.fieldErrors ?? {});
         if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
-          setActiveSection(result.fieldErrors.price ? "price" : "essentials");
-          selectLocale(SOURCE_LOCALE);
+          revealProductFieldErrors(
+            { validation, setActiveSection, activeLocale, selectLocale },
+            result.fieldErrors,
+          );
+        } else {
+          validation.showFieldErrors({});
         }
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.warning) pushToast({ message: result.warning, tone: "info" });
@@ -452,24 +459,16 @@ export function EditProductForm({
 
   function requestSave() {
     setState({});
-    const previousSection = activeSection;
-    const previousLocale = activeLocale;
-    if (previousLocale !== SOURCE_LOCALE) {
-      flushSync(() => selectLocale(SOURCE_LOCALE));
-    }
-
-    // Required fields span Essentials (name/slug/sku) and Price — reveal each for willValidate.
-    flushSync(() => setActiveSection("essentials"));
-    if (!validation.validate()) return;
-
-    flushSync(() => setActiveSection("price"));
-    if (!validation.validate()) return;
-
-    flushSync(() => setActiveSection(previousSection));
-    if (previousLocale !== SOURCE_LOCALE) {
-      flushSync(() => selectLocale(previousLocale));
-    }
-    setConfirmOpen(true);
+    requestProductSaveWithValidation(
+      {
+        form: formRef.current,
+        validation,
+        setActiveSection,
+        activeLocale,
+        selectLocale,
+      },
+      () => setConfirmOpen(true),
+    );
   }
 
   function handleCheckShopify() {

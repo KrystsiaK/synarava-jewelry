@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -130,6 +130,42 @@ describe("CreateProductForm", () => {
     expect(screen.getByRole("tab", { name: "Português" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByLabelText("Product name (Português)")).toBeInTheDocument();
     expect(screen.getByLabelText("Português translation reviewed")).toBeInTheDocument();
+  });
+
+  it("on Save with empty required fields opens the Product tab and focuses Title", async () => {
+    const user = userEvent.setup();
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    render(<CreateProductForm collections={collections} />);
+    await act(async () => {});
+
+    await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
+    expect(screen.getByRole("tab", { name: /Price Sell/i })).toHaveAttribute("aria-selected", "true");
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+
+    expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toHaveFocus();
+    });
+    expect(screen.queryByRole("button", { name: "Continue and save" })).not.toBeInTheDocument();
+  });
+
+  it("after fixing Title/Slug, next Save opens Price and focuses the price field", async () => {
+    const user = userEvent.setup();
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    render(<CreateProductForm collections={collections} />);
+    await act(async () => {});
+
+    await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
+    await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
+    await user.click(screen.getByRole("tab", { name: /Media/i }));
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+
+    expect(screen.getByRole("tab", { name: /Price Sell/i })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("spinbutton", { name: /Price/ })).toHaveFocus();
+    });
   });
 
   it("opens the confirmation modal after filling required fields and saves on confirm", async () => {
