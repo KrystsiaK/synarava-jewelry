@@ -11,7 +11,7 @@
 | --- | --- |
 | `packages/sku-core` | Pure domain: normalize, stem, format/parse/validate, preview. No Shopify/Next/Prisma/HTTP. |
 | `packages/sku-contract` | Zod `/v1` schemas + typed `createSkuClient`. Consumed by Next via `transpilePackages` (extensionless TS imports — not Node `.js` suffixes). |
-| `services/sku-api` | Prisma registry + Postgres/`SkuRegistryStore`, allocator, legacy importer, HTTP `/v1` + auth, Railway config. |
+| `services/sku-api` | Prisma registry + Postgres/`SkuRegistryStore`, allocator, legacy importer, HTTP `/v1` + auth. Railway: IaC partial `.railway/railway.ts` (not root CaC). |
 
 ## Persistence
 
@@ -35,10 +35,12 @@ Factory: `createSkuStoreRuntime()` in `services/sku-api/src/registry/create-stor
 Auth: `Authorization: Bearer <token>` scoped to path workspace.
 
 ```bash
-pnpm --filter @synarava/sku-api credentials:generate -- synarava-shop
+node services/sku-api/scripts/generate-credentials.mjs synarava-shop
 ```
 
 Prints `SKU_API_CREDENTIALS` (hashed, for sku-api) and plaintext `SKU_API_TOKEN` (for synarava-web) separately. Local-only fallback: `SKU_API_DEV_TOKEN`.
+
+Railway staging: [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md) — web CaC at `deploy/railway.synarava-web.json`; sku-api via IaC (Config as Code deprecated for new services).
 
 Synarava server env (never expose to browser): `SKU_API_URL`, `SKU_API_TOKEN`, optional `SKU_API_WORKSPACE` (default `synarava-shop`).
 

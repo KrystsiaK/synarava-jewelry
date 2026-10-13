@@ -4,14 +4,14 @@
  * the plaintext token separately for SKU_API_TOKEN (Synarava web).
  *
  * Usage:
- *   node services/sku-api/scripts/generate-credentials.mjs [workspaceKey]
- *   pnpm --filter @synarava/sku-api credentials:generate -- synarava-shop
+ *   node services/sku-api/scripts/generate-credentials.mjs synarava-shop
  *
  * Never commit the plaintext token. Store hash in SKU_API_CREDENTIALS only.
  */
 import { randomBytes, scryptSync } from "node:crypto";
 
-const workspaceKey = process.argv[2] ?? "synarava-shop";
+const workspaceKey =
+  process.argv.slice(2).find((arg) => arg !== "--") ?? "synarava-shop";
 if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(workspaceKey)) {
   console.error(`Invalid workspace key: ${workspaceKey}`);
   process.exit(1);

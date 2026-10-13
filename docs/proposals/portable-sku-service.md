@@ -66,11 +66,12 @@ synarava-jewelry/
 │   └── sku-api/                  # отдельный HTTP runtime
 │       ├── src/
 │       ├── prisma/               # только SKU registry
-│       ├── package.json
-│       └── railway.toml
+│       └── package.json
 ├── packages/
 │   ├── sku-core/                 # чистая domain logic
 │   └── sku-contract/             # OpenAPI, schemas, generated TS client
+├── .railway/railway.ts           # IaC partial `sku` (sku-api + sku-postgres)
+├── deploy/railway.synarava-web.json  # legacy CaC for synarava-web only
 ├── pnpm-workspace.yaml
 └── package.json
 ```
@@ -277,7 +278,7 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 - Persistence: `SKU_DATABASE_URL` → Prisma Postgres `SkuRegistryStore`; unset → in-memory (tests/local). Integration tests: migrate → bootstrap → reserve → reconnect → persist; parallel same-stem unique sequences; concurrent identical idempotency keys
 - Reserve retries Prisma `P2034` / SQLSTATE `40001` serialization conflicts and `P2002` unique races with bounded backoff
 - Bootstrap: idempotent `synarava-shop` + published profile v1 on start (`SKU_BOOTSTRAP=0` to skip). `SKU_SEED_EXAMPLE` removed from staging/prod path
-- Railway staging runbook: [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md) — web→api URL `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}`
+- Railway staging runbook: [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md) — web→api URL `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}`; deploy via IaC `.railway/railway.ts` (not root/CaC `NIXPACKS`)
 
 ### Этап 3 — Synarava adapter
 
