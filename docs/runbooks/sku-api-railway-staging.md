@@ -8,56 +8,51 @@ Related: [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md) 
 [Railway IaC](https://docs.railway.com/infrastructure-as-code) ·
 [Monorepo deploys](https://docs.railway.com/deployments/monorepo)
 
-## GitHub check triage (`689cff0` and later)
+## GitHub check triage
 
 On staging / PR #148 you may see **1 of N failed**. Separate the sources:
 
 | Check name pattern | Source | Meaning |
 | --- | --- | --- |
 | `Quality Gates`, `Storefront smoke…` | **GitHub Actions** | Repo CI (`pnpm` lint/test/build/smoke) |
-| `synarava-shop - synarava-shop-app` | **Railway** commit status | Web service deploy in Railway project **synarava-shop** |
-| `handsome-commitment - sku-api` | **Railway** commit status | `sku-api` deploy in Railway project **handsome-commitment** |
+| `synarava-shop - synarava-shop-app` | **Railway** commit status | Web service deploy in project **synarava-shop** |
+| `handsome-commitment - sku-api` | **Railway** commit status | Leftover `sku-api` service in project **handsome-commitment** (wrong project) |
 
-On `689cff0`: GitHub Actions **passed**; `synarava-shop - synarava-shop-app` **passed**; `handsome-commitment - sku-api` reported **Deployment failed**. That failure is **not** a broken GitHub workflow and is **not** fixed by inventing another root `railway.json`. It clears only after Railway ops below succeed and Railway posts a success status.
+### `64197e1` → `e160914` (what changed)
 
-Open the failed check’s target URL in Railway → read the failed deployment’s **Build / Deploy** logs before changing code again.
+Commit `e160914` (`fix(sku): harden Railway staging deployment`) only touched deploy docs/IaC wiring:
 
-Observed topology from commit statuses (verify in dashboard):
+- `.railway/railway.ts` — refuse apply unless `synarava-shop` + `staging`; declare GitHub `staging` source for `sku-api`
+- `.railway/README.md` + this runbook — canonical CLI target is **`synarava-shop/staging`**, not `handsome-commitment`
+- root `package.json` / lockfile / `pnpm-workspace.yaml` — add `railway@3.15.0` for IaC authoring
 
-- Web: Railway project `synarava-shop` → service `synarava-shop-app`
-- SKU: Railway project `handsome-commitment` → service `sku-api`
+No change to `services/sku-api` runtime, Prisma schema, or web CaC content. On `e160914`: Actions **pass**, web Railway **pass**, `handsome-commitment - sku-api` still **fail**. That is **ops/redeploy drift**, not a new code regression: the wrong-project service is still connected to this repo’s `staging` branch and keeps posting a failing commit status on every push.
 
-`${{sku-api.RAILWAY_PRIVATE_DOMAIN}}` on synarava-web only works when **sku-api is in the same Railway project + environment** as the web service. If `sku-api` stays in a separate project, either move it into the synarava-shop staging environment or use an explicit reachable URL (private networking / public temporary) — do not assume cross-project `${{…}}` references.
+Do **not** “fix” it by restoring root `railway.json` or pointing that service at web CaC.
 
-## Remaining ops to clear `handsome-commitment - sku-api`
+### Clear the failing check (exact)
 
-Do these in Railway (dashboard and/or CLI). Repo config for the plan is already on `staging`.
-The target topology is one Railway project/environment: **`synarava-shop/staging`**.
-Do not deploy the final staging service into the separate `handsome-commitment` project.
-
-1. **sku-api → Settings → Config File**
-   - Must **not** point at `/railway.json` (file removed) or `/deploy/railway.synarava-web.json` (web-only).
-   - Leave Config File **empty** when using dashboard commands, **or** manage the service via IaC apply (below).
-2. **Set deploy plan** (dashboard) to exactly:
-   - Build: `pnpm --filter @synarava/sku-api prisma:generate && pnpm --filter @synarava/sku-api build`
-   - Pre-deploy: `pnpm --filter @synarava/sku-api prisma:deploy`
-   - Start: `pnpm --filter @synarava/sku-api start`
-   - Healthcheck: `/health` (timeout ≥ 30s)
-   - Builder: Railpack (not NIXPACKS)
-   - Root directory: `/` (pnpm workspace root)
-3. **Canonical fix:** use Railway CLI against the web project’s staging environment:
+1. **Disconnect or delete** the `sku-api` service in Railway project **handsome-commitment** (Settings → remove GitHub trigger / delete service). Until this is done, **every** `staging` push will keep failing that check.
+2. In Railway project **synarava-shop** / environment **staging**, create (or move) **`sku-postgres`** + **`sku-api`** — same project as the web service so `${{sku-api.*}}` works.
+3. Apply IaC from the repo (guard refuses any other project/environment):
    ```bash
    railway link --project synarava-shop --environment staging
    pnpm install --frozen-lockfile
    railway config plan
+   # Continue only when the plan targets synarava-shop/staging and has no unexpected destroy.
    railway config apply
    ```
-   The committed IaC guard refuses `handsome-commitment` or production. Then set watch paths in the dashboard (see below).
-4. **Variables on sku-api:** `SKU_DATABASE_URL` (Postgres in that same environment), `SKU_API_CREDENTIALS` (from credentials script).
-5. **Redeploy** sku-api. Confirm build log uses the filtered commands — not root `pnpm build` / `pnpm start`.
-6. **Health:** deploy becomes healthy only when `/health` returns ready (`credentials` + DB). Missing env → 503 → Railway marks deploy failed.
-7. **Web (synarava-shop project):** Config File = `/deploy/railway.synarava-web.json` if not already (web status already green on `689cff0`, but keep the path correct for future deploys).
-8. **Wire web → api** only after sku-api is healthy and networking topology is decided (same project preferred).
+4. Or set dashboard commands on the **synarava-shop** `sku-api` (Config File **empty**):
+   - Build: `pnpm --filter @synarava/sku-api prisma:generate && pnpm --filter @synarava/sku-api build`
+   - Pre-deploy: `pnpm --filter @synarava/sku-api prisma:deploy`
+   - Start: `pnpm --filter @synarava/sku-api start`
+   - Healthcheck: `/health` (timeout ≥ 30s), Railpack, root `/`
+5. Set watch paths (see below), `SKU_DATABASE_URL`, `SKU_API_CREDENTIALS`.
+6. Redeploy; confirm logs are filtered sku commands. `/health` must be ready (credentials + DB) or Railway marks deploy failed.
+7. Web Config File remains `/deploy/railway.synarava-web.json`.
+8. Set web `SKU_API_URL=http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}` only after sku-api is healthy **in synarava-shop/staging**.
+
+Success signal on the next staging commit: PR checks show **no** `handsome-commitment - sku-api` row (disconnected), and either a green `synarava-shop - sku-api` Railway status or a healthy private `/health`.
 
 ## Why not root `railway.json` / `railway.toml`
 
