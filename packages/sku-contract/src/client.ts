@@ -1,4 +1,6 @@
 import {
+  catalogAuditRequestSchema,
+  catalogAuditResponseSchema,
   confirmAssignmentRequestSchema,
   confirmAssignmentResponseSchema,
   previewRequestSchema,
@@ -7,6 +9,8 @@ import {
   reserveResponseSchema,
   validateRequestSchema,
   validateResponseSchema,
+  type CatalogAuditRequest,
+  type CatalogAuditResponse,
   type ConfirmAssignmentRequest,
   type ConfirmAssignmentResponse,
   type PreviewRequest,
@@ -104,6 +108,13 @@ export function createSkuClient(config: SkuClientConfig) {
         method: "POST",
         body: validateRequestSchema.parse(body),
         schema: validateResponseSchema,
+      });
+    },
+    auditCatalog(body: CatalogAuditRequest) {
+      return requestJson(config, `${ws}/audit/catalog`, {
+        method: "POST",
+        body: catalogAuditRequestSchema.parse(body),
+        schema: catalogAuditResponseSchema,
       });
     },
     confirmAssignment(body: ConfirmAssignmentRequest) {
@@ -214,6 +225,8 @@ export function createSkuClient(config: SkuClientConfig) {
 export type SkuClient = ReturnType<typeof createSkuClient>;
 
 export type {
+  CatalogAuditRequest,
+  CatalogAuditResponse,
   ConfirmAssignmentRequest,
   ConfirmAssignmentResponse,
   PreviewRequest,

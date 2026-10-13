@@ -19,6 +19,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "credentials:generate": "node ./scripts/generate-credentials.mjs",
+    "audit:catalog": "node ./scripts/catalog-audit.mjs",
     "build": "tsc -p tsconfig.build.json && esbuild src/main.ts --bundle --platform=node --format=esm --target=node22 --external:../generated/prisma/index.js --outfile=dist/registry/main.js && node ./scripts/copy-prisma-client.mjs",
     "start": "node dist/registry/main.js",
     "dev": "pnpm build && SKU_API_DEV_TOKEN=${SKU_API_DEV_TOKEN:-dev-sku-token} node dist/registry/main.js",

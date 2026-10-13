@@ -11,6 +11,12 @@ export {
   type SkuClientResult,
 } from "./client";
 export {
+  CATALOG_AUDIT_MAX_BATCH,
+  catalogAuditDeviationCodeSchema,
+  catalogAuditDeviationSchema,
+  catalogAuditItemSchema,
+  catalogAuditRequestSchema,
+  catalogAuditResponseSchema,
   confirmAssignmentRequestSchema,
   confirmAssignmentResponseSchema,
   correlationIdSchema,
@@ -22,6 +28,8 @@ export {
   validateRequestSchema,
   validateResponseSchema,
   workspaceKeySchema,
+  type CatalogAuditRequest,
+  type CatalogAuditResponse,
   type ConfirmAssignmentRequest,
   type ConfirmAssignmentResponse,
   type PreviewRequest,

@@ -1,11 +1,11 @@
 # Portable SKU — Shopify staging matrix (Этап 4)
 
-**Status:** M1 Pass · M2 Fail→fix (empty Pull invent) · M3/M4/M5/M7/M8/M12 Pass (auto)  
+**Status:** M1 Pass · M2 Pass (Kiryl 2026-10-13) · M3/M4/M5/M7/M8/M12 Pass (auto)  
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md) § Этап 4  
 **Wiki:** [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
 
-Production and n8n are **out of scope**. Do not merge SKU work to `main` via PR #148.
+Production rollout remains **out of scope**. Do not merge SKU work to `main` via PR #148. Catalog audit (Этап 5 Slice A): [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).
 
 ## Preconditions
 
@@ -47,7 +47,7 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 | # | Scenario | Steps | Expected | Result | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | M1 | **Unlinked** reserve → Push → confirm | Create draft → Inventory Preview/Confirm assign → Push | SKU in Shopify; pending cleared; ledger assignment active | Pass (Kiryl 2026-10-13) | Этап 3 check |
-| M2 | **Linked** assign | Product already linked → Inventory Confirm assign | Family/Preview/Confirm visible for empty/`SHOPIFY-*`; then reserve→write→confirm | **Fail→Fix²**: #154 tip `e483bed` still hid controls for Kiryl invent. Fix²: `startsWith("SHOPIFY-")` + client `needsSkuAssignment` UI gate; rewrite invent→PENDING on context load. | Deploy tip = SHA after this PR. UI: `product-sku-assign-panel.test.tsx`. Kiryl: hard-refresh → **Linked · Not assigned** + Family/Preview/Confirm. |
+| M2 | **Linked** assign | Product already linked → Inventory Confirm assign | Family/Preview/Confirm visible for empty/`SHOPIFY-*`; then reserve→write→confirm | **Pass** (Kiryl 2026-10-13, staging tip `0d67f70` / Fix² #155) | Manual staging: linked variant assigned via Family→Preview→Confirm; SKU wrote through to Shopify. Auto: `m2-linked-empty-sku.test.ts` + `product-sku-assign-panel.test.tsx`. |
 | M3 | **Idempotent retry** after pending | Force pending (e.g. interrupt confirm) → **Retry confirm** | No new reservation; same SKU confirmed; ledger ok | **Pass (auto)** | `staging-matrix-automation.test.ts` → `M3: Retry confirm / resume does not create a second reserve` (`reserve` not called; `resumed: true`) |
 | M4 | Double Confirm assign (same family) | Assign succeeds → Confirm assign again | Blocked: “already has SKU…”; no second sequence | **Pass (auto)** | `M4: second Confirm assign after success is blocked` — error matches `/already has SKU/i`; `reserve` not called |
 | M5 | Same idempotency key | Two rapid Confirm assign (same variant+family) before first finishes | One SKU; sku-api returns same reservation | **Pass (auto)** | `M5: parallel Confirm with same idempotency key yields one SKU` — both `JW-NECK-001`, single key `sku-assign:p1:var-1:jewelry.necklace`; ledger: `allocator.test.ts` / pg `concurrent identical idempotency keys` |
@@ -67,8 +67,10 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 - Pending storage: `Product.details.skuAssignmentPendings[variantId]` (legacy `skuAssignmentPending` still readable).
 - Push gate helpers: `lib/sku/push-sku-gate.ts` (`assertSkuAssignableBeforePush`, `requireSkuClientForPendingConfirm`).
 
-## Out of scope (Этап 5–6)
+## Out of scope (this matrix / Этап 6)
 
-- n8n audit/recovery workflows  
+- Railway n8n service + scheduled workflow JSON (Этап 5 Slice B)  
 - Production rollout / feature flag  
 - Merge to `main`
+
+Этап 5 Slice A (read-only catalog audit API + dry-run CLI) lives outside this matrix — see runbook above.

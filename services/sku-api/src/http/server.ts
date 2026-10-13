@@ -1,4 +1,5 @@
 import {
+  catalogAuditRequestSchema,
   confirmAssignmentRequestSchema,
   previewRequestSchema,
   reserveRequestSchema,
@@ -8,6 +9,7 @@ import {
 import { SYNARAVA_SHOP_PROFILE_V1_EXAMPLE, type PolicyProfileConfig } from "@synarava/sku-core";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { z } from "zod";
+import { runCatalogAudit } from "../audit/catalog-audit.js";
 import { createAllocator } from "../allocator.js";
 import {
   authenticateRequest,
@@ -237,6 +239,29 @@ export function createSkuHttpServer(app: SkuHttpApp) {
             policyVersion: result.policyVersion,
             correlationId: body.correlationId,
           });
+        } catch (error) {
+          if (isDomainError(error)) {
+            return sendJson(
+              res,
+              400,
+              errorBody(error.code, error.message, body.correlationId),
+            );
+          }
+          throw error;
+        }
+      }
+
+      if (method === "POST" && rest === "/audit/catalog") {
+        const body = catalogAuditRequestSchema.parse(await readJson(req));
+        try {
+          const result = await runCatalogAudit({
+            store: app.store,
+            workspaceKey,
+            items: body.items,
+            previousDigest: body.previousDigest ?? null,
+            correlationId: body.correlationId,
+          });
+          return sendJson(res, 200, result);
         } catch (error) {
           if (isDomainError(error)) {
             return sendJson(
