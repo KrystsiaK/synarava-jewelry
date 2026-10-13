@@ -58,6 +58,11 @@ describe("M2 linked flow after Pull empty Shopify SKU", () => {
     expect(local.startsWith("SHOPIFY-")).toBe(false);
   });
 
+  it("classifies Kiryl staging invent string as needing assignment", () => {
+    const kiryl = "SHOPIFY-16079211397451-58824796668235";
+    expect(isPendingCommerceSku(kiryl)).toBe(true);
+  });
+
   it("legacy SHOPIFY-* invent still allows Confirm assign (already-pulled products)", async () => {
     const client = mockClient();
     const writeShopifySku = vi.fn().mockResolvedValue({ ok: true, readBackSku: "JW-NECK-042" });
