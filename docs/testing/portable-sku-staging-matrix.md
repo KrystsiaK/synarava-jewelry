@@ -1,6 +1,6 @@
 # Portable SKU — Shopify staging matrix (Этап 4)
 
-**Status:** M1 manual Pass · M2 Kiryl in progress (do not touch his product) · M3/M4/M5/M7/M8/M12 closed by automated fixtures  
+**Status:** M1 Pass · M2 Fail→fix (empty Pull invent) · M3/M4/M5/M7/M8/M12 Pass (auto)  
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md) § Этап 4  
 **Wiki:** [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
@@ -28,6 +28,7 @@ Production and n8n are **out of scope**. Do not merge SKU work to `main` via PR 
 | **M7** Parallel variants → distinct SKUs | same |
 | **M8** PENDING without reservation blocks Push | `lib/sku/__tests__/push-sku-gate.test.ts` + matrix automation |
 | **M12** sku-api unavailable keeps pending + clear error | same |
+| **M2** Pull empty SKU → linked assign | `lib/sku/__tests__/m2-linked-empty-sku.test.ts` |
 | Resume writes when Shopify empty/different | `resumePendingSkuAssignment` in assign-variant-sku tests |
 | Per-variant assign by `variantId` | assign-variant-sku tests |
 | Legacy + map pending shapes | `lib/sku/__tests__/pending-reservation.test.ts` |
@@ -46,7 +47,7 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 | # | Scenario | Steps | Expected | Result | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | M1 | **Unlinked** reserve → Push → confirm | Create draft → Inventory Preview/Confirm assign → Push | SKU in Shopify; pending cleared; ledger assignment active | Pass (Kiryl 2026-10-13) | Этап 3 check |
-| M2 | **Linked** assign | Product already linked (product+variant GIDs) → Inventory Confirm assign | reserve → Shopify write → read-back → confirm in one action; no pending left | In progress (Kiryl) | Manual staging — **do not touch Kiryl’s product** |
+| M2 | **Linked** assign | Product already linked (product+variant GIDs) → Inventory Confirm assign | reserve → Shopify write → read-back → confirm in one action; no pending left | **Fail→fix** (Kiryl 2026-10-13): Pull empty SKU invented `SHOPIFY-*` and blocked assign. Fix: invent `PENDING-p{product}-v{variant}`; treat legacy `SHOPIFY-*` as assignable. | `lib/sku/__tests__/m2-linked-empty-sku.test.ts` (full linked flow + legacy SHOPIFY-*); `localSkuForEmptyShopifySku` in pull (`product-sync.ts`). Re-verify on staging after land. |
 | M3 | **Idempotent retry** after pending | Force pending (e.g. interrupt confirm) → **Retry confirm** | No new reservation; same SKU confirmed; ledger ok | **Pass (auto)** | `staging-matrix-automation.test.ts` → `M3: Retry confirm / resume does not create a second reserve` (`reserve` not called; `resumed: true`) |
 | M4 | Double Confirm assign (same family) | Assign succeeds → Confirm assign again | Blocked: “already has SKU…”; no second sequence | **Pass (auto)** | `M4: second Confirm assign after success is blocked` — error matches `/already has SKU/i`; `reserve` not called |
 | M5 | Same idempotency key | Two rapid Confirm assign (same variant+family) before first finishes | One SKU; sku-api returns same reservation | **Pass (auto)** | `M5: parallel Confirm with same idempotency key yields one SKU` — both `JW-NECK-001`, single key `sku-assign:p1:var-1:jewelry.necklace`; ledger: `allocator.test.ts` / pg `concurrent identical idempotency keys` |

@@ -306,8 +306,8 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 - Vitest: linked, unlinked pending map, resume, per-variant, legacy pending shape
 - Conflict/external change по-прежнему через normalize/deep-diff (ADR-0003); assign не создаёт второй reserve на уже назначенный SKU
 
-**Авто (fixtures):** M3/M4/M5/M7/M8/M12 — `lib/sku/__tests__/staging-matrix-automation.test.ts` + `push-sku-gate.test.ts`.  
-**Ещё вручную на staging:** M2 (Kiryl — не трогать его товар), M6, M9–M11, M13. Push по-прежнему пишет primarily primary variant commerce SKU.
+**Авто (fixtures):** M3/M4/M5/M7/M8/M12 — `staging-matrix-automation.test.ts` + `push-sku-gate.test.ts`; **M2** empty-Pull fix — `m2-linked-empty-sku.test.ts`.  
+**Ещё вручную на staging:** M2 re-verify after empty-SKU fix land; M6, M9–M11, M13. Push по-прежнему пишет primarily primary variant commerce SKU.
 
 **Выход:** тест-матрица с фактическими результатами и доказательствами; production не затронут.
 
