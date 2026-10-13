@@ -34,6 +34,11 @@ import {
 } from "@/lib/shopify/collection-sync";
 import { env } from "@/lib/env";
 import { getS3, getS3Bucket } from "@/lib/s3";
+import { tryCreateSkuClient } from "@/lib/sku/client";
+import { getSkuServiceConfig } from "@/lib/sku/config";
+import { confirmPendingSkuAfterShopifyWrite } from "@/lib/sku/assign-variant-sku";
+import { readPendingSkuReservation } from "@/lib/sku/pending-reservation";
+import { isPendingCommerceSku } from "@/lib/sku/pending-sku";
 import {
   matchReadyShopifyMedia,
   SHOPIFY_PRODUCT_MEDIA_FRAGMENT,
@@ -1597,6 +1602,16 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     // exists.
     const localVariant = product.variants[0];
     const commerceSku = localVariant?.sku ?? product.sku;
+    const pendingSkuReservation = readPendingSkuReservation(product.details);
+    if (
+      getSkuServiceConfig().configured
+      && isPendingCommerceSku(commerceSku)
+      && !pendingSkuReservation
+    ) {
+      throw new Error(
+        "SKU is not assigned. Use Inventory → Preview / Confirm assign before Push (sku-api).",
+      );
+    }
     const commercePriceCents = localVariant?.priceCents ?? product.priceCents;
     const commerceCompareAtCents = localVariant?.compareAtCents ?? product.compareAtCents;
     const commerceTaxable = localVariant?.taxable ?? true;
@@ -1888,11 +1903,21 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     let pushedInventory: { variantId: string; quantity: number } | null = null;
     if (remoteVariant) {
       const variantData = await shopifyAdminRequest<{
-        productVariantsBulkUpdate: { productVariants: ShopifyProduct["variants"]["nodes"]; userErrors: UserError[] };
+        productVariantsBulkUpdate: {
+          productVariants: Array<{
+            id: string;
+            title: string;
+            sku: string | null;
+            price: string;
+            compareAtPrice: string | null;
+            inventoryItem: { id: string; sku: string | null } | null;
+          }>;
+          userErrors: UserError[];
+        };
       }>(
         `mutation SynaravaVariantUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
           productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-            productVariants { id title sku price compareAtPrice inventoryItem { id } }
+            productVariants { id title sku price compareAtPrice inventoryItem { id sku } }
             userErrors { field message }
           }
         }`,
@@ -1920,6 +1945,60 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             status: product.status, shopifyVariantId: savedVariant.id,
             shopifyInventoryItemId: savedVariant.inventoryItem?.id ?? null,
           } });
+        }
+        const readBackSku = savedVariant.inventoryItem?.sku ?? savedVariant.sku ?? "";
+        if (pendingSkuReservation && readBackSku) {
+          const skuClient = tryCreateSkuClient();
+          if (!skuClient) {
+            throw new Error(
+              "SKU reservation is pending but sku-api is not configured — cannot confirm assignment. Check SKU_API_URL / SKU_API_TOKEN.",
+            );
+          }
+          const confirmResult = await confirmPendingSkuAfterShopifyWrite(
+            {
+              productId,
+              shopifyProductId: remote.id,
+              shopifyVariantId: savedVariant.id,
+              shopifyReadBackSku: readBackSku,
+            },
+            {
+              client: skuClient,
+              externalShop: env.SHOPIFY_STORE_DOMAIN ?? "unknown.myshopify.com",
+              loadProduct: async (id) => db.product.findUnique({
+                where: { id },
+                select: {
+                  id: true,
+                  sku: true,
+                  details: true,
+                  shopifyProductId: true,
+                  variants: {
+                    orderBy: { createdAt: "asc" },
+                    select: { id: true, sku: true, shopifyVariantId: true },
+                  },
+                },
+              }),
+              persistLocalSku: async (input) => db.$transaction(async (tx) => {
+                await tx.product.update({
+                  where: { id: input.productId },
+                  data: {
+                    sku: input.sku,
+                    details: input.details as Prisma.InputJsonValue,
+                  },
+                });
+                if (input.variantId) {
+                  await tx.productVariant.update({
+                    where: { id: input.variantId },
+                    data: { sku: input.sku },
+                  });
+                  return { variantId: input.variantId };
+                }
+                return { variantId: localVariant?.id ?? savedVariant.id };
+              }),
+            },
+          );
+          if (!confirmResult.ok) {
+            throw new Error(`SKU reserved and written to Shopify, but confirm failed: ${confirmResult.error}`);
+          }
         }
         const inventoryItemId = savedVariant.inventoryItem?.id;
         if (inventoryItemId && localVariant) {

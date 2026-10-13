@@ -1,6 +1,6 @@
 # Portable SKU service
 
-**Status:** Этап 1–2 deploy-ready on staging (Postgres adapter + bootstrap) · Synarava Shopify adapter (Этап 3+) not started  
+**Status:** Этап 1–3 on staging (sku-api + Synarava Shopify adapter for primary variant) · Этап 4–6 not started  
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md)  
 **Railway staging:** [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)
@@ -53,16 +53,32 @@ On start (unless `SKU_BOOTSTRAP=0`): idempotent ensure of workspace `synarava-sh
 
 Shared → **SKU policy** (`/admin/settings#shared-sku-policy`): draft/publish profile, read-only assignments + audit. Shows a staging-gate alert when the SKU API env is unset.
 
+Product → **Inventory**: when sku-api is configured, primary-variant SKU uses Preview / Confirm assign (`ProductSkuAssignPanel`) instead of free-text invent. Family keys come from the published profile. Linked variants run reserve → Shopify write → read-back → confirm in one action; unlinked products reserve locally and confirm on Push after Shopify read-back.
+
+## Synarava adapter (Этап 3)
+
+| Piece | Path |
+| --- | --- |
+| Orchestrator | `lib/sku/assign-variant-sku.ts` |
+| Shopify SKU writer | `lib/sku/write-shopify-variant-sku.ts` |
+| Pending local identity | `lib/sku/pending-sku.ts` (`PENDING-*`, legacy `SKU-*` draft tokens) |
+| Pending reservation JSON | `Product.details.skuAssignmentPending` via `lib/sku/pending-reservation.ts` |
+| Server actions | `app/admin/actions/sku-assign.ts` |
+| Push gate + confirm-on-push | `lib/shopify/product-sync.ts` `pushProductToShopify` |
+
+Autosave no longer invents `SKU-*` commerce tokens when sku-api is configured (`PENDING-*` only). Push refuses pending placeholders without a reserved pending assignment.
+
 ## Boundary (unchanged)
 
 - Shopify owns assigned Variant SKU ([ADR-0002](../adr/0002-shopify-catalog-ownership.md)).
 - Conflict compare remains normalize + deep-diff ([ADR-0003](../adr/0003-commerce-conflict-deep-diff.md)).
-- Этап 3 will wire preview → reserve → Shopify write → read-back → confirm without inventing a second catalog.
+- Synarava is client + Shopify adapter only ([ADR-0004](../adr/0004-portable-sku-service-boundary.md)).
 
 ## Tests
 
 ```bash
 pnpm test:sku                                          # unit (memory store)
+pnpm exec vitest run lib/sku/__tests__                 # adapter + pending helpers
 pnpm --filter @synarava/sku-api test:integration       # real PostgreSQL
 ```
 
@@ -70,5 +86,6 @@ Postgres integration covers persist-across-reconnect, **parallel same-stem uniqu
 
 ## Not done yet
 
-- Synarava product Inventory reserve/confirm flow (Этап 3)
-- Shopify staging matrix, n8n, production rollout (Этап 4–6)
+- Multi-variant Inventory assign table (still primary variant)
+- Full retirement of dual `Product.sku` identity
+- Shopify staging matrix, n8n recovery/audit, production rollout (Этап 4–6)

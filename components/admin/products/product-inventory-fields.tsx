@@ -7,6 +7,7 @@ import {
   AdminTextField,
   type AdminFormValidation,
 } from "@/components/synarava-cms";
+import { ProductSkuAssignPanel } from "@/components/admin/products/product-sku-assign-panel";
 import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
@@ -125,12 +126,17 @@ export function ProductInventoryFields({
   facts,
   fieldErrors,
   validation,
+  productId = null,
+  onSkuAssigned,
 }: {
   draft: { sku: string; stockOnHand: string };
   variantExists?: boolean;
   facts: InventoryShippingFacts;
   fieldErrors: Partial<Record<ProductFieldName, string>>;
   validation: AdminFormValidation<ProductFieldName>;
+  /** When set, Inventory loads sku-api context and uses preview/reserve/confirm when configured. */
+  productId?: string | null;
+  onSkuAssigned?: (sku: string) => void;
 }) {
   const sellWhenOutOfStock = facts.inventoryPolicy == null
     ? "—"
@@ -191,17 +197,35 @@ export function ProductInventoryFields({
           )}
 
           <div className="grid items-start gap-x-4 gap-y-6 md:grid-cols-2">
-            <AdminTextField
-              label="SKU"
-              owner="Shopify"
-              required
-              name="sku"
-              data-validation-message={PRODUCT_FIELD_MESSAGES.sku}
-              defaultValue={draft.sku}
-              error={fieldErrors.sku}
-              errorId={validation.fieldErrorId("sku")}
-              {...validation.fieldProps("sku")}
-            />
+            {productId ? (
+              <ProductSkuAssignPanel
+                productId={productId}
+                draftSku={draft.sku}
+                fieldErrors={fieldErrors}
+                validation={validation}
+                onAssigned={onSkuAssigned}
+              />
+            ) : (
+              <div className="grid gap-2">
+                <AdminTextField
+                  label="SKU"
+                  owner="Shopify"
+                  required
+                  name="sku"
+                  data-validation-message={PRODUCT_FIELD_MESSAGES.sku}
+                  defaultValue={draft.sku}
+                  error={fieldErrors.sku}
+                  errorId={validation.fieldErrorId("sku")}
+                  help={(
+                    <AdminHelp label="Commerce code assignment guidance">
+                      Optional until draft save. With sku-api configured, Inventory switches to
+                      Preview / Confirm assign after the product exists.
+                    </AdminHelp>
+                  )}
+                  {...validation.fieldProps("sku")}
+                />
+              </div>
+            )}
             <AdminTextField
               label="Available quantity"
               owner="Shopify"

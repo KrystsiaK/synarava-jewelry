@@ -268,7 +268,7 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 **Выход:** профиль можно версионировать и проверять без ручного изменения БД.
 
-**Статус реализации (2026-10-12 / deploy-ready 2026-10-13):** выполнено (без production/n8n/Shopify staging wiring / Этап 3).
+**Статус реализации (2026-10-12 / deploy-ready 2026-10-13):** выполнено (без production/n8n; Shopify adapter = Этап 3).
 
 - `services/sku-api` HTTP: `/health`, `/v1/workspaces/{key}/…` preview, reservations, validate, assignments/confirm, lock, audit-events, profiles draft/publish/list
 - Auth: Bearer service token, salted scrypt hash (`SKU_API_CREDENTIALS` или local-only `SKU_API_DEV_TOKEN`); workspace path must match credential
@@ -282,11 +282,16 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 ### Этап 3 — Synarava adapter
 
-- заменить локальное придумывание SKU на preview/reserve/confirm;
-- работать на уровне каждого `ProductVariant`, а не только primary/default variant;
-- сохранять Shopify source-of-truth и существующий normalize/deep-diff контракт;
-- убрать или явно обозначить legacy `Product.sku` после миграции чтений;
-- не допустить запись SKU в Shopify без read-back и audit correlation ID.
+**Статус реализации (2026-10-13):** выполнено для primary variant на staging (без Этап 4–6 / n8n / production / merge в main).
+
+- `lib/sku/assign-variant-sku.ts` — preview → reserve → Shopify write → read-back → confirm; unlinked products keep pending reservation in `Product.details.skuAssignmentPending` until Push confirms
+- `lib/sku/write-shopify-variant-sku.ts` — `productVariantsBulkUpdate` + inventoryItem.sku read-back (same writer shape as commerce-field-apply)
+- Admin Inventory: `ProductSkuAssignPanel` (family from published profile, Preview / Confirm assign) when `SKU_API_URL`+`SKU_API_TOKEN` set; free-text SKU remains when unset
+- Autosave: with sku-api configured, blank SKU becomes `PENDING-*` identity placeholder (not a policy SKU)
+- Push gate: blocks invented/pending commerce SKU when sku-api configured and no reserved pending; after Push write, confirms matching pending reservation
+- Conflict normalize/deep-diff contract unchanged (ADR-0003); Shopify remains SoT for assigned Variant SKU (ADR-0002/0004)
+
+**Ещё не в Этапе 3:** multi-variant assign table; полное снятие dual `Product.sku`; recovery queue UI/n8n; staging matrix (Этап 4).
 
 **Выход:** новый staging-товар получает SKU только через сервис; текущие 49 не переименованы.
 

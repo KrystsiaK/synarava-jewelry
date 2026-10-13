@@ -757,6 +757,14 @@ export function EditProductForm({
                           onTaxonomySatisfactionChange={setTaxonomySatisfaction}
                           selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
                           mode="edit"
+                          productId={currentProduct.id}
+                          onSkuAssigned={() => {
+                            void getSavedProductPayload(currentProduct.id).then((saved) => {
+                              if (!saved) return;
+                              setState((prev) => ({ ...prev, product: saved }));
+                              setFieldsRevision((value) => value + 1);
+                            });
+                          }}
                         />
                       </div>
                       <ProductDetailFields
