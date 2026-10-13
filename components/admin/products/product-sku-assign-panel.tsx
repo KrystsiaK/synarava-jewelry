@@ -6,7 +6,9 @@ import {
   assignProductSkuAction,
   loadSkuAssignContext,
   previewProductSkuAction,
+  resumePendingSkuAction,
   type SkuAssignContext,
+  type SkuAssignVariantRow,
 } from "@/app/admin/actions/sku-assign";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
@@ -21,6 +23,97 @@ import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
 } from "@/lib/products/product-form-validation";
+
+function VariantAssignRow({
+  productId,
+  familyKey,
+  familyKeys,
+  row,
+  isPending,
+  onFamilyChange,
+  onPreview,
+  onAssign,
+  onResume,
+  previewSku,
+  previewMeta,
+}: {
+  productId: string;
+  familyKey: string;
+  familyKeys: string[];
+  row: SkuAssignVariantRow;
+  isPending: boolean;
+  onFamilyChange: (value: string) => void;
+  onPreview: () => void;
+  onAssign: () => void;
+  onResume: () => void;
+  previewSku: string | null;
+  previewMeta: string | null;
+}) {
+  const notAssigned = row.pending && !row.pendingReservationSku;
+  return (
+    <div className="grid gap-3 rounded-md border border-[var(--adm-border)] p-3" data-variant-id={row.variantId}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-medium text-[var(--adm-ink)]">{row.title}</p>
+        <p className="text-xs text-[var(--adm-muted)]">
+          {row.shopifyLinked ? "Linked" : "Local only"} · {notAssigned ? "Not assigned" : row.sku}
+        </p>
+      </div>
+      {row.pendingReservationSku ? (
+        <AdminAlert
+          message={`Reservation pending confirm: ${row.pendingReservationSku}. ${
+            row.shopifyLinked
+              ? "Use Retry confirm (idempotent) — no new reservation."
+              : "Push to Shopify to write the SKU and confirm, or link the variant first."
+          }`}
+        />
+      ) : null}
+
+      {notAssigned ? (
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
+          <AdminSelectField
+            label="Family"
+            owner="Synarava"
+            value={familyKey}
+            onChange={(event) => onFamilyChange(event.target.value)}
+            disabled={isPending}
+          >
+            {familyKeys.length === 0 ? (
+              <option value="">No families in published profile</option>
+            ) : (
+              familyKeys.map((key) => (
+                <option key={key} value={key}>{key}</option>
+              ))
+            )}
+          </AdminSelectField>
+          <button type="button" className="adm-btn-secondary" disabled={isPending || !familyKey} onClick={onPreview}>
+            {isPending ? "Working…" : "Preview"}
+          </button>
+          <button type="button" className="adm-btn-primary" disabled={isPending || !familyKey} onClick={onAssign}>
+            {isPending ? "Working…" : "Confirm assign"}
+          </button>
+        </div>
+      ) : null}
+
+      {row.pendingReservationSku ? (
+        <button
+          type="button"
+          className="adm-btn-primary w-fit"
+          disabled={isPending || !row.shopifyLinked}
+          onClick={onResume}
+        >
+          {isPending ? "Working…" : "Retry confirm"}
+        </button>
+      ) : null}
+
+      {previewSku ? (
+        <p className="text-sm text-[var(--adm-ink)]">
+          Candidate <span className="font-medium">{previewSku}</span>
+          {previewMeta ? <span className="text-[var(--adm-muted)]"> — {previewMeta}</span> : null}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 export function ProductSkuAssignPanel({
   productId,
@@ -38,9 +131,8 @@ export function ProductSkuAssignPanel({
   const { pushToast } = useAdminToast();
   const [isPending, startTransition] = useTransition();
   const [context, setContext] = useState<SkuAssignContext | null>(null);
-  const [familyKey, setFamilyKey] = useState("");
-  const [previewSku, setPreviewSku] = useState<string | null>(null);
-  const [previewMeta, setPreviewMeta] = useState<string | null>(null);
+  const [familyByVariant, setFamilyByVariant] = useState<Record<string, string>>({});
+  const [previewByVariant, setPreviewByVariant] = useState<Record<string, { sku: string; meta: string }>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,7 +141,13 @@ export function ProductSkuAssignPanel({
       .then((payload) => {
         if (cancelled) return;
         setContext(payload);
-        setFamilyKey((current) => current || payload.familyKeys[0] || "");
+        setFamilyByVariant((current) => {
+          const next = { ...current };
+          for (const row of payload.variants) {
+            if (!next[row.variantId]) next[row.variantId] = payload.familyKeys[0] || "";
+          }
+          return next;
+        });
       })
       .catch(() => {
         if (cancelled) return;
@@ -62,6 +160,7 @@ export function ProductSkuAssignPanel({
           pendingReservationSku: null,
           shopifyLinked: false,
           variantId: null,
+          variants: [],
         });
         setError("Failed to load SKU assignment context.");
       });
@@ -92,45 +191,80 @@ export function ProductSkuAssignPanel({
     );
   }
 
-  const displaySku = context.currentSku || draftSku;
-  const notAssigned = context.pending && !context.pendingReservationSku;
+  const rows = context.variants.length > 0
+    ? context.variants
+    : [{
+        variantId: context.variantId ?? "primary",
+        title: "Default Title",
+        sku: context.currentSku || draftSku,
+        shopifyVariantId: null,
+        pending: context.pending,
+        pendingReservationSku: context.pendingReservationSku,
+        shopifyLinked: context.shopifyLinked,
+      }];
 
-  function runPreview() {
+  const primarySku = rows[0]?.sku || draftSku;
+
+  function refresh() {
+    return loadSkuAssignContext(productId).then(setContext);
+  }
+
+  function runPreview(variantId: string) {
+    const familyKey = familyByVariant[variantId] || context!.familyKeys[0] || "";
     setError(null);
-    setPreviewSku(null);
-    setPreviewMeta(null);
     startTransition(async () => {
       const result = await previewProductSkuAction({ productId, familyKey });
       if (!result.ok) {
         setError(result.error ?? "Preview failed");
         return;
       }
-      setPreviewSku(result.previewSku ?? null);
-      setPreviewMeta(
-        result.policyVersion != null
-          ? `Policy v${result.policyVersion} · provisional (not reserved)`
-          : "Provisional (not reserved)",
-      );
+      setPreviewByVariant((prev) => ({
+        ...prev,
+        [variantId]: {
+          sku: result.previewSku ?? "",
+          meta: result.policyVersion != null
+            ? `Policy v${result.policyVersion} · provisional (not reserved)`
+            : "Provisional (not reserved)",
+        },
+      }));
     });
   }
 
-  function runAssign() {
+  function runAssign(variantId: string) {
+    const familyKey = familyByVariant[variantId] || context!.familyKeys[0] || "";
     setError(null);
     startTransition(async () => {
-      const result = await assignProductSkuAction({ productId, familyKey });
+      const result = await assignProductSkuAction({ productId, familyKey, variantId });
       if (!result.ok) {
         setError(result.error ?? "Assign failed");
         pushToast({ tone: "error", message: result.error ?? "Assign failed" });
-        const refreshed = await loadSkuAssignContext(productId);
-        setContext(refreshed);
+        await refresh();
         return;
       }
       pushToast({ tone: "success", message: result.message ?? `Assigned ${result.sku}` });
       if (result.sku) onAssigned?.(result.sku);
-      const refreshed = await loadSkuAssignContext(productId);
-      setContext(refreshed);
-      setPreviewSku(null);
-      setPreviewMeta(null);
+      await refresh();
+      setPreviewByVariant((prev) => {
+        const next = { ...prev };
+        delete next[variantId];
+        return next;
+      });
+    });
+  }
+
+  function runResume(variantId: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await resumePendingSkuAction({ productId, variantId });
+      if (!result.ok) {
+        setError(result.error ?? "Resume failed");
+        pushToast({ tone: "error", message: result.error ?? "Resume failed" });
+        await refresh();
+        return;
+      }
+      pushToast({ tone: "success", message: result.message ?? `Confirmed ${result.sku}` });
+      if (result.sku) onAssigned?.(result.sku);
+      await refresh();
     });
   }
 
@@ -139,77 +273,34 @@ export function ProductSkuAssignPanel({
       <AdminReadonlyField
         label="SKU"
         owner="Shopify"
-        value={notAssigned ? "Not assigned" : displaySku}
+        value={rows.every((row) => row.pending && !row.pendingReservationSku) ? "Not assigned" : primarySku}
         help={(
           <AdminHelp label="Commerce code assignment guidance">
             Shopify owns the assigned Variant SKU. Synarava reserves via sku-api, writes Shopify,
-            then confirms only after read-back matches. Do not invent commerce SKUs in the form.
+            then confirms only after read-back matches. Retry confirm is idempotent (no new number).
           </AdminHelp>
         )}
       />
-      <input type="hidden" name="sku" value={displaySku} readOnly />
+      <input type="hidden" name="sku" value={primarySku} readOnly />
 
-      {context.pendingReservationSku ? (
-        <AdminAlert
-          message={`Reservation pending confirm: ${context.pendingReservationSku}. ${
-            context.shopifyLinked
-              ? "Retry assign recovery or Push if write already succeeded."
-              : "Push to Shopify to write the SKU and confirm the assignment."
-          }`}
-        />
-      ) : null}
-
-      {notAssigned || context.pendingReservationSku ? (
-        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
-          <AdminSelectField
-            label="Family"
-            owner="Synarava"
-            value={familyKey}
-            onChange={(event) => {
-              setFamilyKey(event.target.value);
-              setPreviewSku(null);
-              setPreviewMeta(null);
-            }}
-            disabled={isPending || Boolean(context.pendingReservationSku)}
-            help={(
-              <AdminHelp label="Family key guidance">
-                Keys come from the published SKU policy profile (Settings → SKU policy).
-              </AdminHelp>
-            )}
-          >
-            {context.familyKeys.length === 0 ? (
-              <option value="">No families in published profile</option>
-            ) : (
-              context.familyKeys.map((key) => (
-                <option key={key} value={key}>{key}</option>
-              ))
-            )}
-          </AdminSelectField>
-          <button
-            type="button"
-            className="adm-btn-secondary"
-            disabled={isPending || !familyKey || Boolean(context.pendingReservationSku)}
-            onClick={runPreview}
-          >
-            {isPending ? "Working…" : "Preview"}
-          </button>
-          <button
-            type="button"
-            className="adm-btn-primary"
-            disabled={isPending || !familyKey || Boolean(context.pendingReservationSku)}
-            onClick={runAssign}
-          >
-            {isPending ? "Working…" : "Confirm assign"}
-          </button>
-        </div>
-      ) : null}
-
-      {previewSku ? (
-        <p className="text-sm text-[var(--adm-ink)]">
-          Candidate <span className="font-medium">{previewSku}</span>
-          {previewMeta ? <span className="text-[var(--adm-muted)]"> — {previewMeta}</span> : null}
-        </p>
-      ) : null}
+      <div className="grid gap-3">
+        {rows.map((row) => (
+          <VariantAssignRow
+            key={row.variantId}
+            productId={productId}
+            familyKey={familyByVariant[row.variantId] || context.familyKeys[0] || ""}
+            familyKeys={context.familyKeys}
+            row={row}
+            isPending={isPending}
+            onFamilyChange={(value) => setFamilyByVariant((prev) => ({ ...prev, [row.variantId]: value }))}
+            onPreview={() => runPreview(row.variantId)}
+            onAssign={() => runAssign(row.variantId)}
+            onResume={() => runResume(row.variantId)}
+            previewSku={previewByVariant[row.variantId]?.sku ?? null}
+            previewMeta={previewByVariant[row.variantId]?.meta ?? null}
+          />
+        ))}
+      </div>
 
       {error ? <AdminAlert message={error} /> : null}
     </div>
