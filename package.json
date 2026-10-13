@@ -91,6 +91,7 @@
     "eslint-config-next": "16.3.8",
     "jsdom": "^25.0.1",
     "prisma": "^6.19.3",
+    "railway": "3.15.0",
     "storybook": "^8.6.18",
     "tailwindcss": "^4",
     "typescript": "^5",

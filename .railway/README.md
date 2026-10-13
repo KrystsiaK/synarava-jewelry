@@ -14,10 +14,11 @@ Config as Code is deprecated; new services cannot use it. Root `/railway.json` w
 ```bash
 # CLI: https://docs.railway.com/guides/cli
 railway login
-railway link   # select project + staging
-pnpm add -D railway   # once, for railway/iac types + CLI helpers if needed
-pnpm exec railway config plan
-pnpm exec railway config apply
+railway link --project synarava-shop --environment staging
+pnpm install --frozen-lockfile
+railway config plan
+# Continue only when the plan targets synarava-shop/staging and shows no unexpected destroy.
+railway config apply
 ```
 
 Then set watch paths on `sku-api` in the dashboard (IaC DSL does not document watch patterns yet):
@@ -33,6 +34,10 @@ Then set watch paths on `sku-api` in the dashboard (IaC DSL does not document wa
 ```
 
 ## synarava-web (must not break)
+
+The SKU partial intentionally refuses to run in the separate `handsome-commitment`
+project: Railway private networking and service-reference variables are scoped to
+one project/environment. Apply it only to `synarava-shop/staging`.
 
 After this change, set the web service **Config File** to:
 

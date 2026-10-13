@@ -12,13 +12,14 @@
  *
  * Apply (staging):
  *   railway link   # project + staging environment
- *   pnpm exec railway config plan
- *   pnpm exec railway config apply
+ *   railway config plan
+ *   railway config apply
  *
  * Web deploy stays on: deploy/railway.synarava-web.json (legacy CaC until migrated).
  */
 import {
   defineRailway,
+  github,
   postgres,
   preserve,
   project,
@@ -28,10 +29,17 @@ import {
 /** Named partial so apply only owns sku resources (does not delete web). */
 export const partial = "sku";
 
-export default defineRailway(() => {
+export default defineRailway((ctx) => {
+  if (!ctx.isEnvironment("staging") || ctx.projectName !== "synarava-shop") {
+    throw new Error(
+      `Refusing to manage ${ctx.projectName}/${ctx.environmentName}: expected synarava-shop/staging.`,
+    );
+  }
+
   const skuPostgres = postgres("sku-postgres");
 
   const skuApi = service("sku-api", {
+    source: github("KrystsiaK/synarava-jewelry", { branch: "staging" }),
     // Shared monorepo root — pnpm workspace filters, not an isolated package root.
     build:
       "pnpm --filter @synarava/sku-api prisma:generate && pnpm --filter @synarava/sku-api build",
@@ -45,7 +53,7 @@ export default defineRailway(() => {
     },
   });
 
-  return project("synarava-jewelry", {
+  return project(ctx.projectName, {
     resources: [skuPostgres, skuApi],
   });
 });

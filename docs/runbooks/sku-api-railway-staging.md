@@ -32,6 +32,8 @@ Observed topology from commit statuses (verify in dashboard):
 ## Remaining ops to clear `handsome-commitment - sku-api`
 
 Do these in Railway (dashboard and/or CLI). Repo config for the plan is already on `staging`.
+The target topology is one Railway project/environment: **`synarava-shop/staging`**.
+Do not deploy the final staging service into the separate `handsome-commitment` project.
 
 1. **sku-api → Settings → Config File**
    - Must **not** point at `/railway.json` (file removed) or `/deploy/railway.synarava-web.json` (web-only).
@@ -43,14 +45,14 @@ Do these in Railway (dashboard and/or CLI). Repo config for the plan is already 
    - Healthcheck: `/health` (timeout ≥ 30s)
    - Builder: Railpack (not NIXPACKS)
    - Root directory: `/` (pnpm workspace root)
-3. **Or** from a machine with Railway CLI linked to project **handsome-commitment** / staging:
+3. **Canonical fix:** use Railway CLI against the web project’s staging environment:
    ```bash
-   railway link
-   pnpm add -D railway
-   pnpm exec railway config plan
-   pnpm exec railway config apply
+   railway link --project synarava-shop --environment staging
+   pnpm install --frozen-lockfile
+   railway config plan
+   railway config apply
    ```
-   Then set watch paths in the dashboard (see below).
+   The committed IaC guard refuses `handsome-commitment` or production. Then set watch paths in the dashboard (see below).
 4. **Variables on sku-api:** `SKU_DATABASE_URL` (Postgres in that same environment), `SKU_API_CREDENTIALS` (from credentials script).
 5. **Redeploy** sku-api. Confirm build log uses the filtered commands — not root `pnpm build` / `pnpm start`.
 6. **Health:** deploy becomes healthy only when `/health` returns ready (`credentials` + DB). Missing env → 503 → Railway marks deploy failed.
@@ -136,13 +138,14 @@ Encoded in [`.railway/railway.ts`](../../.railway/railway.ts) (`preDeploy` / `st
 
 ```bash
 railway login
-railway link          # link to the Railway project that owns sku-api (see triage: handsome-commitment)
-pnpm add -D railway   # provides railway/iac for the authoring file
-pnpm exec railway config plan
-pnpm exec railway config apply
+railway link --project synarava-shop --environment staging
+pnpm install --frozen-lockfile
+railway config plan
+# Continue only when the plan targets synarava-shop/staging and has no unexpected destroy.
+railway config apply
 ```
 
-Partial export `sku` owns only `sku-api` + `sku-postgres` — it does **not** manage synarava-web. See [`.railway/README.md`](../../.railway/README.md).
+Partial export `sku` owns only `sku-api` + `sku-postgres` — it does **not** manage synarava-web. The authoring file refuses to run anywhere except `synarava-shop/staging`; it also declares the GitHub `staging` source for `sku-api`. See [`.railway/README.md`](../../.railway/README.md).
 
 If sku-api was created in a different Railway project than synarava-web, prefer moving `sku-api` + `sku-postgres` into the **synarava-shop** staging environment before relying on `${{sku-api.*}}` from the web service.
 
