@@ -8,7 +8,7 @@ import {
   type PolicyProfileConfig,
 } from "@synarava/sku-core";
 import { createHash } from "node:crypto";
-import { Prisma, type PrismaClient } from "../generated/prisma/index.js";
+import { type Prisma, type PrismaClient } from "../generated/prisma/index.js";
 import { assertProfileConfig, domainError } from "./errors.js";
 import {
   mapAssignment,
