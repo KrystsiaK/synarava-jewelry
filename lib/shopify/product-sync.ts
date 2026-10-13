@@ -38,6 +38,7 @@ import { tryCreateSkuClient } from "@/lib/sku/client";
 import { getSkuServiceConfig } from "@/lib/sku/config";
 import { confirmPendingSkuAfterShopifyWrite } from "@/lib/sku/assign-variant-sku";
 import { readPendingSkuReservation } from "@/lib/sku/pending-reservation";
+import { localSkuForEmptyShopifySku } from "@/lib/sku/pending-sku";
 import {
   assertSkuAssignableBeforePush,
   requireSkuClientForPendingConfirm,
@@ -764,7 +765,12 @@ async function savePulledProduct(
   const firstVariant = remote.variants.nodes[0];
   // Shopify can return resourcePublicationsV2 nodes with publication: null.
   const onlineStorePublication = findOnlineStorePublication(remote.resourcePublicationsV2.nodes);
-  const remoteSku = firstVariant?.sku?.trim() || `SHOPIFY-${remote.id.split("/").pop()}`;
+  // Empty Shopify SKU → PENDING-* local identity (assignable). Never invent SHOPIFY-* as assigned.
+  const remoteSku = firstVariant?.sku?.trim()
+    || localSkuForEmptyShopifySku({
+      shopifyProductId: remote.id,
+      shopifyVariantId: firstVariant?.id ?? null,
+    });
   const imageUrl = pickShopifyProductImageUrl({
     featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
     media: remote.media.nodes.map((item) => ({
@@ -1037,7 +1043,11 @@ async function finishPulledProduct(
 
   const pulledVariantIds: string[] = [];
   for (const variant of remote.variants.nodes) {
-    const sku = variant.sku?.trim() || `${remoteSku}-${variant.id.split("/").pop()}`;
+    const sku = variant.sku?.trim()
+      || localSkuForEmptyShopifySku({
+        shopifyProductId: remote.id,
+        shopifyVariantId: variant.id,
+      });
     // Same Shopify-compatible stock contract as the inventory_levels/update webhook
     // (REV-05) — otherwise a multi-location product's stock flips depending on
     // whether it was last touched by a full pull or the webhook.

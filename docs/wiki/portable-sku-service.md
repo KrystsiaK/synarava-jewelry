@@ -91,5 +91,5 @@ Postgres integration covers persist-across-reconnect, **parallel same-stem uniqu
 - Full retirement of dual `Product.sku` identity
 - Push writing every variant SKU (still primary-focused on Push path)
 - n8n recovery/audit, production rollout (Этап 5–6)
-- Manual matrix rows M2 / M6 / M9–M11 / M13 (Kiryl); M3/M4/M5/M7/M8/M12 closed by automated fixtures
+- Manual matrix rows M6 / M9–M11 / M13; M2 empty-Pull Fail→fix (re-verify); M3/M4/M5/M7/M8/M12 closed by automated fixtures
 
