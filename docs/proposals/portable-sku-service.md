@@ -234,7 +234,7 @@ Current staging fact may be `sku-api`+`sku-postgres` only (no n8n yet) — that 
 
 **Запрещено:** дублировать `sku-api` в `synarava-shop`; опираться на `${{sku-api.*}}` private refs **между** Railway projects.
 
-Watch paths разделены: sku-api — `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile/workspace, `.railway/**`. Storefront watch paths **не** включают sku-пакеты.
+Watch paths разделены: sku-api — `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile/workspace (exact live staging list; no `.railway/**`). Storefront watch paths **не** включают sku-пакеты.
 
 Delivery flow: feature branch → path-aware CI → merge в `staging` → независимые deploys (web vs sku-api) → Shopify staging tests. Production cutover на `portable-sku-platform` — отдельное подтверждение (см. [`portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)). Staging/production credentials и БД SKU разделены.
 

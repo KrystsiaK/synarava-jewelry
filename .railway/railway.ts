@@ -43,6 +43,20 @@ const SKU_PLATFORM_PROJECT_NAME = "portable-sku-platform";
 /** Pin n8n image; bump deliberately after staging verify. */
 const N8N_IMAGE = "n8nio/n8n:2.44.1";
 
+/**
+ * Exact live staging sku-api watch paths (must stay in IaC).
+ * String `build: "…"` only sets buildCommand and would clear these on plan.
+ * Do not add `/.railway/**` — live sku-api does not have it (would be an unwanted change).
+ */
+export const SKU_API_WATCH_PATTERNS = [
+  "/services/sku-api/**",
+  "/packages/sku-core/**",
+  "/packages/sku-contract/**",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/package.json",
+] as const;
+
 export default defineRailway((ctx) => {
   if (!ctx.isEnvironment("staging")) {
     throw new Error(
@@ -71,10 +85,22 @@ export default defineRailway((ctx) => {
   // Existing staging data plane — IaC adopts; apply gate forbids recreate/delete.
   const skuPostgres = postgres("sku-postgres");
 
+  // Adopt existing staging sku-api settings that string-build / default github()
+  // would otherwise clear on plan (Kiryl plan: 3 add + 2 unwanted changes).
+  // https://docs.railway.com/infrastructure-as-code
+  // https://docs.railway.com/deployments/monorepo
   const skuApi = service("sku-api", {
-    source: github("KrystsiaK/synarava-jewelry", { branch: "staging" }),
-    build:
-      "pnpm --filter @synarava/sku-api prisma:generate && pnpm --filter @synarava/sku-api build",
+    source: github("KrystsiaK/synarava-jewelry", {
+      branch: "staging",
+      // Wait for GitHub check suites before deploy (live staging has true).
+      checkSuites: true,
+    }),
+    build: {
+      buildCommand:
+        "pnpm --filter @synarava/sku-api prisma:generate && pnpm --filter @synarava/sku-api build",
+      // Dashboard watch paths — must be explicit; string `build` only sets buildCommand.
+      watchPatterns: [...SKU_API_WATCH_PATTERNS],
+    },
     preDeploy: "pnpm --filter @synarava/sku-api prisma:deploy",
     start: "pnpm --filter @synarava/sku-api start",
     healthcheck: "/health",
