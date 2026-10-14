@@ -73,7 +73,6 @@ Authored in `.railway/railway.ts` (`SKU_API_WATCH_PATTERNS`, `source.checkSuites
 /pnpm-lock.yaml
 /pnpm-workspace.yaml
 /package.json
-/.railway/**
 ```
 
 **synarava-web:** omit the sku paths above.

@@ -26,8 +26,8 @@ describe("sku-api Railway IaC adopt fields", () => {
       "/pnpm-lock.yaml",
       "/pnpm-workspace.yaml",
       "/package.json",
-      "/.railway/**",
     ]);
+    expect(SKU_API_WATCH_PATTERNS).not.toContain("/.railway/**");
     expect(railwayTs).toContain("watchPatterns: [...SKU_API_WATCH_PATTERNS]");
   });
 });

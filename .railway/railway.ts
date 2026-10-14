@@ -47,6 +47,7 @@ const N8N_IMAGE = "n8nio/n8n:2.44.1";
  * Live staging sku-api watch paths (must stay in IaC).
  * String `build: "…"` only sets buildCommand and would clear these on plan.
  */
+/** Exact live staging sku-api list (no `/.railway/**` — that would be an unwanted plan change). */
 export const SKU_API_WATCH_PATTERNS = [
   "/services/sku-api/**",
   "/packages/sku-core/**",
@@ -54,7 +55,6 @@ export const SKU_API_WATCH_PATTERNS = [
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",
   "/package.json",
-  "/.railway/**",
 ] as const;
 
 export default defineRailway((ctx) => {

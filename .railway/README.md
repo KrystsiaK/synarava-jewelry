@@ -69,7 +69,6 @@ railway config apply
 /pnpm-lock.yaml
 /pnpm-workspace.yaml
 /package.json
-/.railway/**
 ```
 
 ### synarava-shop → `synarava-shop-app` (web)

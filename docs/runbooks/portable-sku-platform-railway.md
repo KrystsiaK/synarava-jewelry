@@ -103,7 +103,7 @@ Authored in `.railway/railway.ts` (`build.watchPatterns` + `source.checkSuites: 
 
 | Surface | Paths |
 | --- | --- |
-| Platform `sku-api` | `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile/workspace, `.railway/**` |
+| Platform `sku-api` | `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile/workspace (exact live list — no `.railway/**`) |
 | Shop web | storefront paths; **omit** sku packages |
 
 ## Production (read-only)
