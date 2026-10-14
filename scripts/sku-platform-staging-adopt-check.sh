@@ -31,33 +31,20 @@ if [[ -n "${SKU_PLATFORM_PROJECT_ID:-}" && "${SKU_PLATFORM_PROJECT_ID}" != "${EX
 fi
 
 command -v railway >/dev/null || abort "railway CLI not found"
-command -v jq >/dev/null || abort "jq is required to verify railway status --json"
+command -v node >/dev/null || abort "node is required to verify railway status --json"
 
 mkdir -p "${LOCAL_DIR}"
 
 echo "==> 1) Link ${EXPECTED_PROJECT_NAME} (${EXPECTED_PROJECT_ID}) / ${EXPECTED_ENVIRONMENT}"
 railway link --project "${EXPECTED_PROJECT_NAME}" --environment "${EXPECTED_ENVIRONMENT}"
 
-echo "==> 1b) Verify link via railway status --json"
-STATUS_JSON="$(railway status --json)"
-ACTUAL_PROJECT_ID="$(
-  printf '%s' "${STATUS_JSON}" | jq -r '
-    .id // .projectId // .project.id // empty
-  '
-)"
-JQ_ENV_PROG='.environment.name // .environmentName // .environment // (.environments[]? | select(.isCurrent == true) | .name) // empty'
-ACTUAL_ENVIRONMENT="$(
-  printf '%s' "${STATUS_JSON}" | jq -r "${JQ_ENV_PROG}" | head -n 1
-)"
-
-[[ -n "${ACTUAL_PROJECT_ID}" ]] || abort "could not read project id from railway status --json"
-[[ "${ACTUAL_PROJECT_ID}" == "${EXPECTED_PROJECT_ID}" ]] || \
-  abort "linked projectId=${ACTUAL_PROJECT_ID}; expected ${EXPECTED_PROJECT_ID}"
-[[ -n "${ACTUAL_ENVIRONMENT}" ]] || abort "could not read linked stage name from railway status --json"
-[[ "${ACTUAL_ENVIRONMENT}" == "${EXPECTED_ENVIRONMENT}" ]] || \
-  abort "linked stage=${ACTUAL_ENVIRONMENT}; expected ${EXPECTED_ENVIRONMENT} (refusing production)"
-
-echo "    OK projectId=${ACTUAL_PROJECT_ID} stage=${ACTUAL_ENVIRONMENT}"
+echo "==> 1b) Verify link via railway status --environment staging --json"
+STATUS_JSON_FILE="${LOCAL_DIR}/railway-status-staging.json"
+railway status --environment "${EXPECTED_ENVIRONMENT}" --json >"${STATUS_JSON_FILE}"
+SKU_PLATFORM_EXPECTED_PROJECT_ID="${EXPECTED_PROJECT_ID}" \
+SKU_PLATFORM_EXPECTED_ENVIRONMENT="${EXPECTED_ENVIRONMENT}" \
+  node "${ROOT}/scripts/lib/railway-status-verify.mjs" "${STATUS_JSON_FILE}" \
+  || abort "railway status verification failed"
 
 echo "==> 2) config pull --json (inspect live graph; does NOT overwrite .railway/railway.ts)"
 railway config pull --json --environment "${EXPECTED_ENVIRONMENT}" >"${PULL_JSON}"

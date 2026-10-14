@@ -96,7 +96,7 @@ Do these **only** in Railway project **`portable-sku-platform`** (ID `6d7d5885-4
 ```bash
 cd /path/to/synarava-jewelry
 railway link --project portable-sku-platform --environment staging
-railway status --json   # must be project 6d7d5885-… and staging
+railway status --environment staging --json   # .id + edges[0].node.name = project / staging
 
 # BEFORE plan: pull (inspect) + partials ownership
 mkdir -p .railway/local

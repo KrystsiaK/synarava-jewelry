@@ -36,7 +36,7 @@ CLI reference: [railway config](https://docs.railway.com/cli/config) (`pull`, `p
 1. **Link + verify**
    ```bash
    railway link --project portable-sku-platform --environment staging
-   railway status --json   # abort unless project id is 6d7d5885-43eb-4283-b4a4-e552fc6dba7b AND stage is staging
+   railway status --environment staging --json   # .id + GraphQL edges[0].node.name must be project 6d7d5885-… / staging
    ```
    Helper script enforces this check. Never override toward production via env.
 2. **`railway config pull` (inspect — do not overwrite committed authoring)**

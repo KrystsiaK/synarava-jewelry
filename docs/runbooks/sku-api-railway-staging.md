@@ -48,7 +48,7 @@ Script: [`scripts/sku-platform-staging-adopt-check.sh`](../../scripts/sku-platfo
 
 ```bash
 railway link --project portable-sku-platform --environment staging
-railway status --json   # must be project 6d7d5885-… and staging
+railway status --environment staging --json   # .id + edges[0].node.name = project / staging
 mkdir -p .railway/local
 railway config pull --json --environment staging > .railway/local/sku-platform-staging.pull.json
 railway config partials list

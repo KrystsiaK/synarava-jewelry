@@ -29,7 +29,7 @@ CLI: [railway config](https://docs.railway.com/cli/config) — `pull`, `partials
 railway login
 railway link --project portable-sku-platform --environment staging
 # project ID 6d7d5885-43eb-4283-b4a4-e552fc6dba7b
-railway status --json   # must match project id + staging
+railway status --environment staging --json   # .id + edges[0].node.name = project / staging
 
 # BEFORE plan (required):
 mkdir -p .railway/local
