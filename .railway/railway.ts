@@ -44,10 +44,10 @@ const SKU_PLATFORM_PROJECT_NAME = "portable-sku-platform";
 const N8N_IMAGE = "n8nio/n8n:2.44.1";
 
 /**
- * Live staging sku-api watch paths (must stay in IaC).
+ * Exact live staging sku-api watch paths (must stay in IaC).
  * String `build: "…"` only sets buildCommand and would clear these on plan.
+ * Do not add `/.railway/**` — live sku-api does not have it (would be an unwanted change).
  */
-/** Exact live staging sku-api list (no `/.railway/**` — that would be an unwanted plan change). */
 export const SKU_API_WATCH_PATTERNS = [
   "/services/sku-api/**",
   "/packages/sku-core/**",
