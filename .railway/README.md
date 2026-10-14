@@ -1,11 +1,12 @@
 # Railway Infrastructure as Code
 
-Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) · [Reference](https://docs.railway.com/infrastructure-as-code/reference)
+Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) · [Reference](https://docs.railway.com/infrastructure-as-code/reference) · [n8n on Railway](https://docs.railway.com/guides/n8n)
 
 | File | Role |
 | --- | --- |
-| `.railway/railway.ts` | Named partial `sku` — `sku-api` + `sku-postgres` |
+| `.railway/railway.ts` | Named partial `sku` — `sku-api` + `sku-postgres` + staging `n8n` + `n8n-data` |
 | `deploy/railway.synarava-web.json` | Legacy Config as Code for **synarava-web only** (until full IaC migration) |
+| `deploy/n8n/sku-catalog-audit.workflow.json` | Этап 5 Slice B workflow (import into staging n8n) |
 
 Config as Code is deprecated; new services cannot use it. Root `/railway.json` was removed so a new `sku-api` service no longer inherits Next.js `pnpm build` / `pnpm start`.
 
@@ -21,6 +22,8 @@ railway config plan
 railway config apply
 ```
 
+The IaC guard **refuses** any project/environment other than `synarava-shop` / `staging` (no production apply).
+
 Then set watch paths on `sku-api` in the dashboard (IaC DSL does not document watch patterns yet):
 
 ```
@@ -32,6 +35,14 @@ Then set watch paths on `sku-api` in the dashboard (IaC DSL does not document wa
 /package.json
 /.railway/**
 ```
+
+### n8n (Этап 5 Slice B)
+
+After apply, finish public domain + sealed vars and import the workflow — exact steps:
+
+[`docs/runbooks/sku-catalog-audit-staging.md`](../docs/runbooks/sku-catalog-audit-staging.md)
+
+Pinned image: `n8nio/n8n:2.44.1`. Volume mount: `/home/node/.n8n`.
 
 ## synarava-web (must not break)
 

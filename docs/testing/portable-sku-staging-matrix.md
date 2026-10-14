@@ -69,8 +69,7 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 
 ## Out of scope (this matrix / Этап 6)
 
-- Railway n8n service + scheduled workflow JSON (Этап 5 Slice B)  
-- Production rollout / feature flag  
+- Production n8n / production rollout / feature flag  
 - Merge to `main`
 
-Этап 5 Slice A (read-only catalog audit API + dry-run CLI) lives outside this matrix — see runbook above.
+Этап 5 catalog audit (Slice A API + Slice B staging n8n) lives outside this matrix — see [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).
