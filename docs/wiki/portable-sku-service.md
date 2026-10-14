@@ -1,6 +1,6 @@
 # Portable SKU service
 
-**Status:** Этап 1–5 code on staging · **platform architecture** → Railway `portable-sku-platform` (interim `handsome-commitment`) · Этап 6 not started  
+**Status:** Этап 1–5 code on staging · **platform** Railway `portable-sku-platform` (ID `6d7d5885-…`; staging target: sku-api+sku-postgres+n8n+n8n-postgres) · Этап 6 not started  
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md)  
 **Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)  
@@ -14,7 +14,7 @@
 | --- | --- |
 | `packages/sku-core` | Pure domain: normalize, stem, format/parse/validate, preview. No Shopify/Next/Prisma/HTTP. |
 | `packages/sku-contract` | Zod `/v1` schemas + typed `createSkuClient`. Consumed by Next via `transpilePackages` (extensionless TS imports — not Node `.js` suffixes). |
-| `services/sku-api` | Prisma registry + Postgres/`SkuRegistryStore`, allocator, legacy importer, HTTP `/v1` + auth + rate limit. Railway: platform project (interim `handsome-commitment`; target `portable-sku-platform`). |
+| `services/sku-api` | Prisma registry + Postgres/`SkuRegistryStore`, allocator, legacy importer, HTTP `/v1` + auth + rate limit. Railway: `portable-sku-platform` (ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`). |
 
 ## Persistence
 
@@ -93,7 +93,7 @@ Postgres integration covers persist-across-reconnect, **parallel same-stem uniqu
 
 - Full retirement of dual `Product.sku` identity
 - Push writing every variant SKU (still primary-focused on Push path)
-- Kiryl confirm platform architecture → then staging IaC apply (no prod) · cutover to `portable-sku-platform`
+- Kiryl confirm → staging IaC apply on `portable-sku-platform` after safe adoption `plan` (adopt sku-*; create staging n8n+n8n-postgres; no prod)
 - `EXTERNAL_CHANGE_DETECTED` · recovery-queue automation
 - Этап 6 production rollout
 - Manual matrix rows M6 / M9–M11 / M13 (M2 Pass Kiryl 2026-10-13; M3/M4/M5/M7/M8/M12 auto)

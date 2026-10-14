@@ -61,23 +61,26 @@
 ## Amendment — portable SKU platform project (2026-10-14)
 
 **Status:** accepted (architecture; apply gated on operator confirmation)  
-**Supplements:** Decision above; does not supersede Shopify SoT or domain boundary.
+**Supplements:** Decision above; does not supersede Shopify SoT or domain boundary.  
+**Rename note:** Railway project display name `handsome-commitment` → **`portable-sku-platform`**; immutable project ID **`6d7d5885-43eb-4283-b4a4-e552fc6dba7b`** unchanged. IaC guards on project ID, not display name.
 
 ### Context
 
-SKU API is multi-workspace by design. Collocating it inside the Synarava Railway project (`synarava-shop`) couples deploy blast radius and blocks a second client. Live staging already posts GitHub checks as `handsome-commitment - sku-api`, while `synarava-shop` hosts only the storefront. Cross-project Railway private service references are unavailable; clients must use HTTPS.
+SKU API is multi-workspace by design. Collocating it inside the Synarava Railway project (`synarava-shop`) couples deploy blast radius and blocks a second client. Staging sku-api lives in project ID `6d7d5885-…` (now named `portable-sku-platform`); `synarava-shop` hosts only the storefront. Cross-project Railway private service references are unavailable for Synarava↔API; clients must use HTTPS. Staging n8n is **same-project** as sku-api and may use private refs.
 
 ### Decision
 
-1. Target Railway project name: **`portable-sku-platform`** — owns `sku-api`, `sku-postgres`, and platform automation (n8n). Multi-workspace API; Synarava is the first client.
+1. Railway project: **`portable-sku-platform`** (ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`) — multi-workspace SKU API; Synarava is the first client.
 2. Synarava Railway project (`synarava-shop`) hosts **web only**. It must not create a duplicate `sku-api` / `sku-postgres` / n8n for SKU.
-3. Until cutover, staging IaC manages the **existing** `sku-api` + `sku-postgres` in **`handsome-commitment`** (interim). Production is out of scope for automatic apply.
-4. Synarava ↔ SKU API: **public HTTPS** + per-workspace Bearer service credentials + rate limiting. No reliance on `${{sku-api.RAILWAY_PRIVATE_DOMAIN}}` across projects.
-5. Source code remains in the Synarava pnpm monorepo for now; HTTP contract stays the portability boundary.
-6. CI/CD and Railway watch paths are split: shop paths must not redeploy sku-api; sku paths must not redeploy the storefront.
+3. **Staging target:** `sku-api`, `sku-postgres`, **staging `n8n`**, **`n8n-postgres`** (separate persistence), **`n8n-data`**. Current fact may be sku-api+sku-postgres only — that is inventory, not the target.
+4. **Production:** out of scope for this IaC; do not modify prod `sku-platform-n8n*`.
+5. Synarava ↔ SKU API: **public HTTPS** + per-workspace Bearer + rate limiting **before** scrypt auth (no raw Bearer in rate-limit keys). Same-project n8n may use private `${{sku-api.*}}`.
+6. Source code remains in the Synarava pnpm monorepo for now; HTTP contract stays the portability boundary.
+7. CI/CD and Railway watch paths are split: shop paths must not redeploy sku-api; sku paths must not redeploy the storefront.
+8. IaC apply guard uses the **immutable project ID**. Apply only after `config plan` shows **no** create/delete/replace of existing `sku-api` / `sku-postgres` (creating staging n8n* is expected).
 
 ### Consequences
 
-- **Positive**: clear platform boundary for a second workspace; deploy isolation; matches live staging ownership.
-- **Negative**: HTTPS exposure requires auth hardening and rate limits; cutover from `handsome-commitment` / prod `sku-platform-n8n*` needs an explicit ops window.
+- **Positive**: clear platform boundary; rename-safe IaC identity; staging automation isolated from prod n8n.
+- **Negative**: HTTPS exposure needs rate limits; staging n8n cutover needs explicit `plan` review.
 - **Ops gate:** do not `railway config apply` until Kiryl confirms [`portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md).

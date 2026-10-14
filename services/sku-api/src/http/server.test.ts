@@ -133,7 +133,7 @@ describe("sku-api http", () => {
     expect(foreign.status).toBe(403);
   });
 
-  it("returns RATE_LIMITED when the per-minute budget is exhausted", async () => {
+  it("returns RATE_LIMITED when the post-auth per-credential budget is exhausted", async () => {
     const store = createMemorySkuRegistryStore();
     await store.ensureWorkspace("synarava-shop");
     await publishExampleProfile(store, SYNARAVA_SHOP_PROFILE_V1_EXAMPLE);
@@ -141,7 +141,8 @@ describe("sku-api http", () => {
       store,
       credentials: [credential],
       ready: () => true,
-      rateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
+      postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
     });
     await new Promise<void>((resolve) => {
       limitedServer.listen(0, "127.0.0.1", () => resolve());
@@ -168,6 +169,95 @@ describe("sku-api http", () => {
       ok: false,
       code: "RATE_LIMITED",
     });
+    await new Promise<void>((resolve, reject) => {
+      limitedServer.close((error) => (error ? reject(error) : resolve()));
+    });
+  });
+
+  it("pre-auth shared workspace+IP limit blocks rotating random Bearers before scrypt", async () => {
+    const store = createMemorySkuRegistryStore();
+    const limitedServer = createSkuHttpServer({
+      store,
+      credentials: [credential],
+      ready: () => true,
+      preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
+    });
+    await new Promise<void>((resolve) => {
+      limitedServer.listen(0, "127.0.0.1", () => resolve());
+    });
+    const address = limitedServer.address();
+    if (!address || typeof address === "string") {
+      throw new Error("no listen address");
+    }
+    const limitedBase = `http://127.0.0.1:${address.port}`;
+    const first = await fetch(`${limitedBase}/v1/workspaces/synarava-shop/profiles`, {
+      headers: {
+        authorization: "Bearer wrong-token-one",
+        "content-type": "application/json",
+        "x-real-ip": "203.0.113.50",
+      },
+    });
+    expect(first.status).toBe(401);
+    const second = await fetch(
+      `${limitedBase}/v1/workspaces/synarava-shop/profiles`,
+      {
+        headers: {
+          authorization: "Bearer wrong-token-two-different",
+          "content-type": "application/json",
+          "x-real-ip": "203.0.113.50",
+        },
+      },
+    );
+    expect(second.status).toBe(429);
+    await expect(second.json()).resolves.toMatchObject({
+      ok: false,
+      code: "RATE_LIMITED",
+    });
+    await new Promise<void>((resolve, reject) => {
+      limitedServer.close((error) => (error ? reject(error) : resolve()));
+    });
+  });
+
+  it("forged X-Forwarded-For does not bypass the pre-auth IP bucket", async () => {
+    const store = createMemorySkuRegistryStore();
+    const limitedServer = createSkuHttpServer({
+      store,
+      credentials: [credential],
+      ready: () => true,
+      preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
+    });
+    await new Promise<void>((resolve) => {
+      limitedServer.listen(0, "127.0.0.1", () => resolve());
+    });
+    const address = limitedServer.address();
+    if (!address || typeof address === "string") {
+      throw new Error("no listen address");
+    }
+    const limitedBase = `http://127.0.0.1:${address.port}`;
+    const first = await fetch(`${limitedBase}/v1/workspaces/synarava-shop/profiles`, {
+      headers: {
+        authorization: "Bearer wrong-a",
+        "content-type": "application/json",
+        "x-real-ip": "203.0.113.50",
+        "x-forwarded-for": "198.51.100.1",
+      },
+    });
+    expect(first.status).toBe(401);
+    // Different forged XFF must still share the X-Real-IP bucket → 429
+    const second = await fetch(
+      `${limitedBase}/v1/workspaces/synarava-shop/profiles`,
+      {
+        headers: {
+          authorization: "Bearer wrong-b",
+          "content-type": "application/json",
+          "x-real-ip": "203.0.113.50",
+          "x-forwarded-for": "198.51.100.99",
+        },
+      },
+    );
+    expect(second.status).toBe(429);
     await new Promise<void>((resolve, reject) => {
       limitedServer.close((error) => (error ? reject(error) : resolve()));
     });
