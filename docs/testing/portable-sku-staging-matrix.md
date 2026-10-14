@@ -5,13 +5,13 @@
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md) § Этап 4  
 **Wiki:** [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
 
-Production rollout remains **out of scope**. Do not merge SKU work to `main` via PR #148. Catalog audit (Этап 5 Slice A): [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).
+Production rollout remains **out of scope**. Do not merge SKU work to `main` via PR #148. Platform Railway: [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md). Catalog audit: [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).
 
 ## Preconditions
 
 | Check | Expected |
 | --- | --- |
-| sku-api in **synarava-shop / staging** | `GET /health` ok |
+| sku-api on **SKU platform** (interim handsome-commitment / staging) | `GET /health` ok via HTTPS |
 | Web env | `SKU_API_URL`, `SKU_API_TOKEN`, `SKU_API_WORKSPACE=synarava-shop` |
 | Published profile v1 | families include e.g. `jewelry.necklace` |
 | Shopify Admin on staging store | Admin GraphQL write for variant SKU |

@@ -17,6 +17,12 @@ import {
 } from "../auth.js";
 import { isDomainError } from "../registry/errors.js";
 import type { SkuRegistryStore } from "../registry/types.js";
+import {
+  createFixedWindowRateLimiter,
+  rateLimitKey,
+  resolveRateLimitPerMinute,
+  type RateLimitStore,
+} from "./rate-limit.js";
 
 export type SkuHttpApp = {
   readonly store: SkuRegistryStore;
@@ -24,6 +30,8 @@ export type SkuHttpApp = {
   readonly ready: () => boolean;
   /** Persistence mode — surfaced on /health for ops. */
   readonly mode?: "postgres" | "memory";
+  /** Override for tests; default from SKU_API_RATE_LIMIT_PER_MIN. */
+  readonly rateLimiter?: RateLimitStore;
 };
 
 const draftProfileSchema = z.object({
@@ -74,6 +82,13 @@ function errorBody(
 
 export function createSkuHttpServer(app: SkuHttpApp) {
   const allocator = createAllocator(app.store);
+  const rateLimiter =
+    app.rateLimiter ??
+    createFixedWindowRateLimiter({
+      limitPerMinute: resolveRateLimitPerMinute(
+        process.env.SKU_API_RATE_LIMIT_PER_MIN,
+      ),
+    });
 
   return createServer(async (req, res) => {
     try {
@@ -112,6 +127,26 @@ export function createSkuHttpServer(app: SkuHttpApp) {
           res,
           auth.status,
           errorBody("UNAUTHORIZED", auth.message, "n/a"),
+        );
+      }
+
+      const limited = rateLimiter.take(
+        rateLimitKey({
+          workspaceKey,
+          authorizationHeader: req.headers.authorization,
+        }),
+        Date.now(),
+      );
+      if (!limited.ok) {
+        res.setHeader("retry-after", String(limited.retryAfterSec));
+        return sendJson(
+          res,
+          429,
+          errorBody(
+            "RATE_LIMITED",
+            `rate limit exceeded; retry after ${limited.retryAfterSec}s`,
+            "n/a",
+          ),
         );
       }
 

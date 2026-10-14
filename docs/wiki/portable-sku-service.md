@@ -1,11 +1,12 @@
 # Portable SKU service
 
-**Status:** Этап 1–4 on staging · Этап 5 Slice A+B in repo (catalog audit API/CLI + staging n8n workflow/IaC) · Этап 6 not started  
+**Status:** Этап 1–5 code on staging · **platform architecture** → Railway `portable-sku-platform` (interim `handsome-commitment`) · Этап 6 not started  
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md)  
 **Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)  
 **Railway staging:** [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)  
-**Catalog audit:** [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
+**Catalog audit:** [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)  
+**Platform Railway:** [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)
 
 ## Packages
 
@@ -13,7 +14,7 @@
 | --- | --- |
 | `packages/sku-core` | Pure domain: normalize, stem, format/parse/validate, preview. No Shopify/Next/Prisma/HTTP. |
 | `packages/sku-contract` | Zod `/v1` schemas + typed `createSkuClient`. Consumed by Next via `transpilePackages` (extensionless TS imports — not Node `.js` suffixes). |
-| `services/sku-api` | Prisma registry + Postgres/`SkuRegistryStore`, allocator, legacy importer, HTTP `/v1` + auth. Railway: IaC partial `.railway/railway.ts` (not root CaC). |
+| `services/sku-api` | Prisma registry + Postgres/`SkuRegistryStore`, allocator, legacy importer, HTTP `/v1` + auth + rate limit. Railway: platform project (interim `handsome-commitment`; target `portable-sku-platform`). |
 
 ## Persistence
 
@@ -45,7 +46,7 @@ Prints `SKU_API_CREDENTIALS` (hashed, for sku-api) and plaintext `SKU_API_TOKEN`
 
 Railway staging: [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md) — web CaC at `deploy/railway.synarava-web.json`; sku-api via IaC (Config as Code deprecated for new services).
 
-Synarava server env (never expose to browser): `SKU_API_URL`, `SKU_API_TOKEN`, optional `SKU_API_WORKSPACE` (default `synarava-shop`).
+Synarava server env (never expose to browser): `SKU_API_URL` (**HTTPS** public sku-api host — not a cross-project private `${{sku-api.*}}` ref), `SKU_API_TOKEN`, optional `SKU_API_WORKSPACE` (default `synarava-shop`).
 
 ## Bootstrap
 
@@ -92,7 +93,8 @@ Postgres integration covers persist-across-reconnect, **parallel same-stem uniqu
 
 - Full retirement of dual `Product.sku` identity
 - Push writing every variant SKU (still primary-focused on Push path)
-- Этап 5: Railway staging n8n **manual apply** (Kiryl runbook) · `EXTERNAL_CHANGE_DETECTED` · recovery queue
+- Kiryl confirm platform architecture → then staging IaC apply (no prod) · cutover to `portable-sku-platform`
+- `EXTERNAL_CHANGE_DETECTED` · recovery-queue automation
 - Этап 6 production rollout
 - Manual matrix rows M6 / M9–M11 / M13 (M2 Pass Kiryl 2026-10-13; M3/M4/M5/M7/M8/M12 auto)
 

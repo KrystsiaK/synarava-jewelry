@@ -6,6 +6,7 @@ import {
   createMemorySkuRegistryStore,
   publishExampleProfile,
 } from "../registry/memory-store.js";
+import { createFixedWindowRateLimiter } from "./rate-limit.js";
 import { createSkuHttpServer } from "./server.js";
 
 describe("sku-api http", () => {
@@ -130,6 +131,46 @@ describe("sku-api http", () => {
       },
     );
     expect(foreign.status).toBe(403);
+  });
+
+  it("returns RATE_LIMITED when the per-minute budget is exhausted", async () => {
+    const store = createMemorySkuRegistryStore();
+    await store.ensureWorkspace("synarava-shop");
+    await publishExampleProfile(store, SYNARAVA_SHOP_PROFILE_V1_EXAMPLE);
+    const limitedServer = createSkuHttpServer({
+      store,
+      credentials: [credential],
+      ready: () => true,
+      rateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+    });
+    await new Promise<void>((resolve) => {
+      limitedServer.listen(0, "127.0.0.1", () => resolve());
+    });
+    const address = limitedServer.address();
+    if (!address || typeof address === "string") {
+      throw new Error("no listen address");
+    }
+    const limitedBase = `http://127.0.0.1:${address.port}`;
+    const headers = {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    };
+    const first = await fetch(`${limitedBase}/v1/workspaces/synarava-shop/profiles`, {
+      headers,
+    });
+    expect(first.status).toBe(200);
+    const second = await fetch(
+      `${limitedBase}/v1/workspaces/synarava-shop/profiles`,
+      { headers },
+    );
+    expect(second.status).toBe(429);
+    await expect(second.json()).resolves.toMatchObject({
+      ok: false,
+      code: "RATE_LIMITED",
+    });
+    await new Promise<void>((resolve, reject) => {
+      limitedServer.close((error) => (error ? reject(error) : resolve()));
+    });
   });
 
   it("catalog audit is read-only and notifies only on new digest", async () => {

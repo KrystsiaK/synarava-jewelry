@@ -1,30 +1,40 @@
-# Railway Infrastructure as Code
+# Railway Infrastructure as Code — portable SKU platform
 
-Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) · [Reference](https://docs.railway.com/infrastructure-as-code/reference) · [n8n on Railway](https://docs.railway.com/guides/n8n)
+Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) · [Monorepo deploys](https://docs.railway.com/deployments/monorepo)
 
 | File | Role |
 | --- | --- |
-| `.railway/railway.ts` | Named partial `sku` — `sku-api` + `sku-postgres` + staging `n8n` + `n8n-data` |
-| `deploy/railway.synarava-web.json` | Legacy Config as Code for **synarava-web only** (until full IaC migration) |
-| `deploy/n8n/sku-catalog-audit.workflow.json` | Этап 5 Slice B workflow (import into staging n8n) |
+| `.railway/railway.ts` | Named partial `sku` — interim **handsome-commitment / staging** `sku-api` + `sku-postgres` |
+| `deploy/railway.synarava-web.json` | Legacy CaC for **synarava-web** in project **synarava-shop** only |
+| `deploy/n8n/sku-catalog-audit.workflow.json` | Catalog-audit workflow (import into platform n8n after cutover) |
 
-Config as Code is deprecated; new services cannot use it. Root `/railway.json` was removed so a new `sku-api` service no longer inherits Next.js `pnpm build` / `pnpm start`.
+## Architecture (locked direction)
 
-## Apply sku slice (staging)
+- **Target** Railway project: `portable-sku-platform` (multi-workspace API).
+- **Interim:** existing staging `sku-api` / `sku-postgres` in **`handsome-commitment`**.
+- **Synarava** (`synarava-shop`) is a **client** over **HTTPS** — never host a second sku-api there; never use cross-project private `${{sku-api.*}}`.
+- **Production:** do not apply this partial; existing `sku-platform-n8n` / `sku-platform-n8n-postgres` are read-only until a separate cutover.
+
+Full plan: `docs/runbooks/portable-sku-platform-railway.md`.
+
+## Apply (staging only — after Kiryl confirmation)
 
 ```bash
-# CLI: https://docs.railway.com/guides/cli
 railway login
-railway link --project synarava-shop --environment staging
+railway link --project handsome-commitment --environment staging
 pnpm install --frozen-lockfile
 railway config plan
-# Continue only when the plan targets synarava-shop/staging and shows no unexpected destroy.
+# Expect: handsome-commitment/staging; sku-api + sku-postgres only.
+# Abort on unexpected destroy or any synarava-shop target.
+# Do NOT apply until Kiryl confirms the architecture plan.
 railway config apply
 ```
 
-The IaC guard **refuses** any project/environment other than `synarava-shop` / `staging` (no production apply).
+Guard refuses: non-staging environments, `synarava-shop`, and any project other than `handsome-commitment` (until `SKU_PLATFORM_PROJECT` is flipped to `portable-sku-platform`).
 
-Then set watch paths on `sku-api` in the dashboard (IaC DSL does not document watch patterns yet):
+## Watch paths (dashboard — deploy triggers)
+
+### handsome-commitment → `sku-api` (staging)
 
 ```
 /services/sku-api/**
@@ -36,24 +46,6 @@ Then set watch paths on `sku-api` in the dashboard (IaC DSL does not document wa
 /.railway/**
 ```
 
-### n8n (Этап 5 Slice B)
+### synarava-shop → `synarava-shop-app` (web)
 
-After apply, finish public domain + sealed vars and import the workflow — exact steps:
-
-[`docs/runbooks/sku-catalog-audit-staging.md`](../docs/runbooks/sku-catalog-audit-staging.md)
-
-Pinned image: `n8nio/n8n:2.44.1`. Volume mount: `/home/node/.n8n`.
-
-## synarava-web (must not break)
-
-The SKU partial intentionally refuses to run in the separate `handsome-commitment`
-project: Railway private networking and service-reference variables are scoped to
-one project/environment. Apply it only to `synarava-shop/staging`.
-
-After this change, set the web service **Config File** to:
-
-`/deploy/railway.synarava-web.json`
-
-Build/start remain: `pnpm build` · pre-deploy `pnpm prisma:deploy` · start `pnpm start` · health `/api/health` · builder `RAILPACK`.
-
-SKU staging checklist: [`docs/runbooks/sku-api-railway-staging.md`](../docs/runbooks/sku-api-railway-staging.md)
+Do **not** include `services/sku-api/**` or `packages/sku-*/**` in the web service watch paths (SKU-only commits must not rebuild the storefront).
