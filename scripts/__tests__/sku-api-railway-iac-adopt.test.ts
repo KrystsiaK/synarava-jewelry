@@ -37,4 +37,9 @@ describe("sku-api Railway IaC adopt fields", () => {
     expect(railwayTs).toMatch(/RAILWAY_RUN_UID:\s*"0"/);
     expect(railwayTs).toMatch(/N8N_USER_FOLDER:\s*"\/home\/node"/);
   });
+
+  it("pins sku-api PORT so n8n's private SKU_API_URL has a port", () => {
+    expect(railwayTs).toMatch(/PORT:\s*"8080"/);
+    expect(railwayTs).toContain("${{sku-api.PORT}}");
+  });
 });

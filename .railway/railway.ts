@@ -106,6 +106,9 @@ export default defineRailway((ctx) => {
     healthcheck: "/health",
     healthcheckTimeout: 30,
     env: {
+      // Explicit so n8n's `${{sku-api.PORT}}` resolves (runtime-injected PORT
+      // is not referenceable); matches the public domain targetPort.
+      PORT: "8080",
       SKU_DATABASE_URL: skuPostgres.env.DATABASE_URL,
       SKU_API_CREDENTIALS: preserve(),
       // Pre-auth (workspace+IP) then post-auth (credential fingerprint).
