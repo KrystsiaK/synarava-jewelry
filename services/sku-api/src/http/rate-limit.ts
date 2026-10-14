@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
+import type { IncomingMessage } from "node:http";
+import type { WorkspaceCredential } from "../auth.js";
 
 /**
  * Fixed-window rate limit for cross-project HTTPS clients.
- * Applied before scrypt auth. Keys never store raw Bearer tokens.
+ *
+ * - Pre-auth: shared per workspace + client IP (blocks random-Bearer scrypt burn).
+ * - Post-auth: per workspace + credential fingerprint (never raw Bearer).
  */
 export type RateLimitResult =
   | { readonly ok: true }
@@ -64,19 +68,50 @@ export function createFixedWindowRateLimiter(options: {
   };
 }
 
-/** SHA-256 fingerprint of the Authorization header (never store raw Bearer). */
-export function fingerprintAuthorization(
-  authorizationHeader: string | undefined,
-): string {
-  const raw = authorizationHeader?.trim() || "anonymous";
-  return createHash("sha256").update(raw).digest("hex").slice(0, 32);
+/** Client IP for pre-auth shared buckets (proxy-aware). */
+export function clientIpFromRequest(req: IncomingMessage): string {
+  const xff = req.headers["x-forwarded-for"];
+  if (typeof xff === "string" && xff.trim() !== "") {
+    return xff.split(",")[0]!.trim();
+  }
+  if (Array.isArray(xff) && typeof xff[0] === "string" && xff[0].trim() !== "") {
+    return xff[0].split(",")[0]!.trim();
+  }
+  const realIp = req.headers["x-real-ip"];
+  if (typeof realIp === "string" && realIp.trim() !== "") {
+    return realIp.trim();
+  }
+  return req.socket.remoteAddress ?? "unknown";
 }
 
-export function rateLimitKey(params: {
+/** Pre-auth key: workspace + IP — shared across random Bearer attempts. */
+export function preAuthRateLimitKey(params: {
   readonly workspaceKey: string;
-  readonly authorizationHeader: string | undefined;
+  readonly clientIp: string;
 }): string {
-  return `${params.workspaceKey}|${fingerprintAuthorization(params.authorizationHeader)}`;
+  return `pre|${params.workspaceKey}|${params.clientIp}`;
+}
+
+/**
+ * Fingerprint of a stored credential (salt+hash), never the raw Bearer token.
+ */
+export function fingerprintCredential(
+  credential: WorkspaceCredential,
+): string {
+  return createHash("sha256")
+    .update(
+      `${credential.workspaceKey}:${credential.salt}:${credential.tokenHash}`,
+    )
+    .digest("hex")
+    .slice(0, 32);
+}
+
+/** Post-auth key: workspace + credential fingerprint. */
+export function postAuthRateLimitKey(params: {
+  readonly workspaceKey: string;
+  readonly credential: WorkspaceCredential;
+}): string {
+  return `post|${params.workspaceKey}|${fingerprintCredential(params.credential)}`;
 }
 
 export function resolveRateLimitPerMinute(

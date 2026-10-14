@@ -18,8 +18,10 @@ import {
 import { isDomainError } from "../registry/errors.js";
 import type { SkuRegistryStore } from "../registry/types.js";
 import {
+  clientIpFromRequest,
   createFixedWindowRateLimiter,
-  rateLimitKey,
+  postAuthRateLimitKey,
+  preAuthRateLimitKey,
   resolveRateLimitPerMinute,
   type RateLimitStore,
 } from "./rate-limit.js";
@@ -30,8 +32,10 @@ export type SkuHttpApp = {
   readonly ready: () => boolean;
   /** Persistence mode — surfaced on /health for ops. */
   readonly mode?: "postgres" | "memory";
-  /** Override for tests; default from SKU_API_RATE_LIMIT_PER_MIN. */
-  readonly rateLimiter?: RateLimitStore;
+  /** Pre-auth shared limit (workspace+IP). Default SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN. */
+  readonly preAuthRateLimiter?: RateLimitStore;
+  /** Post-auth per-credential limit. Default SKU_API_RATE_LIMIT_PER_MIN. */
+  readonly postAuthRateLimiter?: RateLimitStore;
 };
 
 const draftProfileSchema = z.object({
@@ -80,10 +84,31 @@ function errorBody(
   };
 }
 
+function sendRateLimited(res: ServerResponse, retryAfterSec: number) {
+  res.setHeader("retry-after", String(retryAfterSec));
+  return sendJson(
+    res,
+    429,
+    errorBody(
+      "RATE_LIMITED",
+      `rate limit exceeded; retry after ${retryAfterSec}s`,
+      "n/a",
+    ),
+  );
+}
+
 export function createSkuHttpServer(app: SkuHttpApp) {
   const allocator = createAllocator(app.store);
-  const rateLimiter =
-    app.rateLimiter ??
+  const preAuthRateLimiter =
+    app.preAuthRateLimiter ??
+    createFixedWindowRateLimiter({
+      limitPerMinute: resolveRateLimitPerMinute(
+        process.env.SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN,
+        60,
+      ),
+    });
+  const postAuthRateLimiter =
+    app.postAuthRateLimiter ??
     createFixedWindowRateLimiter({
       limitPerMinute: resolveRateLimitPerMinute(
         process.env.SKU_API_RATE_LIMIT_PER_MIN,
@@ -117,25 +142,16 @@ export function createSkuHttpServer(app: SkuHttpApp) {
       );
       const rest = workspaceMatch[2] ?? "";
 
-      // Rate-limit before scrypt auth so attackers cannot burn CPU on verify.
-      const limited = rateLimiter.take(
-        rateLimitKey({
+      // Shared pre-auth limit (workspace+IP) before scrypt — random Bearers share a bucket.
+      const preAuth = preAuthRateLimiter.take(
+        preAuthRateLimitKey({
           workspaceKey,
-          authorizationHeader: req.headers.authorization,
+          clientIp: clientIpFromRequest(req),
         }),
         Date.now(),
       );
-      if (!limited.ok) {
-        res.setHeader("retry-after", String(limited.retryAfterSec));
-        return sendJson(
-          res,
-          429,
-          errorBody(
-            "RATE_LIMITED",
-            `rate limit exceeded; retry after ${limited.retryAfterSec}s`,
-            "n/a",
-          ),
-        );
+      if (!preAuth.ok) {
+        return sendRateLimited(res, preAuth.retryAfterSec);
       }
 
       const auth = authenticateRequest({
@@ -149,6 +165,26 @@ export function createSkuHttpServer(app: SkuHttpApp) {
           auth.status,
           errorBody("UNAUTHORIZED", auth.message, "n/a"),
         );
+      }
+
+      const credential = app.credentials.find(
+        (c) => c.workspaceKey === workspaceKey,
+      );
+      if (!credential) {
+        return sendJson(
+          res,
+          403,
+          errorBody("UNAUTHORIZED", "workspace not authorized", "n/a"),
+        );
+      }
+
+      // Post-auth per-credential limit (fingerprint of stored salt+hash — never raw Bearer).
+      const postAuth = postAuthRateLimiter.take(
+        postAuthRateLimitKey({ workspaceKey, credential }),
+        Date.now(),
+      );
+      if (!postAuth.ok) {
+        return sendRateLimited(res, postAuth.retryAfterSec);
       }
 
       await app.store.ensureWorkspace(workspaceKey);

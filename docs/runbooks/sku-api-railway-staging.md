@@ -43,15 +43,20 @@ node services/sku-api/scripts/generate-credentials.mjs synarava-shop
 
 ## IaC (platform staging)
 
-See **Safe adoption flow** in [`portable-sku-platform-railway.md`](portable-sku-platform-railway.md).
+See **Safe adoption flow** in [`portable-sku-platform-railway.md`](portable-sku-platform-railway.md)  
+Script: [`scripts/sku-platform-staging-adopt-check.sh`](../../scripts/sku-platform-staging-adopt-check.sh)
 
 ```bash
 railway link --project portable-sku-platform --environment staging
+railway config pull --json --environment staging > /tmp/sku-platform-staging.pull.json
+railway config partials list
 railway config plan
 # Apply ONLY after Kiryl confirmation + apply gate (no recreate of existing sku-api/sku-postgres)
 ```
 
 Guard: immutable project ID; refuses `synarava-shop` and production.
+
+Rate limits on `sku-api`: `SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN` (workspace+IP, before scrypt) then `SKU_API_RATE_LIMIT_PER_MIN` (post-auth credential fingerprint).
 
 ## Watch paths
 

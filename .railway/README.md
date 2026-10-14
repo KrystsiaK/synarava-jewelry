@@ -22,14 +22,20 @@ n8n steps: `docs/runbooks/sku-catalog-audit-staging.md`.
 
 ## Safe adoption + apply (staging only — after Kiryl confirmation)
 
+Exact sequence helper: [`scripts/sku-platform-staging-adopt-check.sh`](../scripts/sku-platform-staging-adopt-check.sh)  
+CLI: [railway config](https://docs.railway.com/cli/config) — `pull`, `partials`, `plan`, `apply`.
+
 ```bash
 railway login
 railway link --project portable-sku-platform --environment staging
 # project ID 6d7d5885-43eb-4283-b4a4-e552fc6dba7b
-pnpm install --frozen-lockfile
 
-# 1) Pull / inspect what Railway already owns (dashboard + CLI).
-# 2) Confirm partial `sku` will manage: sku-api, sku-postgres, n8n, n8n-postgres, n8n-data.
+# BEFORE plan (required):
+railway config pull --json --environment staging > /tmp/sku-platform-staging.pull.json
+railway config partials list
+# Transfer to partial `sku` only if another named partial owns sku-api/sku-postgres
+
+pnpm install --frozen-lockfile
 railway config plan
 ```
 

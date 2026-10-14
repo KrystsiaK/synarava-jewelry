@@ -27,15 +27,41 @@ Current state ≠ Этап 5 target. IaC creates staging n8n + separate persiste
 
 ## Safe adoption flow (existing sku-api / sku-postgres)
 
-Do this **only** for project ID `6d7d5885-…` / environment **staging**.
+Do this **only** for project ID `6d7d5885-…` / environment **staging**.  
+Helper script (same sequence): [`scripts/sku-platform-staging-adopt-check.sh`](../../scripts/sku-platform-staging-adopt-check.sh)  
+CLI reference: [railway config](https://docs.railway.com/cli/config) (`pull`, `partials`, `plan`).
+
+**Exact sequence before `config plan`:**
 
 1. **Link**
    ```bash
    railway link --project portable-sku-platform --environment staging
    ```
-2. **Inventory (dashboard / CLI)** — confirm Online today: `sku-api`, `sku-postgres`. Note service IDs. Confirm production is **not** selected.
-3. **Partial ownership** — this repo’s named partial is `sku` (`.railway/railway.ts`). It must own only: `sku-api`, `sku-postgres`, `n8n`, `n8n-postgres`, `n8n-data`. It must **never** manage synarava-web or prod `sku-platform-n8n*`.
-4. **Plan**
+2. **`railway config pull` (inspect — do not overwrite committed authoring)**
+   ```bash
+   # JSON inspect keeps committed .railway/railway.ts intact
+   railway config pull --json --environment staging > /tmp/sku-platform-staging.pull.json
+   ```
+   Confirm the live graph includes services named **`sku-api`** and **`sku-postgres`** (name match is how IaC adopts without recreate).  
+   Do **not** `railway config pull --force` over the committed file unless you intentionally re-author and re-diff; restore with `git checkout -- .railway/railway.ts` if needed.
+3. **`railway config partials` (ownership check)**
+   ```bash
+   railway config partials list
+   # optional machine-readable:
+   railway config partials list --json
+   ```
+   - Named partial in this repo: **`sku`** (see `export const partial = "sku"` in `.railway/railway.ts`).
+   - Expect `sku-api` / `sku-postgres` either **unowned** (`*` / whole-project) or already owned by **`sku`**.
+   - If another named partial owns them, **transfer** (dry-run first) using exact addresses from the list — e.g.:
+     ```bash
+     railway config partials transfer <source> sku \
+       --resource service.sku-api \
+       --resource database.sku-postgres \
+       --dry-run
+     # then drop --dry-run after Kiryl OK
+     ```
+   - Never release/transfer production `sku-platform-n8n*` from this flow.
+4. **Plan** (only after pull + partials check)
    ```bash
    pnpm install --frozen-lockfile
    railway config plan

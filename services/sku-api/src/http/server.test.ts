@@ -133,7 +133,7 @@ describe("sku-api http", () => {
     expect(foreign.status).toBe(403);
   });
 
-  it("returns RATE_LIMITED when the per-minute budget is exhausted", async () => {
+  it("returns RATE_LIMITED when the post-auth per-credential budget is exhausted", async () => {
     const store = createMemorySkuRegistryStore();
     await store.ensureWorkspace("synarava-shop");
     await publishExampleProfile(store, SYNARAVA_SHOP_PROFILE_V1_EXAMPLE);
@@ -141,7 +141,8 @@ describe("sku-api http", () => {
       store,
       credentials: [credential],
       ready: () => true,
-      rateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
+      postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
     });
     await new Promise<void>((resolve) => {
       limitedServer.listen(0, "127.0.0.1", () => resolve());
@@ -173,13 +174,14 @@ describe("sku-api http", () => {
     });
   });
 
-  it("rate-limits before auth so bad tokens cannot burn scrypt budget", async () => {
+  it("pre-auth shared workspace+IP limit blocks rotating random Bearers before scrypt", async () => {
     const store = createMemorySkuRegistryStore();
     const limitedServer = createSkuHttpServer({
       store,
       credentials: [credential],
       ready: () => true,
-      rateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
     });
     await new Promise<void>((resolve) => {
       limitedServer.listen(0, "127.0.0.1", () => resolve());
@@ -189,17 +191,23 @@ describe("sku-api http", () => {
       throw new Error("no listen address");
     }
     const limitedBase = `http://127.0.0.1:${address.port}`;
-    const badHeaders = {
-      authorization: "Bearer wrong-token",
-      "content-type": "application/json",
-    };
     const first = await fetch(`${limitedBase}/v1/workspaces/synarava-shop/profiles`, {
-      headers: badHeaders,
+      headers: {
+        authorization: "Bearer wrong-token-one",
+        "content-type": "application/json",
+        "x-forwarded-for": "203.0.113.50",
+      },
     });
     expect(first.status).toBe(401);
     const second = await fetch(
       `${limitedBase}/v1/workspaces/synarava-shop/profiles`,
-      { headers: badHeaders },
+      {
+        headers: {
+          authorization: "Bearer wrong-token-two-different",
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.50",
+        },
+      },
     );
     expect(second.status).toBe(429);
     await expect(second.json()).resolves.toMatchObject({

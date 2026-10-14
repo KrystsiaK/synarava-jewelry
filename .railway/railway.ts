@@ -82,6 +82,8 @@ export default defineRailway((ctx) => {
     env: {
       SKU_DATABASE_URL: skuPostgres.env.DATABASE_URL,
       SKU_API_CREDENTIALS: preserve(),
+      // Pre-auth (workspace+IP) then post-auth (credential fingerprint).
+      SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN: preserve(),
       SKU_API_RATE_LIMIT_PER_MIN: preserve(),
     },
   });

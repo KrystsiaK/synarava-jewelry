@@ -91,13 +91,22 @@ Do these **only** in Railway project **`portable-sku-platform`** (ID `6d7d5885-4
 
 ### 1. Apply IaC (adopt sku-* ; create staging n8n + n8n-postgres + volume)
 
+**Exact order** (also [`scripts/sku-platform-staging-adopt-check.sh`](../../scripts/sku-platform-staging-adopt-check.sh) + [`portable-sku-platform-railway.md`](portable-sku-platform-railway.md)):
+
 ```bash
 cd /path/to/synarava-jewelry
-pnpm install --frozen-lockfile
 railway link --project portable-sku-platform --environment staging
+
+# BEFORE plan: pull (inspect) + partials ownership
+railway config pull --json --environment staging > /tmp/sku-platform-staging.pull.json
+railway config partials list
+# If sku-api/sku-postgres owned by another partial → transfer to `sku` (dry-run first)
+
+pnpm install --frozen-lockfile
 railway config plan
 # Expect: project ID 6d7d5885-… / staging
-# Expect: create/update staging n8n + n8n-postgres + n8n-data
+# Expect: adopt existing sku-api + sku-postgres (no recreate)
+# Expect: create staging n8n + n8n-postgres + n8n-data
 # Abort if plan create/delete/replace existing sku-api, sku-postgres, or its volume
 # Abort if any production / sku-platform-n8n* / synarava-shop target
 # Do NOT apply until Kiryl confirms
