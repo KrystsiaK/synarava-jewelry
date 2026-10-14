@@ -216,18 +216,25 @@ Workflow не хранит next number и не вызывает LLM для ка�
 
 ### 10.1. Delivery в Railway
 
-Один GitHub-репозиторий подключается к нескольким Railway services:
+Один GitHub-репозиторий питает **два Railway project**:
 
-| Railway service | Source | Build / start | Network |
-| --- | --- | --- | --- |
-| `synarava-web` | root package | существующие `pnpm build` / `pnpm start` | public storefront + private call to API |
-| `sku-api` | `services/sku-api` workspace | `pnpm --filter @synarava/sku-api build` / `start` | private initially; public gateway only for approved external clients |
-| `sku-postgres` | Railway PostgreSQL | managed | private only |
-| `n8n` | staging Slice B (`n8nio/n8n` image + volume) | отдельный service в `synarava-shop/staging` | private client → `sku-api`; editor public + basic auth |
+| Railway project | Services | Role |
+| --- | --- | --- |
+| **`portable-sku-platform`** (target; interim **`handsome-commitment`**) | `sku-api`, `sku-postgres`, platform n8n | Multi-workspace SKU API + automation |
+| **`synarava-shop`** | `synarava-web` only | First client (storefront + Admin adapter) |
 
-Для `sku-api` watch paths включают `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile и workspace config. Изменение SKU-кода не должно автоматически пересобирать storefront, если публичный contract не изменился.
+| Service | Source | Network |
+| --- | --- | --- |
+| `synarava-web` | root package / legacy CaC | Public storefront; **HTTPS** client of sku-api (Bearer) |
+| `sku-api` | `services/sku-api` | Public HTTPS for approved clients; workspace Bearer auth + rate limit |
+| `sku-postgres` | Railway PostgreSQL | Private to the **platform** project only |
+| Platform n8n | image (e.g. prod `sku-platform-n8n`) | HTTPS → sku-api; not inside `synarava-shop` |
 
-Delivery flow: feature branch → PR CI → merge в `staging` → независимые Railway staging deploys → Shopify staging tests → merge `staging` в `main` → production deploy. API deployment выполняет совместимую migration до readiness; `/health` не возвращает ready до успешного подключения к БД. Synarava использует private Railway domain/reference variable внутри одного environment. Staging и production имеют разные API credentials и разные SKU databases.
+**Запрещено:** дублировать `sku-api` в `synarava-shop`; опираться на `${{sku-api.*}}` private refs **между** Railway projects.
+
+Watch paths разделены: sku-api — `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile/workspace, `.railway/**`. Storefront watch paths **не** включают sku-пакеты.
+
+Delivery flow: feature branch → path-aware CI → merge в `staging` → независимые deploys (web vs sku-api) → Shopify staging tests. Production cutover на `portable-sku-platform` — отдельное подтверждение (см. [`portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)). Staging/production credentials и БД SKU разделены.
 
 ## 11. Этапы реализации
 
@@ -313,16 +320,15 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 ### Этап 5 — n8n audit automation
 
-**Статус реализации (2026-10-14):** Slice A + Slice B **в репозитории** для staging (без production n8n / merge в main). Ручной apply n8n на Railway — у Kiryl (runbook).
+**Статус реализации (2026-10-14):** Slice A shipped; Slice B workflow JSON shipped; **platform Railway architecture** supersedes “n8n inside synarava-shop”. IaC apply gated on Kiryl confirmation.
 
-- read-only catalog audit: `POST /v1/workspaces/{key}/audit/catalog` + `runCatalogAudit` (`services/sku-api/src/audit/catalog-audit.ts`)
-- batching (max 100), digest checkpoint (`previousDigest` / CLI `.sku-audit-checkpoint.json` / n8n static data), идемпотентный повтор
-- `shouldNotify` только при новом deviation digest; `durationMs` + `llmEnabled: false`
+- read-only catalog audit: `POST /v1/workspaces/{key}/audit/catalog` + `runCatalogAudit`
+- batching (max 100), digest checkpoint, `shouldNotify`, `llmEnabled: false`
 - Dry-run CLI: `pnpm --filter @synarava/sku-api audit:catalog`
-- Slice B: IaC service `n8n` + volume (`n8nio/n8n:2.44.1`) в [`.railway/railway.ts`](../../.railway/railway.ts); workflow [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) — schedule `0 3 * * *` UTC, notify webhook only when `shouldNotify`
-- Runbook (manual apply steps): [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
+- Workflow: [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) — host on **SKU platform** project (HTTPS → sku-api), not synarava-shop
+- Platform runbook: [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)
 
-**Ещё не в Этапе 5:** mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue automation; production n8n.
+**Ещё не в Этапе 5:** staging n8n host cutover after confirm; mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue; production changes.
 
 **Выход:** workflow/API не создаёт SKU и не владеет ledger-состоянием; повторный активный запуск с тем же digest не создаёт нового notify.
 
