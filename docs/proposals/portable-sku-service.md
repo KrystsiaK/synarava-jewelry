@@ -218,17 +218,19 @@ Workflow не хранит next number и не вызывает LLM для ка�
 
 Один GitHub-репозиторий питает **два Railway project**:
 
-| Railway project | ID | Services (staging fact) | Role |
+| Railway project | ID | Staging **target** | Role |
 | --- | --- | --- | --- |
-| **`portable-sku-platform`** (renamed from `handsome-commitment`) | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | `sku-api`, `sku-postgres` only — **no n8n in staging yet** | Multi-workspace SKU API |
+| **`portable-sku-platform`** (renamed from `handsome-commitment`) | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | `sku-api`, `sku-postgres`, staging `n8n`, `n8n-postgres`, `n8n-data` | Multi-workspace SKU API + staging automation |
 | **`synarava-shop`** | `fe392310-…` | `synarava-web` only | First client (storefront + Admin adapter) |
+
+Current staging fact may be `sku-api`+`sku-postgres` only (no n8n yet) — that is inventory, not the Этап 5 target. Production `sku-platform-n8n*` must not be modified for staging.
 
 | Service | Source | Network |
 | --- | --- | --- |
 | `synarava-web` | root package / legacy CaC | Public storefront; **HTTPS** client of sku-api (Bearer) |
-| `sku-api` | `services/sku-api` | Public HTTPS for approved clients; workspace Bearer auth + rate limit |
+| `sku-api` | `services/sku-api` | Public HTTPS for approved clients; workspace Bearer + rate limit before scrypt |
 | `sku-postgres` | Railway PostgreSQL | Private to the **platform** project only |
-| Platform n8n | later (staging not present yet; prod may have `sku-platform-n8n`) | HTTPS → sku-api; not inside `synarava-shop`; not created by current IaC |
+| Staging `n8n` + `n8n-postgres` | image `n8nio/n8n` + Postgres | Same-project private → sku-api; **not** prod n8n; not inside `synarava-shop` |
 
 **Запрещено:** дублировать `sku-api` в `synarava-shop`; опираться на `${{sku-api.*}}` private refs **между** Railway projects.
 

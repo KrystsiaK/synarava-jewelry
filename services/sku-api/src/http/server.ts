@@ -117,19 +117,7 @@ export function createSkuHttpServer(app: SkuHttpApp) {
       );
       const rest = workspaceMatch[2] ?? "";
 
-      const auth = authenticateRequest({
-        authorizationHeader: req.headers.authorization,
-        pathWorkspaceKey: workspaceKey,
-        credentials: app.credentials,
-      });
-      if (!auth.ok) {
-        return sendJson(
-          res,
-          auth.status,
-          errorBody("UNAUTHORIZED", auth.message, "n/a"),
-        );
-      }
-
+      // Rate-limit before scrypt auth so attackers cannot burn CPU on verify.
       const limited = rateLimiter.take(
         rateLimitKey({
           workspaceKey,
@@ -147,6 +135,19 @@ export function createSkuHttpServer(app: SkuHttpApp) {
             `rate limit exceeded; retry after ${limited.retryAfterSec}s`,
             "n/a",
           ),
+        );
+      }
+
+      const auth = authenticateRequest({
+        authorizationHeader: req.headers.authorization,
+        pathWorkspaceKey: workspaceKey,
+        credentials: app.credentials,
+      });
+      if (!auth.ok) {
+        return sendJson(
+          res,
+          auth.status,
+          errorBody("UNAUTHORIZED", auth.message, "n/a"),
         );
       }
 

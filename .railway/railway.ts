@@ -1,28 +1,31 @@
 /**
  * Railway Infrastructure as Code (GA) — portable SKU platform slice (staging).
  *
- * Architecture (confirmed rename 2026-10-14):
- * - Railway project **portable-sku-platform** (was handsome-commitment).
- * - Immutable project ID: `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` (IaC guard uses ID, not display name).
- * - Staging inventory today: **sku-api** + **sku-postgres** only (Online). No n8n in staging yet.
- * - Do **NOT** create sku-api / n8n duplicates inside `synarava-shop`
- *   (Synarava web is HTTPS client only — no cross-project private `${{service.*}}`).
+ * Target `portable-sku-platform` / staging:
+ * - sku-api + sku-postgres (adopt existing)
+ * - staging n8n + separate n8n-postgres + n8n-data volume
  *
- * **Do not `railway config apply` until Kiryl confirms** the architecture plan:
- *   store docs/portable-sku-platform-architecture.md
- *   docs/runbooks/portable-sku-platform-railway.md
+ * Guard: immutable project ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` (not display name).
+ * Staging only. Never touch production (including prod `sku-platform-n8n*`).
+ * Synarava web stays in `synarava-shop` (HTTPS client — no sku duplicates there).
+ *
+ * **Do not `railway config apply` until Kiryl confirms** after `config plan`
+ * (see adoption gate in docs/runbooks/portable-sku-platform-railway.md).
  *
  * Docs:
  * - https://docs.railway.com/infrastructure-as-code
  * - https://docs.railway.com/deployments/monorepo
+ * - https://docs.railway.com/guides/n8n
  */
 import {
   defineRailway,
   github,
+  image,
   postgres,
   preserve,
   project,
   service,
+  volume,
 } from "railway/iac";
 
 /** Named partial — owns SKU platform resources only (never synarava-web). */
@@ -37,10 +40,13 @@ const SKU_PLATFORM_PROJECT_ID = "6d7d5885-43eb-4283-b4a4-e552fc6dba7b";
 /** Current display name (docs / `project()` only — not the apply guard). */
 const SKU_PLATFORM_PROJECT_NAME = "portable-sku-platform";
 
+/** Pin n8n image; bump deliberately after staging verify. */
+const N8N_IMAGE = "n8nio/n8n:2.44.1";
+
 export default defineRailway((ctx) => {
   if (!ctx.isEnvironment("staging")) {
     throw new Error(
-      `Refusing to manage ${ctx.projectName ?? "?"}/${ctx.environmentName}: staging only. Production is out of scope for this partial.`,
+      `Refusing to manage ${ctx.projectName ?? "?"}/${ctx.environmentName}: staging only. Production (including sku-platform-n8n*) is out of scope.`,
     );
   }
 
@@ -62,7 +68,7 @@ export default defineRailway((ctx) => {
     );
   }
 
-  // Existing staging data plane — IaC adopts; does not invent Postgres or n8n.
+  // Existing staging data plane — IaC adopts; apply gate forbids recreate/delete.
   const skuPostgres = postgres("sku-postgres");
 
   const skuApi = service("sku-api", {
@@ -76,15 +82,50 @@ export default defineRailway((ctx) => {
     env: {
       SKU_DATABASE_URL: skuPostgres.env.DATABASE_URL,
       SKU_API_CREDENTIALS: preserve(),
-      // Cross-project clients use public HTTPS + Bearer; tune after expose.
       SKU_API_RATE_LIMIT_PER_MIN: preserve(),
     },
   });
 
-  // Staging has no n8n yet — do not create it in this partial.
-  // Production may host sku-platform-n8n (+ postgres); out of scope for apply.
+  // Staging n8n — separate Postgres from sku-postgres; volume for encryption keys/local files.
+  // https://docs.railway.com/guides/n8n (Optional: Use Postgres instead of SQLite)
+  const n8nPostgres = postgres("n8n-postgres");
+  const n8nData = volume("n8n-data", { sizeMB: 1024 });
+
+  const n8n = service("n8n", {
+    source: image(N8N_IMAGE, {
+      autoUpdates: { type: "disabled" },
+    }),
+    volumeMounts: {
+      "/home/node/.n8n": n8nData,
+    },
+    env: {
+      N8N_PORT: "${{PORT}}",
+      N8N_HOST: "0.0.0.0",
+      N8N_PROTOCOL: "https",
+      N8N_EDITOR_BASE_URL: preserve(),
+      WEBHOOK_URL: preserve(),
+      N8N_BASIC_AUTH_ACTIVE: "true",
+      N8N_BASIC_AUTH_USER: preserve(),
+      N8N_BASIC_AUTH_PASSWORD: preserve(),
+      N8N_ENCRYPTION_KEY: preserve(),
+      GENERIC_TIMEZONE: "UTC",
+      DB_TYPE: "postgresdb",
+      DB_POSTGRESDB_HOST: n8nPostgres.env.PGHOST,
+      DB_POSTGRESDB_PORT: n8nPostgres.env.PGPORT,
+      DB_POSTGRESDB_DATABASE: n8nPostgres.env.PGDATABASE,
+      DB_POSTGRESDB_USER: n8nPostgres.env.PGUSER,
+      DB_POSTGRESDB_PASSWORD: n8nPostgres.env.PGPASSWORD,
+      // Same-project private URL to sku-api (not synarava-shop; not prod n8n).
+      SKU_API_URL:
+        "http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}",
+      SKU_API_TOKEN: preserve(),
+      SKU_API_WORKSPACE: "synarava-shop",
+      CATALOG_ITEMS_JSON: preserve(),
+      NOTIFY_WEBHOOK_URL: preserve(),
+    },
+  });
 
   return project(SKU_PLATFORM_PROJECT_NAME, {
-    resources: [skuPostgres, skuApi],
+    resources: [skuPostgres, skuApi, n8nPostgres, n8nData, n8n],
   });
 });

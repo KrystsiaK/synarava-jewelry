@@ -1,38 +1,49 @@
 # Railway Infrastructure as Code — portable SKU platform
 
-Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) · [Monorepo deploys](https://docs.railway.com/deployments/monorepo)
+Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) · [Monorepo deploys](https://docs.railway.com/deployments/monorepo) · [n8n on Railway](https://docs.railway.com/guides/n8n)
 
 | File | Role |
 | --- | --- |
-| `.railway/railway.ts` | Named partial `sku` — **portable-sku-platform / staging** `sku-api` + `sku-postgres` |
+| `.railway/railway.ts` | Named partial `sku` — staging `sku-api` + `sku-postgres` + `n8n` + `n8n-postgres` + `n8n-data` |
 | `deploy/railway.synarava-web.json` | Legacy CaC for **synarava-web** in project **synarava-shop** only |
-| `deploy/n8n/sku-catalog-audit.workflow.json` | Catalog-audit workflow (import into platform n8n when staging n8n exists) |
+| `deploy/n8n/sku-catalog-audit.workflow.json` | Catalog-audit workflow (import into **staging** n8n) |
 
-## Architecture (locked)
+## Architecture
 
-- **Railway project:** `portable-sku-platform` (renamed from `handsome-commitment`).
-- **Immutable project ID:** `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` — IaC guard keys on this ID, not the display name.
-- **Staging inventory (fact):** `sku-api` + `sku-postgres` only (Online). **No n8n in staging yet.**
-- **Synarava** (`synarava-shop`) is a **client** over **HTTPS** — never host a second sku-api there; never use cross-project private `${{sku-api.*}}`.
-- **Production:** do not apply this partial; prod automation (e.g. `sku-platform-n8n*`) is read-only until a separate cutover.
+- **Railway project:** `portable-sku-platform` (ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`).
+- **IaC guard:** immutable **project ID** (not display name); staging only; refuses `synarava-shop` and production.
+- **Staging target:** `sku-api`, `sku-postgres`, **staging `n8n`**, **`n8n-postgres`** (separate from sku DB), **`n8n-data`** volume.
+- **Current fact:** staging may already have only `sku-api` + `sku-postgres` Online — IaC **creates** staging n8n resources; it must **adopt** existing sku resources (see apply gate).
+- **Production:** never apply this partial; do not modify `sku-platform-n8n*`.
+- **Synarava** (`synarava-shop`): HTTPS client only.
 
-Full plan: `docs/runbooks/portable-sku-platform-railway.md`.
+Full plan: `docs/runbooks/portable-sku-platform-railway.md`.  
+n8n steps: `docs/runbooks/sku-catalog-audit-staging.md`.
 
-## Apply (staging only — after Kiryl confirmation)
+## Safe adoption + apply (staging only — after Kiryl confirmation)
 
 ```bash
 railway login
 railway link --project portable-sku-platform --environment staging
-# Or link by ID: 6d7d5885-43eb-4283-b4a4-e552fc6dba7b
+# project ID 6d7d5885-43eb-4283-b4a4-e552fc6dba7b
 pnpm install --frozen-lockfile
+
+# 1) Pull / inspect what Railway already owns (dashboard + CLI).
+# 2) Confirm partial `sku` will manage: sku-api, sku-postgres, n8n, n8n-postgres, n8n-data.
 railway config plan
-# Expect: portable-sku-platform/staging; sku-api + sku-postgres only.
-# Abort on unexpected destroy, any n8n create, or any synarava-shop target.
-# Do NOT apply until Kiryl confirms the architecture plan.
-railway config apply
 ```
 
-Guard refuses: non-staging environments, `synarava-shop`, missing `projectId`, and any project ID other than `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`.
+**Apply allowed only if** the plan:
+
+- Does **not** create / delete / replace existing **`sku-postgres`**, its volume, or **`sku-api`**
+- May **create** staging `n8n`, `n8n-postgres`, `n8n-data` (expected)
+- Does **not** target production or `synarava-shop`
+- Shows **no** unexpected destroy of unrelated services
+
+```bash
+# ONLY after Kiryl OK + plan gate above
+railway config apply
+```
 
 ## Watch paths (dashboard — deploy triggers)
 
@@ -50,4 +61,4 @@ Guard refuses: non-staging environments, `synarava-shop`, missing `projectId`, a
 
 ### synarava-shop → `synarava-shop-app` (web)
 
-Do **not** include `services/sku-api/**` or `packages/sku-*/**` in the web service watch paths (SKU-only commits must not rebuild the storefront).
+Do **not** include `services/sku-api/**` or `packages/sku-*/**` in the web service watch paths.
