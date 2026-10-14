@@ -1,7 +1,7 @@
 # SKU API — Railway staging
 
 Deploy-ready checklist for the portable SKU service on **staging only**.
-Do not configure production, Shopify prod, or n8n here.
+Do not configure production or Shopify prod here. Staging n8n (Этап 5 Slice B) is documented in [`sku-catalog-audit-staging.md`](sku-catalog-audit-staging.md) — never production n8n.
 
 Related: [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md) ·
 [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md) ·
@@ -69,6 +69,7 @@ A root `/railway.json` made the new `sku-api` service inherit Next.js `pnpm buil
 | --- | --- | --- |
 | `sku-postgres` | Dedicated PostgreSQL (not Synarava CMS `DATABASE_URL`) | IaC partial `sku` |
 | `sku-api` | Node HTTP (`@synarava/sku-api`) | IaC partial `sku` — [`.railway/railway.ts`](../../.railway/railway.ts) |
+| `n8n` + `n8n-data` | Staging catalog-audit schedule (Этап 5 Slice B) | IaC partial `sku` + workflow import — [`sku-catalog-audit-staging.md`](sku-catalog-audit-staging.md) |
 | synarava-web (existing) | Storefront + admin; private client of SKU API | Legacy CaC: [`deploy/railway.synarava-web.json`](../../deploy/railway.synarava-web.json) |
 
 ## One-time dashboard fix (do this before redeploy)

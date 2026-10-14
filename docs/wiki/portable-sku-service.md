@@ -1,6 +1,6 @@
 # Portable SKU service
 
-**Status:** Этап 1–4 on staging · Этап 5 Slice A (catalog audit API + dry-run CLI) · Этап 5 Slice B (n8n) / Этап 6 not started  
+**Status:** Этап 1–4 on staging · Этап 5 Slice A+B in repo (catalog audit API/CLI + staging n8n workflow/IaC) · Этап 6 not started  
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md)  
 **Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)  
@@ -28,7 +28,7 @@ Factory: `createSkuStoreRuntime()` in `services/sku-api/src/registry/create-stor
 
 - `GET /health` — ready when credentials configured **and** DB reachable (Postgres mode); body includes `store`
 - `POST /v1/workspaces/{key}/skus/preview|validate`
-- `POST /v1/workspaces/{key}/audit/catalog` — read-only batch compare (Этап 5 Slice A)
+- `POST /v1/workspaces/{key}/audit/catalog` — read-only batch compare (Этап 5 Slice A); staging n8n schedule (Slice B) in [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
 - `POST /v1/workspaces/{key}/reservations` (+ `Idempotency-Key`)
 - `POST /v1/workspaces/{key}/assignments/confirm`
 - `POST /v1/workspaces/{key}/assignments/{id}/lock`
@@ -92,6 +92,7 @@ Postgres integration covers persist-across-reconnect, **parallel same-stem uniqu
 
 - Full retirement of dual `Product.sku` identity
 - Push writing every variant SKU (still primary-focused on Push path)
-- Этап 5 Slice B (Railway n8n schedule) · Этап 6 production rollout
+- Этап 5: Railway staging n8n **manual apply** (Kiryl runbook) · `EXTERNAL_CHANGE_DETECTED` · recovery queue
+- Этап 6 production rollout
 - Manual matrix rows M6 / M9–M11 / M13 (M2 Pass Kiryl 2026-10-13; M3/M4/M5/M7/M8/M12 auto)
 

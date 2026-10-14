@@ -223,7 +223,7 @@ Workflow не хранит next number и не вызывает LLM для ка�
 | `synarava-web` | root package | существующие `pnpm build` / `pnpm start` | public storefront + private call to API |
 | `sku-api` | `services/sku-api` workspace | `pnpm --filter @synarava/sku-api build` / `start` | private initially; public gateway only for approved external clients |
 | `sku-postgres` | Railway PostgreSQL | managed | private only |
-| `n8n` | later | отдельный service | private API client where possible |
+| `n8n` | staging Slice B (`n8nio/n8n` image + volume) | отдельный service в `synarava-shop/staging` | private client → `sku-api`; editor public + basic auth |
 
 Для `sku-api` watch paths включают `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile и workspace config. Изменение SKU-кода не должно автоматически пересобирать storefront, если публичный contract не изменился.
 
@@ -313,16 +313,18 @@ Delivery flow: feature branch → PR CI → merge в `staging` → незави�
 
 ### Этап 5 — n8n audit automation
 
-**Статус реализации (2026-10-13):** Slice A на staging (без Railway n8n / production / merge в main).
+**Статус реализации (2026-10-14):** Slice A + Slice B **в репозитории** для staging (без production n8n / merge в main). Ручной apply n8n на Railway — у Kiryl (runbook).
 
 - read-only catalog audit: `POST /v1/workspaces/{key}/audit/catalog` + `runCatalogAudit` (`services/sku-api/src/audit/catalog-audit.ts`)
-- batching (max 100), digest checkpoint (`previousDigest` / CLI `.sku-audit-checkpoint.json`), идемпотентный повтор
+- batching (max 100), digest checkpoint (`previousDigest` / CLI `.sku-audit-checkpoint.json` / n8n static data), идемпотентный повтор
 - `shouldNotify` только при новом deviation digest; `durationMs` + `llmEnabled: false`
-- Dry-run CLI: `pnpm --filter @synarava/sku-api audit:catalog` · runbook [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
+- Dry-run CLI: `pnpm --filter @synarava/sku-api audit:catalog`
+- Slice B: IaC service `n8n` + volume (`n8nio/n8n:2.44.1`) в [`.railway/railway.ts`](../../.railway/railway.ts); workflow [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) — schedule `0 3 * * *` UTC, notify webhook only when `shouldNotify`
+- Runbook (manual apply steps): [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
 
-**Ещё не в Этапе 5:** Railway n8n service + scheduled workflow (Slice B); mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue automation.
+**Ещё не в Этапе 5:** mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue automation; production n8n.
 
-**Выход (Slice A):** API/CLI не создаёт SKU и не владеет ledger-состоянием; повторный запуск с тем же digest не создаёт нового notify.
+**Выход:** workflow/API не создаёт SKU и не владеет ledger-состоянием; повторный активный запуск с тем же digest не создаёт нового notify.
 
 ### Этап 6 — ограниченный production rollout
 
