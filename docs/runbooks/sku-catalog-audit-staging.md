@@ -115,7 +115,7 @@ railway config plan
 railway config apply
 ```
 
-Image pin: `n8nio/n8n:2.44.1`. Persistence: **`n8n-postgres`** (separate from `sku-postgres`) + volume `/home/node/.n8n`.
+Image pin: `n8nio/n8n:2.44.1`. Persistence: **`n8n-postgres`** (separate from `sku-postgres`) + volume `/home/node/.n8n` pinned to its adopted staging region `europe-west4-drams3a`. IaC also sets `RAILWAY_RUN_UID=0`, required because Railway mounts volumes as `root`; without it the official non-root n8n image crash-loops with `EACCES` while writing `/home/node/.n8n/config`.
 
 ### 2. Dashboard — networking + sealed vars on service `n8n`
 

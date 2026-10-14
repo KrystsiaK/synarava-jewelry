@@ -30,4 +30,9 @@ describe("sku-api Railway IaC adopt fields", () => {
     expect(SKU_API_WATCH_PATTERNS).not.toContain("/.railway/**");
     expect(railwayTs).toContain("watchPatterns: [...SKU_API_WATCH_PATTERNS]");
   });
+
+  it("runs staging n8n with access to its Railway volume", () => {
+    expect(railwayTs).toMatch(/region:\s*"europe-west4-drams3a"/);
+    expect(railwayTs).toMatch(/RAILWAY_RUN_UID:\s*"0"/);
+  });
 });

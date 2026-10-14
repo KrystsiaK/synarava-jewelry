@@ -117,7 +117,10 @@ export default defineRailway((ctx) => {
   // Staging n8n — separate Postgres from sku-postgres; volume for encryption keys/local files.
   // https://docs.railway.com/guides/n8n (Optional: Use Postgres instead of SQLite)
   const n8nPostgres = postgres("n8n-postgres");
-  const n8nData = volume("n8n-data", { sizeMB: 1024 });
+  const n8nData = volume("n8n-data", {
+    region: "europe-west4-drams3a",
+    sizeMB: 1024,
+  });
 
   const n8n = service("n8n", {
     source: image(N8N_IMAGE, {
@@ -127,6 +130,10 @@ export default defineRailway((ctx) => {
       "/home/node/.n8n": n8nData,
     },
     env: {
+      // Railway volumes are mounted as root; n8n must be able to persist
+      // its config and encryption-key metadata under /home/node/.n8n.
+      // https://docs.railway.com/volumes#permissions
+      RAILWAY_RUN_UID: "0",
       N8N_PORT: "${{PORT}}",
       N8N_HOST: "0.0.0.0",
       N8N_PROTOCOL: "https",
