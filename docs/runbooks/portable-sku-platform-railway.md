@@ -33,17 +33,19 @@ CLI reference: [railway config](https://docs.railway.com/cli/config) (`pull`, `p
 
 **Exact sequence before `config plan`:**
 
-1. **Link**
+1. **Link + verify**
    ```bash
    railway link --project portable-sku-platform --environment staging
+   railway status --json   # abort unless project id is 6d7d5885-43eb-4283-b4a4-e552fc6dba7b AND stage is staging
    ```
+   Helper script enforces this check. Never override toward production via env.
 2. **`railway config pull` (inspect — do not overwrite committed authoring)**
    ```bash
    # JSON inspect keeps committed .railway/railway.ts intact
-   railway config pull --json --environment staging > /tmp/sku-platform-staging.pull.json
+   railway config pull --json --environment staging > .railway/local/sku-platform-staging.pull.json
    ```
    Confirm the live graph includes services named **`sku-api`** and **`sku-postgres`** (name match is how IaC adopts without recreate).  
-   Do **not** `railway config pull --force` over the committed file unless you intentionally re-author and re-diff; restore with `git checkout -- .railway/railway.ts` if needed.
+   Do **not** `railway config pull --force` over the committed authoring file. Pull JSON stays under `.railway/local/` (ignored).
 3. **`railway config partials` (ownership check)**
    ```bash
    railway config partials list

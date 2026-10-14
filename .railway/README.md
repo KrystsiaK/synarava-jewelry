@@ -29,9 +29,11 @@ CLI: [railway config](https://docs.railway.com/cli/config) — `pull`, `partials
 railway login
 railway link --project portable-sku-platform --environment staging
 # project ID 6d7d5885-43eb-4283-b4a4-e552fc6dba7b
+railway status --json   # must match project id + staging
 
 # BEFORE plan (required):
-railway config pull --json --environment staging > /tmp/sku-platform-staging.pull.json
+mkdir -p .railway/local
+railway config pull --json --environment staging > .railway/local/sku-platform-staging.pull.json
 railway config partials list
 # Transfer to partial `sku` only if another named partial owns sku-api/sku-postgres
 

@@ -48,7 +48,9 @@ Script: [`scripts/sku-platform-staging-adopt-check.sh`](../../scripts/sku-platfo
 
 ```bash
 railway link --project portable-sku-platform --environment staging
-railway config pull --json --environment staging > /tmp/sku-platform-staging.pull.json
+railway status --json   # must be project 6d7d5885-… and staging
+mkdir -p .railway/local
+railway config pull --json --environment staging > .railway/local/sku-platform-staging.pull.json
 railway config partials list
 railway config plan
 # Apply ONLY after Kiryl confirmation + apply gate (no recreate of existing sku-api/sku-postgres)
@@ -56,7 +58,7 @@ railway config plan
 
 Guard: immutable project ID; refuses `synarava-shop` and production.
 
-Rate limits on `sku-api`: `SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN` (workspace+IP, before scrypt) then `SKU_API_RATE_LIMIT_PER_MIN` (post-auth credential fingerprint).
+Rate limits on `sku-api`: `SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN` (workspace + Railway `X-Real-IP`, before scrypt; ignore client `X-Forwarded-For`) then `SKU_API_RATE_LIMIT_PER_MIN` (post-auth credential fingerprint).
 
 ## Watch paths
 

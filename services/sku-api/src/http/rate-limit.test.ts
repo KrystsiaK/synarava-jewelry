@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { IncomingMessage } from "node:http";
+import { Socket } from "node:net";
 import { createCredential } from "../auth.js";
 import {
+  clientIpFromRequest,
   createFixedWindowRateLimiter,
   fingerprintCredential,
   postAuthRateLimitKey,
@@ -8,7 +11,33 @@ import {
   resolveRateLimitPerMinute,
 } from "./rate-limit.js";
 
+function fakeReq(headers: Record<string, string | string[] | undefined>): IncomingMessage {
+  const socket = new Socket();
+  Object.defineProperty(socket, "remoteAddress", { value: "10.0.0.9" });
+  return { headers, socket } as IncomingMessage;
+}
+
 describe("sku-api rate limit", () => {
+  it("uses Railway X-Real-IP and ignores forged X-Forwarded-For", () => {
+    const ip = clientIpFromRequest(
+      fakeReq({
+        "x-forwarded-for": "198.51.100.1",
+        "x-real-ip": "203.0.113.50",
+      }),
+    );
+    expect(ip).toBe("203.0.113.50");
+  });
+
+  it("does not trust X-Forwarded-For alone (falls back to socket)", () => {
+    const ip = clientIpFromRequest(
+      fakeReq({
+        "x-forwarded-for": "198.51.100.1",
+      }),
+    );
+    expect(ip).toBe("10.0.0.9");
+    expect(ip).not.toBe("198.51.100.1");
+  });
+
   it("pre-auth keys are shared for a workspace+IP (not per Bearer)", () => {
     const a = preAuthRateLimitKey({
       workspaceKey: "synarava-shop",

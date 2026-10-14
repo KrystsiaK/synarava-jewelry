@@ -68,19 +68,21 @@ export function createFixedWindowRateLimiter(options: {
   };
 }
 
-/** Client IP for pre-auth shared buckets (proxy-aware). */
+/**
+ * Client IP for pre-auth buckets on Railway.
+ * Trust only `X-Real-IP` (edge-set). Ignore client-controlled `X-Forwarded-For`.
+ * https://docs.railway.com/reference/public-networking (proxy headers)
+ */
 export function clientIpFromRequest(req: IncomingMessage): string {
-  const xff = req.headers["x-forwarded-for"];
-  if (typeof xff === "string" && xff.trim() !== "") {
-    return xff.split(",")[0]!.trim();
-  }
-  if (Array.isArray(xff) && typeof xff[0] === "string" && xff[0].trim() !== "") {
-    return xff[0].split(",")[0]!.trim();
-  }
   const realIp = req.headers["x-real-ip"];
   if (typeof realIp === "string" && realIp.trim() !== "") {
     return realIp.trim();
   }
+  if (Array.isArray(realIp)) {
+    const first = realIp.find((v) => typeof v === "string" && v.trim() !== "");
+    if (first) return first.trim();
+  }
+  // Do not read x-forwarded-for — spoofable by clients.
   return req.socket.remoteAddress ?? "unknown";
 }
 
