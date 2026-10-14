@@ -60,7 +60,9 @@ Guard: immutable project ID; refuses `synarava-shop` and production.
 
 Rate limits on `sku-api`: `SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN` (workspace + Railway `X-Real-IP`, before scrypt; ignore client `X-Forwarded-For`) then `SKU_API_RATE_LIMIT_PER_MIN` (post-auth credential fingerprint).
 
-## Watch paths
+## Watch paths + check suites
+
+Authored in `.railway/railway.ts` (`SKU_API_WATCH_PATTERNS`, `source.checkSuites: true`) — do not rely on dashboard-only values or string `build` (plan would clear them).
 
 **sku-api (portable-sku-platform):**
 

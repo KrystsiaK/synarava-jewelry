@@ -53,7 +53,12 @@ railway config plan
 railway config apply
 ```
 
-## Watch paths (dashboard — deploy triggers)
+## Watch paths + check suites (authored in `railway.ts`)
+
+`sku-api` must keep live staging settings that a string `build` / bare `github()` would drop on `config plan`:
+
+- `source.checkSuites: true`
+- `build.watchPatterns` (exact list below)
 
 ### portable-sku-platform → `sku-api` (staging)
 

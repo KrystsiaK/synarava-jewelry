@@ -99,6 +99,8 @@ CLI reference: [railway config](https://docs.railway.com/cli/config) (`pull`, `p
 
 ## Watch paths / CI
 
+Authored in `.railway/railway.ts` (`build.watchPatterns` + `source.checkSuites: true`) so `config plan` does not clear live staging settings.
+
 | Surface | Paths |
 | --- | --- |
 | Platform `sku-api` | `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile/workspace, `.railway/**` |
