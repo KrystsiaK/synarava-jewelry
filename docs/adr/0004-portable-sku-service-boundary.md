@@ -83,4 +83,5 @@ SKU API is multi-workspace by design. Collocating it inside the Synarava Railway
 
 - **Positive**: clear platform boundary; rename-safe IaC identity; staging automation isolated from prod n8n.
 - **Negative**: HTTPS exposure needs rate limits; staging n8n cutover needs explicit `plan` review.
+- **Accepted trade-off (2026-10-14):** one n8n per environment (own Postgres, volume, owner account, secrets) over a shared automation n8n. Isolation + same-project private networking + upgrade testing on staging outweigh the extra instance and credentials. DBs stay next to their owning service (cross-project = public TCP proxy). Current prod `sku-platform-n8n*` is interim; prod will get the staging layout.
 - **Ops gate:** do not `railway config apply` until Kiryl confirms [`portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md).

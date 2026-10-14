@@ -22,7 +22,7 @@ Read-only catalog audit against the sku-api ledger. No SKU creation. LLM off.
 
 | Piece | Path |
 | --- | --- |
-| IaC `n8n` + `n8n-postgres` + `n8n-data` (staging + project-ID guard) | [`.railway/railway.ts`](../../.railway/railway.ts) |
+| IaC `n8n` + `n8n-postgres` + `n8n-data-v2` (staging + project-ID guard) | [`.railway/railway.ts`](../../.railway/railway.ts) |
 | Workflow JSON | [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) |
 | Workflow contract test | `lib/sku/__tests__/n8n-catalog-audit-workflow.test.ts` |
 
@@ -108,14 +108,14 @@ pnpm install --frozen-lockfile
 railway config plan
 # Expect: project ID 6d7d5885-… / staging
 # Expect: adopt existing sku-api + sku-postgres (no recreate)
-# Expect: create staging n8n + n8n-postgres + n8n-data
+# Expect: create staging n8n + n8n-postgres + n8n-data-v2
 # Abort if plan create/delete/replace existing sku-api, sku-postgres, or its volume
 # Abort if any production / sku-platform-n8n* / synarava-shop target
 # Do NOT apply until Kiryl confirms
 railway config apply
 ```
 
-Image pin: `n8nio/n8n:2.44.1`. Persistence: **`n8n-postgres`** (separate from `sku-postgres`) + volume `/home/node/.n8n` pinned to its adopted staging region `europe-west4-drams3a`. IaC also sets `RAILWAY_RUN_UID=0`, required because Railway mounts volumes as `root`; without it the official non-root n8n image crash-loops with `EACCES` while writing `/home/node/.n8n/config`.
+Image pin: `n8nio/n8n:2.44.1`. Persistence: **`n8n-postgres`** (separate from `sku-postgres`) + **`n8n-data-v2`** mounted at `/home/node/.n8n` and pinned to its adopted staging region `europe-west4-drams3a`. The `v2` name avoids restoring the incompatible encryption-key metadata retained with the deleted empty staging volume. IaC sets `RAILWAY_RUN_UID=0`, required because Railway mounts volumes as `root`, and `N8N_USER_FOLDER=/home/node`, so the root-run process still persists its config and encryption-key metadata on `/home/node/.n8n` instead of ephemeral `/root/.n8n`.
 
 ### 2. Dashboard — networking + sealed vars on service `n8n`
 

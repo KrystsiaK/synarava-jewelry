@@ -3,7 +3,7 @@
  *
  * Target `portable-sku-platform` / staging:
  * - sku-api + sku-postgres (adopt existing)
- * - staging n8n + separate n8n-postgres + n8n-data volume
+ * - staging n8n + separate n8n-postgres + n8n-data-v2 volume
  *
  * Guard: immutable project ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` (not display name).
  * Staging only. Never touch production (including prod `sku-platform-n8n*`).
@@ -106,6 +106,9 @@ export default defineRailway((ctx) => {
     healthcheck: "/health",
     healthcheckTimeout: 30,
     env: {
+      // Explicit so n8n's `${{sku-api.PORT}}` resolves (runtime-injected PORT
+      // is not referenceable); matches the public domain targetPort.
+      PORT: "8080",
       SKU_DATABASE_URL: skuPostgres.env.DATABASE_URL,
       SKU_API_CREDENTIALS: preserve(),
       // Pre-auth (workspace+IP) then post-auth (credential fingerprint).
@@ -117,7 +120,10 @@ export default defineRailway((ctx) => {
   // Staging n8n — separate Postgres from sku-postgres; volume for encryption keys/local files.
   // https://docs.railway.com/guides/n8n (Optional: Use Postgres instead of SQLite)
   const n8nPostgres = postgres("n8n-postgres");
-  const n8nData = volume("n8n-data", {
+  // `n8n-data` is pending Railway's 48-hour deletion retention after the
+  // empty staging reset. Use a new stable resource name instead of restoring
+  // the incompatible encryption-key metadata from that volume.
+  const n8nData = volume("n8n-data-v2", {
     region: "europe-west4-drams3a",
     sizeMB: 1024,
   });
@@ -134,6 +140,9 @@ export default defineRailway((ctx) => {
       // its config and encryption-key metadata under /home/node/.n8n.
       // https://docs.railway.com/volumes#permissions
       RAILWAY_RUN_UID: "0",
+      // Running as root changes HOME to /root. Keep n8n's user folder on the
+      // persistent volume mounted at /home/node/.n8n.
+      N8N_USER_FOLDER: "/home/node",
       N8N_PORT: "${{PORT}}",
       N8N_HOST: "0.0.0.0",
       N8N_PROTOCOL: "https",
