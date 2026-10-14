@@ -218,17 +218,17 @@ Workflow не хранит next number и не вызывает LLM для ка�
 
 Один GitHub-репозиторий питает **два Railway project**:
 
-| Railway project | Services | Role |
-| --- | --- | --- |
-| **`portable-sku-platform`** (target; interim **`handsome-commitment`**) | `sku-api`, `sku-postgres`, platform n8n | Multi-workspace SKU API + automation |
-| **`synarava-shop`** | `synarava-web` only | First client (storefront + Admin adapter) |
+| Railway project | ID | Services (staging fact) | Role |
+| --- | --- | --- | --- |
+| **`portable-sku-platform`** (renamed from `handsome-commitment`) | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | `sku-api`, `sku-postgres` only — **no n8n in staging yet** | Multi-workspace SKU API |
+| **`synarava-shop`** | `fe392310-…` | `synarava-web` only | First client (storefront + Admin adapter) |
 
 | Service | Source | Network |
 | --- | --- | --- |
 | `synarava-web` | root package / legacy CaC | Public storefront; **HTTPS** client of sku-api (Bearer) |
 | `sku-api` | `services/sku-api` | Public HTTPS for approved clients; workspace Bearer auth + rate limit |
 | `sku-postgres` | Railway PostgreSQL | Private to the **platform** project only |
-| Platform n8n | image (e.g. prod `sku-platform-n8n`) | HTTPS → sku-api; not inside `synarava-shop` |
+| Platform n8n | later (staging not present yet; prod may have `sku-platform-n8n`) | HTTPS → sku-api; not inside `synarava-shop`; not created by current IaC |
 
 **Запрещено:** дублировать `sku-api` в `synarava-shop`; опираться на `${{sku-api.*}}` private refs **между** Railway projects.
 

@@ -1,9 +1,9 @@
-# SKU API — Railway staging (client + interim platform)
+# SKU API — Railway staging (client + platform)
 
 **Canonical platform architecture:** [`portable-sku-platform-railway.md`](portable-sku-platform-railway.md)  
 **ADR amendment:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)
 
-Staging checklist for Synarava **as HTTPS client** and the **interim** SKU platform project.  
+Staging checklist for Synarava **as HTTPS client** and the SKU platform project.  
 **Do not configure production here. Do not `railway config apply` until Kiryl confirms the platform plan.**
 
 ## GitHub check triage
@@ -13,17 +13,16 @@ Staging checklist for Synarava **as HTTPS client** and the **interim** SKU platf
 | `Quality Gates`, `Storefront smoke…` | **GitHub Actions** | Repo CI |
 | `SKU Quality Gates` | **GitHub Actions** | sku path workflow |
 | `synarava-shop - synarava-shop-app` | **Railway** | Web deploy in **synarava-shop** |
-| `handsome-commitment - sku-api` | **Railway** | **Live** staging sku-api in **handsome-commitment** (interim platform) |
+| `portable-sku-platform - sku-api` (or legacy `handsome-commitment - sku-api`) | **Railway** | Staging sku-api in project ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` |
 
 There is intentionally **no** requirement for `synarava-shop - sku-api`. Do **not** create a duplicate sku-api next to the storefront.
 
 ## Project roles
 
-| Railway project | Owns | Does not own |
-| --- | --- | --- |
-| `synarava-shop` | Storefront / Admin (`synarava-shop-app`) | sku-api, sku-postgres, platform n8n |
-| `handsome-commitment` (interim) | staging `sku-api`, `sku-postgres` | Synarava web |
-| `portable-sku-platform` (target) | Future home of API + DB + n8n | Synarava web |
+| Railway project | ID | Owns | Does not own |
+| --- | --- | --- | --- |
+| `synarava-shop` | `fe392310-…` | Storefront / Admin (`synarava-shop-app`) | sku-api, sku-postgres, platform n8n |
+| `portable-sku-platform` | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | staging `sku-api`, `sku-postgres` (Online) | Synarava web; **no staging n8n yet** |
 
 ## Synarava web env (staging)
 
@@ -44,16 +43,16 @@ node services/sku-api/scripts/generate-credentials.mjs synarava-shop
 ## IaC (platform staging)
 
 ```bash
-railway link --project handsome-commitment --environment staging
+railway link --project portable-sku-platform --environment staging
 railway config plan
 # Apply ONLY after Kiryl confirmation — see portable-sku-platform-railway.md
 ```
 
-Partial `sku` manages `sku-api` + `sku-postgres` only. Guard refuses `synarava-shop` and production.
+Partial `sku` manages `sku-api` + `sku-postgres` only. Guard refuses `synarava-shop`, production, and any project ID other than `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`.
 
 ## Watch paths
 
-**sku-api (handsome-commitment):**
+**sku-api (portable-sku-platform):**
 
 ```
 /services/sku-api/**
@@ -77,4 +76,4 @@ Expect `ready: true` with `store: "postgres"` on staging.
 
 ## Production
 
-Out of scope. Existing `sku-platform-n8n` / `sku-platform-n8n-postgres` are documented for read-only confirmation in [`portable-sku-platform-railway.md`](portable-sku-platform-railway.md). No prod apply from this runbook.
+Out of scope. Existing `sku-platform-n8n` / `sku-platform-n8n-postgres` (if present) are documented for read-only confirmation in [`portable-sku-platform-railway.md`](portable-sku-platform-railway.md). No prod apply from this runbook.

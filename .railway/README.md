@@ -4,16 +4,17 @@ Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure
 
 | File | Role |
 | --- | --- |
-| `.railway/railway.ts` | Named partial `sku` — interim **handsome-commitment / staging** `sku-api` + `sku-postgres` |
+| `.railway/railway.ts` | Named partial `sku` — **portable-sku-platform / staging** `sku-api` + `sku-postgres` |
 | `deploy/railway.synarava-web.json` | Legacy CaC for **synarava-web** in project **synarava-shop** only |
-| `deploy/n8n/sku-catalog-audit.workflow.json` | Catalog-audit workflow (import into platform n8n after cutover) |
+| `deploy/n8n/sku-catalog-audit.workflow.json` | Catalog-audit workflow (import into platform n8n when staging n8n exists) |
 
-## Architecture (locked direction)
+## Architecture (locked)
 
-- **Target** Railway project: `portable-sku-platform` (multi-workspace API).
-- **Interim:** existing staging `sku-api` / `sku-postgres` in **`handsome-commitment`**.
+- **Railway project:** `portable-sku-platform` (renamed from `handsome-commitment`).
+- **Immutable project ID:** `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` — IaC guard keys on this ID, not the display name.
+- **Staging inventory (fact):** `sku-api` + `sku-postgres` only (Online). **No n8n in staging yet.**
 - **Synarava** (`synarava-shop`) is a **client** over **HTTPS** — never host a second sku-api there; never use cross-project private `${{sku-api.*}}`.
-- **Production:** do not apply this partial; existing `sku-platform-n8n` / `sku-platform-n8n-postgres` are read-only until a separate cutover.
+- **Production:** do not apply this partial; prod automation (e.g. `sku-platform-n8n*`) is read-only until a separate cutover.
 
 Full plan: `docs/runbooks/portable-sku-platform-railway.md`.
 
@@ -21,20 +22,21 @@ Full plan: `docs/runbooks/portable-sku-platform-railway.md`.
 
 ```bash
 railway login
-railway link --project handsome-commitment --environment staging
+railway link --project portable-sku-platform --environment staging
+# Or link by ID: 6d7d5885-43eb-4283-b4a4-e552fc6dba7b
 pnpm install --frozen-lockfile
 railway config plan
-# Expect: handsome-commitment/staging; sku-api + sku-postgres only.
-# Abort on unexpected destroy or any synarava-shop target.
+# Expect: portable-sku-platform/staging; sku-api + sku-postgres only.
+# Abort on unexpected destroy, any n8n create, or any synarava-shop target.
 # Do NOT apply until Kiryl confirms the architecture plan.
 railway config apply
 ```
 
-Guard refuses: non-staging environments, `synarava-shop`, and any project other than `handsome-commitment` (until `SKU_PLATFORM_PROJECT` is flipped to `portable-sku-platform`).
+Guard refuses: non-staging environments, `synarava-shop`, missing `projectId`, and any project ID other than `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`.
 
 ## Watch paths (dashboard — deploy triggers)
 
-### handsome-commitment → `sku-api` (staging)
+### portable-sku-platform → `sku-api` (staging)
 
 ```
 /services/sku-api/**

@@ -1,9 +1,10 @@
 /**
  * Railway Infrastructure as Code (GA) — portable SKU platform slice (staging).
  *
- * Architecture (2026-10-14):
- * - Target Railway project: `portable-sku-platform` (multi-workspace SKU API).
- * - Interim: manage existing `sku-api` + `sku-postgres` in **handsome-commitment**.
+ * Architecture (confirmed rename 2026-10-14):
+ * - Railway project **portable-sku-platform** (was handsome-commitment).
+ * - Immutable project ID: `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` (IaC guard uses ID, not display name).
+ * - Staging inventory today: **sku-api** + **sku-postgres** only (Online). No n8n in staging yet.
  * - Do **NOT** create sku-api / n8n duplicates inside `synarava-shop`
  *   (Synarava web is HTTPS client only — no cross-project private `${{service.*}}`).
  *
@@ -28,16 +29,18 @@ import {
 export const partial = "sku";
 
 /**
- * Interim project that already hosts staging sku-api (GitHub check
- * `handsome-commitment - sku-api`). Flip to `portable-sku-platform` after
- * Kiryl creates/renames the project — still staging-only.
+ * Immutable Railway project ID for portable-sku-platform.
+ * Display name can change; guard must not key off `projectName`.
  */
-const SKU_PLATFORM_PROJECT = "handsome-commitment";
+const SKU_PLATFORM_PROJECT_ID = "6d7d5885-43eb-4283-b4a4-e552fc6dba7b";
+
+/** Current display name (docs / `project()` only — not the apply guard). */
+const SKU_PLATFORM_PROJECT_NAME = "portable-sku-platform";
 
 export default defineRailway((ctx) => {
   if (!ctx.isEnvironment("staging")) {
     throw new Error(
-      `Refusing to manage ${ctx.projectName}/${ctx.environmentName}: staging only. Production is out of scope for this partial.`,
+      `Refusing to manage ${ctx.projectName ?? "?"}/${ctx.environmentName}: staging only. Production is out of scope for this partial.`,
     );
   }
 
@@ -47,13 +50,19 @@ export default defineRailway((ctx) => {
     );
   }
 
-  if (ctx.projectName !== SKU_PLATFORM_PROJECT) {
+  if (!ctx.projectId) {
     throw new Error(
-      `Refusing ${ctx.projectName}/${ctx.environmentName}: expected ${SKU_PLATFORM_PROJECT}/staging (interim). Target rename: portable-sku-platform.`,
+      "Refusing: Railway context missing projectId. IaC guard requires immutable project identity.",
     );
   }
 
-  // Existing staging data plane — IaC adopts; does not invent a second Postgres in synarava-shop.
+  if (ctx.projectId !== SKU_PLATFORM_PROJECT_ID) {
+    throw new Error(
+      `Refusing projectId=${ctx.projectId} (${ctx.projectName ?? "?"}): expected ${SKU_PLATFORM_PROJECT_ID} (${SKU_PLATFORM_PROJECT_NAME}).`,
+    );
+  }
+
+  // Existing staging data plane — IaC adopts; does not invent Postgres or n8n.
   const skuPostgres = postgres("sku-postgres");
 
   const skuApi = service("sku-api", {
@@ -72,10 +81,10 @@ export default defineRailway((ctx) => {
     },
   });
 
-  // n8n stays out of this partial until platform project cutover.
-  // Production already has sku-platform-n8n (+ postgres) — do not recreate here.
+  // Staging has no n8n yet — do not create it in this partial.
+  // Production may host sku-platform-n8n (+ postgres); out of scope for apply.
 
-  return project(ctx.projectName, {
+  return project(SKU_PLATFORM_PROJECT_NAME, {
     resources: [skuPostgres, skuApi],
   });
 });

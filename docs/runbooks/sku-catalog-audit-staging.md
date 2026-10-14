@@ -23,9 +23,9 @@ Read-only catalog audit against the sku-api ledger. No SKU creation. LLM off.
 | Workflow JSON | [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) |
 | Contract test | `lib/sku/__tests__/n8n-catalog-audit-workflow.test.ts` |
 
-**Architecture change (2026-10-14):** do **not** create n8n inside `synarava-shop`. Import the workflow into the **SKU platform** n8n (interim: existing prod-oriented `sku-platform-n8n` is **not** to be modified from staging ops; prefer a staging n8n in `handsome-commitment` / `portable-sku-platform` after Kiryl confirm).
+**Architecture (2026-10-14):** do **not** create n8n inside `synarava-shop`. Platform project is **`portable-sku-platform`** (ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`). **Staging has no n8n yet** — do not invent one via IaC; use the dry-run CLI until Kiryl approves adding staging n8n. Do **not** modify production `sku-platform-n8n` from staging ops.
 
-Call sku-api over **HTTPS** with Bearer auth. Checkpoint via n8n static data; notify only when `shouldNotify: true`.
+Call sku-api over **HTTPS** with Bearer auth. When staging n8n exists: checkpoint via n8n static data; notify only when `shouldNotify: true`.
 
 ## Request shape
 
@@ -53,10 +53,10 @@ pnpm --filter @synarava/sku-api audit:catalog \
 
 **Stop:** do not apply Railway IaC or create synarava-shop n8n until the platform plan is confirmed.
 
-1. Confirm staging sku-api HTTPS URL in **handsome-commitment** (or `portable-sku-platform` after rename).  
+1. Confirm staging sku-api HTTPS URL in **portable-sku-platform** (project ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`).  
 2. Ensure Synarava staging web `SKU_API_URL` is that HTTPS URL.  
-3. Import `deploy/n8n/sku-catalog-audit.workflow.json` into **platform staging n8n** (create staging n8n only if Kiryl approves — not in synarava-shop).  
-4. Credential: Header Auth `Authorization: Bearer <token>`.  
+3. Prefer dry-run CLI until staging n8n exists. Create/import staging n8n **only** if Kiryl approves (platform project — not synarava-shop).  
+4. When n8n exists: Credential Header Auth `Authorization: Bearer <token>`.  
 5. Env: `SKU_API_URL=https://…`, `CATALOG_ITEMS_JSON`, `NOTIFY_WEBHOOK_URL`.  
 6. Activate schedule `0 3 * * *` UTC; verify notify-once + silent re-run.
 

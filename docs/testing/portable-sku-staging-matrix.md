@@ -11,7 +11,7 @@ Production rollout remains **out of scope**. Do not merge SKU work to `main` via
 
 | Check | Expected |
 | --- | --- |
-| sku-api on **SKU platform** (interim handsome-commitment / staging) | `GET /health` ok via HTTPS |
+| sku-api on **portable-sku-platform** staging (ID `6d7d5885-…`) | `GET /health` ok via HTTPS |
 | Web env | `SKU_API_URL`, `SKU_API_TOKEN`, `SKU_API_WORKSPACE=synarava-shop` |
 | Published profile v1 | families include e.g. `jewelry.necklace` |
 | Shopify Admin on staging store | Admin GraphQL write for variant SKU |
