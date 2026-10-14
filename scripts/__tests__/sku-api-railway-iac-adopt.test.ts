@@ -32,7 +32,9 @@ describe("sku-api Railway IaC adopt fields", () => {
   });
 
   it("runs staging n8n with access to its Railway volume", () => {
+    expect(railwayTs).toMatch(/volume\("n8n-data-v2"/);
     expect(railwayTs).toMatch(/region:\s*"europe-west4-drams3a"/);
     expect(railwayTs).toMatch(/RAILWAY_RUN_UID:\s*"0"/);
+    expect(railwayTs).toMatch(/N8N_USER_FOLDER:\s*"\/home\/node"/);
   });
 });
