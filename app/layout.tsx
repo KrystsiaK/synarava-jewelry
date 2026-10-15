@@ -196,6 +196,7 @@ export default async function RootLayout({
             } : undefined}
             gtmId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_GTM_ID : undefined}
             metaPixelId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_META_PIXEL_ID : undefined}
+            claritySiteId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_CLARITY_SITE_ID : undefined}
             nonce={nonce}
           />
           <WebVitalsReporter />

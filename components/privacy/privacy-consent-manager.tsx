@@ -73,11 +73,13 @@ function ConsentDestinations({
   consent,
   gtmId,
   metaPixelId,
+  claritySiteId,
   nonce,
 }: {
   consent: PrivacyConsent | null;
   gtmId?: string;
   metaPixelId?: string;
+  claritySiteId?: string;
   nonce?: string;
 }) {
   useEffect(() => {
@@ -94,6 +96,16 @@ function ConsentDestinations({
           src={`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`}
           strategy="afterInteractive"
           nonce={nonce}
+        />
+      ) : null}
+      {consent?.analytics && claritySiteId ? (
+        <Script
+          id="consent-aware-clarity"
+          strategy="afterInteractive"
+          nonce={nonce}
+          dangerouslySetInnerHTML={{
+            __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script",${JSON.stringify(claritySiteId)});`,
+          }}
         />
       ) : null}
       {consent?.marketing && metaPixelId ? (
@@ -115,12 +127,14 @@ export function PrivacyConsentManager({
   shopifyConfig,
   gtmId,
   metaPixelId,
+  claritySiteId,
   nonce,
 }: {
   initialConsent?: string;
   shopifyConfig?: ShopifyPrivacyConfig;
   gtmId?: string;
   metaPixelId?: string;
+  claritySiteId?: string;
   nonce?: string;
 }) {
   const { t, locale } = useTranslations();
@@ -207,7 +221,7 @@ export function PrivacyConsentManager({
         />
       ) : null}
 
-      <ConsentDestinations consent={consent} gtmId={gtmId} metaPixelId={metaPixelId} nonce={nonce} />
+      <ConsentDestinations consent={consent} gtmId={gtmId} metaPixelId={metaPixelId} claritySiteId={claritySiteId} nonce={nonce} />
 
       {!consent && !preferencesOpen ? (
         <section
